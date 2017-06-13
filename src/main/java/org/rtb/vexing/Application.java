@@ -4,10 +4,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
@@ -31,6 +29,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -40,11 +39,10 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 
 public class Application extends AbstractVerticle {
 
-     private static final int PORT = 8080;
+    private static final int PORT = 8080;
 //    private static final int PORT = 9090;
 
     private static final BidResponse NO_BID_RESPONSE = BidResponse.builder().nbr(0).build();
@@ -54,24 +52,7 @@ public class Application extends AbstractVerticle {
 
     private String date;
 
-    private ConcurrentHashMap<String, HttpClient> clientCache = new ConcurrentHashMap<>();
-
-    private void handleIndex(final RoutingContext context) {
-        logger.info("Acceptable Content Type: " + context.getAcceptableContentType());
-        logger.info("Body: " + context.getBodyAsString());
-        context.response()
-               .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-               .putHeader(HttpHeaders.DATE, date)
-               .end("{\"message\":\"Welcome!\"}");
-    }
-
-    private void handleEcho(final RoutingContext context) {
-        JsonObject json = context.getBodyAsJson();
-        context.response()
-               .putHeader(HttpHeaders.DATE, date)
-               .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-               .end(Json.encode(json));
-    }
+    private HttpClient client;
 
     private void handleAuction(final RoutingContext context) {
         JsonObject json = context.getBodyAsJson();
@@ -87,16 +68,14 @@ public class Application extends AbstractVerticle {
 
             CompositeFuture.join(futures)
                            .setHandler(response -> {
+                               HttpServerResponse serverResponse
+                                       = context.response()
+                                                .putHeader(HttpHeaders.DATE, date)
+                                                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON);
                                if (response.succeeded())
-                                   context.response()
-                                          .putHeader(HttpHeaders.DATE, date)
-                                          .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                                          .end(Json.encode(response.result().list()));
+                                   serverResponse.end(Json.encode(response.result().list()));
                                else
-                                   context.response()
-                                          .putHeader(HttpHeaders.DATE, date)
-                                          .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                                          .end(Json.encode(Arrays.asList(NO_BID_RESPONSE)));
+                                   serverResponse.end(Json.encode(Collections.singletonList(NO_BID_RESPONSE)));
                            });
         }
     }
@@ -114,18 +93,22 @@ public class Application extends AbstractVerticle {
                                           .build();
 
         Future<BidResponse> future = Future.future();
-        getClient(bidder.bidder_code).post("/bid", clientResponseHandler(future))
-                                     .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                                     .setTimeout(request.timeout_millis)
-                                     .exceptionHandler(throwable -> {
-                                         if (!(throwable instanceof TimeoutException))
-                                             logger.warn("Got exception: " + throwable.getMessage() + " " + throwable.getClass().getName());
-                                         // clientCache.remove(bidder.bidder_code);
+        try {
+            URL url = new URL(bidder.bidder_code);
+            client.post(url.getPort(), url.getHost(), url.getFile(), clientResponseHandler(future))
+                  .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                  .setTimeout(request.timeout_millis)
+                  .exceptionHandler(throwable -> {
+                      if (!(throwable instanceof TimeoutException))
+                          logger.warn("Got exception: " + throwable.getMessage() + " " + throwable.getClass().getName());
 
-                                         future.complete(NO_BID_RESPONSE);
-                                     })
-                                     .end(Json.encode(bidRequest));
-
+                      future.complete(NO_BID_RESPONSE);
+                  })
+                  .end(Json.encode(bidRequest));
+        } catch (MalformedURLException e) {
+            logger.warn("Cannot parse URL: " + bidder.bidder_code);
+            future.complete(NO_BID_RESPONSE);
+        }
         return future;
     }
 
@@ -138,23 +121,9 @@ public class Application extends AbstractVerticle {
         };
     }
 
-    private HttpClient getClient(String key) {
-        HttpClient client = clientCache.get(key);
-        if (isNull(client)) {
-            logger.warn("Creating new client for " + key);
-            HttpClientOptions options = new HttpClientOptions().setMaxPoolSize(4000);
-            try {
-                URL url = new URL(key);
-                if (nonNull(url.getHost()))
-                    options.setDefaultHost(url.getHost());
-                if (url.getPort() > 0)
-                    options.setDefaultPort(url.getPort());
-            } catch (MalformedURLException e) {
-                logger.info("Invalid URL: " + key);
-            }
-            client = clientCache.computeIfAbsent(key, k -> vertx.createHttpClient(options));
-        }
-        return client;
+    private HttpClient getClient() {
+        HttpClientOptions options = new HttpClientOptions().setMaxPoolSize(4000);
+        return vertx.createHttpClient(options);
     }
 
     @Override
@@ -163,6 +132,8 @@ public class Application extends AbstractVerticle {
 
         // Refresh the date included in the response header every second.
         vertx.setPeriodic(1000, handler -> date = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now()));
+
+        client = getClient();
 
         Router router = appRoutes();
         vertx.createHttpServer()
@@ -175,8 +146,6 @@ public class Application extends AbstractVerticle {
     private Router appRoutes() {
         Router router = Router.router(getVertx());
         router.route().handler(BodyHandler.create());
-        router.post("/").handler(this::handleIndex);
-        router.post("/echo").handler(this::handleEcho);
         router.post("/auction").handler(this::handleAuction);
         return router;
     }
