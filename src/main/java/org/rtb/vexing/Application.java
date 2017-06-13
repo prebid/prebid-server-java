@@ -4,6 +4,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,8 +44,8 @@ import static java.util.Objects.nonNull;
 
 public class Application extends AbstractVerticle {
 
-    // private static final int PORT = 8080;
-    private static final int PORT = 9090;
+     private static final int PORT = 8080;
+//    private static final int PORT = 9090;
 
     private static final BidResponse NO_BID_RESPONSE = BidResponse.builder().nbr(0).build();
     private static final String APPLICATION_JSON = "application/json";
@@ -91,6 +92,11 @@ public class Application extends AbstractVerticle {
                                           .putHeader(HttpHeaders.DATE, date)
                                           .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                                           .end(Json.encode(response.result().list()));
+                               else
+                                   context.response()
+                                          .putHeader(HttpHeaders.DATE, date)
+                                          .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                                          .end(Json.encode(Arrays.asList(NO_BID_RESPONSE)));
                            });
         }
     }
@@ -114,7 +120,7 @@ public class Application extends AbstractVerticle {
                                      .exceptionHandler(throwable -> {
                                          if (!(throwable instanceof TimeoutException))
                                              logger.warn("Got exception: " + throwable.getMessage() + " " + throwable.getClass().getName());
-                                             // clientCache.remove(bidder.bidder_code);
+                                         // clientCache.remove(bidder.bidder_code);
 
                                          future.complete(NO_BID_RESPONSE);
                                      })
