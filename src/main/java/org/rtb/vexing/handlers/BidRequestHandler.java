@@ -1,4 +1,4 @@
-package org.rtb.vexing;
+package org.rtb.vexing.handlers;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -20,11 +20,13 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 
 import static io.netty.handler.codec.http.HttpHeaderValues.APPLICATION_JSON;
-import static org.rtb.vexing.Application.NO_BID_RESPONSE;
 
 public final class BidRequestHandler {
 
-    static Future clientBid(HttpClient client, Bidder bidder, PreBidRequest request) {
+    /** Default no bid response to optimize the failure case. */
+    public static final BidResponse NO_BID_RESPONSE = BidResponse.builder().nbr(0).build();
+
+    public static Future clientBid(HttpClient client, Bidder bidder, PreBidRequest request) {
         Imp imp = Imp.builder()
                      .id(bidder.bid_id)
                      .banner(Banner.builder().format(request.ad_units.get(0).sizes).build())
@@ -42,7 +44,10 @@ public final class BidRequestHandler {
             client.post(url.getPort(), url.getHost(), url.getFile(), clientResponseHandler(future))
                   .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                   .setTimeout(request.timeout_millis)
-                  .exceptionHandler(throwable -> future.complete(NO_BID_RESPONSE))
+                  .exceptionHandler(throwable -> {
+                      if (!future.isComplete())
+                          future.complete(NO_BID_RESPONSE);
+                  })
                   .end(Json.encode(bidRequest));
         } catch (MalformedURLException e) {
             future.complete(NO_BID_RESPONSE);
