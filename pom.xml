@@ -10,7 +10,7 @@
   <version>0.0.1-SNAPSHOT</version>
 
   <name>vexing</name>
-  <description>Server-side Header Bidding in Vert.x</description>
+  <description>Server-side Header Bidding</description>
 
   <properties>
     <!-- the main class -->
@@ -49,7 +49,6 @@
   </dependencies>
 
   <build>
-
     <pluginManagement>
       <plugins>
         <!-- We specify the Maven compiler plugin as we need to set it to Java 1.8 -->
