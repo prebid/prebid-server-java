@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.AccessLevel;
@@ -29,7 +28,6 @@ import static java.util.Objects.isNull;
  */
 @Builder
 @Value
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class BidResponse {
 

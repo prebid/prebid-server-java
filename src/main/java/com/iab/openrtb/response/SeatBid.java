@@ -3,7 +3,6 @@ package com.iab.openrtb.response;
 import java.util.Collections;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.AccessLevel;
@@ -19,7 +18,6 @@ import lombok.experimental.FieldDefaults;
  * any if it can win them all as a group.
  */
 @Value
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class SeatBid {
 

@@ -1,6 +1,5 @@
 package com.iab.openrtb.request;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.Value;
@@ -24,7 +23,6 @@ import lombok.Value;
  * when presenting device IP values to bidders.
  */
 @Value
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Device {
 
     /** Browser user agent string. (recommended) */

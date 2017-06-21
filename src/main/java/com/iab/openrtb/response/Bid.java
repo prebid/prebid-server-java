@@ -3,7 +3,6 @@ package com.iab.openrtb.response;
 import java.math.BigDecimal;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.AccessLevel;
@@ -17,7 +16,6 @@ import lombok.experimental.FieldDefaults;
  * {@code price}.
  */
 @Value
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class Bid {
 

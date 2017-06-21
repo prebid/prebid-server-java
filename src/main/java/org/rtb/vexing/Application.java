@@ -6,8 +6,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 
 import org.rtb.vexing.handlers.BidRequestHandler;
@@ -51,7 +53,7 @@ public class Application extends AbstractVerticle {
         else {
             PreBidRequest bidRequest = json.mapTo(PreBidRequest.class);
             List<Future> futures
-                    = bidRequest.ad_units.stream()
+                    = bidRequest.adUnits.stream()
                                          .flatMap(unit -> unit.bids.stream().map(bid -> Bidder.from(unit, bid)))
                                          .map(bidder -> BidRequestHandler.clientBid(client, bidder, bidRequest))
                                          .collect(Collectors.toList());
@@ -101,6 +103,8 @@ public class Application extends AbstractVerticle {
     private void configureJSON() {
         Json.mapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false)
                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                   .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
+                   .setSerializationInclusion(JsonInclude.Include.NON_NULL)
                    .registerModule(new AfterburnerModule());
     }
 

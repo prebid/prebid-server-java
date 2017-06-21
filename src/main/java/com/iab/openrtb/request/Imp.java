@@ -58,7 +58,7 @@ public class Imp {
      * as a native ad opportunity.
      */
     @JsonProperty("native")
-    Native _native;
+    Native xNative;
 
     /**
      * A Pmp object (Section 3.2.11) containing any private marketplace deals in

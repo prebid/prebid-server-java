@@ -15,7 +15,7 @@ import lombok.experimental.FieldDefaults;
 public final class Bid {
 
     /** Unique bid ID for this bidder for this slot. */
-    String bid_id;
+    String bidId;
 
     /** Unique code for an adapter to call. */
     String bidder;

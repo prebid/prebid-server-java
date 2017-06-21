@@ -29,11 +29,11 @@ public final class BidRequestHandler {
 
     public static Future clientBid(HttpClient client, Bidder bidder, PreBidRequest request) {
         Imp imp = Imp.builder()
-                     .id(bidder.bid_id)
-                     .banner(Banner.builder().format(request.ad_units.get(0).sizes).build())
+                     .id(bidder.bidId)
+                     .banner(Banner.builder().format(request.adUnits.get(0).sizes).build())
                      .build();
         BidRequest bidRequest = BidRequest.builder()
-                                          .id(bidder.bid_id)
+                                          .id(bidder.bidId)
                                           .app(request.app)
                                           .device(request.device)
                                           .imp(Collections.singletonList(imp))
@@ -41,10 +41,10 @@ public final class BidRequestHandler {
 
         Future<BidResponse> future = Future.future();
         try {
-            URL url = new URL(bidder.bidder_code);
+            URL url = new URL(bidder.bidderCode);
             client.post(url.getPort(), url.getHost(), url.getFile(), clientResponseHandler(future))
                   .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                  .setTimeout(request.timeout_millis)
+                  .setTimeout(request.timeoutMillis)
                   .exceptionHandler(throwable -> {
                       if (!future.isComplete())
                           future.complete(NO_BID_RESPONSE);

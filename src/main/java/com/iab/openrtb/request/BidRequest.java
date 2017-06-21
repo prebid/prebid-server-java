@@ -2,7 +2,6 @@ package com.iab.openrtb.request;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.Builder;
@@ -22,7 +21,6 @@ import lombok.Builder;
 //@Value
 @Builder
 @lombok.Data
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class BidRequest {
 
     /**

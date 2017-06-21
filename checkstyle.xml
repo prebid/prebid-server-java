@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Puppy Crawl//DTD Check Configuration 1.3//EN"
+        "http://www.puppycrawl.com/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+    <property name="fileExtensions" value="java, properties, xml"/>
+
+    <module name="NewlineAtEndOfFile"/>
+    <module name="Translation"/>
+    <module name="FileLength"/>
+    <module name="FileTabCharacter"/>
+    <module name="RegexpSingleline">
+        <property name="format" value="\s+$"/>
+        <property name="minimum" value="0"/>
+        <property name="maximum" value="0"/>
+        <property name="message" value="Line has trailing spaces."/>
+    </module>
+    <module name="RegexpMultiline">
+        <property name="format" value="System\.(out|err)\.print"/>
+    </module>
+    <module name="TreeWalker">
+        <module name="Indentation">
+            <property name="lineWrappingIndentation" value="8" />
+            <property name="arrayInitIndent" value="8" />
+            <property name="forceStrictCondition" value="false" />
+        </module>
+        <module name="EmptyLineSeparator">
+            <property name="allowNoEmptyLineBetweenFields" value="true" />
+            <property name="allowMultipleEmptyLines" value="false" />
+            <property name="allowMultipleEmptyLinesInsideClassMembers" value="false" />
+        </module>
+        <module name="LineLength">
+            <property name="max" value="120"/>
+            <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://|@see"/>
+        </module>
+        <module name="NoLineWrap"/>
+        <module name="ConstantName">
+            <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|log|logger)$" />
+        </module>
+        <module name="LocalFinalVariableName"/>
+        <module name="LocalVariableName"/>
+        <module name="MemberName"/>
+        <module name="MethodName"/>
+        <module name="MultipleVariableDeclarations" />
+        <module name="PackageName"/>
+        <module name="ParameterName"/>
+        <module name="StaticVariableName"/>
+        <module name="TypeName"/>
+        <module name="AvoidStarImport"/>
+        <module name="AvoidStaticImport">
+            <property name="excludes" value="java.util.Objects.*,org.assertj.core.api.Assertions.*,org.mockito.Mockito.*,org.mockito.Matchers.*,org.junit.Assert.*" />
+        </module>
+        <module name="IllegalImport">
+            <property name="illegalPkgs" value="autovalue.shaded.com.google,org.inferred.freebuilder.shaded.com.google,org.apache.commons.lang"/>
+        </module>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports">
+            <property name="processJavadoc" value="true"/>
+        </module>
+        <module name="ImportOrder">
+            <property name="option" value="bottom" />
+            <property name="groups" value="java.,javax.,com.,org.,*" />
+            <property name="ordered" value="true" />
+            <property name="separated" value="true" />
+            <property name="caseSensitive" value="true" />
+            <property name="sortStaticImportsAlphabetically" value="true" />
+            <property name="useContainerOrderingForStatic" value="false" />
+        </module>
+        <module name="MethodLength"/>
+        <module name="EmptyForIteratorPad"/>
+        <module name="GenericWhitespace"/>
+        <module name="MethodParamPad">
+            <property name="allowLineBreaks" value="false" />
+        </module>
+        <module name="NoWhitespaceAfter">
+            <property name="tokens" value="INC,DEC,UNARY_MINUS,UNARY_PLUS,BNOT,LNOT,DOT,ARRAY_DECLARATOR,INDEX_OP"/>
+            <property name="allowLineBreaks" value="true"/>
+        </module>
+        <module name="NoWhitespaceBefore"/>
+        <module name="OperatorWrap"/>
+        <module name="ParenPad"/>
+        <module name="TypecastParenPad"/>
+        <module name="WhitespaceAfter"/>
+        <module name="WhitespaceAround"/>
+        <module name="AnnotationLocation">
+            <property name="allowSamelineMultipleAnnotations" value="false" />
+            <property name="allowSamelineSingleParameterlessAnnotation" value="false" />
+        </module>
+        <module name="ModifierOrder"/>
+        <module name="RedundantModifier"/>
+        <module name="AvoidNestedBlocks"/>
+        <module name="EmptyBlock"/>
+        <module name="LeftCurly" />
+        <module name="RightCurly" />
+        <module name="RightCurly">
+            <property name="option" value="alone" />
+            <property name="tokens" value="METHOD_DEF" />
+        </module>
+        <module name="EmptyStatement"/>
+        <module name="EqualsHashCode"/>
+        <module name="IllegalInstantiation"/>
+        <module name="InnerAssignment"/>
+        <module name="MissingSwitchDefault"/>
+        <module name="MissingOverride" />
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="HideUtilityClassConstructor"/>
+        <module name="ArrayTypeStyle"/>
+        <module name="CommentsIndentation"/>
+        <module name="UpperEll"/>
+        <module name="IllegalThrows" />
+        <module name="OneStatementPerLine"/>
+        <module name="OuterTypeFilename" />
+        <module name="OverloadMethodsDeclarationOrder" />
+        <module name="SeparatorWrap">
+            <property name="option" value="nl" />
+            <property name="tokens" value="DOT" />
+        </module>
+        <module name="SeparatorWrap">
+            <property name="option" value="eol" />
+            <property name="tokens" value="COMMA" />
+        </module>
+        <module name="SimplifyBooleanExpression" />
+        <module name="SimplifyBooleanReturn" />
+        <module name="SingleSpaceSeparator"/>
+        <module name="StringLiteralEquality" />
+        <module name="UnnecessaryParentheses"/>
+    </module>
+</module>

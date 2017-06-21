@@ -2,7 +2,6 @@ package com.iab.openrtb.request;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.Value;
@@ -14,7 +13,6 @@ import lombok.Value;
  * is useful to provide an Application ID or bundle, but this is not strictly required.
  */
 @Value
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class App {
 
     /** Exchange-specific app ID. (recommended) */

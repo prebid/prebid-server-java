@@ -18,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 public final class Bidder {
 
     /** Unique code for an adapter to call. */
-    String bidder_code;
+    String bidderCode;
 
     public List<Format> sizes;
 
@@ -28,11 +28,11 @@ public final class Bidder {
     /** Unique code of the ad unit on the page. */
     public String code;
 
-    public String bid_id;
+    public String bidId;
 
     public ObjectNode params;
 
     public static Bidder from(AdUnit unit, Bid bid) {
-        return new Bidder(bid.bidder, unit.sizes, unit.topframe, unit.code, bid.bid_id, bid.params);
+        return new Bidder(bid.bidder, unit.sizes, unit.topframe, unit.code, bid.bidId, bid.params);
     }
 }

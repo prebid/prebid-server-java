@@ -17,10 +17,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class PreBidRequest {
 
-    public String account_id;
+    public String accountId;
 
     // FIXME Ensure there is at least one.
-    public List<AdUnit> ad_units;
+    public List<AdUnit> adUnits;
 
     // --- NOT REQUIRED ---
 
@@ -29,7 +29,7 @@ public class PreBidRequest {
 
     /* How long to wait for adapters to return bids. */
     // FIXME Ensure value greater than 0 but no more than 2000. Use 0 as "not set" default?
-    int timeout_millis;
+    int timeoutMillis;
 
     /*
      * Flag to indicate if the impression requires secure HTTPS URL creative
@@ -40,7 +40,7 @@ public class PreBidRequest {
     Integer secure;  // ... really just a boolean 0|1.
 
     /* Cache markup for two-phase response (get response then separate call to get markup). */
-    Integer cache_markup;
+    Integer cacheMarkup;
 
     /*
      * This object should be included if the ad supported content is a
