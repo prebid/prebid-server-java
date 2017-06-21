@@ -67,7 +67,8 @@ public class Application extends AbstractVerticle {
                                    context.response()
                                           .putHeader(HttpHeaders.DATE, date)
                                           .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                                          .end(Json.encode(Collections.singletonList(BidRequestHandler.NO_BID_RESPONSE)));
+                                          .end(Json.encode(
+                                                  Collections.singletonList(BidRequestHandler.NO_BID_RESPONSE)));
                            });
         }
     }

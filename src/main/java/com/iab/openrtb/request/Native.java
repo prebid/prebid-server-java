@@ -31,10 +31,16 @@ public class Native {
     /** Request payload complying with the Native Ad Specification. (required) */
     String request;
 
-    /** Version of the Dynamic Native Ads API to which request complies; highly recommended for efficient parsing. (recommended) */
+    /**
+     * Version of the Dynamic Native Ads API to which request complies; highly
+     * recommended for efficient parsing. (recommended)
+     */
     String ver;
 
-    /** List of supported API frameworks for this impression. Refer to List 5.6. If an API is not explicitly listed, it is assumed not to be supported. */
+    /**
+     * List of supported API frameworks for this impression. Refer to List 5.6.
+     * If an API is not explicitly listed, it is assumed not to be supported.
+     */
     List<Integer> api;
 
     /** Blocked creative attributes. Refer to List 5.3. */

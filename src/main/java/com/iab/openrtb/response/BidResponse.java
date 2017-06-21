@@ -75,6 +75,7 @@ public class BidResponse {
             return 1;
         if (right.getSeatbid().get(0).getBid().isEmpty())
             return 1;
-        return left.getSeatbid().get(0).getBid().get(0).getPrice().compareTo(right.getSeatbid().get(0).getBid().get(0).getPrice());
+        return left.getSeatbid().get(0).getBid().get(0).getPrice()
+                   .compareTo(right.getSeatbid().get(0).getBid().get(0).getPrice());
     };
 }

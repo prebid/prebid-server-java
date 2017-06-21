@@ -13,7 +13,11 @@ import lombok.Value;
 @Value
 public class Regs {
 
-    /** Flag indicating if this request is subject to the COPPA regulations established by the USA FTC, where 0 = no, 1 = yes. Refer to Section 7.5 for more information. */
+    /**
+     * Flag indicating if this request is subject to the COPPA regulations
+     * established by the USA FTC, where 0 = no, 1 = yes. Refer to Section 7.5
+     * for more information.
+     */
     int coppa;
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */

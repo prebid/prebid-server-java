@@ -1,6 +1,5 @@
 package com.iab.openrtb.request;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.Value;
@@ -13,7 +12,6 @@ import lombok.Value;
  * set (i.e., for Flex Ads) be specified.
  */
 @Value
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Format {
 
     /** Width in device independent pixels (DIPS). */
@@ -28,7 +26,10 @@ public class Format {
     /** Relative height when expressing size as a ratio. */
     Integer hratio;
 
-    /** The minimum width in device independent pixels (DIPS) at which the ad will be displayed the size is expressed as a ratio. */
+    /**
+     * The minimum width in device independent pixels (DIPS) at which the ad
+     * will be displayed the size is expressed as a ratio.
+     */
     Integer wmin;
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */

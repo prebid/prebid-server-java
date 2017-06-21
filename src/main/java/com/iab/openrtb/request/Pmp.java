@@ -15,10 +15,17 @@ import lombok.Value;
 @Value
 public class Pmp {
 
-    /** Indicator of auction eligibility to seats named in the Direct Deals object, where 0 = all bids are accepted, 1 = bids are restricted to the deals specified and the terms thereof. */
+    /**
+     * Indicator of auction eligibility to seats named in the Direct Deals
+     * object, where 0 = all bids are accepted, 1 = bids are restricted to the
+     * deals specified and the terms thereof.
+     */
     int private_auction;
 
-    /** Array of Deal (Section 3.2.12) objects that convey the specific deals applicable to this impression. */
+    /**
+     * Array of Deal (Section 3.2.12) objects that convey the specific deals
+     * applicable to this impression.
+     */
     List<Deal> deals;
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */
