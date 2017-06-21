@@ -54,9 +54,9 @@ public class Application extends AbstractVerticle {
             PreBidRequest bidRequest = json.mapTo(PreBidRequest.class);
             List<Future> futures
                     = bidRequest.adUnits.stream()
-                                         .flatMap(unit -> unit.bids.stream().map(bid -> Bidder.from(unit, bid)))
-                                         .map(bidder -> BidRequestHandler.clientBid(client, bidder, bidRequest))
-                                         .collect(Collectors.toList());
+                                        .flatMap(unit -> unit.bids.stream().map(bid -> Bidder.from(unit, bid)))
+                                        .map(bidder -> BidRequestHandler.clientBid(client, bidder, bidRequest))
+                                        .collect(Collectors.toList());
 
             CompositeFuture.join(futures)
                            .setHandler(response -> {
