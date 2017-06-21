@@ -46,6 +46,10 @@ public class Application extends AbstractVerticle {
 
     private HttpClient client;
 
+    /**
+     * Auction handler will resolve all bidders in the incoming ad request, issue the request to the different
+     * clients, then return an array of the responses.
+     */
     private void handleAuction(final RoutingContext context) {
         JsonObject json = context.getBodyAsJson();
         if (isNull(json))
