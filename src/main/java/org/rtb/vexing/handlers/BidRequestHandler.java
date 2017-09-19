@@ -59,7 +59,9 @@ public final class BidRequestHandler {
     private static Handler<HttpClientResponse> clientResponseHandler(Future<BidResponse> future) {
         return response -> {
             if (response.statusCode() == 200)
-                response.bodyHandler(buffer -> future.complete(Json.decodeValue(buffer.toString(), BidResponse.class)));
+                response
+                        .bodyHandler(buffer -> future.complete(Json.decodeValue(buffer.toString(), BidResponse.class)))
+                        .exceptionHandler(exception -> future.complete(NO_BID_RESPONSE));
             else
                 future.complete(NO_BID_RESPONSE);
         };
