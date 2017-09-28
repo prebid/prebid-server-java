@@ -1,15 +1,14 @@
 package org.rtb.vexing.model.request;
 
-import java.util.List;
-
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Device;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+
+import java.util.List;
 
 @ToString
 @EqualsAndHashCode
@@ -17,10 +16,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class PreBidRequest {
 
-    public String accountId;
+    String accountId;
 
     // FIXME Ensure there is at least one.
-    public List<AdUnit> adUnits;
+    List<AdUnit> adUnits;
 
     // --- NOT REQUIRED ---
 

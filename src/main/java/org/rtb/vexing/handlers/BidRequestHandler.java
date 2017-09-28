@@ -1,17 +1,9 @@
 package org.rtb.vexing.handlers;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Collections;
-
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
-
-import org.rtb.vexing.model.request.Bidder;
-import org.rtb.vexing.model.request.PreBidRequest;
-
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -19,6 +11,12 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
+import org.rtb.vexing.model.request.Bidder;
+import org.rtb.vexing.model.request.PreBidRequest;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Collections;
 
 public final class BidRequestHandler {
 
