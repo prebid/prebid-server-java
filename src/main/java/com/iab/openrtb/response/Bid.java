@@ -1,13 +1,12 @@
 package com.iab.openrtb.response;
 
-import java.math.BigDecimal;
-import java.util.List;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import lombok.AccessLevel;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * A {@link SeatBid} object contains one or more Bid objects, each of which

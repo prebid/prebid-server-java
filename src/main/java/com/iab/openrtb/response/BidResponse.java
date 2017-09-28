@@ -1,15 +1,14 @@
 package com.iab.openrtb.response;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
+
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 import static java.util.Objects.isNull;
 

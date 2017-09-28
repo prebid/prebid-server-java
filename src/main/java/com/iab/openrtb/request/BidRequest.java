@@ -1,10 +1,9 @@
 package com.iab.openrtb.request;
 
-import java.util.List;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import lombok.Builder;
+
+import java.util.List;
 
 /**
  * The top-level bid request object contains a globally unique bid request or

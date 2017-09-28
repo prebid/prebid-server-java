@@ -1,12 +1,11 @@
 package com.iab.openrtb.request;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import lombok.Builder;
 import lombok.Data;
+
+import java.util.List;
 
 /**
  * This object describes an ad placement or impression being auctioned. A single

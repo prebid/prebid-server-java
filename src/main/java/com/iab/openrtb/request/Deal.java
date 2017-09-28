@@ -1,10 +1,9 @@
 package com.iab.openrtb.request;
 
-import java.util.List;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import lombok.Value;
+
+import java.util.List;
 
 /**
  * This object constitutes a specific deal that was struck <em>a priori</em>

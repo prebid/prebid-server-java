@@ -1,10 +1,9 @@
 package com.iab.openrtb.request;
 
-import java.util.List;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import lombok.Value;
+
+import java.util.List;
 
 /**
  * The data and segment objects together allow additional data about the related

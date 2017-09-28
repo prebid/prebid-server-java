@@ -1,10 +1,9 @@
 package com.iab.openrtb.request;
 
-import java.util.List;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import lombok.Value;
+
+import java.util.List;
 
 /**
  * This object should be included if the ad supported content is a non-browser

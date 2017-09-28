@@ -1,10 +1,9 @@
 package com.iab.openrtb.request;
 
-import java.util.List;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import lombok.Builder;
+
+import java.util.List;
 
 /**
  * This object represents the most general type of impression. Although the term
