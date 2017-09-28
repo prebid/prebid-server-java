@@ -1,4 +1,4 @@
-package org.rtb.vexing.handlers;
+package org.rtb.vexing.handler;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.CompositeFuture;

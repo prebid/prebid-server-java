@@ -11,7 +11,7 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.rtb.vexing.handlers.AuctionHandler;
+import org.rtb.vexing.handler.AuctionHandler;
 
 public class Application extends AbstractVerticle {
 
