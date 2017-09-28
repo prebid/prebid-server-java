@@ -61,9 +61,9 @@
         </module>
         <module name="ImportOrder">
             <property name="option" value="bottom" />
-            <property name="groups" value="java.,javax.,com.,org.,*" />
+            <property name="groups" value="*, javax, java" />
             <property name="ordered" value="true" />
-            <property name="separated" value="true" />
+            <property name="separated" value="false" />
             <property name="caseSensitive" value="true" />
             <property name="sortStaticImportsAlphabetically" value="true" />
             <property name="useContainerOrderingForStatic" value="false" />
