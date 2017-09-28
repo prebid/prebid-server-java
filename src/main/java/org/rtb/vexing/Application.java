@@ -107,6 +107,7 @@ public class Application extends AbstractVerticle {
     private void configureJSON() {
         Json.mapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false)
                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                   .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
                    .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
                    .setSerializationInclusion(JsonInclude.Include.NON_NULL)
                    .registerModule(new AfterburnerModule());
