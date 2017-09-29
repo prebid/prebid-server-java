@@ -17,6 +17,7 @@ import org.rtb.vexing.model.request.PreBidRequest;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Base64;
 import java.util.Collections;
 
 public class RubiconAdapter implements Adapter {
@@ -26,11 +27,15 @@ public class RubiconAdapter implements Adapter {
     private final String xapiUsername;
     private final String xapiPassword;
 
+    private final String xapiCredentialsBase64;
+
     public RubiconAdapter(JsonObject config) {
         endpoint = config.getString("endpoint");
         usersyncUrl = config.getString("usersync_url");
         xapiUsername = config.getJsonObject("XAPI").getString("Username");
         xapiPassword = config.getJsonObject("XAPI").getString("Password");
+
+        xapiCredentialsBase64 = Base64.getEncoder().encodeToString((xapiUsername + ':' + xapiPassword).getBytes());
     }
 
     @Override
@@ -49,7 +54,8 @@ public class RubiconAdapter implements Adapter {
         Future<BidResponse> future = Future.future();
         try {
             URL url = new URL(endpoint);
-            client.post(url.getPort(), url.getHost(), url.getFile(), clientResponseHandler(future))
+            client.post(getPort(url), url.getHost(), url.getFile(), clientResponseHandler(future))
+                    .putHeader(HttpHeaders.AUTHORIZATION, "Basic " + xapiCredentialsBase64)
                     .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                     .setTimeout(request.timeoutMillis)
                     .exceptionHandler(throwable -> {
@@ -61,6 +67,11 @@ public class RubiconAdapter implements Adapter {
             future.complete(NO_BID_RESPONSE);
         }
         return future;
+    }
+
+    private static int getPort(URL url) {
+        final int port = url.getPort();
+        return port != -1 ? port : url.getDefaultPort();
     }
 
     private static Handler<HttpClientResponse> clientResponseHandler(Future<BidResponse> future) {
