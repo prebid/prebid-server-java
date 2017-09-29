@@ -1,6 +1,7 @@
 package org.rtb.vexing.handler;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -8,6 +9,8 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.RubiconAdapter;
@@ -21,9 +24,9 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static java.util.Objects.isNull;
-
 public class AuctionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
     private final Vertx vertx;
     private final HttpClient httpClient;
@@ -50,31 +53,34 @@ public class AuctionHandler {
      * clients, then return an array of the responses.
      */
     public void auction(RoutingContext context) {
-        JsonObject json = context.getBodyAsJson();
-        if (isNull(json))
+        final JsonObject json = context.getBodyAsJson();
+        if (json == null) {
+            logger.error("Incoming request has no body.");
             context.response().setStatusCode(400).end();
-        else {
-            PreBidRequest bidRequest = json.mapTo(PreBidRequest.class);
-            List<Future> futures = bidRequest.adUnits.stream()
+        } else {
+            final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
+            final List<Future> futures = preBidRequest.adUnits.stream()
                     .flatMap(unit -> unit.bids.stream().map(bid -> Bidder.from(unit, bid)))
                     .map(bidder -> adapters.get(Adapter.Type.valueOf(bidder.bidderCode))
-                            .clientBid(httpClient, bidder, bidRequest))
+                            .clientBid(httpClient, bidder, preBidRequest))
                     .collect(Collectors.toList());
 
+            // FIXME: are we tolerating individual exchange failures?
             CompositeFuture.join(futures)
-                    .setHandler(response -> {
-                        if (response.succeeded())
-                            context.response()
-                                    .putHeader(HttpHeaders.DATE, date)
-                                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                                    .end(Json.encode(response.result().list()));
-                        else
-                            context.response()
-                                    .putHeader(HttpHeaders.DATE, date)
-                                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                                    .end(Json.encode(
-                                            Collections.singletonList(Adapter.NO_BID_RESPONSE)));
-                    });
+                    .setHandler(bidResponsesResult -> respondWith(bidResponsesOrNoBid(bidResponsesResult), context));
         }
+    }
+
+    private void respondWith(List<?> body, RoutingContext context) {
+        context.response()
+                .putHeader(HttpHeaders.DATE, date)
+                .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .end(Json.encode(body));
+    }
+
+    private static List<?> bidResponsesOrNoBid(AsyncResult<CompositeFuture> bidResponsesResult) {
+        return bidResponsesResult.succeeded()
+                ? bidResponsesResult.result().list()
+                : Collections.singletonList(Adapter.NO_BID_RESPONSE);
     }
 }

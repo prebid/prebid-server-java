@@ -9,6 +9,8 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.rtb.vexing.handler.AuctionHandler;
@@ -16,12 +18,10 @@ import org.rtb.vexing.handler.AuctionHandler;
 public class Application extends AbstractVerticle {
 
     private static final int DEFAULT_PORT = 8080;
-
     private static final int DEFAULT_POOL_SIZE = 4096;
-
     private static final int DEFAULT_TIMEOUT_MS = 1000;
 
-    // private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
+    private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
     private HttpClient httpClient;
 
@@ -39,6 +39,8 @@ public class Application extends AbstractVerticle {
         vertx.createHttpServer()
                 .requestHandler(router::accept)
                 .listen(config().getInteger("http.port", DEFAULT_PORT));
+
+        logger.debug("Vexing server has been started successfully");
     }
 
     /**
@@ -46,6 +48,13 @@ public class Application extends AbstractVerticle {
      */
     private void configureJSON() {
         Json.mapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false)
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
+                .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
+                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+                .registerModule(new AfterburnerModule());
+        // FIXME: remove
+        Json.prettyMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false)
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
                 .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
