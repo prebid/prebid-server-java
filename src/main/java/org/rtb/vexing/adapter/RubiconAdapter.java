@@ -11,7 +11,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.rtb.vexing.model.request.Bidder;
@@ -34,11 +33,11 @@ public class RubiconAdapter implements Adapter {
     private final URL endpointUrl;
     private final String xapiCredentialsBase64;
 
-    public RubiconAdapter(JsonObject config) {
-        endpoint = config.getString("endpoint");
-        usersyncUrl = config.getString("usersync_url");
-        xapiUsername = config.getJsonObject("XAPI").getString("Username");
-        xapiPassword = config.getJsonObject("XAPI").getString("Password");
+    public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword) {
+        this.endpoint = endpoint;
+        this.usersyncUrl = usersyncUrl;
+        this.xapiUsername = xapiUsername;
+        this.xapiPassword = xapiPassword;
 
         endpointUrl = parseUrl(endpoint);
         xapiCredentialsBase64 = Base64.getEncoder().encodeToString((xapiUsername + ':' + xapiPassword).getBytes());

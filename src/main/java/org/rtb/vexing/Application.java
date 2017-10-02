@@ -13,6 +13,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.handler.AuctionHandler;
 
 public class Application extends AbstractVerticle {
@@ -23,6 +24,8 @@ public class Application extends AbstractVerticle {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
+    private AdapterCatalog adapterCatalog;
+
     private HttpClient httpClient;
 
     /**
@@ -31,6 +34,8 @@ public class Application extends AbstractVerticle {
     @Override
     public void start() {
         configureJSON();
+
+        adapterCatalog = new AdapterCatalog(vertx.getOrCreateContext().config());
 
         httpClient = httpClient();
 
@@ -78,7 +83,7 @@ public class Application extends AbstractVerticle {
     private Router routes() {
         final Router router = Router.router(getVertx());
         router.route().handler(BodyHandler.create());
-        router.post("/auction").handler(new AuctionHandler(httpClient, vertx)::auction);
+        router.post("/auction").handler(new AuctionHandler(httpClient, adapterCatalog, vertx)::auction);
         return router;
     }
 }
