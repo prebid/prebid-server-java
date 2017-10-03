@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
-import org.rtb.vexing.model.request.Bidder;
 
 import java.util.List;
 

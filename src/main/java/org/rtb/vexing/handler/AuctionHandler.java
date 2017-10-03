@@ -16,10 +16,10 @@ import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.model.request.Bidder;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.response.PreBidResponse;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -55,27 +55,41 @@ public class AuctionHandler {
             context.response().setStatusCode(400).end();
         } else {
             final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
-            final List<Future> futures = preBidRequest.adUnits.stream()
+            final List<Bidder> bidders = preBidRequest.adUnits.stream()
                     .flatMap(unit -> unit.bids.stream().map(bid -> Bidder.from(unit, bid)))
+                    .collect(Collectors.toList());
+            final List<Future> futures = bidders.stream()
                     .map(bidder -> adapters.get(bidder.bidderCode).clientBid(httpClient, bidder, preBidRequest))
                     .collect(Collectors.toList());
 
             // FIXME: are we tolerating individual exchange failures?
             CompositeFuture.join(futures)
-                    .setHandler(bidResponsesResult -> respondWith(bidResponsesOrNoBid(bidResponsesResult), context));
+                    .setHandler(bidResponsesResult ->
+                            respondWith(bidResponseOrNoBid(bidResponsesResult, preBidRequest, bidders), context));
         }
     }
 
-    private void respondWith(List<?> body, RoutingContext context) {
+    private void respondWith(PreBidResponse response, RoutingContext context) {
         context.response()
                 .putHeader(HttpHeaders.DATE, date)
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .end(Json.encode(body));
+                .end(Json.encode(response));
     }
 
-    private static List<?> bidResponsesOrNoBid(AsyncResult<CompositeFuture> bidResponsesResult) {
+    private static PreBidResponse bidResponseOrNoBid(AsyncResult<CompositeFuture> bidResponsesResult,
+                                                     PreBidRequest preBidRequest, List<Bidder> reqBidders) {
         return bidResponsesResult.succeeded()
-                ? bidResponsesResult.result().list()
-                : Collections.singletonList(Adapter.NO_BID_RESPONSE);
+                ? PreBidResponse.builder()
+                .status("OK") // FIXME
+                .tid(preBidRequest.tid)
+                .bidderStatus(reqBidders.stream().map(b -> org.rtb.vexing.model.response.Bidder.builder()
+                        .bidder(b.bidderCode)
+                        .numBids(1) // FIXME
+                        .responseTime(10) // FIXME
+                        .build())
+                        .collect(Collectors.toList()))
+                .bids(bidResponsesResult.result().list())
+                .build()
+                : Adapter.NO_BID_RESPONSE;
     }
 }

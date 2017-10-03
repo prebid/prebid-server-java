@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -41,7 +42,6 @@ public final class Bid {
     String mediaType;
 
     // Bidder.bidderCode of the Bidder who made this bid.
-
     String bidder;
 
     // Hash of the bidder's unique bid identifier for blockchain. It should not be sent to browser.
@@ -50,7 +50,7 @@ public final class Bid {
 
     // Cpm, in US Dollars, which the bidder is willing to pay if this bid is chosen.
     // TODO: Add support for other currencies someday.
-    Float price;
+    BigDecimal price;
 
     // URL which returns ad markup, and should be called if the bid wins.
     // If NURL and Adm are both defined, then Adm takes precedence.

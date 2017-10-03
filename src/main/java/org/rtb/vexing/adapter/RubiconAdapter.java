@@ -30,6 +30,7 @@ import org.rtb.vexing.adapter.model.RubiconSiteExt;
 import org.rtb.vexing.adapter.model.RubiconSiteExtRp;
 import org.rtb.vexing.model.request.Bidder;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.response.Bid;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -71,7 +72,7 @@ public class RubiconAdapter implements Adapter {
     }
 
     @Override
-    public Future<BidResponse> clientBid(HttpClient client, Bidder bidder, PreBidRequest request) {
+    public Future<Bid> clientBid(HttpClient client, Bidder bidder, PreBidRequest request) {
         final RubiconParams rubiconParams = mapper.convertValue(bidder.params, RubiconParams.class);
 
         // these are the important fields to get an ad over XAPI: account_id, site_id, zone_id, buyeruid
@@ -100,7 +101,7 @@ public class RubiconAdapter implements Adapter {
                 .build();
 
         final Imp imp = Imp.builder()
-                .id(bidder.code)
+                .id(bidder.adUnitCode)
                 // FIXME
                 .secure(1)
                 // FIXME
@@ -171,8 +172,9 @@ public class RubiconAdapter implements Adapter {
         // FIXME: remove
         logger.debug("Bid request is {0}", Json.encodePrettily(bidRequest));
 
-        final Future<BidResponse> future = Future.future();
-        client.post(getPort(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(), bidResponseHandler(future))
+        final Future<Bid> future = Future.future();
+        client.post(getPort(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
+                bidResponseHandler(future, bidder))
                 .putHeader(HttpHeaders.AUTHORIZATION, "Basic " + xapiCredentialsBase64)
                 .putHeader(HttpHeaders.CONTENT_TYPE, contentType)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
@@ -180,8 +182,10 @@ public class RubiconAdapter implements Adapter {
                 .setTimeout(request.timeoutMillis)
                 .exceptionHandler(throwable -> {
                     logger.error("Error occurred while sending bid request to an exchange", throwable);
-                    if (!future.isComplete())
-                        future.complete(NO_BID_RESPONSE);
+                    if (!future.isComplete()) {
+                        // FIXME
+                        future.complete(null);
+                    }
                 })
                 .end(Json.encode(bidRequest));
         return future;
@@ -192,27 +196,46 @@ public class RubiconAdapter implements Adapter {
         return port != -1 ? port : url.getDefaultPort();
     }
 
-    private static Handler<HttpClientResponse> bidResponseHandler(Future<BidResponse> future) {
+    private static Handler<HttpClientResponse> bidResponseHandler(Future<Bid> future, Bidder bidder) {
         return response -> {
             if (response.statusCode() == 200) {
                 response
                         .bodyHandler(buffer -> {
                             final String body = buffer.toString();
                             // FIXME: remove
-                            logger.debug("Bid response body: {0}",
+                            logger.debug("Bid response body raw: {0}", body);
+                            logger.debug("Bid response: {0}",
                                     Json.encodePrettily(Json.decodeValue(body, BidResponse.class)));
-                            future.complete(Json.decodeValue(body, BidResponse.class));
+                            future.complete(toBid(Json.decodeValue(body, BidResponse.class), bidder));
                         })
                         .exceptionHandler(exception -> {
                             logger.error("Error occurred during bid response handling", exception);
-                            future.complete(NO_BID_RESPONSE);
+                            // FIXME
+                            future.complete(null);
                         });
             } else {
                 response.bodyHandler(buffer ->
                         logger.error("Bid response code is {0}, body: {1}",
                                 response.statusCode(), buffer.toString()));
-                future.complete(NO_BID_RESPONSE);
+                // FIXME
+                future.complete(null);
             }
         };
+    }
+
+    private static Bid toBid(BidResponse bidResponse, Bidder bidder) {
+        final com.iab.openrtb.response.Bid bid = bidResponse.getSeatbid().get(0).getBid().get(0);
+        return Bid.builder()
+                .code(bid.getImpid())
+                .price(bid.getPrice()) // FIXME: now 0 is serialized as "0.0", but should be just "0"
+                .adm(bid.getAdm())
+                .creativeId(bid.getCrid())
+                .width(bid.getW())
+                .height(bid.getH())
+                .dealId(bid.getDealid())
+                .bidder(bidder.bidderCode)
+                .bidId(bidder.bidId)
+                .responseTime(10) // FIXME
+                .build();
     }
 }
