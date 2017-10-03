@@ -80,7 +80,7 @@ public class Imp {
     String displaymanagerver;
 
     /** 1 = the ad is interstitial or full screen, 0 = not interstitial. */
-    int instl;
+    Integer instl;
 
     /**
      * Identifier for specific ad placement or ad tag that was used to initiate
@@ -90,7 +90,7 @@ public class Imp {
     String tagid;
 
     /** Minimum bid for this impression expressed in CPM. */
-    float bidfloor;
+    Float bidfloor;
 
     /**
      * Currency specified using ISO-4217 alpha codes. This may be different from

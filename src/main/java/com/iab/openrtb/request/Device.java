@@ -2,6 +2,7 @@ package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import lombok.Builder;
 import lombok.Value;
 
 /**
@@ -22,6 +23,7 @@ import lombok.Value;
  * ranges. Exchanges are urged to research and implement this feature carefully
  * when presenting device IP values to bidders.
  */
+@Builder
 @Value
 public class Device {
 

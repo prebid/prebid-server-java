@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
  * {@link Site} and an {@link App} object. At a minimum, it is useful to provide
  * a site ID or page URL, but this is not strictly required.
  */
+@Builder
 @Value
 public class Site {
 

@@ -32,7 +32,7 @@
         </module>
         <module name="LineLength">
             <property name="max" value="120"/>
-            <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see"/>
+            <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see|//"/>
         </module>
         <module name="NoLineWrap"/>
         <module name="ConstantName">

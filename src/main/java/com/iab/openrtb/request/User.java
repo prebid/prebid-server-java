@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.List;
  * However, this user ID must be stable long enough to serve reasonably as the
  * basis for frequency capping and retargeting.
  */
+@Builder
 @Value
 public class User {
 

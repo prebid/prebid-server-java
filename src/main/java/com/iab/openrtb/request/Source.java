@@ -2,6 +2,7 @@ package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import lombok.Builder;
 import lombok.Value;
 
 /**
@@ -13,6 +14,7 @@ import lombok.Value;
  * another RTB exchange, a mediation platform, or an ad server combines direct
  * campaigns with 3rd party demand in decisioning.
  */
+@Builder
 @Value
 public class Source {
 
