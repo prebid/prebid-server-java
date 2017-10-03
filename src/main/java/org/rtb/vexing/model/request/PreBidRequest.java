@@ -14,7 +14,7 @@ import java.util.List;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class PreBidRequest {
+public final class PreBidRequest {
 
     String accountId;
 
