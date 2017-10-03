@@ -1,5 +1,6 @@
 package org.rtb.vexing.adapter;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -28,6 +29,7 @@ import org.rtb.vexing.adapter.model.RubiconPubExt;
 import org.rtb.vexing.adapter.model.RubiconPubExtRp;
 import org.rtb.vexing.adapter.model.RubiconSiteExt;
 import org.rtb.vexing.adapter.model.RubiconSiteExtRp;
+import org.rtb.vexing.adapter.model.RubiconTargetingExt;
 import org.rtb.vexing.model.request.Bidder;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
@@ -36,10 +38,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.stream.Collectors;
 
 public class RubiconAdapter implements Adapter {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconAdapter.class);
+
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private final String endpoint;
     private final String usersyncUrl;
@@ -50,8 +56,6 @@ public class RubiconAdapter implements Adapter {
     private final String xapiCredentialsBase64;
     private String contentType =
             HttpHeaderValues.APPLICATION_JSON.toString() + HttpHeaderValues.CHARSET.toString() + "utf-8";
-
-    private final ObjectMapper mapper = new ObjectMapper();
 
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword) {
         this.endpoint = endpoint;
@@ -73,7 +77,7 @@ public class RubiconAdapter implements Adapter {
 
     @Override
     public Future<Bid> clientBid(HttpClient client, Bidder bidder, PreBidRequest request) {
-        final RubiconParams rubiconParams = mapper.convertValue(bidder.params, RubiconParams.class);
+        final RubiconParams rubiconParams = MAPPER.convertValue(bidder.params, RubiconParams.class);
 
         // these are the important fields to get an ad over XAPI: account_id, site_id, zone_id, buyeruid
         final RubiconImpExtRp rubiconImpExtRp = RubiconImpExtRp.builder()
@@ -145,7 +149,8 @@ public class RubiconAdapter implements Adapter {
         // FIXME: remove hardcoded value
         // buyeruid is parsed from the uids cookie
         // uids=eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=
-        // the server should parse the uids cookie and send it to the relevant adapter. i.e. the rubicon id goes only to the rubicon adapter
+        // the server should parse the uids cookie and send it to the relevant adapter. i.e. the rubicon id goes only
+        // to the rubicon adapter
         final User user = User.builder()
                 .buyeruid("J7HUD05W-J-76F7")
                 // FIXME
@@ -233,6 +238,9 @@ public class RubiconAdapter implements Adapter {
                 .width(bid.getW())
                 .height(bid.getH())
                 .dealId(bid.getDealid())
+                .adServerTargeting(MAPPER.convertValue(bid.getExt(), RubiconTargetingExt.class)
+                        .rp.targeting.stream()
+                        .collect(Collectors.toMap(t -> t.key, t -> t.values.get(0))))
                 .bidder(bidder.bidderCode)
                 .bidId(bidder.bidId)
                 .responseTime(10) // FIXME
