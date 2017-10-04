@@ -38,6 +38,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class RubiconAdapter implements Adapter {
@@ -46,25 +48,29 @@ public class RubiconAdapter implements Adapter {
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final String APPLICATION_JSON =
+            HttpHeaderValues.APPLICATION_JSON.toString() + HttpHeaderValues.CHARSET.toString() + "utf-8";
+    public static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
     private final String endpoint;
     private final String usersyncUrl;
     private final String xapiUsername;
     private final String xapiPassword;
+    private final HttpClient httpClient;
 
     private final URL endpointUrl;
-    private final String xapiCredentialsBase64;
-    private String contentType =
-            HttpHeaderValues.APPLICATION_JSON.toString() + HttpHeaderValues.CHARSET.toString() + "utf-8";
+    private final String authHeader;
 
-    public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword) {
-        this.endpoint = endpoint;
-        this.usersyncUrl = usersyncUrl;
-        this.xapiUsername = xapiUsername;
-        this.xapiPassword = xapiPassword;
+    public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
+                          HttpClient httpClient) {
+        this.endpoint = Objects.requireNonNull(endpoint);
+        this.usersyncUrl = Objects.requireNonNull(usersyncUrl);
+        this.xapiUsername = Objects.requireNonNull(xapiUsername);
+        this.xapiPassword = Objects.requireNonNull(xapiPassword);
+        this.httpClient = Objects.requireNonNull(httpClient);
 
         endpointUrl = parseUrl(endpoint);
-        xapiCredentialsBase64 = Base64.getEncoder().encodeToString((xapiUsername + ':' + xapiPassword).getBytes());
+        authHeader = "Basic " + Base64.getEncoder().encodeToString((xapiUsername + ':' + xapiPassword).getBytes());
     }
 
     private static URL parseUrl(String url) {
@@ -76,100 +82,17 @@ public class RubiconAdapter implements Adapter {
     }
 
     @Override
-    public Future<Bid> clientBid(HttpClient client, Bidder bidder, PreBidRequest request) {
+    public Future<Bid> clientBid(Bidder bidder, PreBidRequest request) {
         final RubiconParams rubiconParams = MAPPER.convertValue(bidder.params, RubiconParams.class);
-
-        // these are the important fields to get an ad over XAPI: account_id, site_id, zone_id, buyeruid
-        final RubiconImpExtRp rubiconImpExtRp = RubiconImpExtRp.builder()
-                .zoneId(rubiconParams.zoneId)
-                .build();
-        final RubiconImpExt rubiconImpExt = RubiconImpExt.builder()
-                .rp(rubiconImpExtRp)
-                .build();
-
-        final RubiconBannerExtRp rubiconBannerExtRp = RubiconBannerExtRp.builder()
-                // FIXME
-                .sizeId(15)
-                .mime("text/html")
-                .build();
-        final RubiconBannerExt rubiconBannerExt = RubiconBannerExt.builder()
-                .rp(rubiconBannerExtRp)
-                .build();
-        final Banner banner = Banner.builder()
-                .format(bidder.sizes)
-                .w(bidder.sizes.get(0).getW())
-                .h(bidder.sizes.get(0).getH())
-                // FIXME
-                // .topframe(0)
-                .ext(Json.mapper.valueToTree(rubiconBannerExt))
-                .build();
-
-        final Imp imp = Imp.builder()
-                .id(bidder.adUnitCode)
-                // FIXME
-                .secure(1)
-                // FIXME
-                //.instl(0)
-                .banner(banner)
-                .ext(Json.mapper.valueToTree(rubiconImpExt))
-                .build();
-
-        final RubiconPubExtRp rubiconPubExtRp = RubiconPubExtRp.builder()
-                .accountId(rubiconParams.accountId)
-                .build();
-        final RubiconPubExt rubiconPubExt = RubiconPubExt.builder()
-                .rp(rubiconPubExtRp)
-                .build();
-        final Publisher publisher = Publisher.builder()
-                .ext(Json.mapper.valueToTree(rubiconPubExt))
-                .build();
-
-        final RubiconSiteExtRp rubiconSiteExtRp = RubiconSiteExtRp.builder()
-                .siteId(rubiconParams.siteId)
-                .build();
-        final RubiconSiteExt rubiconSiteExt = RubiconSiteExt.builder()
-                .rp(rubiconSiteExtRp)
-                .build();
-
-        final Site site = Site.builder()
-                // FIXME
-                .domain("whsv.com")
-                // FIXME
-                .page("http://www.whsv.com/")
-                .publisher(publisher)
-                .ext(Json.mapper.valueToTree(rubiconSiteExt))
-                .build();
-
-        final Device device = Device.builder()
-                .ua("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko)"
-                        + " Chrome/60.0.3112.113 Safari/537.36")
-                .ip("69.141.166.108")
-                .build();
-
-        // FIXME: remove hardcoded value
-        // buyeruid is parsed from the uids cookie
-        // uids=eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=
-        // the server should parse the uids cookie and send it to the relevant adapter. i.e. the rubicon id goes only
-        // to the rubicon adapter
-        final User user = User.builder()
-                .buyeruid("J7HUD05W-J-76F7")
-                // FIXME
-                .id("-1")
-                .build();
-
-        final Source source = Source.builder()
-                .fd(1)
-                .tid(request.tid)
-                .build();
 
         final BidRequest bidRequest = BidRequest.builder()
                 .id(request.tid)
-                .imp(Collections.singletonList(imp))
-                .site(site)
+                .imp(Collections.singletonList(makeImp(bidder, rubiconParams)))
+                .site(makeSite(rubiconParams))
                 .app(request.app)
-                .device(device)
-                .user(user)
-                .source(source)
+                .device(makeDevice())
+                .user(makeUser())
+                .source(makeSource(request))
                 .at(1)
                 .tmax(request.timeoutMillis)
                 .build();
@@ -178,12 +101,12 @@ public class RubiconAdapter implements Adapter {
         logger.debug("Bid request is {0}", Json.encodePrettily(bidRequest));
 
         final Future<Bid> future = Future.future();
-        client.post(getPort(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
+        httpClient.post(getPort(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
                 bidResponseHandler(future, bidder))
-                .putHeader(HttpHeaders.AUTHORIZATION, "Basic " + xapiCredentialsBase64)
-                .putHeader(HttpHeaders.CONTENT_TYPE, contentType)
+                .putHeader(HttpHeaders.AUTHORIZATION, authHeader)
+                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                .putHeader(HttpHeaders.USER_AGENT, "prebid-server/1.0")
+                .putHeader(HttpHeaders.USER_AGENT, PREBID_SERVER_USER_AGENT)
                 .setTimeout(request.timeoutMillis)
                 .exceptionHandler(throwable -> {
                     logger.error("Error occurred while sending bid request to an exchange", throwable);
@@ -194,6 +117,99 @@ public class RubiconAdapter implements Adapter {
                 })
                 .end(Json.encode(bidRequest));
         return future;
+    }
+
+    private static Imp makeImp(Bidder bidder, RubiconParams rubiconParams) {
+        return Imp.builder()
+                .id(bidder.adUnitCode)
+                // FIXME
+                .secure(1)
+                // FIXME
+                //.instl(0)
+                .banner(makeBanner(bidder))
+                .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams)))
+                .build();
+    }
+
+    private static Banner makeBanner(Bidder bidder) {
+        return Banner.builder()
+                .format(bidder.sizes)
+                .w(bidder.sizes.get(0).getW())
+                .h(bidder.sizes.get(0).getH())
+                // FIXME
+                // .topframe(0)
+                .ext(Json.mapper.valueToTree(makeBannerExt()))
+                .build();
+    }
+
+    private static RubiconBannerExt makeBannerExt() {
+        return RubiconBannerExt.builder()
+                // FIXME: hardcoded sizeId
+                .rp(RubiconBannerExtRp.builder().sizeId(15).mime("text/html").build())
+                .build();
+    }
+
+    private static RubiconImpExt makeImpExt(RubiconParams rubiconParams) {
+        return RubiconImpExt.builder()
+                .rp(RubiconImpExtRp.builder().zoneId(rubiconParams.zoneId).build())
+                .build();
+    }
+
+    private static Site makeSite(RubiconParams rubiconParams) {
+        return Site.builder()
+                // FIXME
+                .domain("whsv.com")
+                // FIXME
+                .page("http://www.whsv.com/")
+                .publisher(makePublisher(rubiconParams))
+                .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)))
+                .build();
+    }
+
+    private static Publisher makePublisher(RubiconParams rubiconParams) {
+        return Publisher.builder()
+                .ext(Json.mapper.valueToTree(makePublisherExt(rubiconParams)))
+                .build();
+    }
+
+    private static RubiconPubExt makePublisherExt(RubiconParams rubiconParams) {
+        return RubiconPubExt.builder()
+                .rp(RubiconPubExtRp.builder().accountId(rubiconParams.accountId).build())
+                .build();
+    }
+
+    private static RubiconSiteExt makeSiteExt(RubiconParams rubiconParams) {
+        return RubiconSiteExt.builder()
+                .rp(RubiconSiteExtRp.builder().siteId(rubiconParams.siteId).build())
+                .build();
+    }
+
+    private static Device makeDevice() {
+        // FIXME: remove hardcoded value
+        return Device.builder()
+                .ua("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko)"
+                        + " Chrome/60.0.3112.113 Safari/537.36")
+                .ip("69.141.166.108")
+                .build();
+    }
+
+    private static User makeUser() {
+        // buyeruid is parsed from the uids cookie
+        // uids=eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=
+        // the server should parse the uids cookie and send it to the relevant adapter. i.e. the rubicon id goes only
+        // to the rubicon adapter
+        return User.builder()
+                .buyeruid("J7HUD05W-J-76F7")
+                // FIXME
+                .id("-1")
+                .build();
+    }
+
+    private static Source makeSource(PreBidRequest request) {
+        return Source.builder()
+                .fd(1)
+                .tid(request.tid)
+                .build();
     }
 
     private static int getPort(URL url) {
@@ -230,6 +246,7 @@ public class RubiconAdapter implements Adapter {
 
     private static Bid toBid(BidResponse bidResponse, Bidder bidder) {
         final com.iab.openrtb.response.Bid bid = bidResponse.getSeatbid().get(0).getBid().get(0);
+        final RubiconTargetingExt rubiconTargetingExt = MAPPER.convertValue(bid.getExt(), RubiconTargetingExt.class);
         return Bid.builder()
                 .code(bid.getImpid())
                 .price(bid.getPrice()) // FIXME: now 0 is serialized as "0.0", but should be just "0"
@@ -238,12 +255,16 @@ public class RubiconAdapter implements Adapter {
                 .width(bid.getW())
                 .height(bid.getH())
                 .dealId(bid.getDealid())
-                .adServerTargeting(MAPPER.convertValue(bid.getExt(), RubiconTargetingExt.class)
-                        .rp.targeting.stream()
-                        .collect(Collectors.toMap(t -> t.key, t -> t.values.get(0))))
+                .adServerTargeting(toAdServerTargetingOrNull(rubiconTargetingExt))
                 .bidder(bidder.bidderCode)
                 .bidId(bidder.bidId)
                 .responseTime(10) // FIXME
                 .build();
+    }
+
+    private static Map<String, String> toAdServerTargetingOrNull(RubiconTargetingExt rubiconTargetingExt) {
+        return rubiconTargetingExt.rp != null && rubiconTargetingExt.rp.targeting != null
+                ? rubiconTargetingExt.rp.targeting.stream().collect(Collectors.toMap(t -> t.key, t -> t.values.get(0)))
+                : null;
     }
 }

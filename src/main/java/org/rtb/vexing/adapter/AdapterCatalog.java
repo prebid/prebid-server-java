@@ -1,5 +1,6 @@
 package org.rtb.vexing.adapter;
 
+import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
 
 import java.util.EnumMap;
@@ -9,8 +10,9 @@ public class AdapterCatalog {
 
     private final EnumMap<Adapter.Type, Adapter> adapters = new EnumMap<>(Adapter.Type.class);
 
-    public AdapterCatalog(JsonObject config) {
+    public AdapterCatalog(JsonObject config, HttpClient httpClient) {
         Objects.requireNonNull(config);
+        Objects.requireNonNull(httpClient);
 
         final JsonObject adaptersConfig = Objects.requireNonNull(config.getJsonObject("adapters"));
 
@@ -19,7 +21,8 @@ public class AdapterCatalog {
                 getConfigValue(rubiconConfig, "endpoint"),
                 getConfigValue(rubiconConfig, "usersync_url"),
                 getConfigValue(rubiconConfig, "XAPI", "Username"),
-                getConfigValue(rubiconConfig, "XAPI", "Password")));
+                getConfigValue(rubiconConfig, "XAPI", "Password"),
+                httpClient));
     }
 
     public Adapter get(String code) {

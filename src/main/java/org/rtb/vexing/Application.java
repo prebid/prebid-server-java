@@ -35,9 +35,9 @@ public class Application extends AbstractVerticle {
     public void start() {
         configureJSON();
 
-        adapterCatalog = new AdapterCatalog(vertx.getOrCreateContext().config());
-
         httpClient = httpClient();
+
+        adapterCatalog = new AdapterCatalog(vertx.getOrCreateContext().config(), httpClient);
 
         final Router router = routes();
 

@@ -59,7 +59,7 @@ public class AuctionHandler {
                     .flatMap(unit -> unit.bids.stream().map(bid -> Bidder.from(unit, bid)))
                     .collect(Collectors.toList());
             final List<Future> futures = bidders.stream()
-                    .map(bidder -> adapters.get(bidder.bidderCode).clientBid(httpClient, bidder, preBidRequest))
+                    .map(bidder -> adapters.get(bidder.bidderCode).clientBid(bidder, preBidRequest))
                     .collect(Collectors.toList());
 
             // FIXME: are we tolerating individual exchange failures?
