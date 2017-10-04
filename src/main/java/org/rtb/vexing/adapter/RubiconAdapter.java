@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -17,6 +18,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -38,6 +40,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -82,19 +85,19 @@ public class RubiconAdapter implements Adapter {
     }
 
     @Override
-    public Future<Bid> clientBid(Bidder bidder, PreBidRequest request) {
+    public Future<Bid> clientBid(Bidder bidder, PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
         final RubiconParams rubiconParams = MAPPER.convertValue(bidder.params, RubiconParams.class);
 
         final BidRequest bidRequest = BidRequest.builder()
-                .id(request.tid)
-                .imp(Collections.singletonList(makeImp(bidder, rubiconParams)))
+                .id(preBidRequest.tid)
+                .imp(Collections.singletonList(makeImp(bidder, rubiconParams, httpRequest)))
                 .site(makeSite(rubiconParams))
-                .app(request.app)
+                .app(preBidRequest.app)
                 .device(makeDevice())
                 .user(makeUser())
-                .source(makeSource(request))
+                .source(makeSource(preBidRequest))
                 .at(1)
-                .tmax(request.timeoutMillis)
+                .tmax(preBidRequest.timeoutMillis)
                 .build();
 
         // FIXME: remove
@@ -107,7 +110,7 @@ public class RubiconAdapter implements Adapter {
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .putHeader(HttpHeaders.USER_AGENT, PREBID_SERVER_USER_AGENT)
-                .setTimeout(request.timeoutMillis)
+                .setTimeout(preBidRequest.timeoutMillis)
                 .exceptionHandler(throwable -> {
                     logger.error("Error occurred while sending bid request to an exchange", throwable);
                     if (!future.isComplete()) {
@@ -119,33 +122,45 @@ public class RubiconAdapter implements Adapter {
         return future;
     }
 
-    private static Imp makeImp(Bidder bidder, RubiconParams rubiconParams) {
+    private static Imp makeImp(Bidder bidder, RubiconParams rubiconParams, HttpServerRequest httpRequest) {
         return Imp.builder()
                 .id(bidder.adUnitCode)
-                // FIXME
-                .secure(1)
-                // FIXME
-                //.instl(0)
+                .secure(isSecure(httpRequest))
+                .instl(bidder.instl)
                 .banner(makeBanner(bidder))
                 .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams)))
                 .build();
     }
 
+    private static Integer isSecure(HttpServerRequest httpRequest) {
+        return Objects.toString(httpRequest.headers().get("X-Forwarded-Proto")).equalsIgnoreCase("https")
+                || httpRequest.scheme().equalsIgnoreCase("https")
+                ? 1 : null;
+    }
+
     private static Banner makeBanner(Bidder bidder) {
         return Banner.builder()
-                .format(bidder.sizes)
                 .w(bidder.sizes.get(0).getW())
                 .h(bidder.sizes.get(0).getH())
-                // FIXME
-                // .topframe(0)
-                .ext(Json.mapper.valueToTree(makeBannerExt()))
+                .format(bidder.sizes)
+                .topframe(bidder.topframe)
+                .ext(Json.mapper.valueToTree(makeBannerExt(bidder.sizes)))
                 .build();
     }
 
-    private static RubiconBannerExt makeBannerExt() {
+    private static RubiconBannerExt makeBannerExt(List<Format> sizes) {
+        final List<Integer> rubiconSizeIds = sizes.stream()
+                .map(RubiconSize::toId)
+                .filter(id -> id > 0)
+                .collect(Collectors.toList());
         return RubiconBannerExt.builder()
-                // FIXME: hardcoded sizeId
-                .rp(RubiconBannerExtRp.builder().sizeId(15).mime("text/html").build())
+                .rp(RubiconBannerExtRp.builder()
+                        // FIXME error handling
+                        .sizeId(rubiconSizeIds.get(0))
+                        .altSizeIds(rubiconSizeIds.size() > 1
+                                ? rubiconSizeIds.subList(1, rubiconSizeIds.size() - 1) : null)
+                        .mime("text/html")
+                        .build())
                 .build();
     }
 

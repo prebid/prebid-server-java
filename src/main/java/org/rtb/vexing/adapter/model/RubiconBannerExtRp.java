@@ -7,6 +7,8 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+
 @Builder
 @ToString
 @EqualsAndHashCode
@@ -15,5 +17,6 @@ import lombok.experimental.FieldDefaults;
 public final class RubiconBannerExtRp {
 
     Integer sizeId;
+    List<Integer> altSizeIds;
     String mime;
 }
