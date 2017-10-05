@@ -96,7 +96,7 @@ public class RubiconAdapter implements Adapter {
                 .imp(Collections.singletonList(makeImp(bidder, rubiconParams, httpRequest)))
                 .site(makeSite(rubiconParams, httpRequest))
                 .app(preBidRequest.app)
-                .device(makeDevice())
+                .device(makeDevice(httpRequest))
                 .user(makeUser())
                 .source(makeSource(preBidRequest))
                 .at(1)
@@ -107,7 +107,7 @@ public class RubiconAdapter implements Adapter {
         logger.debug("Bid request is {0}", Json.encodePrettily(bidRequest));
 
         final Future<Bid> future = Future.future();
-        httpClient.post(getPort(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
+        httpClient.post(portFromUrl(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
                 bidResponseHandler(future, bidder))
                 .putHeader(HttpHeaders.AUTHORIZATION, authHeader)
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
@@ -183,16 +183,14 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private String domainFromUrl(String referrer) {
-        final URL url;
+    private String domainFromUrl(String url) {
         try {
-            url = new URL(referrer);
+            // FIXME: error handling
+            return psl.getRegistrableDomain(new URL(url).getHost());
         } catch (MalformedURLException e) {
             // FIXME: error handling
             throw new IllegalArgumentException();
         }
-        // FIXME: error handling
-        return psl.getRegistrableDomain(url.getHost());
     }
 
     private static Publisher makePublisher(RubiconParams rubiconParams) {
@@ -213,13 +211,29 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private static Device makeDevice() {
-        // FIXME: remove hardcoded value
+    private static Device makeDevice(HttpServerRequest httpRequest) {
         return Device.builder()
-                .ua("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko)"
-                        + " Chrome/60.0.3112.113 Safari/537.36")
-                .ip("69.141.166.108")
+                .ua(httpRequest.headers().get(HttpHeaders.USER_AGENT))
+                .ip(ipFromRequest(httpRequest))
                 .build();
+    }
+
+    private static String ipFromRequest(HttpServerRequest httpRequest) {
+        final String ip;
+
+        final String xForwardedFor = Objects.toString(httpRequest.headers().get("X-Forwarded-For"), "");
+        final String xRealIp = Objects.toString(httpRequest.headers().get("X-Real-IP"), "");
+        if (!xForwardedFor.isEmpty()) {
+            // X-Forwarded-For: client1, proxy1, proxy2
+            final int commaInd = xForwardedFor.indexOf(',');
+            ip = commaInd == -1 ? xForwardedFor : xForwardedFor.substring(0, commaInd);
+        } else if (!xRealIp.isEmpty()) {
+            ip = xRealIp;
+        } else {
+            ip = httpRequest.remoteAddress().host();
+        }
+
+        return ip;
     }
 
     private static User makeUser() {
@@ -241,7 +255,7 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private static int getPort(URL url) {
+    private static int portFromUrl(URL url) {
         final int port = url.getPort();
         return port != -1 ? port : url.getDefaultPort();
     }
