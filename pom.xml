@@ -17,6 +17,8 @@
         <main.verticle>org.rtb.vexing.Application</main.verticle>
         <vertx.version>3.4.2</vertx.version>
         <jackson.version>2.8.8</jackson.version>
+        <lombok.version>1.16.16</lombok.version>
+        <psl.version>2.2.0</psl.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
@@ -43,8 +45,14 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.16.16</version>
+            <version>${lombok.version}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>de.malkusch.whois-server-list</groupId>
+            <artifactId>public-suffix-list</artifactId>
+            <version>${psl.version}</version>
         </dependency>
     </dependencies>
 
@@ -132,6 +140,25 @@
                         <goals>
                             <goal>checkstyle</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.2.0</version>
+                <executions>
+                    <execution>
+                        <id>package-psl</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://publicsuffix.org/list/effective_tld_names.dat</url>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <outputFileName>effective_tld_names.dat</outputFileName>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

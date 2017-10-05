@@ -1,5 +1,6 @@
 package org.rtb.vexing.adapter;
 
+import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
 
@@ -10,9 +11,10 @@ public class AdapterCatalog {
 
     private final EnumMap<Adapter.Type, Adapter> adapters = new EnumMap<>(Adapter.Type.class);
 
-    public AdapterCatalog(JsonObject config, HttpClient httpClient) {
+    public AdapterCatalog(JsonObject config, HttpClient httpClient, PublicSuffixList psl) {
         Objects.requireNonNull(config);
         Objects.requireNonNull(httpClient);
+        Objects.requireNonNull(psl);
 
         final JsonObject adaptersConfig = Objects.requireNonNull(config.getJsonObject("adapters"));
 
@@ -22,7 +24,8 @@ public class AdapterCatalog {
                 getConfigValue(rubiconConfig, "usersync_url"),
                 getConfigValue(rubiconConfig, "XAPI", "Username"),
                 getConfigValue(rubiconConfig, "XAPI", "Password"),
-                httpClient));
+                httpClient,
+                psl));
     }
 
     public Adapter get(String code) {

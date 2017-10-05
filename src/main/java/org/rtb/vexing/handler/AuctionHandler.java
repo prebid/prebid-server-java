@@ -5,7 +5,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
@@ -28,14 +27,12 @@ public class AuctionHandler {
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
     private final Vertx vertx;
-    private final HttpClient httpClient;
 
     private final AdapterCatalog adapters;
 
     private String date;
 
-    public AuctionHandler(HttpClient httpClient, AdapterCatalog adapters, Vertx vertx) {
-        this.httpClient = httpClient;
+    public AuctionHandler(AdapterCatalog adapters, Vertx vertx) {
         this.adapters = adapters;
         this.vertx = vertx;
 

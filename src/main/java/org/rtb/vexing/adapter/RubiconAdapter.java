@@ -12,6 +12,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
+import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -60,17 +61,19 @@ public class RubiconAdapter implements Adapter {
     private final String xapiUsername;
     private final String xapiPassword;
     private final HttpClient httpClient;
+    private final PublicSuffixList psl;
 
     private final URL endpointUrl;
     private final String authHeader;
 
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
-                          HttpClient httpClient) {
+                          HttpClient httpClient, PublicSuffixList psl) {
         this.endpoint = Objects.requireNonNull(endpoint);
         this.usersyncUrl = Objects.requireNonNull(usersyncUrl);
         this.xapiUsername = Objects.requireNonNull(xapiUsername);
         this.xapiPassword = Objects.requireNonNull(xapiPassword);
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.psl = Objects.requireNonNull(psl);
 
         endpointUrl = parseUrl(endpoint);
         authHeader = "Basic " + Base64.getEncoder().encodeToString((xapiUsername + ':' + xapiPassword).getBytes());
@@ -91,7 +94,7 @@ public class RubiconAdapter implements Adapter {
         final BidRequest bidRequest = BidRequest.builder()
                 .id(preBidRequest.tid)
                 .imp(Collections.singletonList(makeImp(bidder, rubiconParams, httpRequest)))
-                .site(makeSite(rubiconParams))
+                .site(makeSite(rubiconParams, httpRequest))
                 .app(preBidRequest.app)
                 .device(makeDevice())
                 .user(makeUser())
@@ -155,7 +158,7 @@ public class RubiconAdapter implements Adapter {
                 .collect(Collectors.toList());
         return RubiconBannerExt.builder()
                 .rp(RubiconBannerExtRp.builder()
-                        // FIXME error handling
+                        // FIXME: error handling
                         .sizeId(rubiconSizeIds.get(0))
                         .altSizeIds(rubiconSizeIds.size() > 1
                                 ? rubiconSizeIds.subList(1, rubiconSizeIds.size() - 1) : null)
@@ -170,15 +173,26 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private static Site makeSite(RubiconParams rubiconParams) {
+    private Site makeSite(RubiconParams rubiconParams, HttpServerRequest httpRequest) {
+        final String referrer = httpRequest.headers().get(HttpHeaders.REFERER);
         return Site.builder()
-                // FIXME
-                .domain("whsv.com")
-                // FIXME
-                .page("http://www.whsv.com/")
+                .domain(domainFromUrl(referrer))
+                .page(referrer)
                 .publisher(makePublisher(rubiconParams))
                 .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)))
                 .build();
+    }
+
+    private String domainFromUrl(String referrer) {
+        final URL url;
+        try {
+            url = new URL(referrer);
+        } catch (MalformedURLException e) {
+            // FIXME: error handling
+            throw new IllegalArgumentException();
+        }
+        // FIXME: error handling
+        return psl.getRegistrableDomain(url.getHost());
     }
 
     private static Publisher makePublisher(RubiconParams rubiconParams) {

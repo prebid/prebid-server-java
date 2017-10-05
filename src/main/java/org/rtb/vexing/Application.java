@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
+import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
@@ -15,6 +17,9 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.handler.AuctionHandler;
+
+import java.io.IOException;
+import java.util.Properties;
 
 public class Application extends AbstractVerticle {
 
@@ -37,7 +42,9 @@ public class Application extends AbstractVerticle {
 
         httpClient = httpClient();
 
-        adapterCatalog = new AdapterCatalog(vertx.getOrCreateContext().config(), httpClient);
+        final PublicSuffixList suffixList = psl();
+
+        adapterCatalog = new AdapterCatalog(vertx.getOrCreateContext().config(), httpClient, suffixList);
 
         final Router router = routes();
 
@@ -78,12 +85,27 @@ public class Application extends AbstractVerticle {
     }
 
     /**
+     * Initialize Public Suffix List library based on the shipped list of effective TLD names.
+     */
+    private static PublicSuffixList psl() {
+        final PublicSuffixListFactory factory = new PublicSuffixListFactory();
+
+        Properties properties = factory.getDefaults();
+        properties.setProperty(PublicSuffixListFactory.PROPERTY_LIST_FILE, "/effective_tld_names.dat");
+        try {
+            return factory.build(properties);
+        } catch (IOException | ClassNotFoundException e) {
+            throw new IllegalArgumentException("Could not initialize public suffix list", e);
+        }
+    }
+
+    /**
      * Create a {@link Router} with all the supported endpoints for this application.
      */
     private Router routes() {
         final Router router = Router.router(getVertx());
         router.route().handler(BodyHandler.create());
-        router.post("/auction").handler(new AuctionHandler(httpClient, adapterCatalog, vertx)::auction);
+        router.post("/auction").handler(new AuctionHandler(adapterCatalog, vertx)::auction);
         return router;
     }
 }
