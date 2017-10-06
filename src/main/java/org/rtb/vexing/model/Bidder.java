@@ -1,28 +1,20 @@
-package org.rtb.vexing.model.response;
+package org.rtb.vexing.model;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
-@Builder
 @ToString
 @EqualsAndHashCode
-@AllArgsConstructor
+@AllArgsConstructor(staticName = "from")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public final class PreBidResponse {
+public final class Bidder {
 
-    String tid;
+    String bidderCode;
 
-    String status;
-
-    List<BidderStatus> bidderStatus;
-
-    List<Bid> bids;
-
-    String burl;
+    List<AdUnitBid> adUnitBids;
 }

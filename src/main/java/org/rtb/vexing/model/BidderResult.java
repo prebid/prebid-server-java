@@ -1,4 +1,4 @@
-package org.rtb.vexing.model.response;
+package org.rtb.vexing.model;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+import org.rtb.vexing.model.response.Bid;
+import org.rtb.vexing.model.response.BidderStatus;
 
 import java.util.List;
 
@@ -14,15 +16,9 @@ import java.util.List;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public final class PreBidResponse {
+public class BidderResult {
 
-    String tid;
-
-    String status;
-
-    List<BidderStatus> bidderStatus;
+    BidderStatus bidderStatus;
 
     List<Bid> bids;
-
-    String burl;
 }

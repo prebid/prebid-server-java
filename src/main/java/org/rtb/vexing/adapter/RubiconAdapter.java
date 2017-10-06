@@ -14,6 +14,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpClient;
@@ -33,9 +34,12 @@ import org.rtb.vexing.adapter.model.RubiconPubExtRp;
 import org.rtb.vexing.adapter.model.RubiconSiteExt;
 import org.rtb.vexing.adapter.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.model.RubiconTargetingExt;
-import org.rtb.vexing.model.request.Bidder;
+import org.rtb.vexing.model.AdUnitBid;
+import org.rtb.vexing.model.Bidder;
+import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
+import org.rtb.vexing.model.response.BidderStatus;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -88,12 +92,26 @@ public class RubiconAdapter implements Adapter {
     }
 
     @Override
-    public Future<Bid> clientBid(Bidder bidder, PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
-        final RubiconParams rubiconParams = MAPPER.convertValue(bidder.params, RubiconParams.class);
+    public Future<BidderResult> requestBids(Bidder bidder, PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
+        final List<Future> requestBidFutures = bidder.adUnitBids.stream()
+                .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequest, httpRequest))
+                .collect(Collectors.toList());
+
+        final Future<BidderResult> bidderResultFuture = Future.future();
+        // FIXME: error handling
+        CompositeFuture.join(requestBidFutures).setHandler(requestBidsResult ->
+                bidderResultFuture.complete(toBidderResult(bidder, requestBidsResult.result().list())));
+
+        return bidderResultFuture;
+    }
+
+    private Future<Bid.BidBuilder> requestSingleBid(AdUnitBid adUnitBid, PreBidRequest preBidRequest,
+                                                    HttpServerRequest httpRequest) {
+        final RubiconParams rubiconParams = MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .id(preBidRequest.tid)
-                .imp(Collections.singletonList(makeImp(bidder, rubiconParams, httpRequest)))
+                .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, httpRequest)))
                 .site(makeSite(rubiconParams, httpRequest))
                 .app(preBidRequest.app)
                 .device(makeDevice(httpRequest))
@@ -106,9 +124,9 @@ public class RubiconAdapter implements Adapter {
         // FIXME: remove
         logger.debug("Bid request is {0}", Json.encodePrettily(bidRequest));
 
-        final Future<Bid> future = Future.future();
+        final Future<Bid.BidBuilder> future = Future.future();
         httpClient.post(portFromUrl(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
-                bidResponseHandler(future, bidder))
+                bidResponseHandler(future, adUnitBid))
                 .putHeader(HttpHeaders.AUTHORIZATION, authHeader)
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
@@ -117,7 +135,7 @@ public class RubiconAdapter implements Adapter {
                 .exceptionHandler(throwable -> {
                     logger.error("Error occurred while sending bid request to an exchange", throwable);
                     if (!future.isComplete()) {
-                        // FIXME
+                        // FIXME: error handling
                         future.complete(null);
                     }
                 })
@@ -125,12 +143,12 @@ public class RubiconAdapter implements Adapter {
         return future;
     }
 
-    private static Imp makeImp(Bidder bidder, RubiconParams rubiconParams, HttpServerRequest httpRequest) {
+    private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams, HttpServerRequest httpRequest) {
         return Imp.builder()
-                .id(bidder.adUnitCode)
+                .id(adUnitBid.adUnitCode)
                 .secure(isSecure(httpRequest))
-                .instl(bidder.instl)
-                .banner(makeBanner(bidder))
+                .instl(adUnitBid.instl)
+                .banner(makeBanner(adUnitBid))
                 .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams)))
                 .build();
     }
@@ -141,13 +159,13 @@ public class RubiconAdapter implements Adapter {
                 ? 1 : null;
     }
 
-    private static Banner makeBanner(Bidder bidder) {
+    private static Banner makeBanner(AdUnitBid adUnitBid) {
         return Banner.builder()
-                .w(bidder.sizes.get(0).getW())
-                .h(bidder.sizes.get(0).getH())
-                .format(bidder.sizes)
-                .topframe(bidder.topframe)
-                .ext(Json.mapper.valueToTree(makeBannerExt(bidder.sizes)))
+                .w(adUnitBid.sizes.get(0).getW())
+                .h(adUnitBid.sizes.get(0).getH())
+                .format(adUnitBid.sizes)
+                .topframe(adUnitBid.topframe)
+                .ext(Json.mapper.valueToTree(makeBannerExt(adUnitBid.sizes)))
                 .build();
     }
 
@@ -260,7 +278,7 @@ public class RubiconAdapter implements Adapter {
         return port != -1 ? port : url.getDefaultPort();
     }
 
-    private static Handler<HttpClientResponse> bidResponseHandler(Future<Bid> future, Bidder bidder) {
+    private static Handler<HttpClientResponse> bidResponseHandler(Future<Bid.BidBuilder> future, AdUnitBid adUnitBid) {
         return response -> {
             if (response.statusCode() == 200) {
                 response
@@ -270,26 +288,27 @@ public class RubiconAdapter implements Adapter {
                             logger.debug("Bid response body raw: {0}", body);
                             logger.debug("Bid response: {0}",
                                     Json.encodePrettily(Json.decodeValue(body, BidResponse.class)));
-                            future.complete(toBid(Json.decodeValue(body, BidResponse.class), bidder));
+                            future.complete(toBidBuilder(Json.decodeValue(body, BidResponse.class), adUnitBid));
                         })
                         .exceptionHandler(exception -> {
                             logger.error("Error occurred during bid response handling", exception);
-                            // FIXME
+                            // FIXME: error handling
                             future.complete(null);
                         });
             } else {
                 response.bodyHandler(buffer ->
                         logger.error("Bid response code is {0}, body: {1}",
                                 response.statusCode(), buffer.toString()));
-                // FIXME
+                // FIXME: error handling
                 future.complete(null);
             }
         };
     }
 
-    private static Bid toBid(BidResponse bidResponse, Bidder bidder) {
+    private static Bid.BidBuilder toBidBuilder(BidResponse bidResponse, AdUnitBid adUnitBid) {
         final com.iab.openrtb.response.Bid bid = bidResponse.getSeatbid().get(0).getBid().get(0);
         final RubiconTargetingExt rubiconTargetingExt = MAPPER.convertValue(bid.getExt(), RubiconTargetingExt.class);
+
         return Bid.builder()
                 .code(bid.getImpid())
                 .price(bid.getPrice()) // FIXME: now 0 is serialized as "0.0", but should be just "0"
@@ -299,15 +318,27 @@ public class RubiconAdapter implements Adapter {
                 .height(bid.getH())
                 .dealId(bid.getDealid())
                 .adServerTargeting(toAdServerTargetingOrNull(rubiconTargetingExt))
-                .bidder(bidder.bidderCode)
-                .bidId(bidder.bidId)
-                .responseTime(10) // FIXME: compute response time for the bidder
-                .build();
+                .bidder(adUnitBid.bidderCode)
+                .bidId(adUnitBid.bidId);
     }
 
     private static Map<String, String> toAdServerTargetingOrNull(RubiconTargetingExt rubiconTargetingExt) {
         return rubiconTargetingExt.rp != null && rubiconTargetingExt.rp.targeting != null
                 ? rubiconTargetingExt.rp.targeting.stream().collect(Collectors.toMap(t -> t.key, t -> t.values.get(0)))
                 : null;
+    }
+
+    private static BidderResult toBidderResult(Bidder bidder, List<Bid.BidBuilder> requestBidResults) {
+        return BidderResult.builder()
+                .bidderStatus(BidderStatus.builder()
+                        .bidder(bidder.bidderCode)
+                        .numBids(requestBidResults.size())
+                        .responseTime(10) // FIXME: compute response time for the bidderStatus
+                        .build())
+                .bids(requestBidResults.stream()
+                        .map(b -> b.responseTime(10)) // FIXME: compute response time for the bidderStatus
+                        .map(Bid.BidBuilder::build)
+                        .collect(Collectors.toList()))
+                .build();
     }
 }

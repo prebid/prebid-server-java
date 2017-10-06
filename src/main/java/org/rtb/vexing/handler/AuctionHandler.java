@@ -13,8 +13,12 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
-import org.rtb.vexing.model.request.Bidder;
+import org.rtb.vexing.model.AdUnitBid;
+import org.rtb.vexing.model.Bidder;
+import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.response.Bid;
+import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.PreBidResponse;
 
 import java.time.ZonedDateTime;
@@ -52,19 +56,26 @@ public class AuctionHandler {
             context.response().setStatusCode(400).end();
         } else {
             final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
-            final List<Bidder> bidders = preBidRequest.adUnits.stream()
-                    .flatMap(unit -> unit.bids.stream().map(bid -> Bidder.from(unit, bid)))
-                    .collect(Collectors.toList());
-            final List<Future> futures = bidders.stream()
+            final List<Bidder> bidders = extractBidders(preBidRequest);
+            final List<Future> bidderResponseFutures = bidders.stream()
                     .map(bidder -> adapters.get(bidder.bidderCode)
-                            .clientBid(bidder, preBidRequest, context.request()))
+                            .requestBids(bidder, preBidRequest, context.request()))
                     .collect(Collectors.toList());
 
             // FIXME: are we tolerating individual exchange failures?
-            CompositeFuture.join(futures)
-                    .setHandler(bidResponsesResult ->
-                            respondWith(bidResponseOrNoBid(bidResponsesResult, preBidRequest, bidders), context));
+            CompositeFuture.join(bidderResponseFutures)
+                    .setHandler(bidderResponsesResult ->
+                            respondWith(bidResponsesOrNoBid(bidderResponsesResult, preBidRequest), context));
         }
+    }
+
+    private static List<Bidder> extractBidders(PreBidRequest preBidRequest) {
+        return preBidRequest.adUnits.stream()
+                .flatMap(unit -> unit.bids.stream().map(bid -> AdUnitBid.from(unit, bid)))
+                .collect(Collectors.groupingBy(a -> a.bidderCode))
+                .entrySet().stream()
+                .map(e -> Bidder.from(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
     }
 
     private void respondWith(PreBidResponse response, RoutingContext context) {
@@ -74,20 +85,25 @@ public class AuctionHandler {
                 .end(Json.encode(response));
     }
 
-    private static PreBidResponse bidResponseOrNoBid(AsyncResult<CompositeFuture> bidResponsesResult,
-                                                     PreBidRequest preBidRequest, List<Bidder> reqBidders) {
+    private static PreBidResponse bidResponsesOrNoBid(AsyncResult<CompositeFuture> bidResponsesResult,
+                                                      PreBidRequest preBidRequest) {
         return bidResponsesResult.succeeded()
-                ? PreBidResponse.builder()
+                ? toPrebidResponse(bidResponsesResult.result().list(), preBidRequest)
+                : Adapter.NO_BID_RESPONSE;
+    }
+
+    private static PreBidResponse toPrebidResponse(List<BidderResult> bidderResults, PreBidRequest preBidRequest) {
+        final List<BidderStatus> bidderStatuses = bidderResults.stream()
+                .map(br -> br.bidderStatus)
+                .collect(Collectors.toList());
+        final List<Bid> bids = bidderResults.stream()
+                .flatMap(br -> br.bids.stream())
+                .collect(Collectors.toList());
+        return PreBidResponse.builder()
                 .status("OK") // FIXME: might be "no_cookie"
                 .tid(preBidRequest.tid)
-                .bidderStatus(reqBidders.stream().map(b -> org.rtb.vexing.model.response.Bidder.builder()
-                        .bidder(b.bidderCode)
-                        .numBids(1) // FIXME
-                        .responseTime(10) // FIXME: compute response time for the bidder
-                        .build())
-                        .collect(Collectors.toList()))
-                .bids(bidResponsesResult.result().list())
-                .build()
-                : Adapter.NO_BID_RESPONSE;
+                .bidderStatus(bidderStatuses)
+                .bids(bids)
+                .build();
     }
 }
