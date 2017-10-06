@@ -1,4 +1,4 @@
-package org.rtb.vexing.adapter.model;
+package org.rtb.vexing.adapter.rubicon.model;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -6,14 +6,15 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
-import java.util.List;
-
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public final class RubiconTargeting {
+public final class RubiconParams {
 
-    String key;
-    List<String> values;
+    Integer accountId;
+
+    Integer siteId;
+
+    Integer zoneId;
 }

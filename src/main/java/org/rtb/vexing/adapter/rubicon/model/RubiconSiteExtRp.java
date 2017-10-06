@@ -1,4 +1,4 @@
-package org.rtb.vexing.adapter.model;
+package org.rtb.vexing.adapter.rubicon.model;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -12,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public final class RubiconSiteExt {
+public final class RubiconSiteExtRp {
 
-    RubiconSiteExtRp rp;
+    Integer siteId;
 }

@@ -3,6 +3,7 @@ package org.rtb.vexing.adapter;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
+import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 
 import java.util.EnumMap;
 import java.util.Objects;
