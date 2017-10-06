@@ -78,12 +78,12 @@ public class AuctionHandler {
                                                      PreBidRequest preBidRequest, List<Bidder> reqBidders) {
         return bidResponsesResult.succeeded()
                 ? PreBidResponse.builder()
-                .status("OK") // FIXME
+                .status("OK") // FIXME: might be "no_cookie"
                 .tid(preBidRequest.tid)
                 .bidderStatus(reqBidders.stream().map(b -> org.rtb.vexing.model.response.Bidder.builder()
                         .bidder(b.bidderCode)
                         .numBids(1) // FIXME
-                        .responseTime(10) // FIXME
+                        .responseTime(10) // FIXME: compute response time for the bidder
                         .build())
                         .collect(Collectors.toList()))
                 .bids(bidResponsesResult.result().list())

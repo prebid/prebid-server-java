@@ -2,6 +2,7 @@ package org.rtb.vexing.model.request;
 
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.User;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -57,4 +58,6 @@ public final class PreBidRequest {
      * digital device.
      */
     Device device;
+
+    User user;
 }

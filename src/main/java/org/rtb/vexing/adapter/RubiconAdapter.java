@@ -97,7 +97,7 @@ public class RubiconAdapter implements Adapter {
                 .site(makeSite(rubiconParams, httpRequest))
                 .app(preBidRequest.app)
                 .device(makeDevice(httpRequest))
-                .user(makeUser())
+                .user(makeUser(preBidRequest, httpRequest))
                 .source(makeSource(preBidRequest))
                 .at(1)
                 .tmax(preBidRequest.timeoutMillis)
@@ -236,14 +236,14 @@ public class RubiconAdapter implements Adapter {
         return ip;
     }
 
-    private static User makeUser() {
+    private static User makeUser(PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
         // buyeruid is parsed from the uids cookie
         // uids=eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=
         // the server should parse the uids cookie and send it to the relevant adapter. i.e. the rubicon id goes only
         // to the rubicon adapter
-        return User.builder()
+        // id would be a UID for "adnxs" (see logic in open-source implementation)
+        return preBidRequest.app != null ? preBidRequest.user : User.builder()
                 .buyeruid("J7HUD05W-J-76F7")
-                // FIXME
                 .id("-1")
                 .build();
     }
@@ -301,7 +301,7 @@ public class RubiconAdapter implements Adapter {
                 .adServerTargeting(toAdServerTargetingOrNull(rubiconTargetingExt))
                 .bidder(bidder.bidderCode)
                 .bidId(bidder.bidId)
-                .responseTime(10) // FIXME
+                .responseTime(10) // FIXME: compute response time for the bidder
                 .build();
     }
 
