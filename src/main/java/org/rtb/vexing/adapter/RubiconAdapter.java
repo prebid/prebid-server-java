@@ -43,6 +43,7 @@ import org.rtb.vexing.model.response.BidderStatus;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Clock;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -70,6 +71,8 @@ public class RubiconAdapter implements Adapter {
     private final URL endpointUrl;
     private final String authHeader;
 
+    private Clock clock = Clock.systemDefaultZone();
+
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
                           HttpClient httpClient, PublicSuffixList psl) {
         this.endpoint = Objects.requireNonNull(endpoint);
@@ -93,6 +96,8 @@ public class RubiconAdapter implements Adapter {
 
     @Override
     public Future<BidderResult> requestBids(Bidder bidder, PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
+        final long bidderStarted = clock.millis();
+
         final List<Future> requestBidFutures = bidder.adUnitBids.stream()
                 .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequest, httpRequest))
                 .collect(Collectors.toList());
@@ -100,7 +105,7 @@ public class RubiconAdapter implements Adapter {
         final Future<BidderResult> bidderResultFuture = Future.future();
         // FIXME: error handling
         CompositeFuture.join(requestBidFutures).setHandler(requestBidsResult ->
-                bidderResultFuture.complete(toBidderResult(bidder, requestBidsResult.result().list())));
+                bidderResultFuture.complete(toBidderResult(bidder, requestBidsResult.result().list(), bidderStarted)));
 
         return bidderResultFuture;
     }
@@ -328,15 +333,17 @@ public class RubiconAdapter implements Adapter {
                 : null;
     }
 
-    private static BidderResult toBidderResult(Bidder bidder, List<Bid.BidBuilder> requestBidResults) {
+    private BidderResult toBidderResult(Bidder bidder, List<Bid.BidBuilder> requestBidResults,
+                                        long bidderStarted) {
+        final Integer responseTime = Math.toIntExact(clock.millis() - bidderStarted);
         return BidderResult.builder()
                 .bidderStatus(BidderStatus.builder()
                         .bidder(bidder.bidderCode)
                         .numBids(requestBidResults.size())
-                        .responseTime(10) // FIXME: compute response time for the bidderStatus
+                        .responseTime(responseTime)
                         .build())
                 .bids(requestBidResults.stream()
-                        .map(b -> b.responseTime(10)) // FIXME: compute response time for the bidderStatus
+                        .map(b -> b.responseTime(responseTime))
                         .map(Bid.BidBuilder::build)
                         .collect(Collectors.toList()))
                 .build();
