@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
 
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -37,7 +36,7 @@ public class BidResponse {
     String id;
 
     /** Array of seatbid objects; 1+ required if a bid is to be made. */
-    List<SeatBid> seatbid = Collections.emptyList();
+    List<SeatBid> seatbid;
 
     /** Bidder generated response ID to assist with logging/tracking. */
     String bidid;

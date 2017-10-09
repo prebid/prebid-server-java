@@ -77,7 +77,7 @@ public class BidRequest {
      * including Internet latency to avoid timeout. This value supersedes any
      * <em>a priori</em> guidance from the exchange.
      */
-    Integer tmax;
+    Long tmax;
 
     /**
      * White list of buyer seats (e.g., advertisers, agencies) allowed to bid on

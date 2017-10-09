@@ -3,12 +3,14 @@ package org.rtb.vexing.model.request;
 import com.iab.openrtb.request.Format;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
+@Builder
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor

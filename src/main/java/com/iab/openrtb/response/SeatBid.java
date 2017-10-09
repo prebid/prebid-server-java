@@ -2,10 +2,10 @@ package com.iab.openrtb.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -16,6 +16,7 @@ import java.util.List;
  * impressions that it can win (default) or if it is only interested in winning
  * any if it can win them all as a group.
  */
+@Builder
 @Value
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class SeatBid {
@@ -25,7 +26,7 @@ public class SeatBid {
      * Multiple bids can relate to the same impression.
      * (required)
      */
-    List<Bid> bid = Collections.emptyList();
+    List<Bid> bid;
 
     /**
      * ID of the buyer seat (e.g., advertiser, agency) on whose behalf this bid

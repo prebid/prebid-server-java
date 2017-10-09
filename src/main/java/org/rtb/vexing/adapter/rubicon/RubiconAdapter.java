@@ -59,7 +59,7 @@ public class RubiconAdapter implements Adapter {
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static final String APPLICATION_JSON =
-            HttpHeaderValues.APPLICATION_JSON.toString() + HttpHeaderValues.CHARSET.toString() + "utf-8";
+            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
     public static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
     private final String endpoint;
@@ -96,11 +96,12 @@ public class RubiconAdapter implements Adapter {
     }
 
     @Override
-    public Future<BidderResult> requestBids(Bidder bidder, PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
+    public Future<BidderResult> requestBids(Bidder bidder, PreBidRequest preBidRequestBody,
+                                            HttpServerRequest preBidHttpRequest) {
         final long bidderStarted = clock.millis();
 
         final List<Future> requestBidFutures = bidder.adUnitBids.stream()
-                .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequest, httpRequest))
+                .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequestBody, preBidHttpRequest))
                 .collect(Collectors.toList());
 
         final Future<BidderResult> bidderResultFuture = Future.future();
@@ -117,14 +118,14 @@ public class RubiconAdapter implements Adapter {
 
         final BidRequest bidRequest = BidRequest.builder()
                 .id(preBidRequest.tid)
+                .app(preBidRequest.app)
+                .at(1)
+                .tmax(preBidRequest.timeoutMillis)
                 .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, httpRequest)))
                 .site(makeSite(rubiconParams, httpRequest))
-                .app(preBidRequest.app)
                 .device(makeDevice(httpRequest))
                 .user(makeUser(preBidRequest, httpRequest))
                 .source(makeSource(preBidRequest))
-                .at(1)
-                .tmax(preBidRequest.timeoutMillis)
                 .build();
 
         // FIXME: remove
@@ -161,7 +162,7 @@ public class RubiconAdapter implements Adapter {
 
     private static Integer isSecure(HttpServerRequest httpRequest) {
         return Objects.toString(httpRequest.headers().get("X-Forwarded-Proto")).equalsIgnoreCase("https")
-                || httpRequest.scheme().equalsIgnoreCase("https")
+                || Objects.toString(httpRequest.scheme()).equalsIgnoreCase("https")
                 ? 1 : null;
     }
 
@@ -185,7 +186,7 @@ public class RubiconAdapter implements Adapter {
                         // FIXME: error handling
                         .sizeId(rubiconSizeIds.get(0))
                         .altSizeIds(rubiconSizeIds.size() > 1
-                                ? rubiconSizeIds.subList(1, rubiconSizeIds.size() - 1) : null)
+                                ? rubiconSizeIds.subList(1, rubiconSizeIds.size()) : null)
                         .mime("text/html")
                         .build())
                 .build();
@@ -198,10 +199,10 @@ public class RubiconAdapter implements Adapter {
     }
 
     private Site makeSite(RubiconParams rubiconParams, HttpServerRequest httpRequest) {
-        final String referrer = httpRequest.headers().get(HttpHeaders.REFERER);
+        final String referer = httpRequest.headers().get(HttpHeaders.REFERER);
         return Site.builder()
-                .domain(domainFromUrl(referrer))
-                .page(referrer)
+                .domain(domainFromUrl(referer))
+                .page(referer)
                 .publisher(makePublisher(rubiconParams))
                 .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)))
                 .build();
@@ -257,7 +258,7 @@ public class RubiconAdapter implements Adapter {
             ip = httpRequest.remoteAddress().host();
         }
 
-        return ip;
+        return ip.trim();
     }
 
     private static User makeUser(PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
@@ -313,7 +314,6 @@ public class RubiconAdapter implements Adapter {
 
     private static Bid.BidBuilder toBidBuilder(BidResponse bidResponse, AdUnitBid adUnitBid) {
         final com.iab.openrtb.response.Bid bid = bidResponse.getSeatbid().get(0).getBid().get(0);
-        final RubiconTargetingExt rubiconTargetingExt = MAPPER.convertValue(bid.getExt(), RubiconTargetingExt.class);
 
         return Bid.builder()
                 .code(bid.getImpid())
@@ -323,13 +323,14 @@ public class RubiconAdapter implements Adapter {
                 .width(bid.getW())
                 .height(bid.getH())
                 .dealId(bid.getDealid())
-                .adServerTargeting(toAdServerTargetingOrNull(rubiconTargetingExt))
+                .adServerTargeting(toAdServerTargetingOrNull(bid))
                 .bidder(adUnitBid.bidderCode)
                 .bidId(adUnitBid.bidId);
     }
 
-    private static Map<String, String> toAdServerTargetingOrNull(RubiconTargetingExt rubiconTargetingExt) {
-        return rubiconTargetingExt.rp != null && rubiconTargetingExt.rp.targeting != null
+    private static Map<String, String> toAdServerTargetingOrNull(com.iab.openrtb.response.Bid bid) {
+        final RubiconTargetingExt rubiconTargetingExt = MAPPER.convertValue(bid.getExt(), RubiconTargetingExt.class);
+        return rubiconTargetingExt != null && rubiconTargetingExt.rp != null && rubiconTargetingExt.rp.targeting != null
                 ? rubiconTargetingExt.rp.targeting.stream().collect(Collectors.toMap(t -> t.key, t -> t.values.get(0)))
                 : null;
     }

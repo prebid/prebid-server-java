@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
  * not contain both an {@link App} and a {@link Site} object. At a minimum, it
  * is useful to provide an Application ID or bundle, but this is not strictly required.
  */
+@Builder
 @Value
 public class App {
 

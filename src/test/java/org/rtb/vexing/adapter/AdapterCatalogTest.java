@@ -13,12 +13,12 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 public class AdapterCatalogTest {
 
     @Rule
-    public MockitoRule mockitoRule = MockitoJUnit.rule();
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private HttpClient httpClient;
@@ -32,17 +32,14 @@ public class AdapterCatalogTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatThrownBy(() -> new AdapterCatalog(null, null, null)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new AdapterCatalog(new JsonObject(), null, null))
-                .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new AdapterCatalog(new JsonObject(), httpClient, null))
-                .isInstanceOf(NullPointerException.class);
+        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(new JsonObject(), null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(new JsonObject(), httpClient, null));
     }
 
     @Test
     public void creationShouldFailOnIncompleteConfig() {
-        assertThatThrownBy(() -> new AdapterCatalog(new JsonObject(), httpClient, psl))
-                .isInstanceOf(NullPointerException.class);
+        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(new JsonObject(), httpClient, psl));
     }
 
     @Test
@@ -60,7 +57,11 @@ public class AdapterCatalogTest {
         xapiConfig.put("Password", "rubicon_password");
         rubiconConfig.put("XAPI", xapiConfig);
 
-        assertThat(new AdapterCatalog(config, httpClient, psl).get("rubicon"))
+        // when
+        final Adapter rubiconAdapter = new AdapterCatalog(config, httpClient, psl).get("rubicon");
+
+        // then
+        assertThat(rubiconAdapter)
                 .isNotNull()
                 .isInstanceOf(RubiconAdapter.class);
     }

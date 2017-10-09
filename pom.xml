@@ -70,6 +70,13 @@
             <version>3.8.0</version>
             <scope>test</scope>
         </dependency>
+        <!-- for Mockito to be able to mock Vert.x-specific classes -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-codegen</artifactId>
+            <version>${vertx.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

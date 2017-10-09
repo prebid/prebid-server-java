@@ -5,12 +5,14 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
+@Builder
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor
@@ -29,7 +31,7 @@ public final class PreBidRequest {
 
     /* How long to wait for adapters to return bids. */
     // FIXME Ensure value greater than 0 but no more than 2000. Use 0 as "not set" default?
-    int timeoutMillis;
+    long timeoutMillis;
 
     /*
      * Flag to indicate if the impression requires secure HTTPS URL creative
