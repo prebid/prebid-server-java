@@ -2,6 +2,7 @@ package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import lombok.Builder;
 import lombok.Value;
 
 /**
@@ -11,6 +12,7 @@ import lombok.Value;
  * {@code w}/{@code h} pair or the {@code wratio}/{@code hratio}/{@code wmin}
  * set (i.e., for Flex Ads) be specified.
  */
+@Builder
 @Value
 public class Format {
 
