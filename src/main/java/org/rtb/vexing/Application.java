@@ -17,6 +17,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.handler.AuctionHandler;
+import org.rtb.vexing.json.ObjectMapperConfigurer;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -59,12 +60,7 @@ public class Application extends AbstractVerticle {
      * Configure the {@link Json#mapper} to be used for all JSON serialization.
      */
     private void configureJSON() {
-        Json.mapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false)
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
-                .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
-                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-                .registerModule(new AfterburnerModule());
+        ObjectMapperConfigurer.configure();
         // FIXME: remove
         Json.prettyMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false)
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)

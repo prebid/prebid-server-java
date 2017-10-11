@@ -56,7 +56,8 @@ public class RubiconAdapter implements Adapter {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconAdapter.class);
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
+    // RubiconParams fields are in camel-case as opposed to all other fields which are in snake-case
+    private static final ObjectMapper RUBICON_PARAMS_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
@@ -114,7 +115,7 @@ public class RubiconAdapter implements Adapter {
 
     private Future<Bid.BidBuilder> requestSingleBid(AdUnitBid adUnitBid, PreBidRequest preBidRequest,
                                                     HttpServerRequest httpRequest) {
-        final RubiconParams rubiconParams = MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
+        final RubiconParams rubiconParams = RUBICON_PARAMS_MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .id(preBidRequest.tid)
@@ -329,7 +330,8 @@ public class RubiconAdapter implements Adapter {
     }
 
     private static Map<String, String> toAdServerTargetingOrNull(com.iab.openrtb.response.Bid bid) {
-        final RubiconTargetingExt rubiconTargetingExt = MAPPER.convertValue(bid.getExt(), RubiconTargetingExt.class);
+        final RubiconTargetingExt rubiconTargetingExt = Json.mapper.convertValue(bid.getExt(),
+                RubiconTargetingExt.class);
         return rubiconTargetingExt != null && rubiconTargetingExt.rp != null && rubiconTargetingExt.rp.targeting != null
                 ? rubiconTargetingExt.rp.targeting.stream().collect(Collectors.toMap(t -> t.key, t -> t.values.get(0)))
                 : null;

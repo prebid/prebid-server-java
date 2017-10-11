@@ -1,6 +1,5 @@
 package org.rtb.vexing.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -17,6 +16,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.model.BidderResult;
@@ -39,15 +39,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-public class AuctionHandlerTest {
+public class AuctionHandlerTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    private ObjectMapper mapper = new ObjectMapper();
 
     @Mock
     private AdapterCatalog adapterCatalog;

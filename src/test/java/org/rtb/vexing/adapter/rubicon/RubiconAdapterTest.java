@@ -1,7 +1,6 @@
 package org.rtb.vexing.adapter.rubicon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -35,6 +34,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
+import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExt;
@@ -75,7 +75,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-public class RubiconAdapterTest {
+public class RubiconAdapterTest extends VertxTest {
 
     private static final String RUBICON_EXCHANGE = "http://rubiconproject.com/x";
     private static final String URL = "url";
@@ -87,8 +87,6 @@ public class RubiconAdapterTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    private ObjectMapper mapper = new ObjectMapper();
 
     private PublicSuffixList psl = new PublicSuffixListFactory().build();
 
@@ -426,7 +424,7 @@ public class RubiconAdapterTest {
         final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
         verify(httpClientRequest, times(2)).end(bidRequestCaptor.capture());
         final List<BidRequest> bidRequests = bidRequestCaptor.getAllValues().stream()
-                .map(this::toBidRequest)
+                .map(RubiconAdapterTest::toBidRequest)
                 .collect(Collectors.toList());
         assertThat(bidRequests).hasSize(2)
                 .flatExtracting(BidRequest::getImp)
@@ -547,7 +545,7 @@ public class RubiconAdapterTest {
         assertThat(bidderResult.bids).hasSize(2);
     }
 
-    private Bidder givenBidderCustomizable(
+    private static Bidder givenBidderCustomizable(
             Function<AdUnit.AdUnitBuilder, AdUnit.AdUnitBuilder> adUnitBuilderCustomizer,
             Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilderCustomizer,
             Function<RubiconParams.RubiconParamsBuilder, RubiconParams.RubiconParamsBuilder>
@@ -559,8 +557,8 @@ public class RubiconAdapterTest {
         return Bidder.from(RUBICON, Collections.singletonList(AdUnitBid.from(adUnit, bid)));
     }
 
-    private AdUnit givenAdUnitCustomizable(Function<AdUnit.AdUnitBuilder, AdUnit.AdUnitBuilder>
-                                                   adUnitBuilderCustomizer) {
+    private static AdUnit givenAdUnitCustomizable(Function<AdUnit.AdUnitBuilder, AdUnit.AdUnitBuilder>
+                                                          adUnitBuilderCustomizer) {
         final AdUnit.AdUnitBuilder adUnitBuilderMinimal = AdUnit.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()));
         final AdUnit.AdUnitBuilder adUnitBuilderCustomized = adUnitBuilderCustomizer.apply(adUnitBuilderMinimal);
@@ -568,7 +566,7 @@ public class RubiconAdapterTest {
         return adUnitBuilderCustomized.build();
     }
 
-    private Bid givenBidCustomizable(
+    private static Bid givenBidCustomizable(
             Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilderCustomizer,
             Function<RubiconParams.RubiconParamsBuilder, RubiconParams.RubiconParamsBuilder>
                     rubiconParamsBuilderCustomizer) {
@@ -580,13 +578,13 @@ public class RubiconAdapterTest {
         final RubiconParams rubiconParams = rubiconParamsBuilderCustomized.build();
 
         // bid
-        final Bid.BidBuilder bidBuilderMinimal = Bid.builder().params(mapper.valueToTree(rubiconParams));
+        final Bid.BidBuilder bidBuilderMinimal = Bid.builder().params(rubiconParamsMapper.valueToTree(rubiconParams));
         final Bid.BidBuilder bidBuilderCustomized = bidBuilderCustomizer.apply(bidBuilderMinimal);
 
         return bidBuilderCustomized.build();
     }
 
-    private PreBidRequest givenPreBidRequestBodyCustomizable(
+    private static PreBidRequest givenPreBidRequestBodyCustomizable(
             Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
                     preBidRequestBuilderCustomizer) {
 
@@ -603,7 +601,7 @@ public class RubiconAdapterTest {
         return mapper.readValue(bidRequestCaptor.getValue(), BidRequest.class);
     }
 
-    private BidRequest toBidRequest(String bidRequest) {
+    private static BidRequest toBidRequest(String bidRequest) {
         try {
             return mapper.readValue(bidRequest, BidRequest.class);
         } catch (IOException e) {
@@ -642,7 +640,7 @@ public class RubiconAdapterTest {
         };
     }
 
-    private String givenBidResponseCustomizable(
+    private static String givenBidResponseCustomizable(
             Function<BidResponse.BidResponseBuilder, BidResponse.BidResponseBuilder> bidResponseBuilderCustomizer,
             Function<SeatBid.SeatBidBuilder, SeatBid.SeatBidBuilder> seatBidBuilderCustomizer,
             Function<com.iab.openrtb.response.Bid.BidBuilder, com.iab.openrtb.response.Bid.BidBuilder>

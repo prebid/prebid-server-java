@@ -45,17 +45,14 @@ public class AdapterCatalogTest {
     @Test
     public void getShouldReturnConfiguredAdapter() {
         // given
-        final JsonObject config = new JsonObject();
-        final JsonObject adaptersConfig = new JsonObject();
-        config.put("adapters", adaptersConfig);
-        final JsonObject rubiconConfig = new JsonObject();
-        rubiconConfig.put("endpoint", "http://rubiconproject.com/x");
-        rubiconConfig.put("usersync_url", "http://rubiconproject.com/x/cookie");
-        adaptersConfig.put("rubicon", rubiconConfig);
-        final JsonObject xapiConfig = new JsonObject();
-        xapiConfig.put("Username", "rubicon_user");
-        xapiConfig.put("Password", "rubicon_password");
-        rubiconConfig.put("XAPI", xapiConfig);
+        final JsonObject config = new JsonObject()
+                .put("adapters", new JsonObject()
+                        .put("rubicon", new JsonObject()
+                                .put("endpoint", "http://rubiconproject.com/x")
+                                .put("usersync_url", "http://rubiconproject.com/x/cookie")
+                                .put("XAPI", new JsonObject()
+                                        .put("Username", "rubicon_user")
+                                        .put("Password", "rubicon_password"))));
 
         // when
         final Adapter rubiconAdapter = new AdapterCatalog(config, httpClient, psl).get("rubicon");
