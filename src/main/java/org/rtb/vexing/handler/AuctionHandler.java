@@ -24,6 +24,7 @@ import org.rtb.vexing.model.response.PreBidResponse;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class AuctionHandler {
@@ -37,8 +38,8 @@ public class AuctionHandler {
     private String date;
 
     public AuctionHandler(AdapterCatalog adapters, Vertx vertx) {
-        this.adapters = adapters;
-        this.vertx = vertx;
+        this.adapters = Objects.requireNonNull(adapters);
+        this.vertx = Objects.requireNonNull(vertx);
 
         // Refresh the date included in the response header every second.
         this.vertx.setPeriodic(1000,

@@ -105,7 +105,25 @@ public class RubiconAdapterTest {
 
     @Before
     public void setUp() {
-        givenPreBidRequestAndHttpClientMinimal();
+        // given
+
+        // http client returns http client request
+        given(httpClient.post((anyInt()), anyString(), anyString(), any())).willReturn(httpClientRequest);
+        given(httpClientRequest.putHeader(any(CharSequence.class), any(CharSequence.class)))
+                .willReturn(httpClientRequest);
+        given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
+        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
+
+        // minimal pre-bid request
+        given(preBidHttpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        preBidHttpRequest.headers().set(REFERER, "http://example.com");
+        given(preBidHttpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
+
+        bidder = givenBidderCustomizable(identity(), identity(), identity());
+
+        preBidRequestBody = givenPreBidRequestBodyCustomizable(identity());
+
+        // adapter
         adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, psl);
     }
 
@@ -527,29 +545,6 @@ public class RubiconAdapterTest {
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bids).hasSize(2);
-    }
-
-    private void givenPreBidRequestAndHttpClientMinimal() {
-        givenHttpClientReturnsHttpClientRequest();
-        givenPreBidRequestMinimal();
-    }
-
-    private void givenHttpClientReturnsHttpClientRequest() {
-        given(httpClient.post((anyInt()), anyString(), anyString(), any())).willReturn(httpClientRequest);
-        given(httpClientRequest.putHeader(any(CharSequence.class), any(CharSequence.class)))
-                .willReturn(httpClientRequest);
-        given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
-        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
-    }
-
-    private void givenPreBidRequestMinimal() {
-        given(preBidHttpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        preBidHttpRequest.headers().set(REFERER, "http://example.com");
-        given(preBidHttpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
-
-        bidder = givenBidderCustomizable(identity(), identity(), identity());
-
-        preBidRequestBody = givenPreBidRequestBodyCustomizable(identity());
     }
 
     private Bidder givenBidderCustomizable(
