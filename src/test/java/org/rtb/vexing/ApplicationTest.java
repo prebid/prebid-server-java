@@ -82,7 +82,7 @@ public class ApplicationTest extends VertxTest {
                 .put("http-client.default-timeout-ms", 1000)
                 .put("adapters", new JsonObject()
                         .put(RUBICON, new JsonObject()
-                                .put("endpoint", "http://localhost:" + RUBICON_PORT + "/exchange")
+                                .put("endpoint", "http://localhost:" + RUBICON_PORT + "/exchange?tk_xint=rp-pbs")
                                 .put("usersync_url", "http://localhost:" + RUBICON_PORT + "/cookie")
                                 .put("XAPI", new JsonObject()
                                         .put("Username", "rubicon_user")
@@ -105,20 +105,21 @@ public class ApplicationTest extends VertxTest {
                 givenBid(RUBICON, 2001, 3001, 4001, "bidId"));
 
         // bid response for ad unit 1
-        wireMockRule.stubFor(post(urlEqualTo("/exchange"))
+        wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
+                .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("prebid-server/1.0"))
                 .withRequestBody(equalToJson(givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001,
-                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1"), true, true))
+                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1")))
                 .willReturn(aResponse().withBody(givenBidResponse("bidResponseId1", "seatId1", "impId1", "8.43",
                         "adm1", "crid1", 300, 250, "dealId1",
                         RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build()))));
         // bid response for ad unit 2
-        wireMockRule.stubFor(post(urlEqualTo("/exchange"))
+        wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
                 .withRequestBody(equalToJson(givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 4001,
-                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1"), true, true))
+                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1")))
                 .willReturn(aResponse().withBody(givenBidResponse("bidResponseId2", "seatId2", "impId2", "4.26",
                         "adm2", "crid2", 300, 600, "dealId2",
                         RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build()))));

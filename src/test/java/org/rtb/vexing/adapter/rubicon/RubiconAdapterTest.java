@@ -77,7 +77,7 @@ import static org.mockito.Mockito.*;
 
 public class RubiconAdapterTest extends VertxTest {
 
-    private static final String RUBICON_EXCHANGE = "http://rubiconproject.com/x";
+    private static final String RUBICON_EXCHANGE = "http://rubiconproject.com/x?tk_xint=rp-pbs";
     private static final String URL = "url";
     private static final String USER = "user";
     private static final String PASSWORD = "password";
@@ -150,7 +150,7 @@ public class RubiconAdapterTest extends VertxTest {
         adapter.requestBids(bidder, preBidRequestBody, preBidHttpRequest);
 
         // then
-        verify(httpClient, times(1)).post(anyInt(), eq("rubiconproject.com"), eq("/x"), any());
+        verify(httpClient, times(1)).post(anyInt(), eq("rubiconproject.com"), eq("/x?tk_xint=rp-pbs"), any());
         verify(httpClientRequest, times(1))
                 .putHeader(eq(new AsciiString("Authorization")), eq("Basic dXNlcjpwYXNzd29yZA=="));
         verify(httpClientRequest, times(1))
