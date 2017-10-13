@@ -80,13 +80,10 @@ public class ApplicationTest extends VertxTest {
                 .put("http.port", 8080)
                 .put("http-client.max-pool-size", 32768)
                 .put("http-client.default-timeout-ms", 1000)
-                .put("adapters", new JsonObject()
-                        .put(RUBICON, new JsonObject()
-                                .put("endpoint", "http://localhost:" + RUBICON_PORT + "/exchange?tk_xint=rp-pbs")
-                                .put("usersync_url", "http://localhost:" + RUBICON_PORT + "/cookie")
-                                .put("XAPI", new JsonObject()
-                                        .put("Username", "rubicon_user")
-                                        .put("Password", "rubicon_password"))));
+                .put("adapters.rubicon.endpoint", "http://localhost:" + RUBICON_PORT + "/exchange?tk_xint=rp-pbs")
+                .put("adapters.rubicon.usersync_url", "http://localhost:" + RUBICON_PORT + "/cookie")
+                .put("adapters.rubicon.XAPI.Username", "rubicon_user")
+                .put("adapters.rubicon.XAPI.Password", "rubicon_password");
     }
 
     @After

@@ -8,14 +8,17 @@ import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.config.Config;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.json.ObjectMapperConfigurer;
 
@@ -38,14 +41,19 @@ public class Application extends AbstractVerticle {
      * Start the verticle instance.
      */
     @Override
-    public void start() {
-        configureJSON();
+    public void start(Future<Void> startFuture) {
+        Config.resolve(vertx, "/default-conf.json")
+                .compose(config -> initialize(config, startFuture), startFuture);
+    }
 
-        httpClient = httpClient();
+    private void initialize(JsonObject config, Future<Void> startFuture) {
+        configureJSON();
 
         final PublicSuffixList suffixList = psl();
 
-        adapterCatalog = new AdapterCatalog(vertx.getOrCreateContext().config(), httpClient, suffixList);
+        httpClient = httpClient(config);
+
+        adapterCatalog = new AdapterCatalog(config, httpClient, suffixList);
 
         final Router router = routes();
 
@@ -54,6 +62,8 @@ public class Application extends AbstractVerticle {
                 .listen(config().getInteger("http.port", DEFAULT_PORT));
 
         logger.debug("Vexing server has been started successfully");
+
+        startFuture.complete();
     }
 
     /**
@@ -73,10 +83,10 @@ public class Application extends AbstractVerticle {
     /**
      * Create a common {@link HttpClient} based upon configuration.
      */
-    private HttpClient httpClient() {
+    private HttpClient httpClient(JsonObject config) {
         final HttpClientOptions options = new HttpClientOptions()
-                .setMaxPoolSize(config().getInteger("http-client.max-pool-size", DEFAULT_POOL_SIZE))
-                .setConnectTimeout(config().getInteger("http-client.default-timeout-ms", DEFAULT_TIMEOUT_MS));
+                .setMaxPoolSize(config.getInteger("http-client.max-pool-size", DEFAULT_POOL_SIZE))
+                .setConnectTimeout(config.getInteger("http-client.default-timeout-ms", DEFAULT_TIMEOUT_MS));
         return vertx.createHttpClient(options);
     }
 

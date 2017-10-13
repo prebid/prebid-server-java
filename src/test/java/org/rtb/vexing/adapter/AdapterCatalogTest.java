@@ -46,13 +46,10 @@ public class AdapterCatalogTest {
     public void getShouldReturnConfiguredAdapter() {
         // given
         final JsonObject config = new JsonObject()
-                .put("adapters", new JsonObject()
-                        .put("rubicon", new JsonObject()
-                                .put("endpoint", "http://rubiconproject.com/x")
-                                .put("usersync_url", "http://rubiconproject.com/x/cookie")
-                                .put("XAPI", new JsonObject()
-                                        .put("Username", "rubicon_user")
-                                        .put("Password", "rubicon_password"))));
+                .put("adapters.rubicon.endpoint", "http://rubiconproject.com/x")
+                .put("adapters.rubicon.usersync_url", "http://rubiconproject.com/x/cookie/x")
+                .put("adapters.rubicon.XAPI.Username", "rubicon_user")
+                .put("adapters.rubicon.XAPI.Password", "rubicon_password");
 
         // when
         final Adapter rubiconAdapter = new AdapterCatalog(config, httpClient, psl).get("rubicon");

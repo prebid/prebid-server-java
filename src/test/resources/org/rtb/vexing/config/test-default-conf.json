@@ -1,0 +1,10 @@
+{
+  "param1": "value1",
+  "param2": "value2",
+  "param3": {
+    "param3_1": "value3_1",
+    "param3_composite1": {
+      "param3_composite1_1": "value3_composite1_1"
+    }
+  }
+}
