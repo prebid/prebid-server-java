@@ -38,11 +38,6 @@ public class AdapterCatalogTest {
     }
 
     @Test
-    public void creationShouldFailOnIncompleteConfig() {
-        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(new JsonObject(), httpClient, psl));
-    }
-
-    @Test
     public void getShouldReturnConfiguredAdapter() {
         // given
         final JsonObject config = new JsonObject()
