@@ -59,7 +59,7 @@ public class Application extends AbstractVerticle {
 
         vertx.createHttpServer()
                 .requestHandler(router::accept)
-                .listen(config().getInteger("http.port", DEFAULT_PORT));
+                .listen(config.getInteger("http.port", DEFAULT_PORT));
 
         logger.debug("Vexing server has been started successfully");
 
