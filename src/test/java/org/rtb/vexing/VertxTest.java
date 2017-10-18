@@ -8,13 +8,13 @@ import org.rtb.vexing.json.ObjectMapperConfigurer;
 public abstract class VertxTest {
 
     protected static ObjectMapper mapper;
-    // RubiconParams fields are in camel-case as opposed to all other fields which are in snake-case
-    protected static ObjectMapper rubiconParamsMapper;
+    // RubiconParams and UsersyncInfo fields are not in snake-case
+    protected static ObjectMapper defaultNamingMapper;
 
     @BeforeClass
     public static void beforeClass() {
         ObjectMapperConfigurer.configure();
         mapper = Json.mapper;
-        rubiconParamsMapper = new ObjectMapper();
+        defaultNamingMapper = new ObjectMapper();
     }
 }

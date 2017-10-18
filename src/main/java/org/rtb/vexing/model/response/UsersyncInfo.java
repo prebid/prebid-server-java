@@ -1,6 +1,6 @@
 package org.rtb.vexing.model.response;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,23 +13,12 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public final class BidderStatus {
+public class UsersyncInfo {
 
-    String bidder;
+    String url;
 
-    String adUnitCode;
+    String type;
 
-    Integer responseTime;
-
-    Integer numBids;
-
-    String error;
-
-    Boolean noCookie;
-
-    Boolean noBid;
-
-    JsonNode usersync;
-
-    // BidderDebug debug;
+    @JsonProperty
+    Boolean supportCORS;
 }

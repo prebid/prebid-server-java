@@ -38,9 +38,11 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
+import org.rtb.vexing.model.UidsCookie;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderStatus;
+import org.rtb.vexing.model.response.UsersyncInfo;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -56,36 +58,35 @@ public class RubiconAdapter implements Adapter {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconAdapter.class);
 
-    // RubiconParams fields are in camel-case as opposed to all other fields which are in snake-case
-    private static final ObjectMapper RUBICON_PARAMS_MAPPER = new ObjectMapper()
+    // RubiconParams and UsersyncInfo fields are not in snake-case
+    private static final ObjectMapper DEFAULT_NAMING_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
-    public static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
+    private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
-    private final String endpoint;
-    private final String usersyncUrl;
-    private final String xapiUsername;
-    private final String xapiPassword;
     private final HttpClient httpClient;
     private final PublicSuffixList psl;
 
     private final URL endpointUrl;
+    private final UsersyncInfo usersyncInfo;
     private final String authHeader;
 
     private Clock clock = Clock.systemDefaultZone();
 
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
                           HttpClient httpClient, PublicSuffixList psl) {
-        this.endpoint = Objects.requireNonNull(endpoint);
-        this.usersyncUrl = Objects.requireNonNull(usersyncUrl);
-        this.xapiUsername = Objects.requireNonNull(xapiUsername);
-        this.xapiPassword = Objects.requireNonNull(xapiPassword);
+        endpointUrl = parseUrl(Objects.requireNonNull(endpoint));
+        usersyncInfo = UsersyncInfo.builder()
+                .url(Objects.requireNonNull(usersyncUrl))
+                .type("redirect")
+                .supportCORS(false)
+                .build();
+        authHeader = "Basic " + Base64.getEncoder().encodeToString(
+                (Objects.requireNonNull(xapiUsername) + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
+
         this.httpClient = Objects.requireNonNull(httpClient);
         this.psl = Objects.requireNonNull(psl);
-
-        endpointUrl = parseUrl(endpoint);
-        authHeader = "Basic " + Base64.getEncoder().encodeToString((xapiUsername + ':' + xapiPassword).getBytes());
     }
 
     private static URL parseUrl(String url) {
@@ -98,24 +99,25 @@ public class RubiconAdapter implements Adapter {
 
     @Override
     public Future<BidderResult> requestBids(Bidder bidder, PreBidRequest preBidRequestBody,
-                                            HttpServerRequest preBidHttpRequest) {
+                                            UidsCookie uidsCookie, HttpServerRequest preBidHttpRequest) {
         final long bidderStarted = clock.millis();
 
         final List<Future> requestBidFutures = bidder.adUnitBids.stream()
-                .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequestBody, preBidHttpRequest))
+                .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequestBody, uidsCookie, preBidHttpRequest))
                 .collect(Collectors.toList());
 
         final Future<BidderResult> bidderResultFuture = Future.future();
         // FIXME: error handling
         CompositeFuture.join(requestBidFutures).setHandler(requestBidsResult ->
-                bidderResultFuture.complete(toBidderResult(bidder, requestBidsResult.result().list(), bidderStarted)));
+                bidderResultFuture.complete(toBidderResult(bidder, preBidRequestBody, uidsCookie,
+                        requestBidsResult.result().list(), bidderStarted)));
 
         return bidderResultFuture;
     }
 
     private Future<Bid.BidBuilder> requestSingleBid(AdUnitBid adUnitBid, PreBidRequest preBidRequest,
-                                                    HttpServerRequest httpRequest) {
-        final RubiconParams rubiconParams = RUBICON_PARAMS_MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
+                                                    UidsCookie uidsCookie, HttpServerRequest httpRequest) {
+        final RubiconParams rubiconParams = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .id(preBidRequest.tid)
@@ -125,7 +127,7 @@ public class RubiconAdapter implements Adapter {
                 .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, httpRequest)))
                 .site(makeSite(rubiconParams, httpRequest))
                 .device(makeDevice(httpRequest))
-                .user(makeUser(preBidRequest, httpRequest))
+                .user(makeUser(adUnitBid, preBidRequest, uidsCookie))
                 .source(makeSource(preBidRequest))
                 .build();
 
@@ -262,15 +264,11 @@ public class RubiconAdapter implements Adapter {
         return ip.trim();
     }
 
-    private static User makeUser(PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
-        // buyeruid is parsed from the uids cookie
-        // uids=eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=
-        // the server should parse the uids cookie and send it to the relevant adapter. i.e. the rubicon id goes only
-        // to the rubicon adapter
-        // id would be a UID for "adnxs" (see logic in open-source implementation)
+    private static User makeUser(AdUnitBid adUnitBid, PreBidRequest preBidRequest, UidsCookie uidsCookie) {
+        // id is a UID for "adnxs" (see logic in open-source implementation)
         return preBidRequest.app != null ? preBidRequest.user : User.builder()
-                .buyeruid("J7HUD05W-J-76F7")
-                .id("-1")
+                .buyeruid(uidsCookie.uidFrom(adUnitBid.bidderCode))
+                .id(uidsCookie.uidFrom("adnxs"))
                 .build();
     }
 
@@ -337,15 +335,23 @@ public class RubiconAdapter implements Adapter {
                 : null;
     }
 
-    private BidderResult toBidderResult(Bidder bidder, List<Bid.BidBuilder> requestBidResults,
-                                        long bidderStarted) {
+    private BidderResult toBidderResult(Bidder bidder, PreBidRequest preBidRequest, UidsCookie uidsCookie,
+                                        List<Bid.BidBuilder> requestBidResults, long bidderStarted) {
         final Integer responseTime = Math.toIntExact(clock.millis() - bidderStarted);
+
+        final BidderStatus.BidderStatusBuilder bidderStatusBuilder = BidderStatus.builder()
+                .bidder(bidder.bidderCode)
+                .responseTime(responseTime)
+                .numBids(requestBidResults.size());
+
+        if (preBidRequest.app == null && !uidsCookie.hasUidFrom(bidder.bidderCode)) {
+            bidderStatusBuilder
+                    .noCookie(true)
+                    .usersync(DEFAULT_NAMING_MAPPER.valueToTree(usersyncInfo));
+        }
+
         return BidderResult.builder()
-                .bidderStatus(BidderStatus.builder()
-                        .bidder(bidder.bidderCode)
-                        .numBids(requestBidResults.size())
-                        .responseTime(responseTime)
-                        .build())
+                .bidderStatus(bidderStatusBuilder.build())
                 .bids(requestBidResults.stream()
                         .map(b -> b.responseTime(responseTime))
                         .map(Bid.BidBuilder::build)

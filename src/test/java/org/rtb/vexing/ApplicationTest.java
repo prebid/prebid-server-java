@@ -61,6 +61,8 @@ public class ApplicationTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final int RUBICON_PORT = 8090;
 
+    private static final Jackson2Mapper MAPPER = new Jackson2Mapper((aClass, s) -> mapper);
+
     @ClassRule
     public static WireMockClassRule wireMockRule = new WireMockClassRule(RUBICON_PORT);
     @Rule
@@ -109,14 +111,16 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("prebid-server/1.0"))
                 .withRequestBody(equalToJson(givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001,
-                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1")))
+                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1",
+                        "J5VLCWQP-26-CWFT")))
                 .willReturn(aResponse().withBody(givenBidResponse("bidResponseId1", "seatId1", "impId1", "8.43",
                         "adm1", "crid1", 300, 250, "dealId1",
                         RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build()))));
         // bid response for ad unit 2
         wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
                 .withRequestBody(equalToJson(givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 4001,
-                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1")))
+                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1",
+                        "J5VLCWQP-26-CWFT")))
                 .willReturn(aResponse().withBody(givenBidResponse("bidResponseId2", "seatId2", "impId2", "4.26",
                         "adm2", "crid2", 300, 600, "dealId2",
                         RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build()))));
@@ -126,9 +130,13 @@ public class ApplicationTest extends VertxTest {
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","appnexus":"12345"},
+                // "bday":"2017-08-15T19:47:59.523908376Z"}
+                .header("Cookie", "uids=eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dX" +
+                        "MiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=; dummy=cookie")
                 .body(preBidRequest)
                 .post("/auction")
-                .as(PreBidResponse.class, new Jackson2Mapper((aClass, s) -> mapper));
+                .as(PreBidResponse.class, MAPPER);
 
         // then
         assertThat(preBidResponse.status).isEqualTo("OK");
@@ -164,11 +172,11 @@ public class ApplicationTest extends VertxTest {
                 .sizes(singletonList(Format.builder().w(w).h(h).build()));
     }
 
-    private static org.rtb.vexing.model.request.Bid givenBid(String bidder, int accountId, int siteId, int zoneId,
-                                                             String bidId) {
+    private static org.rtb.vexing.model.request.Bid givenBid(
+            String bidder, int accountId, int siteId, int zoneId, String bidId) {
         return org.rtb.vexing.model.request.Bid.builder()
                 .bidder(bidder)
-                .params(rubiconParamsMapper.valueToTree(RubiconParams.builder()
+                .params(defaultNamingMapper.valueToTree(RubiconParams.builder()
                         .accountId(accountId)
                         .siteId(siteId)
                         .zoneId(zoneId)
@@ -179,8 +187,8 @@ public class ApplicationTest extends VertxTest {
 
     private static String givenBidRequest(
             String tid, long tmax, String adUnitCode, int w, int h, int sizeId, int zoneId, String domain,
-            String page, int accountId, int siteId, String userAgent, String ip)
-            throws JsonProcessingException {
+            String page, int accountId, int siteId, String userAgent, String ip, String buyerUid) throws
+            JsonProcessingException {
 
         return mapper.writeValueAsString(BidRequest.builder()
                 .id(tid)
@@ -229,8 +237,7 @@ public class ApplicationTest extends VertxTest {
                         .ip(ip)
                         .build())
                 .user(User.builder()
-                        .buyeruid("J7HUD05W-J-76F7")
-                        .id("-1")
+                        .buyeruid(buyerUid)
                         .build())
                 .source(Source.builder()
                         .fd(1)
@@ -239,9 +246,9 @@ public class ApplicationTest extends VertxTest {
                 .build());
     }
 
-    private static String givenBidResponse(String bidResponseId, String seatId, String impId, String price, String
-            adm, String crid, int w, int h, String dealId, RubiconTargeting rubiconTargeting)
-            throws JsonProcessingException {
+    private static String givenBidResponse(
+            String bidResponseId, String seatId, String impId, String price, String adm, String crid, int w, int h,
+            String dealId, RubiconTargeting rubiconTargeting) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .id(bidResponseId)
                 .seatbid(singletonList(SeatBid.builder()
@@ -264,9 +271,9 @@ public class ApplicationTest extends VertxTest {
                 .build());
     }
 
-    private static org.rtb.vexing.model.response.Bid toBid(String impId, String price, String adm, String crid, int
-            width, int height, String dealId, Map<String, String> adServerTargeting, String bidder, String bidId,
-                                                           Integer responseTime) {
+    private static org.rtb.vexing.model.response.Bid toBid(
+            String impId, String price, String adm, String crid, int width, int height, String dealId,
+            Map<String, String> adServerTargeting, String bidder, String bidId, Integer responseTime) {
         return org.rtb.vexing.model.response.Bid.builder()
                 .code(impId)
                 .price(new BigDecimal(price))

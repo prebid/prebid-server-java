@@ -5,17 +5,21 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
+import org.rtb.vexing.model.UidsCookie;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderStatus;
@@ -23,6 +27,8 @@ import org.rtb.vexing.model.response.PreBidResponse;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -57,10 +63,11 @@ public class AuctionHandler {
             context.response().setStatusCode(400).end();
         } else {
             final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
+            final UidsCookie uidsCookie = parseUidsCookie(context);
             final List<Bidder> bidders = extractBidders(preBidRequest);
             final List<Future> bidderResponseFutures = bidders.stream()
                     .map(bidder -> adapters.get(bidder.bidderCode)
-                            .requestBids(bidder, preBidRequest, context.request()))
+                            .requestBids(bidder, preBidRequest, uidsCookie, context.request()))
                     .collect(Collectors.toList());
 
             // FIXME: are we tolerating individual exchange failures?
@@ -68,6 +75,21 @@ public class AuctionHandler {
                     .setHandler(bidderResponsesResult ->
                             respondWith(bidResponsesOrNoBid(bidderResponsesResult, preBidRequest), context));
         }
+    }
+
+    private static UidsCookie parseUidsCookie(RoutingContext context) {
+        UidsCookie result = null;
+        final Cookie uidsCookie = context.getCookie(UidsCookie.COOKIE_NAME);
+        if (uidsCookie != null) {
+            try {
+                result = new JsonObject(Buffer.buffer(Base64.getUrlDecoder().decode(uidsCookie.getValue())))
+                        .mapTo(UidsCookie.class);
+            } catch (IllegalArgumentException | DecodeException e) {
+                logger.debug("Could not decode or parse {0} cookie value {1}", UidsCookie.COOKIE_NAME,
+                        uidsCookie.getValue(), e);
+            }
+        }
+        return result != null ? result : UidsCookie.builder().uids(Collections.emptyMap()).build();
     }
 
     private static List<Bidder> extractBidders(PreBidRequest preBidRequest) {

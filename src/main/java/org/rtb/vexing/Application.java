@@ -17,6 +17,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.CookieHandler;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.config.Config;
 import org.rtb.vexing.handler.AuctionHandler;
@@ -110,6 +111,7 @@ public class Application extends AbstractVerticle {
      */
     private Router routes() {
         final Router router = Router.router(getVertx());
+        router.route().handler(CookieHandler.create());
         router.route().handler(BodyHandler.create());
         router.post("/auction").handler(new AuctionHandler(adapterCatalog, vertx)::auction);
         return router;
