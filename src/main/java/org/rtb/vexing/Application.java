@@ -11,6 +11,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -47,10 +48,16 @@ public class Application extends AbstractVerticle {
     @Override
     public void start(Future<Void> startFuture) {
         ApplicationConfig.resolve(vertx, "/default-conf.json")
-                .compose(config -> initialize(config, startFuture), startFuture);
+                .compose(this::initialize)
+                .compose(
+                        httpServer -> {
+                            logger.debug("Vexing server has been started successfully");
+                            startFuture.complete();
+                        },
+                        startFuture);
     }
 
-    private void initialize(JsonObject config, Future<Void> startFuture) {
+    private Future<HttpServer> initialize(JsonObject config) {
         applicationSettings = ApplicationSettings.create(vertx, config);
 
         configureJSON();
@@ -63,13 +70,12 @@ public class Application extends AbstractVerticle {
 
         final Router router = routes();
 
+        final Future<HttpServer> httpServerFuture = Future.future();
         vertx.createHttpServer()
                 .requestHandler(router::accept)
-                .listen(config.getInteger("http.port", DEFAULT_PORT));
+                .listen(config.getInteger("http.port", DEFAULT_PORT), httpServerFuture);
 
-        logger.debug("Vexing server has been started successfully");
-
-        startFuture.complete();
+        return httpServerFuture;
     }
 
     /**
