@@ -20,9 +20,9 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.config.ApplicationConfig;
-import org.rtb.vexing.config.ApplicationSettings;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.json.ObjectMapperConfigurer;
+import org.rtb.vexing.settings.ApplicationSettings;
 
 import java.io.IOException;
 import java.util.Properties;

@@ -17,7 +17,6 @@ import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
-import org.rtb.vexing.config.ApplicationSettings;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
@@ -26,6 +25,7 @@ import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.PreBidResponse;
+import org.rtb.vexing.settings.ApplicationSettings;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;

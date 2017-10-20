@@ -1,4 +1,4 @@
-package org.rtb.vexing.config;
+package org.rtb.vexing.settings;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
@@ -7,7 +7,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.rtb.vexing.config.model.Account;
+import org.rtb.vexing.settings.FileApplicationSettings;
+import org.rtb.vexing.settings.model.Account;
 
 import java.util.Optional;
 

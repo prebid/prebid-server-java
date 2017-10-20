@@ -1,4 +1,4 @@
-package org.rtb.vexing.config.model;
+package org.rtb.vexing.settings.model;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -7,18 +7,14 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
-import java.util.List;
-
 @Builder
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class SettingsFile {
+public class Account {
 
-    List<String> accounts;
+    String id;
 
-    List<AdUnitConfig> configs;
-
-    List<String> domains;
+    String priceGranularity;
 }

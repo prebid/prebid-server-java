@@ -1,7 +1,8 @@
-package org.rtb.vexing.config;
+package org.rtb.vexing.settings;
 
 import io.vertx.core.Vertx;
-import org.rtb.vexing.config.model.Account;
+import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.settings.model.Account;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -17,6 +18,7 @@ public interface ApplicationSettings {
     Optional<String> getAdUnitConfigById(String adUnitConfigId);
 
     static ApplicationSettings create(Vertx vertx, ApplicationConfig config) {
+        Objects.requireNonNull(vertx);
         Objects.requireNonNull(config);
 
         switch (Type.valueOf(config.getString("datacache.type"))) {

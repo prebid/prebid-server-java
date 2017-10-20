@@ -1,4 +1,4 @@
-package org.rtb.vexing.config.model;
+package org.rtb.vexing.settings.model;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

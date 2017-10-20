@@ -1,10 +1,10 @@
-package org.rtb.vexing.config;
+package org.rtb.vexing.settings;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
-import org.rtb.vexing.config.model.Account;
-import org.rtb.vexing.config.model.SettingsFile;
+import org.rtb.vexing.settings.model.Account;
+import org.rtb.vexing.settings.model.SettingsFile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
