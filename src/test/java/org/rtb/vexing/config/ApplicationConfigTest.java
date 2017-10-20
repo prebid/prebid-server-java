@@ -37,23 +37,23 @@ public class ApplicationConfigTest extends VertxTest {
 
     @Test
     public void shouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> ApplicationConfig.resolve(null, null));
-        assertThatNullPointerException().isThrownBy(() -> ApplicationConfig.resolve(vertx, null));
+        assertThatNullPointerException().isThrownBy(() -> ApplicationConfig.create(null, null));
+        assertThatNullPointerException().isThrownBy(() -> ApplicationConfig.create(vertx, null));
     }
 
     @Test
     public void shouldTolerateNonExistingDefaultFile() {
         // when
-        assertThatCode(() -> ApplicationConfig.resolve(vertx, "non-existing")).doesNotThrowAnyException();
+        assertThatCode(() -> ApplicationConfig.create(vertx, "non-existing")).doesNotThrowAnyException();
     }
 
     @Test
-    public void shouldUseDefaultValues() {
+    public void shouldUseDefaultFileValues() {
         // when
-        final Future<JsonObject> configFuture = ApplicationConfig.resolve(vertx, DEFAULT_FILE);
+        final Future<ApplicationConfig> configFuture = ApplicationConfig.create(vertx, DEFAULT_FILE);
 
         // then
-        final JsonObject config = configFuture.result();
+        final ApplicationConfig config = configFuture.result();
         assertThat(config.getString("param1")).isEqualTo("value1");
         assertThat(config.getString("param2")).isEqualTo("value2");
         assertThat(config.getString("param3.param3_1")).isEqualTo("value3_1");
@@ -62,7 +62,7 @@ public class ApplicationConfigTest extends VertxTest {
     }
 
     @Test
-    public void verticleConfigShouldOverrideDefaultValues() {
+    public void verticleConfigShouldOverrideDefaultFileValues() {
         // given
         verticleConfig.put("param2", "value2 overridden in verticle");
         verticleConfig.put("param3.param3_1", "value3_1 overridden in verticle");
@@ -70,14 +70,40 @@ public class ApplicationConfigTest extends VertxTest {
                 "value3_composite1_1 overridden in verticle");
 
         // when
-        final Future<JsonObject> configFuture = ApplicationConfig.resolve(vertx, DEFAULT_FILE);
+        final Future<ApplicationConfig> configFuture = ApplicationConfig.create(vertx, DEFAULT_FILE);
 
         // then
-        final JsonObject config = configFuture.result();
+        final ApplicationConfig config = configFuture.result();
         assertThat(config.getString("param1")).isEqualTo("value1");
         assertThat(config.getString("param1")).isEqualTo("value1");
         assertThat(config.getString("param3.param3_1")).isEqualTo("value3_1 overridden in verticle");
         assertThat(config.getString("param3.param3_composite1.param3_composite1_1"))
                 .isEqualTo("value3_composite1_1 overridden in verticle");
+    }
+
+    @Test
+    public void getStringShouldThrowExceptionOnMissingProperty() {
+        // given
+        final ApplicationConfig config = ApplicationConfig.create(vertx, DEFAULT_FILE).result();
+
+        // when
+        final Throwable thrown = catchThrowable(() -> config.getString("non-existing"));
+
+        // then
+        assertThat(thrown).isInstanceOf(ConfigurationException.class)
+                .hasMessage("Property non-existing is missing in configuration");
+    }
+
+    @Test
+    public void getIntegerShouldThrowExceptionOnMissingProperty() {
+        // given
+        final ApplicationConfig config = ApplicationConfig.create(vertx, DEFAULT_FILE).result();
+
+        // when
+        final Throwable thrown = catchThrowable(() -> config.getInteger("non-existing"));
+
+        // then
+        assertThat(thrown).isInstanceOf(ConfigurationException.class)
+                .hasMessage("Property non-existing is missing in configuration");
     }
 }

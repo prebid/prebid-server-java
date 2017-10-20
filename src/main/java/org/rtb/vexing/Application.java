@@ -13,7 +13,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
@@ -47,7 +46,7 @@ public class Application extends AbstractVerticle {
      */
     @Override
     public void start(Future<Void> startFuture) {
-        ApplicationConfig.resolve(vertx, "/default-conf.json")
+        ApplicationConfig.create(vertx, "/default-conf.json")
                 .compose(this::initialize)
                 .compose(
                         httpServer -> {
@@ -57,7 +56,7 @@ public class Application extends AbstractVerticle {
                         startFuture);
     }
 
-    private Future<HttpServer> initialize(JsonObject config) {
+    private Future<HttpServer> initialize(ApplicationConfig config) {
         applicationSettings = ApplicationSettings.create(vertx, config);
 
         configureJSON();
@@ -95,7 +94,7 @@ public class Application extends AbstractVerticle {
     /**
      * Create a common {@link HttpClient} based upon configuration.
      */
-    private HttpClient httpClient(JsonObject config) {
+    private HttpClient httpClient(ApplicationConfig config) {
         final HttpClientOptions options = new HttpClientOptions()
                 .setMaxPoolSize(config.getInteger("http-client.max-pool-size", DEFAULT_POOL_SIZE))
                 .setConnectTimeout(config.getInteger("http-client.default-timeout-ms", DEFAULT_TIMEOUT_MS));

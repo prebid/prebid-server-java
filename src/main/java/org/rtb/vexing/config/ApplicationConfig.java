@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,10 +29,13 @@ public class ApplicationConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationConfig.class);
 
-    private ApplicationConfig() {
+    private final JsonObject config;
+
+    private ApplicationConfig(JsonObject config) {
+        this.config = config;
     }
 
-    public static Future<JsonObject> resolve(Vertx vertx, String defaultFile) {
+    public static Future<ApplicationConfig> create(Vertx vertx, String defaultFile) {
         Objects.requireNonNull(vertx);
         Objects.requireNonNull(defaultFile);
 
@@ -53,7 +57,7 @@ public class ApplicationConfig {
 
         final Future<JsonObject> config = ConfigRetriever.getConfigAsFuture(ConfigRetriever.create(vertx, options));
 
-        return config.compose(c -> Future.succeededFuture(flatten(c)));
+        return config.compose(c -> Future.succeededFuture(new ApplicationConfig(flatten(c))));
     }
 
     private static String readFromClasspath(String path) {
@@ -115,5 +119,25 @@ public class ApplicationConfig {
 
     private static String pathToString(List<String> path) {
         return String.join(".", path.toArray(new String[path.size()]));
+    }
+
+    public String getString(String key) {
+        return requireNonNull(key, config::getString);
+    }
+
+    public Integer getInteger(String key) {
+        return requireNonNull(key, config::getInteger);
+    }
+
+    public Integer getInteger(String key, Integer def) {
+        return config.getInteger(key, def);
+    }
+
+    private static <T> T requireNonNull(String key, Function<String, T> valueExtractor) {
+        final T value = valueExtractor.apply(key);
+        if (value == null) {
+            throw new ConfigurationException(String.format("Property %s is missing in configuration", key));
+        }
+        return value;
     }
 }

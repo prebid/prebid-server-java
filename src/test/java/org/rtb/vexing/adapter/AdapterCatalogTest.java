@@ -3,7 +3,6 @@ package org.rtb.vexing.adapter;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.json.JsonObject;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -11,15 +10,20 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
+import org.rtb.vexing.config.ApplicationConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 
 public class AdapterCatalogTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private ApplicationConfig applicationConfig;
     @Mock
     private HttpClient httpClient;
 
@@ -33,21 +37,21 @@ public class AdapterCatalogTest {
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(new JsonObject(), null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(new JsonObject(), httpClient, null));
+        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(applicationConfig, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(applicationConfig, httpClient, null));
     }
 
     @Test
     public void getShouldReturnConfiguredAdapter() {
         // given
-        final JsonObject config = new JsonObject()
-                .put("adapters.rubicon.endpoint", "http://rubiconproject.com/x")
-                .put("adapters.rubicon.usersync_url", "http://rubiconproject.com/x/cookie/x")
-                .put("adapters.rubicon.XAPI.Username", "rubicon_user")
-                .put("adapters.rubicon.XAPI.Password", "rubicon_password");
+        given(applicationConfig.getString(eq("adapters.rubicon.endpoint"))).willReturn("http://rubiconproject.com/x");
+        given(applicationConfig.getString(eq("adapters.rubicon.usersync_url")))
+                .willReturn("http://rubiconproject.com/x/cookie/x");
+        given(applicationConfig.getString(eq("adapters.rubicon.XAPI.Username"))).willReturn("rubicon_user");
+        given(applicationConfig.getString(eq("adapters.rubicon.XAPI.Password"))).willReturn("rubicon_password");
 
         // when
-        final Adapter rubiconAdapter = new AdapterCatalog(config, httpClient, psl).get("rubicon");
+        final Adapter rubiconAdapter = new AdapterCatalog(applicationConfig, httpClient, psl).get("rubicon");
 
         // then
         assertThat(rubiconAdapter)
