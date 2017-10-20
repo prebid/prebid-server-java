@@ -4,6 +4,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -16,6 +17,7 @@ import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.config.ApplicationSettings;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
@@ -37,19 +39,21 @@ public class AuctionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
-    private final Vertx vertx;
+    private final ApplicationSettings applicationSettings;
 
     private final AdapterCatalog adapters;
 
     private String date;
 
-    public AuctionHandler(AdapterCatalog adapters, Vertx vertx) {
+    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters, Vertx vertx) {
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.adapters = Objects.requireNonNull(adapters);
-        this.vertx = Objects.requireNonNull(vertx);
 
         // Refresh the date included in the response header every second.
-        this.vertx.setPeriodic(1000,
-                handler -> date = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now()));
+        final Handler<Long> dateUpdater = event -> date = DateTimeFormatter.RFC_1123_DATE_TIME.format(
+                ZonedDateTime.now());
+        dateUpdater.handle(0L);
+        Objects.requireNonNull(vertx).setPeriodic(1000, dateUpdater);
     }
 
     /**
@@ -61,20 +65,26 @@ public class AuctionHandler {
         if (json == null) {
             logger.error("Incoming request has no body.");
             context.response().setStatusCode(400).end();
-        } else {
-            final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
-            final UidsCookie uidsCookie = parseUidsCookie(context);
-            final List<Bidder> bidders = extractBidders(preBidRequest);
-            final List<Future> bidderResponseFutures = bidders.stream()
-                    .map(bidder -> adapters.get(bidder.bidderCode)
-                            .requestBids(bidder, preBidRequest, uidsCookie, context.request()))
-                    .collect(Collectors.toList());
-
-            // FIXME: are we tolerating individual exchange failures?
-            CompositeFuture.join(bidderResponseFutures)
-                    .setHandler(bidderResponsesResult ->
-                            respondWith(bidResponsesOrNoBid(bidderResponsesResult, preBidRequest), context));
+            return;
         }
+
+        final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
+        if (!applicationSettings.getAccountById(preBidRequest.accountId).isPresent()) {
+            respondWith(error("Unknown account id"), context);
+            return;
+        }
+
+        final UidsCookie uidsCookie = parseUidsCookie(context);
+        final List<Bidder> bidders = extractBidders(preBidRequest);
+        final List<Future> bidderResponseFutures = bidders.stream()
+                .map(bidder -> adapters.get(bidder.bidderCode)
+                        .requestBids(bidder, preBidRequest, uidsCookie, context.request()))
+                .collect(Collectors.toList());
+
+        // FIXME: are we tolerating individual exchange failures?
+        CompositeFuture.join(bidderResponseFutures)
+                .setHandler(bidderResponsesResult ->
+                        respondWith(bidResponsesOrNoBid(bidderResponsesResult, preBidRequest), context));
     }
 
     private static UidsCookie parseUidsCookie(RoutingContext context) {
@@ -106,6 +116,10 @@ public class AuctionHandler {
                 .putHeader(HttpHeaders.DATE, date)
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .end(Json.encode(response));
+    }
+
+    private static PreBidResponse error(String status) {
+        return PreBidResponse.builder().status(status).build();
     }
 
     private static PreBidResponse bidResponsesOrNoBid(AsyncResult<CompositeFuture> bidResponsesResult,

@@ -85,7 +85,9 @@ public class ApplicationTest extends VertxTest {
                 .put("adapters.rubicon.endpoint", "http://localhost:" + RUBICON_PORT + "/exchange?tk_xint=rp-pbs")
                 .put("adapters.rubicon.usersync_url", "http://localhost:" + RUBICON_PORT + "/cookie")
                 .put("adapters.rubicon.XAPI.Username", "rubicon_user")
-                .put("adapters.rubicon.XAPI.Password", "rubicon_password");
+                .put("adapters.rubicon.XAPI.Password", "rubicon_password")
+                .put("datacache.type", "filecache")
+                .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml");
     }
 
     @After
@@ -157,6 +159,7 @@ public class ApplicationTest extends VertxTest {
     private static String givenPreBidRequest(String tid, int timeoutMillis, List<AdUnit.AdUnitBuilder> adUnitBuilders,
                                              org.rtb.vexing.model.request.Bid bid) throws JsonProcessingException {
         return mapper.writeValueAsString(PreBidRequest.builder()
+                .accountId("1001")
                 .tid(tid)
                 .timeoutMillis(timeoutMillis)
                 .adUnits(adUnitBuilders.stream()

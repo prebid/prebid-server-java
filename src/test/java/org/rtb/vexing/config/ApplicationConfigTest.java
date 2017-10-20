@@ -15,7 +15,7 @@ import org.rtb.vexing.VertxTest;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
 
-public class ConfigTest extends VertxTest {
+public class ApplicationConfigTest extends VertxTest {
 
     private static final String DEFAULT_FILE = "/org/rtb/vexing/config/test-default-conf.json";
 
@@ -37,20 +37,20 @@ public class ConfigTest extends VertxTest {
 
     @Test
     public void shouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> Config.resolve(null, null));
-        assertThatNullPointerException().isThrownBy(() -> Config.resolve(vertx, null));
+        assertThatNullPointerException().isThrownBy(() -> ApplicationConfig.resolve(null, null));
+        assertThatNullPointerException().isThrownBy(() -> ApplicationConfig.resolve(vertx, null));
     }
 
     @Test
     public void shouldTolerateNonExistingDefaultFile() {
         // when
-        assertThatCode(() -> Config.resolve(vertx, "non-existing")).doesNotThrowAnyException();
+        assertThatCode(() -> ApplicationConfig.resolve(vertx, "non-existing")).doesNotThrowAnyException();
     }
 
     @Test
     public void shouldUseDefaultValues() {
         // when
-        final Future<JsonObject> configFuture = Config.resolve(vertx, DEFAULT_FILE);
+        final Future<JsonObject> configFuture = ApplicationConfig.resolve(vertx, DEFAULT_FILE);
 
         // then
         final JsonObject config = configFuture.result();
@@ -70,7 +70,7 @@ public class ConfigTest extends VertxTest {
                 "value3_composite1_1 overridden in verticle");
 
         // when
-        final Future<JsonObject> configFuture = Config.resolve(vertx, DEFAULT_FILE);
+        final Future<JsonObject> configFuture = ApplicationConfig.resolve(vertx, DEFAULT_FILE);
 
         // then
         final JsonObject config = configFuture.result();

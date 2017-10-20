@@ -11,5 +11,9 @@
         "Password": "none"
       }
     }
+  },
+  "datacache": {
+    "type": "filecache",
+    "filename": "app-settings.yml"
   }
 }

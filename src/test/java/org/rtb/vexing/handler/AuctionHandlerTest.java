@@ -20,6 +20,8 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.config.ApplicationSettings;
+import org.rtb.vexing.config.model.Account;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.UidsCookie;
 import org.rtb.vexing.model.request.AdUnit;
@@ -31,6 +33,7 @@ import org.rtb.vexing.model.response.PreBidResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -52,6 +55,8 @@ public class AuctionHandlerTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private ApplicationSettings applicationSettings;
+    @Mock
     private AdapterCatalog adapterCatalog;
     @Mock
     private Adapter rubiconAdapter;
@@ -68,6 +73,8 @@ public class AuctionHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(applicationSettings.getAccountById(any())).willReturn(Optional.of(Account.builder().build()));
+
         given(adapterCatalog.get(eq(RUBICON))).willReturn(rubiconAdapter);
         given(adapterCatalog.get(eq(APPNEXUS))).willReturn(appnexusAdapter);
 
@@ -78,13 +85,15 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
-        auctionHandler = new AuctionHandler(adapterCatalog, vertx);
+        auctionHandler = new AuctionHandler(applicationSettings, adapterCatalog, vertx);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(adapterCatalog, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(applicationSettings, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, null));
     }
 
     @Test
@@ -99,6 +108,21 @@ public class AuctionHandlerTest extends VertxTest {
         verify(httpResponse, times(1)).setStatusCode(eq(400));
         verify(httpResponse, times(1)).end();
         verifyNoMoreInteractions(httpResponse, adapterCatalog);
+    }
+
+    @Test
+    public void shouldRespondWithErrorIfRequestBodyHasUnknownAccountId() throws IOException {
+        // given
+        givenPreBidRequestWith1AdUnitAnd1Bid();
+
+        given(applicationSettings.getAccountById(any())).willReturn(Optional.empty());
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.status).isEqualTo("Unknown account id");
     }
 
     @Test

@@ -24,11 +24,11 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class Config {
+public class ApplicationConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(Config.class);
+    private static final Logger logger = LoggerFactory.getLogger(ApplicationConfig.class);
 
-    private Config() {
+    private ApplicationConfig() {
     }
 
     public static Future<JsonObject> resolve(Vertx vertx, String defaultFile) {
@@ -59,7 +59,7 @@ public class Config {
     private static String readFromClasspath(String path) {
         String content = null;
 
-        final InputStream resourceAsStream = Config.class.getResourceAsStream(path);
+        final InputStream resourceAsStream = ApplicationConfig.class.getResourceAsStream(path);
         if (resourceAsStream != null) {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream,
                     StandardCharsets.UTF_8))) {

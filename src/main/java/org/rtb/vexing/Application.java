@@ -19,7 +19,8 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
 import org.rtb.vexing.adapter.AdapterCatalog;
-import org.rtb.vexing.config.Config;
+import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.config.ApplicationSettings;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.json.ObjectMapperConfigurer;
 
@@ -34,6 +35,8 @@ public class Application extends AbstractVerticle {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
+    private ApplicationSettings applicationSettings;
+
     private AdapterCatalog adapterCatalog;
 
     private HttpClient httpClient;
@@ -43,11 +46,13 @@ public class Application extends AbstractVerticle {
      */
     @Override
     public void start(Future<Void> startFuture) {
-        Config.resolve(vertx, "/default-conf.json")
+        ApplicationConfig.resolve(vertx, "/default-conf.json")
                 .compose(config -> initialize(config, startFuture), startFuture);
     }
 
     private void initialize(JsonObject config, Future<Void> startFuture) {
+        applicationSettings = ApplicationSettings.create(vertx, config);
+
         configureJSON();
 
         final PublicSuffixList suffixList = psl();
@@ -113,7 +118,7 @@ public class Application extends AbstractVerticle {
         final Router router = Router.router(getVertx());
         router.route().handler(CookieHandler.create());
         router.route().handler(BodyHandler.create());
-        router.post("/auction").handler(new AuctionHandler(adapterCatalog, vertx)::auction);
+        router.post("/auction").handler(new AuctionHandler(applicationSettings, adapterCatalog, vertx)::auction);
         return router;
     }
 }
