@@ -14,7 +14,11 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.config.ObjectMapperConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.internal.mapping.Jackson2Mapper;
+import io.restassured.specification.RequestSpecification;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -59,14 +63,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ApplicationTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
+    private static final int APP_PORT = 8080;
     private static final int RUBICON_PORT = 8090;
-
-    private static final Jackson2Mapper MAPPER = new Jackson2Mapper((aClass, s) -> mapper);
 
     @ClassRule
     public static WireMockClassRule wireMockRule = new WireMockClassRule(RUBICON_PORT);
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
+
+    private static final RequestSpecification spec = new RequestSpecBuilder()
+            .setBaseUri("http://localhost")
+            .setPort(8080)
+            .setConfig(RestAssuredConfig.config()
+                    .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
+            .build();
 
     private Vertx vertx;
 
@@ -77,9 +87,14 @@ public class ApplicationTest extends VertxTest {
         vertx.deployVerticle(Application.class.getName(), options, context.asyncAssertSuccess());
     }
 
+    @After
+    public void tearDown(TestContext context) {
+        vertx.close(context.asyncAssertSuccess());
+    }
+
     private static JsonObject config() {
         return new JsonObject()
-                .put("http.port", 8080)
+                .put("http.port", APP_PORT)
                 .put("http-client.max-pool-size", 32768)
                 .put("http-client.default-timeout-ms", 1000)
                 .put("adapters.rubicon.endpoint", "http://localhost:" + RUBICON_PORT + "/exchange?tk_xint=rp-pbs")
@@ -88,11 +103,6 @@ public class ApplicationTest extends VertxTest {
                 .put("adapters.rubicon.XAPI.Password", "rubicon_password")
                 .put("datacache.type", "filecache")
                 .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml");
-    }
-
-    @After
-    public void tearDown(TestContext context) {
-        vertx.close(context.asyncAssertSuccess());
     }
 
     @Test
@@ -128,7 +138,7 @@ public class ApplicationTest extends VertxTest {
                         RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build()))));
 
         // when
-        final PreBidResponse preBidResponse = given().baseUri("http://localhost").port(8080)
+        final PreBidResponse preBidResponse = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -138,7 +148,7 @@ public class ApplicationTest extends VertxTest {
                         "MiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=; dummy=cookie")
                 .body(preBidRequest)
                 .post("/auction")
-                .as(PreBidResponse.class, MAPPER);
+                .as(PreBidResponse.class);
 
         // then
         assertThat(preBidResponse.status).isEqualTo("OK");
@@ -154,6 +164,13 @@ public class ApplicationTest extends VertxTest {
                 "dealId1", singletonMap("key1", "value11"), RUBICON, "bidId", responseTime));
         assertThat(preBidResponse.bids.get(1)).isEqualTo(toBid("impId2", "4.26", "adm2", "crid2", 300, 600,
                 "dealId2", singletonMap("key2", "value21"), RUBICON, "bidId", responseTime));
+    }
+
+    @Test
+    public void statusShouldReturnHttp200Ok() {
+        given(spec)
+                .when().get("/status")
+                .then().assertThat().statusCode(200);
     }
 
     private static String givenPreBidRequest(String tid, int timeoutMillis, List<AdUnit.AdUnitBuilder> adUnitBuilders,
