@@ -44,6 +44,7 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.PreBidResponse;
 
@@ -116,26 +117,29 @@ public class ApplicationTest extends VertxTest {
                 givenBid(RUBICON, 2001, 3001, 4001, "bidId"));
 
         // bid response for ad unit 1
+        final String bidRequest1 = givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001, "example.com",
+                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT");
+        final String bidResponse1 = givenBidResponse("bidResponseId1", "seatId1", "impId1", "8.43", "adm1", "crid1",
+                300, 250, "dealId1",
+                RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build());
         wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
                 .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("prebid-server/1.0"))
-                .withRequestBody(equalToJson(givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001,
-                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1",
-                        "J5VLCWQP-26-CWFT")))
-                .willReturn(aResponse().withBody(givenBidResponse("bidResponseId1", "seatId1", "impId1", "8.43",
-                        "adm1", "crid1", 300, 250, "dealId1",
-                        RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build()))));
+                .withRequestBody(equalToJson(bidRequest1))
+                .willReturn(aResponse().withBody(bidResponse1)));
+
         // bid response for ad unit 2
+        final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 4001, "example.com",
+                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT");
+        final String bidResponse2 = givenBidResponse("bidResponseId2", "seatId2", "impId2", "4.26", "adm2", "crid2",
+                300, 600, "dealId2",
+                RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build());
         wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
-                .withRequestBody(equalToJson(givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 4001,
-                        "example.com", "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1",
-                        "J5VLCWQP-26-CWFT")))
-                .willReturn(aResponse().withBody(givenBidResponse("bidResponseId2", "seatId2", "impId2", "4.26",
-                        "adm2", "crid2", 300, 600, "dealId2",
-                        RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build()))));
+                .withRequestBody(equalToJson(bidRequest2))
+                .willReturn(aResponse().withBody(bidResponse2)));
 
         // when
         final PreBidResponse preBidResponse = given(spec)
@@ -146,6 +150,7 @@ public class ApplicationTest extends VertxTest {
                 // "bday":"2017-08-15T19:47:59.523908376Z"}
                 .header("Cookie", "uids=eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dX" +
                         "MiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=; dummy=cookie")
+                .queryParam("is_debug", "1")
                 .body(preBidRequest)
                 .post("/auction")
                 .as(PreBidResponse.class);
@@ -159,11 +164,15 @@ public class ApplicationTest extends VertxTest {
         assertThat(rubiconStatus.numBids).isEqualTo(2);
         final Integer responseTime = rubiconStatus.responseTime;
         assertThat(responseTime).isPositive();
-        assertThat(preBidResponse.bids).hasSize(2);
-        assertThat(preBidResponse.bids.get(0)).isEqualTo(toBid("impId1", "8.43", "adm1", "crid1", 300, 250,
-                "dealId1", singletonMap("key1", "value11"), RUBICON, "bidId", responseTime));
-        assertThat(preBidResponse.bids.get(1)).isEqualTo(toBid("impId2", "4.26", "adm2", "crid2", 300, 600,
-                "dealId2", singletonMap("key2", "value21"), RUBICON, "bidId", responseTime));
+        assertThat(rubiconStatus.debug).hasSize(2).containsOnly(
+                bidderDebug(bidRequest1, bidResponse1),
+                bidderDebug(bidRequest2, bidResponse2));
+
+        assertThat(preBidResponse.bids).hasSize(2).containsOnly(
+                bid("impId1", "8.43", "adm1", "crid1", 300, 250, "dealId1", singletonMap("key1", "value11"), RUBICON,
+                        "bidId", responseTime),
+                bid("impId2", "4.26", "adm2", "crid2", 300, 600, "dealId2", singletonMap("key2", "value21"), RUBICON,
+                        "bidId", responseTime));
     }
 
     @Test
@@ -291,7 +300,16 @@ public class ApplicationTest extends VertxTest {
                 .build());
     }
 
-    private static org.rtb.vexing.model.response.Bid toBid(
+    private static BidderDebug bidderDebug(String bidRequest1, String bidResponse1) {
+        return BidderDebug.builder()
+                .requestUri("http://localhost:" + RUBICON_PORT + "/exchange?tk_xint=rp-pbs")
+                .requestBody(bidRequest1)
+                .responseBody(bidResponse1)
+                .statusCode(200)
+                .build();
+    }
+
+    private static org.rtb.vexing.model.response.Bid bid(
             String impId, String price, String adm, String crid, int width, int height, String dealId,
             Map<String, String> adServerTargeting, String bidder, String bidId, Integer responseTime) {
         return org.rtb.vexing.model.response.Bid.builder()

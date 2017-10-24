@@ -36,11 +36,13 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.model.AdUnitBid;
+import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.UidsCookie;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
+import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
@@ -68,6 +70,7 @@ public class RubiconAdapter implements Adapter {
     private final HttpClient httpClient;
     private final PublicSuffixList psl;
 
+    private final String endpoint;
     private final URL endpointUrl;
     private final UsersyncInfo usersyncInfo;
     private final String authHeader;
@@ -76,7 +79,8 @@ public class RubiconAdapter implements Adapter {
 
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
                           HttpClient httpClient, PublicSuffixList psl) {
-        endpointUrl = parseUrl(Objects.requireNonNull(endpoint));
+        this.endpoint = Objects.requireNonNull(endpoint);
+        endpointUrl = parseUrl(this.endpoint);
         usersyncInfo = UsersyncInfo.builder()
                 .url(Objects.requireNonNull(usersyncUrl))
                 .type("redirect")
@@ -109,14 +113,14 @@ public class RubiconAdapter implements Adapter {
         final Future<BidderResult> bidderResultFuture = Future.future();
         // FIXME: error handling
         CompositeFuture.join(requestBidFutures).setHandler(requestBidsResult ->
-                bidderResultFuture.complete(toBidderResult(bidder, preBidRequestBody, uidsCookie,
+                bidderResultFuture.complete(toBidderResult(bidder, preBidRequestBody, preBidHttpRequest, uidsCookie,
                         requestBidsResult.result().list(), bidderStarted)));
 
         return bidderResultFuture;
     }
 
-    private Future<Bid.BidBuilder> requestSingleBid(AdUnitBid adUnitBid, PreBidRequest preBidRequest,
-                                                    UidsCookie uidsCookie, HttpServerRequest httpRequest) {
+    private Future<BidResult> requestSingleBid(AdUnitBid adUnitBid, PreBidRequest preBidRequest,
+                                               UidsCookie uidsCookie, HttpServerRequest preBidHttpRequest) {
         final RubiconParams rubiconParams = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -124,9 +128,9 @@ public class RubiconAdapter implements Adapter {
                 .app(preBidRequest.app)
                 .at(1)
                 .tmax(preBidRequest.timeoutMillis)
-                .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, httpRequest)))
-                .site(makeSite(rubiconParams, httpRequest))
-                .device(makeDevice(httpRequest))
+                .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, preBidHttpRequest)))
+                .site(makeSite(rubiconParams, preBidHttpRequest))
+                .device(makeDevice(preBidHttpRequest))
                 .user(makeUser(adUnitBid, preBidRequest, uidsCookie))
                 .source(makeSource(preBidRequest))
                 .build();
@@ -134,9 +138,12 @@ public class RubiconAdapter implements Adapter {
         // FIXME: remove
         logger.debug("Bid request is {0}", Json.encodePrettily(bidRequest));
 
-        final Future<Bid.BidBuilder> future = Future.future();
+        final String bidRequestBody = Json.encode(bidRequest);
+        final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(bidRequestBody);
+
+        final Future<BidResult> future = Future.future();
         httpClient.post(portFromUrl(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
-                bidResponseHandler(future, adUnitBid))
+                bidResponseHandler(future, bidderDebugBuilder, adUnitBid))
                 .putHeader(HttpHeaders.AUTHORIZATION, authHeader)
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
@@ -149,23 +156,23 @@ public class RubiconAdapter implements Adapter {
                         future.complete(null);
                     }
                 })
-                .end(Json.encode(bidRequest));
+                .end(bidRequestBody);
         return future;
     }
 
-    private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams, HttpServerRequest httpRequest) {
+    private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams, HttpServerRequest preBidHttpRequest) {
         return Imp.builder()
                 .id(adUnitBid.adUnitCode)
-                .secure(isSecure(httpRequest))
+                .secure(isSecure(preBidHttpRequest))
                 .instl(adUnitBid.instl)
                 .banner(makeBanner(adUnitBid))
                 .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams)))
                 .build();
     }
 
-    private static Integer isSecure(HttpServerRequest httpRequest) {
-        return Objects.toString(httpRequest.headers().get("X-Forwarded-Proto")).equalsIgnoreCase("https")
-                || Objects.toString(httpRequest.scheme()).equalsIgnoreCase("https")
+    private static Integer isSecure(HttpServerRequest preBidHttpRequest) {
+        return Objects.toString(preBidHttpRequest.headers().get("X-Forwarded-Proto")).equalsIgnoreCase("https")
+                || Objects.toString(preBidHttpRequest.scheme()).equalsIgnoreCase("https")
                 ? 1 : null;
     }
 
@@ -201,8 +208,8 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private Site makeSite(RubiconParams rubiconParams, HttpServerRequest httpRequest) {
-        final String referer = httpRequest.headers().get(HttpHeaders.REFERER);
+    private Site makeSite(RubiconParams rubiconParams, HttpServerRequest preBidHttpRequest) {
+        final String referer = preBidHttpRequest.headers().get(HttpHeaders.REFERER);
         return Site.builder()
                 .domain(domainFromUrl(referer))
                 .page(referer)
@@ -239,18 +246,18 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private static Device makeDevice(HttpServerRequest httpRequest) {
+    private static Device makeDevice(HttpServerRequest preBidHttpRequest) {
         return Device.builder()
-                .ua(httpRequest.headers().get(HttpHeaders.USER_AGENT))
-                .ip(ipFromRequest(httpRequest))
+                .ua(preBidHttpRequest.headers().get(HttpHeaders.USER_AGENT))
+                .ip(ipFromRequest(preBidHttpRequest))
                 .build();
     }
 
-    private static String ipFromRequest(HttpServerRequest httpRequest) {
+    private static String ipFromRequest(HttpServerRequest preBidHttpRequest) {
         final String ip;
 
-        final String xForwardedFor = Objects.toString(httpRequest.headers().get("X-Forwarded-For"), "");
-        final String xRealIp = Objects.toString(httpRequest.headers().get("X-Real-IP"), "");
+        final String xForwardedFor = Objects.toString(preBidHttpRequest.headers().get("X-Forwarded-For"), "");
+        final String xRealIp = Objects.toString(preBidHttpRequest.headers().get("X-Real-IP"), "");
         if (!xForwardedFor.isEmpty()) {
             // X-Forwarded-For: client1, proxy1, proxy2
             final int commaInd = xForwardedFor.indexOf(',');
@@ -258,7 +265,7 @@ public class RubiconAdapter implements Adapter {
         } else if (!xRealIp.isEmpty()) {
             ip = xRealIp;
         } else {
-            ip = httpRequest.remoteAddress().host();
+            ip = preBidHttpRequest.remoteAddress().host();
         }
 
         return ip.trim();
@@ -284,17 +291,21 @@ public class RubiconAdapter implements Adapter {
         return port != -1 ? port : url.getDefaultPort();
     }
 
-    private static Handler<HttpClientResponse> bidResponseHandler(Future<Bid.BidBuilder> future, AdUnitBid adUnitBid) {
+    private static Handler<HttpClientResponse> bidResponseHandler(
+            Future<BidResult> future, BidderDebug.BidderDebugBuilder bidderDebugBuilder, AdUnitBid adUnitBid) {
         return response -> {
             if (response.statusCode() == 200) {
                 response
                         .bodyHandler(buffer -> {
                             final String body = buffer.toString();
+
                             // FIXME: remove
                             logger.debug("Bid response body raw: {0}", body);
                             logger.debug("Bid response: {0}",
                                     Json.encodePrettily(Json.decodeValue(body, BidResponse.class)));
-                            future.complete(toBidBuilder(Json.decodeValue(body, BidResponse.class), adUnitBid));
+
+                            future.complete(toBidResult(bidderDebugBuilder, response, body,
+                                    Json.decodeValue(body, BidResponse.class), adUnitBid));
                         })
                         .exceptionHandler(exception -> {
                             logger.error("Error occurred during bid response handling", exception);
@@ -309,6 +320,30 @@ public class RubiconAdapter implements Adapter {
                 future.complete(null);
             }
         };
+    }
+
+    private static BidResult toBidResult(
+            BidderDebug.BidderDebugBuilder bidderDebugBuilder, HttpClientResponse response, String body,
+            BidResponse bidResponse, AdUnitBid adUnitBid) {
+
+        return BidResult.builder()
+                .bidBuilder(toBidBuilder(bidResponse, adUnitBid))
+                .bidderDebug(completeBidderDebug(bidderDebugBuilder, response, body))
+                .build();
+    }
+
+    private BidderDebug.BidderDebugBuilder beginBidderDebug(String bidRequestBody) {
+        return BidderDebug.builder()
+                .requestUri(endpoint)
+                .requestBody(bidRequestBody);
+    }
+
+    private static BidderDebug completeBidderDebug(BidderDebug.BidderDebugBuilder bidderDebugBuilder,
+                                                   HttpClientResponse response, String body) {
+        return bidderDebugBuilder
+                .responseBody(body)
+                .statusCode(response.statusCode())
+                .build();
     }
 
     private static Bid.BidBuilder toBidBuilder(BidResponse bidResponse, AdUnitBid adUnitBid) {
@@ -335,14 +370,14 @@ public class RubiconAdapter implements Adapter {
                 : null;
     }
 
-    private BidderResult toBidderResult(Bidder bidder, PreBidRequest preBidRequest, UidsCookie uidsCookie,
-                                        List<Bid.BidBuilder> requestBidResults, long bidderStarted) {
+    private BidderResult toBidderResult(Bidder bidder, PreBidRequest preBidRequest, HttpServerRequest preBidHttpRequest,
+                                        UidsCookie uidsCookie, List<BidResult> bidResults, long bidderStarted) {
         final Integer responseTime = Math.toIntExact(clock.millis() - bidderStarted);
 
         final BidderStatus.BidderStatusBuilder bidderStatusBuilder = BidderStatus.builder()
                 .bidder(bidder.bidderCode)
                 .responseTime(responseTime)
-                .numBids(requestBidResults.size());
+                .numBids(bidResults.size());
 
         if (preBidRequest.app == null && !uidsCookie.hasUidFrom(bidder.bidderCode)) {
             bidderStatusBuilder
@@ -350,12 +385,23 @@ public class RubiconAdapter implements Adapter {
                     .usersync(DEFAULT_NAMING_MAPPER.valueToTree(usersyncInfo));
         }
 
+        if (isDebug(preBidRequest, preBidHttpRequest)) {
+            bidderStatusBuilder
+                    .debug(bidResults.stream().map(b -> b.bidderDebug).collect(Collectors.toList()));
+        }
+
         return BidderResult.builder()
                 .bidderStatus(bidderStatusBuilder.build())
-                .bids(requestBidResults.stream()
+                .bids(bidResults.stream()
+                        .map(b -> b.bidBuilder)
                         .map(b -> b.responseTime(responseTime))
                         .map(Bid.BidBuilder::build)
                         .collect(Collectors.toList()))
                 .build();
+    }
+
+    private static boolean isDebug(PreBidRequest preBidRequest, HttpServerRequest preBidHttpRequest) {
+        return Objects.equals(preBidRequest.isDebug, Boolean.TRUE)
+                || Objects.equals(preBidHttpRequest.getParam("is_debug"), "1");
     }
 }

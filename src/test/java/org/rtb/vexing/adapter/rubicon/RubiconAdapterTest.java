@@ -54,6 +54,7 @@ import org.rtb.vexing.model.UidsCookie;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.Bid;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
 import java.io.IOException;
@@ -497,8 +498,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void requestBidsShouldReturnBidderResultWithNoCookieIfNoRubiconUidInCookieAndNoAppInPreBidRequest()
             throws IOException {
         // given
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity(), null);
-        givenHttpClientReturnsResponses(bidResponse);
+        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
@@ -522,8 +522,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         preBidRequestBody = givenPreBidRequestBodyCustomizable(builder -> builder.app(App.builder().build()));
 
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity(), null);
-        givenHttpClientReturnsResponses(bidResponse);
+        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
@@ -539,8 +538,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void requestBidsShouldReturnBidderResultWithEmptyAdTargetingIfNoRubiconTargetingInBidResponse()
             throws JsonProcessingException {
         // given
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity(), null);
-        givenHttpClientReturnsResponses(bidResponse);
+        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
@@ -583,9 +581,8 @@ public class RubiconAdapterTest extends VertxTest {
                 AdUnitBid.from(givenAdUnitCustomizable(identity()), bid),
                 AdUnitBid.from(givenAdUnitCustomizable(identity()), bid)));
 
-        final String bidResponse1 = givenBidResponseCustomizable(identity(), identity(), identity(), null);
-        final String bidResponse2 = givenBidResponseCustomizable(identity(), identity(), identity(), null);
-        givenHttpClientReturnsResponses(bidResponse1, bidResponse2);
+        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity(), null);
+        givenHttpClientReturnsResponses(bidResponse, bidResponse);
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
@@ -594,6 +591,109 @@ public class RubiconAdapterTest extends VertxTest {
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bids).hasSize(2);
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithDebugIfFlagIsTrueInPreBidRequest()
+            throws JsonProcessingException {
+        // given
+        preBidRequestBody = givenPreBidRequestBodyCustomizable(builder -> builder.isDebug(true));
+
+        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity(), null);
+        givenHttpClientReturnsResponses(bidResponse);
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
+                preBidHttpRequest);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+
+        final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
+        verify(httpClientRequest, times(1)).end(bidRequestCaptor.capture());
+
+        assertThat(bidderResult.bidderStatus.debug).hasSize(1).containsOnly(
+                BidderDebug.builder()
+                        .requestUri(RUBICON_EXCHANGE)
+                        .requestBody(bidRequestCaptor.getValue())
+                        .responseBody(bidResponse)
+                        .statusCode(200)
+                        .build());
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithoutDebugIfFlagIsFalseInPreBidRequest()
+            throws JsonProcessingException {
+        // given
+        preBidRequestBody = givenPreBidRequestBodyCustomizable(builder -> builder.isDebug(false));
+
+        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
+                preBidHttpRequest);
+
+        // then
+        assertThat(bidderResultFuture.result().bidderStatus.debug).isNull();
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithDebugIfQueryParameterEqualTo1()
+            throws JsonProcessingException {
+        // given
+        given(preBidHttpRequest.getParam(eq("is_debug"))).willReturn("1");
+
+        final Bid bid = givenBidCustomizable(identity(), identity());
+        bidder = Bidder.from(RUBICON, asList(
+                AdUnitBid.from(givenAdUnitCustomizable(builder -> builder.code("adUnitCode1")), bid),
+                AdUnitBid.from(givenAdUnitCustomizable(builder -> builder.code("adUnitCode2")), bid)));
+
+        final String bidResponse1 = givenBidResponseCustomizable(builder -> builder.id("bidResponseId1"),
+                identity(), identity(), null);
+        final String bidResponse2 = givenBidResponseCustomizable(builder -> builder.id("bidResponseId2"),
+                identity(), identity(), null);
+        givenHttpClientReturnsResponses(bidResponse1, bidResponse2);
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
+                preBidHttpRequest);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+
+        final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
+        verify(httpClientRequest, times(2)).end(bidRequestCaptor.capture());
+        final List<String> bidRequests = bidRequestCaptor.getAllValues();
+
+        assertThat(bidderResult.bidderStatus.debug).hasSize(2).containsOnly(
+                BidderDebug.builder()
+                        .requestUri(RUBICON_EXCHANGE)
+                        .requestBody(bidRequests.get(0))
+                        .responseBody(bidResponse1)
+                        .statusCode(200)
+                        .build(),
+                BidderDebug.builder()
+                        .requestUri(RUBICON_EXCHANGE)
+                        .requestBody(bidRequests.get(1))
+                        .responseBody(bidResponse2)
+                        .statusCode(200)
+                        .build());
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithoutDebugIfQueryParameterNotEqualTo1()
+            throws JsonProcessingException {
+        // given
+        given(preBidHttpRequest.getParam(eq("is_debug"))).willReturn("2");
+
+        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
+                preBidHttpRequest);
+
+        // then
+        assertThat(bidderResultFuture.result().bidderStatus.debug).isNull();
     }
 
     private static Bidder givenBidderCustomizable(

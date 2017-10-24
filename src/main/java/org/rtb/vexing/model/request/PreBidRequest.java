@@ -62,4 +62,6 @@ public final class PreBidRequest {
     Device device;
 
     User user;
+
+    Boolean isDebug;
 }
