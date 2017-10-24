@@ -13,15 +13,7 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public final class RubiconParams {
+public final class RubiconUserExtRp {
 
-    Integer accountId;
-
-    Integer siteId;
-
-    Integer zoneId;
-
-    JsonNode inventory;
-
-    JsonNode visitor;
+    JsonNode target;
 }

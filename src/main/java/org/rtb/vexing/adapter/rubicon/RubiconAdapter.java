@@ -35,6 +35,8 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconPubExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
@@ -131,7 +133,7 @@ public class RubiconAdapter implements Adapter {
                 .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, preBidHttpRequest)))
                 .site(makeSite(rubiconParams, preBidHttpRequest))
                 .device(makeDevice(preBidHttpRequest))
-                .user(makeUser(adUnitBid, preBidRequest, uidsCookie))
+                .user(makeUser(adUnitBid, preBidRequest, rubiconParams, uidsCookie))
                 .source(makeSource(preBidRequest))
                 .build();
 
@@ -204,7 +206,10 @@ public class RubiconAdapter implements Adapter {
 
     private static RubiconImpExt makeImpExt(RubiconParams rubiconParams) {
         return RubiconImpExt.builder()
-                .rp(RubiconImpExtRp.builder().zoneId(rubiconParams.zoneId).build())
+                .rp(RubiconImpExtRp.builder()
+                        .zoneId(rubiconParams.zoneId)
+                        .target(!rubiconParams.inventory.isNull() ? rubiconParams.inventory : null)
+                        .build())
                 .build();
     }
 
@@ -271,12 +276,24 @@ public class RubiconAdapter implements Adapter {
         return ip.trim();
     }
 
-    private static User makeUser(AdUnitBid adUnitBid, PreBidRequest preBidRequest, UidsCookie uidsCookie) {
-        // id is a UID for "adnxs" (see logic in open-source implementation)
-        return preBidRequest.app != null ? preBidRequest.user : User.builder()
+    private static User makeUser(AdUnitBid adUnitBid, PreBidRequest preBidRequest, RubiconParams rubiconParams,
+                                 UidsCookie uidsCookie) {
+        // create a copy since user might be shared with other adapters
+        final User.UserBuilder userBuilder = preBidRequest.app != null ? preBidRequest.user.toBuilder() : User.builder()
                 .buyeruid(uidsCookie.uidFrom(adUnitBid.bidderCode))
-                .id(uidsCookie.uidFrom("adnxs"))
+                // id is a UID for "adnxs" (see logic in open-source implementation)
+                .id(uidsCookie.uidFrom("adnxs"));
+
+        return userBuilder
+                .ext(Json.mapper.valueToTree(makeUserExt(rubiconParams)))
                 .build();
+    }
+
+    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams) {
+        return !rubiconParams.visitor.isNull() ? RubiconUserExt.builder()
+                .rp(RubiconUserExtRp.builder().target(rubiconParams.visitor).build())
+                .build()
+                : null;
     }
 
     private static Source makeSource(PreBidRequest request) {

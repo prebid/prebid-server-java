@@ -1,6 +1,9 @@
 package org.rtb.vexing;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -42,6 +45,8 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargeting;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.BidderDebug;
@@ -110,15 +115,24 @@ public class ApplicationTest extends VertxTest {
     public void auctionShouldRespondWithBidsFromRubicon() throws JsonProcessingException {
         // given
         // pre-bid request
+        final ObjectNode inventory = mapper.createObjectNode();
+        inventory.set("rating", mapper.createArrayNode().add(new TextNode("5-star")));
+        inventory.set("prodtype", mapper.createArrayNode().add((new TextNode("tech"))));
+
+        final ObjectNode visitor = mapper.createObjectNode();
+        visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
+        visitor.set("search", mapper.createArrayNode().add((new TextNode("iphone"))));
+
         final String preBidRequest = givenPreBidRequest("tid", 1000,
                 asList(
                         givenAdUnitBuilder("adUnitCode1", 300, 250),
                         givenAdUnitBuilder("adUnitCode2", 300, 600)),
-                givenBid(RUBICON, 2001, 3001, 4001, "bidId"));
+                givenBid(RUBICON, 2001, 3001, 4001, "bidId", inventory, visitor));
 
         // bid response for ad unit 1
         final String bidRequest1 = givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001, "example.com",
-                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT");
+                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT", inventory,
+                visitor);
         final String bidResponse1 = givenBidResponse("bidResponseId1", "seatId1", "impId1", "8.43", "adm1", "crid1",
                 300, 250, "dealId1",
                 RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build());
@@ -133,7 +147,8 @@ public class ApplicationTest extends VertxTest {
 
         // bid response for ad unit 2
         final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 4001, "example.com",
-                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT");
+                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT", inventory,
+                visitor);
         final String bidResponse2 = givenBidResponse("bidResponseId2", "seatId2", "impId2", "4.26", "adm2", "crid2",
                 300, 600, "dealId2",
                 RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build());
@@ -202,13 +217,15 @@ public class ApplicationTest extends VertxTest {
     }
 
     private static org.rtb.vexing.model.request.Bid givenBid(
-            String bidder, int accountId, int siteId, int zoneId, String bidId) {
+            String bidder, int accountId, int siteId, int zoneId, String bidId, JsonNode inventory, JsonNode visitor) {
         return org.rtb.vexing.model.request.Bid.builder()
                 .bidder(bidder)
                 .params(defaultNamingMapper.valueToTree(RubiconParams.builder()
                         .accountId(accountId)
                         .siteId(siteId)
                         .zoneId(zoneId)
+                        .inventory(inventory)
+                        .visitor(visitor)
                         .build()))
                 .bidId(bidId)
                 .build();
@@ -216,8 +233,8 @@ public class ApplicationTest extends VertxTest {
 
     private static String givenBidRequest(
             String tid, long tmax, String adUnitCode, int w, int h, int sizeId, int zoneId, String domain,
-            String page, int accountId, int siteId, String userAgent, String ip, String buyerUid) throws
-            JsonProcessingException {
+            String page, int accountId, int siteId, String userAgent, String ip, String buyerUid, JsonNode inventory,
+            JsonNode visitor) throws JsonProcessingException {
 
         return mapper.writeValueAsString(BidRequest.builder()
                 .id(tid)
@@ -242,6 +259,7 @@ public class ApplicationTest extends VertxTest {
                         .ext(mapper.valueToTree(RubiconImpExt.builder()
                                 .rp(RubiconImpExtRp.builder()
                                         .zoneId(zoneId)
+                                        .target(inventory)
                                         .build())
                                 .build()))
                         .build()))
@@ -267,6 +285,11 @@ public class ApplicationTest extends VertxTest {
                         .build())
                 .user(User.builder()
                         .buyeruid(buyerUid)
+                        .ext(mapper.valueToTree(RubiconUserExt.builder()
+                                .rp(RubiconUserExtRp.builder()
+                                        .target(visitor)
+                                        .build())
+                                .build()))
                         .build())
                 .source(Source.builder()
                         .fd(1)

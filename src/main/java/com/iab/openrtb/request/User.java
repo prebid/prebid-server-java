@@ -13,7 +13,7 @@ import java.util.List;
  * However, this user ID must be stable long enough to serve reasonably as the
  * basis for frequency capping and retargeting.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class User {
 

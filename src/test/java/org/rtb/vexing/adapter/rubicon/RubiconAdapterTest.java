@@ -1,6 +1,9 @@
 package org.rtb.vexing.adapter.rubicon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.MissingNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -292,7 +295,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void requestBidsShouldSendBidRequestWithAppFromPreBidRequest() throws IOException {
         // given
         preBidRequestBody = givenPreBidRequestBodyCustomizable(builder -> builder
-                .app(App.builder().id("appId").build()));
+                .app(App.builder().id("appId").build()).user(User.builder().build()));
 
         // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
@@ -418,6 +421,43 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
+    public void requestBidsShouldSendBidRequestWithoutInventoryAndVisitorDataIfAbsentInPreBidRequest()
+            throws IOException {
+        // when
+        adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
+
+        // then
+        final BidRequest bidRequest = captureBidRequest();
+        assertThat(bidRequest.getImp()).hasSize(1);
+        assertThat(bidRequest.getImp().get(0).getExt().at("/rp/target")).isEqualTo(MissingNode.getInstance());
+        assertThat(bidRequest.getUser().getExt()).isNull();
+    }
+
+    @Test
+    public void requestBidsShouldSendBidRequestWithInventoryAndVisitorDataFromPreBidRequest() throws IOException {
+        // given
+        final ObjectNode inventory = mapper.createObjectNode();
+        inventory.set("rating", mapper.createArrayNode().add(new TextNode("5-star")));
+        inventory.set("prodtype", mapper.createArrayNode().add((new TextNode("tech"))));
+
+        final ObjectNode visitor = mapper.createObjectNode();
+        visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
+        visitor.set("search", mapper.createArrayNode().add((new TextNode("iphone"))));
+
+        bidder = givenBidderCustomizable(identity(), identity(),
+                builder -> builder.inventory(inventory).visitor(visitor));
+
+        // when
+        adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
+
+        // then
+        final BidRequest bidRequest = captureBidRequest();
+        assertThat(bidRequest.getImp()).hasSize(1);
+        assertThat(bidRequest.getImp().get(0).getExt().at("/rp/target")).isEqualTo(inventory);
+        assertThat(bidRequest.getUser().getExt().at("/rp/target")).isEqualTo(visitor);
+    }
+
+    @Test
     public void requestBidsShouldSendMultipleBidRequestsIfMultipleAdUnitsInPreBidRequest() throws IOException {
         // given
         final Bid bid = givenBidCustomizable(identity(), identity());
@@ -520,7 +560,8 @@ public class RubiconAdapterTest extends VertxTest {
     public void requestBidsShouldReturnBidderResultWithoutNoCookieIfNoRubiconUidInCookieAndAppPresentInPreBidRequest()
             throws IOException {
         // given
-        preBidRequestBody = givenPreBidRequestBodyCustomizable(builder -> builder.app(App.builder().build()));
+        preBidRequestBody = givenPreBidRequestBodyCustomizable(
+                builder -> builder.app(App.builder().build()).user(User.builder().build()));
 
         givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
 

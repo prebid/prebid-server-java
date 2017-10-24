@@ -1,5 +1,6 @@
 package org.rtb.vexing.adapter.rubicon.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,4 +16,6 @@ import lombok.experimental.FieldDefaults;
 public final class RubiconImpExtRp {
 
     Integer zoneId;
+
+    JsonNode target;
 }
