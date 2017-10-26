@@ -6,7 +6,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -20,15 +19,14 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
-import org.rtb.vexing.settings.ApplicationSettings;
-import org.rtb.vexing.settings.model.Account;
 import org.rtb.vexing.model.BidderResult;
-import org.rtb.vexing.model.UidsCookie;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.Bid;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.PreBidResponse;
+import org.rtb.vexing.settings.ApplicationSettings;
+import org.rtb.vexing.settings.model.Account;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -126,79 +124,6 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldParseUidsCookie() {
-        // given
-        givenPreBidRequestWith1AdUnitAnd1Bid();
-
-        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","appnexus":"12345"},
-        // "bday":"2017-08-15T19:47:59.523908376Z"}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0x" +
-                        "NVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0="));
-
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, "bidId1");
-
-        // when
-        auctionHandler.auction(routingContext);
-
-        // then
-        final UidsCookie uidsCookie = captureUidsCookie();
-        assertThat(uidsCookie).isNotNull();
-        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
-        assertThat(uidsCookie.uidFrom(APPNEXUS)).isEqualTo("12345");
-    }
-
-    @Test
-    public void shouldTolerateAbsentUidsCookie() {
-        // given
-        givenPreBidRequestWith1AdUnitAnd1Bid();
-
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, "bidId1");
-
-        // when
-        auctionHandler.auction(routingContext);
-
-        // then
-        final UidsCookie uidsCookie = captureUidsCookie();
-        assertThat(uidsCookie).isNotNull();
-    }
-
-    @Test
-    public void shouldTolerateNonBase64UidsCookie() {
-        // given
-        givenPreBidRequestWith1AdUnitAnd1Bid();
-
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "abcde"));
-
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, "bidId1");
-
-        // when
-        auctionHandler.auction(routingContext);
-
-        // then
-        final UidsCookie uidsCookie = captureUidsCookie();
-        assertThat(uidsCookie).isNotNull();
-    }
-
-    @Test
-    public void shouldTolerateNonJsonUidsCookie() {
-        // given
-        givenPreBidRequestWith1AdUnitAnd1Bid();
-
-        // this uids cookie value stands for "abcde"
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "bm9uLWpzb24="));
-
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, "bidId1");
-
-        // when
-        auctionHandler.auction(routingContext);
-
-        // then
-        final UidsCookie uidsCookie = captureUidsCookie();
-        assertThat(uidsCookie).isNotNull();
-    }
-
-    @Test
     public void shouldRespondWithExpectedHeaders() {
         // given
         given(routingContext.getBodyAsJson())
@@ -279,12 +204,6 @@ public class AuctionHandlerTest extends VertxTest {
                                 .map(id -> org.rtb.vexing.model.response.Bid.builder().bidId(id).build())
                                 .collect(Collectors.toList()))
                         .build()));
-    }
-
-    private UidsCookie captureUidsCookie() {
-        final ArgumentCaptor<UidsCookie> uidsCookieCaptor = ArgumentCaptor.forClass(UidsCookie.class);
-        verify(rubiconAdapter, times(1)).requestBids(any(), any(), uidsCookieCaptor.capture(), any());
-        return uidsCookieCaptor.getValue();
     }
 
     private PreBidResponse capturePreBidResponse() throws IOException {

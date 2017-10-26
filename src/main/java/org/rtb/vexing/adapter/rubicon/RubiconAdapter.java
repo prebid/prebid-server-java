@@ -1,6 +1,7 @@
 package org.rtb.vexing.adapter.rubicon;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -37,11 +38,11 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
+import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
-import org.rtb.vexing.model.UidsCookie;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderDebug;
@@ -133,7 +134,7 @@ public class RubiconAdapter implements Adapter {
                 .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, preBidHttpRequest)))
                 .site(makeSite(rubiconParams, preBidHttpRequest))
                 .device(makeDevice(preBidHttpRequest))
-                .user(makeUser(adUnitBid, preBidRequest, rubiconParams, uidsCookie))
+                .user(makeUser(preBidRequest, rubiconParams, uidsCookie))
                 .source(makeSource(preBidRequest))
                 .build();
 
@@ -276,11 +277,10 @@ public class RubiconAdapter implements Adapter {
         return ip.trim();
     }
 
-    private static User makeUser(AdUnitBid adUnitBid, PreBidRequest preBidRequest, RubiconParams rubiconParams,
-                                 UidsCookie uidsCookie) {
+    private User makeUser(PreBidRequest preBidRequest, RubiconParams rubiconParams, UidsCookie uidsCookie) {
         // create a copy since user might be shared with other adapters
         final User.UserBuilder userBuilder = preBidRequest.app != null ? preBidRequest.user.toBuilder() : User.builder()
-                .buyeruid(uidsCookie.uidFrom(adUnitBid.bidderCode))
+                .buyeruid(uidsCookie.uidFrom(familyName()))
                 // id is a UID for "adnxs" (see logic in open-source implementation)
                 .id(uidsCookie.uidFrom("adnxs"));
 
@@ -396,10 +396,10 @@ public class RubiconAdapter implements Adapter {
                 .responseTime(responseTime)
                 .numBids(bidResults.size());
 
-        if (preBidRequest.app == null && !uidsCookie.hasUidFrom(bidder.bidderCode)) {
+        if (preBidRequest.app == null && uidsCookie.uidFrom(familyName()) == null) {
             bidderStatusBuilder
                     .noCookie(true)
-                    .usersync(DEFAULT_NAMING_MAPPER.valueToTree(usersyncInfo));
+                    .usersync(usersyncInfo());
         }
 
         if (isDebug(preBidRequest, preBidHttpRequest)) {
@@ -420,5 +420,15 @@ public class RubiconAdapter implements Adapter {
     private static boolean isDebug(PreBidRequest preBidRequest, HttpServerRequest preBidHttpRequest) {
         return Objects.equals(preBidRequest.isDebug, Boolean.TRUE)
                 || Objects.equals(preBidHttpRequest.getParam("is_debug"), "1");
+    }
+
+    @Override
+    public String familyName() {
+        return "rubicon";
+    }
+
+    @Override
+    public JsonNode usersyncInfo() {
+        return DEFAULT_NAMING_MAPPER.valueToTree(usersyncInfo);
     }
 }

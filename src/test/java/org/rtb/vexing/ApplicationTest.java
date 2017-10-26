@@ -18,9 +18,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.internal.mapping.Jackson2Mapper;
+import io.restassured.parsing.Parser;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -48,10 +50,13 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.model.request.AdUnit;
+import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.BidderStatus;
+import org.rtb.vexing.model.response.CookieSyncResponse;
 import org.rtb.vexing.model.response.PreBidResponse;
+import org.rtb.vexing.model.response.UsersyncInfo;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -123,7 +128,7 @@ public class ApplicationTest extends VertxTest {
         visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
         visitor.set("search", mapper.createArrayNode().add((new TextNode("iphone"))));
 
-        final String preBidRequest = givenPreBidRequest("tid", 1000,
+        final PreBidRequest preBidRequest = givenPreBidRequest("tid", 1000,
                 asList(
                         givenAdUnitBuilder("adUnitCode1", 300, 250),
                         givenAdUnitBuilder("adUnitCode2", 300, 600)),
@@ -161,10 +166,8 @@ public class ApplicationTest extends VertxTest {
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
-                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","appnexus":"12345"},
-                // "bday":"2017-08-15T19:47:59.523908376Z"}
-                .header("Cookie", "uids=eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dX" +
-                        "MiOiIxMjM0NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=; dummy=cookie")
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","appnexus":"12345"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9fQ==")
                 .queryParam("is_debug", "1")
                 .body(preBidRequest)
                 .post("/auction")
@@ -197,9 +200,36 @@ public class ApplicationTest extends VertxTest {
                 .then().assertThat().statusCode(200);
     }
 
-    private static String givenPreBidRequest(String tid, int timeoutMillis, List<AdUnit.AdUnitBuilder> adUnitBuilders,
-                                             org.rtb.vexing.model.request.Bid bid) throws JsonProcessingException {
-        return mapper.writeValueAsString(PreBidRequest.builder()
+    @Test
+    public void cookieSyncShouldReturnBidderStatusWithRubiconUsersyncInfo() {
+        final CookieSyncResponse cookieSyncResponse = given(spec)
+                .body(CookieSyncRequest.builder().uuid("uuid").bidders(singletonList(RUBICON)).build())
+                .when()
+                .post("/cookie_sync")
+                .then()
+                .spec(new ResponseSpecBuilder().setDefaultParser(Parser.JSON).build())
+                .extract()
+                .as(CookieSyncResponse.class);
+
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
+                .uuid("uuid")
+                .status("OK")
+                .bidderStatus(singletonList(BidderStatus.builder()
+                        .bidder(RUBICON)
+                        .noCookie(true)
+                        .usersync(defaultNamingMapper.valueToTree(UsersyncInfo.builder()
+                                .url("http://localhost:" + RUBICON_PORT + "/cookie")
+                                .type("redirect")
+                                .supportCORS(false)
+                                .build()))
+                        .build()))
+                .build());
+    }
+
+    private static PreBidRequest givenPreBidRequest(
+            String tid, int timeoutMillis, List<AdUnit.AdUnitBuilder> adUnitBuilders,
+            org.rtb.vexing.model.request.Bid bid) {
+        return PreBidRequest.builder()
                 .accountId("1001")
                 .tid(tid)
                 .timeoutMillis(timeoutMillis)
@@ -207,7 +237,7 @@ public class ApplicationTest extends VertxTest {
                         .map(b -> b.bids(singletonList(bid)))
                         .map(AdUnit.AdUnitBuilder::build)
                         .collect(toList()))
-                .build());
+                .build();
     }
 
     private static AdUnit.AdUnitBuilder givenAdUnitBuilder(String adUnitCode, int w, int h) {

@@ -21,6 +21,7 @@ import io.vertx.ext.web.handler.CookieHandler;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.handler.AuctionHandler;
+import org.rtb.vexing.handler.CookieSyncHandler;
 import org.rtb.vexing.handler.StatusHandler;
 import org.rtb.vexing.json.ObjectMapperConfigurer;
 import org.rtb.vexing.settings.ApplicationSettings;
@@ -126,6 +127,7 @@ public class Application extends AbstractVerticle {
         router.route().handler(BodyHandler.create());
         router.post("/auction").handler(new AuctionHandler(applicationSettings, adapterCatalog, vertx)::auction);
         router.get("/status").handler(new StatusHandler()::status);
+        router.post("/cookie_sync").handler(new CookieSyncHandler(adapterCatalog)::sync);
         return router;
     }
 }

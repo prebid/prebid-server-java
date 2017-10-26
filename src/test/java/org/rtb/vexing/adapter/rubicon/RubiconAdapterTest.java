@@ -50,10 +50,10 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargeting;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
+import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
-import org.rtb.vexing.model.UidsCookie;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.Bid;
 import org.rtb.vexing.model.request.PreBidRequest;
@@ -69,7 +69,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -105,7 +106,7 @@ public class RubiconAdapterTest extends VertxTest {
     private HttpClientRequest httpClientRequest;
 
     private RubiconAdapter adapter;
-    // when
+    @Mock
     private UidsCookie uidsCookie;
 
     @Before
@@ -128,7 +129,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         preBidRequestBody = givenPreBidRequestBodyCustomizable(identity());
 
-        uidsCookie = new UidsCookie(emptyMap(), null);
+        given(uidsCookie.uidFrom(anyString())).willReturn(null);
 
         // adapter
         adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, psl);
@@ -225,7 +226,7 @@ public class RubiconAdapterTest extends VertxTest {
                         .siteId(3001)
                         .zoneId(4001));
 
-        uidsCookie = UidsCookie.builder().uids(singletonMap(RUBICON, "buyerUid")).build();
+        given(uidsCookie.uidFrom(eq(RUBICON))).willReturn("buyerUid");
 
         // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
@@ -410,7 +411,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .app(App.builder().build())
                 .user(User.builder().buyeruid("buyerUid").build()));
 
-        uidsCookie = UidsCookie.builder().uids(singletonMap(RUBICON, "buyerUidFromCookie")).build();
+        given(uidsCookie.uidFrom(eq(RUBICON))).willReturn("buyerUidFromCookie");
 
         // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
@@ -506,7 +507,7 @@ public class RubiconAdapterTest extends VertxTest {
         );
         givenHttpClientReturnsResponses(bidResponse);
 
-        uidsCookie = UidsCookie.builder().uids(singletonMap(RUBICON, "buyerUid")).build();
+        given(uidsCookie.uidFrom(eq(RUBICON))).willReturn("buyerUid");
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
