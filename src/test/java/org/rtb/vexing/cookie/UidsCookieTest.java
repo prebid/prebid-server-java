@@ -98,6 +98,16 @@ public class UidsCookieTest {
     }
 
     @Test
+    public void uidFromShouldReturnNullIfCookieWithoutUid() {
+        // given
+        // this uids cookie value stands for {"optout": true}
+        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "eyJvcHRvdXQiOiB0cnVlfQ=="));
+
+        // when and then
+        assertThatCode(() -> UidsCookie.parseFromRequest(routingContext).uidFrom(RUBICON)).doesNotThrowAnyException();
+    }
+
+    @Test
     public void allowsSyncShouldReturnFalseIfOptoutTrue() {
         // given
         // this uids cookie value stands for {"optout": true}

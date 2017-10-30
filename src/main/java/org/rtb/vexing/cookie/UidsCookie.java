@@ -62,7 +62,7 @@ public class UidsCookie {
     }
 
     public String uidFrom(String familyName) {
-        return uids.uids.get(familyName);
+        return uids.uids != null ? uids.uids.get(familyName) : null;
     }
 
     public boolean allowsSync() {
