@@ -9,7 +9,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.util.Map;
 
-@Builder
+@Builder(toBuilder = true)
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor

@@ -21,6 +21,7 @@ import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
+import io.restassured.http.Cookie;
 import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.parsing.Parser;
 import io.restassured.specification.RequestSpecification;
@@ -59,6 +60,8 @@ import org.rtb.vexing.model.response.PreBidResponse;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -69,6 +72,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 @RunWith(VertxUnitRunner.class)
 public class ApplicationTest extends VertxTest {
@@ -224,6 +228,31 @@ public class ApplicationTest extends VertxTest {
                                 .build()))
                         .build()))
                 .build());
+    }
+
+    @Test
+    public void setuidShouldUpdateRubiconUidInUidCookie() {
+        final Cookie uidsCookie = given(spec)
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","appnexus":"12345"},
+                // "bday":"2017-08-15T19:47:59.523908376Z"}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9LCJiZGF5" +
+                        "IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=")
+                // this constant is ok to use as long as it coincides with family name
+                .queryParam("bidder", RUBICON)
+                .queryParam("uid", "updatedUid")
+                .when()
+                .get("/setuid")
+                .then()
+                // this uids cookie value stands for {"uids":{"appnexus":"12345","rubicon":"updatedUid"},
+                // "bday":"2017-08-15T19:47:59.523908376Z"}
+                .cookie("uids", "eyJ1aWRzIjp7ImFwcG5leHVzIjoiMTIzNDUiLCJydWJpY29uIjoidXBkYXRlZFVpZCJ9LCJiZGF5I" +
+                        "joiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=")
+                .extract()
+                .detailedCookie("uids");
+
+        assertThat(uidsCookie.getMaxAge()).isEqualTo(15552000);
+        assertThat(uidsCookie.getExpiryDate().toInstant())
+                .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
     private static PreBidRequest givenPreBidRequest(

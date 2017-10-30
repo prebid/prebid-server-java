@@ -29,7 +29,6 @@ public class CookieSyncHandler {
 
     public void sync(RoutingContext context) {
         final UidsCookie uidsCookie = UidsCookie.parseFromRequest(context);
-
         if (!uidsCookie.allowsSync()) {
             context.response().setStatusCode(401).setStatusMessage("User has opted out").end();
             return;

@@ -1,6 +1,7 @@
 package org.rtb.vexing.handler;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.netty.util.AsciiString;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Cookie;
@@ -86,22 +87,6 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithSuccessIfNotOptedOut() {
-        // given
-        // this uids cookie value stands for {"optout": false}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "eyJvcHRvdXQiOiBmYWxzZX0="));
-
-        given(routingContext.getBodyAsJson())
-                .willReturn(JsonObject.mapFrom(CookieSyncRequest.builder().bidders(emptyList()).build()));
-
-        // when
-        cookieSyncHandler.sync(routingContext);
-
-        // then
-        verify(httpResponse, never()).setStatusCode(eq(401));
-    }
-
-    @Test
     public void shouldRespondWithErrorIfRequestBodyIsMissing() {
         // given
         given(routingContext.getBodyAsJson()).willReturn(null);
@@ -115,6 +100,20 @@ public class CookieSyncHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end();
         verifyNoMoreInteractions(httpResponse, adapterCatalog);
+    }
+
+    @Test
+    public void shouldRespondWithExpectedHeaders() {
+        // given
+        given(routingContext.getBodyAsJson())
+                .willReturn(JsonObject.mapFrom(CookieSyncRequest.builder().bidders(emptyList()).build()));
+
+        // when
+        cookieSyncHandler.sync(routingContext);
+
+        // then
+        verify(httpResponse)
+                .putHeader(eq(new AsciiString("Content-Type")), eq(new AsciiString("application/json")));
     }
 
     @Test
@@ -183,7 +182,6 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(rubiconAdapter.familyName()).willReturn("rubicon");
         given(appnexusAdapter.familyName()).willReturn("adnxs");
     }
-
 
     private CookieSyncResponse captureCookieSyncResponse() throws IOException {
         final ArgumentCaptor<String> cookieSyncResponseCaptor = ArgumentCaptor.forClass(String.class);
