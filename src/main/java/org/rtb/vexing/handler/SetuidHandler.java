@@ -1,9 +1,8 @@
 package org.rtb.vexing.handler;
 
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.cookie.UidsCookie;
-
-import java.util.Objects;
 
 public class SetuidHandler {
 
@@ -15,14 +14,14 @@ public class SetuidHandler {
         }
 
         final String bidder = context.request().getParam("bidder");
-        if (Objects.toString(bidder, "").isEmpty()) {
+        if (StringUtils.isBlank(bidder)) {
             context.response().setStatusCode(400).end();
             return;
         }
 
         final String uid = context.request().getParam("uid");
         final UidsCookie updatedUidsCookie;
-        if (Objects.toString(uid, "").isEmpty()) {
+        if (StringUtils.isBlank(uid)) {
             updatedUidsCookie = uidsCookie.deleteUid(bidder);
         } else if (UidsCookie.isFacebookSentinel(bidder, uid)) {
             // At the moment, Facebook calls /setuid with a UID of 0 if the user isn't logged into Facebook.

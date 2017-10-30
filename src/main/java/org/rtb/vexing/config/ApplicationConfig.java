@@ -9,6 +9,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -47,7 +48,7 @@ public class ApplicationConfig {
         final ConfigRetrieverOptions options = new ConfigRetrieverOptions();
 
         final String defaultConfig = readFromClasspath(defaultFile);
-        if (!Objects.toString(defaultConfig, "").isEmpty()) {
+        if (StringUtils.isNotBlank(defaultConfig)) {
             options.addStore(new ConfigStoreOptions().setType("json").setConfig(new JsonObject(defaultConfig)));
         }
 

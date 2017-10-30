@@ -25,6 +25,8 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
@@ -174,8 +176,8 @@ public class RubiconAdapter implements Adapter {
     }
 
     private static Integer isSecure(HttpServerRequest preBidHttpRequest) {
-        return Objects.toString(preBidHttpRequest.headers().get("X-Forwarded-Proto")).equalsIgnoreCase("https")
-                || Objects.toString(preBidHttpRequest.scheme()).equalsIgnoreCase("https")
+        return StringUtils.equalsIgnoreCase(preBidHttpRequest.headers().get("X-Forwarded-Proto"), "https")
+                || StringUtils.equalsIgnoreCase(preBidHttpRequest.scheme(), "https")
                 ? 1 : null;
     }
 
@@ -260,21 +262,12 @@ public class RubiconAdapter implements Adapter {
     }
 
     private static String ipFromRequest(HttpServerRequest preBidHttpRequest) {
-        final String ip;
-
-        final String xForwardedFor = Objects.toString(preBidHttpRequest.headers().get("X-Forwarded-For"), "");
-        final String xRealIp = Objects.toString(preBidHttpRequest.headers().get("X-Real-IP"), "");
-        if (!xForwardedFor.isEmpty()) {
-            // X-Forwarded-For: client1, proxy1, proxy2
-            final int commaInd = xForwardedFor.indexOf(',');
-            ip = commaInd == -1 ? xForwardedFor : xForwardedFor.substring(0, commaInd);
-        } else if (!xRealIp.isEmpty()) {
-            ip = xRealIp;
-        } else {
-            ip = preBidHttpRequest.remoteAddress().host();
-        }
-
-        return ip.trim();
+        return ObjectUtils.firstNonNull(
+                StringUtils.trimToNull(
+                        // X-Forwarded-For: client1, proxy1, proxy2
+                        StringUtils.substringBefore(preBidHttpRequest.headers().get("X-Forwarded-For"), ",")),
+                StringUtils.trimToNull(preBidHttpRequest.headers().get("X-Real-IP")),
+                StringUtils.trimToNull(preBidHttpRequest.remoteAddress().host()));
     }
 
     private User makeUser(PreBidRequest preBidRequest, RubiconParams rubiconParams, UidsCookie uidsCookie) {

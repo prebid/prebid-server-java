@@ -37,6 +37,7 @@ public class UidsCookie {
     }
 
     public static UidsCookie parseFromRequest(RoutingContext context) {
+        Objects.requireNonNull(context);
         Uids uids = null;
         final Cookie uidsCookie = context.getCookie(UidsCookie.COOKIE_NAME);
         if (uidsCookie != null) {
