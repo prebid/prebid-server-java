@@ -75,7 +75,7 @@ public class ApplicationConfigTest extends VertxTest {
         // then
         final ApplicationConfig config = configFuture.result();
         assertThat(config.getString("param1")).isEqualTo("value1");
-        assertThat(config.getString("param1")).isEqualTo("value1");
+        assertThat(config.getString("param2")).isEqualTo("value2 overridden in verticle");
         assertThat(config.getString("param3.param3_1")).isEqualTo("value3_1 overridden in verticle");
         assertThat(config.getString("param3.param3_composite1.param3_composite1_1"))
                 .isEqualTo("value3_composite1_1 overridden in verticle");
