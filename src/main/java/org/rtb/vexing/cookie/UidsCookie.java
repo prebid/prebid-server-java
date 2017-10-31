@@ -71,15 +71,23 @@ public class UidsCookie {
 
     public UidsCookie deleteUid(String familyName) {
         Objects.requireNonNull(familyName);
-        final Map<String, String> uidsMap = new HashMap<>(uids.uids);
-        uidsMap.remove(familyName);
-        return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
+
+        final UidsCookie result;
+        if (uids.uids == null) {
+            result = this;
+        } else {
+            final Map<String, String> uidsMap = new HashMap<>(uids.uids);
+            uidsMap.remove(familyName);
+            result = new UidsCookie(uids.toBuilder().uids(uidsMap).build());
+        }
+
+        return result;
     }
 
     public UidsCookie updateUid(String familyName, String uid) {
         Objects.requireNonNull(familyName);
         Objects.requireNonNull(uid);
-        final Map<String, String> uidsMap = new HashMap<>(uids.uids);
+        final Map<String, String> uidsMap = uids.uids != null ? new HashMap<>(uids.uids) : new HashMap<>();
         uidsMap.put(familyName, uid);
         return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
     }

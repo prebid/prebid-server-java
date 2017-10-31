@@ -100,11 +100,23 @@ public class UidsCookieTest {
     @Test
     public void uidFromShouldReturnNullIfCookieWithoutUid() {
         // given
-        // this uids cookie value stands for {"optout": true}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "eyJvcHRvdXQiOiB0cnVlfQ=="));
+        // this uids cookie value stands for {}
+        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "e30="));
 
-        // when and then
-        assertThatCode(() -> UidsCookie.parseFromRequest(routingContext).uidFrom(RUBICON)).doesNotThrowAnyException();
+        // when
+        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(routingContext);
+
+        // then
+        assertThat(uidsCookie.uidFrom(RUBICON)).isNull();
+    }
+
+    @Test
+    public void uidFromShouldReturnNullIfCookieIsMissing() {
+        // when
+        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(routingContext);
+
+        // then
+        assertThat(uidsCookie.uidFrom(RUBICON)).isNull();
     }
 
     @Test
@@ -190,6 +202,28 @@ public class UidsCookieTest {
     }
 
     @Test
+    public void deleteUidShouldTolerateMissingUidsElementInCookie() {
+        // given
+        // this uids cookie value stands for {}
+        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "e30="));
+
+        // when
+        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(routingContext).deleteUid(RUBICON);
+
+        // then
+        assertThat(uidsCookie.uidFrom(RUBICON)).isNull();
+    }
+
+    @Test
+    public void deleteUidShouldTolerateMissingCookie() {
+        // when
+        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(routingContext).deleteUid(RUBICON);
+
+        // then
+        assertThat(uidsCookie.uidFrom(RUBICON)).isNull();
+    }
+
+    @Test
     public void updateUidShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
                 () -> UidsCookie.parseFromRequest(routingContext).updateUid(null, null));
@@ -213,7 +247,7 @@ public class UidsCookieTest {
     }
 
     @Test
-    public void updateUidShouldReturnUidsCookieWithUidAdded() {
+    public void updateUidShouldReturnUidsCookieWithUidAddedIfUidsElementIsPresentInCookie() {
         // given
         // this uids cookie value stands for {"uids":{"adnxs":"12345"}}
         given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
@@ -225,6 +259,28 @@ public class UidsCookieTest {
         // then
         assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("createdUid");
         assertThat(uidsCookie.uidFrom(ADNXS)).isEqualTo("12345");
+    }
+
+    @Test
+    public void updateUidShouldReturnUidsCookieWithUidAddedIfUidsElementIsMissingInCookie() {
+        // given
+        // this uids cookie value stands for {}}
+        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "e30="));
+
+        // when
+        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(routingContext).updateUid(RUBICON, "createdUid");
+
+        // then
+        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("createdUid");
+    }
+
+    @Test
+    public void updateUidShouldReturnUidsCookieWithUidAddedIfCookieIsMissing() {
+        // when
+        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(routingContext).updateUid(RUBICON, "createdUid");
+
+        // then
+        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("createdUid");
     }
 
     @Test
