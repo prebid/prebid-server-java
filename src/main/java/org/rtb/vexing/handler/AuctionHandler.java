@@ -15,6 +15,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.cookie.UidsCookie;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
@@ -35,14 +37,16 @@ public class AuctionHandler {
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
     private final ApplicationSettings applicationSettings;
-
     private final AdapterCatalog adapters;
+    private final Metrics metrics;
 
     private String date;
 
-    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters, Vertx vertx) {
+    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters, Vertx vertx,
+                          Metrics metrics) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.adapters = Objects.requireNonNull(adapters);
+        this.metrics = Objects.requireNonNull(metrics);
 
         // Refresh the date included in the response header every second.
         final Handler<Long> dateUpdater = event -> date = DateTimeFormatter.RFC_1123_DATE_TIME.format(
@@ -56,6 +60,8 @@ public class AuctionHandler {
      * clients, then return an array of the responses.
      */
     public void auction(RoutingContext context) {
+        metrics.counterFor(MetricName.requests).inc();
+
         final JsonObject json = context.getBodyAsJson();
         if (json == null) {
             logger.error("Incoming request has no body.");

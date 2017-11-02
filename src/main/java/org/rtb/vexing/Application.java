@@ -1,5 +1,6 @@
 package org.rtb.vexing;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -25,7 +26,10 @@ import org.rtb.vexing.handler.CookieSyncHandler;
 import org.rtb.vexing.handler.SetuidHandler;
 import org.rtb.vexing.handler.StatusHandler;
 import org.rtb.vexing.json.ObjectMapperConfigurer;
+import org.rtb.vexing.metric.Metrics;
+import org.rtb.vexing.metric.ReporterFactory;
 import org.rtb.vexing.settings.ApplicationSettings;
+import org.rtb.vexing.vertx.CloseableAdapter;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -43,6 +47,8 @@ public class Application extends AbstractVerticle {
     private AdapterCatalog adapterCatalog;
 
     private HttpClient httpClient;
+
+    private Metrics metrics;
 
     /**
      * Start the verticle instance.
@@ -69,6 +75,11 @@ public class Application extends AbstractVerticle {
         httpClient = httpClient(config);
 
         adapterCatalog = new AdapterCatalog(config, httpClient, suffixList);
+
+        final MetricRegistry metricRegistry = new MetricRegistry();
+        ReporterFactory.create(metricRegistry, config)
+                .ifPresent(reporter -> vertx.getOrCreateContext().addCloseHook(new CloseableAdapter<>(reporter)));
+        metrics = new Metrics(metricRegistry);
 
         final Router router = routes();
 
@@ -126,7 +137,8 @@ public class Application extends AbstractVerticle {
         final Router router = Router.router(getVertx());
         router.route().handler(CookieHandler.create());
         router.route().handler(BodyHandler.create());
-        router.post("/auction").handler(new AuctionHandler(applicationSettings, adapterCatalog, vertx)::auction);
+        router.post("/auction").handler(
+                new AuctionHandler(applicationSettings, adapterCatalog, vertx, metrics)::auction);
         router.get("/status").handler(new StatusHandler()::status);
         router.post("/cookie_sync").handler(new CookieSyncHandler(adapterCatalog)::sync);
         router.get("/setuid").handler(new SetuidHandler()::setuid);

@@ -126,6 +126,10 @@ public class ApplicationConfig {
         return requireNonNull(key, config::getString);
     }
 
+    public String getString(String key, String def) {
+        return config.getString(key, def);
+    }
+
     public Integer getInteger(String key) {
         return requireNonNull(key, config::getInteger);
     }

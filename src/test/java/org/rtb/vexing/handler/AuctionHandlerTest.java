@@ -1,5 +1,6 @@
 package org.rtb.vexing.handler;
 
+import com.codahale.metrics.MetricRegistry;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -19,6 +20,7 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.Bid;
@@ -83,15 +85,18 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
-        auctionHandler = new AuctionHandler(applicationSettings, adapterCatalog, vertx);
+        auctionHandler = new AuctionHandler(applicationSettings, adapterCatalog, vertx,
+                new Metrics(new MetricRegistry()));
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(applicationSettings, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(applicationSettings, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, null));
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, vertx, null));
     }
 
     @Test
