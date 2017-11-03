@@ -78,7 +78,8 @@ public class Application extends AbstractVerticle {
 
         final MetricRegistry metricRegistry = new MetricRegistry();
         ReporterFactory.create(metricRegistry, config)
-                .ifPresent(reporter -> vertx.getOrCreateContext().addCloseHook(new CloseableAdapter<>(reporter)));
+                .map(CloseableAdapter::new)
+                .ifPresent(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));
         metrics = new Metrics(metricRegistry);
 
         final Router router = routes();

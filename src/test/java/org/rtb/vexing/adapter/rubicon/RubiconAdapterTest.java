@@ -536,6 +536,25 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
+    public void requestBidsShouldReturnBidderResultWithZeroBidsIfEmptyBidResponse() throws JsonProcessingException {
+        // given
+        givenHttpClientReturnsResponses(givenBidResponseCustomizable(builder -> builder.seatbid(null), identity(),
+                identity(), null));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestBody, uidsCookie,
+                preBidHttpRequest);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.bidder).isEqualTo(RUBICON);
+        assertThat(bidderResult.bidderStatus.responseTime).isPositive();
+        assertThat(bidderResult.bidderStatus.numBids).isEqualTo(0);
+        assertThat(bidderResult.bids).hasSize(0);
+    }
+
+    @Test
     public void requestBidsShouldReturnBidderResultWithNoCookieIfNoRubiconUidInCookieAndNoAppInPreBidRequest()
             throws IOException {
         // given
@@ -804,7 +823,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     private void givenHttpClientReturnsResponses(String... bidResponses) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.post((anyInt()), anyString(), anyString(), any()))
+        given(httpClient.post(anyInt(), anyString(), anyString(), any()))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(200);
 

@@ -357,19 +357,30 @@ public class RubiconAdapter implements Adapter {
     }
 
     private static Bid.BidBuilder toBidBuilder(BidResponse bidResponse, AdUnitBid adUnitBid) {
-        final com.iab.openrtb.response.Bid bid = bidResponse.getSeatbid().get(0).getBid().get(0);
+        final Bid.BidBuilder builder;
 
-        return Bid.builder()
-                .code(bid.getImpid())
-                .price(bid.getPrice()) // FIXME: now 0 is serialized as "0.0", but should be just "0"
-                .adm(bid.getAdm())
-                .creativeId(bid.getCrid())
-                .width(bid.getW())
-                .height(bid.getH())
-                .dealId(bid.getDealid())
-                .adServerTargeting(toAdServerTargetingOrNull(bid))
-                .bidder(adUnitBid.bidderCode)
-                .bidId(adUnitBid.bidId);
+        if (bidResponse.getSeatbid() != null && !bidResponse.getSeatbid().isEmpty()
+                && bidResponse.getSeatbid().get(0).getBid() != null
+                && !bidResponse.getSeatbid().get(0).getBid().isEmpty()) {
+
+            final com.iab.openrtb.response.Bid bid = bidResponse.getSeatbid().get(0).getBid().get(0);
+
+            builder = Bid.builder()
+                    .code(bid.getImpid())
+                    .price(bid.getPrice()) // FIXME: now 0 is serialized as "0.0", but should be just "0"
+                    .adm(bid.getAdm())
+                    .creativeId(bid.getCrid())
+                    .width(bid.getW())
+                    .height(bid.getH())
+                    .dealId(bid.getDealid())
+                    .adServerTargeting(toAdServerTargetingOrNull(bid))
+                    .bidder(adUnitBid.bidderCode)
+                    .bidId(adUnitBid.bidId);
+        } else {
+            builder = null;
+        }
+
+        return builder;
     }
 
     private static Map<String, String> toAdServerTargetingOrNull(com.iab.openrtb.response.Bid bid) {
@@ -384,10 +395,15 @@ public class RubiconAdapter implements Adapter {
                                         UidsCookie uidsCookie, List<BidResult> bidResults, long bidderStarted) {
         final Integer responseTime = Math.toIntExact(clock.millis() - bidderStarted);
 
+        final List<Bid.BidBuilder> bidBuilders = bidResults.stream()
+                .map(br -> br.bidBuilder)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
         final BidderStatus.BidderStatusBuilder bidderStatusBuilder = BidderStatus.builder()
                 .bidder(bidder.bidderCode)
                 .responseTime(responseTime)
-                .numBids(bidResults.size());
+                .numBids(bidBuilders.size());
 
         if (preBidRequest.app == null && uidsCookie.uidFrom(familyName()) == null) {
             bidderStatusBuilder
@@ -400,13 +416,14 @@ public class RubiconAdapter implements Adapter {
                     .debug(bidResults.stream().map(b -> b.bidderDebug).collect(Collectors.toList()));
         }
 
+        final List<Bid> bids = bidBuilders.stream()
+                .map(b -> b.responseTime(responseTime))
+                .map(Bid.BidBuilder::build)
+                .collect(Collectors.toList());
+
         return BidderResult.builder()
                 .bidderStatus(bidderStatusBuilder.build())
-                .bids(bidResults.stream()
-                        .map(b -> b.bidBuilder)
-                        .map(b -> b.responseTime(responseTime))
-                        .map(Bid.BidBuilder::build)
-                        .collect(Collectors.toList()))
+                .bids(bids)
                 .build();
     }
 
