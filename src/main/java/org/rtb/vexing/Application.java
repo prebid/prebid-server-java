@@ -10,6 +10,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpServer;
@@ -19,6 +20,9 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.experimental.FieldDefaults;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.handler.AuctionHandler;
@@ -36,19 +40,7 @@ import java.util.Properties;
 
 public class Application extends AbstractVerticle {
 
-    private static final int DEFAULT_PORT = 8080;
-    private static final int DEFAULT_POOL_SIZE = 4096;
-    private static final int DEFAULT_TIMEOUT_MS = 1000;
-
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
-
-    private ApplicationSettings applicationSettings;
-
-    private AdapterCatalog adapterCatalog;
-
-    private HttpClient httpClient;
-
-    private Metrics metrics;
 
     /**
      * Start the verticle instance.
@@ -66,28 +58,16 @@ public class Application extends AbstractVerticle {
     }
 
     private Future<HttpServer> initialize(ApplicationConfig config) {
-        applicationSettings = ApplicationSettings.create(vertx, config);
+        final DependencyContext dependencyContext = DependencyContext.create(vertx, config);
 
         configureJSON();
 
-        final PublicSuffixList suffixList = psl();
-
-        httpClient = httpClient(config);
-
-        adapterCatalog = new AdapterCatalog(config, httpClient, suffixList);
-
-        final MetricRegistry metricRegistry = new MetricRegistry();
-        ReporterFactory.create(metricRegistry, config)
-                .map(CloseableAdapter::new)
-                .ifPresent(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));
-        metrics = new Metrics(metricRegistry);
-
-        final Router router = routes();
+        final Router router = routes(dependencyContext);
 
         final Future<HttpServer> httpServerFuture = Future.future();
         vertx.createHttpServer()
                 .requestHandler(router::accept)
-                .listen(config.getInteger("http.port", DEFAULT_PORT), httpServerFuture);
+                .listen(config.getInteger("http.port"), httpServerFuture);
 
         return httpServerFuture;
     }
@@ -107,42 +87,73 @@ public class Application extends AbstractVerticle {
     }
 
     /**
-     * Create a common {@link HttpClient} based upon configuration.
-     */
-    private HttpClient httpClient(ApplicationConfig config) {
-        final HttpClientOptions options = new HttpClientOptions()
-                .setMaxPoolSize(config.getInteger("http-client.max-pool-size", DEFAULT_POOL_SIZE))
-                .setConnectTimeout(config.getInteger("http-client.default-timeout-ms", DEFAULT_TIMEOUT_MS));
-        return vertx.createHttpClient(options);
-    }
-
-    /**
-     * Initialize Public Suffix List library based on the shipped list of effective TLD names.
-     */
-    private static PublicSuffixList psl() {
-        final PublicSuffixListFactory factory = new PublicSuffixListFactory();
-
-        Properties properties = factory.getDefaults();
-        properties.setProperty(PublicSuffixListFactory.PROPERTY_LIST_FILE, "/effective_tld_names.dat");
-        try {
-            return factory.build(properties);
-        } catch (IOException | ClassNotFoundException e) {
-            throw new IllegalArgumentException("Could not initialize public suffix list", e);
-        }
-    }
-
-    /**
      * Create a {@link Router} with all the supported endpoints for this application.
      */
-    private Router routes() {
-        final Router router = Router.router(getVertx());
+    private Router routes(DependencyContext dependencyContext) {
+        final Router router = Router.router(vertx);
         router.route().handler(CookieHandler.create());
         router.route().handler(BodyHandler.create());
-        router.post("/auction").handler(
-                new AuctionHandler(applicationSettings, adapterCatalog, vertx, metrics)::auction);
-        router.get("/status").handler(new StatusHandler()::status);
-        router.post("/cookie_sync").handler(new CookieSyncHandler(adapterCatalog)::sync);
-        router.get("/setuid").handler(new SetuidHandler()::setuid);
+        router.post("/auction").handler(dependencyContext.auctionHandler::auction);
+        router.get("/status").handler(dependencyContext.statusHandler::status);
+        router.post("/cookie_sync").handler(dependencyContext.cookieSyncHandler::sync);
+        router.get("/setuid").handler(dependencyContext.setuidHandler::setuid);
         return router;
+    }
+
+    @Builder
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    private static class DependencyContext {
+
+        ApplicationSettings applicationSettings;
+        MetricRegistry metricRegistry;
+        Metrics metrics;
+        AuctionHandler auctionHandler;
+        StatusHandler statusHandler;
+        CookieSyncHandler cookieSyncHandler;
+        SetuidHandler setuidHandler;
+
+        public static DependencyContext create(Vertx vertx, ApplicationConfig config) {
+            final ApplicationSettings applicationSettings = ApplicationSettings.create(vertx, config);
+            final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient(vertx, config), psl());
+            final MetricRegistry metricRegistry = new MetricRegistry();
+            configureMetricsReporter(metricRegistry, config, vertx);
+            final Metrics metrics = new Metrics(metricRegistry);
+
+            return builder()
+                    .applicationSettings(applicationSettings)
+                    .metricRegistry(metricRegistry)
+                    .metrics(metrics)
+                    .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog, vertx, metrics))
+                    .statusHandler(new StatusHandler())
+                    .cookieSyncHandler(new CookieSyncHandler(adapterCatalog))
+                    .setuidHandler(new SetuidHandler())
+                    .build();
+        }
+
+        private static PublicSuffixList psl() {
+            final PublicSuffixListFactory factory = new PublicSuffixListFactory();
+
+            Properties properties = factory.getDefaults();
+            properties.setProperty(PublicSuffixListFactory.PROPERTY_LIST_FILE, "/effective_tld_names.dat");
+            try {
+                return factory.build(properties);
+            } catch (IOException | ClassNotFoundException e) {
+                throw new IllegalArgumentException("Could not initialize public suffix list", e);
+            }
+        }
+
+        private static HttpClient httpClient(Vertx vertx, ApplicationConfig config) {
+            final HttpClientOptions options = new HttpClientOptions()
+                    .setMaxPoolSize(config.getInteger("http-client.max-pool-size"))
+                    .setConnectTimeout(config.getInteger("http-client.default-timeout-ms"));
+            return vertx.createHttpClient(options);
+        }
+
+        private static void configureMetricsReporter(MetricRegistry metricRegistry, ApplicationConfig config, Vertx
+                vertx) {
+            ReporterFactory.create(metricRegistry, config)
+                    .map(CloseableAdapter::new)
+                    .ifPresent(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));
+        }
     }
 }

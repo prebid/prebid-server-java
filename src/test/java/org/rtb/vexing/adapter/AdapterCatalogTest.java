@@ -35,10 +35,10 @@ public class AdapterCatalogTest {
     }
 
     @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(applicationConfig, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(applicationConfig, httpClient, null));
+    public void createShouldFailOnNullArguments() {
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, null, null));
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, httpClient, null));
     }
 
     @Test
@@ -51,7 +51,7 @@ public class AdapterCatalogTest {
         given(applicationConfig.getString(eq("adapters.rubicon.XAPI.Password"))).willReturn("rubicon_password");
 
         // when
-        final Adapter rubiconAdapter = new AdapterCatalog(applicationConfig, httpClient, psl).get("rubicon");
+        final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient, psl).get("rubicon");
 
         // then
         assertThat(rubiconAdapter)
