@@ -134,10 +134,6 @@ public class ApplicationConfig {
         return requireNonNull(key, config::getInteger);
     }
 
-    public Integer getInteger(String key, Integer def) {
-        return config.getInteger(key, def);
-    }
-
     private static <T> T requireNonNull(String key, Function<String, T> valueExtractor) {
         final T value = valueExtractor.apply(key);
         if (value == null) {

@@ -117,7 +117,8 @@ public class ApplicationTest extends VertxTest {
                 .put("adapters.rubicon.XAPI.Username", "rubicon_user")
                 .put("adapters.rubicon.XAPI.Password", "rubicon_password")
                 .put("datacache.type", "filecache")
-                .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml");
+                .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml")
+                .put("metrics.metricType", "flushingCounter");
     }
 
     @Test

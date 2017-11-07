@@ -11,5 +11,8 @@
         "Password": "DELETED"
       }
     }
+  },
+  "metrics": {
+    "metricType": "flushingCounter"
   }
 }

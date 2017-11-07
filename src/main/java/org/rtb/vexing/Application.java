@@ -117,7 +117,7 @@ public class Application extends AbstractVerticle {
             final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient(vertx, config), psl());
             final MetricRegistry metricRegistry = new MetricRegistry();
             configureMetricsReporter(metricRegistry, config, vertx);
-            final Metrics metrics = new Metrics(metricRegistry);
+            final Metrics metrics = Metrics.create(metricRegistry, config);
 
             return builder()
                     .applicationSettings(applicationSettings)

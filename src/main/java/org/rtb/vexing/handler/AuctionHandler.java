@@ -60,7 +60,7 @@ public class AuctionHandler {
      * clients, then return an array of the responses.
      */
     public void auction(RoutingContext context) {
-        metrics.counterFor(MetricName.requests).inc();
+        metrics.incCount(MetricName.requests);
 
         final JsonObject json = context.getBodyAsJson();
         if (json == null) {
