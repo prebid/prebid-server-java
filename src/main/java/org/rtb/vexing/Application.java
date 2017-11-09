@@ -20,6 +20,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
+import io.vertx.ext.web.handler.StaticHandler;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.experimental.FieldDefaults;
@@ -41,6 +42,7 @@ import java.util.Properties;
 public class Application extends AbstractVerticle {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
+    private static final String STATIC_WEBROOT = "static";
 
     /**
      * Start the verticle instance.
@@ -97,6 +99,11 @@ public class Application extends AbstractVerticle {
         router.get("/status").handler(dependencyContext.statusHandler::status);
         router.post("/cookie_sync").handler(dependencyContext.cookieSyncHandler::sync);
         router.get("/setuid").handler(dependencyContext.setuidHandler::setuid);
+
+        StaticHandler staticHandler = StaticHandler.create(STATIC_WEBROOT).setCachingEnabled(false);
+        router.get("/static/*").handler(staticHandler);
+        router.get("/").handler(staticHandler); // serves index.html by default
+
         return router;
     }
 

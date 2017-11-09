@@ -206,6 +206,16 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
+    public void staticShouldReturnHttp200Ok() {
+        given(spec)
+                .when()
+                .get("/static")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
+
+    @Test
     public void cookieSyncShouldReturnBidderStatusWithRubiconUsersyncInfo() {
         final CookieSyncResponse cookieSyncResponse = given(spec)
                 .body(CookieSyncRequest.builder().uuid("uuid").bidders(singletonList(RUBICON)).build())
