@@ -1,60 +1,44 @@
 package org.rtb.vexing.metric;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
+import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.config.ApplicationConfig;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiConsumer;
+import java.util.function.Function;
 
-public class Metrics {
+public class Metrics extends UpdatableMetrics {
 
-    private final MetricRegistry metricRegistry;
-    private final BiConsumer<MetricRegistry, MetricName> incrementer;
+    private final Function<String, AccountMetrics> accountMetricsCreator;
+    private final Function<Adapter.Type, AdapterMetrics> adapterMetricsCreator;
+    // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
+    // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
+    // thread-safe
+    private final Map<String, AccountMetrics> accountMetrics;
+    private final Map<Adapter.Type, AdapterMetrics> adapterMetrics;
 
-    private Metrics(MetricRegistry metricRegistry, BiConsumer<MetricRegistry, MetricName> incrementer) {
-        this.metricRegistry = metricRegistry;
-        this.incrementer = incrementer;
+    private Metrics(MetricRegistry metricRegistry, CounterType counterType) {
+        super(metricRegistry, counterType, Enum::name);
+        accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
+        adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
+        accountMetrics = new HashMap<>();
+        adapterMetrics = new HashMap<>();
     }
 
     public static Metrics create(MetricRegistry metricRegistry, ApplicationConfig config) {
         Objects.requireNonNull(metricRegistry);
         Objects.requireNonNull(config);
 
-        final BiConsumer<MetricRegistry, MetricName> incremeter;
-
-        switch (MetricType.valueOf(config.getString("metrics.metricType"))) {
-            case flushingCounter:
-                incremeter = (registry, metricName) -> registry.counter(metricName.name(), ResettingCounter::new).inc();
-                break;
-            case counter:
-                incremeter = (registry, metricName) -> registry.counter(metricName.name()).inc();
-                break;
-            case meter:
-                incremeter = (registry, metricName) -> registry.meter(metricName.name()).mark();
-                break;
-            default:
-                // to satisfy compiler
-                throw new IllegalStateException("Should never happen");
-        }
-
-        return new Metrics(metricRegistry, incremeter);
+        return new Metrics(metricRegistry, CounterType.valueOf(config.getString("metrics.metricType")));
     }
 
-    public void incCount(MetricName name) {
-        incrementer.accept(metricRegistry, Objects.requireNonNull(name));
+    public AccountMetrics forAccount(String account) {
+        return accountMetrics.computeIfAbsent(account, accountMetricsCreator);
     }
 
-    private enum MetricType {
-        counter, flushingCounter, meter
-    }
-
-    private static class ResettingCounter extends Counter {
-        @Override
-        public long getCount() {
-            final long count = super.getCount();
-            dec(count);
-            return count;
-        }
+    public AdapterMetrics forAdapter(Adapter.Type adapterType) {
+        return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 }
