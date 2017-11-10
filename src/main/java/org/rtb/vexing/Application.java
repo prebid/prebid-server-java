@@ -152,7 +152,7 @@ public class Application extends AbstractVerticle {
         private static HttpClient httpClient(Vertx vertx, ApplicationConfig config) {
             final HttpClientOptions options = new HttpClientOptions()
                     .setMaxPoolSize(config.getInteger("http-client.max-pool-size"))
-                    .setConnectTimeout(config.getInteger("http-client.default-timeout-ms"));
+                    .setConnectTimeout(config.getInteger("http-client.connect-timeout-ms"));
             return vertx.createHttpClient(options);
         }
 

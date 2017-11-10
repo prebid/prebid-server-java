@@ -61,7 +61,7 @@ Example configuration:
 ```json
 { "http.port": 8080
 , "http-client.max-pool-size": 32768
-, "http-client.default-timeout-ms": 1000
+, "http-client.connect-timeout-ms": 1000
 }
 ```
 

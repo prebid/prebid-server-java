@@ -1,7 +1,4 @@
 {
-  "http.port": 8080,
-  "http-client.max-pool-size": 32768,
-  "http-client.default-timeout-ms": 1000,
   "adapters": {
     "rubicon": {
       "endpoint": "http://fake-bidder:5150/bid",
@@ -15,8 +12,5 @@
   "datacache": {
     "type": "filecache",
     "filename": "app-settings.yml"
-  },
-  "metrics": {
-    "metricType": "flushingCounter"
   }
 }

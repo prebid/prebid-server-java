@@ -28,6 +28,7 @@ public class AdapterCatalog {
                 config.getString("adapters.rubicon.XAPI.Username"),
                 config.getString("adapters.rubicon.XAPI.Password"),
                 httpClient,
+                config.getLong("default-timeout-ms"),
                 psl));
 
         return adapterCatalog;

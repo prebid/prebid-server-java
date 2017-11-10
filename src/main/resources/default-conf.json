@@ -1,7 +1,8 @@
 {
   "http.port": 8080,
   "http-client.max-pool-size": 32768,
-  "http-client.default-timeout-ms": 1000,
+  "http-client.connect-timeout-ms": 1000,
+  "default-timeout-ms": 250,
   "adapters": {
     "rubicon": {
       "endpoint": "http://staged-by.rubiconproject.com/a/api/exchange.json",

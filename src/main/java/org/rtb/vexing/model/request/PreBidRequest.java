@@ -30,8 +30,7 @@ public final class PreBidRequest {
     String tid;
 
     /* How long to wait for adapters to return bids. */
-    // FIXME Ensure value greater than 0 but no more than 2000. Use 0 as "not set" default?
-    long timeoutMillis;
+    Long timeoutMillis;
 
     /*
      * Flag to indicate if the impression requires secure HTTPS URL creative

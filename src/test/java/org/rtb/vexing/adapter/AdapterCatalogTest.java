@@ -49,6 +49,7 @@ public class AdapterCatalogTest {
                 .willReturn("http://rubiconproject.com/x/cookie/x");
         given(applicationConfig.getString(eq("adapters.rubicon.XAPI.Username"))).willReturn("rubicon_user");
         given(applicationConfig.getString(eq("adapters.rubicon.XAPI.Password"))).willReturn("rubicon_password");
+        given(applicationConfig.getLong(eq("default-timeout-ms"))).willReturn(250L);
 
         // when
         final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient, psl).get("rubicon");

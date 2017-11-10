@@ -90,6 +90,7 @@ public class RubiconAdapterTest extends VertxTest {
     private static final String REFERER = "Referer";
     private static final String X_FORWARDED_FOR = "X-Forwarded-For";
     private static final String RUBICON = "rubicon";
+    private static final Long HTTP_REQUEST_TIMEOUT = 250L;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -132,26 +133,80 @@ public class RubiconAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(anyString())).willReturn(null);
 
         // adapter
-        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, psl);
+        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(null, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(URL, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(URL, URL, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(URL, URL, USER, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(null, null, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(URL, null, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(URL, URL, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(URL, URL, USER, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, null, null));
+                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, httpClient, null));
+                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, httpClient, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new RubiconAdapter("invalid_url", URL, USER, PASSWORD, httpClient, psl))
+                .isThrownBy(() -> new RubiconAdapter("invalid_url", URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl))
                 .withMessage("URL supplied is not valid");
+    }
+
+    @Test
+    public void requestBidsShouldMakeHttpRequestUsingGivenTimeout() throws IOException {
+        // given
+        preBidRequestBody = givenPreBidRequestBodyCustomizable(builder -> builder.timeoutMillis(1000L));
+
+        // when
+        adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
+
+        // then
+        assertThat(captureBidRequest().getTmax()).isEqualTo(1000L);
+        verify(httpClientRequest).setTimeout(eq(1000L));
+    }
+
+    @Test
+    public void requestBidsShouldMakeHttpRequestUsingGivenTimeoutIfNull() throws IOException {
+        // given
+        preBidRequestBody = givenPreBidRequestBodyCustomizable(builder -> builder.timeoutMillis(null));
+
+        // when
+        adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
+
+        // then
+        assertThat(captureBidRequest().getTmax()).isEqualTo(HTTP_REQUEST_TIMEOUT);
+        verify(httpClientRequest).setTimeout(eq(HTTP_REQUEST_TIMEOUT));
+    }
+
+    @Test
+    public void requestBidsShouldMakeHttpRequestUsingDefaultTimeoutIfZero() throws IOException {
+        // given
+        preBidRequestBody = givenPreBidRequestBodyCustomizable(builder -> builder.timeoutMillis(0L));
+
+        // when
+        adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
+
+        // then
+        assertThat(captureBidRequest().getTmax()).isEqualTo(HTTP_REQUEST_TIMEOUT);
+        verify(httpClientRequest).setTimeout(eq(HTTP_REQUEST_TIMEOUT));
+    }
+
+    @Test
+    public void requestBidsShouldMakeHttpRequestUsingDefaultTimeoutIfGreater2000() throws IOException {
+        // given
+        preBidRequestBody = givenPreBidRequestBodyCustomizable(builder -> builder.timeoutMillis(5000L));
+
+        // when
+        adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
+
+        // then
+        assertThat(captureBidRequest().getTmax()).isEqualTo(HTTP_REQUEST_TIMEOUT);
+        verify(httpClientRequest).setTimeout(eq(HTTP_REQUEST_TIMEOUT));
     }
 
     @Test
@@ -172,7 +227,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void requestBidsShouldMakeHttpRequestUsingPortFromUrl() {
-        adapter = new RubiconAdapter("http://rubiconproject.com:8888/x", URL, USER, PASSWORD, httpClient, psl);
+        adapter = new RubiconAdapter("http://rubiconproject.com:8888/x", URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl);
 
         // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
@@ -183,7 +238,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void requestBidsShouldMakeHttpRequestUsingPort80ForHttp() {
-        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, psl);
+        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl);
 
         // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
@@ -194,7 +249,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void requestBidsShouldMakeHttpRequestUsingPort443ForHttps() {
-        adapter = new RubiconAdapter("https://rubiconproject.com/x", URL, USER, PASSWORD, httpClient, psl);
+        adapter = new RubiconAdapter("https://rubiconproject.com/x", URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl);
 
         // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);

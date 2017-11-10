@@ -73,6 +73,7 @@ public class RubiconAdapter implements Adapter {
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
     private final HttpClient httpClient;
+    private final Long defaultHttpRequestTimeout;
     private final PublicSuffixList psl;
 
     private final String endpoint;
@@ -83,7 +84,7 @@ public class RubiconAdapter implements Adapter {
     private Clock clock = Clock.systemDefaultZone();
 
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
-                          HttpClient httpClient, PublicSuffixList psl) {
+                          HttpClient httpClient, Long defaultHttpRequestTimeout, PublicSuffixList psl) {
         this.endpoint = Objects.requireNonNull(endpoint);
         endpointUrl = parseUrl(this.endpoint);
         usersyncInfo = UsersyncInfo.builder()
@@ -95,6 +96,7 @@ public class RubiconAdapter implements Adapter {
                 (Objects.requireNonNull(xapiUsername) + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
 
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.defaultHttpRequestTimeout = Objects.requireNonNull(defaultHttpRequestTimeout);
         this.psl = Objects.requireNonNull(psl);
     }
 
@@ -128,11 +130,13 @@ public class RubiconAdapter implements Adapter {
                                                UidsCookie uidsCookie, HttpServerRequest preBidHttpRequest) {
         final RubiconParams rubiconParams = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
 
+        final long timeout = getTimeout(preBidRequest);
+
         final BidRequest bidRequest = BidRequest.builder()
                 .id(preBidRequest.tid)
                 .app(preBidRequest.app)
                 .at(1)
-                .tmax(preBidRequest.timeoutMillis)
+                .tmax(timeout)
                 .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, preBidHttpRequest)))
                 .site(makeSite(rubiconParams, preBidHttpRequest))
                 .device(makeDevice(preBidHttpRequest))
@@ -153,7 +157,7 @@ public class RubiconAdapter implements Adapter {
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .putHeader(HttpHeaders.USER_AGENT, PREBID_SERVER_USER_AGENT)
-                .setTimeout(preBidRequest.timeoutMillis)
+                .setTimeout(timeout)
                 .exceptionHandler(throwable -> {
                     logger.error("Error occurred while sending bid request to an exchange", throwable);
                     if (!future.isComplete()) {
@@ -163,6 +167,14 @@ public class RubiconAdapter implements Adapter {
                 })
                 .end(bidRequestBody);
         return future;
+    }
+
+    private long getTimeout(PreBidRequest preBidRequest) {
+        Long value = preBidRequest.timeoutMillis;
+        if (value == null || value <= 0 || value > 2000L) {
+            value = defaultHttpRequestTimeout;
+        }
+        return value;
     }
 
     private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams, HttpServerRequest preBidHttpRequest) {

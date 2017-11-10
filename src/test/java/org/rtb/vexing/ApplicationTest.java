@@ -111,7 +111,8 @@ public class ApplicationTest extends VertxTest {
         return new JsonObject()
                 .put("http.port", APP_PORT)
                 .put("http-client.max-pool-size", 32768)
-                .put("http-client.default-timeout-ms", 1000)
+                .put("http-client.connect-timeout-ms", 1000)
+                .put("default-timeout-ms", 250L)
                 .put("adapters.rubicon.endpoint", "http://localhost:" + RUBICON_PORT + "/exchange?tk_xint=rp-pbs")
                 .put("adapters.rubicon.usersync_url", "http://localhost:" + RUBICON_PORT + "/cookie")
                 .put("adapters.rubicon.XAPI.Username", "rubicon_user")
@@ -267,7 +268,7 @@ public class ApplicationTest extends VertxTest {
     }
 
     private static PreBidRequest givenPreBidRequest(
-            String tid, int timeoutMillis, List<AdUnit.AdUnitBuilder> adUnitBuilders,
+            String tid, long timeoutMillis, List<AdUnit.AdUnitBuilder> adUnitBuilders,
             org.rtb.vexing.model.request.Bid bid) {
         return PreBidRequest.builder()
                 .accountId("1001")
