@@ -35,10 +35,12 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public AccountMetrics forAccount(String account) {
+        Objects.requireNonNull(account);
         return accountMetrics.computeIfAbsent(account, accountMetricsCreator);
     }
 
     public AdapterMetrics forAdapter(Adapter.Type adapterType) {
+        Objects.requireNonNull(adapterType);
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 }

@@ -41,6 +41,10 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.cookie.UidsCookie;
+import org.rtb.vexing.metric.AccountMetrics;
+import org.rtb.vexing.metric.AdapterMetrics;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
@@ -51,6 +55,7 @@ import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;
@@ -59,6 +64,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class RubiconAdapter implements Adapter {
@@ -71,20 +77,24 @@ public class RubiconAdapter implements Adapter {
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
-
-    private final HttpClient httpClient;
-    private final Long defaultHttpRequestTimeout;
-    private final PublicSuffixList psl;
+    private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final String endpoint;
     private final URL endpointUrl;
     private final UsersyncInfo usersyncInfo;
     private final String authHeader;
 
+    private final HttpClient httpClient;
+    private final Long defaultHttpRequestTimeout;
+    private final PublicSuffixList psl;
+    private final Metrics metrics;
+    private final AdapterMetrics adapterMetrics;
+
     private Clock clock = Clock.systemDefaultZone();
 
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
-                          HttpClient httpClient, Long defaultHttpRequestTimeout, PublicSuffixList psl) {
+                          HttpClient httpClient, Long defaultHttpRequestTimeout, PublicSuffixList psl,
+                          Metrics metrics) {
         this.endpoint = Objects.requireNonNull(endpoint);
         endpointUrl = parseUrl(this.endpoint);
         usersyncInfo = UsersyncInfo.builder()
@@ -98,6 +108,8 @@ public class RubiconAdapter implements Adapter {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.defaultHttpRequestTimeout = Objects.requireNonNull(defaultHttpRequestTimeout);
         this.psl = Objects.requireNonNull(psl);
+        this.metrics = Objects.requireNonNull(metrics);
+        adapterMetrics = metrics.forAdapter(Type.rubicon);
     }
 
     private static URL parseUrl(String url) {
@@ -113,21 +125,29 @@ public class RubiconAdapter implements Adapter {
                                             UidsCookie uidsCookie, HttpServerRequest preBidHttpRequest) {
         final long bidderStarted = clock.millis();
 
+        final AccountMetrics accountMetrics = metrics.forAccount(preBidRequestBody.accountId);
+        final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(Type.rubicon);
+
+        adapterMetrics.incCounter(MetricName.requests);
+        accountAdapterMetrics.incCounter(MetricName.requests);
+
         final List<Future> requestBidFutures = bidder.adUnitBids.stream()
-                .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequestBody, uidsCookie, preBidHttpRequest))
+                .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequestBody, uidsCookie, preBidHttpRequest,
+                        accountAdapterMetrics))
                 .collect(Collectors.toList());
 
         final Future<BidderResult> bidderResultFuture = Future.future();
         // FIXME: error handling
         CompositeFuture.join(requestBidFutures).setHandler(requestBidsResult ->
                 bidderResultFuture.complete(toBidderResult(bidder, preBidRequestBody, preBidHttpRequest, uidsCookie,
-                        requestBidsResult.result().list(), bidderStarted)));
+                        requestBidsResult.result().list(), bidderStarted, accountMetrics, accountAdapterMetrics)));
 
         return bidderResultFuture;
     }
 
     private Future<BidResult> requestSingleBid(AdUnitBid adUnitBid, PreBidRequest preBidRequest,
-                                               UidsCookie uidsCookie, HttpServerRequest preBidHttpRequest) {
+                                               UidsCookie uidsCookie, HttpServerRequest preBidHttpRequest,
+                                               AdapterMetrics accountAdapterMetrics) {
         final RubiconParams rubiconParams = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
 
         final long timeout = getTimeout(preBidRequest);
@@ -152,15 +172,24 @@ public class RubiconAdapter implements Adapter {
 
         final Future<BidResult> future = Future.future();
         httpClient.post(portFromUrl(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
-                bidResponseHandler(future, bidderDebugBuilder, adUnitBid))
+                bidResponseHandler(future, bidderDebugBuilder, adUnitBid, accountAdapterMetrics))
                 .putHeader(HttpHeaders.AUTHORIZATION, authHeader)
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .putHeader(HttpHeaders.USER_AGENT, PREBID_SERVER_USER_AGENT)
                 .setTimeout(timeout)
-                .exceptionHandler(throwable -> {
-                    logger.error("Error occurred while sending bid request to an exchange", throwable);
+                .exceptionHandler(e -> {
+                    logger.error("Error occurred while sending bid request to an exchange", e);
+
                     if (!future.isComplete()) {
+                        if (e instanceof TimeoutException) {
+                            adapterMetrics.incCounter(MetricName.timeout_requests);
+                            accountAdapterMetrics.incCounter(MetricName.timeout_requests);
+                        } else {
+                            adapterMetrics.incCounter(MetricName.error_requests);
+                            accountAdapterMetrics.incCounter(MetricName.error_requests);
+                        }
+
                         // FIXME: error handling
                         future.complete(null);
                     }
@@ -313,8 +342,9 @@ public class RubiconAdapter implements Adapter {
         return port != -1 ? port : url.getDefaultPort();
     }
 
-    private static Handler<HttpClientResponse> bidResponseHandler(
-            Future<BidResult> future, BidderDebug.BidderDebugBuilder bidderDebugBuilder, AdUnitBid adUnitBid) {
+    private Handler<HttpClientResponse> bidResponseHandler(
+            Future<BidResult> future, BidderDebug.BidderDebugBuilder bidderDebugBuilder, AdUnitBid adUnitBid,
+            AdapterMetrics accountAdapterMetrics) {
         return response -> {
             if (response.statusCode() == 200) {
                 response
@@ -331,6 +361,10 @@ public class RubiconAdapter implements Adapter {
                         })
                         .exceptionHandler(exception -> {
                             logger.error("Error occurred during bid response handling", exception);
+
+                            adapterMetrics.incCounter(MetricName.error_requests);
+                            accountAdapterMetrics.incCounter(MetricName.error_requests);
+
                             // FIXME: error handling
                             future.complete(null);
                         });
@@ -338,6 +372,10 @@ public class RubiconAdapter implements Adapter {
                 response.bodyHandler(buffer ->
                         logger.error("Bid response code is {0}, body: {1}",
                                 response.statusCode(), buffer.toString()));
+
+                adapterMetrics.incCounter(MetricName.error_requests);
+                accountAdapterMetrics.incCounter(MetricName.error_requests);
+
                 // FIXME: error handling
                 future.complete(null);
             }
@@ -404,8 +442,12 @@ public class RubiconAdapter implements Adapter {
     }
 
     private BidderResult toBidderResult(Bidder bidder, PreBidRequest preBidRequest, HttpServerRequest preBidHttpRequest,
-                                        UidsCookie uidsCookie, List<BidResult> bidResults, long bidderStarted) {
+                                        UidsCookie uidsCookie, List<BidResult> bidResults, long bidderStarted,
+                                        AccountMetrics accountMetrics, AdapterMetrics accountAdapterMetrics) {
         final Integer responseTime = Math.toIntExact(clock.millis() - bidderStarted);
+
+        adapterMetrics.updateTimer(MetricName.request_time, responseTime);
+        accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
 
         final List<Bid.BidBuilder> bidBuilders = bidResults.stream()
                 .map(br -> br.bidBuilder)
@@ -417,10 +459,22 @@ public class RubiconAdapter implements Adapter {
                 .responseTime(responseTime)
                 .numBids(bidBuilders.size());
 
+        if (!bidBuilders.isEmpty()) {
+            updateBidReceivedMetrics(accountMetrics, accountAdapterMetrics, bidBuilders.size());
+        } else {
+            bidderStatusBuilder.noBid(true);
+
+            adapterMetrics.incCounter(MetricName.no_bid_requests);
+            accountAdapterMetrics.incCounter(MetricName.no_bid_requests);
+        }
+
         if (preBidRequest.app == null && uidsCookie.uidFrom(familyName()) == null) {
             bidderStatusBuilder
                     .noCookie(true)
                     .usersync(usersyncInfo());
+
+            adapterMetrics.incCounter(MetricName.no_cookie_requests);
+            accountAdapterMetrics.incCounter(MetricName.no_cookie_requests);
         }
 
         if (isDebug(preBidRequest, preBidHttpRequest)) {
@@ -431,6 +485,7 @@ public class RubiconAdapter implements Adapter {
         final List<Bid> bids = bidBuilders.stream()
                 .map(b -> b.responseTime(responseTime))
                 .map(Bid.BidBuilder::build)
+                .peek(bid -> updateCpmMetrics(accountMetrics, accountAdapterMetrics, bid))
                 .collect(Collectors.toList());
 
         return BidderResult.builder()
@@ -442,6 +497,19 @@ public class RubiconAdapter implements Adapter {
     private static boolean isDebug(PreBidRequest preBidRequest, HttpServerRequest preBidHttpRequest) {
         return Objects.equals(preBidRequest.isDebug, Boolean.TRUE)
                 || Objects.equals(preBidHttpRequest.getParam("is_debug"), "1");
+    }
+
+    private void updateBidReceivedMetrics(AccountMetrics accountMetrics, AdapterMetrics accountAdapterMetrics,
+                                          long numBids) {
+        accountMetrics.incCounter(MetricName.bids_received, numBids);
+        accountAdapterMetrics.incCounter(MetricName.bids_received, numBids);
+    }
+
+    private void updateCpmMetrics(AccountMetrics accountMetrics, AdapterMetrics accountAdapterMetrics, Bid bid) {
+        final long cpm = bid.price.multiply(THOUSAND).longValue();
+        adapterMetrics.updateHistogram(MetricName.prices, cpm);
+        accountMetrics.updateHistogram(MetricName.prices, cpm);
+        accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
     }
 
     @Override

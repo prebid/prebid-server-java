@@ -121,10 +121,11 @@ public class Application extends AbstractVerticle {
 
         public static DependencyContext create(Vertx vertx, ApplicationConfig config) {
             final ApplicationSettings applicationSettings = ApplicationSettings.create(vertx, config);
-            final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient(vertx, config), psl());
             final MetricRegistry metricRegistry = new MetricRegistry();
             configureMetricsReporter(metricRegistry, config, vertx);
             final Metrics metrics = Metrics.create(metricRegistry, config);
+            final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient(vertx, config), psl(),
+                    metrics);
 
             return builder()
                     .applicationSettings(applicationSettings)
@@ -132,7 +133,7 @@ public class Application extends AbstractVerticle {
                     .metrics(metrics)
                     .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog, vertx, metrics))
                     .statusHandler(new StatusHandler())
-                    .cookieSyncHandler(new CookieSyncHandler(adapterCatalog))
+                    .cookieSyncHandler(new CookieSyncHandler(adapterCatalog, metrics))
                     .setuidHandler(new SetuidHandler())
                     .build();
         }

@@ -28,6 +28,7 @@ public class AccountMetrics extends UpdatableMetrics {
     }
 
     public AdapterMetrics forAdapter(Adapter.Type adapterType) {
+        Objects.requireNonNull(adapterType);
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 }

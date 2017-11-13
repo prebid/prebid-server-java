@@ -146,6 +146,11 @@ public class UidsCookieTest {
     }
 
     @Test
+    public void hasLiveUidsShouldReturnFalse() {
+        assertThat(UidsCookie.parseFromRequest(routingContext).hasLiveUids()).isFalse();
+    }
+
+    @Test
     public void isFacebookSentinelShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> UidsCookie.isFacebookSentinel(null, null));
         assertThatNullPointerException().isThrownBy(() -> UidsCookie.isFacebookSentinel("", null));

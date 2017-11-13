@@ -12,6 +12,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.cookie.UidsCookie;
@@ -26,6 +27,7 @@ import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.PreBidResponse;
 import org.rtb.vexing.settings.ApplicationSettings;
 
+import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -41,6 +43,7 @@ public class AuctionHandler {
     private final Metrics metrics;
 
     private String date;
+    private final Clock clock = Clock.systemDefaultZone();
 
     public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters, Vertx vertx,
                           Metrics metrics) {
@@ -62,6 +65,11 @@ public class AuctionHandler {
     public void auction(RoutingContext context) {
         metrics.incCounter(MetricName.requests);
 
+        final boolean isSafari = isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
+        if (isSafari) {
+            metrics.incCounter(MetricName.safari_requests);
+        }
+
         final JsonObject json = context.getBodyAsJson();
         if (json == null) {
             logger.error("Incoming request has no body.");
@@ -70,12 +78,32 @@ public class AuctionHandler {
         }
 
         final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
+        // FIXME: metrics.incCounter(MetricName.error_requests) if request couldn't be parsed
+        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(context);
+
+        final long requestStarted = clock.millis();
+
+        if (preBidRequest.app != null) {
+            metrics.incCounter(MetricName.app_requests);
+        } else if (!uidsCookie.hasLiveUids()) {
+            metrics.incCounter(MetricName.no_cookie_requests);
+            if (isSafari) {
+                metrics.incCounter(MetricName.safari_no_cookie_requests);
+            }
+            // FIXME: set no_cookie status
+        }
+
         if (!applicationSettings.getAccountById(preBidRequest.accountId).isPresent()) {
             respondWith(error("Unknown account id"), context);
+            metrics.incCounter(MetricName.error_requests);
             return;
         }
 
-        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(context);
+        metrics.forAccount(preBidRequest.accountId).incCounter(MetricName.requests);
+
+        context.response().endHandler(ignored -> metrics.updateTimer(MetricName.request_time,
+                clock.millis() - requestStarted));
+
         final List<Bidder> bidders = extractBidders(preBidRequest);
         final List<Future> bidderResponseFutures = bidders.stream()
                 .map(bidder -> adapters.get(bidder.bidderCode)
@@ -128,5 +156,15 @@ public class AuctionHandler {
                 .bidderStatus(bidderStatuses)
                 .bids(bids)
                 .build();
+    }
+
+    private static boolean isSafari(String userAgent) {
+        // this is a simple heuristic based on this article:
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
+        //
+        // there are libraries available doing different kinds of User-Agent analysis but they impose performance
+        // implications as well, example: https://github.com/nielsbasjes/yauaa
+        return StringUtils.isNotBlank(userAgent) && userAgent.contains("AppleWebKit") && userAgent.contains("Safari")
+                && !userAgent.contains("Chrome") && !userAgent.contains("Chromium");
     }
 }

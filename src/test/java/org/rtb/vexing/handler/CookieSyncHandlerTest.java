@@ -16,6 +16,8 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.CookieSyncResponse;
@@ -47,6 +49,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     private Adapter rubiconAdapter;
     @Mock
     private Adapter appnexusAdapter;
+    @Mock
+    private Metrics metrics;
     private CookieSyncHandler cookieSyncHandler;
 
     @Mock
@@ -59,12 +63,13 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
-        cookieSyncHandler = new CookieSyncHandler(adapterCatalog);
+        cookieSyncHandler = new CookieSyncHandler(adapterCatalog, metrics);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new CookieSyncHandler(null));
+        assertThatNullPointerException().isThrownBy(() -> new CookieSyncHandler(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new CookieSyncHandler(adapterCatalog, null));
     }
 
     @Test
@@ -173,6 +178,19 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .status("OK")
                 .bidderStatus(emptyList())
                 .build());
+    }
+
+    @Test
+    public void shouldIncrementMetrics() {
+        // given
+        given(routingContext.getBodyAsJson())
+                .willReturn(JsonObject.mapFrom(CookieSyncRequest.builder().bidders(emptyList()).build()));
+
+        // when
+        cookieSyncHandler.sync(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.cookie_sync_requests));
     }
 
     private void givenAdaptersReturningFamilyName() {

@@ -41,10 +41,10 @@ public class UpdatableMetricsTest {
                 metricName -> "someprefix." + metricName.name());
 
         // when
-        updatableMetrics.incCounter(MetricName.requests);
+        updatableMetrics.incCounter(MetricName.requests, 5);
 
         // then
-        assertThat(metricRegistry.counter("someprefix.requests").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("someprefix.requests").getCount()).isEqualTo(5);
     }
 
     @SuppressWarnings("unchecked")
@@ -57,26 +57,38 @@ public class UpdatableMetricsTest {
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, nameCreator);
 
         // when
-        updatableMetrics.incCounter(MetricName.requests);
-        updatableMetrics.incCounter(MetricName.requests);
+        updatableMetrics.incCounter(MetricName.requests, 5);
+        updatableMetrics.incCounter(MetricName.requests, 6);
 
         // then
         verify(nameCreator, times(1)).apply(eq(MetricName.requests));
     }
 
     @Test
-    public void updateTimerNanosShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> updatableMetrics.updateTimerNanos(null, 0L));
+    public void incCounterShouldIncrementByOne() {
+        // given
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, Enum::name);
+
+        // when
+        updatableMetrics.incCounter(MetricName.requests);
+
+        // then
+        assertThat(metricRegistry.counter("requests").getCount()).isEqualTo(1);
     }
 
     @Test
-    public void updateTimerNanosShouldCreateMetricNameUsingProvidedCreator() {
+    public void updateTimerShouldFailOnNullArguments() {
+        assertThatNullPointerException().isThrownBy(() -> updatableMetrics.updateTimer(null, 0L));
+    }
+
+    @Test
+    public void updateTimerShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
                 metricName -> "someprefix." + metricName.name());
 
         // when
-        updatableMetrics.updateTimerNanos(MetricName.request_time, 1000L);
+        updatableMetrics.updateTimer(MetricName.request_time, 1000L);
 
         // then
         assertThat(metricRegistry.timer("someprefix.request_time").getCount()).isEqualTo(1);
@@ -84,7 +96,7 @@ public class UpdatableMetricsTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void updateTimerNanosShouldCreateMetricNameOnlyOnceOnSuccessiveCalls() {
+    public void updateTimerShouldCreateMetricNameOnlyOnceOnSuccessiveCalls() {
         // given
         final Function<MetricName, String> nameCreator = mock(Function.class);
         given(nameCreator.apply(any())).willReturn("");
@@ -92,11 +104,23 @@ public class UpdatableMetricsTest {
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, nameCreator);
 
         // when
-        updatableMetrics.updateTimerNanos(MetricName.request_time, 1000L);
-        updatableMetrics.updateTimerNanos(MetricName.request_time, 1000L);
+        updatableMetrics.updateTimer(MetricName.request_time, 1000L);
+        updatableMetrics.updateTimer(MetricName.request_time, 1000L);
 
         // then
         verify(nameCreator, times(1)).apply(eq(MetricName.request_time));
+    }
+
+    @Test
+    public void updateTimerShouldConvertToNanos() {
+        // given
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, Enum::name);
+
+        // when
+        updatableMetrics.updateTimer(MetricName.request_time, 1000L);
+
+        // then
+        assertThat(metricRegistry.timer("request_time").getSnapshot().getValues()).containsOnly(1_000_000_000L);
     }
 
     @Test

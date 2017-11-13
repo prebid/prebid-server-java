@@ -1,9 +1,13 @@
 package org.rtb.vexing.handler;
 
+import com.iab.openrtb.request.App;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -19,6 +23,8 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.metric.AccountMetrics;
+import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.request.AdUnit;
@@ -65,10 +71,14 @@ public class AuctionHandlerTest extends VertxTest {
     private Vertx vertx;
     @Mock
     private Metrics metrics;
+    @Mock
+    private AccountMetrics accountMetrics;
     private AuctionHandler auctionHandler;
 
     @Mock
     private RoutingContext routingContext;
+    @Mock
+    private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
 
@@ -81,6 +91,11 @@ public class AuctionHandlerTest extends VertxTest {
 
         given(vertx.setPeriodic(anyLong(), any()))
                 .willAnswer(AdditionalAnswers.<Long, Handler<Long>>answerVoid((p, h) -> h.handle(0L)));
+
+        given(metrics.forAccount(anyString())).willReturn(accountMetrics);
+
+        given(routingContext.request()).willReturn(httpRequest);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
@@ -131,8 +146,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithExpectedHeaders() {
         // given
-        given(routingContext.getBodyAsJson())
-                .willReturn(JsonObject.mapFrom(PreBidRequest.builder().adUnits(emptyList()).build()));
+        givenPreBidRequest(emptyList());
 
         // when
         auctionHandler.auction(routingContext);
@@ -180,6 +194,64 @@ public class AuctionHandlerTest extends VertxTest {
         assertThat(preBidResponse.bids).extracting(b -> b.bidId).containsOnly("bidId1", "bidId2", "bidId3", "bidId4");
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldIncrementCommonMetrics() {
+        // given
+        given(routingContext.getBodyAsJson())
+                .willReturn(JsonObject.mapFrom(PreBidRequest.builder()
+                        .accountId("accountId")
+                        .adUnits(emptyList())
+                        .app(App.builder().build())
+                        .build()));
+
+        // simulate calling end handler that is supposed to update request_time timer value
+        given(httpResponse.endHandler(any())).willAnswer(inv -> {
+            ((Handler<Void>) inv.getArgument(0)).handle(null);
+            return null;
+        });
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.requests));
+        verify(metrics).incCounter(eq(MetricName.app_requests));
+        verify(accountMetrics).incCounter(eq(MetricName.requests));
+        verify(metrics).updateTimer(eq(MetricName.request_time), anyLong());
+    }
+
+    @Test
+    public void shouldIncrementSafariAndNoCookieMetrics() {
+        // given
+        givenPreBidRequest(emptyList());
+
+        httpRequest.headers().add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
+                "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.safari_requests));
+        verify(metrics).incCounter(eq(MetricName.no_cookie_requests));
+        verify(metrics).incCounter(eq(MetricName.safari_no_cookie_requests));
+    }
+
+    @Test
+    public void shouldIncrementErrorMetricIfRequestBodyHasUnknownAccountId() {
+        // given
+        givenPreBidRequestWith1AdUnitAnd1Bid();
+
+        given(applicationSettings.getAccountById(any())).willReturn(Optional.empty());
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.error_requests));
+    }
+
     private void givenPreBidRequestWith1AdUnitAnd1Bid() {
         givenPreBidRequest(singletonList(AdUnit.builder()
                 .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
@@ -196,6 +268,7 @@ public class AuctionHandlerTest extends VertxTest {
     private void givenPreBidRequest(List<AdUnit> adUnits) {
         final JsonObject preBidRequest = JsonObject.mapFrom(PreBidRequest.builder()
                 .tid("tid")
+                .accountId("accountId")
                 .adUnits(adUnits)
                 .build());
         given(routingContext.getBodyAsJson()).willReturn(preBidRequest);

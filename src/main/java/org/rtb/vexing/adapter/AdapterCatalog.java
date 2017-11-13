@@ -4,6 +4,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.http.HttpClient;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.metric.Metrics;
 
 import java.util.EnumMap;
 import java.util.Objects;
@@ -15,10 +16,12 @@ public class AdapterCatalog {
     private AdapterCatalog() {
     }
 
-    public static AdapterCatalog create(ApplicationConfig config, HttpClient httpClient, PublicSuffixList psl) {
+    public static AdapterCatalog create(ApplicationConfig config, HttpClient httpClient, PublicSuffixList psl,
+                                        Metrics metrics) {
         Objects.requireNonNull(config);
         Objects.requireNonNull(httpClient);
         Objects.requireNonNull(psl);
+        Objects.requireNonNull(metrics);
 
         final AdapterCatalog adapterCatalog = new AdapterCatalog();
 
@@ -29,7 +32,8 @@ public class AdapterCatalog {
                 config.getString("adapters.rubicon.XAPI.Password"),
                 httpClient,
                 config.getLong("default-timeout-ms"),
-                psl));
+                psl,
+                metrics));
 
         return adapterCatalog;
     }

@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.metric.Metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -26,8 +27,9 @@ public class AdapterCatalogTest {
     private ApplicationConfig applicationConfig;
     @Mock
     private HttpClient httpClient;
-
     private PublicSuffixList psl;
+    @Mock
+    private Metrics metrics;
 
     @Before
     public void setupClass() {
@@ -36,9 +38,12 @@ public class AdapterCatalogTest {
 
     @Test
     public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, null, null));
-        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, httpClient, null));
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, httpClient, null,
+                null));
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, httpClient, psl,
+                null));
     }
 
     @Test
@@ -52,7 +57,8 @@ public class AdapterCatalogTest {
         given(applicationConfig.getLong(eq("default-timeout-ms"))).willReturn(250L);
 
         // when
-        final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient, psl).get("rubicon");
+        final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient, psl, metrics)
+                .get("rubicon");
 
         // then
         assertThat(rubiconAdapter)

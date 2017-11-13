@@ -38,6 +38,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExt;
@@ -51,6 +52,10 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargeting;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.cookie.UidsCookie;
+import org.rtb.vexing.metric.AccountMetrics;
+import org.rtb.vexing.metric.AdapterMetrics;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
@@ -95,18 +100,26 @@ public class RubiconAdapterTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private PublicSuffixList psl = new PublicSuffixListFactory().build();
-
     @Mock
     private HttpServerRequest preBidHttpRequest;
-    private Bidder bidder;
-    private PreBidRequest preBidRequestBody;
     @Mock
     private HttpClient httpClient;
     @Mock
     private HttpClientRequest httpClientRequest;
+    private PublicSuffixList psl = new PublicSuffixListFactory().build();
+    @Mock
+    private Metrics metrics;
+    @Mock
+    private AccountMetrics accountMetrics;
+    @Mock
+    private AdapterMetrics adapterMetrics;
+    @Mock
+    private AdapterMetrics accountAdapterMetrics;
 
     private RubiconAdapter adapter;
+
+    private Bidder bidder;
+    private PreBidRequest preBidRequestBody;
     @Mock
     private UidsCookie uidsCookie;
 
@@ -121,6 +134,11 @@ public class RubiconAdapterTest extends VertxTest {
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
+        // metrics
+        given(metrics.forAccount(anyString())).willReturn(accountMetrics);
+        given(metrics.forAdapter(eq(Adapter.Type.rubicon))).willReturn(adapterMetrics);
+        given(accountMetrics.forAdapter(eq(Adapter.Type.rubicon))).willReturn(accountAdapterMetrics);
+
         // minimal pre-bid request
         given(preBidHttpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         preBidHttpRequest.headers().set(REFERER, "http://example.com");
@@ -133,27 +151,35 @@ public class RubiconAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(anyString())).willReturn(null);
 
         // adapter
-        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl);
+        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl,
+                metrics);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(null, null, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(URL, null, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(URL, URL, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(URL, URL, USER, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, null, null, null));
+                () -> new RubiconAdapter(null, null, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, httpClient, null, null));
+                () -> new RubiconAdapter(URL, null, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, null));
+                () -> new RubiconAdapter(URL, URL, null, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new RubiconAdapter(URL, URL, USER, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, httpClient, null, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new RubiconAdapter("invalid_url", URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl))
+                .isThrownBy(() -> new RubiconAdapter("invalid_url", URL, USER, PASSWORD, httpClient,
+                        HTTP_REQUEST_TIMEOUT, psl, metrics))
                 .withMessage("URL supplied is not valid");
     }
 
@@ -211,6 +237,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void requestBidsShouldMakeHttpRequestWithExpectedHeaders() {
+        // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
 
         // then
@@ -227,7 +254,9 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void requestBidsShouldMakeHttpRequestUsingPortFromUrl() {
-        adapter = new RubiconAdapter("http://rubiconproject.com:8888/x", URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl);
+        // given
+        adapter = new RubiconAdapter("http://rubiconproject.com:8888/x", URL, USER, PASSWORD, httpClient,
+                HTTP_REQUEST_TIMEOUT, psl, metrics);
 
         // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
@@ -238,7 +267,9 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void requestBidsShouldMakeHttpRequestUsingPort80ForHttp() {
-        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl);
+        // given
+        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl,
+                metrics);
 
         // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
@@ -249,7 +280,9 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void requestBidsShouldMakeHttpRequestUsingPort443ForHttps() {
-        adapter = new RubiconAdapter("https://rubiconproject.com/x", URL, USER, PASSWORD, httpClient, HTTP_REQUEST_TIMEOUT, psl);
+        // given
+        adapter = new RubiconAdapter("https://rubiconproject.com/x", URL, USER, PASSWORD, httpClient,
+                HTTP_REQUEST_TIMEOUT, psl, metrics);
 
         // when
         adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
@@ -812,6 +845,32 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(bidderResultFuture.result().bidderStatus.debug).isNull();
     }
 
+    @Test
+    public void requestBidsShouldIncrementCommonMetrics() throws JsonProcessingException {
+        // given
+        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
+
+        // when
+        adapter.requestBids(bidder, preBidRequestBody, uidsCookie, preBidHttpRequest);
+
+        // then
+        // this call is made in constructor but it feels natural to verify it here
+        verify(metrics).forAdapter(eq(Adapter.Type.rubicon));
+        verify(metrics).forAccount(eq("accountId"));
+        verify(accountMetrics).forAdapter(eq(Adapter.Type.rubicon));
+        verify(adapterMetrics).incCounter(eq(MetricName.requests));
+        verify(accountAdapterMetrics).incCounter(eq(MetricName.requests));
+        verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
+        verify(accountAdapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
+        verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
+        verify(accountAdapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
+        verify(accountMetrics).incCounter(eq(MetricName.bids_received), eq(1L));
+        verify(accountAdapterMetrics).incCounter(eq(MetricName.bids_received), eq(1L));
+        verify(adapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
+        verify(accountMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
+        verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
+    }
+
     private static Bidder givenBidderCustomizable(
             Function<AdUnit.AdUnitBuilder, AdUnit.AdUnitBuilder> adUnitBuilderCustomizer,
             Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilderCustomizer,
@@ -856,6 +915,7 @@ public class RubiconAdapterTest extends VertxTest {
                     preBidRequestBuilderCustomizer) {
 
         final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
+                .accountId("accountId")
                 .timeoutMillis(1000L);
         final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderCustomized = preBidRequestBuilderCustomizer
                 .apply(preBidRequestBuilderMinimal);
@@ -916,6 +976,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // bid
         final com.iab.openrtb.response.Bid.BidBuilder bidBuilderMinimal = com.iab.openrtb.response.Bid.builder()
+                .price(new BigDecimal("5.67"))
                 .ext(mapper.valueToTree(RubiconTargetingExt.builder()
                         .rp(RubiconTargetingExtRp.builder()
                                 .targeting(rubiconTargeting)

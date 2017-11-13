@@ -9,6 +9,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.cookie.UidsCookie;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.CookieSyncResponse;
@@ -22,12 +24,16 @@ public class CookieSyncHandler {
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
 
     private final AdapterCatalog adapterCatalog;
+    private final Metrics metrics;
 
-    public CookieSyncHandler(AdapterCatalog adapterCatalog) {
+    public CookieSyncHandler(AdapterCatalog adapterCatalog, Metrics metrics) {
         this.adapterCatalog = Objects.requireNonNull(adapterCatalog);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     public void sync(RoutingContext context) {
+        metrics.incCounter(MetricName.cookie_sync_requests);
+
         final UidsCookie uidsCookie = UidsCookie.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
             context.response().setStatusCode(401).setStatusMessage("User has opted out").end();

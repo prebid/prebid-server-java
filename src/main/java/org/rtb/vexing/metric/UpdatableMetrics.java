@@ -6,14 +6,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 class UpdatableMetrics {
 
     private final MetricRegistry metricRegistry;
     private Function<MetricName, String> nameCreator;
-    private final BiConsumer<MetricRegistry, String> incrementer;
+    private final MetricIncrementer incrementer;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
@@ -26,14 +25,14 @@ class UpdatableMetrics {
 
         switch (counterType) {
             case flushingCounter:
-                incrementer = (registry, metricName) ->
-                        registry.counter(metricName, ResettingCounter::new).inc();
+                incrementer = (registry, metricName, value) ->
+                        registry.counter(metricName, ResettingCounter::new).inc(value);
                 break;
             case counter:
-                incrementer = (registry, metricName) -> registry.counter(metricName).inc();
+                incrementer = (registry, metricName, value) -> registry.counter(metricName).inc(value);
                 break;
             case meter:
-                incrementer = (registry, metricName) -> registry.meter(metricName).mark();
+                incrementer = (registry, metricName, value) -> registry.meter(metricName).mark(value);
                 break;
             default:
                 // to satisfy compiler
@@ -42,13 +41,17 @@ class UpdatableMetrics {
     }
 
     public void incCounter(MetricName metricName) {
-        Objects.requireNonNull(metricName);
-        incrementer.accept(metricRegistry, name(metricName));
+        incCounter(metricName, 1);
     }
 
-    public void updateTimerNanos(MetricName metricName, long duration) {
+    public void incCounter(MetricName metricName, long value) {
         Objects.requireNonNull(metricName);
-        metricRegistry.timer(name(metricName)).update(duration, TimeUnit.NANOSECONDS);
+        incrementer.accept(metricRegistry, name(metricName), value);
+    }
+
+    public void updateTimer(MetricName metricName, long millis) {
+        Objects.requireNonNull(metricName);
+        metricRegistry.timer(name(metricName)).update(millis, TimeUnit.MILLISECONDS);
     }
 
     public void updateHistogram(MetricName metricName, long value) {
@@ -59,5 +62,10 @@ class UpdatableMetrics {
 
     private String name(MetricName metricName) {
         return metricNames.computeIfAbsent(metricName, key -> nameCreator.apply(metricName));
+    }
+
+    @FunctionalInterface
+    private interface MetricIncrementer {
+        void accept(MetricRegistry metricRegistry, String metricName, long value);
     }
 }

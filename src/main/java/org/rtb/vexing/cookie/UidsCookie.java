@@ -69,6 +69,12 @@ public class UidsCookie {
         return !Objects.equals(uids.optout, Boolean.TRUE);
     }
 
+    public boolean hasLiveUids() {
+        // FIXME: this will have something to do with uids expriration eventually, legacy cookie are considered
+        // already expired
+        return false;
+    }
+
     public UidsCookie deleteUid(String familyName) {
         Objects.requireNonNull(familyName);
 
