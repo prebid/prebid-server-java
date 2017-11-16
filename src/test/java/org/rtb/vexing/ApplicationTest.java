@@ -202,7 +202,7 @@ public class ApplicationTest extends VertxTest {
                 .header("User-Agent", "userAgent")
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","appnexus":"12345"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9fQ==")
-                .queryParam("is_debug", "1")
+                .queryParam("debug", "1")
                 .body(preBidRequest)
                 .post("/auction")
                 .as(PreBidResponse.class);

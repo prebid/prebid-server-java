@@ -1,9 +1,6 @@
 package org.rtb.vexing.adapter;
 
-import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
-import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.http.HttpClient;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -27,23 +24,14 @@ public class AdapterCatalogTest {
     private ApplicationConfig applicationConfig;
     @Mock
     private HttpClient httpClient;
-    private PublicSuffixList psl;
     @Mock
     private Metrics metrics;
 
-    @Before
-    public void setupClass() {
-        psl = new PublicSuffixListFactory().build();
-    }
-
     @Test
     public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, httpClient, null,
-                null));
-        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, httpClient, psl,
-                null));
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, null, null));
+        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, httpClient, null));
     }
 
     @Test
@@ -57,8 +45,7 @@ public class AdapterCatalogTest {
         given(applicationConfig.getLong(eq("default-timeout-ms"))).willReturn(250L);
 
         // when
-        final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient, psl, metrics)
-                .get("rubicon");
+        final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient, metrics).get("rubicon");
 
         // then
         assertThat(rubiconAdapter)

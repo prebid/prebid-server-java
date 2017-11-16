@@ -25,6 +25,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.experimental.FieldDefaults;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.adapter.PreBidRequestContextFactory;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.handler.AuctionHandler;
@@ -126,15 +127,15 @@ public class Application extends AbstractVerticle {
             final MetricRegistry metricRegistry = new MetricRegistry();
             configureMetricsReporter(metricRegistry, config, vertx);
             final Metrics metrics = Metrics.create(metricRegistry, config);
-            final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient, psl(), metrics);
+            final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient, metrics);
             final CacheService cacheService = CacheService.create(httpClient, config);
 
             return builder()
                     .applicationSettings(applicationSettings)
                     .metricRegistry(metricRegistry)
                     .metrics(metrics)
-                    .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog, cacheService, vertx,
-                            metrics))
+                    .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog,
+                            PreBidRequestContextFactory.create(config, psl()), cacheService, vertx, metrics))
                     .statusHandler(new StatusHandler())
                     .cookieSyncHandler(new CookieSyncHandler(adapterCatalog, metrics))
                     .setuidHandler(new SetuidHandler())

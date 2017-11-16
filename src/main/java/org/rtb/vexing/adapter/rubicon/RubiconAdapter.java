@@ -13,7 +13,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
-import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -21,12 +20,9 @@ import io.vertx.core.Handler;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
@@ -40,7 +36,6 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
-import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.metric.AccountMetrics;
 import org.rtb.vexing.metric.AdapterMetrics;
 import org.rtb.vexing.metric.MetricName;
@@ -49,6 +44,7 @@ import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
+import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderDebug;
@@ -85,16 +81,13 @@ public class RubiconAdapter implements Adapter {
     private final String authHeader;
 
     private final HttpClient httpClient;
-    private final Long defaultHttpRequestTimeout;
-    private final PublicSuffixList psl;
     private final Metrics metrics;
     private final AdapterMetrics adapterMetrics;
 
     private Clock clock = Clock.systemDefaultZone();
 
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
-                          HttpClient httpClient, Long defaultHttpRequestTimeout, PublicSuffixList psl,
-                          Metrics metrics) {
+                          HttpClient httpClient, Metrics metrics) {
         this.endpoint = Objects.requireNonNull(endpoint);
         endpointUrl = parseUrl(this.endpoint);
         usersyncInfo = UsersyncInfo.builder()
@@ -106,8 +99,6 @@ public class RubiconAdapter implements Adapter {
                 (Objects.requireNonNull(xapiUsername) + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
 
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.defaultHttpRequestTimeout = Objects.requireNonNull(defaultHttpRequestTimeout);
-        this.psl = Objects.requireNonNull(psl);
         this.metrics = Objects.requireNonNull(metrics);
         adapterMetrics = metrics.forAdapter(Type.rubicon);
     }
@@ -121,47 +112,44 @@ public class RubiconAdapter implements Adapter {
     }
 
     @Override
-    public Future<BidderResult> requestBids(Bidder bidder, PreBidRequest preBidRequestBody,
-                                            UidsCookie uidsCookie, HttpServerRequest preBidHttpRequest) {
+    public Future<BidderResult> requestBids(Bidder bidder, PreBidRequestContext preBidRequestContext) {
         final long bidderStarted = clock.millis();
 
-        final AccountMetrics accountMetrics = metrics.forAccount(preBidRequestBody.accountId);
+        final AccountMetrics accountMetrics = metrics.forAccount(preBidRequestContext.preBidRequest.accountId);
         final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(Type.rubicon);
 
         adapterMetrics.incCounter(MetricName.requests);
         accountAdapterMetrics.incCounter(MetricName.requests);
 
         final List<Future> requestBidFutures = bidder.adUnitBids.stream()
-                .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequestBody, uidsCookie, preBidHttpRequest,
-                        accountAdapterMetrics))
+                .map(adUnitBid -> requestSingleBid(adUnitBid, preBidRequestContext, accountAdapterMetrics))
                 .collect(Collectors.toList());
 
         final Future<BidderResult> bidderResultFuture = Future.future();
         // FIXME: error handling
         CompositeFuture.join(requestBidFutures).setHandler(requestBidsResult ->
-                bidderResultFuture.complete(toBidderResult(bidder, preBidRequestBody, preBidHttpRequest, uidsCookie,
+                bidderResultFuture.complete(toBidderResult(bidder, preBidRequestContext,
                         requestBidsResult.result().list(), bidderStarted, accountMetrics, accountAdapterMetrics)));
 
         return bidderResultFuture;
     }
 
-    private Future<BidResult> requestSingleBid(AdUnitBid adUnitBid, PreBidRequest preBidRequest,
-                                               UidsCookie uidsCookie, HttpServerRequest preBidHttpRequest,
+    private Future<BidResult> requestSingleBid(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext,
                                                AdapterMetrics accountAdapterMetrics) {
         final RubiconParams rubiconParams = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
 
-        final long timeout = getTimeout(preBidRequest);
+        final long timeout = preBidRequestContext.timeout;
 
         final BidRequest bidRequest = BidRequest.builder()
-                .id(preBidRequest.tid)
-                .app(preBidRequest.app)
+                .id(preBidRequestContext.preBidRequest.tid)
+                .app(preBidRequestContext.preBidRequest.app)
                 .at(1)
                 .tmax(timeout)
-                .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, preBidHttpRequest)))
-                .site(makeSite(rubiconParams, preBidHttpRequest))
-                .device(makeDevice(preBidHttpRequest))
-                .user(makeUser(preBidRequest, rubiconParams, uidsCookie))
-                .source(makeSource(preBidRequest))
+                .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, preBidRequestContext)))
+                .site(makeSite(rubiconParams, preBidRequestContext))
+                .device(makeDevice(preBidRequestContext))
+                .user(makeUser(rubiconParams, preBidRequestContext))
+                .source(makeSource(preBidRequestContext.preBidRequest))
                 .build();
 
         // FIXME: remove
@@ -198,28 +186,15 @@ public class RubiconAdapter implements Adapter {
         return future;
     }
 
-    private long getTimeout(PreBidRequest preBidRequest) {
-        Long value = preBidRequest.timeoutMillis;
-        if (value == null || value <= 0 || value > 2000L) {
-            value = defaultHttpRequestTimeout;
-        }
-        return value;
-    }
-
-    private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams, HttpServerRequest preBidHttpRequest) {
+    private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams, PreBidRequestContext
+            preBidRequestContext) {
         return Imp.builder()
                 .id(adUnitBid.adUnitCode)
-                .secure(isSecure(preBidHttpRequest))
+                .secure(preBidRequestContext.secure)
                 .instl(adUnitBid.instl)
                 .banner(makeBanner(adUnitBid))
                 .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams)))
                 .build();
-    }
-
-    private static Integer isSecure(HttpServerRequest preBidHttpRequest) {
-        return StringUtils.equalsIgnoreCase(preBidHttpRequest.headers().get("X-Forwarded-Proto"), "https")
-                || StringUtils.equalsIgnoreCase(preBidHttpRequest.scheme(), "https")
-                ? 1 : null;
     }
 
     private static Banner makeBanner(AdUnitBid adUnitBid) {
@@ -257,24 +232,13 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private Site makeSite(RubiconParams rubiconParams, HttpServerRequest preBidHttpRequest) {
-        final String referer = preBidHttpRequest.headers().get(HttpHeaders.REFERER);
+    private Site makeSite(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
         return Site.builder()
-                .domain(domainFromUrl(referer))
-                .page(referer)
+                .domain(preBidRequestContext.domain)
+                .page(preBidRequestContext.referer)
                 .publisher(makePublisher(rubiconParams))
                 .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)))
                 .build();
-    }
-
-    private String domainFromUrl(String url) {
-        try {
-            // FIXME: error handling
-            return psl.getRegistrableDomain(new URL(url).getHost());
-        } catch (MalformedURLException e) {
-            // FIXME: error handling
-            throw new IllegalArgumentException();
-        }
     }
 
     private static Publisher makePublisher(RubiconParams rubiconParams) {
@@ -295,28 +259,21 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private static Device makeDevice(HttpServerRequest preBidHttpRequest) {
+    private static Device makeDevice(PreBidRequestContext preBidRequestContext) {
         return Device.builder()
-                .ua(preBidHttpRequest.headers().get(HttpHeaders.USER_AGENT))
-                .ip(ipFromRequest(preBidHttpRequest))
+                .ua(preBidRequestContext.ua)
+                .ip(preBidRequestContext.ip)
                 .build();
     }
 
-    private static String ipFromRequest(HttpServerRequest preBidHttpRequest) {
-        return ObjectUtils.firstNonNull(
-                StringUtils.trimToNull(
-                        // X-Forwarded-For: client1, proxy1, proxy2
-                        StringUtils.substringBefore(preBidHttpRequest.headers().get("X-Forwarded-For"), ",")),
-                StringUtils.trimToNull(preBidHttpRequest.headers().get("X-Real-IP")),
-                StringUtils.trimToNull(preBidHttpRequest.remoteAddress().host()));
-    }
-
-    private User makeUser(PreBidRequest preBidRequest, RubiconParams rubiconParams, UidsCookie uidsCookie) {
+    private User makeUser(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
         // create a copy since user might be shared with other adapters
-        final User.UserBuilder userBuilder = preBidRequest.app != null ? preBidRequest.user.toBuilder() : User.builder()
-                .buyeruid(uidsCookie.uidFrom(familyName()))
-                // id is a UID for "adnxs" (see logic in open-source implementation)
-                .id(uidsCookie.uidFrom("adnxs"));
+        final User.UserBuilder userBuilder =
+                preBidRequestContext.preBidRequest.app != null ? preBidRequestContext.preBidRequest.user.toBuilder()
+                        : User.builder()
+                        .buyeruid(preBidRequestContext.uidsCookie.uidFrom(familyName()))
+                        // id is a UID for "adnxs" (see logic in open-source implementation)
+                        .id(preBidRequestContext.uidsCookie.uidFrom("adnxs"));
 
         return userBuilder
                 .ext(Json.mapper.valueToTree(makeUserExt(rubiconParams)))
@@ -330,10 +287,10 @@ public class RubiconAdapter implements Adapter {
                 : null;
     }
 
-    private static Source makeSource(PreBidRequest request) {
+    private static Source makeSource(PreBidRequest preBidRequest) {
         return Source.builder()
                 .fd(1)
-                .tid(request.tid)
+                .tid(preBidRequest.tid)
                 .build();
     }
 
@@ -441,8 +398,8 @@ public class RubiconAdapter implements Adapter {
                 : null;
     }
 
-    private BidderResult toBidderResult(Bidder bidder, PreBidRequest preBidRequest, HttpServerRequest preBidHttpRequest,
-                                        UidsCookie uidsCookie, List<BidResult> bidResults, long bidderStarted,
+    private BidderResult toBidderResult(Bidder bidder, PreBidRequestContext preBidRequestContext,
+                                        List<BidResult> bidResults, long bidderStarted,
                                         AccountMetrics accountMetrics, AdapterMetrics accountAdapterMetrics) {
         final Integer responseTime = Math.toIntExact(clock.millis() - bidderStarted);
 
@@ -468,7 +425,8 @@ public class RubiconAdapter implements Adapter {
             accountAdapterMetrics.incCounter(MetricName.no_bid_requests);
         }
 
-        if (preBidRequest.app == null && uidsCookie.uidFrom(familyName()) == null) {
+        if (preBidRequestContext.preBidRequest.app == null && preBidRequestContext.uidsCookie.uidFrom(familyName())
+                == null) {
             bidderStatusBuilder
                     .noCookie(true)
                     .usersync(usersyncInfo());
@@ -477,7 +435,7 @@ public class RubiconAdapter implements Adapter {
             accountAdapterMetrics.incCounter(MetricName.no_cookie_requests);
         }
 
-        if (isDebug(preBidRequest, preBidHttpRequest)) {
+        if (preBidRequestContext.isDebug) {
             bidderStatusBuilder
                     .debug(bidResults.stream().map(b -> b.bidderDebug).collect(Collectors.toList()));
         }
@@ -492,11 +450,6 @@ public class RubiconAdapter implements Adapter {
                 .bidderStatus(bidderStatusBuilder.build())
                 .bids(bids)
                 .build();
-    }
-
-    private static boolean isDebug(PreBidRequest preBidRequest, HttpServerRequest preBidHttpRequest) {
-        return Objects.equals(preBidRequest.isDebug, Boolean.TRUE)
-                || Objects.equals(preBidHttpRequest.getParam("is_debug"), "1");
     }
 
     private void updateBidReceivedMetrics(AccountMetrics accountMetrics, AdapterMetrics accountAdapterMetrics,

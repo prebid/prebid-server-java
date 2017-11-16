@@ -8,21 +8,20 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.adapter.PreBidRequestContextFactory;
+import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;
-import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
-import org.rtb.vexing.model.AdUnitBid;
-import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
+import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderStatus;
@@ -43,16 +42,19 @@ public class AuctionHandler {
 
     private final ApplicationSettings applicationSettings;
     private final AdapterCatalog adapters;
+    private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final CacheService cacheService;
     private final Metrics metrics;
 
     private String date;
     private final Clock clock = Clock.systemDefaultZone();
 
-    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters, CacheService cacheService,
+    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters,
+                          PreBidRequestContextFactory preBidRequestContextFactory, CacheService cacheService,
                           Vertx vertx, Metrics metrics) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.adapters = Objects.requireNonNull(adapters);
+        this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
 
@@ -75,22 +77,21 @@ public class AuctionHandler {
             metrics.incCounter(MetricName.safari_requests);
         }
 
-        final JsonObject json = context.getBodyAsJson();
-        if (json == null) {
-            logger.error("Incoming request has no body.");
-            context.response().setStatusCode(400).end();
+        // parse and validate request and headers
+        final PreBidRequestContext preBidRequestContext;
+        try {
+            preBidRequestContext = preBidRequestContextFactory.fromRequest(context);
+        } catch (PreBidRequestException e) {
+            logger.info("Failed to parse /auction request", e);
+            respondWith(error(String.format("Error parsing request: %s", e.getMessage())), context);
+            metrics.incCounter(MetricName.error_requests);
             return;
         }
 
-        final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
-        // FIXME: metrics.incCounter(MetricName.error_requests) if request couldn't be parsed
-        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(context);
-
-        final long requestStarted = clock.millis();
-
-        if (preBidRequest.app != null) {
+        // update app and no_cookie metrics
+        if (preBidRequestContext.preBidRequest.app != null) {
             metrics.incCounter(MetricName.app_requests);
-        } else if (!uidsCookie.hasLiveUids()) {
+        } else if (!preBidRequestContext.uidsCookie.hasLiveUids()) {
             metrics.incCounter(MetricName.no_cookie_requests);
             if (isSafari) {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);
@@ -98,27 +99,31 @@ public class AuctionHandler {
             // FIXME: set no_cookie status
         }
 
-        if (!applicationSettings.getAccountById(preBidRequest.accountId).isPresent()) {
-            respondWith(error("Unknown account id"), context);
+        // validate account id
+        final String accountId = preBidRequestContext.preBidRequest.accountId;
+        if (!applicationSettings.getAccountById(accountId).isPresent()) {
+            logger.info("Invalid account id: Not found");
+            respondWith(error("Unknown account id: Unknown account"), context);
             metrics.incCounter(MetricName.error_requests);
             return;
         }
+        metrics.forAccount(accountId).incCounter(MetricName.requests);
 
-        metrics.forAccount(preBidRequest.accountId).incCounter(MetricName.requests);
-
+        // set up handler to update request time metric when response is sent back to a client
+        final long requestStarted = clock.millis();
         context.response().endHandler(ignored -> metrics.updateTimer(MetricName.request_time,
                 clock.millis() - requestStarted));
 
-        final List<Bidder> bidders = extractBidders(preBidRequest);
-        final List<Future> bidderResponseFutures = bidders.stream()
-                .map(bidder -> adapters.get(bidder.bidderCode)
-                        .requestBids(bidder, preBidRequest, uidsCookie, context.request()))
+        // submit request to relevant adapters and build response when all bids are received
+        final List<Future> bidderResponseFutures = preBidRequestContext.bidders.stream()
+                .map(bidder -> adapters.get(bidder.bidderCode).requestBids(bidder, preBidRequestContext))
                 .collect(Collectors.toList());
 
         // FIXME: are we tolerating individual exchange failures?
         CompositeFuture.join(bidderResponseFutures)
-                .compose(bidderResponsesResult -> composePreBidResponse(preBidRequest, bidderResponsesResult))
-                .compose(preBidResponse -> processCacheMarkup(preBidRequest, preBidResponse))
+                .compose(bidderResponsesResult ->
+                        composePreBidResponse(preBidRequestContext.preBidRequest, bidderResponsesResult))
+                .compose(preBidResponse -> processCacheMarkup(preBidRequestContext.preBidRequest, preBidResponse))
                 .setHandler(preBidResponseResult -> respondWith(bidResponseOrNoBid(preBidResponseResult), context));
     }
 
@@ -192,15 +197,6 @@ public class AuctionHandler {
         // implications as well, example: https://github.com/nielsbasjes/yauaa
         return StringUtils.isNotBlank(userAgent) && userAgent.contains("AppleWebKit") && userAgent.contains("Safari")
                 && !userAgent.contains("Chrome") && !userAgent.contains("Chromium");
-    }
-
-    private static List<Bidder> extractBidders(PreBidRequest preBidRequest) {
-        return preBidRequest.adUnits.stream()
-                .flatMap(unit -> unit.bids.stream().map(bid -> AdUnitBid.from(unit, bid)))
-                .collect(Collectors.groupingBy(a -> a.bidderCode))
-                .entrySet().stream()
-                .map(e -> Bidder.from(e.getKey(), e.getValue()))
-                .collect(Collectors.toList());
     }
 
     private static PreBidResponse error(String status) {
