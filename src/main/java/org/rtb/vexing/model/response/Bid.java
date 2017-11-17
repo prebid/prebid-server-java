@@ -17,7 +17,7 @@ import java.util.Map;
  * This JSON format is a contract with both Prebid.js and Prebid-mobile.
  * All changes *must* be backwards compatible, since clients cannot be forced to update their code.
  */
-@Builder
+@Builder(toBuilder = true)
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor
@@ -72,7 +72,6 @@ public final class Bid {
 
     // ID in prebid-cache which can be used to fetch this ad's content.
     // This supports prebid-mobile, which requires that the content be available from a URL.
-
     String cacheId;
 
     // Number of milliseconds it took for the adapter to return a bid.

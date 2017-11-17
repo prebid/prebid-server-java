@@ -15,6 +15,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.cache.CacheService;
+import org.rtb.vexing.cache.model.response.Response;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
@@ -33,6 +35,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class AuctionHandler {
 
@@ -40,15 +43,17 @@ public class AuctionHandler {
 
     private final ApplicationSettings applicationSettings;
     private final AdapterCatalog adapters;
+    private final CacheService cacheService;
     private final Metrics metrics;
 
     private String date;
     private final Clock clock = Clock.systemDefaultZone();
 
-    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters, Vertx vertx,
-                          Metrics metrics) {
+    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters, CacheService cacheService,
+                          Vertx vertx, Metrics metrics) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.adapters = Objects.requireNonNull(adapters);
+        this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
 
         // Refresh the date included in the response header every second.
@@ -112,17 +117,47 @@ public class AuctionHandler {
 
         // FIXME: are we tolerating individual exchange failures?
         CompositeFuture.join(bidderResponseFutures)
-                .setHandler(bidderResponsesResult ->
-                        respondWith(bidResponsesOrNoBid(bidderResponsesResult, preBidRequest), context));
+                .compose(bidderResponsesResult -> composePreBidResponse(preBidRequest, bidderResponsesResult))
+                .compose(preBidResponse -> processCacheMarkup(preBidRequest, preBidResponse))
+                .setHandler(preBidResponseResult -> respondWith(bidResponseOrNoBid(preBidResponseResult), context));
     }
 
-    private static List<Bidder> extractBidders(PreBidRequest preBidRequest) {
-        return preBidRequest.adUnits.stream()
-                .flatMap(unit -> unit.bids.stream().map(bid -> AdUnitBid.from(unit, bid)))
-                .collect(Collectors.groupingBy(a -> a.bidderCode))
-                .entrySet().stream()
-                .map(e -> Bidder.from(e.getKey(), e.getValue()))
+    private Future<PreBidResponse> composePreBidResponse(PreBidRequest preBidRequest,
+                                                         CompositeFuture bidderResponsesResult) {
+        final List<BidderResult> bidderResults = bidderResponsesResult.result().list();
+
+        final List<BidderStatus> bidderStatuses = bidderResults.stream()
+                .map(br -> br.bidderStatus)
                 .collect(Collectors.toList());
+
+        final List<Bid> bids = bidderResults.stream()
+                .flatMap(br -> br.bids.stream())
+                .collect(Collectors.toList());
+
+        final PreBidResponse response = createPreBidResponse(preBidRequest, bidderStatuses, bids);
+        return Future.succeededFuture(response);
+    }
+
+    private Future<PreBidResponse> processCacheMarkup(PreBidRequest preBidRequest, PreBidResponse preBidResponse) {
+        final List<Bid> bids = preBidResponse.bids;
+        if (preBidRequest.cacheMarkup != null && preBidRequest.cacheMarkup == 1 && !bids.isEmpty()) {
+            return cacheService.saveBids(bids)
+                    .compose(bidCacheResponse -> {
+                        final List<Response> responses = bidCacheResponse.responses;
+                        final List<Bid> bidsWithCacheUUIDs = IntStream.range(0, bids.size())
+                                .mapToObj(i -> bids.get(i).toBuilder()
+                                        .adm(null)
+                                        .nurl(null)
+                                        .cacheId(responses.get(i).uuid)
+                                        .build())
+                                .collect(Collectors.toList());
+
+                        final PreBidResponse response =
+                                createPreBidResponse(preBidRequest, preBidResponse.bidderStatus, bidsWithCacheUUIDs);
+                        return Future.succeededFuture(response);
+                    });
+        }
+        return Future.succeededFuture(preBidResponse);
     }
 
     private void respondWith(PreBidResponse response, RoutingContext context) {
@@ -132,24 +167,12 @@ public class AuctionHandler {
                 .end(Json.encode(response));
     }
 
-    private static PreBidResponse error(String status) {
-        return PreBidResponse.builder().status(status).build();
+    private static PreBidResponse bidResponseOrNoBid(AsyncResult<PreBidResponse> responseResult) {
+        return responseResult.succeeded() ? responseResult.result() : Adapter.NO_BID_RESPONSE;
     }
 
-    private static PreBidResponse bidResponsesOrNoBid(AsyncResult<CompositeFuture> bidResponsesResult,
-                                                      PreBidRequest preBidRequest) {
-        return bidResponsesResult.succeeded()
-                ? toPrebidResponse(bidResponsesResult.result().list(), preBidRequest)
-                : Adapter.NO_BID_RESPONSE;
-    }
-
-    private static PreBidResponse toPrebidResponse(List<BidderResult> bidderResults, PreBidRequest preBidRequest) {
-        final List<BidderStatus> bidderStatuses = bidderResults.stream()
-                .map(br -> br.bidderStatus)
-                .collect(Collectors.toList());
-        final List<Bid> bids = bidderResults.stream()
-                .flatMap(br -> br.bids.stream())
-                .collect(Collectors.toList());
+    private static PreBidResponse createPreBidResponse(PreBidRequest preBidRequest, List<BidderStatus> bidderStatuses,
+                                                       List<Bid> bids) {
         return PreBidResponse.builder()
                 .status("OK") // FIXME: might be "no_cookie"
                 .tid(preBidRequest.tid)
@@ -166,5 +189,18 @@ public class AuctionHandler {
         // implications as well, example: https://github.com/nielsbasjes/yauaa
         return StringUtils.isNotBlank(userAgent) && userAgent.contains("AppleWebKit") && userAgent.contains("Safari")
                 && !userAgent.contains("Chrome") && !userAgent.contains("Chromium");
+    }
+
+    private static List<Bidder> extractBidders(PreBidRequest preBidRequest) {
+        return preBidRequest.adUnits.stream()
+                .flatMap(unit -> unit.bids.stream().map(bid -> AdUnitBid.from(unit, bid)))
+                .collect(Collectors.groupingBy(a -> a.bidderCode))
+                .entrySet().stream()
+                .map(e -> Bidder.from(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+    }
+
+    private static PreBidResponse error(String status) {
+        return PreBidResponse.builder().status(status).build();
     }
 }

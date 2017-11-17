@@ -12,5 +12,6 @@
   "datacache": {
     "type": "filecache",
     "filename": "app-settings.yml"
-  }
+  },
+  "prebid_cache_url": "http://cache-service"
 }

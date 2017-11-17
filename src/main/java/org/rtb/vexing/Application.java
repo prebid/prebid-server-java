@@ -25,6 +25,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.experimental.FieldDefaults;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.handler.CookieSyncHandler;
@@ -120,18 +121,20 @@ public class Application extends AbstractVerticle {
         SetuidHandler setuidHandler;
 
         public static DependencyContext create(Vertx vertx, ApplicationConfig config) {
+            final HttpClient httpClient = httpClient(vertx, config);
             final ApplicationSettings applicationSettings = ApplicationSettings.create(vertx, config);
             final MetricRegistry metricRegistry = new MetricRegistry();
             configureMetricsReporter(metricRegistry, config, vertx);
             final Metrics metrics = Metrics.create(metricRegistry, config);
-            final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient(vertx, config), psl(),
-                    metrics);
+            final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient, psl(), metrics);
+            final CacheService cacheService = CacheService.create(httpClient, config);
 
             return builder()
                     .applicationSettings(applicationSettings)
                     .metricRegistry(metricRegistry)
                     .metrics(metrics)
-                    .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog, vertx, metrics))
+                    .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog, cacheService, vertx,
+                            metrics))
                     .statusHandler(new StatusHandler())
                     .cookieSyncHandler(new CookieSyncHandler(adapterCatalog, metrics))
                     .setuidHandler(new SetuidHandler())
@@ -157,8 +160,8 @@ public class Application extends AbstractVerticle {
             return vertx.createHttpClient(options);
         }
 
-        private static void configureMetricsReporter(MetricRegistry metricRegistry, ApplicationConfig config, Vertx
-                vertx) {
+        private static void configureMetricsReporter(MetricRegistry metricRegistry, ApplicationConfig config,
+                                                     Vertx vertx) {
             ReporterFactory.create(metricRegistry, config)
                     .map(CloseableAdapter::new)
                     .ifPresent(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));

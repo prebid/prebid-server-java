@@ -50,6 +50,11 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
+import org.rtb.vexing.cache.model.request.BidCacheRequest;
+import org.rtb.vexing.cache.model.request.Put;
+import org.rtb.vexing.cache.model.request.Value;
+import org.rtb.vexing.cache.model.response.BidCacheResponse;
+import org.rtb.vexing.cache.model.response.Response;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.request.PreBidRequest;
@@ -64,6 +69,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.RestAssured.given;
@@ -80,11 +86,17 @@ public class ApplicationTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final int APP_PORT = 8080;
     private static final int RUBICON_PORT = 8090;
+    private static final int CACHE_PORT = 8091;
 
     @ClassRule
     public static WireMockClassRule wireMockRule = new WireMockClassRule(RUBICON_PORT);
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
+
+    @ClassRule
+    public static WireMockClassRule wireMockRuleCache = new WireMockClassRule(CACHE_PORT);
+    @Rule
+    public WireMockClassRule instanceRuleCache = wireMockRuleCache;
 
     private static final RequestSpecification spec = new RequestSpecBuilder()
             .setBaseUri("http://localhost")
@@ -119,7 +131,8 @@ public class ApplicationTest extends VertxTest {
                 .put("adapters.rubicon.XAPI.Password", "rubicon_password")
                 .put("datacache.type", "filecache")
                 .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml")
-                .put("metrics.metricType", "flushingCounter");
+                .put("metrics.metricType", "flushingCounter")
+                .put("prebid_cache_url", "http://localhost:" + CACHE_PORT);
     }
 
     @Test
@@ -167,6 +180,19 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(bidRequest2))
                 .willReturn(aResponse().withBody(bidResponse2)));
 
+        // pre-bid cache
+        String bidCacheRequestAsString = givenBidCacheRequest(asList(
+                Value.builder().adm("adm1").width(300).height(250).build(),
+                Value.builder().adm("adm2").width(300).height(600).build()
+        ));
+        String bidCacheResponseAsString = givenBidCacheResponse(asList(
+                "883db7d2-3013-4ce0-a454-adc7d208ef0c",
+                "0b4f60d1-fb99-4d95-ba6f-30ac90f9a315"
+        ));
+        wireMockRuleCache.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(bidCacheRequestAsString))
+                .willReturn(aResponse().withBody(bidCacheResponseAsString)));
+
         // when
         final PreBidResponse preBidResponse = given(spec)
                 .header("Referer", "http://www.example.com")
@@ -193,9 +219,11 @@ public class ApplicationTest extends VertxTest {
                 bidderDebug(bidRequest2, bidResponse2));
 
         assertThat(preBidResponse.bids).hasSize(2).containsOnly(
-                bid("impId1", "8.43", "adm1", "crid1", 300, 250, "dealId1", singletonMap("key1", "value11"), RUBICON,
+                bid("impId1", "8.43", "883db7d2-3013-4ce0-a454-adc7d208ef0c", "crid1",
+                        300, 250, "dealId1", singletonMap("key1", "value11"), RUBICON,
                         "bidId", responseTime),
-                bid("impId2", "4.26", "adm2", "crid2", 300, 600, "dealId2", singletonMap("key2", "value21"), RUBICON,
+                bid("impId2", "4.26", "0b4f60d1-fb99-4d95-ba6f-30ac90f9a315", "crid2",
+                        300, 600, "dealId2", singletonMap("key2", "value21"), RUBICON,
                         "bidId", responseTime));
     }
 
@@ -278,6 +306,7 @@ public class ApplicationTest extends VertxTest {
                         .map(b -> b.bids(singletonList(bid)))
                         .map(AdUnit.AdUnitBuilder::build)
                         .collect(toList()))
+                .cacheMarkup(1)
                 .build();
     }
 
@@ -404,12 +433,12 @@ public class ApplicationTest extends VertxTest {
     }
 
     private static org.rtb.vexing.model.response.Bid bid(
-            String impId, String price, String adm, String crid, int width, int height, String dealId,
+            String impId, String price, String cacheId, String crid, int width, int height, String dealId,
             Map<String, String> adServerTargeting, String bidder, String bidId, Integer responseTime) {
         return org.rtb.vexing.model.response.Bid.builder()
                 .code(impId)
                 .price(new BigDecimal(price))
-                .adm(adm)
+                .cacheId(cacheId)
                 .creativeId(crid)
                 .width(width)
                 .height(height)
@@ -419,5 +448,28 @@ public class ApplicationTest extends VertxTest {
                 .bidId(bidId)
                 .responseTime(responseTime)
                 .build();
+    }
+
+    private static String givenBidCacheRequest(List<Value> values) throws JsonProcessingException {
+        final List<Put> puts = values.stream()
+                .map(value -> Put.builder()
+                        .type("json")
+                        .value(value)
+                        .build())
+                .collect(Collectors.toList());
+        final BidCacheRequest bidCacheRequest = BidCacheRequest.builder()
+                .puts(puts)
+                .build();
+        return mapper.writeValueAsString(bidCacheRequest);
+    }
+
+    private static String givenBidCacheResponse(List<String> uuids) throws JsonProcessingException {
+        List<Response> responses = uuids.stream()
+                .map(uuid -> Response.builder().uuid(uuid).build())
+                .collect(Collectors.toList());
+        BidCacheResponse bidCacheResponse = BidCacheResponse.builder()
+                .responses(responses)
+                .build();
+        return mapper.writeValueAsString(bidCacheResponse);
     }
 }
