@@ -66,6 +66,7 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -215,6 +216,102 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
+    public void requestBidShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
+        // given
+        final AdUnit adUnit = givenAdUnitCustomizable(identity());
+
+        bidder = Bidder.from(RUBICON, asList(
+                AdUnitBid.from(adUnit, givenBidCustomizable(identity(), identity())),
+                AdUnitBid.from(adUnit, givenBidCustomizable(builder -> builder.params(null), identity()))));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        assertThat(bidderResultFuture.succeeded()).isTrue();
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus).isNotNull()
+                .returns("Rubicon params section is missing", status -> status.error);
+        assertThat(bidderResult.bids).isEmpty();
+        verifyZeroInteractions(httpClient);
+    }
+
+    @Test
+    public void requestBidShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
+        // given
+        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        params.set("accountId", new TextNode("non-integer"));
+        bidder = givenBidderCustomizable(identity(), builder -> builder.params(params), identity());
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        assertThat(bidderResultFuture.succeeded()).isTrue();
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.error).isNotNull().startsWith("Can not construct instance");
+    }
+
+    @Test
+    public void requestBidShouldFailIfAccountIdMissingInAdUnitBidParams() {
+        // given
+        bidder = givenBidderCustomizable(identity(), identity(), builder -> builder.accountId(null));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        assertThat(bidderResultFuture.succeeded()).isTrue();
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.error).isNotNull().isEqualTo("Missing accountId param");
+    }
+
+    @Test
+    public void requestBidShouldFailIfSiteIdMissingInAdUnitBidParams() {
+        // given
+        bidder = givenBidderCustomizable(identity(), identity(), builder -> builder.siteId(null));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        assertThat(bidderResultFuture.succeeded()).isTrue();
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.error).isNotNull().isEqualTo("Missing siteId param");
+    }
+
+    @Test
+    public void requestBidShouldFailIfZoneIdMissingInAdUnitBidParams() {
+        // given
+        bidder = givenBidderCustomizable(identity(), identity(), builder -> builder.zoneId(null));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        assertThat(bidderResultFuture.succeeded()).isTrue();
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.error).isNotNull().isEqualTo("Missing zoneId param");
+    }
+
+    @Test
+    public void requestBidShouldFailIfNoValidSizesInAdUnit() {
+        // given
+        bidder = givenBidderCustomizable(
+                builder -> builder.sizes(singletonList(Format.builder().w(302).h(252).build())),
+                identity(),
+                identity());
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        assertThat(bidderResultFuture.succeeded()).isTrue();
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.error).isNotNull().isEqualTo("No valid sizes");
+    }
+
+    @Test
     public void requestBidsShouldSendBidRequestWithExpectedFields() throws IOException {
         // given
         bidder = givenBidderCustomizable(
@@ -224,10 +321,7 @@ public class RubiconAdapterTest extends VertxTest {
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build())),
                 builder -> builder.bidder(RUBICON),
-                builder -> builder
-                        .accountId(2001)
-                        .siteId(3001)
-                        .zoneId(4001));
+                identity());
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(
                 builder -> builder
@@ -421,10 +515,170 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
+    public void requestBidsShouldReturnBidderResultWithErrorIfTimeoutOccurs() {
+        // given
+        given(httpClientRequest.exceptionHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException()));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.timedOut).isTrue();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("Timed out");
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithErrorIfHttpRequestFails() {
+        // given
+        given(httpClientRequest.exceptionHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("Request exception");
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithErrorIfReadingHttpResponseFails() {
+        // given
+        givenHttpClientProducesExceptions(200, new RuntimeException("Response exception"));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("Response exception");
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithZeroBidsIfResponseCodeIs204() {
+        // given
+        givenHttpClientReturnsResponses(204, "response");
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bids).hasSize(0);
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithErrorIfResponseCodeIsNot200Or204() {
+        // given
+        givenHttpClientReturnsResponses(503, "response");
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("HTTP status 503; body: response");
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        givenHttpClientReturnsResponses(200, "response");
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.error).startsWith("Failed to decode");
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithErrorIfBidImpIdDoesNotMatchAdUnitCode()
+            throws JsonProcessingException {
+        // given
+        bidder = givenBidderCustomizable(builder -> builder.code("adUnitCode"), identity(), identity());
+
+        final String bidResponse = givenBidResponseCustomizable(identity(), identity(),
+                builder -> builder.impid("anotherAdUnitCode"), null);
+        givenHttpClientReturnsResponses(200, bidResponse);
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("Unknown ad unit code 'anotherAdUnitCode'");
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithoutErrorIfBidsArePresent()
+            throws JsonProcessingException {
+        // given
+        final AdUnitBid adUnitBid = AdUnitBid.from(givenAdUnitCustomizable(identity()),
+                givenBidCustomizable(identity(), identity()));
+        bidder = Bidder.from(RUBICON, asList(adUnitBid, adUnitBid));
+
+        given(httpClientRequest.exceptionHandler(any()))
+                .willReturn(httpClientRequest)
+                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException()));
+
+        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity(), null);
+        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
+        given(httpClientResponse.bodyHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)))
+                .willReturn(httpClientResponse);
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.error).isNull();
+        assertThat(bidderResult.bids).hasSize(1);
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithLatestErrorIfBidsAreAbsent()
+            throws JsonProcessingException {
+        // given
+        final AdUnitBid adUnitBid = AdUnitBid.from(givenAdUnitCustomizable(identity()),
+                givenBidCustomizable(identity(), identity()));
+        bidder = Bidder.from(RUBICON, asList(adUnitBid, adUnitBid, adUnitBid));
+
+        given(httpClientRequest.exceptionHandler(any()))
+                .willReturn(httpClientRequest)
+                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException()))
+                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException()));
+
+        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
+        given(httpClientResponse.bodyHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("response")))
+                .willReturn(httpClientResponse)
+                .willReturn(httpClientResponse);
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("Timed out");
+        assertThat(bidderResult.bids).hasSize(0);
+    }
+
+    @Test
     public void requestBidsShouldReturnBidderResultWithExpectedFields() throws JsonProcessingException {
         // given
         bidder = givenBidderCustomizable(
-                identity(),
+                builder -> builder.code("adUnitCode"),
                 builder -> builder.bidder(RUBICON).bidId("bidId"),
                 identity()
         );
@@ -433,7 +687,7 @@ public class RubiconAdapterTest extends VertxTest {
                 builder -> builder.id("bidResponseId"),
                 builder -> builder.seat("seatId"),
                 builder -> builder
-                        .impid("impId")
+                        .impid("adUnitCode")
                         .price(new BigDecimal("8.43"))
                         .adm("adm")
                         .crid("crid")
@@ -445,7 +699,7 @@ public class RubiconAdapterTest extends VertxTest {
                         .values(singletonList("value"))
                         .build())
         );
-        givenHttpClientReturnsResponses(bidResponse);
+        givenHttpClientReturnsResponses(200, bidResponse);
 
         given(uidsCookie.uidFrom(eq(RUBICON))).willReturn("buyerUid");
 
@@ -460,7 +714,7 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(bidderResult.bidderStatus.numBids).isEqualTo(1);
         assertThat(bidderResult.bids).hasSize(1)
                 .element(0).isEqualTo(org.rtb.vexing.model.response.Bid.builder()
-                .code("impId")
+                .code("adUnitCode")
                 .price(new BigDecimal("8.43"))
                 .adm("adm")
                 .creativeId("crid")
@@ -477,7 +731,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void requestBidsShouldReturnBidderResultWithZeroBidsIfEmptyBidResponse() throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponses(givenBidResponseCustomizable(builder -> builder.seatbid(null), identity(),
+        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(builder -> builder.seatbid(null), identity(),
                 identity(), null));
 
         // when
@@ -496,7 +750,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void requestBidsShouldReturnBidderResultWithNoCookieIfNoRubiconUidInCookieAndNoAppInPreBidRequest()
             throws IOException {
         // given
-        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
+        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity(), null));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -520,7 +774,7 @@ public class RubiconAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
                 builder -> builder.app(App.builder().build()).user(User.builder().build()));
 
-        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
+        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity(), null));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -532,10 +786,28 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
+    public void requestBidsShouldReturnBidderResultWithEmptyAdTargetingIfRubiconTargetingCouldNotBeParsed()
+            throws JsonProcessingException {
+        // given
+        final ObjectNode ext = defaultNamingMapper.createObjectNode();
+        ext.set("rp", new TextNode("non-object"));
+        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(),
+                builder -> builder.ext(ext), null));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bids).hasSize(1).element(0)
+                .returns(null, from(b -> b.adServerTargeting));
+    }
+
+    @Test
     public void requestBidsShouldReturnBidderResultWithEmptyAdTargetingIfNoRubiconTargetingInBidResponse()
             throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
+        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity(), null));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -554,7 +826,7 @@ public class RubiconAdapterTest extends VertxTest {
                 asList(
                         RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build(),
                         RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build()));
-        givenHttpClientReturnsResponses(bidResponse);
+        givenHttpClientReturnsResponses(200, bidResponse);
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -577,7 +849,7 @@ public class RubiconAdapterTest extends VertxTest {
                 AdUnitBid.from(givenAdUnitCustomizable(identity()), bid)));
 
         final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity(), null);
-        givenHttpClientReturnsResponses(bidResponse, bidResponse);
+        givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -602,7 +874,7 @@ public class RubiconAdapterTest extends VertxTest {
                 identity(), identity(), null);
         final String bidResponse2 = givenBidResponseCustomizable(builder -> builder.id("bidResponseId2"),
                 identity(), identity(), null);
-        givenHttpClientReturnsResponses(bidResponse1, bidResponse2);
+        givenHttpClientReturnsResponses(200, bidResponse1, bidResponse2);
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -635,7 +907,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(false), identity());
 
-        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
+        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity(), null));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -645,9 +917,50 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
+    public void requestBidsShouldReturnBidderResultWithDebugIfFlagIsTrueAndHttpRequestFails() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(true), identity());
+
+        given(httpClientRequest.exceptionHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.debug).hasSize(1);
+        final BidderDebug bidderDebug = bidderResult.bidderStatus.debug.get(0);
+        assertThat(bidderDebug.requestUri).isNotBlank();
+        assertThat(bidderDebug.requestBody).isNotBlank();
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithDebugIfFlagIsTrueAndResponseIsNotSuccessful() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(true), identity());
+
+        givenHttpClientReturnsResponses(503, "response");
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.debug).hasSize(1);
+        final BidderDebug bidderDebug = bidderResult.bidderStatus.debug.get(0);
+        assertThat(bidderDebug.requestUri).isNotBlank();
+        assertThat(bidderDebug.requestBody).isNotBlank();
+        assertThat(bidderDebug.responseBody).isNotBlank();
+        assertThat(bidderDebug.statusCode).isPositive();
+    }
+
+    @Test
     public void requestBidsShouldIncrementCommonMetrics() throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponses(givenBidResponseCustomizable(identity(), identity(), identity(), null));
+        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity(), null));
 
         // when
         adapter.requestBids(bidder, preBidRequestContext);
@@ -697,7 +1010,10 @@ public class RubiconAdapterTest extends VertxTest {
                     rubiconParamsBuilderCustomizer) {
 
         // rubiconParams
-        final RubiconParams.RubiconParamsBuilder rubiconParamsBuilder = RubiconParams.builder();
+        final RubiconParams.RubiconParamsBuilder rubiconParamsBuilder = RubiconParams.builder()
+                .accountId(2001)
+                .siteId(3001)
+                .zoneId(4001);
         final RubiconParams.RubiconParamsBuilder rubiconParamsBuilderCustomized = rubiconParamsBuilderCustomizer
                 .apply(rubiconParamsBuilder);
         final RubiconParams rubiconParams = rubiconParamsBuilderCustomized.build();
@@ -745,18 +1061,36 @@ public class RubiconAdapterTest extends VertxTest {
         }
     }
 
-    private void givenHttpClientReturnsResponses(String... bidResponses) {
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.post(anyInt(), anyString(), anyString(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
-        given(httpClientResponse.statusCode()).willReturn(200);
+    private void givenHttpClientReturnsResponses(int statusCode, String... bidResponses) {
+        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
 
         // setup multiple answers
         BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
                 given(httpClientResponse.bodyHandler(any()));
         for (String bidResponse : bidResponses) {
-            currentStubbing = currentStubbing.willAnswer(withSelfAndPassBodyToHandler(bidResponse));
+            currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)));
         }
+    }
+
+    private void givenHttpClientProducesExceptions(int statusCode, Throwable... throwables) {
+        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
+
+        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
+
+        // setup multiple answers
+        BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
+                given(httpClientResponse.exceptionHandler(any()));
+        for (Throwable throwable : throwables) {
+            currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(throwable));
+        }
+    }
+
+    private HttpClientResponse givenHttpClientResponse(int statusCode) {
+        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
+        given(httpClient.post(anyInt(), anyString(), anyString(), any()))
+                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
+        given(httpClientResponse.statusCode()).willReturn(statusCode);
+        return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
@@ -769,9 +1103,9 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static Answer<Object> withSelfAndPassBodyToHandler(String bidResponse) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
         return inv -> {
-            ((Handler<Buffer>) inv.getArgument(0)).handle(Buffer.buffer(bidResponse));
+            ((Handler<T>) inv.getArgument(0)).handle(obj);
             return inv.getMock();
         };
     }

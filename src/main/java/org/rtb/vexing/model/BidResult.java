@@ -19,4 +19,24 @@ public class BidResult {
     Bid.BidBuilder bidBuilder;
 
     BidderDebug bidderDebug;
+
+    String error;
+
+    boolean timedOut;
+
+    public static BidResult error(BidderDebug bidderDebug, String error) {
+        return new BidResult(null, bidderDebug, error, false);
+    }
+
+    public static BidResult timeout(BidderDebug bidderDebug, String error) {
+        return new BidResult(null, bidderDebug, error, true);
+    }
+
+    public static BidResult success(Bid.BidBuilder bidBuilder, BidderDebug bidderDebug) {
+        return new BidResult(bidBuilder, bidderDebug, null, false);
+    }
+
+    public static BidResult empty(BidderDebug bidderDebug) {
+        return new BidResult(null, bidderDebug, null, false);
+    }
 }

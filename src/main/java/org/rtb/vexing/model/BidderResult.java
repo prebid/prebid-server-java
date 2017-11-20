@@ -21,4 +21,6 @@ public class BidderResult {
     BidderStatus bidderStatus;
 
     List<Bid> bids;
+
+    boolean timedOut;
 }
