@@ -13,5 +13,9 @@
     "type": "filecache",
     "filename": "app-settings.yml"
   },
-  "prebid_cache_url": "http://cache-service"
+  "cache": {
+    "scheme": "http",
+    "host": "cache-service-host",
+    "query": "uuid=%PBS_CACHE_UUID%"
+  }
 }

@@ -7,6 +7,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.Put;
 import org.rtb.vexing.cache.model.request.Value;
@@ -16,6 +17,7 @@ import org.rtb.vexing.model.response.Bid;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -33,23 +35,25 @@ public class CacheService {
 
     private final HttpClient httpClient;
     private final URL cacheEndpointUrl;
+    private final String cachedAssetUrlTemplate;
 
     public static CacheService create(HttpClient httpClient, ApplicationConfig config) {
         Objects.requireNonNull(httpClient);
         Objects.requireNonNull(config);
 
-        return new CacheService(httpClient, getCacheEndpointUrl(config));
+        return new CacheService(httpClient, getCacheEndpointUrl(config), getCachedAssetUrlTemplate(config));
     }
 
-    private CacheService(HttpClient httpClient, URL cacheEndpointUrl) {
+    private CacheService(HttpClient httpClient, URL cacheEndpointUrl, String cachedAssetUrlTemplate) {
         this.httpClient = httpClient;
         this.cacheEndpointUrl = cacheEndpointUrl;
+        this.cachedAssetUrlTemplate = cachedAssetUrlTemplate;
     }
 
-    public Future<BidCacheResponse> saveBids(List<Bid> bids) {
+    public Future<List<BidCacheResult>> saveBids(List<Bid> bids) {
         Objects.requireNonNull(bids);
         if (bids.isEmpty()) {
-            return Future.succeededFuture(BidCacheResponse.builder().build());
+            return Future.succeededFuture(Collections.emptyList());
         }
 
         final List<Put> puts = bids.stream()
@@ -71,19 +75,26 @@ public class CacheService {
         // FIXME: remove
         logger.debug("Bid cache request: {0}", Json.encodePrettily(bidCacheRequest));
 
-        final Future<BidCacheResponse> future = Future.future();
+        final Future<List<BidCacheResult>> future = Future.future();
         httpClient.post(portFromUrl(cacheEndpointUrl), cacheEndpointUrl.getHost(), cacheEndpointUrl.getFile(),
                 cacheResponse -> {
                     if (cacheResponse.statusCode() == 200) {
                         cacheResponse.bodyHandler(buffer -> {
-                            final BidCacheResponse response = Json.decodeValue(buffer.toString(),
+                            final BidCacheResponse bidCacheResponse = Json.decodeValue(buffer.toString(),
                                     BidCacheResponse.class);
 
                             // FIXME: remove
                             logger.debug("Bid cache response body raw: {0}", buffer.toString());
-                            logger.debug("Bid cache response: {0}", Json.encodePrettily(response));
+                            logger.debug("Bid cache response: {0}", Json.encodePrettily(bidCacheResponse));
 
-                            future.complete(response);
+                            Objects.requireNonNull(bidCacheResponse.responses);
+                            List<BidCacheResult> results = bidCacheResponse.responses.stream()
+                                    .map(response -> BidCacheResult.builder()
+                                            .cacheId(response.uuid)
+                                            .cacheUrl(getCachedAssetURL(response.uuid))
+                                            .build())
+                                    .collect(Collectors.toList());
+                            future.complete(results);
                         });
                     } else {
                         cacheResponse.bodyHandler(buffer ->
@@ -109,13 +120,31 @@ public class CacheService {
         return future;
     }
 
+    public String getCachedAssetURL(String uuid) {
+        Objects.requireNonNull(uuid);
+        return cachedAssetUrlTemplate.replaceFirst("%PBS_CACHE_UUID%", uuid);
+    }
+
     private static URL getCacheEndpointUrl(ApplicationConfig config) {
         try {
-            URL baseUrl = new URL(config.getString("prebid_cache_url"));
+            final URL baseUrl = getCacheBaseUrl(config);
             return new URL(baseUrl, "/cache");
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cache endpoint for prebid cache service", e);
         }
+    }
+
+    private static String getCachedAssetUrlTemplate(ApplicationConfig config) {
+        try {
+            final URL baseUrl = getCacheBaseUrl(config);
+            return new URL(baseUrl, "/cache?" + config.getString("cache.query")).toString();
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("Could not get cached asset url template for prebid cache service", e);
+        }
+    }
+
+    private static URL getCacheBaseUrl(ApplicationConfig config) throws MalformedURLException {
+        return new URL(config.getString("cache.scheme") + "://" + config.getString("cache.host"));
     }
 
     private static int portFromUrl(URL url) {

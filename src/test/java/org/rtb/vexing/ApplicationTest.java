@@ -132,7 +132,9 @@ public class ApplicationTest extends VertxTest {
                 .put("datacache.type", "filecache")
                 .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml")
                 .put("metrics.metricType", "flushingCounter")
-                .put("prebid_cache_url", "http://localhost:" + CACHE_PORT);
+                .put("cache.scheme", "http")
+                .put("cache.host", "localhost:" + CACHE_PORT)
+                .put("cache.query", "uuid=%PBS_CACHE_UUID%");
     }
 
     @Test
@@ -219,12 +221,14 @@ public class ApplicationTest extends VertxTest {
                 bidderDebug(bidRequest2, bidResponse2));
 
         assertThat(preBidResponse.bids).hasSize(2).containsOnly(
-                bid("impId1", "8.43", "883db7d2-3013-4ce0-a454-adc7d208ef0c", "crid1",
-                        300, 250, "dealId1", singletonMap("key1", "value11"), RUBICON,
-                        "bidId", responseTime),
-                bid("impId2", "4.26", "0b4f60d1-fb99-4d95-ba6f-30ac90f9a315", "crid2",
-                        300, 600, "dealId2", singletonMap("key2", "value21"), RUBICON,
-                        "bidId", responseTime));
+                bid("impId1", "8.43", "883db7d2-3013-4ce0-a454-adc7d208ef0c",
+                        "http://localhost:" + CACHE_PORT + "/cache?uuid=883db7d2-3013-4ce0-a454-adc7d208ef0c",
+                        "crid1", 300, 250, "dealId1", singletonMap("key1", "value11"),
+                        RUBICON, "bidId", responseTime),
+                bid("impId2", "4.26", "0b4f60d1-fb99-4d95-ba6f-30ac90f9a315",
+                        "http://localhost:" + CACHE_PORT + "/cache?uuid=0b4f60d1-fb99-4d95-ba6f-30ac90f9a315",
+                        "crid2", 300, 600, "dealId2", singletonMap("key2", "value21"),
+                        RUBICON, "bidId", responseTime));
     }
 
     @Test
@@ -433,12 +437,13 @@ public class ApplicationTest extends VertxTest {
     }
 
     private static org.rtb.vexing.model.response.Bid bid(
-            String impId, String price, String cacheId, String crid, int width, int height, String dealId,
+            String impId, String price, String cacheId, String cacheUrl, String crid, int width, int height, String dealId,
             Map<String, String> adServerTargeting, String bidder, String bidId, Integer responseTime) {
         return org.rtb.vexing.model.response.Bid.builder()
                 .code(impId)
                 .price(new BigDecimal(price))
                 .cacheId(cacheId)
+                .cacheUrl(cacheUrl)
                 .creativeId(crid)
                 .width(width)
                 .height(height)

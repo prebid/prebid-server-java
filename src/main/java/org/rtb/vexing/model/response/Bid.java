@@ -74,6 +74,10 @@ public final class Bid {
     // This supports prebid-mobile, which requires that the content be available from a URL.
     String cacheId;
 
+    // Complete cache url returned from the prebid-cache.
+    // more flexible than a design that assumes the UUID is always appended to the end of the URL.
+    String cacheUrl;
+
     // Number of milliseconds it took for the adapter to return a bid.
     Integer responseTime;
 

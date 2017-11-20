@@ -24,8 +24,7 @@ import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.cache.CacheService;
-import org.rtb.vexing.cache.model.response.BidCacheResponse;
-import org.rtb.vexing.cache.model.response.Response;
+import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.metric.AccountMetrics;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
@@ -191,11 +190,12 @@ public class AuctionHandlerTest extends VertxTest {
         givenPreBidRequestWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
         givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, "bidId1");
 
-        given(cacheService.saveBids(anyList())).willReturn(Future.succeededFuture(BidCacheResponse.builder()
-                .responses(singletonList(Response.builder()
-                        .uuid("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315")
-                        .build()))
-                .build()));
+        given(cacheService.saveBids(anyList())).willReturn(Future.succeededFuture(singletonList(BidCacheResult
+                .builder()
+                .cacheId("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315")
+                .cacheUrl("cached_asset_url")
+                .build())));
+        given(cacheService.getCachedAssetURL(anyString())).willReturn("cached_asset_url");
 
         // when
         auctionHandler.auction(routingContext);
@@ -207,6 +207,7 @@ public class AuctionHandlerTest extends VertxTest {
         assertThat(preBidResponse.bids).extracting(b -> b.adm).containsNull();
         assertThat(preBidResponse.bids).extracting(b -> b.nurl).containsNull();
         assertThat(preBidResponse.bids).extracting(b -> b.cacheId).containsOnly("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315");
+        assertThat(preBidResponse.bids).extracting(b -> b.cacheUrl).containsOnly("cached_asset_url");
     }
 
     @Test
@@ -223,6 +224,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         final PreBidResponse preBidResponse = capturePreBidResponse();
         assertThat(preBidResponse.bids).extracting(b -> b.cacheId).containsNull();
+        assertThat(preBidResponse.bids).extracting(b -> b.cacheUrl).containsNull();
     }
 
     @Test
@@ -323,7 +325,7 @@ public class AuctionHandlerTest extends VertxTest {
         final AdUnit adUnit = AdUnit.builder()
                 .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
                 .build();
-        Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
+        final Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
                 minimalCustomizer = builder -> builder.adUnits(singletonList(adUnit));
 
         givenPreBidRequestCustomizable(preBidRequestBuilderCustomizer.compose(minimalCustomizer));
@@ -350,7 +352,7 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     private void givenAdapterRespondingWithBids(Adapter adapter, String bidder, String... bidIds) {
-        List<org.rtb.vexing.model.response.Bid> bids = Arrays.stream(bidIds)
+        final List<org.rtb.vexing.model.response.Bid> bids = Arrays.stream(bidIds)
                 .map(id -> org.rtb.vexing.model.response.Bid.builder().bidId(id).build())
                 .collect(Collectors.toList());
 

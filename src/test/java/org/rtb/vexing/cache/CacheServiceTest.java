@@ -10,13 +10,14 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.Value;
-import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.model.response.Bid;
 
 import java.io.IOException;
+import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -49,7 +50,9 @@ public class CacheServiceTest extends VertxTest {
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
-        given(config.getString("prebid_cache_url")).willReturn("http://cache-service-host");
+        given(config.getString("cache.scheme")).willReturn("http");
+        given(config.getString("cache.host")).willReturn("cache-service-host");
+        given(config.getString("cache.query")).willReturn("uuid=%PBS_CACHE_UUID%");
 
         cacheService = CacheService.create(httpClient, config);
     }
@@ -64,7 +67,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidCacheServiceUrl() {
         // given
-        given(config.getString("prebid_cache_url")).willReturn("invalid_url");
+        given(config.getString("cache.scheme")).willReturn("invalid_scheme");
 
         // then
         assertThatIllegalArgumentException().isThrownBy(() -> CacheService.create(httpClient, config));
@@ -79,11 +82,11 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void shouldReturnEmptyResponseIfBidsAreEmpty() {
         // when
-        BidCacheResponse result = cacheService.saveBids(emptyList()).result();
+        final List<BidCacheResult> result = cacheService.saveBids(emptyList()).result();
 
         // then
         verifyZeroInteractions(httpClient);
-        assertThat(result).isEqualTo(BidCacheResponse.builder().build());
+        assertThat(result).isEqualTo(emptyList());
     }
 
     @Test
@@ -95,25 +98,40 @@ public class CacheServiceTest extends VertxTest {
         ));
 
         // then
-        BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
 
         assertThat(bidCacheRequest.puts).isNotNull();
         assertThat(bidCacheRequest.puts).isNotEmpty();
         assertThat(bidCacheRequest.puts.size()).isEqualTo(2);
 
-        Value value1 = bidCacheRequest.puts.get(0).value;
+        final Value value1 = bidCacheRequest.puts.get(0).value;
         assertThat(value1).isNotNull();
         assertThat(value1.adm).isEqualTo("adm1");
         assertThat(value1.nurl).isEqualTo("nurl1");
         assertThat(value1.height).isEqualTo(100);
         assertThat(value1.width).isEqualTo(200);
 
-        Value value2 = bidCacheRequest.puts.get(1).value;
+        final Value value2 = bidCacheRequest.puts.get(1).value;
         assertThat(value2).isNotNull();
         assertThat(value2.adm).isEqualTo("adm2");
         assertThat(value2.nurl).isEqualTo("nurl2");
         assertThat(value2.height).isEqualTo(300);
         assertThat(value2.width).isEqualTo(400);
+    }
+
+    @Test
+    public void shouldFailCachedAssetURLIfUUIDIsMissing() {
+        // then
+        assertThatNullPointerException().isThrownBy(() -> cacheService.getCachedAssetURL(null));
+    }
+
+    @Test
+    public void shouldReturnCachedAssetURLForUUID() {
+        // when
+        final String cachedAssetURL = cacheService.getCachedAssetURL("uuid1");
+
+        // then
+        assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=uuid1");
     }
 
     private BidCacheRequest captureBidCacheRequest() throws IOException {

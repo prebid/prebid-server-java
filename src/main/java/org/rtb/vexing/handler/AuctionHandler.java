@@ -16,7 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.cache.CacheService;
-import org.rtb.vexing.cache.model.response.Response;
+import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
@@ -142,14 +142,17 @@ public class AuctionHandler {
         final List<Bid> bids = preBidResponse.bids;
         if (preBidRequest.cacheMarkup != null && preBidRequest.cacheMarkup == 1 && !bids.isEmpty()) {
             return cacheService.saveBids(bids)
-                    .compose(bidCacheResponse -> {
-                        final List<Response> responses = bidCacheResponse.responses;
+                    .compose(bidCacheResults -> {
                         final List<Bid> bidsWithCacheUUIDs = IntStream.range(0, bids.size())
-                                .mapToObj(i -> bids.get(i).toBuilder()
-                                        .adm(null)
-                                        .nurl(null)
-                                        .cacheId(responses.get(i).uuid)
-                                        .build())
+                                .mapToObj(i -> {
+                                    BidCacheResult result = bidCacheResults.get(i);
+                                    return bids.get(i).toBuilder()
+                                            .adm(null)
+                                            .nurl(null)
+                                            .cacheId(result.cacheId)
+                                            .cacheUrl(result.cacheUrl)
+                                            .build();
+                                })
                                 .collect(Collectors.toList());
 
                         final PreBidResponse response =
