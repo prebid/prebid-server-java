@@ -16,7 +16,6 @@ import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
@@ -321,8 +320,8 @@ public class RubiconAdapter implements Adapter {
 
         final Future<BidResult> future = Future.future();
         httpClient.post(portFromUrl(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
-                responseHandler(adUnitBid, bidderDebugBuilder, future))
-                .exceptionHandler(requestExceptionHandler(bidderDebugBuilder, future))
+                response -> handleResponse(response, adUnitBid, bidderDebugBuilder, future))
+                .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future))
                 .putHeader(HttpHeaders.AUTHORIZATION, authHeader)
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
@@ -337,24 +336,23 @@ public class RubiconAdapter implements Adapter {
         return port != -1 ? port : url.getDefaultPort();
     }
 
-    private Handler<HttpClientResponse> responseHandler(AdUnitBid adUnitBid,
-                                                        BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                                        Future<BidResult> future) {
-        return response -> response
+    private void handleResponse(HttpClientResponse response, AdUnitBid adUnitBid,
+                                BidderDebug.BidderDebugBuilder bidderDebugBuilder,
+                                Future<BidResult> future) {
+        response
                 .bodyHandler(buffer -> future.complete(toBidResult(adUnitBid, bidderDebugBuilder, response.statusCode(),
                         buffer.toString())))
-                .exceptionHandler(requestExceptionHandler(bidderDebugBuilder, future));
+                .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future));
     }
 
-    private Handler<Throwable> requestExceptionHandler(BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                                       Future<BidResult> future) {
-        return e -> {
-            logger.warn("Error occurred while sending bid request to an exchange", e);
-            final BidderDebug bidderDebug = bidderDebugBuilder.build();
-            future.complete(e instanceof TimeoutException
-                    ? BidResult.timeout(bidderDebug, "Timed out")
-                    : BidResult.error(bidderDebug, e.getMessage()));
-        };
+    private void handleException(Throwable exception,
+                                 BidderDebug.BidderDebugBuilder bidderDebugBuilder,
+                                 Future<BidResult> future) {
+        logger.warn("Error occurred while sending bid request to an exchange", exception);
+        final BidderDebug bidderDebug = bidderDebugBuilder.build();
+        future.complete(exception instanceof TimeoutException
+                ? BidResult.timeout(bidderDebug, "Timed out")
+                : BidResult.error(bidderDebug, exception.getMessage()));
     }
 
     private BidResult toBidResult(AdUnitBid adUnitBid, BidderDebug.BidderDebugBuilder bidderDebugBuilder,

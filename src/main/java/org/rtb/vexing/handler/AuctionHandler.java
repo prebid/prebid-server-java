@@ -18,8 +18,10 @@ import org.rtb.vexing.adapter.PreBidRequestContextFactory;
 import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;
+import org.rtb.vexing.metric.AdapterMetrics;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
+import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.request.PreBidRequest;
@@ -35,6 +37,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class AuctionHandler {
 
@@ -116,30 +119,37 @@ public class AuctionHandler {
 
         // submit request to relevant adapters and build response when all bids are received
         final List<Future> bidderResponseFutures = preBidRequestContext.bidders.stream()
+                .filter(AuctionHandler::isValidBidder)
                 .map(bidder -> adapters.get(bidder.bidderCode).requestBids(bidder, preBidRequestContext))
                 .collect(Collectors.toList());
 
-        // FIXME: are we tolerating individual exchange failures?
         CompositeFuture.join(bidderResponseFutures)
                 .compose(bidderResponsesResult ->
-                        composePreBidResponse(preBidRequestContext.preBidRequest, bidderResponsesResult))
+                        composePreBidResponse(preBidRequestContext, bidderResponsesResult))
                 .compose(preBidResponse -> processCacheMarkup(preBidRequestContext.preBidRequest, preBidResponse))
-                .setHandler(preBidResponseResult -> respondWith(bidResponseOrNoBid(preBidResponseResult), context));
+                .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
     }
 
-    private Future<PreBidResponse> composePreBidResponse(PreBidRequest preBidRequest,
+    private Future<PreBidResponse> composePreBidResponse(PreBidRequestContext preBidRequestContext,
                                                          CompositeFuture bidderResponsesResult) {
         final List<BidderResult> bidderResults = bidderResponsesResult.result().list();
 
-        final List<BidderStatus> bidderStatuses = bidderResults.stream()
-                .map(br -> br.bidderStatus)
+        bidderResults.stream()
+                .filter(br -> StringUtils.isNotBlank(br.bidderStatus.error))
+                .forEach(br -> updateErrorMetrics(br, preBidRequestContext.preBidRequest));
+
+        final List<BidderStatus> bidderStatuses = Stream.concat(
+                bidderResults.stream().map(br -> br.bidderStatus),
+                invalidBidderStatuses(preBidRequestContext.bidders))
                 .collect(Collectors.toList());
 
         final List<Bid> bids = bidderResults.stream()
+                .filter(br -> StringUtils.isBlank(br.bidderStatus.error))
                 .flatMap(br -> br.bids.stream())
                 .collect(Collectors.toList());
 
-        final PreBidResponse response = createPreBidResponse(preBidRequest, bidderStatuses, bids);
+        final PreBidResponse response = createPreBidResponse(preBidRequestContext.preBidRequest, bidderStatuses, bids);
+
         return Future.succeededFuture(response);
     }
 
@@ -175,8 +185,43 @@ public class AuctionHandler {
                 .end(Json.encode(response));
     }
 
-    private static PreBidResponse bidResponseOrNoBid(AsyncResult<PreBidResponse> responseResult) {
-        return responseResult.succeeded() ? responseResult.result() : Adapter.NO_BID_RESPONSE;
+    private static PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
+        if (responseResult.succeeded()) {
+            return responseResult.result();
+        } else {
+            logger.warn("Unexpected server error occurred", responseResult.cause());
+            return error("Unexpected server error");
+        }
+    }
+
+    private static boolean isValidBidder(Bidder bidder) {
+        try {
+            Adapter.Type.valueOf(bidder.bidderCode);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private void updateErrorMetrics(BidderResult bidderResult, PreBidRequest preBidRequest) {
+        final AdapterMetrics adapterMetrics = metrics
+                .forAdapter(Adapter.Type.valueOf(bidderResult.bidderStatus.bidder));
+        final AdapterMetrics accountAdapterMetrics = metrics.forAccount(preBidRequest.accountId)
+                .forAdapter(Adapter.Type.valueOf(bidderResult.bidderStatus.bidder));
+
+        if (bidderResult.timedOut) {
+            adapterMetrics.incCounter(MetricName.timeout_requests);
+            accountAdapterMetrics.incCounter(MetricName.timeout_requests);
+        } else {
+            adapterMetrics.incCounter(MetricName.error_requests);
+            accountAdapterMetrics.incCounter(MetricName.error_requests);
+        }
+    }
+
+    private static Stream<BidderStatus> invalidBidderStatuses(List<Bidder> bidders) {
+        return bidders.stream()
+                .filter(b -> !isValidBidder(b))
+                .map(b -> BidderStatus.builder().bidder(b.bidderCode).error("Unsupported bidder").build());
     }
 
     private static PreBidResponse createPreBidResponse(PreBidRequest preBidRequest, List<BidderStatus> bidderStatuses,
