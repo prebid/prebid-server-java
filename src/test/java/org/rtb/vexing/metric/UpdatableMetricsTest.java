@@ -61,7 +61,7 @@ public class UpdatableMetricsTest {
         updatableMetrics.incCounter(MetricName.requests, 6);
 
         // then
-        verify(nameCreator, times(1)).apply(eq(MetricName.requests));
+        verify(nameCreator).apply(eq(MetricName.requests));
     }
 
     @Test
@@ -108,7 +108,7 @@ public class UpdatableMetricsTest {
         updatableMetrics.updateTimer(MetricName.request_time, 1000L);
 
         // then
-        verify(nameCreator, times(1)).apply(eq(MetricName.request_time));
+        verify(nameCreator).apply(eq(MetricName.request_time));
     }
 
     @Test
@@ -155,7 +155,7 @@ public class UpdatableMetricsTest {
         updatableMetrics.updateHistogram(MetricName.prices, 1000L);
 
         // then
-        verify(nameCreator, times(1)).apply(eq(MetricName.prices));
+        verify(nameCreator).apply(eq(MetricName.prices));
     }
 
     private UpdatableMetrics givenUpdatableMetricsWith(CounterType counterType) {

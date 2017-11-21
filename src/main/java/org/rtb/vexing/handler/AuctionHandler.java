@@ -18,6 +18,7 @@ import org.rtb.vexing.adapter.PreBidRequestContextFactory;
 import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;
+import org.rtb.vexing.metric.AccountMetrics;
 import org.rtb.vexing.metric.AdapterMetrics;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
@@ -30,6 +31,7 @@ import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.PreBidResponse;
 import org.rtb.vexing.settings.ApplicationSettings;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -42,6 +44,8 @@ import java.util.stream.Stream;
 public class AuctionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
+
+    private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final ApplicationSettings applicationSettings;
     private final AdapterCatalog adapters;
@@ -111,6 +115,7 @@ public class AuctionHandler {
         // submit request to relevant adapters and build response when all bids are received
         final List<Future> bidderResponseFutures = preBidRequestContext.bidders.stream()
                 .filter(AuctionHandler::isValidBidder)
+                .peek(bidder -> updateAdapterRequestMetrics(bidder.bidderCode, accountId))
                 .map(bidder -> adapters.get(bidder.bidderCode).requestBids(bidder, preBidRequestContext))
                 .collect(Collectors.toList());
 
@@ -127,15 +132,18 @@ public class AuctionHandler {
 
         bidderResults.stream()
                 .filter(br -> StringUtils.isNotBlank(br.bidderStatus.error))
-                .forEach(br -> updateErrorMetrics(br, preBidRequestContext.preBidRequest));
+                .forEach(br -> updateErrorMetrics(br, preBidRequestContext));
 
         final List<BidderStatus> bidderStatuses = Stream.concat(
-                bidderResults.stream().map(br -> br.bidderStatus),
-                invalidBidderStatuses(preBidRequestContext.bidders))
+                bidderResults.stream()
+                        .map(br -> br.bidderStatus)
+                        .peek(bs -> updateResponseTimeMetrics(bs, preBidRequestContext)),
+                invalidBidderStatuses(preBidRequestContext))
                 .collect(Collectors.toList());
 
         final List<Bid> bids = bidderResults.stream()
                 .filter(br -> StringUtils.isBlank(br.bidderStatus.error))
+                .peek(br -> updateBidResultMetrics(br, preBidRequestContext))
                 .flatMap(br -> br.bids.stream())
                 .collect(Collectors.toList());
 
@@ -203,8 +211,8 @@ public class AuctionHandler {
         }
     }
 
-    private static Stream<BidderStatus> invalidBidderStatuses(List<Bidder> bidders) {
-        return bidders.stream()
+    private static Stream<BidderStatus> invalidBidderStatuses(PreBidRequestContext preBidRequestContext) {
+        return preBidRequestContext.bidders.stream()
                 .filter(b -> !isValidBidder(b))
                 .map(b -> BidderStatus.builder().bidder(b.bidderCode).error("Unsupported bidder").build());
     }
@@ -230,10 +238,53 @@ public class AuctionHandler {
         }
     }
 
-    private void updateErrorMetrics(BidderResult bidderResult, PreBidRequest preBidRequest) {
+    private void updateAdapterRequestMetrics(String bidderCode, String accountId) {
+        final Adapter.Type adapterType = Adapter.Type.valueOf(bidderCode);
+
+        metrics.forAdapter(adapterType).incCounter(MetricName.requests);
+        metrics.forAccount(accountId).forAdapter(adapterType).incCounter(MetricName.requests);
+    }
+
+    private void updateResponseTimeMetrics(BidderStatus bidderStatus, PreBidRequestContext preBidRequestContext) {
+        final Adapter.Type adapterType = Adapter.Type.valueOf(bidderStatus.bidder);
+
+        metrics.forAdapter(adapterType).updateTimer(MetricName.request_time, bidderStatus.responseTimeMs);
+        metrics.forAccount(preBidRequestContext.preBidRequest.accountId).forAdapter(adapterType)
+                .updateTimer(MetricName.request_time, bidderStatus.responseTimeMs);
+    }
+
+    private void updateBidResultMetrics(BidderResult bidderResult, PreBidRequestContext preBidRequestContext) {
+        final BidderStatus bidderStatus = bidderResult.bidderStatus;
+        final Adapter.Type adapterType = Adapter.Type.valueOf(bidderStatus.bidder);
+        final AdapterMetrics adapterMetrics = metrics.forAdapter(adapterType);
+        final AccountMetrics accountMetrics = metrics.forAccount(preBidRequestContext.preBidRequest.accountId);
+        final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(adapterType);
+
+        for (final Bid bid : bidderResult.bids) {
+            final long cpm = bid.price.multiply(THOUSAND).longValue();
+            adapterMetrics.updateHistogram(MetricName.prices, cpm);
+            accountMetrics.updateHistogram(MetricName.prices, cpm);
+            accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
+        }
+
+        if (bidderStatus.numBids != null) {
+            accountMetrics.incCounter(MetricName.bids_received, bidderStatus.numBids);
+            accountAdapterMetrics.incCounter(MetricName.bids_received, bidderStatus.numBids);
+        } else if (Objects.equals(bidderStatus.noBid, Boolean.TRUE)) {
+            adapterMetrics.incCounter(MetricName.no_bid_requests);
+            accountAdapterMetrics.incCounter(MetricName.no_bid_requests);
+        }
+
+        if (Objects.equals(bidderStatus.noCookie, Boolean.TRUE)) {
+            adapterMetrics.incCounter(MetricName.no_cookie_requests);
+            accountAdapterMetrics.incCounter(MetricName.no_cookie_requests);
+        }
+    }
+
+    private void updateErrorMetrics(BidderResult bidderResult, PreBidRequestContext preBidRequestContext) {
         final AdapterMetrics adapterMetrics = metrics
                 .forAdapter(Adapter.Type.valueOf(bidderResult.bidderStatus.bidder));
-        final AdapterMetrics accountAdapterMetrics = metrics.forAccount(preBidRequest.accountId)
+        final AdapterMetrics accountAdapterMetrics = metrics.forAccount(preBidRequestContext.preBidRequest.accountId)
                 .forAdapter(Adapter.Type.valueOf(bidderResult.bidderStatus.bidder));
 
         if (bidderResult.timedOut) {

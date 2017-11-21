@@ -127,7 +127,7 @@ public class Application extends AbstractVerticle {
             final MetricRegistry metricRegistry = new MetricRegistry();
             configureMetricsReporter(metricRegistry, config, vertx);
             final Metrics metrics = Metrics.create(metricRegistry, config);
-            final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient, metrics);
+            final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient);
             final CacheService cacheService = CacheService.create(httpClient, config);
 
             return builder()

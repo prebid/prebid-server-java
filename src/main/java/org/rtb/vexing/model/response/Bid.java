@@ -1,6 +1,5 @@
 package org.rtb.vexing.model.response;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

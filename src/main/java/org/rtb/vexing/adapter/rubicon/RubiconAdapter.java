@@ -41,10 +41,6 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
-import org.rtb.vexing.metric.AccountMetrics;
-import org.rtb.vexing.metric.AdapterMetrics;
-import org.rtb.vexing.metric.MetricName;
-import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
@@ -56,7 +52,6 @@ import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
-import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;
@@ -79,7 +74,6 @@ public class RubiconAdapter implements Adapter {
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
-    private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final String endpoint;
     private final URL endpointUrl;
@@ -87,13 +81,11 @@ public class RubiconAdapter implements Adapter {
     private final String authHeader;
 
     private final HttpClient httpClient;
-    private final Metrics metrics;
-    private final AdapterMetrics adapterMetrics;
 
     private Clock clock = Clock.systemDefaultZone();
 
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
-                          HttpClient httpClient, Metrics metrics) {
+                          HttpClient httpClient) {
         this.endpoint = Objects.requireNonNull(endpoint);
         endpointUrl = parseUrl(this.endpoint);
         usersyncInfo = UsersyncInfo.builder()
@@ -105,8 +97,6 @@ public class RubiconAdapter implements Adapter {
                 (Objects.requireNonNull(xapiUsername) + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
 
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.metrics = Objects.requireNonNull(metrics);
-        adapterMetrics = metrics.forAdapter(Type.rubicon);
     }
 
     private static URL parseUrl(String url) {
@@ -126,12 +116,6 @@ public class RubiconAdapter implements Adapter {
 
         final long bidderStarted = clock.millis();
 
-        final AccountMetrics accountMetrics = metrics.forAccount(preBidRequestContext.preBidRequest.accountId);
-        final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(Type.rubicon);
-
-        adapterMetrics.incCounter(MetricName.requests);
-        accountAdapterMetrics.incCounter(MetricName.requests);
-
         List<BidWithRequest> bidWithRequests = null;
         try {
             bidWithRequests = bidder.adUnitBids.stream()
@@ -140,7 +124,10 @@ public class RubiconAdapter implements Adapter {
         } catch (PreBidRequestException e) {
             logger.warn("Error occurred while constructing bid requests", e);
             result = Future.succeededFuture(BidderResult.builder()
-                    .bidderStatus(BidderStatus.builder().error(e.getMessage()).build())
+                    .bidderStatus(BidderStatus.builder()
+                            .error(e.getMessage())
+                            .responseTimeMs(responseTime(bidderStarted))
+                            .build())
                     .bids(Collections.emptyList())
                     .build());
         }
@@ -154,7 +141,7 @@ public class RubiconAdapter implements Adapter {
             final Future<BidderResult> bidderResultFuture = Future.future();
             CompositeFuture.join(requestBidFutures).setHandler(requestBidsResult ->
                     bidderResultFuture.complete(toBidderResult(bidder, preBidRequestContext,
-                            requestBidsResult.result().list(), bidderStarted, accountMetrics, accountAdapterMetrics)));
+                            requestBidsResult.result().list(), bidderStarted)));
             result = bidderResultFuture;
         }
 
@@ -457,40 +444,31 @@ public class RubiconAdapter implements Adapter {
     }
 
     private BidderResult toBidderResult(Bidder bidder, PreBidRequestContext preBidRequestContext,
-                                        List<BidResult> bidResults, long bidderStarted,
-                                        AccountMetrics accountMetrics, AdapterMetrics accountAdapterMetrics) {
-        final Integer responseTime = Math.toIntExact(clock.millis() - bidderStarted);
-
-        adapterMetrics.updateTimer(MetricName.request_time, responseTime);
-        accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
+                                        List<BidResult> bidResults, long bidderStarted) {
+        final Integer responseTime = responseTime(bidderStarted);
 
         final List<Bid> bids = bidResults.stream()
                 .map(br -> br.bidBuilder)
                 .filter(Objects::nonNull)
                 .map(b -> b.responseTimeMs(responseTime))
                 .map(Bid.BidBuilder::build)
-                .peek(bid -> updateCpmMetrics(accountMetrics, accountAdapterMetrics, bid))
                 .collect(Collectors.toList());
 
         final BidderStatus.BidderStatusBuilder bidderStatusBuilder = BidderStatus.builder()
                 .bidder(bidder.bidderCode)
-                .responseTimeMs(responseTime)
-                .numBids(bids.size());
+                .responseTimeMs(responseTime);
 
         final BidderResult.BidderResultBuilder bidderResultBuilder = BidderResult.builder();
 
         final BidResult bidResultWithError = findBidResultWithError(bidResults);
 
         if (!bids.isEmpty()) {
-            updateBidReceivedMetrics(accountMetrics, accountAdapterMetrics, bids.size());
+            bidderStatusBuilder.numBids(bids.size());
         } else if (bidResultWithError != null) {
             bidderStatusBuilder.error(bidResultWithError.error);
             bidderResultBuilder.timedOut(bidResultWithError.timedOut);
         } else {
             bidderStatusBuilder.noBid(true);
-
-            adapterMetrics.incCounter(MetricName.no_bid_requests);
-            accountAdapterMetrics.incCounter(MetricName.no_bid_requests);
         }
 
         if (preBidRequestContext.preBidRequest.app == null && preBidRequestContext.uidsCookie.uidFrom(familyName())
@@ -498,9 +476,6 @@ public class RubiconAdapter implements Adapter {
             bidderStatusBuilder
                     .noCookie(true)
                     .usersync(usersyncInfo());
-
-            adapterMetrics.incCounter(MetricName.no_cookie_requests);
-            accountAdapterMetrics.incCounter(MetricName.no_cookie_requests);
         }
 
         if (preBidRequestContext.isDebug) {
@@ -512,6 +487,10 @@ public class RubiconAdapter implements Adapter {
                 .bidderStatus(bidderStatusBuilder.build())
                 .bids(bids)
                 .build();
+    }
+
+    private int responseTime(long bidderStarted) {
+        return Math.toIntExact(clock.millis() - bidderStarted);
     }
 
     private BidResult findBidResultWithError(List<BidResult> bidResults) {
@@ -527,19 +506,6 @@ public class RubiconAdapter implements Adapter {
         }
 
         return result;
-    }
-
-    private void updateBidReceivedMetrics(AccountMetrics accountMetrics, AdapterMetrics accountAdapterMetrics,
-                                          long numBids) {
-        accountMetrics.incCounter(MetricName.bids_received, numBids);
-        accountAdapterMetrics.incCounter(MetricName.bids_received, numBids);
-    }
-
-    private void updateCpmMetrics(AccountMetrics accountMetrics, AdapterMetrics accountAdapterMetrics, Bid bid) {
-        final long cpm = bid.price.multiply(THOUSAND).longValue();
-        adapterMetrics.updateHistogram(MetricName.prices, cpm);
-        accountMetrics.updateHistogram(MetricName.prices, cpm);
-        accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
     }
 
     @Override

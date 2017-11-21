@@ -15,7 +15,9 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.BidResponse.BidResponseBuilder;
 import com.iab.openrtb.response.SeatBid;
+import com.iab.openrtb.response.SeatBid.SeatBidBuilder;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -33,12 +35,12 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.rtb.vexing.VertxTest;
-import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
+import org.rtb.vexing.adapter.rubicon.model.RubiconParams.RubiconParamsBuilder;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExt;
@@ -47,17 +49,17 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargeting;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.cookie.UidsCookie;
-import org.rtb.vexing.metric.AccountMetrics;
-import org.rtb.vexing.metric.AdapterMetrics;
-import org.rtb.vexing.metric.MetricName;
-import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.rtb.vexing.model.request.AdUnit;
+import org.rtb.vexing.model.request.AdUnit.AdUnitBuilder;
 import org.rtb.vexing.model.request.Bid;
+import org.rtb.vexing.model.request.Bid.BidBuilder;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
@@ -98,14 +100,6 @@ public class RubiconAdapterTest extends VertxTest {
     private HttpClient httpClient;
     @Mock
     private HttpClientRequest httpClientRequest;
-    @Mock
-    private Metrics metrics;
-    @Mock
-    private AccountMetrics accountMetrics;
-    @Mock
-    private AdapterMetrics adapterMetrics;
-    @Mock
-    private AdapterMetrics accountAdapterMetrics;
 
     private RubiconAdapter adapter;
 
@@ -125,39 +119,32 @@ public class RubiconAdapterTest extends VertxTest {
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
-        // metrics
-        given(metrics.forAccount(anyString())).willReturn(accountMetrics);
-        given(metrics.forAdapter(eq(Adapter.Type.rubicon))).willReturn(adapterMetrics);
-        given(accountMetrics.forAdapter(eq(Adapter.Type.rubicon))).willReturn(accountAdapterMetrics);
-
         bidder = givenBidderCustomizable(identity(), identity(), identity());
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
 
         // adapter
-        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, metrics);
+        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(null, null, null, null, null, null));
+                () -> new RubiconAdapter(null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, null, null, null, null, null));
+                () -> new RubiconAdapter(URL, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, URL, null, null, null, null));
+                () -> new RubiconAdapter(URL, URL, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, URL, USER, null, null, null));
+                () -> new RubiconAdapter(URL, URL, USER, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, httpClient, null));
+                () -> new RubiconAdapter(URL, URL, USER, PASSWORD, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new RubiconAdapter("invalid_url", URL, USER, PASSWORD, httpClient, metrics))
+                .isThrownBy(() -> new RubiconAdapter("invalid_url", URL, USER, PASSWORD, httpClient))
                 .withMessage("URL supplied is not valid");
     }
 
@@ -173,52 +160,51 @@ public class RubiconAdapterTest extends VertxTest {
         adapter.requestBids(bidder, preBidRequestContext);
 
         // then
-        verify(httpClient, times(1)).post(anyInt(), eq("rubiconproject.com"), eq("/x?tk_xint=rp-pbs"), any());
-        verify(httpClientRequest, times(1))
+        verify(httpClient).post(anyInt(), eq("rubiconproject.com"), eq("/x?tk_xint=rp-pbs"), any());
+        verify(httpClientRequest)
                 .putHeader(eq(new AsciiString("Authorization")), eq("Basic dXNlcjpwYXNzd29yZA=="));
-        verify(httpClientRequest, times(1))
+        verify(httpClientRequest)
                 .putHeader(eq(new AsciiString("Content-Type")), eq("application/json;charset=utf-8"));
-        verify(httpClientRequest, times(1))
+        verify(httpClientRequest)
                 .putHeader(eq(new AsciiString("Accept")), eq(new AsciiString("application/json")));
-        verify(httpClientRequest, times(1)).putHeader(eq(new AsciiString("User-Agent")), eq("prebid-server/1.0"));
-        verify(httpClientRequest, times(1)).setTimeout(eq(1000L));
+        verify(httpClientRequest).putHeader(eq(new AsciiString("User-Agent")), eq("prebid-server/1.0"));
+        verify(httpClientRequest).setTimeout(eq(1000L));
     }
 
     @Test
     public void requestBidsShouldMakeHttpRequestUsingPortFromUrl() {
         // given
-        adapter = new RubiconAdapter("http://rubiconproject.com:8888/x", URL, USER, PASSWORD, httpClient,
-                metrics);
+        adapter = new RubiconAdapter("http://rubiconproject.com:8888/x", URL, USER, PASSWORD, httpClient);
 
         // when
         adapter.requestBids(bidder, preBidRequestContext);
 
         // then
-        verify(httpClient, times(1)).post(eq(8888), anyString(), anyString(), any());
+        verify(httpClient).post(eq(8888), anyString(), anyString(), any());
     }
 
     @Test
     public void requestBidsShouldMakeHttpRequestUsingPort80ForHttp() {
         // given
-        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient, metrics);
+        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient);
 
         // when
         adapter.requestBids(bidder, preBidRequestContext);
 
         // then
-        verify(httpClient, times(1)).post(eq(80), anyString(), anyString(), any());
+        verify(httpClient).post(eq(80), anyString(), anyString(), any());
     }
 
     @Test
     public void requestBidsShouldMakeHttpRequestUsingPort443ForHttps() {
         // given
-        adapter = new RubiconAdapter("https://rubiconproject.com/x", URL, USER, PASSWORD, httpClient, metrics);
+        adapter = new RubiconAdapter("https://rubiconproject.com/x", URL, USER, PASSWORD, httpClient);
 
         // when
         adapter.requestBids(bidder, preBidRequestContext);
 
         // then
-        verify(httpClient, times(1)).post(eq(443), anyString(), anyString(), any());
+        verify(httpClient).post(eq(443), anyString(), anyString(), any());
     }
 
     @Test
@@ -238,6 +224,7 @@ public class RubiconAdapterTest extends VertxTest {
         final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bidderStatus).isNotNull()
                 .returns("Rubicon params section is missing", status -> status.error);
+        assertThat(bidderResult.bidderStatus.responseTimeMs).isNotNull();
         assertThat(bidderResult.bids).isEmpty();
         verifyZeroInteractions(httpClient);
     }
@@ -547,21 +534,19 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.error).isEqualTo("Request exception");
     }
 
     @Test
     public void requestBidsShouldReturnBidderResultWithErrorIfReadingHttpResponseFails() {
         // given
-        givenHttpClientProducesExceptions(200, new RuntimeException("Response exception"));
+        givenHttpClientProducesExceptions(new RuntimeException("Response exception"));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.error).isEqualTo("Response exception");
     }
 
@@ -588,7 +573,6 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.error).isEqualTo("HTTP status 503; body: response");
     }
 
@@ -602,7 +586,6 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.error).startsWith("Failed to decode");
     }
 
@@ -621,7 +604,6 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.error).isEqualTo("Unknown ad unit code 'anotherAdUnitCode'");
     }
 
@@ -745,10 +727,8 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus).isNotNull();
-        assertThat(bidderResult.bidderStatus.bidder).isEqualTo(RUBICON);
-        assertThat(bidderResult.bidderStatus.responseTimeMs).isPositive();
-        assertThat(bidderResult.bidderStatus.numBids).isEqualTo(0);
+        assertThat(bidderResult.bidderStatus.numBids).isNull();
+        assertThat(bidderResult.bidderStatus.noBid).isTrue();
         assertThat(bidderResult.bids).hasSize(0);
     }
 
@@ -935,7 +915,6 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.debug).hasSize(1);
         final BidderDebug bidderDebug = bidderResult.bidderStatus.debug.get(0);
         assertThat(bidderDebug.requestUri).isNotBlank();
@@ -954,7 +933,6 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.debug).hasSize(1);
         final BidderDebug bidderDebug = bidderResult.bidderStatus.debug.get(0);
         assertThat(bidderDebug.requestUri).isNotBlank();
@@ -963,37 +941,10 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(bidderDebug.statusCode).isPositive();
     }
 
-    @Test
-    public void requestBidsShouldIncrementCommonMetrics() throws JsonProcessingException {
-        // given
-        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity(), null));
-
-        // when
-        adapter.requestBids(bidder, preBidRequestContext);
-
-        // then
-        // this call is made in constructor but it feels natural to verify it here
-        verify(metrics).forAdapter(eq(Adapter.Type.rubicon));
-        verify(metrics).forAccount(eq("accountId"));
-        verify(accountMetrics).forAdapter(eq(Adapter.Type.rubicon));
-        verify(adapterMetrics).incCounter(eq(MetricName.requests));
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.requests));
-        verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
-        verify(accountAdapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
-        verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
-        verify(accountMetrics).incCounter(eq(MetricName.bids_received), eq(1L));
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.bids_received), eq(1L));
-        verify(adapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
-        verify(accountMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
-        verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
-    }
-
     private static Bidder givenBidderCustomizable(
-            Function<AdUnit.AdUnitBuilder, AdUnit.AdUnitBuilder> adUnitBuilderCustomizer,
-            Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilderCustomizer,
-            Function<RubiconParams.RubiconParamsBuilder, RubiconParams.RubiconParamsBuilder>
-                    rubiconParamsBuilderCustomizer) {
+            Function<AdUnitBuilder, AdUnitBuilder> adUnitBuilderCustomizer,
+            Function<BidBuilder, BidBuilder> bidBuilderCustomizer,
+            Function<RubiconParamsBuilder, RubiconParamsBuilder> rubiconParamsBuilderCustomizer) {
 
         final AdUnit adUnit = givenAdUnitCustomizable(adUnitBuilderCustomizer);
         final Bid bid = givenBidCustomizable(bidBuilderCustomizer, rubiconParamsBuilderCustomizer);
@@ -1001,61 +952,56 @@ public class RubiconAdapterTest extends VertxTest {
         return Bidder.from(RUBICON, Collections.singletonList(AdUnitBid.from(adUnit, bid)));
     }
 
-    private static AdUnit givenAdUnitCustomizable(Function<AdUnit.AdUnitBuilder, AdUnit.AdUnitBuilder>
-                                                          adUnitBuilderCustomizer) {
-        final AdUnit.AdUnitBuilder adUnitBuilderMinimal = AdUnit.builder()
+    private static AdUnit givenAdUnitCustomizable(Function<AdUnitBuilder, AdUnitBuilder> adUnitBuilderCustomizer) {
+        final AdUnitBuilder adUnitBuilderMinimal = AdUnit.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()));
-        final AdUnit.AdUnitBuilder adUnitBuilderCustomized = adUnitBuilderCustomizer.apply(adUnitBuilderMinimal);
+        final AdUnitBuilder adUnitBuilderCustomized = adUnitBuilderCustomizer.apply(adUnitBuilderMinimal);
 
         return adUnitBuilderCustomized.build();
     }
 
     private static Bid givenBidCustomizable(
-            Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilderCustomizer,
-            Function<RubiconParams.RubiconParamsBuilder, RubiconParams.RubiconParamsBuilder>
-                    rubiconParamsBuilderCustomizer) {
+            Function<BidBuilder, BidBuilder> bidBuilderCustomizer,
+            Function<RubiconParamsBuilder, RubiconParamsBuilder> rubiconParamsBuilderCustomizer) {
 
         // rubiconParams
-        final RubiconParams.RubiconParamsBuilder rubiconParamsBuilder = RubiconParams.builder()
+        final RubiconParamsBuilder rubiconParamsBuilder = RubiconParams.builder()
                 .accountId(2001)
                 .siteId(3001)
                 .zoneId(4001);
-        final RubiconParams.RubiconParamsBuilder rubiconParamsBuilderCustomized = rubiconParamsBuilderCustomizer
+        final RubiconParamsBuilder rubiconParamsBuilderCustomized = rubiconParamsBuilderCustomizer
                 .apply(rubiconParamsBuilder);
         final RubiconParams rubiconParams = rubiconParamsBuilderCustomized.build();
 
         // bid
-        final Bid.BidBuilder bidBuilderMinimal = Bid.builder().params(defaultNamingMapper.valueToTree(rubiconParams));
-        final Bid.BidBuilder bidBuilderCustomized = bidBuilderCustomizer.apply(bidBuilderMinimal);
+        final BidBuilder bidBuilderMinimal = Bid.builder().params(defaultNamingMapper.valueToTree(rubiconParams));
+        final BidBuilder bidBuilderCustomized = bidBuilderCustomizer.apply(bidBuilderMinimal);
 
         return bidBuilderCustomized.build();
     }
 
     private PreBidRequestContext givenPreBidRequestContextCustomizable(
-            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext.PreBidRequestContextBuilder>
-                    preBidRequestContextBuilderCustomizer,
-            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
-                    preBidRequestBuilderCustomizer) {
+            Function<PreBidRequestContextBuilder, PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
+            Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
-        final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
-                .accountId("accountId");
-        final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderCustomized = preBidRequestBuilderCustomizer
+        final PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder().accountId("accountId");
+        final PreBidRequestBuilder preBidRequestBuilderCustomized = preBidRequestBuilderCustomizer
                 .apply(preBidRequestBuilderMinimal);
         final PreBidRequest preBidRequest = preBidRequestBuilderCustomized.build();
 
-        final PreBidRequestContext.PreBidRequestContextBuilder preBidRequestContextBuilderMinimal =
+        final PreBidRequestContextBuilder preBidRequestContextBuilderMinimal =
                 PreBidRequestContext.builder()
                         .preBidRequest(preBidRequest)
                         .uidsCookie(uidsCookie)
                         .timeout(1000L);
-        final PreBidRequestContext.PreBidRequestContextBuilder preBidRequestContextBuilderCustomized =
+        final PreBidRequestContextBuilder preBidRequestContextBuilderCustomized =
                 preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal);
         return preBidRequestContextBuilderCustomized.build();
     }
 
     private BidRequest captureBidRequest() throws IOException {
         final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClientRequest, times(1)).end(bidRequestCaptor.capture());
+        verify(httpClientRequest).end(bidRequestCaptor.capture());
         return mapper.readValue(bidRequestCaptor.getValue(), BidRequest.class);
     }
 
@@ -1078,8 +1024,8 @@ public class RubiconAdapterTest extends VertxTest {
         }
     }
 
-    private void givenHttpClientProducesExceptions(int statusCode, Throwable... throwables) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
+    private void givenHttpClientProducesExceptions(Throwable... throwables) {
+        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
 
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
 
@@ -1117,8 +1063,8 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     private static String givenBidResponseCustomizable(
-            Function<BidResponse.BidResponseBuilder, BidResponse.BidResponseBuilder> bidResponseBuilderCustomizer,
-            Function<SeatBid.SeatBidBuilder, SeatBid.SeatBidBuilder> seatBidBuilderCustomizer,
+            Function<BidResponseBuilder, BidResponseBuilder> bidResponseBuilderCustomizer,
+            Function<SeatBidBuilder, SeatBidBuilder> seatBidBuilderCustomizer,
             Function<com.iab.openrtb.response.Bid.BidBuilder, com.iab.openrtb.response.Bid.BidBuilder>
                     bidBuilderCustomizer,
             List<RubiconTargeting> rubiconTargeting) throws JsonProcessingException {
@@ -1136,14 +1082,13 @@ public class RubiconAdapterTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid = bidBuilderCustomized.build();
 
         // seatBid
-        final SeatBid.SeatBidBuilder seatBidBuilderMinimal = SeatBid.builder().bid(singletonList(bid));
-        final SeatBid.SeatBidBuilder seatBidBuilderCustomized = seatBidBuilderCustomizer.apply(seatBidBuilderMinimal);
+        final SeatBidBuilder seatBidBuilderMinimal = SeatBid.builder().bid(singletonList(bid));
+        final SeatBidBuilder seatBidBuilderCustomized = seatBidBuilderCustomizer.apply(seatBidBuilderMinimal);
         final SeatBid seatBid = seatBidBuilderCustomized.build();
 
         // bidResponse
-        final BidResponse.BidResponseBuilder bidResponseBuilderMinimal = BidResponse.builder()
-                .seatbid(singletonList(seatBid));
-        final BidResponse.BidResponseBuilder bidResponseBuilderCustomized =
+        final BidResponseBuilder bidResponseBuilderMinimal = BidResponse.builder().seatbid(singletonList(seatBid));
+        final BidResponseBuilder bidResponseBuilderCustomized =
                 bidResponseBuilderCustomizer.apply(bidResponseBuilderMinimal);
         final BidResponse bidResponse = bidResponseBuilderCustomized.build();
 
