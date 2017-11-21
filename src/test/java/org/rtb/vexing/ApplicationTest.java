@@ -208,7 +208,7 @@ public class ApplicationTest extends VertxTest {
                 .as(PreBidResponse.class);
 
         // then
-        assertThat(preBidResponse.status).isEqualTo("OK");
+        assertThat(preBidResponse.status).isEqualTo("no_cookie");
         assertThat(preBidResponse.tid).isEqualTo("tid");
         assertThat(preBidResponse.bidderStatus).hasSize(1);
         final BidderStatus rubiconStatus = preBidResponse.bidderStatus.get(0);

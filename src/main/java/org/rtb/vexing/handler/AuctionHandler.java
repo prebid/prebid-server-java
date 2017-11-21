@@ -91,16 +91,7 @@ public class AuctionHandler {
             return;
         }
 
-        // update app and no_cookie metrics
-        if (preBidRequestContext.preBidRequest.app != null) {
-            metrics.incCounter(MetricName.app_requests);
-        } else if (!preBidRequestContext.uidsCookie.hasLiveUids()) {
-            metrics.incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                metrics.incCounter(MetricName.safari_no_cookie_requests);
-            }
-            // FIXME: set no_cookie status
-        }
+        updateAppAndNoCookieMetrics(preBidRequestContext, isSafari);
 
         // validate account id
         final String accountId = preBidRequestContext.preBidRequest.accountId;
@@ -148,7 +139,12 @@ public class AuctionHandler {
                 .flatMap(br -> br.bids.stream())
                 .collect(Collectors.toList());
 
-        final PreBidResponse response = createPreBidResponse(preBidRequestContext.preBidRequest, bidderStatuses, bids);
+        final PreBidResponse response = PreBidResponse.builder()
+                .status(preBidRequestContext.uidsCookie.hasLiveUids() ? "OK" : "no_cookie")
+                .tid(preBidRequestContext.preBidRequest.tid)
+                .bidderStatus(bidderStatuses)
+                .bids(bids)
+                .build();
 
         return Future.succeededFuture(response);
     }
@@ -170,8 +166,8 @@ public class AuctionHandler {
                                 })
                                 .collect(Collectors.toList());
 
-                        final PreBidResponse response =
-                                createPreBidResponse(preBidRequest, preBidResponse.bidderStatus, bidsWithCacheUUIDs);
+                        final PreBidResponse response = preBidResponse.toBuilder().bids(bidsWithCacheUUIDs).build();
+
                         return Future.succeededFuture(response);
                     });
         }
@@ -194,12 +190,43 @@ public class AuctionHandler {
         }
     }
 
+    private static PreBidResponse error(String status) {
+        return PreBidResponse.builder().status(status).build();
+    }
+
     private static boolean isValidBidder(Bidder bidder) {
         try {
             Adapter.Type.valueOf(bidder.bidderCode);
             return true;
         } catch (IllegalArgumentException e) {
             return false;
+        }
+    }
+
+    private static Stream<BidderStatus> invalidBidderStatuses(List<Bidder> bidders) {
+        return bidders.stream()
+                .filter(b -> !isValidBidder(b))
+                .map(b -> BidderStatus.builder().bidder(b.bidderCode).error("Unsupported bidder").build());
+    }
+
+    private static boolean isSafari(String userAgent) {
+        // this is a simple heuristic based on this article:
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
+        //
+        // there are libraries available doing different kinds of User-Agent analysis but they impose performance
+        // implications as well, example: https://github.com/nielsbasjes/yauaa
+        return StringUtils.isNotBlank(userAgent) && userAgent.contains("AppleWebKit") && userAgent.contains("Safari")
+                && !userAgent.contains("Chrome") && !userAgent.contains("Chromium");
+    }
+
+    private void updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext, boolean isSafari) {
+        if (preBidRequestContext.preBidRequest.app != null) {
+            metrics.incCounter(MetricName.app_requests);
+        } else if (!preBidRequestContext.uidsCookie.hasLiveUids()) {
+            metrics.incCounter(MetricName.no_cookie_requests);
+            if (isSafari) {
+                metrics.incCounter(MetricName.safari_no_cookie_requests);
+            }
         }
     }
 
@@ -216,35 +243,5 @@ public class AuctionHandler {
             adapterMetrics.incCounter(MetricName.error_requests);
             accountAdapterMetrics.incCounter(MetricName.error_requests);
         }
-    }
-
-    private static Stream<BidderStatus> invalidBidderStatuses(List<Bidder> bidders) {
-        return bidders.stream()
-                .filter(b -> !isValidBidder(b))
-                .map(b -> BidderStatus.builder().bidder(b.bidderCode).error("Unsupported bidder").build());
-    }
-
-    private static PreBidResponse createPreBidResponse(PreBidRequest preBidRequest, List<BidderStatus> bidderStatuses,
-                                                       List<Bid> bids) {
-        return PreBidResponse.builder()
-                .status("OK") // FIXME: might be "no_cookie"
-                .tid(preBidRequest.tid)
-                .bidderStatus(bidderStatuses)
-                .bids(bids)
-                .build();
-    }
-
-    private static boolean isSafari(String userAgent) {
-        // this is a simple heuristic based on this article:
-        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
-        //
-        // there are libraries available doing different kinds of User-Agent analysis but they impose performance
-        // implications as well, example: https://github.com/nielsbasjes/yauaa
-        return StringUtils.isNotBlank(userAgent) && userAgent.contains("AppleWebKit") && userAgent.contains("Safari")
-                && !userAgent.contains("Chrome") && !userAgent.contains("Chromium");
-    }
-
-    private static PreBidResponse error(String status) {
-        return PreBidResponse.builder().status(status).build();
     }
 }

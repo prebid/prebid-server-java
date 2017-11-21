@@ -97,6 +97,8 @@ public class AuctionHandlerTest extends VertxTest {
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
+    @Mock
+    private UidsCookie uidsCookie;
 
     @Before
     public void setUp() {
@@ -186,6 +188,21 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithNoCookieStatusIfNoLiveUidsInCookie() throws IOException {
+        // given
+        givenPreBidRequestContext();
+
+        given(uidsCookie.hasLiveUids()).willReturn(false);
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.status).isEqualTo("no_cookie");
+    }
+
+    @Test
     public void shouldRespondWithErrorIfUnexpectedExceptionOccurs() throws IOException {
         // given
         givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(identity());
@@ -264,6 +281,8 @@ public class AuctionHandlerTest extends VertxTest {
             throws IOException {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach();
+
+        given(uidsCookie.hasLiveUids()).willReturn(true);
 
         givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, "bidId1", "bidId2");
         givenAdapterRespondingWithBids(appnexusAdapter, APPNEXUS, "bidId3", "bidId4");
@@ -460,7 +479,7 @@ public class AuctionHandlerTest extends VertxTest {
                 PreBidRequestContext.builder()
                         .bidders(emptyList())
                         .preBidRequest(preBidRequest)
-                        .uidsCookie(mock(UidsCookie.class)))
+                        .uidsCookie(uidsCookie))
                 .build();
         given(preBidRequestContextFactory.fromRequest(any())).willReturn(preBidRequestContext);
     }
