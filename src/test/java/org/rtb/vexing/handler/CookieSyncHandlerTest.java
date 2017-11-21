@@ -1,6 +1,6 @@
 package org.rtb.vexing.handler;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.util.AsciiString;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
@@ -133,7 +133,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         givenAdaptersReturningFamilyName();
 
-        final JsonNode appnexusUsersyncInfo = defaultNamingMapper.valueToTree(UsersyncInfo.builder()
+        final ObjectNode appnexusUsersyncInfo = defaultNamingMapper.valueToTree(UsersyncInfo.builder()
                 .url("http://adnxsexample.com")
                 .type("redirect")
                 .supportCORS(false)

@@ -162,6 +162,12 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
+    public void requestBidsShouldFailOnNullArguments() {
+        assertThatNullPointerException().isThrownBy(() -> adapter.requestBids(null, null));
+        assertThatNullPointerException().isThrownBy(() -> adapter.requestBids(bidder, null));
+    }
+
+    @Test
     public void requestBidsShouldMakeHttpRequestWithExpectedHeaders() {
         // when
         adapter.requestBids(bidder, preBidRequestContext);
@@ -710,7 +716,7 @@ public class RubiconAdapterTest extends VertxTest {
         final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.bidder).isEqualTo(RUBICON);
-        assertThat(bidderResult.bidderStatus.responseTime).isPositive();
+        assertThat(bidderResult.bidderStatus.responseTimeMs).isPositive();
         assertThat(bidderResult.bidderStatus.numBids).isEqualTo(1);
         assertThat(bidderResult.bids).hasSize(1)
                 .element(0).isEqualTo(org.rtb.vexing.model.response.Bid.builder()
@@ -724,7 +730,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .adServerTargeting(singletonMap("key", "value"))
                 .bidder(RUBICON)
                 .bidId("bidId")
-                .responseTime(bidderResult.bidderStatus.responseTime)
+                .responseTimeMs(bidderResult.bidderStatus.responseTimeMs)
                 .build());
     }
 
@@ -741,7 +747,7 @@ public class RubiconAdapterTest extends VertxTest {
         final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.bidder).isEqualTo(RUBICON);
-        assertThat(bidderResult.bidderStatus.responseTime).isPositive();
+        assertThat(bidderResult.bidderStatus.responseTimeMs).isPositive();
         assertThat(bidderResult.bidderStatus.numBids).isEqualTo(0);
         assertThat(bidderResult.bids).hasSize(0);
     }

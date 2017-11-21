@@ -1,8 +1,8 @@
 package org.rtb.vexing.adapter.rubicon;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -119,6 +119,9 @@ public class RubiconAdapter implements Adapter {
 
     @Override
     public Future<BidderResult> requestBids(Bidder bidder, PreBidRequestContext preBidRequestContext) {
+        Objects.requireNonNull(bidder);
+        Objects.requireNonNull(preBidRequestContext);
+
         Future<BidderResult> result = null;
 
         final long bidderStarted = clock.millis();
@@ -464,14 +467,14 @@ public class RubiconAdapter implements Adapter {
         final List<Bid> bids = bidResults.stream()
                 .map(br -> br.bidBuilder)
                 .filter(Objects::nonNull)
-                .map(b -> b.responseTime(responseTime))
+                .map(b -> b.responseTimeMs(responseTime))
                 .map(Bid.BidBuilder::build)
                 .peek(bid -> updateCpmMetrics(accountMetrics, accountAdapterMetrics, bid))
                 .collect(Collectors.toList());
 
         final BidderStatus.BidderStatusBuilder bidderStatusBuilder = BidderStatus.builder()
                 .bidder(bidder.bidderCode)
-                .responseTime(responseTime)
+                .responseTimeMs(responseTime)
                 .numBids(bids.size());
 
         final BidderResult.BidderResultBuilder bidderResultBuilder = BidderResult.builder();
@@ -545,7 +548,7 @@ public class RubiconAdapter implements Adapter {
     }
 
     @Override
-    public JsonNode usersyncInfo() {
+    public ObjectNode usersyncInfo() {
         return DEFAULT_NAMING_MAPPER.valueToTree(usersyncInfo);
     }
 

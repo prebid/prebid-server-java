@@ -37,7 +37,6 @@ public final class PreBidRequest {
      * assets and markup, where 0 = non-secure, 1 = secure. If omitted, the
      * secure state will be interpreted from the request to the prebid server.
      */
-    // FIXME Check "X-Forwarded-Proto" header for "https" or if TLS used on request.
     Integer secure;  // ... really just a boolean 0|1.
 
     /* Cache markup for two-phase response (get response then separate call to get markup). */

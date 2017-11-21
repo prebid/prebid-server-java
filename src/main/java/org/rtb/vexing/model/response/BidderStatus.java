@@ -1,6 +1,6 @@
 package org.rtb.vexing.model.response;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,9 +19,9 @@ public final class BidderStatus {
 
     String bidder;
 
-    String adUnitCode;
+    String adUnit;
 
-    Integer responseTime;
+    Integer responseTimeMs;
 
     Integer numBids;
 
@@ -31,7 +31,7 @@ public final class BidderStatus {
 
     Boolean noBid;
 
-    JsonNode usersync;
+    ObjectNode usersync;
 
     List<BidderDebug> debug;
 }

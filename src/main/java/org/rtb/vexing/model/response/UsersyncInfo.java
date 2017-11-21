@@ -1,6 +1,5 @@
 package org.rtb.vexing.model.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,6 +18,5 @@ public class UsersyncInfo {
 
     String type;
 
-    @JsonProperty
     Boolean supportCORS;
 }

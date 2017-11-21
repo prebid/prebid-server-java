@@ -214,7 +214,7 @@ public class ApplicationTest extends VertxTest {
         final BidderStatus rubiconStatus = preBidResponse.bidderStatus.get(0);
         assertThat(rubiconStatus.bidder).isEqualTo(RUBICON);
         assertThat(rubiconStatus.numBids).isEqualTo(2);
-        final Integer responseTime = rubiconStatus.responseTime;
+        final Integer responseTime = rubiconStatus.responseTimeMs;
         assertThat(responseTime).isPositive();
         assertThat(rubiconStatus.debug).hasSize(2).containsOnly(
                 bidderDebug(bidRequest1, bidResponse1),
@@ -450,7 +450,7 @@ public class ApplicationTest extends VertxTest {
                 .adServerTargeting(adServerTargeting)
                 .bidder(bidder)
                 .bidId(bidId)
-                .responseTime(responseTime)
+                .responseTimeMs(responseTime)
                 .build();
     }
 

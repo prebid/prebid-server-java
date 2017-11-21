@@ -44,10 +44,6 @@ public final class Bid {
     // Bidder.bidderCode of the Bidder who made this bid.
     String bidder;
 
-    // Hash of the bidder's unique bid identifier for blockchain. It should not be sent to browser.
-    @JsonIgnore
-    String bidHash;
-
     // Cpm, in US Dollars, which the bidder is willing to pay if this bid is chosen.
     // TODO: Add support for other currencies someday.
     BigDecimal price;
@@ -79,7 +75,7 @@ public final class Bid {
     String cacheUrl;
 
     // Number of milliseconds it took for the adapter to return a bid.
-    Integer responseTime;
+    Integer responseTimeMs;
 
     Map<String, String> adServerTargeting;
 }
