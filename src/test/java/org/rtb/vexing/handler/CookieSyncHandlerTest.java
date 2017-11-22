@@ -1,8 +1,10 @@
 package org.rtb.vexing.handler;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.util.AsciiString;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
@@ -87,6 +89,25 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(401));
         verify(httpResponse).setStatusMessage(eq("User has opted out"));
+        verify(httpResponse).end();
+        verifyNoMoreInteractions(httpResponse, adapterCatalog);
+    }
+
+    @Test
+    public void shouldRespondWithErrorIfRequestBodyCouldNotBeParsed() {
+        // given
+        given(routingContext.getBodyAsJson())
+                .willThrow(new DecodeException("Could not parse", new JsonParseException(null, (String) null)));
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
+
+        // when
+        cookieSyncHandler.sync(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).setStatusMessage(eq("JSON parse failed"));
         verify(httpResponse).end();
         verifyNoMoreInteractions(httpResponse, adapterCatalog);
     }

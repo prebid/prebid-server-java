@@ -2,6 +2,7 @@ package org.rtb.vexing.handler;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -40,7 +41,15 @@ public class CookieSyncHandler {
             return;
         }
 
-        final JsonObject body = context.getBodyAsJson();
+        final JsonObject body;
+        try {
+            body = context.getBodyAsJson();
+        } catch (DecodeException e) {
+            logger.info("Failed to parse /cookie_sync request body", e);
+            context.response().setStatusCode(400).setStatusMessage("JSON parse failed").end();
+            return;
+        }
+
         if (body == null) {
             logger.error("Incoming request has no body.");
             context.response().setStatusCode(400).end();
