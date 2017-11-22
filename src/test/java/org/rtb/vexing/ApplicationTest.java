@@ -51,10 +51,10 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
-import org.rtb.vexing.cache.model.request.Put;
-import org.rtb.vexing.cache.model.request.Value;
+import org.rtb.vexing.cache.model.request.PutObject;
+import org.rtb.vexing.cache.model.request.PutValue;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
-import org.rtb.vexing.cache.model.response.Response;
+import org.rtb.vexing.cache.model.response.CacheObject;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.request.PreBidRequest;
@@ -184,8 +184,8 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         String bidCacheRequestAsString = givenBidCacheRequest(asList(
-                Value.builder().adm("adm1").width(300).height(250).build(),
-                Value.builder().adm("adm2").width(300).height(600).build()
+                PutValue.builder().adm("adm1").width(300).height(250).build(),
+                PutValue.builder().adm("adm2").width(300).height(600).build()
         ));
         String bidCacheResponseAsString = givenBidCacheResponse(asList(
                 "883db7d2-3013-4ce0-a454-adc7d208ef0c",
@@ -454,25 +454,25 @@ public class ApplicationTest extends VertxTest {
                 .build();
     }
 
-    private static String givenBidCacheRequest(List<Value> values) throws JsonProcessingException {
-        final List<Put> puts = values.stream()
-                .map(value -> Put.builder()
+    private static String givenBidCacheRequest(List<PutValue> putValues) throws JsonProcessingException {
+        final List<PutObject> putObjects = putValues.stream()
+                .map(putValue -> PutObject.builder()
                         .type("json")
-                        .value(value)
+                        .value(putValue)
                         .build())
                 .collect(Collectors.toList());
         final BidCacheRequest bidCacheRequest = BidCacheRequest.builder()
-                .puts(puts)
+                .puts(putObjects)
                 .build();
         return mapper.writeValueAsString(bidCacheRequest);
     }
 
     private static String givenBidCacheResponse(List<String> uuids) throws JsonProcessingException {
-        List<Response> responses = uuids.stream()
-                .map(uuid -> Response.builder().uuid(uuid).build())
+        List<CacheObject> cacheObjects = uuids.stream()
+                .map(uuid -> CacheObject.builder().uuid(uuid).build())
                 .collect(Collectors.toList());
         BidCacheResponse bidCacheResponse = BidCacheResponse.builder()
-                .responses(responses)
+                .responses(cacheObjects)
                 .build();
         return mapper.writeValueAsString(bidCacheResponse);
     }

@@ -280,6 +280,23 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithErrorIfCacheServiceFails() throws IOException {
+        // given
+        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(builder -> builder.cacheMarkup(1));
+
+        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
+
+        given(cacheService.saveBids(anyList())).willReturn(Future.failedFuture("http exception"));
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.status).isEqualTo("Prebid cache failed: http exception");
+    }
+
+    @Test
     public void shouldRespondWithMultipleBidderStatusesAndBidsWhenMultipleAdUnitsAndBidsInPreBidRequest()
             throws IOException {
         // given
@@ -469,6 +486,22 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(adapterMetrics).incCounter(eq(MetricName.timeout_requests));
         verify(accountAdapterMetrics).incCounter(eq(MetricName.timeout_requests));
+    }
+
+    @Test
+    public void shouldIncrementErrorMetricIfCacheServiceFails() throws IOException {
+        // given
+        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(builder -> builder.cacheMarkup(1));
+
+        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
+
+        given(cacheService.saveBids(anyList())).willReturn(Future.failedFuture("http exception"));
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
     private void givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(

@@ -16,5 +16,5 @@ import java.util.List;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class BidCacheRequest {
 
-    List<Put> puts;
+    List<PutObject> puts;
 }

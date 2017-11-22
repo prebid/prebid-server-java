@@ -540,7 +540,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void requestBidsShouldReturnBidderResultWithErrorIfReadingHttpResponseFails() {
         // given
-        givenHttpClientProducesExceptions(new RuntimeException("Response exception"));
+        givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -1024,17 +1024,10 @@ public class RubiconAdapterTest extends VertxTest {
         }
     }
 
-    private void givenHttpClientProducesExceptions(Throwable... throwables) {
+    private void givenHttpClientProducesException(Throwable throwable) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
-
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-
-        // setup multiple answers
-        BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
-                given(httpClientResponse.exceptionHandler(any()));
-        for (Throwable throwable : throwables) {
-            currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(throwable));
-        }
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
     }
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {

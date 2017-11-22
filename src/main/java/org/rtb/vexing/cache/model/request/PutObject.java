@@ -12,9 +12,9 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class Put {
+public class PutObject {
 
     String type;
 
-    Value value;
+    PutValue value;
 }

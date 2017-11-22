@@ -1,7 +1,13 @@
 package org.rtb.vexing.cache;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.json.DecodeException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -9,10 +15,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.mockito.stubbing.Answer;
 import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
-import org.rtb.vexing.cache.model.request.Value;
+import org.rtb.vexing.cache.model.request.PutValue;
+import org.rtb.vexing.cache.model.response.BidCacheResponse;
+import org.rtb.vexing.cache.model.response.CacheObject;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.model.response.Bid;
 
@@ -21,11 +31,14 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.*;
 
 public class CacheServiceTest extends VertxTest {
 
@@ -104,19 +117,149 @@ public class CacheServiceTest extends VertxTest {
         assertThat(bidCacheRequest.puts).isNotEmpty();
         assertThat(bidCacheRequest.puts.size()).isEqualTo(2);
 
-        final Value value1 = bidCacheRequest.puts.get(0).value;
-        assertThat(value1).isNotNull();
-        assertThat(value1.adm).isEqualTo("adm1");
-        assertThat(value1.nurl).isEqualTo("nurl1");
-        assertThat(value1.height).isEqualTo(100);
-        assertThat(value1.width).isEqualTo(200);
+        final PutValue putValue1 = bidCacheRequest.puts.get(0).value;
+        assertThat(putValue1).isNotNull();
+        assertThat(putValue1.adm).isEqualTo("adm1");
+        assertThat(putValue1.nurl).isEqualTo("nurl1");
+        assertThat(putValue1.height).isEqualTo(100);
+        assertThat(putValue1.width).isEqualTo(200);
 
-        final Value value2 = bidCacheRequest.puts.get(1).value;
-        assertThat(value2).isNotNull();
-        assertThat(value2.adm).isEqualTo("adm2");
-        assertThat(value2.nurl).isEqualTo("nurl2");
-        assertThat(value2.height).isEqualTo(300);
-        assertThat(value2.width).isEqualTo(400);
+        final PutValue putValue2 = bidCacheRequest.puts.get(1).value;
+        assertThat(putValue2).isNotNull();
+        assertThat(putValue2.adm).isEqualTo("adm2");
+        assertThat(putValue2.nurl).isEqualTo("nurl2");
+        assertThat(putValue2.height).isEqualTo(300);
+        assertThat(putValue2.width).isEqualTo(400);
+    }
+
+    @Test
+    public void shouldFailIfHttpRequestFails() {
+        // given
+        given(httpClientRequest.exceptionHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
+
+        // when
+        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+
+        // then
+        assertThat(bidCacheResultFuture.failed()).isTrue();
+        assertThat(bidCacheResultFuture.cause()).isInstanceOf(RuntimeException.class).hasMessage("Request exception");
+    }
+
+    @Test
+    public void shouldFailIfReadingHttpResponseFails() {
+        // given
+        givenHttpClientProducesException(new RuntimeException("Response exception"));
+
+        // when
+        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+
+        // then
+        assertThat(bidCacheResultFuture.failed()).isTrue();
+        assertThat(bidCacheResultFuture.cause()).isInstanceOf(RuntimeException.class).hasMessage("Response exception");
+    }
+
+    @Test
+    public void shouldFailIfResponseCodeIsNot200() {
+        // given
+        givenHttpClientReturnsResponse(503, "response");
+
+        // when
+        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+
+        // then
+        assertThat(bidCacheResultFuture.failed()).isTrue();
+        assertThat(bidCacheResultFuture.cause()).isInstanceOf(PreBidRequestException.class)
+                .hasMessage("HTTP status code 503");
+    }
+
+    @Test
+    public void shouldFailIfResponseBodyCouldNotBeParsed() {
+        // given
+        givenHttpClientReturnsResponse(200, "response");
+
+        // when
+        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+
+        // then
+        assertThat(bidCacheResultFuture.failed()).isTrue();
+        assertThat(bidCacheResultFuture.cause()).isInstanceOf(DecodeException.class);
+    }
+
+    @Test
+    public void shouldFailIfCacheEntriesNumberDoesNotMatchBidsNumber() {
+        // given
+        givenHttpClientReturnsResponse(200, "{}");
+
+        // when
+        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+
+        // then
+        assertThat(bidCacheResultFuture.failed()).isTrue();
+        assertThat(bidCacheResultFuture.cause()).isInstanceOf(PreBidRequestException.class)
+                .hasMessage("Put response length didn't match");
+    }
+
+    @Test
+    public void shouldReturnCacheResult() throws JsonProcessingException {
+        // given
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(BidCacheResponse.builder()
+                .responses(singletonList(CacheObject.builder().uuid("uuid1").build()))
+                .build()));
+
+        // when
+        final Future<List<BidCacheResult>> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+
+        // then
+        final List<BidCacheResult> bidCacheResults = bidCacheResultFuture.result();
+        assertThat(bidCacheResults).hasSize(1)
+                .containsOnly(BidCacheResult.builder()
+                        .cacheId("uuid1")
+                        .cacheUrl("http://cache-service-host/cache?uuid=uuid1")
+                        .build());
+    }
+
+    private static List<Bid> singleEmptyBid() {
+        return singletonList(Bid.builder().build());
+    }
+
+    private void givenHttpClientReturnsResponse(int statusCode, String response) {
+        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
+        given(httpClientResponse.bodyHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
+    }
+
+
+    private void givenHttpClientProducesException(Throwable throwable) {
+        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
+
+        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
+    }
+
+    private HttpClientResponse givenHttpClientResponse(int statusCode) {
+        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
+        given(httpClient.post(anyInt(), anyString(), anyString(), any()))
+                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
+        given(httpClientResponse.statusCode()).willReturn(statusCode);
+        return httpClientResponse;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
+        return inv -> {
+            // invoking passed HttpClientResponse handler right away passing mock response to it
+            ((Handler<HttpClientResponse>) inv.getArgument(3)).handle(httpClientResponse);
+            return httpClientRequest;
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
+        return inv -> {
+            ((Handler<T>) inv.getArgument(0)).handle(obj);
+            return inv.getMock();
+        };
     }
 
     @Test

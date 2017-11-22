@@ -158,28 +158,39 @@ public class AuctionHandler {
     }
 
     private Future<PreBidResponse> processCacheMarkup(PreBidRequest preBidRequest, PreBidResponse preBidResponse) {
+        final Future<PreBidResponse> result;
+
         final List<Bid> bids = preBidResponse.bids;
         if (preBidRequest.cacheMarkup != null && preBidRequest.cacheMarkup == 1 && !bids.isEmpty()) {
-            return cacheService.saveBids(bids)
-                    .compose(bidCacheResults -> {
-                        final List<Bid> bidsWithCacheUUIDs = IntStream.range(0, bids.size())
-                                .mapToObj(i -> {
-                                    BidCacheResult result = bidCacheResults.get(i);
-                                    return bids.get(i).toBuilder()
-                                            .adm(null)
-                                            .nurl(null)
-                                            .cacheId(result.cacheId)
-                                            .cacheUrl(result.cacheUrl)
-                                            .build();
-                                })
-                                .collect(Collectors.toList());
-
-                        final PreBidResponse response = preBidResponse.toBuilder().bids(bidsWithCacheUUIDs).build();
-
-                        return Future.succeededFuture(response);
+            result = cacheService.saveBids(bids)
+                    .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults))
+                    .otherwise(exception -> {
+                        metrics.incCounter(MetricName.error_requests);
+                        return error(String.format("Prebid cache failed: %s", exception.getMessage()));
                     });
+        } else {
+            result = Future.succeededFuture(preBidResponse);
         }
-        return Future.succeededFuture(preBidResponse);
+
+        return result;
+    }
+
+    private PreBidResponse mergeBidsWithCacheResults(PreBidResponse preBidResponse,
+                                                     List<BidCacheResult> bidCacheResults) {
+        final List<Bid> bids = preBidResponse.bids;
+        final List<Bid> bidsWithCacheUUIDs = IntStream.range(0, bids.size())
+                .mapToObj(i -> {
+                    BidCacheResult result = bidCacheResults.get(i);
+                    return bids.get(i).toBuilder()
+                            .adm(null)
+                            .nurl(null)
+                            .cacheId(result.cacheId)
+                            .cacheUrl(result.cacheUrl)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return preBidResponse.toBuilder().bids(bidsWithCacheUUIDs).build();
     }
 
     private void respondWith(PreBidResponse response, RoutingContext context) {

@@ -3,14 +3,17 @@ package org.rtb.vexing.cache;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
-import org.rtb.vexing.cache.model.request.Put;
-import org.rtb.vexing.cache.model.request.Value;
+import org.rtb.vexing.cache.model.request.PutObject;
+import org.rtb.vexing.cache.model.request.PutValue;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.model.response.Bid;
@@ -37,17 +40,17 @@ public class CacheService {
     private final URL cacheEndpointUrl;
     private final String cachedAssetUrlTemplate;
 
+    private CacheService(HttpClient httpClient, URL cacheEndpointUrl, String cachedAssetUrlTemplate) {
+        this.httpClient = httpClient;
+        this.cacheEndpointUrl = cacheEndpointUrl;
+        this.cachedAssetUrlTemplate = cachedAssetUrlTemplate;
+    }
+
     public static CacheService create(HttpClient httpClient, ApplicationConfig config) {
         Objects.requireNonNull(httpClient);
         Objects.requireNonNull(config);
 
         return new CacheService(httpClient, getCacheEndpointUrl(config), getCachedAssetUrlTemplate(config));
-    }
-
-    private CacheService(HttpClient httpClient, URL cacheEndpointUrl, String cachedAssetUrlTemplate) {
-        this.httpClient = httpClient;
-        this.cacheEndpointUrl = cacheEndpointUrl;
-        this.cachedAssetUrlTemplate = cachedAssetUrlTemplate;
     }
 
     public Future<List<BidCacheResult>> saveBids(List<Bid> bids) {
@@ -56,10 +59,27 @@ public class CacheService {
             return Future.succeededFuture(Collections.emptyList());
         }
 
-        final List<Put> puts = bids.stream()
-                .map(bid -> Put.builder()
+        final Future<List<BidCacheResult>> future = Future.future();
+        httpClient.post(portFromUrl(cacheEndpointUrl), cacheEndpointUrl.getHost(), cacheEndpointUrl.getFile(),
+                response -> handleResponse(response, bids, future))
+                .exceptionHandler(exception -> handleException(exception, future))
+                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
+                .setTimeout(HTTP_REQUEST_TIMEOUT)
+                .end(Json.encode(toBidCacheRequest(bids)));
+        return future;
+    }
+
+    private static int portFromUrl(URL url) {
+        final int port = url.getPort();
+        return port != -1 ? port : url.getDefaultPort();
+    }
+
+    private BidCacheRequest toBidCacheRequest(List<Bid> bids) {
+        final List<PutObject> putObjects = bids.stream()
+                .map(bid -> PutObject.builder()
                         .type("json")
-                        .value(Value.builder()
+                        .value(PutValue.builder()
                                 .adm(bid.adm)
                                 .nurl(bid.nurl)
                                 .width(bid.width)
@@ -68,56 +88,55 @@ public class CacheService {
                         .build())
                 .collect(Collectors.toList());
 
-        final BidCacheRequest bidCacheRequest = BidCacheRequest.builder()
-                .puts(puts)
+        return BidCacheRequest.builder()
+                .puts(putObjects)
                 .build();
+    }
 
-        // FIXME: remove
-        logger.debug("Bid cache request: {0}", Json.encodePrettily(bidCacheRequest));
+    private void handleResponse(HttpClientResponse response, List<Bid> bids, Future<List<BidCacheResult>> future) {
+        response
+                .bodyHandler(buffer -> handleResponseAndBody(response.statusCode(), buffer.toString(), bids, future))
+                .exceptionHandler(exception -> handleException(exception, future));
+    }
 
-        final Future<List<BidCacheResult>> future = Future.future();
-        httpClient.post(portFromUrl(cacheEndpointUrl), cacheEndpointUrl.getHost(), cacheEndpointUrl.getFile(),
-                cacheResponse -> {
-                    if (cacheResponse.statusCode() == 200) {
-                        cacheResponse.bodyHandler(buffer -> {
-                            final BidCacheResponse bidCacheResponse = Json.decodeValue(buffer.toString(),
-                                    BidCacheResponse.class);
+    private void handleResponseAndBody(int statusCode, String body, List<Bid> bids,
+                                       Future<List<BidCacheResult>> future) {
 
-                            // FIXME: remove
-                            logger.debug("Bid cache response body raw: {0}", buffer.toString());
-                            logger.debug("Bid cache response: {0}", Json.encodePrettily(bidCacheResponse));
+        if (statusCode != 200) {
+            logger.warn("Cache service response code is {0}, body: {1}", statusCode, body);
+            future.fail(new PreBidRequestException(String.format("HTTP status code %d", statusCode)));
+        } else {
+            processBidCacheResponse(body, bids, future);
+        }
+    }
 
-                            Objects.requireNonNull(bidCacheResponse.responses);
-                            List<BidCacheResult> results = bidCacheResponse.responses.stream()
-                                    .map(response -> BidCacheResult.builder()
-                                            .cacheId(response.uuid)
-                                            .cacheUrl(getCachedAssetURL(response.uuid))
-                                            .build())
-                                    .collect(Collectors.toList());
-                            future.complete(results);
-                        });
-                    } else {
-                        cacheResponse.bodyHandler(buffer ->
-                                logger.error("Cache service response code is {0}, body: {1}",
-                                        cacheResponse.statusCode(), buffer.toString()));
-                        // FIXME: error handling
-                        // future.fail("Prebid cache failed");
-                        future.complete(null);
-                    }
-                })
-                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                .setTimeout(HTTP_REQUEST_TIMEOUT)
-                .exceptionHandler(throwable -> {
-                    logger.error("Error occurred while sending request to cache service", throwable);
-                    if (!future.isComplete()) {
-                        // FIXME: error handling
-                        // future.fail("Prebid cache failed");
-                        future.complete(null);
-                    }
-                })
-                .end(Json.encode(bidCacheRequest));
-        return future;
+    private void handleException(Throwable exception, Future<List<BidCacheResult>> future) {
+        logger.warn("Error occurred while sending request to cache service", exception);
+        future.fail(exception);
+    }
+
+    private void processBidCacheResponse(String body, List<Bid> bids, Future<List<BidCacheResult>> future) {
+        final BidCacheResponse bidCacheResponse;
+        try {
+            bidCacheResponse = Json.decodeValue(body, BidCacheResponse.class);
+        } catch (DecodeException e) {
+            logger.warn("Error occurred while parsing bid cache response: {0}", body, e);
+            future.fail(e);
+            return;
+        }
+
+        if (bidCacheResponse.responses == null || bidCacheResponse.responses.size() != bids.size()) {
+            future.fail(new PreBidRequestException("Put response length didn't match"));
+            return;
+        }
+
+        final List<BidCacheResult> results = bidCacheResponse.responses.stream()
+                .map(cacheResponse -> BidCacheResult.builder()
+                        .cacheId(cacheResponse.uuid)
+                        .cacheUrl(getCachedAssetURL(cacheResponse.uuid))
+                        .build())
+                .collect(Collectors.toList());
+        future.complete(results);
     }
 
     public String getCachedAssetURL(String uuid) {
@@ -145,10 +164,5 @@ public class CacheService {
 
     private static URL getCacheBaseUrl(ApplicationConfig config) throws MalformedURLException {
         return new URL(config.getString("cache.scheme") + "://" + config.getString("cache.host"));
-    }
-
-    private static int portFromUrl(URL url) {
-        final int port = url.getPort();
-        return port != -1 ? port : url.getDefaultPort();
     }
 }
