@@ -4,14 +4,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Format;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
-import org.rtb.vexing.model.request.AdUnit;
-import org.rtb.vexing.model.request.Bid;
 
 import java.util.List;
 
+@Builder
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor
@@ -35,9 +35,4 @@ public final class AdUnitBid {
     String bidId;
 
     ObjectNode params;
-
-    public static AdUnitBid from(AdUnit unit, Bid bid) {
-        /*FIXME: bid.bidId could be absent, generate in this case*/
-        return new AdUnitBid(bid.bidder, unit.sizes, unit.topframe, unit.instl, unit.code, bid.bidId, bid.params);
-    }
 }

@@ -61,7 +61,7 @@ public class CookieSyncHandler {
 
         final CookieSyncResponse response = CookieSyncResponse.builder()
                 .uuid(cookieSyncRequest.uuid)
-                .status("OK") // FIXME: might be "no_cookie"
+                .status(uidsCookie.hasLiveUids() ? "OK" : "no_cookie")
                 .bidderStatus(bidderStatuses)
                 .build();
 

@@ -147,7 +147,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
                 .uuid("uuid")
-                .status("OK")
+                .status("no_cookie")
                 .bidderStatus(singletonList(BidderStatus.builder()
                         .bidder(APPNEXUS)
                         .noCookie(true)
@@ -175,7 +175,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
                 .uuid("uuid")
-                .status("OK")
+                .status("no_cookie")
                 .bidderStatus(emptyList())
                 .build());
     }

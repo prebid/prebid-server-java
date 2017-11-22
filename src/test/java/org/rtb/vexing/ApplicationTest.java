@@ -259,7 +259,7 @@ public class ApplicationTest extends VertxTest {
 
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
                 .uuid("uuid")
-                .status("OK")
+                .status("no_cookie")
                 .bidderStatus(singletonList(BidderStatus.builder()
                         .bidder(RUBICON)
                         .noCookie(true)

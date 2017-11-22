@@ -301,9 +301,6 @@ public class RubiconAdapter implements Adapter {
     }
 
     private Future<BidResult> requestSingleBid(BidRequest bidRequest, long timeout, AdUnitBid adUnitBid) {
-        // FIXME: remove
-        logger.debug("Bid request is {0}", Json.encodePrettily(bidRequest));
-
         final String bidRequestBody = Json.encode(bidRequest);
 
         final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(bidRequestBody);
@@ -364,15 +361,6 @@ public class RubiconAdapter implements Adapter {
     }
 
     private BidResult processBidResponse(AdUnitBid adUnitBid, String body, BidderDebug bidderDebug) {
-        // FIXME: remove
-        logger.debug("Bid response body raw: {0}", body);
-        try {
-            logger.debug("Bid response: {0}",
-                    Json.encodePrettily(Json.decodeValue(body, BidResponse.class)));
-        } catch (DecodeException e) {
-            // do nothing
-        }
-
         BidResult result = null;
 
         BidResponse bidResponse = null;
@@ -419,7 +407,7 @@ public class RubiconAdapter implements Adapter {
     private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdUnitBid adUnitBid) {
         return Bid.builder()
                 .code(bid.getImpid())
-                .price(bid.getPrice()) // FIXME: now 0 is serialized as "0.0", but should be just "0"
+                .price(bid.getPrice())
                 .adm(bid.getAdm())
                 .creativeId(bid.getCrid())
                 .width(bid.getW())

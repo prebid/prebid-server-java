@@ -70,7 +70,7 @@ public class UidsCookie {
     }
 
     public boolean hasLiveUids() {
-        // FIXME: this will have something to do with uids expriration eventually, legacy cookie are considered
+        // FIXME: this will have something to do with uids expiration eventually, legacy cookie are considered
         // already expired
         return false;
     }

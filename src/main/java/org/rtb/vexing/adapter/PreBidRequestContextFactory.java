@@ -19,6 +19,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 public class PreBidRequestContextFactory {
@@ -26,6 +27,8 @@ public class PreBidRequestContextFactory {
     private final Long defaultHttpRequestTimeout;
 
     private final PublicSuffixList psl;
+
+    private final Random rand = new Random();
 
     private PreBidRequestContextFactory(Long defaultHttpRequestTimeout, PublicSuffixList psl) {
         this.defaultHttpRequestTimeout = defaultHttpRequestTimeout;
@@ -81,9 +84,17 @@ public class PreBidRequestContextFactory {
         return builder.build();
     }
 
-    private static List<Bidder> extractBidders(PreBidRequest preBidRequest) {
+    private List<Bidder> extractBidders(PreBidRequest preBidRequest) {
         return preBidRequest.adUnits.stream()
-                .flatMap(unit -> unit.bids.stream().map(bid -> AdUnitBid.from(unit, bid)))
+                .flatMap(unit -> unit.bids.stream().map(bid -> AdUnitBid.builder()
+                        .bidderCode(bid.bidder)
+                        .sizes(unit.sizes)
+                        .topframe(unit.topframe)
+                        .instl(unit.instl)
+                        .adUnitCode(unit.code)
+                        .bidId(StringUtils.defaultIfBlank(bid.bidId, Long.toUnsignedString(rand.nextLong())))
+                        .params(bid.params)
+                        .build()))
                 .collect(Collectors.groupingBy(a -> a.bidderCode))
                 .entrySet().stream()
                 .map(e -> Bidder.from(e.getKey(), e.getValue()))

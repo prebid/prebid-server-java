@@ -31,6 +31,8 @@ import static io.vertx.core.http.HttpHeaders.USER_AGENT;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
+import static org.apache.commons.lang3.math.NumberUtils.isDigits;
+import static org.apache.commons.lang3.math.NumberUtils.toLong;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -146,6 +148,22 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // then
         assertThat(preBidRequestContext.bidders).hasSize(2)
                 .flatExtracting(bidder -> bidder.adUnitBids).hasSize(4);
+    }
+
+    @Test
+    public void shouldGenerateBidIdIfAbsentInRequest() {
+        // given
+        given(routingContext.getBodyAsJson()).willReturn(givenPreBidRequestCustomizable(identity()));
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(preBidRequestContext.bidders)
+                .flatExtracting(bidder -> bidder.adUnitBids)
+                .extracting(adUnitBid -> adUnitBid.bidId)
+                .element(0)
+                .matches(id -> isDigits(id) && toLong(id) >= 0);
     }
 
     @Test

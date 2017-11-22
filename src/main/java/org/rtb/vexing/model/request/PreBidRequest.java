@@ -21,7 +21,6 @@ public final class PreBidRequest {
 
     String accountId;
 
-    // FIXME Ensure there is at least one.
     List<AdUnit> adUnits;
 
     // --- NOT REQUIRED ---
