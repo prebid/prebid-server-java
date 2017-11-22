@@ -41,7 +41,7 @@ public class AdapterCatalogTest {
         given(applicationConfig.getLong(eq("default-timeout-ms"))).willReturn(250L);
 
         // when
-        final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient).get("rubicon");
+        final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient).getByCode("rubicon");
 
         // then
         assertThat(rubiconAdapter)

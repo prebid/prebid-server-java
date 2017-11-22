@@ -1,7 +1,6 @@
 package org.rtb.vexing.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.config.ApplicationConfig;
 
 import java.util.HashMap;
@@ -12,12 +11,12 @@ import java.util.function.Function;
 public class Metrics extends UpdatableMetrics {
 
     private final Function<String, AccountMetrics> accountMetricsCreator;
-    private final Function<Adapter.Type, AdapterMetrics> adapterMetricsCreator;
+    private final Function<String, AdapterMetrics> adapterMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
     private final Map<String, AccountMetrics> accountMetrics;
-    private final Map<Adapter.Type, AdapterMetrics> adapterMetrics;
+    private final Map<String, AdapterMetrics> adapterMetrics;
 
     private Metrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(metricRegistry, counterType, Enum::name);
@@ -39,7 +38,7 @@ public class Metrics extends UpdatableMetrics {
         return accountMetrics.computeIfAbsent(account, accountMetricsCreator);
     }
 
-    public AdapterMetrics forAdapter(Adapter.Type adapterType) {
+    public AdapterMetrics forAdapter(String adapterType) {
         Objects.requireNonNull(adapterType);
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }

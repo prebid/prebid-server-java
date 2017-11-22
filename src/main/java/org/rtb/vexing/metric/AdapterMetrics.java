@@ -1,23 +1,24 @@
 package org.rtb.vexing.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.rtb.vexing.adapter.Adapter;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 public class AdapterMetrics extends UpdatableMetrics {
 
-    AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, Adapter.Type adapterType) {
-        this(metricRegistry, counterType, String.format("adapter.%s", Objects.requireNonNull(adapterType).name()));
-    }
-
-    AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String account, Adapter.Type adapterType) {
-        this(metricRegistry, counterType, String.format("account.%s.%s", Objects.requireNonNull(account),
-                Objects.requireNonNull(adapterType).name()));
-    }
-
-    private AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
+    AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String adapterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                metricName -> String.format("%s.%s", prefix, metricName.name()));
+                nameCreator(String.format("adapter.%s", Objects.requireNonNull(adapterType))));
+    }
+
+    AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String account, String adapterType) {
+        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+                nameCreator(String.format("account.%s.%s", Objects.requireNonNull(account),
+                        Objects.requireNonNull(adapterType))));
+    }
+
+    private static Function<MetricName, String> nameCreator(String prefix) {
+        return metricName -> String.format("%s.%s", prefix, metricName.name());
     }
 }

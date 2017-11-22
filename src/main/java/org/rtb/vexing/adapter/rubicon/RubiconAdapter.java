@@ -277,7 +277,7 @@ public class RubiconAdapter implements Adapter {
         final User.UserBuilder userBuilder =
                 preBidRequestContext.preBidRequest.app != null ? preBidRequestContext.preBidRequest.user.toBuilder()
                         : User.builder()
-                        .buyeruid(preBidRequestContext.uidsCookie.uidFrom(familyName()))
+                        .buyeruid(preBidRequestContext.uidsCookie.uidFrom(cookieFamily()))
                         // id is a UID for "adnxs" (see logic in open-source implementation)
                         .id(preBidRequestContext.uidsCookie.uidFrom("adnxs"));
 
@@ -459,7 +459,7 @@ public class RubiconAdapter implements Adapter {
             bidderStatusBuilder.noBid(true);
         }
 
-        if (preBidRequestContext.preBidRequest.app == null && preBidRequestContext.uidsCookie.uidFrom(familyName())
+        if (preBidRequestContext.preBidRequest.app == null && preBidRequestContext.uidsCookie.uidFrom(cookieFamily())
                 == null) {
             bidderStatusBuilder
                     .noCookie(true)
@@ -497,7 +497,12 @@ public class RubiconAdapter implements Adapter {
     }
 
     @Override
-    public String familyName() {
+    public String code() {
+        return "rubicon";
+    }
+
+    @Override
+    public String cookieFamily() {
         return "rubicon";
     }
 

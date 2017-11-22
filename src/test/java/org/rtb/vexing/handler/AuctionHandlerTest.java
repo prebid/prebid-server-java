@@ -108,8 +108,10 @@ public class AuctionHandlerTest extends VertxTest {
     public void setUp() {
         given(applicationSettings.getAccountById(any())).willReturn(Optional.of(Account.builder().build()));
 
-        given(adapterCatalog.get(eq(RUBICON))).willReturn(rubiconAdapter);
-        given(adapterCatalog.get(eq(APPNEXUS))).willReturn(appnexusAdapter);
+        given(adapterCatalog.getByCode(eq(RUBICON))).willReturn(rubiconAdapter);
+        given(adapterCatalog.isValidCode(eq(RUBICON))).willReturn(true);
+        given(adapterCatalog.getByCode(eq(APPNEXUS))).willReturn(appnexusAdapter);
+        given(adapterCatalog.isValidCode(eq(APPNEXUS))).willReturn(true);
 
         given(vertx.setPeriodic(anyLong(), any()))
                 .willAnswer(AdditionalAnswers.<Long, Handler<Long>>answerVoid((p, h) -> h.handle(0L)));

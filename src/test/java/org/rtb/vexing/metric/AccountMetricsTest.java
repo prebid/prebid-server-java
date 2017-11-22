@@ -2,7 +2,6 @@ package org.rtb.vexing.metric;
 
 import com.codahale.metrics.MetricRegistry;
 import org.junit.Test;
-import org.rtb.vexing.adapter.Adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -30,7 +29,6 @@ public class AccountMetricsTest {
                 "accountId");
 
         // when and then
-        assertThat(accountMetrics.forAdapter(Adapter.Type.rubicon)).isSameAs(accountMetrics.forAdapter(Adapter.Type
-                .rubicon));
+        assertThat(accountMetrics.forAdapter("rubicon")).isSameAs(accountMetrics.forAdapter("rubicon"));
     }
 }

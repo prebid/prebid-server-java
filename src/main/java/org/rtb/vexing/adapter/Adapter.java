@@ -10,11 +10,9 @@ public interface Adapter {
 
     Future<BidderResult> requestBids(Bidder bidder, PreBidRequestContext preBidRequestContext);
 
-    String familyName();
+    String code();
+
+    String cookieFamily();
 
     ObjectNode usersyncInfo();
-
-    enum Type {
-        appnexus, districtm, indexExchange, pubmatic, pulsepoint, rubicon, audienceNetwork, lifestreet
-    }
 }

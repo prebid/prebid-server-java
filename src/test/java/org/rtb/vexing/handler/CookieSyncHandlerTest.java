@@ -181,6 +181,32 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldTolerateUnsupportedBidder() throws IOException {
+        // given
+        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
+                CookieSyncRequest.builder().uuid("uuid").bidders(Arrays.asList(RUBICON, "unsupported")).build()));
+
+        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT", "adnxs": "12345"}}
+        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwgImFkbnhzIjogIjEyMzQ1In19"));
+
+        givenAdaptersReturningFamilyName();
+
+        given(adapterCatalog.isValidCode("unsupported")).willReturn(false);
+
+        // when
+        cookieSyncHandler.sync(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
+                .uuid("uuid")
+                .status("no_cookie")
+                .bidderStatus(emptyList())
+                .build());
+    }
+
+    @Test
     public void shouldIncrementMetrics() {
         // given
         given(routingContext.getBodyAsJson())
@@ -194,11 +220,15 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     private void givenAdaptersReturningFamilyName() {
-        given(adapterCatalog.get(eq(RUBICON))).willReturn(rubiconAdapter);
-        given(adapterCatalog.get(eq(APPNEXUS))).willReturn(appnexusAdapter);
+        given(adapterCatalog.getByCode(eq(RUBICON))).willReturn(rubiconAdapter);
+        given(adapterCatalog.isValidCode(eq(RUBICON))).willReturn(true);
+        given(adapterCatalog.getByCode(eq(APPNEXUS))).willReturn(appnexusAdapter);
+        given(adapterCatalog.isValidCode(eq(APPNEXUS))).willReturn(true);
 
-        given(rubiconAdapter.familyName()).willReturn("rubicon");
-        given(appnexusAdapter.familyName()).willReturn("adnxs");
+        given(rubiconAdapter.cookieFamily()).willReturn("rubicon");
+        given(rubiconAdapter.code()).willReturn("rubicon");
+        given(appnexusAdapter.cookieFamily()).willReturn("adnxs");
+        given(appnexusAdapter.code()).willReturn("appnexus");
     }
 
     private CookieSyncResponse captureCookieSyncResponse() throws IOException {

@@ -12,7 +12,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.config.ApplicationConfig;
 
 import java.util.EnumMap;
@@ -24,6 +23,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 public class MetricsTest {
+
+    private static final String RUBICON = "rubicon";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -83,19 +84,19 @@ public class MetricsTest {
 
     @Test
     public void forAdapterShouldReturnSameAdapterMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAdapter(Adapter.Type.rubicon)).isSameAs(metrics.forAdapter(Adapter.Type.rubicon));
+        assertThat(metrics.forAdapter(RUBICON)).isSameAs(metrics.forAdapter(RUBICON));
     }
 
     @Test
     public void forAdapterShouldReturnAdapterMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(
-                metrics -> metrics.forAdapter(Adapter.Type.rubicon).incCounter(MetricName.requests));
+                metrics -> metrics.forAdapter(RUBICON).incCounter(MetricName.requests));
     }
 
     @Test
     public void forAdapterShouldReturnAdapterMetricsConfiguredWithAdapterType() {
         // when
-        metrics.forAdapter(Adapter.Type.rubicon).incCounter(MetricName.requests);
+        metrics.forAdapter(RUBICON).incCounter(MetricName.requests);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests").getCount()).isEqualTo(1);
@@ -105,14 +106,14 @@ public class MetricsTest {
     public void shouldReturnAccountAdapterMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAccount("accountId")
-                .forAdapter(Adapter.Type.rubicon)
+                .forAdapter(RUBICON)
                 .incCounter(MetricName.requests));
     }
 
     @Test
     public void shouldReturnAccountAdapterMetricsConfiguredWithAccountAndAdapterType() {
         // when
-        metrics.forAccount("accountId").forAdapter(Adapter.Type.rubicon).incCounter(MetricName.requests);
+        metrics.forAccount("accountId").forAdapter(RUBICON).incCounter(MetricName.requests);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.rubicon.requests").getCount()).isEqualTo(1);

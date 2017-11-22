@@ -50,12 +50,13 @@ public class CookieSyncHandler {
         final CookieSyncRequest cookieSyncRequest = body.mapTo(CookieSyncRequest.class);
 
         final List<BidderStatus> bidderStatuses = cookieSyncRequest.bidders.stream()
-                .filter(bidder -> adapterCatalog.get(bidder) != null) // FIXME: remove once all adapters are implemented
-                .filter(bidder -> uidsCookie.uidFrom(adapterCatalog.get(bidder).familyName()) == null)
-                .map(bidder -> BidderStatus.builder()
-                        .bidder(bidder)
+                .filter(adapterCatalog::isValidCode)
+                .map(adapterCatalog::getByCode)
+                .filter(adapter -> uidsCookie.uidFrom(adapter.cookieFamily()) == null)
+                .map(adapter -> BidderStatus.builder()
+                        .bidder(adapter.code())
                         .noCookie(true)
-                        .usersync(adapterCatalog.get(bidder).usersyncInfo())
+                        .usersync(adapter.usersyncInfo())
                         .build())
                 .collect(Collectors.toList());
 
