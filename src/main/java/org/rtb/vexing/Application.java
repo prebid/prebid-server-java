@@ -1,11 +1,6 @@
 package org.rtb.vexing;
 
 import com.codahale.metrics.MetricRegistry;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.AbstractVerticle;
@@ -81,13 +76,6 @@ public class Application extends AbstractVerticle {
      */
     private void configureJSON() {
         ObjectMapperConfigurer.configure();
-        // FIXME: remove
-        Json.prettyMapper.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, false)
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
-                .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
-                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-                .registerModule(new AfterburnerModule());
     }
 
     /**
@@ -113,9 +101,6 @@ public class Application extends AbstractVerticle {
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     private static class DependencyContext {
 
-        ApplicationSettings applicationSettings;
-        MetricRegistry metricRegistry;
-        Metrics metrics;
         AuctionHandler auctionHandler;
         StatusHandler statusHandler;
         CookieSyncHandler cookieSyncHandler;
@@ -128,14 +113,13 @@ public class Application extends AbstractVerticle {
             configureMetricsReporter(metricRegistry, config, vertx);
             final Metrics metrics = Metrics.create(metricRegistry, config);
             final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient);
+            final PreBidRequestContextFactory preBidRequestContextFactory =
+                    PreBidRequestContextFactory.create(config, psl(), applicationSettings);
             final CacheService cacheService = CacheService.create(httpClient, config);
 
             return builder()
-                    .applicationSettings(applicationSettings)
-                    .metricRegistry(metricRegistry)
-                    .metrics(metrics)
                     .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog,
-                            PreBidRequestContextFactory.create(config, psl()), cacheService, vertx, metrics))
+                            preBidRequestContextFactory, cacheService, vertx, metrics))
                     .statusHandler(new StatusHandler())
                     .cookieSyncHandler(new CookieSyncHandler(adapterCatalog, metrics))
                     .setuidHandler(new SetuidHandler(metrics))

@@ -76,7 +76,6 @@ import static io.restassured.RestAssured.given;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
@@ -151,9 +150,10 @@ public class ApplicationTest extends VertxTest {
 
         final PreBidRequest preBidRequest = givenPreBidRequest("tid", 1000,
                 asList(
-                        givenAdUnitBuilder("adUnitCode1", 300, 250),
-                        givenAdUnitBuilder("adUnitCode2", 300, 600)),
-                givenBid(RUBICON, 2001, 3001, 4001, "bidId", inventory, visitor));
+                        givenAdUnitBuilder("adUnitCode1", 300, 250)
+                                .bids(singletonList(givenBid(RUBICON, 2001, 3001, 4001, "bidId1", inventory, visitor)))
+                                .build(),
+                        givenAdUnitBuilder("adUnitCode2", 300, 600).configId("14062").build()));
 
         // bid response for ad unit 1
         final String bidRequest1 = givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001, "example.com",
@@ -172,8 +172,8 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(bidResponse1)));
 
         // bid response for ad unit 2
-        final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 4001, "example.com",
-                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT", inventory,
+        final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 7001, "example.com",
+                "http://www.example.com", 5001, 6001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT", inventory,
                 visitor);
         final String bidResponse2 = givenBidResponse("bidResponseId2", "seatId2", "adUnitCode2", "4.26", "adm2",
                 "crid2", 300, 600, "dealId2",
@@ -223,10 +223,11 @@ public class ApplicationTest extends VertxTest {
         assertThat(preBidResponse.bids).hasSize(2).containsOnly(
                 bid("adUnitCode1", "8.43", "883db7d2-3013-4ce0-a454-adc7d208ef0c",
                         "http://localhost:" + CACHE_PORT + "/cache?uuid=883db7d2-3013-4ce0-a454-adc7d208ef0c",
-                        "crid1", 300, 250, "dealId1", singletonMap("key1", "value11"), RUBICON, "bidId", responseTime),
+                        "crid1", 300, 250, "dealId1", singletonMap("key1", "value11"), RUBICON, "bidId1", responseTime),
                 bid("adUnitCode2", "4.26", "0b4f60d1-fb99-4d95-ba6f-30ac90f9a315",
                         "http://localhost:" + CACHE_PORT + "/cache?uuid=0b4f60d1-fb99-4d95-ba6f-30ac90f9a315",
-                        "crid2", 300, 600, "dealId2", singletonMap("key2", "value21"), RUBICON, "bidId", responseTime));
+                        "crid2", 300, 600, "dealId2", singletonMap("key2", "value21"), RUBICON, "bidId2",
+                        responseTime));
     }
 
     @Test
@@ -297,17 +298,12 @@ public class ApplicationTest extends VertxTest {
                 .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
-    private static PreBidRequest givenPreBidRequest(
-            String tid, long timeoutMillis, List<AdUnit.AdUnitBuilder> adUnitBuilders,
-            org.rtb.vexing.model.request.Bid bid) {
+    private static PreBidRequest givenPreBidRequest(String tid, long timeoutMillis, List<AdUnit> adUnits) {
         return PreBidRequest.builder()
                 .accountId("1001")
                 .tid(tid)
                 .timeoutMillis(timeoutMillis)
-                .adUnits(adUnitBuilders.stream()
-                        .map(b -> b.bids(singletonList(bid)))
-                        .map(AdUnit.AdUnitBuilder::build)
-                        .collect(toList()))
+                .adUnits(adUnits)
                 .cacheMarkup(1)
                 .build();
     }

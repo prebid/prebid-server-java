@@ -28,8 +28,8 @@ public final class AdUnit {
 
     List<Bid> bids;
 
-    // /** The configuration to load for this ad unit. */
-    // public String config_id;
+    /* The configuration to load for this ad unit. */
+    String configId;
 
     // --- NOT REQUIRED ---
 

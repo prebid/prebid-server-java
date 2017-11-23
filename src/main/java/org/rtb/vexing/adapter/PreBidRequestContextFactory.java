@@ -1,10 +1,14 @@
 package org.rtb.vexing.adapter;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -13,33 +17,45 @@ import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.AdUnit;
+import org.rtb.vexing.model.request.Bid;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.settings.ApplicationSettings;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
 public class PreBidRequestContextFactory {
 
+    private static final Logger logger = LoggerFactory.getLogger(PreBidRequestContextFactory.class);
+
     private final Long defaultHttpRequestTimeout;
 
+    private final ApplicationSettings applicationSettings;
     private final PublicSuffixList psl;
 
     private final Random rand = new Random();
 
-    private PreBidRequestContextFactory(Long defaultHttpRequestTimeout, PublicSuffixList psl) {
+    private PreBidRequestContextFactory(Long defaultHttpRequestTimeout, ApplicationSettings applicationSettings,
+                                        PublicSuffixList psl) {
         this.defaultHttpRequestTimeout = defaultHttpRequestTimeout;
+        this.applicationSettings = applicationSettings;
         this.psl = psl;
     }
 
-    public static PreBidRequestContextFactory create(ApplicationConfig config, PublicSuffixList psl) {
+    public static PreBidRequestContextFactory create(ApplicationConfig config, PublicSuffixList psl,
+                                                     ApplicationSettings applicationSettings) {
         Objects.requireNonNull(config);
         Objects.requireNonNull(psl);
+        Objects.requireNonNull(applicationSettings);
 
-        return new PreBidRequestContextFactory(config.getLong("default-timeout-ms"), psl);
+        return new PreBidRequestContextFactory(config.getLong("default-timeout-ms"), applicationSettings, psl);
     }
 
     public PreBidRequestContext fromRequest(RoutingContext context) {
@@ -86,7 +102,7 @@ public class PreBidRequestContextFactory {
 
     private List<Bidder> extractBidders(PreBidRequest preBidRequest) {
         return preBidRequest.adUnits.stream()
-                .flatMap(unit -> unit.bids.stream().map(bid -> AdUnitBid.builder()
+                .flatMap(unit -> resolveUnitBids(unit).stream().map(bid -> AdUnitBid.builder()
                         .bidderCode(bid.bidder)
                         .sizes(unit.sizes)
                         .topframe(unit.topframe)
@@ -99,6 +115,28 @@ public class PreBidRequestContextFactory {
                 .entrySet().stream()
                 .map(e -> Bidder.from(e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
+    }
+
+    private List<Bid> resolveUnitBids(AdUnit unit) {
+        List<Bid> bids = unit.bids;
+
+        if (StringUtils.isNotBlank(unit.configId)) {
+            bids = Collections.emptyList();
+
+            final Optional<String> adUnitConfig = applicationSettings.getAdUnitConfigById(unit.configId);
+            if (!adUnitConfig.isPresent()) {
+                logger.warn("Failed to load config '{0}' from cache: Not found", unit.configId);
+            } else {
+                try {
+                    bids = Json.decodeValue(adUnitConfig.get(), new TypeReference<List<Bid>>() {
+                    });
+                } catch (DecodeException e) {
+                    logger.warn("Failed to load config '{0}' from cache: {1}", unit.configId, e);
+                }
+            }
+        }
+
+        return bids;
     }
 
     private long timeoutOrDefault(PreBidRequest preBidRequest) {

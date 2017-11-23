@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.rtb.vexing.settings.FileApplicationSettings;
 import org.rtb.vexing.settings.model.Account;
 
 import java.util.Optional;
@@ -82,13 +81,16 @@ public class FileApplicationSettingsTest {
     @Test
     public void getAdUnitConfigByIdShouldReturnPresentConfig() {
         // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs: [ id: '123', id: '456' ]"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
+                "configs: [ {id: '123', config: '{\"bidder\": \"rubicon\"}'}, {id: '456'} ]"));
 
-        //when
-        final Optional<String> config = FileApplicationSettings.create(fileSystem, "ignore").getAdUnitConfigById("123");
+        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
-        // then
-        assertThat(config).hasValue("");
+        //
+
+        // when and then
+        assertThat(applicationSettings.getAdUnitConfigById("123")).hasValue("{\"bidder\": \"rubicon\"}");
+        assertThat(applicationSettings.getAdUnitConfigById("456")).hasValue("");
     }
 
     @Test

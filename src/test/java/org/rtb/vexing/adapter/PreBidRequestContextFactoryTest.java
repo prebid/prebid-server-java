@@ -1,7 +1,10 @@
 package org.rtb.vexing.adapter;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Format;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.http.CaseInsensitiveHeaders;
@@ -17,13 +20,18 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.model.AdUnitBid;
+import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.Bid;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.settings.ApplicationSettings;
 
 import java.net.MalformedURLException;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static io.vertx.core.http.HttpHeaders.REFERER;
@@ -34,6 +42,7 @@ import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.math.NumberUtils.isDigits;
 import static org.apache.commons.lang3.math.NumberUtils.toLong;
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
@@ -42,6 +51,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     private static final String X_FORWARDED_FOR = "X-Forwarded-For";
     private static final Long HTTP_REQUEST_TIMEOUT = 250L;
     private static final String RUBICON = "rubicon";
+    private static final String APPNEXUS = "appnexus";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -53,6 +63,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Mock
     private HttpServerRequest httpRequest;
     private PublicSuffixList psl = new PublicSuffixListFactory().build();
+    @Mock
+    private ApplicationSettings applicationSettings;
 
     private PreBidRequestContextFactory factory;
 
@@ -68,13 +80,14 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // default timeout config
         given(config.getLong(eq("default-timeout-ms"))).willReturn(HTTP_REQUEST_TIMEOUT);
 
-        factory = PreBidRequestContextFactory.create(config, psl);
+        factory = PreBidRequestContextFactory.create(config, psl, applicationSettings);
     }
 
     @Test
     public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(null, null));
-        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(config, null));
+        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(config, null, null));
+        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(config, psl, null));
     }
 
     @Test
@@ -134,10 +147,42 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldExtractBidders() {
+    public void shouldPopulateBidder() {
         // given
         final AdUnit adUnit = AdUnit.builder()
-                .bids(asList(Bid.builder().bidder(RUBICON).build(), Bid.builder().bidder("appnexus").build()))
+                .sizes(singletonList(Format.builder().w(300).h(250).build()))
+                .topframe(1)
+                .instl(1)
+                .code("adUnitCode")
+                .bids(singletonList(Bid.builder()
+                        .bidder(RUBICON)
+                        .bidId("bidId")
+                        .params(rubiconParams(1001, 2001, 3001))
+                        .build()))
+                .build();
+        given(routingContext.getBodyAsJson()).willReturn(
+                givenPreBidRequestCustomizable(builder -> builder.adUnits(singletonList(adUnit))));
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(preBidRequestContext.bidders).containsOnly(Bidder.from(RUBICON, singletonList(AdUnitBid.builder()
+                .bidderCode(RUBICON)
+                .sizes(singletonList(Format.builder().w(300).h(250).build()))
+                .topframe(1)
+                .instl(1)
+                .adUnitCode("adUnitCode")
+                .bidId("bidId")
+                .params(rubiconParams(1001, 2001, 3001))
+                .build())));
+    }
+
+    @Test
+    public void shouldExtractMultipleBidders() {
+        // given
+        final AdUnit adUnit = AdUnit.builder()
+                .bids(asList(Bid.builder().bidder(RUBICON).build(), Bid.builder().bidder(APPNEXUS).build()))
                 .build();
         given(routingContext.getBodyAsJson()).willReturn(
                 givenPreBidRequestCustomizable(builder -> builder.adUnits(asList(adUnit, adUnit))));
@@ -148,6 +193,64 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // then
         assertThat(preBidRequestContext.bidders).hasSize(2)
                 .flatExtracting(bidder -> bidder.adUnitBids).hasSize(4);
+    }
+
+    @Test
+    public void shouldExpandAdUnitConfig() throws JsonProcessingException {
+        // given
+        final AdUnit adUnit = AdUnit.builder().configId("configId").build();
+        given(routingContext.getBodyAsJson()).willReturn(
+                givenPreBidRequestCustomizable(builder -> builder.adUnits(singletonList(adUnit))));
+
+        given(applicationSettings.getAdUnitConfigById(anyString()))
+                .willReturn(Optional.of(mapper.writeValueAsString(singletonList(
+                        Bid.builder()
+                                .bidder(RUBICON)
+                                .bidId("bidId")
+                                .params(rubiconParams(4001, 5001, 6001))
+                                .build()))));
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(preBidRequestContext.bidders).containsOnly(Bidder.from(RUBICON, singletonList(AdUnitBid.builder()
+                .bidderCode(RUBICON)
+                .bidId("bidId")
+                .params(rubiconParams(4001, 5001, 6001))
+                .build())));
+    }
+
+    @Test
+    public void shouldTolerateMissingAdUnitConfig() {
+        // given
+        final AdUnit adUnit = AdUnit.builder().configId("configId").build();
+        given(routingContext.getBodyAsJson()).willReturn(
+                givenPreBidRequestCustomizable(builder -> builder.adUnits(singletonList(adUnit))));
+
+        given(applicationSettings.getAdUnitConfigById(anyString())).willReturn(Optional.empty());
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(preBidRequestContext.bidders).isEmpty();
+    }
+
+    @Test
+    public void shouldTolerateInvalidAdUnitConfig() {
+        // given
+        final AdUnit adUnit = AdUnit.builder().configId("configId").build();
+        given(routingContext.getBodyAsJson()).willReturn(
+                givenPreBidRequestCustomizable(builder -> builder.adUnits(singletonList(adUnit))));
+
+        given(applicationSettings.getAdUnitConfigById(anyString())).willReturn(Optional.of("invalid"));
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(preBidRequestContext.bidders).isEmpty();
     }
 
     @Test
@@ -381,4 +484,13 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                                 .build())))
                 .build());
     }
+
+    private static ObjectNode rubiconParams(Integer accountId, Integer siteId, Integer zoneId) {
+        return defaultNamingMapper.valueToTree(RubiconParams.builder()
+                .accountId(accountId)
+                .siteId(siteId)
+                .zoneId(zoneId)
+                .build());
+    }
+
 }
