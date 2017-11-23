@@ -119,6 +119,43 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("account.accountId.rubicon.requests").getCount()).isEqualTo(1);
     }
 
+    @Test
+    public void cookieSyncShouldReturnSameCookieSyncMetricsOnSuccessiveCalls() {
+        assertThat(metrics.cookieSync()).isSameAs(metrics.cookieSync());
+    }
+
+    @Test
+    public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(
+                metrics -> metrics.cookieSync().incCounter(MetricName.opt_outs));
+    }
+
+    @Test
+    public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithPrefix() {
+        // when
+        metrics.cookieSync().incCounter(MetricName.opt_outs);
+
+        // then
+        assertThat(metricRegistry.counter("usersync.opt_outs").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldReturnBidderCookieSyncMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .cookieSync()
+                .forBidder(RUBICON)
+                .incCounter(MetricName.sets));
+    }
+
+    @Test
+    public void shouldReturnBidderCookieSyncMetricsConfiguredWithBidder() {
+        // when
+        metrics.cookieSync().forBidder(RUBICON).incCounter(MetricName.sets);
+
+        // then
+        assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

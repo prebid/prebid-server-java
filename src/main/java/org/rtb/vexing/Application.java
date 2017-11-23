@@ -138,7 +138,7 @@ public class Application extends AbstractVerticle {
                             PreBidRequestContextFactory.create(config, psl()), cacheService, vertx, metrics))
                     .statusHandler(new StatusHandler())
                     .cookieSyncHandler(new CookieSyncHandler(adapterCatalog, metrics))
-                    .setuidHandler(new SetuidHandler())
+                    .setuidHandler(new SetuidHandler(metrics))
                     .build();
         }
 

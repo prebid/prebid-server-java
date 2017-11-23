@@ -17,6 +17,7 @@ public class Metrics extends UpdatableMetrics {
     // thread-safe
     private final Map<String, AccountMetrics> accountMetrics;
     private final Map<String, AdapterMetrics> adapterMetrics;
+    private final CookieSyncMetrics cookieSyncMetrics;
 
     private Metrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(metricRegistry, counterType, Enum::name);
@@ -24,6 +25,7 @@ public class Metrics extends UpdatableMetrics {
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
+        cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
     }
 
     public static Metrics create(MetricRegistry metricRegistry, ApplicationConfig config) {
@@ -41,5 +43,9 @@ public class Metrics extends UpdatableMetrics {
     public AdapterMetrics forAdapter(String adapterType) {
         Objects.requireNonNull(adapterType);
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
+    }
+
+    public CookieSyncMetrics cookieSync() {
+        return cookieSyncMetrics;
     }
 }

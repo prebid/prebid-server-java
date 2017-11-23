@@ -12,6 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.metric.CookieSyncMetrics;
+import org.rtb.vexing.metric.CookieSyncMetrics.BidderCookieSyncMetrics;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -25,6 +29,13 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private Metrics metrics;
+    @Mock
+    private CookieSyncMetrics cookieSyncMetrics;
+    @Mock
+    private BidderCookieSyncMetrics bidderCookieSyncMetrics;
 
     private SetuidHandler setuidHandler;
 
@@ -42,7 +53,10 @@ public class SetuidHandlerTest extends VertxTest {
 
         given(routingContext.addCookie(any())).willReturn(routingContext);
 
-        setuidHandler = new SetuidHandler();
+        given(metrics.cookieSync()).willReturn(cookieSyncMetrics);
+        given(cookieSyncMetrics.forBidder(anyString())).willReturn(bidderCookieSyncMetrics);
+
+        setuidHandler = new SetuidHandler(metrics);
     }
 
     @Test
@@ -134,6 +148,48 @@ public class SetuidHandlerTest extends VertxTest {
         // this uids cookie value stands for {"uids":{"adnxs":"12345","rubicon":"updatedUid"}}
         assertThat(uidsCookie.getValue())
                 .isEqualTo("eyJ1aWRzIjp7ImFkbnhzIjoiMTIzNDUiLCJydWJpY29uIjoidXBkYXRlZFVpZCJ9fQ==");
+        verify(cookieSyncMetrics).forBidder(eq(RUBICON));
+        verify(bidderCookieSyncMetrics).incCounter(eq(MetricName.sets));
+    }
+
+    @Test
+    public void shouldUpdateOptOutsMetricIfOptedOut() {
+        // given
+        // this uids cookie value stands for {"optout": true}
+        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "eyJvcHRvdXQiOiB0cnVlfQ=="));
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.setuid(routingContext);
+
+        // then
+        verify(cookieSyncMetrics).incCounter(eq(MetricName.opt_outs));
+    }
+
+    @Test
+    public void shouldUpdateBadRequestsMetricIfBidderParamIsMissing() {
+        // given
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.setuid(routingContext);
+
+        // then
+        verify(cookieSyncMetrics).incCounter(eq(MetricName.bad_requests));
+    }
+
+    @Test
+    public void shouldUpdateSetsMetric() {
+        // given
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("updatedUid");
+
+        // when
+        setuidHandler.setuid(routingContext);
+
+        // then
+        verify(bidderCookieSyncMetrics).incCounter(eq(MetricName.sets));
     }
 
     private Cookie captureCookie() {

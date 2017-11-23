@@ -18,8 +18,8 @@ public class AccountMetricsTest {
 
     @Test
     public void forAdapterShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AccountMetrics(new MetricRegistry(), CounterType
-                .counter, "accountId").forAdapter(null));
+        assertThatNullPointerException().isThrownBy(() -> new AccountMetrics(new MetricRegistry(),
+                CounterType.counter, "accountId").forAdapter(null));
     }
 
     @Test
