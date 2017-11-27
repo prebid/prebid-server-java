@@ -12,9 +12,11 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public final class RubiconUserExt {
+public class RubiconUserExtDt {
 
-    RubiconUserExtRp rp;
+    String id;
 
-    RubiconUserExtDt dt;
+    Integer keyv;
+
+    Integer preference;
 }

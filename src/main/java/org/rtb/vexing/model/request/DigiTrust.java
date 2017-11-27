@@ -1,4 +1,4 @@
-package org.rtb.vexing.adapter.rubicon.model;
+package org.rtb.vexing.model.request;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -12,9 +12,11 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public final class RubiconUserExt {
+public class DigiTrust {
 
-    RubiconUserExtRp rp;
+    String id;
 
-    RubiconUserExtDt dt;
+    Integer keyv;
+
+    Integer pref;
 }

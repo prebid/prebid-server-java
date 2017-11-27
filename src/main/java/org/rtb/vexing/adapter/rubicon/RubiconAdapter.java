@@ -45,6 +45,7 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtDt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
@@ -344,15 +345,34 @@ public class RubiconAdapter implements Adapter {
         }
 
         return userBuilder
-                .ext(Json.mapper.valueToTree(makeUserExt(rubiconParams)))
+                .ext(Json.mapper.valueToTree(makeUserExt(rubiconParams, preBidRequestContext)))
                 .build();
     }
 
-    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams) {
-        return !rubiconParams.visitor.isNull() ? RubiconUserExt.builder()
-                .rp(RubiconUserExtRp.builder().target(rubiconParams.visitor).build())
-                .build()
-                : null;
+    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
+
+        if (rubiconParams.visitor.isNull() && preBidRequestContext.preBidRequest.digiTrust == null) {
+            return null;
+        }
+
+        final RubiconUserExt.RubiconUserExtBuilder rubiconUserExtBuilder = RubiconUserExt.builder();
+
+        if (!rubiconParams.visitor.isNull()) {
+            rubiconUserExtBuilder.rp(RubiconUserExtRp.builder()
+                    .target(rubiconParams.visitor).build());
+        }
+
+        // add DigiTrust id to Bid request only in case of preference equals to 0
+        if (preBidRequestContext.preBidRequest.digiTrust != null
+                && preBidRequestContext.preBidRequest.digiTrust.pref == 0) {
+            rubiconUserExtBuilder.dt(RubiconUserExtDt.builder()
+                    .id(preBidRequestContext.preBidRequest.digiTrust.id)
+                    .keyv(preBidRequestContext.preBidRequest.digiTrust.keyv)
+                    .preference(preBidRequestContext.preBidRequest.digiTrust.pref)
+                    .build());
+        }
+
+        return rubiconUserExtBuilder.build();
     }
 
     private static Source makeSource(PreBidRequestContext preBidRequestContext) {

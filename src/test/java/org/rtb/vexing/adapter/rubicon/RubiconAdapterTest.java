@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -58,6 +59,7 @@ import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.PreBidRequestContext.PreBidRequestContextBuilder;
+import org.rtb.vexing.model.request.DigiTrust;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.rtb.vexing.model.request.Sdk;
@@ -557,6 +559,72 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(bidRequest.getImp().get(0).getExt().at("/rp/target")).isEqualTo(inventory);
         assertThat(bidRequest.getUser().getExt().at("/rp/target")).isEqualTo(visitor);
     }
+
+    @Test
+    public void requestBidsShouldSendBidRequestWithoutDigiTrustIfVisitorIsPresentAndDtIsAbsent() throws IOException{
+        //given
+        final ObjectNode visitor = mapper.createObjectNode();
+        visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
+        visitor.set("search", mapper.createArrayNode().add((new TextNode("iphone"))));
+
+        bidder = givenBidderCustomizable(identity(), builder -> builder.visitor(visitor));
+
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidRequest bidRequest = captureBidRequest();
+        assertThat(bidRequest.getUser().getExt()).isNotNull();
+        assertThat(bidRequest.getUser().getExt().at("/dt")).isEqualTo(MissingNode.getInstance());
+        assertThat(bidRequest.getUser().getExt().at("/rp")).isNotNull();
+    }
+
+    @Test
+    public void requestBidsShouldSendBidRequestWithDigiTrustFromPreBidRequest() throws IOException {
+        //given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(
+                identity(),
+                builder -> builder
+                        .tid("tid")
+                        .digiTrust(DigiTrust.builder()
+                                .id("id")
+                                .keyv(123)
+                                .pref(0)
+                                .build()));
+
+        //when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        //then
+        final ObjectNode digiTrust = mapper.createObjectNode();
+        digiTrust.set("id", new TextNode("id"));
+        digiTrust.set("keyv", new IntNode(123));
+        digiTrust.set("preference", new IntNode(0));
+
+        final BidRequest bidRequest = captureBidRequest();
+        assertThat(bidRequest.getUser().getExt().at("/dt")).isEqualTo(digiTrust);
+    }
+
+    @Test
+    public void requestBidsShouldSendBidRequestWithoutDTFromPreBidRequestIfPrefIsNotZero() throws IOException {
+        //given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(
+                identity(),
+                builder -> builder
+                        .tid("tid")
+                        .digiTrust(DigiTrust.builder()
+                                .id("id")
+                                .keyv(123)
+                                .pref(1)
+                                .build()));
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        //then
+        final BidRequest bidRequest = captureBidRequest();
+        assertThat(bidRequest.getUser().getExt().at("/dt")).isEqualTo(MissingNode.getInstance());
+    }
+
 
     @Test
     public void requestBidsShouldSendMultipleBidRequestsIfMultipleAdUnitsInPreBidRequest() throws IOException {

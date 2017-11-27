@@ -28,6 +28,8 @@ public final class PreBidRequest {
     /* Unique transaction ID. */
     String tid;
 
+    DigiTrust digiTrust;
+
     /* How long to wait for adapters to return bids. */
     Long timeoutMillis;
 
