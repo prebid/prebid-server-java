@@ -37,4 +37,6 @@ public class PreBidRequestContext {
     String ip;
 
     boolean isDebug;
+
+    boolean noLiveUids;
 }

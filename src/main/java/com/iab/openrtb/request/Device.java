@@ -1,9 +1,10 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import lombok.Builder;
 import lombok.Value;
+
+import java.math.BigDecimal;
 
 /**
  * This object provides information pertaining to the device through which the
@@ -23,7 +24,7 @@ import lombok.Value;
  * ranges. Exchanges are urged to research and implement this feature carefully
  * when presenting device IP values to bidders.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Device {
 
@@ -89,7 +90,7 @@ public class Device {
     Integer ppi;
 
     /** The ratio of physical pixels to device independent pixels. */
-    Float pxratio;
+    BigDecimal pxratio;
 
     /** Support for JavaScript, where 0 = no, 1 = yes. */
     Integer js;

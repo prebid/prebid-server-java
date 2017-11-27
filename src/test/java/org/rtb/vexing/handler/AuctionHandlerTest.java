@@ -26,7 +26,6 @@ import org.rtb.vexing.adapter.PreBidRequestContextFactory;
 import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;
-import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.metric.AccountMetrics;
 import org.rtb.vexing.metric.AdapterMetrics;
 import org.rtb.vexing.metric.MetricName;
@@ -101,8 +100,6 @@ public class AuctionHandlerTest extends VertxTest {
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
-    @Mock
-    private UidsCookie uidsCookie;
 
     @Before
     public void setUp() {
@@ -195,9 +192,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithNoCookieStatusIfNoLiveUidsInCookie() throws IOException {
         // given
-        givenPreBidRequestContext();
-
-        given(uidsCookie.hasLiveUids()).willReturn(false);
+        givenPreBidRequestContextCustomizable(identity(), builder -> builder.noLiveUids(true));
 
         // when
         auctionHandler.auction(routingContext);
@@ -210,7 +205,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfUnexpectedExceptionOccurs() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(identity());
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
         given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.failedFuture(new RuntimeException()));
 
@@ -225,7 +220,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldInteractWithCacheServiceIfRequestHasBidsAndCacheMarkupFlag() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(builder -> builder.cacheMarkup(1));
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
         givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
 
@@ -252,7 +247,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotInteractWithCacheServiceIfRequestHasBidsAndNoCacheMarkupFlag() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(identity());
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
         givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
 
@@ -270,7 +265,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldNotInteractWithCacheServiceIfRequestHasNoBidsButCacheMarkupFlag() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(builder -> builder.cacheMarkup(1));
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
         givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity());
 
@@ -284,7 +279,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfCacheServiceFails() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(builder -> builder.cacheMarkup(1));
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
         givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
 
@@ -302,9 +297,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithMultipleBidderStatusesAndBidsWhenMultipleAdUnitsAndBidsInPreBidRequest()
             throws IOException {
         // given
-        givenPreBidRequestContextWith2AdUnitsAnd2BidsEach();
-
-        given(uidsCookie.hasLiveUids()).willReturn(true);
+        givenPreBidRequestContextCustomizableWith2AdUnitsAnd2BidsEach(builder -> builder.noLiveUids(false));
 
         givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1", "bidId2");
         givenAdapterRespondingWithBids(appnexusAdapter, APPNEXUS, identity(), "bidId3", "bidId4");
@@ -344,7 +337,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateErrorResultFromAdapter() throws IOException {
         // given
-        givenPreBidRequestContextWith2AdUnitsAnd2BidsEach();
+        givenPreBidRequestContextCustomizableWith2AdUnitsAnd2BidsEach(identity());
 
         givenAdapterRespondingWithError(rubiconAdapter, RUBICON, "rubicon error", false);
         givenAdapterRespondingWithBids(appnexusAdapter, APPNEXUS, identity(), "bidId1");
@@ -364,7 +357,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementCommonMetrics() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(builder -> builder.app(App.builder().build()));
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.app(App.builder().build()));
 
         // simulate calling end handler that is supposed to update request_time timer value
         given(httpResponse.endHandler(any())).willAnswer(inv -> {
@@ -405,7 +398,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementNoBidMetrics() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(identity());
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
         givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, builder -> builder.noBid(true));
 
@@ -420,7 +413,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementSafariAndNoCookieMetrics() {
         // given
-        givenPreBidRequestContext();
+        givenPreBidRequestContextCustomizable(identity(), builder -> builder.noLiveUids(true));
 
         httpRequest.headers().add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
                 "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
@@ -437,7 +430,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfRequestBodyHasUnknownAccountId() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(identity());
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
         given(applicationSettings.getAccountById(any())).willReturn(Optional.empty());
 
@@ -463,7 +456,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfAdapterReturnsError() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(identity());
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
         givenAdapterRespondingWithError(rubiconAdapter, RUBICON, "rubicon error", false);
 
@@ -478,7 +471,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfAdapterReturnsTimeoutError() {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(identity());
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
         givenAdapterRespondingWithError(rubiconAdapter, RUBICON, "time out", true);
 
@@ -493,7 +486,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfCacheServiceFails() throws IOException {
         // given
-        givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(builder -> builder.cacheMarkup(1));
+        givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
         givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
 
@@ -506,19 +499,21 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
-    private void givenPreBidRequestContextWith1AdUnitAnd1BidCustomizable(
+    private void givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
         final List<Bidder> bidders = singletonList(Bidder.from(RUBICON, singletonList(null)));
         givenPreBidRequestContextCustomizable(preBidRequestBuilderCustomizer, builder -> builder.bidders(bidders));
     }
 
-    private void givenPreBidRequestContextWith2AdUnitsAnd2BidsEach() {
+    private void givenPreBidRequestContextCustomizableWith2AdUnitsAnd2BidsEach(
+            Function<PreBidRequestContextBuilder, PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer) {
         final List<AdUnitBid> adUnitBids = asList(null, null);
         final List<Bidder> bidders = asList(
                 Bidder.from(RUBICON, adUnitBids),
                 Bidder.from(APPNEXUS, adUnitBids));
-        givenPreBidRequestContextCustomizable(identity(), builder -> builder.bidders(bidders));
+        givenPreBidRequestContextCustomizable(identity(),
+                preBidRequestContextBuilderCustomizer.compose(builder -> builder.bidders(bidders)));
     }
 
     private void givenPreBidRequestContextCustomizable(
@@ -534,8 +529,7 @@ public class AuctionHandlerTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = preBidRequestContextBuilderCustomizer.apply(
                 PreBidRequestContext.builder()
                         .bidders(emptyList())
-                        .preBidRequest(preBidRequest)
-                        .uidsCookie(uidsCookie))
+                        .preBidRequest(preBidRequest))
                 .build();
         given(preBidRequestContextFactory.fromRequest(any())).willReturn(preBidRequestContext);
     }

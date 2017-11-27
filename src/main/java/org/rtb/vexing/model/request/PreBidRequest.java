@@ -58,6 +58,8 @@ public final class PreBidRequest {
      */
     Device device;
 
+    Sdk sdk;
+
     User user;
 
     Boolean isDebug;

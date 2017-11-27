@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
  * method. For example might be a video impression embedded in an iframe on an
  * unknown web property or device.
  */
+@Builder
 @Value
 public class Content {
 

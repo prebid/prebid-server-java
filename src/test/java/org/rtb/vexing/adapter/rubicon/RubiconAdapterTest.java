@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
@@ -37,8 +38,10 @@ import org.mockito.stubbing.Answer;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconDeviceExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconImpExtRpTrack;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams.RubiconParamsBuilder;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExt;
@@ -57,6 +60,7 @@ import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.request.PreBidRequest.PreBidRequestBuilder;
+import org.rtb.vexing.model.request.Sdk;
 import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
@@ -317,7 +321,13 @@ public class RubiconAdapterTest extends VertxTest {
                         .domain("example.com")
                         .ip("192.168.144.1")
                         .ua("userAgent"),
-                builder -> builder.tid("tid"));
+                builder -> builder
+                        .tid("tid")
+                        .sdk(Sdk.builder().source("source1").platform("platform1").version("version1").build())
+                        .device(Device.builder()
+                                .pxratio(new BigDecimal("4.2"))
+                                .build())
+        );
 
         given(uidsCookie.uidFrom(eq(RUBICON))).willReturn("buyerUid");
 
@@ -326,6 +336,12 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         final BidRequest bidRequest = captureBidRequest();
+
+        // created manually, because mapper creates Double ObjectNode instead of BigDecimal
+        // for floating point numbers when capturing (production doesn't influenced)
+        ObjectNode rp = mapper.createObjectNode();
+        rp.set("rp", mapper.createObjectNode().put("pixelratio", new Double("4.2")));
+
         assertThat(bidRequest).isEqualTo(
                 BidRequest.builder()
                         .id("tid")
@@ -352,6 +368,10 @@ public class RubiconAdapterTest extends VertxTest {
                                 .ext(mapper.valueToTree(RubiconImpExt.builder()
                                         .rp(RubiconImpExtRp.builder()
                                                 .zoneId(4001)
+                                                .track(RubiconImpExtRpTrack.builder()
+                                                        .mint("prebid")
+                                                        .mintVersion("source1_platform1_version1")
+                                                        .build())
                                                 .build())
                                         .build()))
                                 .build()))
@@ -374,6 +394,8 @@ public class RubiconAdapterTest extends VertxTest {
                         .device(Device.builder()
                                 .ua("userAgent")
                                 .ip("192.168.144.1")
+                                .pxratio(new BigDecimal("4.2"))
+                                .ext(rp)
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
@@ -398,6 +420,65 @@ public class RubiconAdapterTest extends VertxTest {
         final BidRequest bidRequest = captureBidRequest();
         assertThat(bidRequest.getApp()).isNotNull()
                 .returns("appId", from(App::getId));
+    }
+
+    @Test
+    public void requestBidsShouldSendBidRequestWithMobileSpecificFeatures() throws IOException {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
+                .app(App.builder().id("appId").build())
+                .sdk(Sdk.builder().source("source1").platform("platform1").version("version1").build())
+                .device(Device.builder().pxratio(new BigDecimal("4.2")).build())
+                .user(User.builder().language("language1").build()));
+
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidRequest bidRequest = captureBidRequest();
+
+        assertThat(bidRequest.getImp()).hasSize(1)
+                .extracting(Imp::getExt).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class)).isNotNull()
+                .extracting(ext -> ext.rp).isNotNull()
+                .extracting(rp -> rp.track).containsOnly(RubiconImpExtRpTrack.builder()
+                .mint("prebid").mintVersion("source1_platform1_version1").build());
+
+        final Device device = bidRequest.getDevice();
+        assertThat(device).isNotNull();
+        assertThat(device.getExt()).isNotNull();
+        final RubiconDeviceExt deviceExt = mapper.treeToValue(device.getExt(), RubiconDeviceExt.class);
+        assertThat(deviceExt.rp).isNotNull();
+        assertThat(deviceExt.rp.pixelratio).isEqualTo(new BigDecimal("4.2"));
+
+        assertThat(bidRequest.getSite()).isNotNull()
+                .returns(Content.builder().language("language1").build(), from(Site::getContent));
+    }
+
+    @Test
+    public void requestBidsShouldSendBidRequestWithDefaultMobileSpecificFeatures() throws IOException {
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidRequest bidRequest = captureBidRequest();
+
+        assertThat(bidRequest.getImp()).hasSize(1)
+                .extracting(Imp::getExt).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class)).isNotNull()
+                .extracting(ext -> ext.rp).isNotNull()
+                .extracting(rp -> rp.track).containsOnly(RubiconImpExtRpTrack.builder()
+                .mint("prebid").mintVersion("__").build());
+
+        final Device device = bidRequest.getDevice();
+        assertThat(device).isNotNull();
+        assertThat(device.getExt()).isNotNull();
+        final RubiconDeviceExt deviceExt = mapper.treeToValue(device.getExt(), RubiconDeviceExt.class);
+        assertThat(deviceExt.rp).isNotNull();
+        assertThat(deviceExt.rp.pixelratio).isNull();
+
+        assertThat(bidRequest.getSite()).isNotNull()
+                .returns(null, from(Site::getContent));
     }
 
     @Test

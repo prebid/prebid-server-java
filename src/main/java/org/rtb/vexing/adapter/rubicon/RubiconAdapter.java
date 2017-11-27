@@ -3,8 +3,10 @@ package org.rtb.vexing.adapter.rubicon;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
@@ -31,8 +33,11 @@ import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconDeviceExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconDeviceExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconImpExtRpTrack;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExtRp;
@@ -46,12 +51,13 @@ import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.PreBidRequestContext;
-import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.request.Sdk;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;
@@ -153,14 +159,14 @@ public class RubiconAdapter implements Adapter {
 
         return BidRequest.builder()
                 .id(preBidRequestContext.preBidRequest.tid)
-                .app(preBidRequestContext.preBidRequest.app)
+                .app(makeApp(rubiconParams, preBidRequestContext))
                 .at(1)
                 .tmax(preBidRequestContext.timeout)
                 .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, preBidRequestContext)))
                 .site(makeSite(rubiconParams, preBidRequestContext))
                 .device(makeDevice(preBidRequestContext))
                 .user(makeUser(rubiconParams, preBidRequestContext))
-                .source(makeSource(preBidRequestContext.preBidRequest))
+                .source(makeSource(preBidRequestContext))
                 .build();
     }
 
@@ -188,6 +194,14 @@ public class RubiconAdapter implements Adapter {
         return rubiconParams;
     }
 
+    private static App makeApp(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
+        final App app = preBidRequestContext.preBidRequest.app;
+        return app == null ? null : app.toBuilder()
+                .publisher(makePublisher(rubiconParams))
+                .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)))
+                .build();
+    }
+
     private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams, PreBidRequestContext
             preBidRequestContext) {
         return Imp.builder()
@@ -195,7 +209,33 @@ public class RubiconAdapter implements Adapter {
                 .secure(preBidRequestContext.secure)
                 .instl(adUnitBid.instl)
                 .banner(makeBanner(adUnitBid))
-                .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams)))
+                .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)))
+                .build();
+    }
+
+    private static RubiconImpExt makeImpExt(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
+        return RubiconImpExt.builder()
+                .rp(RubiconImpExtRp.builder()
+                        .zoneId(rubiconParams.zoneId)
+                        .target(!rubiconParams.inventory.isNull() ? rubiconParams.inventory : null)
+                        .track(makeImpExtRpTrack(preBidRequestContext))
+                        .build())
+                .build();
+    }
+
+    private static RubiconImpExtRpTrack makeImpExtRpTrack(PreBidRequestContext preBidRequestContext) {
+        final Sdk sdk = preBidRequestContext.preBidRequest.sdk;
+        final String mintVersion;
+        if (sdk != null) {
+            mintVersion = String.format("%s_%s_%s", StringUtils.defaultString(sdk.getSource()),
+                    StringUtils.defaultString(sdk.getPlatform()), StringUtils.defaultString(sdk.getVersion()));
+        } else {
+            mintVersion = "__";
+        }
+
+        return RubiconImpExtRpTrack.builder()
+                .mint("prebid")
+                .mintVersion(mintVersion)
                 .build();
     }
 
@@ -229,21 +269,28 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private static RubiconImpExt makeImpExt(RubiconParams rubiconParams) {
-        return RubiconImpExt.builder()
-                .rp(RubiconImpExtRp.builder()
-                        .zoneId(rubiconParams.zoneId)
-                        .target(!rubiconParams.inventory.isNull() ? rubiconParams.inventory : null)
-                        .build())
-                .build();
+    private Site makeSite(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
+        final Site.SiteBuilder siteBuilder = Site.builder();
+
+        if (preBidRequestContext.preBidRequest.app != null) {
+            final User user = preBidRequestContext.preBidRequest.user;
+            final String language = user != null ? user.getLanguage() : null;
+            siteBuilder
+                    .content(Content.builder().language(language).build());
+        } else {
+            siteBuilder
+                    .domain(preBidRequestContext.domain)
+                    .page(preBidRequestContext.referer)
+                    .publisher(makePublisher(rubiconParams))
+                    .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)));
+        }
+
+        return siteBuilder.build();
     }
 
-    private Site makeSite(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
-        return Site.builder()
-                .domain(preBidRequestContext.domain)
-                .page(preBidRequestContext.referer)
-                .publisher(makePublisher(rubiconParams))
-                .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)))
+    private static RubiconSiteExt makeSiteExt(RubiconParams rubiconParams) {
+        return RubiconSiteExt.builder()
+                .rp(RubiconSiteExtRp.builder().siteId(rubiconParams.siteId).build())
                 .build();
     }
 
@@ -259,27 +306,42 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private static RubiconSiteExt makeSiteExt(RubiconParams rubiconParams) {
-        return RubiconSiteExt.builder()
-                .rp(RubiconSiteExtRp.builder().siteId(rubiconParams.siteId).build())
+    private static Device makeDevice(PreBidRequestContext preBidRequestContext) {
+        final Device device = preBidRequestContext.preBidRequest.device;
+
+        // create a copy since device might be shared with other adapters
+        final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
+
+        if (preBidRequestContext.preBidRequest.app == null) {
+            deviceBuilder.ua(preBidRequestContext.ua);
+        }
+
+        return deviceBuilder
+                .ip(preBidRequestContext.ip)
+                .ext(Json.mapper.valueToTree(makeDeviceExt(preBidRequestContext)))
                 .build();
     }
 
-    private static Device makeDevice(PreBidRequestContext preBidRequestContext) {
-        return Device.builder()
-                .ua(preBidRequestContext.ua)
-                .ip(preBidRequestContext.ip)
+    private static RubiconDeviceExt makeDeviceExt(PreBidRequestContext preBidRequestContext) {
+        final Device device = preBidRequestContext.preBidRequest.device;
+        final BigDecimal pixelratio = device != null ? device.getPxratio() : null;
+
+        return RubiconDeviceExt.builder()
+                .rp(RubiconDeviceExtRp.builder().pixelratio(pixelratio).build())
                 .build();
     }
 
     private User makeUser(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
         // create a copy since user might be shared with other adapters
-        final User.UserBuilder userBuilder =
-                preBidRequestContext.preBidRequest.app != null ? preBidRequestContext.preBidRequest.user.toBuilder()
-                        : User.builder()
-                        .buyeruid(preBidRequestContext.uidsCookie.uidFrom(cookieFamily()))
-                        // id is a UID for "adnxs" (see logic in open-source implementation)
-                        .id(preBidRequestContext.uidsCookie.uidFrom("adnxs"));
+        final User user = preBidRequestContext.preBidRequest.user;
+        final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
+
+        if (preBidRequestContext.preBidRequest.app == null) {
+            userBuilder
+                    .buyeruid(preBidRequestContext.uidsCookie.uidFrom(cookieFamily()))
+                    // id is a UID for "adnxs" (see logic in open-source implementation)
+                    .id(preBidRequestContext.uidsCookie.uidFrom("adnxs"));
+        }
 
         return userBuilder
                 .ext(Json.mapper.valueToTree(makeUserExt(rubiconParams)))
@@ -293,10 +355,15 @@ public class RubiconAdapter implements Adapter {
                 : null;
     }
 
-    private static Source makeSource(PreBidRequest preBidRequest) {
-        return Source.builder()
-                .fd(1)
-                .tid(preBidRequest.tid)
+    private static Source makeSource(PreBidRequestContext preBidRequestContext) {
+        final Source.SourceBuilder sourceBuilder = Source.builder();
+
+        if (preBidRequestContext.preBidRequest.app == null) {
+            sourceBuilder.fd(1); // upstream, aka header
+        }
+
+        return sourceBuilder
+                .tid(preBidRequestContext.preBidRequest.tid)
                 .build();
     }
 

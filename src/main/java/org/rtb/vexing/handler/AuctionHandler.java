@@ -146,7 +146,7 @@ public class AuctionHandler {
                 .collect(Collectors.toList());
 
         final PreBidResponse response = PreBidResponse.builder()
-                .status(preBidRequestContext.uidsCookie.hasLiveUids() ? "OK" : "no_cookie")
+                .status(preBidRequestContext.noLiveUids ? "no_cookie" : "OK")
                 .tid(preBidRequestContext.preBidRequest.tid)
                 .bidderStatus(bidderStatuses)
                 .bids(bids)
@@ -230,7 +230,7 @@ public class AuctionHandler {
     private void updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext, boolean isSafari) {
         if (preBidRequestContext.preBidRequest.app != null) {
             metrics.incCounter(MetricName.app_requests);
-        } else if (!preBidRequestContext.uidsCookie.hasLiveUids()) {
+        } else if (preBidRequestContext.noLiveUids) {
             metrics.incCounter(MetricName.no_cookie_requests);
             if (isSafari) {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);

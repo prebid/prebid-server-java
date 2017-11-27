@@ -113,6 +113,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         assertThat(preBidRequestContext.secure).isNull();
         assertThat(preBidRequestContext.isDebug).isFalse();
         assertThat(preBidRequestContext.uidsCookie).isNotNull();
+        assertThat(preBidRequestContext.noLiveUids).isTrue();
         assertThat(preBidRequestContext.ua).isEqualTo("userAgent");
         assertThat(preBidRequestContext.referer).isEqualTo("http://www.example.com");
         assertThat(preBidRequestContext.domain).isEqualTo("example.com");
@@ -428,6 +429,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         // then
         assertThat(preBidRequestContext.uidsCookie).isNull();
+        assertThat(preBidRequestContext.noLiveUids).isFalse();
         assertThat(preBidRequestContext.ua).isNull();
         assertThat(preBidRequestContext.referer).isNull();
         assertThat(preBidRequestContext.domain).isNull();
@@ -492,5 +494,4 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .zoneId(zoneId)
                 .build());
     }
-
 }

@@ -38,8 +38,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconDeviceExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconDeviceExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconImpExtRpTrack;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExtRp;
@@ -58,6 +61,7 @@ import org.rtb.vexing.cache.model.response.CacheObject;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.request.Sdk;
 import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.CookieSyncResponse;
@@ -151,16 +155,18 @@ public class ApplicationTest extends VertxTest {
         final PreBidRequest preBidRequest = givenPreBidRequest("tid", 1000,
                 asList(
                         givenAdUnitBuilder("adUnitCode1", 300, 250)
-                                .bids(singletonList(givenBid(RUBICON, 2001, 3001, 4001, "bidId1", inventory, visitor)))
-                                .build(),
-                        givenAdUnitBuilder("adUnitCode2", 300, 600).configId("14062").build()));
+                                .bids(singletonList(givenBid(RUBICON, 2001, 3001, 4001,
+                                        "bidId1", inventory, visitor))).build(),
+                        givenAdUnitBuilder("adUnitCode2", 300, 600).configId("14062").build()),
+                "userAgent", "192.168.244.1", "4.2");
 
         // bid response for ad unit 1
-        final String bidRequest1 = givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001, "example.com",
-                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT", inventory,
-                visitor);
-        final String bidResponse1 = givenBidResponse("bidResponseId1", "seatId1", "adUnitCode1", "8.43", "adm1",
-                "crid1", 300, 250, "dealId1",
+        final String bidRequest1 = givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250,
+                15, 4001, "example.com", "http://www.example.com", 2001,
+                3001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
+                inventory, visitor);
+        final String bidResponse1 = givenBidResponse("bidResponseId1", "seatId1",
+                "adUnitCode1", "8.43", "adm1", "crid1", 300, 250, "dealId1",
                 RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build());
         wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
                 .withQueryParam("tk_xint", equalTo("rp-pbs"))
@@ -172,22 +178,23 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(bidResponse1)));
 
         // bid response for ad unit 2
-        final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 7001, "example.com",
-                "http://www.example.com", 5001, 6001, "userAgent", "192.168.244.1", "J5VLCWQP-26-CWFT", inventory,
-                visitor);
-        final String bidResponse2 = givenBidResponse("bidResponseId2", "seatId2", "adUnitCode2", "4.26", "adm2",
-                "crid2", 300, 600, "dealId2",
+        final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600,
+                10, 7001, "example.com", "http://www.example.com", 5001,
+                6001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
+                inventory, visitor);
+        final String bidResponse2 = givenBidResponse("bidResponseId2", "seatId2",
+                "adUnitCode2", "4.26", "adm2", "crid2", 300, 600, "dealId2",
                 RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build());
         wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
                 .withRequestBody(equalToJson(bidRequest2))
                 .willReturn(aResponse().withBody(bidResponse2)));
 
         // pre-bid cache
-        String bidCacheRequestAsString = givenBidCacheRequest(asList(
+        final String bidCacheRequestAsString = givenBidCacheRequest(asList(
                 PutValue.builder().adm("adm1").width(300).height(250).build(),
                 PutValue.builder().adm("adm2").width(300).height(600).build()
         ));
-        String bidCacheResponseAsString = givenBidCacheResponse(asList(
+        final String bidCacheResponseAsString = givenBidCacheResponse(asList(
                 "883db7d2-3013-4ce0-a454-adc7d208ef0c",
                 "0b4f60d1-fb99-4d95-ba6f-30ac90f9a315"
         ));
@@ -298,13 +305,23 @@ public class ApplicationTest extends VertxTest {
                 .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
-    private static PreBidRequest givenPreBidRequest(String tid, long timeoutMillis, List<AdUnit> adUnits) {
+    private static PreBidRequest givenPreBidRequest(String tid, long timeoutMillis, List<AdUnit> adUnits,
+                                                    String userAgent, String ip, String pxratio) {
         return PreBidRequest.builder()
                 .accountId("1001")
                 .tid(tid)
                 .timeoutMillis(timeoutMillis)
                 .adUnits(adUnits)
                 .cacheMarkup(1)
+                .sdk(Sdk.builder().source("source1").platform("platform1").version("version1").build())
+                .device(Device.builder()
+                        .ua(userAgent)
+                        .ip(ip)
+                        .pxratio(new BigDecimal(pxratio))
+                        .ext(mapper.valueToTree(RubiconDeviceExt.builder()
+                                .rp(RubiconDeviceExtRp.builder().pixelratio(new BigDecimal(pxratio)).build())
+                                .build()))
+                        .build())
                 .build();
     }
 
@@ -331,8 +348,8 @@ public class ApplicationTest extends VertxTest {
 
     private static String givenBidRequest(
             String tid, long tmax, String adUnitCode, int w, int h, int sizeId, int zoneId, String domain,
-            String page, int accountId, int siteId, String userAgent, String ip, String buyerUid, JsonNode inventory,
-            JsonNode visitor) throws JsonProcessingException {
+            String page, int accountId, int siteId, String userAgent, String ip, String pxratio, String buyerUid,
+            JsonNode inventory, JsonNode visitor) throws JsonProcessingException {
 
         return mapper.writeValueAsString(BidRequest.builder()
                 .id(tid)
@@ -358,6 +375,10 @@ public class ApplicationTest extends VertxTest {
                                 .rp(RubiconImpExtRp.builder()
                                         .zoneId(zoneId)
                                         .target(inventory)
+                                        .track(RubiconImpExtRpTrack.builder()
+                                                .mint("prebid")
+                                                .mintVersion("source1_platform1_version1")
+                                                .build())
                                         .build())
                                 .build()))
                         .build()))
@@ -380,6 +401,10 @@ public class ApplicationTest extends VertxTest {
                 .device(Device.builder()
                         .ua(userAgent)
                         .ip(ip)
+                        .pxratio(new BigDecimal(pxratio))
+                        .ext(mapper.valueToTree(RubiconDeviceExt.builder()
+                                .rp(RubiconDeviceExtRp.builder().pixelratio(new BigDecimal(pxratio)).build())
+                                .build()))
                         .build())
                 .user(User.builder()
                         .buyeruid(buyerUid)

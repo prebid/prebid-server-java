@@ -38,6 +38,8 @@ public class User {
      */
     String gender;
 
+    String language;
+
     /** Comma separated list of keywords, interests, or intent. */
     String keywords;
 

@@ -86,11 +86,15 @@ public class PreBidRequestContextFactory {
                 .timeout(timeoutOrDefault(preBidRequest))
                 .ip(ip(httpRequest))
                 .secure(secure(httpRequest))
-                .isDebug(isDebug(preBidRequest, httpRequest));
+                .isDebug(isDebug(preBidRequest, httpRequest))
+                .noLiveUids(false);
 
         if (preBidRequest.app == null) {
             final String referer = referer(httpRequest);
-            builder.uidsCookie(UidsCookie.parseFromRequest(context))
+            final UidsCookie uidsCookie = UidsCookie.parseFromRequest(context);
+
+            builder.uidsCookie(uidsCookie)
+                    .noLiveUids(!uidsCookie.hasLiveUids())
                     .ua(ua(httpRequest))
                     .referer(referer)
                     .domain(domain(referer))
