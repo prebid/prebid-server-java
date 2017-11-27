@@ -23,6 +23,7 @@ import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.adapter.PreBidRequestContextFactory;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.cookie.UidsCookieFactory;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.handler.CookieSyncHandler;
 import org.rtb.vexing.handler.SetuidHandler;
@@ -113,16 +114,17 @@ public class Application extends AbstractVerticle {
             configureMetricsReporter(metricRegistry, config, vertx);
             final Metrics metrics = Metrics.create(metricRegistry, config);
             final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient);
+            final UidsCookieFactory uidsCookieFactory = UidsCookieFactory.create(config);
             final PreBidRequestContextFactory preBidRequestContextFactory =
-                    PreBidRequestContextFactory.create(config, psl(), applicationSettings);
+                    PreBidRequestContextFactory.create(config, psl(), applicationSettings, uidsCookieFactory);
             final CacheService cacheService = CacheService.create(httpClient, config);
 
             return builder()
                     .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog,
                             preBidRequestContextFactory, cacheService, vertx, metrics))
                     .statusHandler(new StatusHandler())
-                    .cookieSyncHandler(new CookieSyncHandler(adapterCatalog, metrics))
-                    .setuidHandler(new SetuidHandler(metrics))
+                    .cookieSyncHandler(new CookieSyncHandler(uidsCookieFactory, adapterCatalog, metrics))
+                    .setuidHandler(new SetuidHandler(uidsCookieFactory, metrics))
                     .build();
         }
 

@@ -6,7 +6,6 @@ import io.netty.util.AsciiString;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -18,8 +17,11 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.cookie.UidsCookie;
+import org.rtb.vexing.cookie.UidsCookieFactory;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
+import org.rtb.vexing.model.Uids;
 import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.CookieSyncResponse;
@@ -27,6 +29,8 @@ import org.rtb.vexing.model.response.UsersyncInfo;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -41,10 +45,13 @@ public class CookieSyncHandlerTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
+    private static final String ADNXS = "adnxs";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private UidsCookieFactory uidsCookieFactory;
     @Mock
     private AdapterCatalog adapterCatalog;
     @Mock
@@ -62,23 +69,27 @@ public class CookieSyncHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().build()));
+
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
-        cookieSyncHandler = new CookieSyncHandler(adapterCatalog, metrics);
+        cookieSyncHandler = new CookieSyncHandler(uidsCookieFactory, adapterCatalog, metrics);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new CookieSyncHandler(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new CookieSyncHandler(adapterCatalog, null));
+        assertThatNullPointerException().isThrownBy(() -> new CookieSyncHandler(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new CookieSyncHandler(uidsCookieFactory, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new CookieSyncHandler(uidsCookieFactory, adapterCatalog, null));
     }
 
     @Test
     public void shouldRespondWithErrorIfOptedOut() {
         // given
-        // this uids cookie value stands for {"optout": true}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids", "eyJvcHRvdXQiOiB0cnVlfQ=="));
+        given(uidsCookieFactory.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().optout(true).build()));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
@@ -145,12 +156,12 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithSomeBidderStatusesIfSomeUidsMissingInCookies() throws IOException {
         // given
+        final Map<String, String> uids = new HashMap<>();
+        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
+        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+
         given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
                 CookieSyncRequest.builder().uuid("uuid").bidders(Arrays.asList(RUBICON, APPNEXUS)).build()));
-
-        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19"));
 
         givenAdaptersReturningFamilyName();
 
@@ -180,12 +191,13 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithNoBidderStatusesIfAllUidsPresentInCookies() throws IOException {
         // given
+        final Map<String, String> uids = new HashMap<>();
+        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
+        uids.put(ADNXS, "12345");
+        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+
         given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
                 CookieSyncRequest.builder().uuid("uuid").bidders(Arrays.asList(RUBICON, APPNEXUS)).build()));
-
-        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT", "adnxs": "12345"}}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwgImFkbnhzIjogIjEyMzQ1In19"));
 
         givenAdaptersReturningFamilyName();
 
@@ -204,12 +216,13 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateUnsupportedBidder() throws IOException {
         // given
+        final Map<String, String> uids = new HashMap<>();
+        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
+        uids.put(ADNXS, "12345");
+        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+
         given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
                 CookieSyncRequest.builder().uuid("uuid").bidders(Arrays.asList(RUBICON, "unsupported")).build()));
-
-        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT", "adnxs": "12345"}}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwgImFkbnhzIjogIjEyMzQ1In19"));
 
         givenAdaptersReturningFamilyName();
 
@@ -246,10 +259,10 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(adapterCatalog.getByCode(eq(APPNEXUS))).willReturn(appnexusAdapter);
         given(adapterCatalog.isValidCode(eq(APPNEXUS))).willReturn(true);
 
-        given(rubiconAdapter.cookieFamily()).willReturn("rubicon");
-        given(rubiconAdapter.code()).willReturn("rubicon");
-        given(appnexusAdapter.cookieFamily()).willReturn("adnxs");
-        given(appnexusAdapter.code()).willReturn("appnexus");
+        given(rubiconAdapter.cookieFamily()).willReturn(RUBICON);
+        given(rubiconAdapter.code()).willReturn(RUBICON);
+        given(appnexusAdapter.cookieFamily()).willReturn(ADNXS);
+        given(appnexusAdapter.code()).willReturn(APPNEXUS);
     }
 
     private CookieSyncResponse captureCookieSyncResponse() throws IOException {

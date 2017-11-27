@@ -3,19 +3,24 @@ package org.rtb.vexing.handler;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.cookie.UidsCookie;
+import org.rtb.vexing.cookie.UidsCookieFactory;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
 
+import java.util.Objects;
+
 public class SetuidHandler {
 
+    private final UidsCookieFactory uidsCookieFactory;
     private final Metrics metrics;
 
-    public SetuidHandler(Metrics metrics) {
-        this.metrics = metrics;
+    public SetuidHandler(UidsCookieFactory uidsCookieFactory, Metrics metrics) {
+        this.uidsCookieFactory = Objects.requireNonNull(uidsCookieFactory);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     public void setuid(RoutingContext context) {
-        final UidsCookie uidsCookie = UidsCookie.parseFromRequest(context);
+        final UidsCookie uidsCookie = uidsCookieFactory.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
             context.response().setStatusCode(401).end();
             metrics.cookieSync().incCounter(MetricName.opt_outs);

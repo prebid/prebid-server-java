@@ -14,6 +14,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
+import org.rtb.vexing.cookie.UidsCookieFactory;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.PreBidRequestContext;
@@ -37,25 +38,30 @@ public class PreBidRequestContextFactory {
 
     private final Long defaultHttpRequestTimeout;
 
-    private final ApplicationSettings applicationSettings;
     private final PublicSuffixList psl;
+    private final ApplicationSettings applicationSettings;
+    private final UidsCookieFactory uidsCookieFactory;
 
     private final Random rand = new Random();
 
-    private PreBidRequestContextFactory(Long defaultHttpRequestTimeout, ApplicationSettings applicationSettings,
-                                        PublicSuffixList psl) {
+    private PreBidRequestContextFactory(Long defaultHttpRequestTimeout, PublicSuffixList psl,
+                                        ApplicationSettings applicationSettings, UidsCookieFactory uidsCookieFactory) {
         this.defaultHttpRequestTimeout = defaultHttpRequestTimeout;
-        this.applicationSettings = applicationSettings;
         this.psl = psl;
+        this.applicationSettings = applicationSettings;
+        this.uidsCookieFactory = uidsCookieFactory;
     }
 
     public static PreBidRequestContextFactory create(ApplicationConfig config, PublicSuffixList psl,
-                                                     ApplicationSettings applicationSettings) {
+                                                     ApplicationSettings applicationSettings,
+                                                     UidsCookieFactory uidsCookieFactory) {
         Objects.requireNonNull(config);
         Objects.requireNonNull(psl);
         Objects.requireNonNull(applicationSettings);
+        Objects.requireNonNull(uidsCookieFactory);
 
-        return new PreBidRequestContextFactory(config.getLong("default-timeout-ms"), applicationSettings, psl);
+        return new PreBidRequestContextFactory(config.getLong("default-timeout-ms"), psl, applicationSettings,
+                uidsCookieFactory);
     }
 
     public PreBidRequestContext fromRequest(RoutingContext context) {
@@ -91,7 +97,7 @@ public class PreBidRequestContextFactory {
 
         if (preBidRequest.app == null) {
             final String referer = referer(httpRequest);
-            final UidsCookie uidsCookie = UidsCookie.parseFromRequest(context);
+            final UidsCookie uidsCookie = uidsCookieFactory.parseFromRequest(context);
 
             builder.uidsCookie(uidsCookie)
                     .noLiveUids(!uidsCookie.hasLiveUids())

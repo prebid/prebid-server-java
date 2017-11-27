@@ -22,6 +22,8 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.cookie.UidsCookie;
+import org.rtb.vexing.cookie.UidsCookieFactory;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.PreBidRequestContext;
@@ -42,8 +44,7 @@ import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.math.NumberUtils.isDigits;
 import static org.apache.commons.lang3.math.NumberUtils.toLong;
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 
 public class PreBidRequestContextFactoryTest extends VertxTest {
@@ -65,6 +66,10 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     private PublicSuffixList psl = new PublicSuffixListFactory().build();
     @Mock
     private ApplicationSettings applicationSettings;
+    @Mock
+    private UidsCookieFactory uidsCookieFactory;
+    @Mock
+    private UidsCookie uidsCookie;
 
     private PreBidRequestContextFactory factory;
 
@@ -80,14 +85,20 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // default timeout config
         given(config.getLong(eq("default-timeout-ms"))).willReturn(HTTP_REQUEST_TIMEOUT);
 
-        factory = PreBidRequestContextFactory.create(config, psl, applicationSettings);
+        // parsed uids cookie
+        given(uidsCookieFactory.parseFromRequest(any())).willReturn(uidsCookie);
+        given(uidsCookie.hasLiveUids()).willReturn(false);
+
+        factory = PreBidRequestContextFactory.create(config, psl, applicationSettings, uidsCookieFactory);
     }
 
     @Test
     public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(config, null, null));
-        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(config, psl, null));
+        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(config, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(config, psl, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> PreBidRequestContextFactory.create(config, psl, applicationSettings, null));
     }
 
     @Test
