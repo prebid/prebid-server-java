@@ -206,4 +206,47 @@ public class UidsCookieFactoryTest {
         verify(routingContext).getCookie(eq("uids"));
         verifyNoMoreInteractions(routingContext);
     }
+
+    @Test
+    public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsAbsent(){
+        //given
+        given(config.getString(eq("host_cookie.family"), eq(null))).willReturn("rubicon");
+        given(config.getString(eq("host_cookie.cookie_name"), eq(null))).willReturn("khaos");
+
+        given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos",
+                "abc123"));
+
+        uidsCookieFactory = UidsCookieFactory.create(config);
+
+        // when
+        final UidsCookie uidsCookie = uidsCookieFactory.parseFromRequest(routingContext);
+
+        // then
+        verify(routingContext).getCookie(eq("uids"));
+        verify(routingContext).getCookie(eq("khaos"));
+        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("abc123");
+    }
+
+    @Test
+    public void shouldReturnRubiconCookieValueFromUidsCookieWhenUidValueIsPresent(){
+        //given
+        given(config.getString(eq("host_cookie.family"), eq(null))).willReturn("rubicon");
+        given(config.getString(eq("host_cookie.cookie_name"), eq(null))).willReturn("khaos");
+
+        given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos",
+                "abc123"));
+        // given
+        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
+        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
+
+        uidsCookieFactory = UidsCookieFactory.create(config);
+
+        // when
+        final UidsCookie uidsCookie = uidsCookieFactory.parseFromRequest(routingContext);
+        // then
+        verify(routingContext).getCookie(eq("uids"));
+        verify(routingContext).getCookie(eq("khaos"));
+        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
+    }
 }

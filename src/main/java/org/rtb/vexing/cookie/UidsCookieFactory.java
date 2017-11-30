@@ -16,6 +16,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class UidsCookieFactory {
@@ -29,10 +31,15 @@ public class UidsCookieFactory {
 
     private final String optOutCookieName;
     private final String optOutCookieValue;
+    private final String hostCookieFamily;
+    private final String hostCookieName;
 
-    private UidsCookieFactory(String optOutCookieName, String optOutCookieValue) {
+    private UidsCookieFactory(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
+                              String hostCookieName) {
         this.optOutCookieName = optOutCookieName;
         this.optOutCookieValue = optOutCookieValue;
+        this.hostCookieFamily = hostCookieFamily;
+        this.hostCookieName = hostCookieName;
     }
 
     public static UidsCookieFactory create(ApplicationConfig config) {
@@ -40,7 +47,10 @@ public class UidsCookieFactory {
 
         return new UidsCookieFactory(
                 config.getString("host_cookie.optout_cookie.name", null),
-                config.getString("host_cookie.optout_cookie.value", null));
+                config.getString("host_cookie.optout_cookie.value", null),
+                config.getString("host_cookie.family", null),
+                config.getString("host_cookie.cookie_name", null)
+        );
     }
 
     public UidsCookie parseFromRequest(RoutingContext context) {
@@ -64,7 +74,17 @@ public class UidsCookieFactory {
                     .build();
         }
 
-        if (isOptedOut(context)) {
+        final Cookie hostCookie = hostCookieName != null ? context.getCookie(hostCookieName) : null;
+        final boolean isOptedOut = isOptedOut(context);
+
+        if (uids.uids.get(hostCookieFamily) == null && hostCookie != null && !isOptedOut) {
+            final Map<String, String> uidsWithHostCookie = new HashMap<>();
+            uidsWithHostCookie.putAll(uids.uids);
+            uidsWithHostCookie.put(hostCookieFamily, hostCookie.getValue());
+            uids = uids.toBuilder().uids(uidsWithHostCookie).build();
+        }
+
+        if (isOptedOut) {
             uids = uids.toBuilder()
                     .optout(true)
                     .uids(Collections.emptyMap())
