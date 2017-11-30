@@ -243,7 +243,7 @@ public class RubiconAdapterTest extends VertxTest {
         // then
         assertThat(bidderResultFuture.succeeded()).isTrue();
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNotNull().startsWith("Can not construct instance");
+        assertThat(bidderResult.bidderStatus.error).isNotNull().startsWith("Cannot deserialize value of type");
     }
 
     @Test

@@ -47,7 +47,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -103,7 +102,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(applicationSettings.getAccountById(any())).willReturn(Optional.of(Account.builder().build()));
+        given(applicationSettings.getAccountById(any())).willReturn(Future.succeededFuture(Account.builder().build()));
 
         given(adapterCatalog.getByCode(eq(RUBICON))).willReturn(rubiconAdapter);
         given(adapterCatalog.isValidCode(eq(RUBICON))).willReturn(true);
@@ -150,7 +149,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfRequestIsNotValid() throws IOException {
         // given
-        given(preBidRequestContextFactory.fromRequest(any())).willThrow(new PreBidRequestException("Could not create"));
+        given(preBidRequestContextFactory.fromRequest(any()))
+                .willReturn(Future.failedFuture(new PreBidRequestException("Could not create")));
 
         // when
         auctionHandler.auction(routingContext);
@@ -165,7 +165,8 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContext();
 
-        given(applicationSettings.getAccountById(any())).willReturn(Optional.empty());
+        given(applicationSettings.getAccountById(any()))
+                .willReturn(Future.failedFuture(new PreBidRequestException("Not found")));
 
         // when
         auctionHandler.auction(routingContext);
@@ -263,7 +264,7 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotInteractWithCacheServiceIfRequestHasNoBidsButCacheMarkupFlag() throws IOException {
+    public void shouldNotInteractWithCacheServiceIfRequestHasNoBidsButCacheMarkupFlag() {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
@@ -432,7 +433,8 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
-        given(applicationSettings.getAccountById(any())).willReturn(Optional.empty());
+        given(applicationSettings.getAccountById(any()))
+                .willReturn(Future.failedFuture(new PreBidRequestException("Not found")));
 
         // when
         auctionHandler.auction(routingContext);
@@ -444,7 +446,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetricIfRequestIsNotValid() {
         // given
-        given(preBidRequestContextFactory.fromRequest(any())).willThrow(new PreBidRequestException("Could not create"));
+        given(preBidRequestContextFactory.fromRequest(any()))
+                .willReturn(Future.failedFuture(new PreBidRequestException("Could not create")));
 
         // when
         auctionHandler.auction(routingContext);
@@ -484,7 +487,7 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldIncrementErrorMetricIfCacheServiceFails() throws IOException {
+    public void shouldIncrementErrorMetricIfCacheServiceFails() {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
@@ -531,7 +534,7 @@ public class AuctionHandlerTest extends VertxTest {
                         .bidders(emptyList())
                         .preBidRequest(preBidRequest))
                 .build();
-        given(preBidRequestContextFactory.fromRequest(any())).willReturn(preBidRequestContext);
+        given(preBidRequestContextFactory.fromRequest(any())).willReturn(Future.succeededFuture(preBidRequestContext));
     }
 
     private void givenPreBidRequestContextCustomizable(

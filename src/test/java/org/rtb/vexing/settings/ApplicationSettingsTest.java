@@ -1,5 +1,6 @@
 package org.rtb.vexing.settings;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
@@ -43,10 +44,10 @@ public class ApplicationSettingsTest {
         given(applicationConfig.getString(eq("datacache.filename"))).willReturn("ignored");
 
         // when
-        final ApplicationSettings applicationSettings = ApplicationSettings.create(vertx, applicationConfig);
+        final Future<? extends ApplicationSettings> future = ApplicationSettings.create(vertx, applicationConfig);
 
         // then
-        assertThat(applicationSettings).isNotNull()
-                .isInstanceOf(FileApplicationSettings.class);
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isInstanceOf(FileApplicationSettings.class);
     }
 }

@@ -2,6 +2,8 @@ package org.rtb.vexing.adapter;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
@@ -28,9 +30,10 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Random;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PreBidRequestContextFactory {
 
@@ -64,30 +67,39 @@ public class PreBidRequestContextFactory {
                 uidsCookieFactory);
     }
 
-    public PreBidRequestContext fromRequest(RoutingContext context) {
+    public Future<PreBidRequestContext> fromRequest(RoutingContext context) {
         Objects.requireNonNull(context);
 
         final JsonObject json;
         try {
             json = context.getBodyAsJson();
         } catch (DecodeException e) {
-            throw new PreBidRequestException(e.getMessage(), e.getCause());
+            return Future.failedFuture(new PreBidRequestException(e.getMessage(), e.getCause()));
         }
 
         if (json == null) {
-            throw new PreBidRequestException("Incoming request has no body");
+            return Future.failedFuture(new PreBidRequestException("Incoming request has no body"));
         }
 
         final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
 
         if (preBidRequest.adUnits == null || preBidRequest.adUnits.isEmpty()) {
-            throw new PreBidRequestException("No ad units specified");
+            return Future.failedFuture(new PreBidRequestException("No ad units specified"));
         }
 
         final HttpServerRequest httpRequest = context.request();
 
-        final PreBidRequestContext.PreBidRequestContextBuilder builder = PreBidRequestContext.builder()
-                .bidders(extractBidders(preBidRequest))
+        return extractBidders(preBidRequest)
+                .map(bidders -> PreBidRequestContext.builder().bidders(bidders))
+                .map(builder -> populatePreBidRequestContextBuilder(context, preBidRequest, httpRequest, builder))
+                .map(PreBidRequestContext.PreBidRequestContextBuilder::build);
+    }
+
+    private PreBidRequestContext.PreBidRequestContextBuilder populatePreBidRequestContextBuilder(
+            RoutingContext context, PreBidRequest preBidRequest, HttpServerRequest httpRequest,
+            PreBidRequestContext.PreBidRequestContextBuilder builder) {
+
+        builder
                 .preBidRequest(preBidRequest)
                 .timeout(timeoutOrDefault(preBidRequest))
                 .ip(ip(httpRequest))
@@ -103,50 +115,56 @@ public class PreBidRequestContextFactory {
                     .noLiveUids(!uidsCookie.hasLiveUids())
                     .ua(ua(httpRequest))
                     .referer(referer)
+                    // next method could throw exception which will cause future to become failed
                     .domain(domain(referer))
                     .build();
         }
-
-        return builder.build();
+        return builder;
     }
 
-    private List<Bidder> extractBidders(PreBidRequest preBidRequest) {
-        return preBidRequest.adUnits.stream()
-                .flatMap(unit -> resolveUnitBids(unit).stream().map(bid -> AdUnitBid.builder()
-                        .bidderCode(bid.bidder)
-                        .sizes(unit.sizes)
-                        .topframe(unit.topframe)
-                        .instl(unit.instl)
-                        .adUnitCode(unit.code)
-                        .bidId(StringUtils.defaultIfBlank(bid.bidId, Long.toUnsignedString(rand.nextLong())))
-                        .params(bid.params)
-                        .build()))
-                .collect(Collectors.groupingBy(a -> a.bidderCode))
-                .entrySet().stream()
-                .map(e -> Bidder.from(e.getKey(), e.getValue()))
+    private Future<List<Bidder>> extractBidders(PreBidRequest preBidRequest) {
+        // this is a List<Future<Stream<AdUnitBid>>> actually
+        final List<Future> adUnitBidFutures = preBidRequest.adUnits.stream()
+                .map(unit -> resolveUnitBids(unit).map(bids -> bids.stream().map(bid -> toAdUnitBid(unit, bid))))
                 .collect(Collectors.toList());
+
+        return CompositeFuture.join(adUnitBidFutures)
+                .map(future -> future.<Stream<AdUnitBid>>list().stream()
+                        .flatMap(Function.identity())
+                        .collect(Collectors.groupingBy(a -> a.bidderCode))
+                        .entrySet().stream()
+                        .map(e -> Bidder.from(e.getKey(), e.getValue()))
+                        .collect(Collectors.toList()));
     }
 
-    private List<Bid> resolveUnitBids(AdUnit unit) {
-        List<Bid> bids = unit.bids;
+    private Future<List<Bid>> resolveUnitBids(AdUnit unit) {
+        final Future<List<Bid>> result;
 
         if (StringUtils.isNotBlank(unit.configId)) {
-            bids = Collections.emptyList();
-
-            final Optional<String> adUnitConfig = applicationSettings.getAdUnitConfigById(unit.configId);
-            if (!adUnitConfig.isPresent()) {
-                logger.warn("Failed to load config '{0}' from cache: Not found", unit.configId);
-            } else {
-                try {
-                    bids = Json.decodeValue(adUnitConfig.get(), new TypeReference<List<Bid>>() {
+            result = applicationSettings.getAdUnitConfigById(unit.configId)
+                    .map(config -> Json.decodeValue(config, new TypeReference<List<Bid>>() {
+                    }))
+                    .otherwise(exception -> {
+                        logger.warn("Failed to load config '{0}' from cache", unit.configId, exception);
+                        return Collections.emptyList();
                     });
-                } catch (DecodeException e) {
-                    logger.warn("Failed to load config '{0}' from cache: {1}", unit.configId, e);
-                }
-            }
+        } else {
+            result = Future.succeededFuture(unit.bids);
         }
 
-        return bids;
+        return result;
+    }
+
+    private AdUnitBid toAdUnitBid(AdUnit unit, Bid bid) {
+        return AdUnitBid.builder()
+                .bidderCode(bid.bidder)
+                .sizes(unit.sizes)
+                .topframe(unit.topframe)
+                .instl(unit.instl)
+                .adUnitCode(unit.code)
+                .bidId(StringUtils.defaultIfBlank(bid.bidId, Long.toUnsignedString(rand.nextLong())))
+                .params(bid.params)
+                .build();
     }
 
     private long timeoutOrDefault(PreBidRequest preBidRequest) {

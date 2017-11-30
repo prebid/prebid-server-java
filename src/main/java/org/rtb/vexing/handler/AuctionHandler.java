@@ -23,6 +23,7 @@ import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.Tuple;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderStatus;
@@ -82,52 +83,54 @@ public class AuctionHandler {
             metrics.incCounter(MetricName.safari_requests);
         }
 
-        // parse and validate request and headers
-        final PreBidRequestContext preBidRequestContext;
-        try {
-            preBidRequestContext = preBidRequestContextFactory.fromRequest(context);
-        } catch (PreBidRequestException e) {
-            logger.info("Failed to parse /auction request", e);
-            respondWith(error(String.format("Error parsing request: %s", e.getMessage())), context);
-            metrics.incCounter(MetricName.error_requests);
-            return;
-        }
+        preBidRequestContextFactory.fromRequest(context)
+                .recover(exception ->
+                        failWith(String.format("Error parsing request: %s", exception.getMessage()), exception))
+                .compose(preBidRequestContext -> {
+                    updateAppAndNoCookieMetrics(preBidRequestContext, isSafari);
 
-        updateAppAndNoCookieMetrics(preBidRequestContext, isSafari);
+                    // validate account id
+                    return applicationSettings.getAccountById(preBidRequestContext.preBidRequest.accountId)
+                            // groundwork for price granularity support
+                            .compose(account -> Future.succeededFuture(Tuple.of(preBidRequestContext, account)))
+                            .recover(exception -> failWith("Unknown account id: Unknown account", exception));
+                })
+                .compose(requestAndAccount -> {
+                    final PreBidRequestContext preBidRequestContext = requestAndAccount.left;
+                    final String accountId = preBidRequestContext.preBidRequest.accountId;
 
-        // validate account id
-        final String accountId = preBidRequestContext.preBidRequest.accountId;
-        if (!applicationSettings.getAccountById(accountId).isPresent()) {
-            logger.info("Invalid account id: Not found");
-            respondWith(error("Unknown account id: Unknown account"), context);
-            metrics.incCounter(MetricName.error_requests);
-            return;
-        }
-        metrics.forAccount(accountId).incCounter(MetricName.requests);
+                    metrics.forAccount(accountId).incCounter(MetricName.requests);
+                    setupRequestTimeUpdater(context);
 
-        // set up handler to update request time metric when response is sent back to a client
-        final long requestStarted = clock.millis();
-        context.response().endHandler(ignored -> metrics.updateTimer(MetricName.request_time,
-                clock.millis() - requestStarted));
-
-        // submit request to relevant adapters and build response when all bids are received
-        final List<Future> bidderResponseFutures = preBidRequestContext.bidders.stream()
-                .filter(bidder -> adapters.isValidCode(bidder.bidderCode))
-                .peek(bidder -> updateAdapterRequestMetrics(bidder.bidderCode, accountId))
-                .map(bidder -> adapters.getByCode(bidder.bidderCode).requestBids(bidder, preBidRequestContext))
-                .collect(Collectors.toList());
-
-        CompositeFuture.join(bidderResponseFutures)
-                .compose(bidderResponsesResult ->
-                        composePreBidResponse(preBidRequestContext, bidderResponsesResult))
-                .compose(preBidResponse -> processCacheMarkup(preBidRequestContext.preBidRequest, preBidResponse))
+                    return CompositeFuture.join(submitRequestsToAdapters(preBidRequestContext, accountId))
+                            .map(bidderResults ->
+                                    Tuple.of(preBidRequestContext, bidderResults.result().<BidderResult>list()));
+                })
+                .map(requestAndResults -> Tuple.of(requestAndResults.left,
+                        composePreBidResponse(requestAndResults.left, requestAndResults.right)))
+                .compose(requestAndResponse ->
+                        processCacheMarkup(requestAndResponse.left.preBidRequest, requestAndResponse.right)
+                                .recover(exception ->
+                                        failWith(String.format("Prebid cache failed: %s", exception.getMessage()),
+                                                exception)))
                 .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
     }
 
-    private Future<PreBidResponse> composePreBidResponse(PreBidRequestContext preBidRequestContext,
-                                                         CompositeFuture bidderResponsesResult) {
-        final List<BidderResult> bidderResults = bidderResponsesResult.result().list();
+    private static <T> Future<T> failWith(String message, Throwable exception) {
+        return Future.failedFuture(new PreBidRequestException(message, exception));
+    }
 
+    private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext, String accountId) {
+        return preBidRequestContext.bidders.stream()
+                .filter(bidder -> adapters.isValidCode(bidder.bidderCode))
+                .peek(bidder -> updateAdapterRequestMetrics(bidder.bidderCode, accountId))
+                .map(bidder -> adapters.getByCode(bidder.bidderCode).requestBids(bidder,
+                        preBidRequestContext))
+                .collect(Collectors.toList());
+    }
+
+    private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
+                                                 List<BidderResult> bidderResults) {
         bidderResults.stream()
                 .filter(br -> StringUtils.isNotBlank(br.bidderStatus.error))
                 .forEach(br -> updateErrorMetrics(br, preBidRequestContext));
@@ -145,14 +148,12 @@ public class AuctionHandler {
                 .flatMap(br -> br.bids.stream())
                 .collect(Collectors.toList());
 
-        final PreBidResponse response = PreBidResponse.builder()
+        return PreBidResponse.builder()
                 .status(preBidRequestContext.noLiveUids ? "no_cookie" : "OK")
                 .tid(preBidRequestContext.preBidRequest.tid)
                 .bidderStatus(bidderStatuses)
                 .bids(bids)
                 .build();
-
-        return Future.succeededFuture(response);
     }
 
     private Future<PreBidResponse> processCacheMarkup(PreBidRequest preBidRequest, PreBidResponse preBidResponse) {
@@ -161,11 +162,7 @@ public class AuctionHandler {
         final List<Bid> bids = preBidResponse.bids;
         if (preBidRequest.cacheMarkup != null && preBidRequest.cacheMarkup == 1 && !bids.isEmpty()) {
             result = cacheService.saveBids(bids)
-                    .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults))
-                    .otherwise(exception -> {
-                        metrics.incCounter(MetricName.error_requests);
-                        return error(String.format("Prebid cache failed: %s", exception.getMessage()));
-                    });
+                    .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults));
         } else {
             result = Future.succeededFuture(preBidResponse);
         }
@@ -198,12 +195,16 @@ public class AuctionHandler {
                 .end(Json.encode(response));
     }
 
-    private static PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
+    private PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
         if (responseResult.succeeded()) {
             return responseResult.result();
         } else {
-            logger.warn("Unexpected server error occurred", responseResult.cause());
-            return error("Unexpected server error");
+            metrics.incCounter(MetricName.error_requests);
+            final Throwable exception = responseResult.cause();
+            logger.info("Failed to process /auction request", exception);
+            return error(exception instanceof PreBidRequestException
+                    ? exception.getMessage()
+                    : "Unexpected server error");
         }
     }
 
@@ -236,6 +237,13 @@ public class AuctionHandler {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);
             }
         }
+    }
+
+    private void setupRequestTimeUpdater(RoutingContext context) {
+        // set up handler to update request time metric when response is sent back to a client
+        final long requestStarted = clock.millis();
+        context.response().endHandler(ignoredVoid -> metrics.updateTimer(MetricName.request_time,
+                clock.millis() - requestStarted));
     }
 
     private void updateAdapterRequestMetrics(String bidderCode, String accountId) {

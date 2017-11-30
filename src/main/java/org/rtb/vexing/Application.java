@@ -48,7 +48,8 @@ public class Application extends AbstractVerticle {
     @Override
     public void start(Future<Void> startFuture) {
         ApplicationConfig.create(vertx, "/default-conf.json")
-                .compose(this::initialize)
+                .compose(config -> ApplicationSettings.create(vertx, config)
+                        .compose(settings -> initialize(config, settings)))
                 .compose(
                         httpServer -> {
                             logger.debug("Vexing server has been started successfully");
@@ -57,8 +58,8 @@ public class Application extends AbstractVerticle {
                         startFuture);
     }
 
-    private Future<HttpServer> initialize(ApplicationConfig config) {
-        final DependencyContext dependencyContext = DependencyContext.create(vertx, config);
+    private Future<HttpServer> initialize(ApplicationConfig config, ApplicationSettings applicationSettings) {
+        final DependencyContext dependencyContext = DependencyContext.create(vertx, config, applicationSettings);
 
         configureJSON();
 
@@ -107,9 +108,9 @@ public class Application extends AbstractVerticle {
         CookieSyncHandler cookieSyncHandler;
         SetuidHandler setuidHandler;
 
-        public static DependencyContext create(Vertx vertx, ApplicationConfig config) {
+        public static DependencyContext create(Vertx vertx, ApplicationConfig config,
+                                               ApplicationSettings applicationSettings) {
             final HttpClient httpClient = httpClient(vertx, config);
-            final ApplicationSettings applicationSettings = ApplicationSettings.create(vertx, config);
             final MetricRegistry metricRegistry = new MetricRegistry();
             configureMetricsReporter(metricRegistry, config, vertx);
             final Metrics metrics = Metrics.create(metricRegistry, config);
