@@ -23,6 +23,7 @@
         <commons.version>3.6</commons.version>
         <commons.collections.version>4.1</commons.collections.version>
         <metrics.version>3.2.3</metrics.version>
+        <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -101,6 +102,12 @@
             <artifactId>metrics-graphite</artifactId>
             <version>${metrics.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.izettle</groupId>
+            <artifactId>dropwizard-metrics-influxdb</artifactId>
+            <version>${metrics-influxdb.version}</version>
+        </dependency>
+
 
         <!-- Test -->
         <dependency>
