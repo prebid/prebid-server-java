@@ -53,8 +53,8 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargeting;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
-import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtDt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.PutObject;
 import org.rtb.vexing.cache.model.request.PutValue;
@@ -170,7 +170,7 @@ public class ApplicationTest extends VertxTest {
         // bid response for ad unit 1
         final String bidRequest1 = givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001, "example.com",
                 "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
-                inventory, visitor);
+                inventory, visitor, dt);
         final String bidResponse1 = givenBidResponse("bidResponseId1", "seatId1", "adUnitCode1", "8.43", "adm1",
                 "crid1", 300, 250, "dealId1",
                 RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build());
@@ -186,7 +186,7 @@ public class ApplicationTest extends VertxTest {
         // bid response for ad unit 2
         final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 7001, "example.com",
                 "http://www.example.com", 5001, 6001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
-                inventory, visitor);
+                inventory, visitor, dt);
         final String bidResponse2 = givenBidResponse("bidResponseId2", "seatId2", "adUnitCode2", "4.26", "adm2",
                 "crid2", 300, 600, "dealId2",
                 RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build());
@@ -329,7 +329,7 @@ public class ApplicationTest extends VertxTest {
                 .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
-    private static PreBidRequest givenPreBidRequest(String tid, long timeoutMillis, List<AdUnit> adUnits,
+    private static PreBidRequest givenPreBidRequest(String tid, long timeoutMillis, DigiTrust dt, List<AdUnit> adUnits,
                                                     String pxratio) {
         return PreBidRequest.builder()
                 .accountId("1001")
