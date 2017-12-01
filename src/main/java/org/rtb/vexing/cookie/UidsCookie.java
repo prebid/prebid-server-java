@@ -6,6 +6,7 @@ import org.rtb.vexing.model.Uids;
 
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -62,6 +63,15 @@ public class UidsCookie {
         final Map<String, String> uidsMap = uids.uids != null ? new HashMap<>(uids.uids) : new HashMap<>();
         uidsMap.put(familyName, uid);
         return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
+    }
+
+    public UidsCookie updateOptout(boolean optout) {
+        final Uids.UidsBuilder uidsBuilder = uids.toBuilder();
+        uidsBuilder.optout(optout);
+        if (optout) {
+            uidsBuilder.uids(Collections.emptyMap());
+        }
+        return new UidsCookie(uidsBuilder.build());
     }
 
     public Cookie toCookie() {

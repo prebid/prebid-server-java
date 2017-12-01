@@ -24,6 +24,7 @@ import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.Cookie;
 import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.parsing.Parser;
+import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -90,18 +91,12 @@ public class ApplicationTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final int APP_PORT = 8080;
-    private static final int RUBICON_PORT = 8090;
-    private static final int CACHE_PORT = 8091;
+    private static final int WIREMOCK_PORT = 8090;
 
     @ClassRule
-    public static WireMockClassRule wireMockRule = new WireMockClassRule(RUBICON_PORT);
+    public static WireMockClassRule wireMockRule = new WireMockClassRule(WIREMOCK_PORT);
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
-
-    @ClassRule
-    public static WireMockClassRule wireMockRuleCache = new WireMockClassRule(CACHE_PORT);
-    @Rule
-    public WireMockClassRule instanceRuleCache = wireMockRuleCache;
 
     private static final RequestSpecification spec = new RequestSpecBuilder()
             .setBaseUri("http://localhost")
@@ -126,20 +121,25 @@ public class ApplicationTest extends VertxTest {
 
     private static JsonObject config() {
         return new JsonObject()
+                .put("external_url", "http://localhost:" + APP_PORT)
                 .put("http.port", APP_PORT)
                 .put("http-client.max-pool-size", 32768)
                 .put("http-client.connect-timeout-ms", 1000)
                 .put("default-timeout-ms", 250L)
-                .put("adapters.rubicon.endpoint", "http://localhost:" + RUBICON_PORT + "/exchange?tk_xint=rp-pbs")
-                .put("adapters.rubicon.usersync_url", "http://localhost:" + RUBICON_PORT + "/cookie")
+                .put("adapters.rubicon.endpoint", "http://localhost:" + WIREMOCK_PORT + "/exchange?tk_xint=rp-pbs")
+                .put("adapters.rubicon.usersync_url", "http://localhost:" + WIREMOCK_PORT + "/cookie")
                 .put("adapters.rubicon.XAPI.Username", "rubicon_user")
                 .put("adapters.rubicon.XAPI.Password", "rubicon_password")
                 .put("datacache.type", "filecache")
                 .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml")
                 .put("metrics.metricType", "flushingCounter")
                 .put("cache.scheme", "http")
-                .put("cache.host", "localhost:" + CACHE_PORT)
-                .put("cache.query", "uuid=%PBS_CACHE_UUID%");
+                .put("cache.host", "localhost:" + WIREMOCK_PORT)
+                .put("cache.query", "uuid=%PBS_CACHE_UUID%")
+                .put("recaptcha_url", "http://localhost:" + WIREMOCK_PORT + "/optout")
+                .put("recaptcha_secret", "abc")
+                .put("host_cookie.opt_out_url", "http://optout/url")
+                .put("host_cookie.opt_in_url", "http://optin/url");
     }
 
     @Test
@@ -165,16 +165,14 @@ public class ApplicationTest extends VertxTest {
                         givenAdUnitBuilder("adUnitCode1", 300, 250)
                                 .bids(singletonList(givenBid(RUBICON, 2001, 3001, 4001,
                                         "bidId1", inventory, visitor))).build(),
-                        givenAdUnitBuilder("adUnitCode2", 300, 600).configId("14062").build()),
-                "userAgent", "192.168.244.1", "4.2");
+                        givenAdUnitBuilder("adUnitCode2", 300, 600).configId("14062").build()), "4.2");
 
         // bid response for ad unit 1
-        final String bidRequest1 = givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250,
-                15, 4001, "example.com", "http://www.example.com", 2001,
-                3001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
-                inventory, visitor, dt);
-        final String bidResponse1 = givenBidResponse("bidResponseId1", "seatId1",
-                "adUnitCode1", "8.43", "adm1", "crid1", 300, 250, "dealId1",
+        final String bidRequest1 = givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001, "example.com",
+                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
+                inventory, visitor);
+        final String bidResponse1 = givenBidResponse("bidResponseId1", "seatId1", "adUnitCode1", "8.43", "adm1",
+                "crid1", 300, 250, "dealId1",
                 RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build());
         wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
                 .withQueryParam("tk_xint", equalTo("rp-pbs"))
@@ -186,12 +184,11 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(bidResponse1)));
 
         // bid response for ad unit 2
-        final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600,
-                10, 7001, "example.com", "http://www.example.com", 5001,
-                6001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
-                inventory, visitor, dt);
-        final String bidResponse2 = givenBidResponse("bidResponseId2", "seatId2",
-                "adUnitCode2", "4.26", "adm2", "crid2", 300, 600, "dealId2",
+        final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 7001, "example.com",
+                "http://www.example.com", 5001, 6001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
+                inventory, visitor);
+        final String bidResponse2 = givenBidResponse("bidResponseId2", "seatId2", "adUnitCode2", "4.26", "adm2",
+                "crid2", 300, 600, "dealId2",
                 RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build());
         wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
                 .withRequestBody(equalToJson(bidRequest2))
@@ -206,7 +203,7 @@ public class ApplicationTest extends VertxTest {
                 "883db7d2-3013-4ce0-a454-adc7d208ef0c",
                 "0b4f60d1-fb99-4d95-ba6f-30ac90f9a315"
         ));
-        wireMockRuleCache.stubFor(post(urlPathEqualTo("/cache"))
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(bidCacheRequestAsString))
                 .willReturn(aResponse().withBody(bidCacheResponseAsString)));
 
@@ -237,10 +234,10 @@ public class ApplicationTest extends VertxTest {
 
         assertThat(preBidResponse.bids).hasSize(2).containsOnly(
                 bid("adUnitCode1", "8.43", "883db7d2-3013-4ce0-a454-adc7d208ef0c",
-                        "http://localhost:" + CACHE_PORT + "/cache?uuid=883db7d2-3013-4ce0-a454-adc7d208ef0c",
+                        "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=883db7d2-3013-4ce0-a454-adc7d208ef0c",
                         "crid1", 300, 250, "dealId1", singletonMap("key1", "value11"), RUBICON, "bidId1", responseTime),
                 bid("adUnitCode2", "4.26", "0b4f60d1-fb99-4d95-ba6f-30ac90f9a315",
-                        "http://localhost:" + CACHE_PORT + "/cache?uuid=0b4f60d1-fb99-4d95-ba6f-30ac90f9a315",
+                        "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=0b4f60d1-fb99-4d95-ba6f-30ac90f9a315",
                         "crid2", 300, 600, "dealId2", singletonMap("key2", "value21"), RUBICON, "bidId2",
                         responseTime));
     }
@@ -250,6 +247,25 @@ public class ApplicationTest extends VertxTest {
         given(spec)
                 .when().get("/status")
                 .then().assertThat().statusCode(200);
+    }
+
+    @Test
+    public void optoutShouldSetOptOutFlagAndRedirectToOptOutUrl() {
+        wireMockRule.stubFor(post("/optout")
+                .withRequestBody(equalTo("secret=abc&response=recaptcha1"))
+                .willReturn(aResponse().withBody("{\"success\": true}")));
+
+        final Response response = given(spec)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","appnexus":"12345"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9fQ==")
+                .body("g-recaptcha-response=recaptcha1&optout=1")
+                .post("/optout");
+
+        assertThat(response.statusCode()).isEqualTo(301);
+        assertThat(response.header("location")).isEqualTo("http://optout/url");
+        // this uids cookie value stands for {"uids":{},"optout":true}
+        assertThat(response.cookie("uids")).isEqualTo("eyJ1aWRzIjp7fSwib3B0b3V0Ijp0cnVlfQ==");
     }
 
     @Test
@@ -280,7 +296,7 @@ public class ApplicationTest extends VertxTest {
                         .bidder(RUBICON)
                         .noCookie(true)
                         .usersync(defaultNamingMapper.valueToTree(UsersyncInfo.builder()
-                                .url("http://localhost:" + RUBICON_PORT + "/cookie")
+                                .url("http://localhost:" + WIREMOCK_PORT + "/cookie")
                                 .type("redirect")
                                 .supportCORS(false)
                                 .build()))
@@ -313,8 +329,8 @@ public class ApplicationTest extends VertxTest {
                 .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
-    private static PreBidRequest givenPreBidRequest(String tid, long timeoutMillis, DigiTrust dt, List<AdUnit> adUnits,
-                                                    String userAgent, String ip, String pxratio) {
+    private static PreBidRequest givenPreBidRequest(String tid, long timeoutMillis, List<AdUnit> adUnits,
+                                                    String pxratio) {
         return PreBidRequest.builder()
                 .accountId("1001")
                 .tid(tid)
@@ -323,8 +339,6 @@ public class ApplicationTest extends VertxTest {
                 .cacheMarkup(1)
                 .sdk(Sdk.builder().source("source1").platform("platform1").version("version1").build())
                 .device(Device.builder()
-                        .ua(userAgent)
-                        .ip(ip)
                         .pxratio(new BigDecimal(pxratio))
                         .ext(mapper.valueToTree(RubiconDeviceExt.builder()
                                 .rp(RubiconDeviceExtRp.builder().pixelratio(new BigDecimal(pxratio)).build())
@@ -462,7 +476,7 @@ public class ApplicationTest extends VertxTest {
 
     private static BidderDebug bidderDebug(String bidRequest1, String bidResponse1) {
         return BidderDebug.builder()
-                .requestUri("http://localhost:" + RUBICON_PORT + "/exchange?tk_xint=rp-pbs")
+                .requestUri("http://localhost:" + WIREMOCK_PORT + "/exchange?tk_xint=rp-pbs")
                 .requestBody(bidRequest1)
                 .responseBody(bidResponse1)
                 .statusCode(200)

@@ -12,6 +12,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.PemTrustOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -26,11 +27,13 @@ import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookieFactory;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.handler.CookieSyncHandler;
+import org.rtb.vexing.handler.OptoutHandler;
 import org.rtb.vexing.handler.SetuidHandler;
 import org.rtb.vexing.handler.StatusHandler;
 import org.rtb.vexing.json.ObjectMapperConfigurer;
 import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.metric.ReporterFactory;
+import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
 import org.rtb.vexing.settings.ApplicationSettings;
 import org.rtb.vexing.vertx.CloseableAdapter;
 
@@ -91,6 +94,8 @@ public class Application extends AbstractVerticle {
         router.get("/status").handler(dependencyContext.statusHandler::status);
         router.post("/cookie_sync").handler(dependencyContext.cookieSyncHandler::sync);
         router.get("/setuid").handler(dependencyContext.setuidHandler::setuid);
+        router.post("/optout").handler(dependencyContext.optoutHandler::optout);
+        router.get("/optout").handler(dependencyContext.optoutHandler::optout);
 
         StaticHandler staticHandler = StaticHandler.create(STATIC_WEBROOT).setCachingEnabled(false);
         router.get("/static/*").handler(staticHandler);
@@ -107,6 +112,7 @@ public class Application extends AbstractVerticle {
         StatusHandler statusHandler;
         CookieSyncHandler cookieSyncHandler;
         SetuidHandler setuidHandler;
+        OptoutHandler optoutHandler;
 
         public static DependencyContext create(Vertx vertx, ApplicationConfig config,
                                                ApplicationSettings applicationSettings) {
@@ -119,6 +125,8 @@ public class Application extends AbstractVerticle {
             final PreBidRequestContextFactory preBidRequestContextFactory =
                     PreBidRequestContextFactory.create(config, psl(), applicationSettings, uidsCookieFactory);
             final CacheService cacheService = CacheService.create(httpClient, config);
+            final GoogleRecaptchaVerifier googleRecaptchaVerifier =
+                    GoogleRecaptchaVerifier.create(httpsClient(vertx, config), config);
 
             return builder()
                     .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog,
@@ -126,6 +134,7 @@ public class Application extends AbstractVerticle {
                     .statusHandler(new StatusHandler())
                     .cookieSyncHandler(new CookieSyncHandler(uidsCookieFactory, adapterCatalog, metrics))
                     .setuidHandler(new SetuidHandler(uidsCookieFactory, metrics))
+                    .optoutHandler(OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieFactory))
                     .build();
         }
 
@@ -142,10 +151,26 @@ public class Application extends AbstractVerticle {
         }
 
         private static HttpClient httpClient(Vertx vertx, ApplicationConfig config) {
-            final HttpClientOptions options = new HttpClientOptions()
+            final HttpClientOptions options = httpOptions(config);
+            return vertx.createHttpClient(options);
+        }
+
+        private static HttpClient httpsClient(Vertx vertx, ApplicationConfig config) {
+            final HttpClientOptions options = httpOptions(config);
+            final HttpClientOptions httpsOptions = httpsOptions(options);
+            return vertx.createHttpClient(httpsOptions);
+        }
+
+        private static HttpClientOptions httpOptions(ApplicationConfig config) {
+            return new HttpClientOptions()
                     .setMaxPoolSize(config.getInteger("http-client.max-pool-size"))
                     .setConnectTimeout(config.getInteger("http-client.connect-timeout-ms"));
-            return vertx.createHttpClient(options);
+        }
+
+        private static HttpClientOptions httpsOptions(HttpClientOptions options) {
+            return new HttpClientOptions(options)
+                    .setSsl(true)
+                    .setPemTrustOptions(new PemTrustOptions().addCertPath("tls/certs.pem"));
         }
 
         private static void configureMetricsReporter(MetricRegistry metricRegistry, ApplicationConfig config,

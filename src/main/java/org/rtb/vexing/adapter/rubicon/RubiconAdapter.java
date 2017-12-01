@@ -228,8 +228,8 @@ public class RubiconAdapter implements Adapter {
         final Sdk sdk = preBidRequestContext.preBidRequest.sdk;
         final String mintVersion;
         if (sdk != null) {
-            mintVersion = String.format("%s_%s_%s", StringUtils.defaultString(sdk.getSource()),
-                    StringUtils.defaultString(sdk.getPlatform()), StringUtils.defaultString(sdk.getVersion()));
+            mintVersion = String.format("%s_%s_%s", StringUtils.defaultString(sdk.source),
+                    StringUtils.defaultString(sdk.platform), StringUtils.defaultString(sdk.version));
         } else {
             mintVersion = "__";
         }

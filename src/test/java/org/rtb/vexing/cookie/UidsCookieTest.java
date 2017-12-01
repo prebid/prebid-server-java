@@ -192,6 +192,33 @@ public class UidsCookieTest {
     }
 
     @Test
+    public void updateOptoutShouldReturnUidsCookieWithOptoutFlagOff() {
+        // given
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().optout(true).build());
+
+        // when
+        final UidsCookie uidsCookieReturned = uidsCookie.updateOptout(false);
+
+        // then
+        assertThat(uidsCookieReturned.allowsSync()).isTrue();
+    }
+
+    @Test
+    public void updateOptoutShouldReturnUidsCookieWithOptoutFlagOn() {
+        // given
+        final Map<String, String> uids = new HashMap<>();
+        uids.put(RUBICON, "12345");
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+
+        // when
+        final UidsCookie uidsCookieReturned = uidsCookie.updateOptout(true);
+
+        // then
+        assertThat(uidsCookieReturned.allowsSync()).isFalse();
+        assertThat(uidsCookieReturned.uidFrom(RUBICON)).isNull();
+    }
+
+    @Test
     public void toCookieShouldReturnCookieWithExpectedValue() {
         // given
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new HashMap<>()).build())
