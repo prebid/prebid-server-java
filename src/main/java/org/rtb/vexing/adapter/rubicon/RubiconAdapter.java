@@ -15,6 +15,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
+import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -417,7 +418,7 @@ public class RubiconAdapter implements Adapter {
                                  Future<BidResult> future) {
         logger.warn("Error occurred while sending bid request to an exchange", exception);
         final BidderDebug bidderDebug = bidderDebugBuilder.build();
-        future.complete(exception instanceof TimeoutException
+        future.complete(exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
                 ? BidResult.timeout(bidderDebug, "Timed out")
                 : BidResult.error(bidderDebug, exception.getMessage()));
     }

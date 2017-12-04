@@ -20,6 +20,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.BidResponse.BidResponseBuilder;
 import com.iab.openrtb.response.SeatBid;
 import com.iab.openrtb.response.SeatBid.SeatBidBuilder;
+import io.netty.channel.ConnectTimeoutException;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -609,6 +610,22 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(bidRequests).hasSize(2)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
+    }
+
+    @Test
+    public void requestBidsShouldReturnBidderResultWithErrorIfConnectTimeoutOccurs() {
+        // given
+        given(httpClientRequest.exceptionHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(new ConnectTimeoutException()));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.timedOut).isTrue();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("Timed out");
     }
 
     @Test
