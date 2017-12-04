@@ -6,6 +6,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.ResultSet;
+import io.vertx.ext.sql.SQLConnection;
 import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.settings.model.Account;
 
@@ -60,16 +61,38 @@ class JdbcApplicationSettings implements ApplicationSettings {
     private <T> Future<T> executeQuery(String query, String key, Function<JsonArray, T> mapper) {
         Objects.requireNonNull(key);
 
-        final Future<ResultSet> future = Future.future();
+        final Future<SQLConnection> connectionFuture = Future.future();
+        jdbcClient.getConnection(connectionFuture.completer());
 
-        jdbcClient.queryWithParams(query, new JsonArray().add(key), future.completer());
+        return connectionFuture
+                .compose(connection -> {
+                    final Future<ResultSet> resultSetFuture = Future.future();
+                    connection.queryWithParams(query, new JsonArray().add(key),
+                            ar -> {
+                                connection.close();
+                                resultSetFuture.handle(ar);
+                            });
+                    return resultSetFuture;
+                })
+                .map(rs -> {
+                    if (rs == null || rs.getResults() == null || rs.getResults().isEmpty()) {
+                        throw new PreBidRequestException("Not found");
+                    } else {
+                        return mapper.apply(rs.getResults().get(0));
+                    }
+                });
 
-        return future.map(rs -> {
-            if (rs == null || rs.getResults() == null || rs.getResults().isEmpty()) {
-                throw new PreBidRequestException("Not found");
-            } else {
-                return mapper.apply(rs.getResults().get(0));
-            }
-        });
+        // TODO: block above could be simplified as follows once
+        // https://github.com/vert-x3/vertx-jdbc-client/issues/118 is fixed
+        //
+        // jdbcClient.queryWithParams(query, new JsonArray().add(key), future.completer());
+        //
+        // return future.map(rs -> {
+        //     if (rs == null || rs.getResults() == null || rs.getResults().isEmpty()) {
+        //         throw new PreBidRequestException("Not found");
+        //     } else {
+        //         return mapper.apply(rs.getResults().get(0));
+        //     }
+        // });
     }
 }
