@@ -63,16 +63,9 @@ public class OptoutHandler {
                         sendUnauthorized(context, result.cause());
                     } else {
                         final boolean optout = isOptout(context);
-                        sendResponse(optoutCookie(optout, context), optout, context);
+                        sendResponse(context, optCookie(optout, context), optUrl(optout));
                     }
                 });
-    }
-
-    private void sendUnauthorized(RoutingContext context, Throwable cause) {
-        logger.warn("Opt Out failed optout", cause);
-        context.response()
-                .setStatusCode(401)
-                .end();
     }
 
     private void sendRedirect(RoutingContext context) {
@@ -82,10 +75,17 @@ public class OptoutHandler {
                 .end();
     }
 
-    private void sendResponse(Cookie cookie, boolean optout, RoutingContext context) {
+    private void sendUnauthorized(RoutingContext context, Throwable cause) {
+        logger.warn("Opt Out failed optout", cause);
+        context.response()
+                .setStatusCode(401)
+                .end();
+    }
+
+    private void sendResponse(RoutingContext context, Cookie cookie, String url) {
         context.addCookie(cookie)
                 .response()
-                .putHeader(HttpHeaders.LOCATION, optout ? optoutUrl : optinUrl)
+                .putHeader(HttpHeaders.LOCATION, url)
                 .setStatusCode(301)
                 .end();
     }
@@ -95,11 +95,15 @@ public class OptoutHandler {
         return StringUtils.isNotEmpty(optoutValue);
     }
 
-    private Cookie optoutCookie(boolean optout, RoutingContext context) {
+    private Cookie optCookie(boolean optout, RoutingContext context) {
         final UidsCookie uidsCookie = uidsCookieFactory
                 .parseFromRequest(context)
                 .updateOptout(optout);
         return uidsCookie.toCookie();
+    }
+
+    private String optUrl(boolean optout) {
+        return optout ? optoutUrl : optinUrl;
     }
 
     private static String getRequestParam(RoutingContext context, String paramName) {

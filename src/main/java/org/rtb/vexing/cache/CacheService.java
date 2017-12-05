@@ -32,7 +32,7 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    private static final Long HTTP_REQUEST_TIMEOUT = 1000L; // FIXME: request should be bounded by client timeout
+    private static final long HTTP_REQUEST_TIMEOUT = 1000L; // FIXME: request should be bounded by client timeout
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 

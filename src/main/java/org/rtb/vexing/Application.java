@@ -12,7 +12,6 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.core.net.PemTrustOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -43,7 +42,6 @@ import java.util.Properties;
 public class Application extends AbstractVerticle {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
-    private static final String STATIC_WEBROOT = "static";
 
     /**
      * Start the verticle instance.
@@ -97,7 +95,7 @@ public class Application extends AbstractVerticle {
         router.post("/optout").handler(dependencyContext.optoutHandler::optout);
         router.get("/optout").handler(dependencyContext.optoutHandler::optout);
 
-        StaticHandler staticHandler = StaticHandler.create(STATIC_WEBROOT).setCachingEnabled(false);
+        final StaticHandler staticHandler = StaticHandler.create("static").setCachingEnabled(false);
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves index.html by default
 
@@ -125,8 +123,7 @@ public class Application extends AbstractVerticle {
             final PreBidRequestContextFactory preBidRequestContextFactory =
                     PreBidRequestContextFactory.create(config, psl(), applicationSettings, uidsCookieFactory);
             final CacheService cacheService = CacheService.create(httpClient, config);
-            final GoogleRecaptchaVerifier googleRecaptchaVerifier =
-                    GoogleRecaptchaVerifier.create(httpsClient(vertx, config), config);
+            final GoogleRecaptchaVerifier googleRecaptchaVerifier = GoogleRecaptchaVerifier.create(httpClient, config);
 
             return builder()
                     .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog,
@@ -151,26 +148,10 @@ public class Application extends AbstractVerticle {
         }
 
         private static HttpClient httpClient(Vertx vertx, ApplicationConfig config) {
-            final HttpClientOptions options = httpOptions(config);
-            return vertx.createHttpClient(options);
-        }
-
-        private static HttpClient httpsClient(Vertx vertx, ApplicationConfig config) {
-            final HttpClientOptions options = httpOptions(config);
-            final HttpClientOptions httpsOptions = httpsOptions(options);
-            return vertx.createHttpClient(httpsOptions);
-        }
-
-        private static HttpClientOptions httpOptions(ApplicationConfig config) {
-            return new HttpClientOptions()
+            final HttpClientOptions options = new HttpClientOptions()
                     .setMaxPoolSize(config.getInteger("http-client.max-pool-size"))
                     .setConnectTimeout(config.getInteger("http-client.connect-timeout-ms"));
-        }
-
-        private static HttpClientOptions httpsOptions(HttpClientOptions options) {
-            return new HttpClientOptions(options)
-                    .setSsl(true)
-                    .setPemTrustOptions(new PemTrustOptions().addCertPath("tls/certs.pem"));
+            return vertx.createHttpClient(options);
         }
 
         private static void configureMetricsReporter(MetricRegistry metricRegistry, ApplicationConfig config,

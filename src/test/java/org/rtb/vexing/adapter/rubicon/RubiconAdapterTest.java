@@ -1,10 +1,10 @@
 package org.rtb.vexing.adapter.rubicon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.fasterxml.jackson.databind.node.IntNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -81,11 +81,11 @@ import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.contains;
 import static org.mockito.Mockito.*;
 
 public class RubiconAdapterTest extends VertxTest {
@@ -116,7 +116,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
 
         // http client returns http client request
-        given(httpClient.post((anyInt()), anyString(), anyString(), any())).willReturn(httpClientRequest);
+        given(httpClient.postAbs(anyString(), any())).willReturn(httpClientRequest);
         given(httpClientRequest.putHeader(any(CharSequence.class), any(CharSequence.class)))
                 .willReturn(httpClientRequest);
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
@@ -163,7 +163,7 @@ public class RubiconAdapterTest extends VertxTest {
         adapter.requestBids(bidder, preBidRequestContext);
 
         // then
-        verify(httpClient).post(anyInt(), eq("rubiconproject.com"), eq("/x?tk_xint=rp-pbs"), any());
+        verify(httpClient).postAbs(contains("rubiconproject.com/x?tk_xint=rp-pbs"), any());
         verify(httpClientRequest)
                 .putHeader(eq(new AsciiString("Authorization")), eq("Basic dXNlcjpwYXNzd29yZA=="));
         verify(httpClientRequest)
@@ -172,42 +172,6 @@ public class RubiconAdapterTest extends VertxTest {
                 .putHeader(eq(new AsciiString("Accept")), eq(new AsciiString("application/json")));
         verify(httpClientRequest).putHeader(eq(new AsciiString("User-Agent")), eq("prebid-server/1.0"));
         verify(httpClientRequest).setTimeout(eq(1000L));
-    }
-
-    @Test
-    public void requestBidsShouldMakeHttpRequestUsingPortFromUrl() {
-        // given
-        adapter = new RubiconAdapter("http://rubiconproject.com:8888/x", URL, USER, PASSWORD, httpClient);
-
-        // when
-        adapter.requestBids(bidder, preBidRequestContext);
-
-        // then
-        verify(httpClient).post(eq(8888), anyString(), anyString(), any());
-    }
-
-    @Test
-    public void requestBidsShouldMakeHttpRequestUsingPort80ForHttp() {
-        // given
-        adapter = new RubiconAdapter(RUBICON_EXCHANGE, URL, USER, PASSWORD, httpClient);
-
-        // when
-        adapter.requestBids(bidder, preBidRequestContext);
-
-        // then
-        verify(httpClient).post(eq(80), anyString(), anyString(), any());
-    }
-
-    @Test
-    public void requestBidsShouldMakeHttpRequestUsingPort443ForHttps() {
-        // given
-        adapter = new RubiconAdapter("https://rubiconproject.com/x", URL, USER, PASSWORD, httpClient);
-
-        // when
-        adapter.requestBids(bidder, preBidRequestContext);
-
-        // then
-        verify(httpClient).post(eq(443), anyString(), anyString(), any());
     }
 
     @Test
@@ -1157,7 +1121,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.post(anyInt(), anyString(), anyString(), any()))
+        given(httpClient.postAbs(anyString(), any()))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(statusCode);
         return httpClientResponse;
@@ -1167,7 +1131,7 @@ public class RubiconAdapterTest extends VertxTest {
     private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
         return inv -> {
             // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(3)).handle(httpClientResponse);
+            ((Handler<HttpClientResponse>) inv.getArgument(1)).handle(httpClientResponse);
             return httpClientRequest;
         };
     }

@@ -2,7 +2,6 @@ package org.rtb.vexing.optout;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.QueryStringEncoder;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
@@ -19,9 +18,11 @@ import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 import org.rtb.vexing.config.ApplicationConfig;
 
-import java.nio.charset.StandardCharsets;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class GoogleRecaptchaVerifier {
 
@@ -48,17 +49,13 @@ public class GoogleRecaptchaVerifier {
     public Future<Void> verify(String recaptcha) {
         Objects.requireNonNull(recaptcha);
 
-        final QueryStringEncoder encoder = new QueryStringEncoder("", StandardCharsets.UTF_8);
-        encoder.addParam("secret", recaptchaSecret);
-        encoder.addParam("response", recaptcha);
-        final String encodedBody = encoder.toString().substring(1);
-
         final Future<Void> future = Future.future();
         httpClient.postAbs(recaptchaUrl, response -> handleResponse(response, future))
                 .exceptionHandler(exception -> handleException(exception, future))
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_X_WWW_FORM_URLENCODED)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                .end(encodedBody);
+                .setTimeout(2000L) // google recaptcha API may be slow
+                .end(encodedBody(recaptchaSecret, recaptcha));
         return future;
     }
 
@@ -94,6 +91,17 @@ public class GoogleRecaptchaVerifier {
     private void handleException(Throwable exception, Future<Void> future) {
         logger.warn("Error occurred while sending request to verify google recaptcha", exception);
         future.fail(exception);
+    }
+
+    private static String encodedBody(String secret, String recaptcha) {
+        final Function<String, String> encoder = value -> {
+            try {
+                return URLEncoder.encode(value, "utf-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new OptoutException(String.format("Cannot encode request form value: %s", value), e);
+            }
+        };
+        return "secret=" + encoder.apply(secret) + "&response=" + encoder.apply(recaptcha);
     }
 
     @Builder

@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.*;
 
 public class CacheServiceTest extends VertxTest {
@@ -103,7 +104,7 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRequestToCacheServiceWithGivenParams() throws IOException {
+    public void shouldRequestToCacheServiceWithExpectedParams() throws IOException {
         // when
         cacheService.saveBids(asList(
                 Bid.builder().adm("adm1").nurl("nurl1").height(100).width(200).build(),
@@ -217,6 +218,44 @@ public class CacheServiceTest extends VertxTest {
                         .cacheId("uuid1")
                         .cacheUrl("http://cache-service-host/cache?uuid=uuid1")
                         .build());
+    }
+
+    @Test
+    public void shouldMakeHttpRequestUsingPortFromUrl() {
+        // given
+        given(config.getString("cache.host")).willReturn("cache-service-host:8888");
+        cacheService = CacheService.create(httpClient, config);
+
+        // when
+        cacheService.saveBids(singleEmptyBid());
+
+        // then
+        verify(httpClient).post(eq(8888), anyString(), anyString(), any());
+    }
+
+    @Test
+    public void shouldMakeHttpRequestUsingPort80ForHttp() {
+        // given
+        given(config.getString("cache.host")).willReturn("cache-service-host");
+        cacheService = CacheService.create(httpClient, config);
+
+        // when
+        cacheService.saveBids(singleEmptyBid());
+
+        // then
+        verify(httpClient).post(eq(80), anyString(), anyString(), any());
+    }
+
+    @Test
+    public void shouldMakeHttpRequestUsingPort443ForHttps() {
+        given(config.getString("cache.host")).willReturn("cache-service-host:443");
+        cacheService = CacheService.create(httpClient, config);
+
+        // when
+        cacheService.saveBids(singleEmptyBid());
+
+        // then
+        verify(httpClient).post(eq(443), anyString(), anyString(), any());
     }
 
     private static List<Bid> singleEmptyBid() {

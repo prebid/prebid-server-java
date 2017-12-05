@@ -82,8 +82,7 @@ public class RubiconAdapter implements Adapter {
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
-    private final String endpoint;
-    private final URL endpointUrl;
+    private final String endpointUrl;
     private final UsersyncInfo usersyncInfo;
     private final String authHeader;
 
@@ -93,8 +92,7 @@ public class RubiconAdapter implements Adapter {
 
     public RubiconAdapter(String endpoint, String usersyncUrl, String xapiUsername, String xapiPassword,
                           HttpClient httpClient) {
-        this.endpoint = Objects.requireNonNull(endpoint);
-        endpointUrl = parseUrl(this.endpoint);
+        endpointUrl = validateUrl(Objects.requireNonNull(endpoint));
         usersyncInfo = UsersyncInfo.builder()
                 .url(Objects.requireNonNull(usersyncUrl))
                 .type("redirect")
@@ -106,9 +104,9 @@ public class RubiconAdapter implements Adapter {
         this.httpClient = Objects.requireNonNull(httpClient);
     }
 
-    private static URL parseUrl(String url) {
+    private static String validateUrl(String url) {
         try {
-            return new URL(url);
+            return new URL(url).toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL supplied is not valid", e);
         }
@@ -393,7 +391,7 @@ public class RubiconAdapter implements Adapter {
         final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(bidRequestBody);
 
         final Future<BidResult> future = Future.future();
-        httpClient.post(portFromUrl(endpointUrl), endpointUrl.getHost(), endpointUrl.getFile(),
+        httpClient.postAbs(endpointUrl,
                 response -> handleResponse(response, adUnitBid, bidderDebugBuilder, future))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future))
                 .putHeader(HttpHeaders.AUTHORIZATION, authHeader)
@@ -403,11 +401,6 @@ public class RubiconAdapter implements Adapter {
                 .setTimeout(timeout)
                 .end(bidRequestBody);
         return future;
-    }
-
-    private static int portFromUrl(URL url) {
-        final int port = url.getPort();
-        return port != -1 ? port : url.getDefaultPort();
     }
 
     private void handleResponse(HttpClientResponse response, AdUnitBid adUnitBid,
@@ -482,7 +475,7 @@ public class RubiconAdapter implements Adapter {
 
     private BidderDebug.BidderDebugBuilder beginBidderDebug(String bidRequestBody) {
         return BidderDebug.builder()
-                .requestUri(endpoint)
+                .requestUri(endpointUrl)
                 .requestBody(bidRequestBody);
     }
 
