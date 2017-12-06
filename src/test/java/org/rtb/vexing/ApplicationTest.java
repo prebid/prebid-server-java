@@ -49,9 +49,6 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconPubExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
-import org.rtb.vexing.adapter.rubicon.model.RubiconTargeting;
-import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
-import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtDt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
@@ -74,6 +71,7 @@ import org.rtb.vexing.model.response.UsersyncInfo;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -82,7 +80,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.RestAssured.given;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
@@ -154,26 +151,15 @@ public class ApplicationTest extends VertxTest {
         visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
         visitor.set("search", mapper.createArrayNode().add((new TextNode("iphone"))));
 
-        final DigiTrust dt = DigiTrust.builder()
-                .id("id")
-                .keyv(123)
-                .pref(0)
-                .build();
+        final DigiTrust dt = DigiTrust.builder().id("id").keyv(123).pref(0).build();
 
-        final PreBidRequest preBidRequest = givenPreBidRequest("tid", 1000, dt,
-                asList(
-                        givenAdUnitBuilder("adUnitCode1", 300, 250)
-                                .bids(singletonList(givenBid(RUBICON, 2001, 3001, 4001,
-                                        "bidId1", inventory, visitor))).build(),
-                        givenAdUnitBuilder("adUnitCode2", 300, 600).configId("14062").build()), "4.2");
+        final PreBidRequest preBidRequest = givenPreBidRequest(dt, inventory, visitor);
 
         // bid response for ad unit 1
-        final String bidRequest1 = givenBidRequest("tid", 1000L, "adUnitCode1", 300, 250, 15, 4001, "example.com",
-                "http://www.example.com", 2001, 3001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
-                inventory, visitor, dt);
+        final String bidRequest1 =
+                givenBidRequest("adUnitCode1", 300, 250, 15, 4001, 2001, 3001, inventory, visitor, dt);
         final String bidResponse1 = givenBidResponse("bidResponseId1", "seatId1", "adUnitCode1", "8.43", "adm1",
-                "crid1", 300, 250, "dealId1",
-                RubiconTargeting.builder().key("key1").values(asList("value11", "value12")).build());
+                "crid1", 300, 250, "dealId1");
         wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
                 .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
@@ -184,12 +170,10 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(bidResponse1)));
 
         // bid response for ad unit 2
-        final String bidRequest2 = givenBidRequest("tid", 1000L, "adUnitCode2", 300, 600, 10, 7001, "example.com",
-                "http://www.example.com", 5001, 6001, "userAgent", "192.168.244.1", "4.2", "J5VLCWQP-26-CWFT",
-                inventory, visitor, dt);
+        final String bidRequest2 =
+                givenBidRequest("adUnitCode2", 300, 600, 10, 7001, 5001, 6001, inventory, visitor, dt);
         final String bidResponse2 = givenBidResponse("bidResponseId2", "seatId2", "adUnitCode2", "4.26", "adm2",
-                "crid2", 300, 600, "dealId2",
-                RubiconTargeting.builder().key("key2").values(asList("value21", "value22")).build());
+                "crid2", 300, 600, "dealId2");
         wireMockRule.stubFor(post(urlPathEqualTo("/exchange"))
                 .withRequestBody(equalToJson(bidRequest2))
                 .willReturn(aResponse().withBody(bidResponse2)));
@@ -235,10 +219,10 @@ public class ApplicationTest extends VertxTest {
         assertThat(preBidResponse.bids).hasSize(2).containsOnly(
                 bid("adUnitCode1", "8.43", "883db7d2-3013-4ce0-a454-adc7d208ef0c",
                         "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=883db7d2-3013-4ce0-a454-adc7d208ef0c",
-                        "crid1", 300, 250, "dealId1", singletonMap("key1", "value11"), RUBICON, "bidId1", responseTime),
+                        "crid1", 300, 250, "dealId1", "8.40", RUBICON, "bidId1", responseTime),
                 bid("adUnitCode2", "4.26", "0b4f60d1-fb99-4d95-ba6f-30ac90f9a315",
                         "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=0b4f60d1-fb99-4d95-ba6f-30ac90f9a315",
-                        "crid2", 300, 600, "dealId2", singletonMap("key2", "value21"), RUBICON, "bidId2",
+                        "crid2", 300, 600, "dealId2", "4.20", RUBICON, "bidId2",
                         responseTime));
     }
 
@@ -329,22 +313,25 @@ public class ApplicationTest extends VertxTest {
                 .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
-    private static PreBidRequest givenPreBidRequest(String tid, long timeoutMillis, DigiTrust dt, List<AdUnit> adUnits,
-                                                    String pxratio) {
+    private static PreBidRequest givenPreBidRequest(DigiTrust dt, ObjectNode inventory, ObjectNode visitor) {
         return PreBidRequest.builder()
                 .accountId("1001")
-                .tid(tid)
-                .timeoutMillis(timeoutMillis)
-                .adUnits(adUnits)
+                .tid("tid")
                 .cacheMarkup(1)
-                .sdk(Sdk.builder().source("source1").platform("platform1").version("version1").build())
+                .sortBids(1)
+                .digiTrust(dt)
+                .timeoutMillis((long) 1000)
+                .adUnits(asList(
+                        givenAdUnitBuilder("adUnitCode1", 300, 250).bids(singletonList(
+                                givenBid(RUBICON, inventory, visitor))).build(),
+                        givenAdUnitBuilder("adUnitCode2", 300, 600).configId("14062").build()))
                 .device(Device.builder()
-                        .pxratio(new BigDecimal(pxratio))
+                        .pxratio(new BigDecimal("4.2"))
                         .ext(mapper.valueToTree(RubiconDeviceExt.builder()
-                                .rp(RubiconDeviceExtRp.builder().pixelratio(new BigDecimal(pxratio)).build())
+                                .rp(RubiconDeviceExtRp.builder().pixelratio(new BigDecimal("4.2")).build())
                                 .build()))
                         .build())
-                .digiTrust(dt)
+                .sdk(Sdk.builder().source("source1").platform("platform1").version("version1").build())
                 .build();
     }
 
@@ -354,30 +341,28 @@ public class ApplicationTest extends VertxTest {
                 .sizes(singletonList(Format.builder().w(w).h(h).build()));
     }
 
-    private static org.rtb.vexing.model.request.Bid givenBid(
-            String bidder, int accountId, int siteId, int zoneId, String bidId, JsonNode inventory, JsonNode visitor) {
+    private static org.rtb.vexing.model.request.Bid givenBid(String bidder, JsonNode inventory, JsonNode visitor) {
         return org.rtb.vexing.model.request.Bid.builder()
                 .bidder(bidder)
                 .params(defaultNamingMapper.valueToTree(RubiconParams.builder()
-                        .accountId(accountId)
-                        .siteId(siteId)
-                        .zoneId(zoneId)
+                        .accountId(2001)
+                        .siteId(3001)
+                        .zoneId(4001)
                         .inventory(inventory)
                         .visitor(visitor)
                         .build()))
-                .bidId(bidId)
+                .bidId("bidId1")
                 .build();
     }
 
     private static String givenBidRequest(
-            String tid, long tmax, String adUnitCode, int w, int h, int sizeId, int zoneId, String domain,
-            String page, int accountId, int siteId, String userAgent, String ip, String pxratio, String buyerUid,
-            JsonNode inventory, JsonNode visitor, DigiTrust dt) throws JsonProcessingException {
+            String adUnitCode, int w, int h, int sizeId, int zoneId, int accountId, int siteId, JsonNode inventory,
+            JsonNode visitor, DigiTrust dt) throws JsonProcessingException {
 
         return mapper.writeValueAsString(BidRequest.builder()
-                .id(tid)
+                .id("tid")
                 .at(1)
-                .tmax(tmax)
+                .tmax(1000L)
                 .imp(singletonList(Imp.builder()
                         .id(adUnitCode)
                         .banner(Banner.builder()
@@ -406,8 +391,8 @@ public class ApplicationTest extends VertxTest {
                                 .build()))
                         .build()))
                 .site(Site.builder()
-                        .domain(domain)
-                        .page(page)
+                        .domain("example.com")
+                        .page("http://www.example.com")
                         .publisher(Publisher.builder()
                                 .ext(mapper.valueToTree(RubiconPubExt.builder()
                                         .rp(RubiconPubExtRp.builder()
@@ -422,15 +407,15 @@ public class ApplicationTest extends VertxTest {
                                 .build()))
                         .build())
                 .device(Device.builder()
-                        .ua(userAgent)
-                        .ip(ip)
-                        .pxratio(new BigDecimal(pxratio))
+                        .ua("userAgent")
+                        .ip("192.168.244.1")
+                        .pxratio(new BigDecimal("4.2"))
                         .ext(mapper.valueToTree(RubiconDeviceExt.builder()
-                                .rp(RubiconDeviceExtRp.builder().pixelratio(new BigDecimal(pxratio)).build())
+                                .rp(RubiconDeviceExtRp.builder().pixelratio(new BigDecimal("4.2")).build())
                                 .build()))
                         .build())
                 .user(User.builder()
-                        .buyeruid(buyerUid)
+                        .buyeruid("J5VLCWQP-26-CWFT")
                         .ext(mapper.valueToTree(RubiconUserExt.builder()
                                 .rp(RubiconUserExtRp.builder()
                                         .target(visitor)
@@ -444,14 +429,14 @@ public class ApplicationTest extends VertxTest {
                         .build())
                 .source(Source.builder()
                         .fd(1)
-                        .tid(tid)
+                        .tid("tid")
                         .build())
                 .build());
     }
 
     private static String givenBidResponse(
             String bidResponseId, String seatId, String impId, String price, String adm, String crid, int w, int h,
-            String dealId, RubiconTargeting rubiconTargeting) throws JsonProcessingException {
+            String dealId) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .id(bidResponseId)
                 .seatbid(singletonList(SeatBid.builder()
@@ -464,11 +449,6 @@ public class ApplicationTest extends VertxTest {
                                 .w(w)
                                 .h(h)
                                 .dealid(dealId)
-                                .ext(mapper.valueToTree(RubiconTargetingExt.builder()
-                                        .rp(RubiconTargetingExtRp.builder()
-                                                .targeting(singletonList(rubiconTargeting))
-                                                .build())
-                                        .build()))
                                 .build()))
                         .build()))
                 .build());
@@ -484,9 +464,22 @@ public class ApplicationTest extends VertxTest {
     }
 
     private static org.rtb.vexing.model.response.Bid bid(
-            String impId, String price, String cacheId, String cacheUrl, String crid, int width, int height, String
-            dealId,
-            Map<String, String> adServerTargeting, String bidder, String bidId, Integer responseTime) {
+            String impId, String price, String cacheId, String cacheUrl, String crid, int width, int height,
+            String dealId, String priceBucket, String bidder, String bidId, Integer responseTime) {
+
+        final Map<String, String> adServerTargeting = new HashMap<>();
+        adServerTargeting.put("hb_pb", priceBucket);
+        adServerTargeting.put("hb_pb_rubicon", priceBucket);
+        adServerTargeting.put("hb_cache_id", cacheId);
+        adServerTargeting.put("hb_cache_id_rubicon", cacheId);
+        adServerTargeting.put("hb_deal", dealId);
+        adServerTargeting.put("hb_deal_rubicon", dealId);
+        adServerTargeting.put("hb_size", width + "x" + height);
+        adServerTargeting.put("hb_size_rubicon", width + "x" + height);
+        adServerTargeting.put("hb_bidder", bidder);
+        adServerTargeting.put("hb_bidder_rubicon", bidder);
+        adServerTargeting.put("hb_creative_loadtype", "html");
+
         return org.rtb.vexing.model.response.Bid.builder()
                 .code(impId)
                 .price(new BigDecimal(price))

@@ -163,7 +163,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfRequestBodyHasUnknownAccountId() throws IOException {
         // given
-        givenPreBidRequestContext();
+        givenPreBidRequestContextCustomizable(identity(), identity());
 
         given(applicationSettings.getAccountById(any()))
                 .willReturn(Future.failedFuture(new PreBidRequestException("Not found")));
@@ -179,7 +179,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithExpectedHeaders() {
         // given
-        givenPreBidRequestContext();
+        givenPreBidRequestContextCustomizable(identity(), identity());
 
         // when
         auctionHandler.auction(routingContext);
@@ -312,6 +312,50 @@ public class AuctionHandlerTest extends VertxTest {
         assertThat(preBidResponse.tid).isEqualTo("tid");
         assertThat(preBidResponse.bidderStatus).extracting(b -> b.bidder).containsOnly(RUBICON, APPNEXUS);
         assertThat(preBidResponse.bids).extracting(b -> b.bidId).containsOnly("bidId1", "bidId2", "bidId3", "bidId4");
+    }
+
+    @Test
+    public void shouldRespondWithBidsWithTargetingKeywordsWhenSortBidsFlagIsSetInPreBidRequest() throws IOException {
+        // given
+        final List<AdUnitBid> adUnitBids = asList(null, null);
+        final List<Bidder> bidders = asList(Bidder.from(RUBICON, adUnitBids), Bidder.from(APPNEXUS, adUnitBids));
+        givenPreBidRequestContextCustomizable(builder -> builder.sortBids(1), builder -> builder.bidders(bidders));
+
+        given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
+                .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build())
+                .bids(asList(
+                        org.rtb.vexing.model.response.Bid.builder()
+                                .bidder(RUBICON).code("adUnitCode1").bidId("bidId1").price(new BigDecimal("5.67"))
+                                .responseTimeMs(60).build(),
+                        org.rtb.vexing.model.response.Bid.builder()
+                                .bidder(RUBICON).code("adUnitCode2").bidId("bidId2").price(new BigDecimal("6.35"))
+                                .responseTimeMs(80).build()))
+                .build()));
+        given(appnexusAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
+                .bidderStatus(BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build())
+                .bids(asList(
+                        org.rtb.vexing.model.response.Bid.builder()
+                                .bidder(APPNEXUS).code("adUnitCode1").bidId("bidId3").price(new BigDecimal("5.67"))
+                                .responseTimeMs(50).build(),
+                        org.rtb.vexing.model.response.Bid.builder()
+                                .bidder(APPNEXUS).code("adUnitCode2").bidId("bidId4").price(new BigDecimal("7.15"))
+                                .responseTimeMs(100).build()))
+                .build()));
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.bids).extracting(b -> b.adServerTargeting).doesNotContainNull();
+        // weird way to verify that sorting has happened before bids grouped by ad unit code are enriched with targeting
+        // keywords
+        assertThat(preBidResponse.bids).extracting(b -> b.bidId, b -> b.adServerTargeting.get("hb_bidder"))
+                .containsOnly(
+                        tuple("bidId1", null),
+                        tuple("bidId2", null),
+                        tuple("bidId3", APPNEXUS),
+                        tuple("bidId4", APPNEXUS));
     }
 
     @Test
@@ -535,17 +579,6 @@ public class AuctionHandlerTest extends VertxTest {
                         .preBidRequest(preBidRequest))
                 .build();
         given(preBidRequestContextFactory.fromRequest(any())).willReturn(Future.succeededFuture(preBidRequestContext));
-    }
-
-    private void givenPreBidRequestContextCustomizable(
-            Function<PreBidRequestBuilder, PreBidRequestBuilder>
-                    preBidRequestBuilderCustomizer) {
-
-        givenPreBidRequestContextCustomizable(preBidRequestBuilderCustomizer, identity());
-    }
-
-    private void givenPreBidRequestContext() {
-        givenPreBidRequestContextCustomizable(identity());
     }
 
     private void givenAdapterRespondingWithBids(

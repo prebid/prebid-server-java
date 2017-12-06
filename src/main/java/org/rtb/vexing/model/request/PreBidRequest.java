@@ -21,17 +21,20 @@ public final class PreBidRequest {
 
     String accountId;
 
-    List<AdUnit> adUnits;
-
-    // --- NOT REQUIRED ---
-
     /* Unique transaction ID. */
     String tid;
 
-    DigiTrust digiTrust;
+    /* Cache markup for two-phase response (get response then separate call to get markup). */
+    Integer cacheMarkup;
 
-    /* How long to wait for adapters to return bids. */
-    Long timeoutMillis;
+    // Sorts bids by price & response time and returns ad server targeting keys for each bid in prebid server response
+    Integer sortBids; // ... really just a boolean 0|1.
+
+    // Used to determine whether ad server targeting key strings should be truncated on prebid server. For DFP max key
+    // length should be 20.
+    Integer maxKeyLength;
+
+    DigiTrust digiTrust;
 
     /*
      * Flag to indicate if the impression requires secure HTTPS URL creative
@@ -40,8 +43,12 @@ public final class PreBidRequest {
      */
     Integer secure;  // ... really just a boolean 0|1.
 
-    /* Cache markup for two-phase response (get response then separate call to get markup). */
-    Integer cacheMarkup;
+    /* How long to wait for adapters to return bids. */
+    Long timeoutMillis;
+
+    List<AdUnit> adUnits;
+
+    Boolean isDebug;
 
     /*
      * This object should be included if the ad supported content is a
@@ -60,9 +67,7 @@ public final class PreBidRequest {
      */
     Device device;
 
-    Sdk sdk;
-
     User user;
 
-    Boolean isDebug;
+    Sdk sdk;
 }

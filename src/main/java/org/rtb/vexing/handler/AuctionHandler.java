@@ -15,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.adapter.PreBidRequestContextFactory;
 import org.rtb.vexing.adapter.PreBidRequestException;
+import org.rtb.vexing.auction.TargetingKeywords;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.metric.AccountMetrics;
@@ -23,17 +24,20 @@ import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.PreBidRequestContext;
-import org.rtb.vexing.model.Tuple;
+import org.rtb.vexing.model.Tuple2;
+import org.rtb.vexing.model.Tuple3;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.PreBidResponse;
 import org.rtb.vexing.settings.ApplicationSettings;
+import org.rtb.vexing.settings.model.Account;
 
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -92,27 +96,26 @@ public class AuctionHandler {
                     // validate account id
                     return applicationSettings.getAccountById(preBidRequestContext.preBidRequest.accountId)
                             // groundwork for price granularity support
-                            .compose(account -> Future.succeededFuture(Tuple.of(preBidRequestContext, account)))
+                            .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
                             .recover(exception -> failWith("Unknown account id: Unknown account", exception));
                 })
-                .compose(requestAndAccount -> {
-                    final PreBidRequestContext preBidRequestContext = requestAndAccount.left;
+                .compose(result -> {
+                    final PreBidRequestContext preBidRequestContext = result.left;
                     final String accountId = preBidRequestContext.preBidRequest.accountId;
 
                     metrics.forAccount(accountId).incCounter(MetricName.requests);
                     setupRequestTimeUpdater(context);
 
                     return CompositeFuture.join(submitRequestsToAdapters(preBidRequestContext, accountId))
-                            .map(bidderResults ->
-                                    Tuple.of(preBidRequestContext, bidderResults.result().<BidderResult>list()));
+                            .map(bidderResults -> Tuple3.of(preBidRequestContext, result.right,
+                                    bidderResults.result().<BidderResult>list()));
                 })
-                .map(requestAndResults -> Tuple.of(requestAndResults.left,
-                        composePreBidResponse(requestAndResults.left, requestAndResults.right)))
-                .compose(requestAndResponse ->
-                        processCacheMarkup(requestAndResponse.left.preBidRequest, requestAndResponse.right)
-                                .recover(exception ->
-                                        failWith(String.format("Prebid cache failed: %s", exception.getMessage()),
-                                                exception)))
+                .map(result -> Tuple3.of(result.left, result.middle, composePreBidResponse(result.left, result.right)))
+                .compose(result -> processCacheMarkup(result.left.preBidRequest, result.right)
+                        .recover(exception ->
+                                failWith(String.format("Prebid cache failed: %s", exception.getMessage()), exception))
+                        .map(response -> Tuple3.of(result.left, result.middle, response)))
+                .map(result -> addTargetingKeywords(result.left.preBidRequest, result.middle, result.right))
                 .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
     }
 
@@ -186,6 +189,32 @@ public class AuctionHandler {
                 .collect(Collectors.toList());
 
         return preBidResponse.toBuilder().bids(bidsWithCacheUUIDs).build();
+    }
+
+    /**
+     * Sorts the bids and adds ad server targeting keywords to each bid.
+     * The bids are sorted by cpm to find the highest bid.
+     * The ad server targeting keywords are added to all bids, with specific keywords for the highest bid.
+     */
+    private static PreBidResponse addTargetingKeywords(PreBidRequest preBidRequest, Account account,
+                                                       PreBidResponse preBidResponse) {
+        PreBidResponse result = preBidResponse;
+
+        if (preBidRequest.sortBids != null && preBidRequest.sortBids == 1) {
+            final List<Bid> bidsWithKeywords = preBidResponse.bids.stream()
+                    .collect(Collectors.groupingBy(bid -> bid.code))
+                    .values().stream()
+                    .peek(bids -> bids.sort(Comparator.<Bid, BigDecimal>comparing(bid -> bid.price)
+                            .reversed()
+                            .thenComparing(bid -> bid.responseTimeMs)))
+                    .flatMap(bids ->
+                            TargetingKeywords.addTargetingKeywords(preBidRequest, bids, account).stream())
+                    .collect(Collectors.toList());
+
+            result = preBidResponse.toBuilder().bids(bidsWithKeywords).build();
+        }
+
+        return result;
     }
 
     private void respondWith(PreBidResponse response, RoutingContext context) {

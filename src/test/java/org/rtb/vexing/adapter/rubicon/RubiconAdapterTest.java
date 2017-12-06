@@ -526,7 +526,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidsShouldSendBidRequestWithoutDigiTrustIfVisitorIsPresentAndDtIsAbsent() throws IOException{
+    public void requestBidsShouldSendBidRequestWithoutDigiTrustIfVisitorIsPresentAndDtIsAbsent() throws IOException {
         //given
         final ObjectNode visitor = mapper.createObjectNode();
         visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
@@ -816,7 +816,7 @@ public class RubiconAdapterTest extends VertxTest {
         final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bidderStatus).isNotNull();
         assertThat(bidderResult.bidderStatus.bidder).isEqualTo(RUBICON);
-        assertThat(bidderResult.bidderStatus.responseTimeMs).isPositive();
+        assertThat(bidderResult.bidderStatus.responseTimeMs).isNotNegative();
         assertThat(bidderResult.bidderStatus.numBids).isEqualTo(1);
         assertThat(bidderResult.bids).hasSize(1)
                 .element(0).isEqualTo(org.rtb.vexing.model.response.Bid.builder()

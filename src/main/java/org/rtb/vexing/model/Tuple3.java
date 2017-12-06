@@ -10,9 +10,11 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class Tuple<L, R> {
+public class Tuple3<L, M, R> {
 
     L left;
+
+    M middle;
 
     R right;
 }
