@@ -34,7 +34,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -57,7 +56,7 @@ public class CacheServiceTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(httpClient.post((anyInt()), anyString(), anyString(), any())).willReturn(httpClientRequest);
+        given(httpClient.postAbs(anyString(), any())).willReturn(httpClientRequest);
 
         given(httpClientRequest.putHeader(any(CharSequence.class), any(CharSequence.class)))
                 .willReturn(httpClientRequest);
@@ -221,8 +220,9 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMakeHttpRequestUsingPortFromUrl() {
+    public void shouldMakeHttpRequestUsingConfigurationParams() {
         // given
+        given(config.getString("cache.scheme")).willReturn("https");
         given(config.getString("cache.host")).willReturn("cache-service-host:8888");
         cacheService = CacheService.create(httpClient, config);
 
@@ -230,32 +230,7 @@ public class CacheServiceTest extends VertxTest {
         cacheService.saveBids(singleEmptyBid());
 
         // then
-        verify(httpClient).post(eq(8888), anyString(), anyString(), any());
-    }
-
-    @Test
-    public void shouldMakeHttpRequestUsingPort80ForHttp() {
-        // given
-        given(config.getString("cache.host")).willReturn("cache-service-host");
-        cacheService = CacheService.create(httpClient, config);
-
-        // when
-        cacheService.saveBids(singleEmptyBid());
-
-        // then
-        verify(httpClient).post(eq(80), anyString(), anyString(), any());
-    }
-
-    @Test
-    public void shouldMakeHttpRequestUsingPort443ForHttps() {
-        given(config.getString("cache.host")).willReturn("cache-service-host:443");
-        cacheService = CacheService.create(httpClient, config);
-
-        // when
-        cacheService.saveBids(singleEmptyBid());
-
-        // then
-        verify(httpClient).post(eq(443), anyString(), anyString(), any());
+        verify(httpClient).postAbs(eq("https://cache-service-host:8888/cache"), any());
     }
 
     private static List<Bid> singleEmptyBid() {
@@ -278,7 +253,7 @@ public class CacheServiceTest extends VertxTest {
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.post(anyInt(), anyString(), anyString(), any()))
+        given(httpClient.postAbs(anyString(), any()))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(statusCode);
         return httpClientResponse;
@@ -288,7 +263,7 @@ public class CacheServiceTest extends VertxTest {
     private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
         return inv -> {
             // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(3)).handle(httpClientResponse);
+            ((Handler<HttpClientResponse>) inv.getArgument(1)).handle(httpClientResponse);
             return httpClientRequest;
         };
     }

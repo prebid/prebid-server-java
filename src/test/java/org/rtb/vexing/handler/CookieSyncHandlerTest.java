@@ -21,6 +21,7 @@ import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieFactory;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
+import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.response.BidderStatus;
@@ -28,10 +29,10 @@ import org.rtb.vexing.model.response.CookieSyncResponse;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -156,12 +157,99 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithSomeBidderStatusesIfSomeUidsMissingInCookies() throws IOException {
         // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.builder().uuid("uuid").bidders(Arrays.asList(RUBICON, APPNEXUS)).build()));
+                CookieSyncRequest.builder().uuid("uuid").bidders(asList(RUBICON, APPNEXUS)).build()));
+
+        givenAdaptersReturningFamilyName();
+
+        final ObjectNode appnexusUsersyncInfo = defaultNamingMapper.valueToTree(UsersyncInfo.builder()
+                .url("http://adnxsexample.com")
+                .type("redirect")
+                .supportCORS(false)
+                .build());
+        given(appnexusAdapter.usersyncInfo()).willReturn(appnexusUsersyncInfo);
+
+        // when
+        cookieSyncHandler.sync(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
+                .uuid("uuid")
+                .status("ok")
+                .bidderStatus(singletonList(BidderStatus.builder()
+                        .bidder(APPNEXUS)
+                        .noCookie(true)
+                        .usersync(appnexusUsersyncInfo)
+                        .build()))
+                .build());
+    }
+
+    @Test
+    public void shouldRespondWithNoBidderStatusesIfAllUidsPresentInCookies() throws IOException {
+        // given
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
+        uids.put(ADNXS, UidWithExpiry.live("12345"));
+        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+
+        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
+                CookieSyncRequest.builder().uuid("uuid").bidders(asList(RUBICON, APPNEXUS)).build()));
+
+        givenAdaptersReturningFamilyName();
+
+        // when
+        cookieSyncHandler.sync(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
+                .uuid("uuid")
+                .status("ok")
+                .bidderStatus(emptyList())
+                .build());
+    }
+
+    @Test
+    public void shouldTolerateUnsupportedBidder() throws IOException {
+        // given
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
+        uids.put(ADNXS, UidWithExpiry.live("12345"));
+        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+
+        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
+                CookieSyncRequest.builder().uuid("uuid").bidders(asList(RUBICON, "unsupported")).build()));
+
+        givenAdaptersReturningFamilyName();
+
+        given(adapterCatalog.isValidCode("unsupported")).willReturn(false);
+
+        // when
+        cookieSyncHandler.sync(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
+                .uuid("uuid")
+                .status("ok")
+                .bidderStatus(emptyList())
+                .build());
+    }
+
+    @Test
+    public void shouldRespondWithNoCookieStatusIfNoLiveUids() throws IOException {
+        // given
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(ADNXS, UidWithExpiry.expired("12345"));
+        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+
+        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
+                CookieSyncRequest.builder().uuid("uuid").bidders(singletonList(APPNEXUS)).build()));
 
         givenAdaptersReturningFamilyName();
 
@@ -185,58 +273,6 @@ public class CookieSyncHandlerTest extends VertxTest {
                         .noCookie(true)
                         .usersync(appnexusUsersyncInfo)
                         .build()))
-                .build());
-    }
-
-    @Test
-    public void shouldRespondWithNoBidderStatusesIfAllUidsPresentInCookies() throws IOException {
-        // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
-        uids.put(ADNXS, "12345");
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
-
-        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.builder().uuid("uuid").bidders(Arrays.asList(RUBICON, APPNEXUS)).build()));
-
-        givenAdaptersReturningFamilyName();
-
-        // when
-        cookieSyncHandler.sync(routingContext);
-
-        // then
-        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
-                .uuid("uuid")
-                .status("no_cookie")
-                .bidderStatus(emptyList())
-                .build());
-    }
-
-    @Test
-    public void shouldTolerateUnsupportedBidder() throws IOException {
-        // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
-        uids.put(ADNXS, "12345");
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
-
-        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.builder().uuid("uuid").bidders(Arrays.asList(RUBICON, "unsupported")).build()));
-
-        givenAdaptersReturningFamilyName();
-
-        given(adapterCatalog.isValidCode("unsupported")).willReturn(false);
-
-        // when
-        cookieSyncHandler.sync(routingContext);
-
-        // then
-        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
-                .uuid("uuid")
-                .status("no_cookie")
-                .bidderStatus(emptyList())
                 .build());
     }
 

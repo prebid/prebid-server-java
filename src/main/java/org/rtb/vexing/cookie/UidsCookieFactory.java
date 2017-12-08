@@ -9,6 +9,7 @@ import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
 import java.time.Instant;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class UidsCookieFactory {
 
@@ -55,6 +57,7 @@ public class UidsCookieFactory {
 
     public UidsCookie parseFromRequest(RoutingContext context) {
         Objects.requireNonNull(context);
+
         Uids uids = null;
         final Cookie uidsCookie = context.getCookie(UidsCookie.COOKIE_NAME);
         if (uidsCookie != null) {
@@ -73,14 +76,21 @@ public class UidsCookieFactory {
                     .bday(BDAY_FORMATTER.format(Instant.now()))
                     .build();
         }
+        if (uids.uidsLegacy != null) {
+            final Map<String, UidWithExpiry> convertedUids = uids.uidsLegacy.entrySet().stream().collect(
+                    Collectors.toMap(Map.Entry::getKey, value -> UidWithExpiry.expired(value.getValue())));
+            uids = uids.toBuilder()
+                    .uids(convertedUids)
+                    .uidsLegacy(Collections.emptyMap())
+                    .build();
+        }
 
         final Cookie hostCookie = hostCookieName != null ? context.getCookie(hostCookieName) : null;
         final boolean isOptedOut = isOptedOut(context);
 
         if (uids.uids.get(hostCookieFamily) == null && hostCookie != null && !isOptedOut) {
-            final Map<String, String> uidsWithHostCookie = new HashMap<>();
-            uidsWithHostCookie.putAll(uids.uids);
-            uidsWithHostCookie.put(hostCookieFamily, hostCookie.getValue());
+            final Map<String, UidWithExpiry> uidsWithHostCookie = new HashMap<>(uids.uids);
+            uidsWithHostCookie.put(hostCookieFamily, UidWithExpiry.live(hostCookie.getValue()));
             uids = uids.toBuilder().uids(uidsWithHostCookie).build();
         }
 

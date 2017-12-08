@@ -14,6 +14,7 @@ public interface ObjectMapperConfigurer {
                 .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
                 .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-                .registerModule(new AfterburnerModule());
+                .registerModule(new AfterburnerModule())
+                .registerModule(new ZonedDateTimeModule());
     }
 }

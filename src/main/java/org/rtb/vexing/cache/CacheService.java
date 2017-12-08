@@ -37,12 +37,12 @@ public class CacheService {
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
     private final HttpClient httpClient;
-    private final URL cacheEndpointUrl;
+    private final String endpointUrl;
     private final String cachedAssetUrlTemplate;
 
-    private CacheService(HttpClient httpClient, URL cacheEndpointUrl, String cachedAssetUrlTemplate) {
+    private CacheService(HttpClient httpClient, String endpointUrl, String cachedAssetUrlTemplate) {
         this.httpClient = httpClient;
-        this.cacheEndpointUrl = cacheEndpointUrl;
+        this.endpointUrl = endpointUrl;
         this.cachedAssetUrlTemplate = cachedAssetUrlTemplate;
     }
 
@@ -50,7 +50,7 @@ public class CacheService {
         Objects.requireNonNull(httpClient);
         Objects.requireNonNull(config);
 
-        return new CacheService(httpClient, getCacheEndpointUrl(config), getCachedAssetUrlTemplate(config));
+        return new CacheService(httpClient, getEndpointUrl(config), getCachedAssetUrlTemplate(config));
     }
 
     public Future<List<BidCacheResult>> saveBids(List<Bid> bids) {
@@ -60,19 +60,13 @@ public class CacheService {
         }
 
         final Future<List<BidCacheResult>> future = Future.future();
-        httpClient.post(portFromUrl(cacheEndpointUrl), cacheEndpointUrl.getHost(), cacheEndpointUrl.getFile(),
-                response -> handleResponse(response, bids, future))
+        httpClient.postAbs(endpointUrl, response -> handleResponse(response, bids, future))
                 .exceptionHandler(exception -> handleException(exception, future))
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .setTimeout(HTTP_REQUEST_TIMEOUT)
                 .end(Json.encode(toBidCacheRequest(bids)));
         return future;
-    }
-
-    private static int portFromUrl(URL url) {
-        final int port = url.getPort();
-        return port != -1 ? port : url.getDefaultPort();
     }
 
     private BidCacheRequest toBidCacheRequest(List<Bid> bids) {
@@ -144,10 +138,10 @@ public class CacheService {
         return cachedAssetUrlTemplate.replaceFirst("%PBS_CACHE_UUID%", uuid);
     }
 
-    private static URL getCacheEndpointUrl(ApplicationConfig config) {
+    private static String getEndpointUrl(ApplicationConfig config) {
         try {
-            final URL baseUrl = getCacheBaseUrl(config);
-            return new URL(baseUrl, "/cache");
+            final URL baseUrl = getBaseUrl(config);
+            return new URL(baseUrl, "/cache").toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cache endpoint for prebid cache service", e);
         }
@@ -155,14 +149,14 @@ public class CacheService {
 
     private static String getCachedAssetUrlTemplate(ApplicationConfig config) {
         try {
-            final URL baseUrl = getCacheBaseUrl(config);
+            final URL baseUrl = getBaseUrl(config);
             return new URL(baseUrl, "/cache?" + config.getString("cache.query")).toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cached asset url template for prebid cache service", e);
         }
     }
 
-    private static URL getCacheBaseUrl(ApplicationConfig config) throws MalformedURLException {
+    private static URL getBaseUrl(ApplicationConfig config) throws MalformedURLException {
         return new URL(config.getString("cache.scheme") + "://" + config.getString("cache.host"));
     }
 }

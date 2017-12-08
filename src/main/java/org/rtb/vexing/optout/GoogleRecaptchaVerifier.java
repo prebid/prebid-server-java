@@ -22,7 +22,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class GoogleRecaptchaVerifier {
 
@@ -94,14 +93,15 @@ public class GoogleRecaptchaVerifier {
     }
 
     private static String encodedBody(String secret, String recaptcha) {
-        final Function<String, String> encoder = value -> {
-            try {
-                return URLEncoder.encode(value, "utf-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new OptoutException(String.format("Cannot encode request form value: %s", value), e);
-            }
-        };
-        return "secret=" + encoder.apply(secret) + "&response=" + encoder.apply(recaptcha);
+        return "secret=" + encodeValue(secret) + "&response=" + encodeValue(recaptcha);
+    }
+
+    private static String encodeValue(String value) {
+        try {
+            return URLEncoder.encode(value, "utf-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new OptoutException(String.format("Cannot encode request form value: %s", value), e);
+        }
     }
 
     @Builder

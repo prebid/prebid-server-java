@@ -1,5 +1,6 @@
 package org.rtb.vexing.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +17,11 @@ import java.util.Map;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class Uids {
 
-    Map<String, String> uids;
+    @JsonProperty("uids")
+    Map<String, String> uidsLegacy;
+
+    @JsonProperty("tempUIDs")
+    Map<String, UidWithExpiry> uids; // transition to new UIDs format
 
     Boolean optout;
 

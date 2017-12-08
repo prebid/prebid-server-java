@@ -7,15 +7,19 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
 
-public class UidsCookieTest {
+public class UidsCookieTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String ADNXS = "adnxs";
@@ -31,8 +35,8 @@ public class UidsCookieTest {
     @Test
     public void uidFromShouldReturnUids() {
         // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
 
         // when and then
@@ -68,7 +72,37 @@ public class UidsCookieTest {
 
     @Test
     public void hasLiveUidsShouldReturnFalse() {
-        assertThat(new UidsCookie(Uids.builder().build()).hasLiveUids()).isFalse();
+        // given
+        Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.expired("J5VLCWQP-26-CWFT"));
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+
+        // then
+        assertThat(uidsCookie.hasLiveUids()).isFalse();
+    }
+
+    @Test
+    public void hasLiveUidsShouldReturnTrue() {
+        // given
+        Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+
+        // then
+        assertThat(uidsCookie.hasLiveUids()).isTrue();
+    }
+
+    @Test
+    public void hasLiveUidFromFamilyNameShouldReturnExpectedValue() {
+        // given
+        Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
+        uids.put(ADNXS, UidWithExpiry.expired("12345"));
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
+
+        // then
+        assertThat(uidsCookie.hasLiveUidFrom(RUBICON)).isTrue();
+        assertThat(uidsCookie.hasLiveUidFrom(ADNXS)).isFalse();
     }
 
     @Test
@@ -100,9 +134,9 @@ public class UidsCookieTest {
     @Test
     public void deleteUidShouldReturnUidsCookieWithUidRemoved() {
         // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
-        uids.put(ADNXS, "12345");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
+        uids.put(ADNXS, UidWithExpiry.live("12345"));
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
 
         // when
@@ -116,8 +150,8 @@ public class UidsCookieTest {
     @Test
     public void deleteUidShouldIgnoreMissingUid() {
         // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(ADNXS, "12345");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(ADNXS, UidWithExpiry.live("12345"));
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
 
         // when
@@ -151,9 +185,9 @@ public class UidsCookieTest {
     @Test
     public void updateUidShouldReturnUidsCookieWithUidReplaced() {
         // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
-        uids.put(ADNXS, "12345");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
+        uids.put(ADNXS, UidWithExpiry.live("12345"));
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
 
         // when
@@ -167,8 +201,8 @@ public class UidsCookieTest {
     @Test
     public void updateUidShouldReturnUidsCookieWithUidAdded() {
         // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(ADNXS, "12345");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(ADNXS, UidWithExpiry.live("12345"));
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
 
         // when
@@ -206,8 +240,8 @@ public class UidsCookieTest {
     @Test
     public void updateOptoutShouldReturnUidsCookieWithOptoutFlagOn() {
         // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(RUBICON, "12345");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).build());
 
         // when
@@ -229,8 +263,16 @@ public class UidsCookieTest {
         final Cookie cookie = uidsCookie.toCookie();
 
         // then
-        final Uids uids = Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(cookie.getValue())), Uids.class);
-        assertThat(uids.uids).containsOnly(entry(RUBICON, "rubiconUid"), entry(ADNXS, "adnxsUid"));
+        Map<String, UidWithExpiry> uids = decodeUids(cookie.getValue()).uids;
+
+        assertThat(uids).hasSize(2);
+        assertThat(uids.get(RUBICON).uid).isEqualTo("rubiconUid");
+        assertThat(uids.get(RUBICON).expires.toInstant())
+                .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
+
+        assertThat(uids.get(ADNXS).uid).isEqualTo("adnxsUid");
+        assertThat(uids.get(ADNXS).expires.toInstant())
+                .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
     @Test
@@ -240,5 +282,9 @@ public class UidsCookieTest {
 
         // then
         assertThat(uidsCookie.encode()).containsSequence("Max-Age=15552000; Expires=");
+    }
+
+    private static Uids decodeUids(String value) {
+        return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
     }
 }

@@ -64,7 +64,7 @@ public class CookieSyncHandler {
         final List<BidderStatus> bidderStatuses = cookieSyncRequest.bidders.stream()
                 .filter(adapterCatalog::isValidCode)
                 .map(adapterCatalog::getByCode)
-                .filter(adapter -> uidsCookie.uidFrom(adapter.cookieFamily()) == null)
+                .filter(adapter -> !uidsCookie.hasLiveUidFrom(adapter.cookieFamily()))
                 .map(adapter -> BidderStatus.builder()
                         .bidder(adapter.code())
                         .noCookie(true)
@@ -74,7 +74,7 @@ public class CookieSyncHandler {
 
         final CookieSyncResponse response = CookieSyncResponse.builder()
                 .uuid(cookieSyncRequest.uuid)
-                .status(uidsCookie.hasLiveUids() ? "OK" : "no_cookie")
+                .status(uidsCookie.hasLiveUids() ? "ok" : "no_cookie")
                 .bidderStatus(bidderStatuses)
                 .build();
 

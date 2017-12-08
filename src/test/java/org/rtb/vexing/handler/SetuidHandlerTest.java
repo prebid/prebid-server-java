@@ -1,7 +1,9 @@
 package org.rtb.vexing.handler;
 
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -18,8 +20,10 @@ import org.rtb.vexing.metric.CookieSyncMetrics;
 import org.rtb.vexing.metric.CookieSyncMetrics.BidderCookieSyncMetrics;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
+import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -111,9 +115,9 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRemoveUidFromCookieIfMissingInRequest() {
         // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
-        uids.put(ADNXS, "12345");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
+        uids.put(ADNXS, UidWithExpiry.live("12345"));
         given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
@@ -125,7 +129,9 @@ public class SetuidHandlerTest extends VertxTest {
         final Cookie uidsCookie = captureCookie();
         verify(httpResponse).end();
         // this uids cookie value stands for {"uids":{"adnxs":"12345"}}
-        assertThat(uidsCookie.getValue()).isEqualTo("eyJ1aWRzIjp7ImFkbnhzIjoiMTIzNDUifX0=");
+        final Uids decodedUids = decodeUids(uidsCookie.getValue());
+        assertThat(decodedUids.uids).hasSize(1);
+        assertThat(decodedUids.uids.get(ADNXS).uid).isEqualTo("12345");
     }
 
     @Test
@@ -134,8 +140,8 @@ public class SetuidHandlerTest extends VertxTest {
         // this uids cookie value stands for {"uids":{"audienceNetwork":"facebookUid"}}
         given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
                 "eyJ1aWRzIjp7ImF1ZGllbmNlTmV0d29yayI6ImZhY2Vib29rVWlkIn19"));
-        final Map<String, String> uids = new HashMap<>();
-        uids.put("audienceNetwork", "facebookUid");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put("audienceNetwork", UidWithExpiry.live("facebookUid"));
         given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(httpRequest.getParam("bidder")).willReturn("audienceNetwork");
@@ -148,17 +154,18 @@ public class SetuidHandlerTest extends VertxTest {
         final Cookie uidsCookie = captureCookie();
         verify(httpResponse).end();
         // this uids cookie value stands for {"uids":{"audienceNetwork":"facebookUid"}}
-        assertThat(uidsCookie.getValue()).isEqualTo("eyJ1aWRzIjp7ImF1ZGllbmNlTmV0d29yayI6ImZhY2Vib29rVWlkIn19");
+        final Uids decodedUids = decodeUids(uidsCookie.getValue());
+        assertThat(decodedUids.uids).hasSize(1);
+        assertThat(decodedUids.uids.get("audienceNetwork").uid).isEqualTo("facebookUid");
     }
 
     @Test
     public void shouldUpdateUidInCookieWithRequestValue() {
         // given
-        final Map<String, String> uids = new HashMap<>();
-        uids.put(RUBICON, "J5VLCWQP-26-CWFT");
-        uids.put(ADNXS, "12345");
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
+        uids.put(ADNXS, UidWithExpiry.live("12345"));
         given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
-
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
@@ -169,11 +176,13 @@ public class SetuidHandlerTest extends VertxTest {
         // then
         final Cookie uidsCookie = captureCookie();
         verify(httpResponse).end();
-        // this uids cookie value stands for {"uids":{"adnxs":"12345","rubicon":"updatedUid"}}
-        assertThat(uidsCookie.getValue())
-                .isEqualTo("eyJ1aWRzIjp7ImFkbnhzIjoiMTIzNDUiLCJydWJpY29uIjoidXBkYXRlZFVpZCJ9fQ==");
         verify(cookieSyncMetrics).forBidder(eq(RUBICON));
         verify(bidderCookieSyncMetrics).incCounter(eq(MetricName.sets));
+        // this uids cookie value stands for {"uids":{"adnxs":"12345","rubicon":"updatedUid"}}
+        final Uids decodedUids = decodeUids(uidsCookie.getValue());
+        assertThat(decodedUids.uids).hasSize(2);
+        assertThat(decodedUids.uids.get(RUBICON).uid).isEqualTo("updatedUid");
+        assertThat(decodedUids.uids.get(ADNXS).uid).isEqualTo("12345");
     }
 
     @Test
@@ -225,5 +234,9 @@ public class SetuidHandlerTest extends VertxTest {
         final ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
         verify(routingContext).addCookie(cookieCaptor.capture());
         return cookieCaptor.getValue();
+    }
+
+    private static Uids decodeUids(String value) {
+        return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
     }
 }

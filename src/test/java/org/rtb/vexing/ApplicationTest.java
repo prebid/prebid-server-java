@@ -28,6 +28,8 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -57,6 +59,7 @@ import org.rtb.vexing.cache.model.request.PutObject;
 import org.rtb.vexing.cache.model.request.PutValue;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.cache.model.response.CacheObject;
+import org.rtb.vexing.model.Uids;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.request.DigiTrust;
@@ -71,6 +74,7 @@ import org.rtb.vexing.model.response.UsersyncInfo;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -249,7 +253,10 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.statusCode()).isEqualTo(301);
         assertThat(response.header("location")).isEqualTo("http://optout/url");
         // this uids cookie value stands for {"uids":{},"optout":true}
-        assertThat(response.cookie("uids")).isEqualTo("eyJ1aWRzIjp7fSwib3B0b3V0Ijp0cnVlfQ==");
+        final Uids uids = decodeUids(response.cookie("uids"));
+        assertThat(uids.uids).isEmpty();
+        assertThat(uids.uidsLegacy).isEmpty();
+        assertThat(uids.optout).isTrue();
     }
 
     @Test
@@ -301,16 +308,22 @@ public class ApplicationTest extends VertxTest {
                 .when()
                 .get("/setuid")
                 .then()
-                // this uids cookie value stands for {"uids":{"appnexus":"12345","rubicon":"updatedUid"},
-                // "bday":"2017-08-15T19:47:59.523908376Z"}
-                .cookie("uids", "eyJ1aWRzIjp7ImFwcG5leHVzIjoiMTIzNDUiLCJydWJpY29uIjoidXBkYXRlZFVpZCJ9LCJiZGF5I" +
-                        "joiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=")
                 .extract()
                 .detailedCookie("uids");
 
         assertThat(uidsCookie.getMaxAge()).isEqualTo(15552000);
         assertThat(uidsCookie.getExpiryDate().toInstant())
                 .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
+
+        final Uids uids = decodeUids(uidsCookie.getValue());
+        assertThat(uids.bday).isEqualTo("2017-08-15T19:47:59.523908376Z"); // should be unchanged
+        assertThat(uids.uidsLegacy).isEmpty();
+        assertThat(uids.uids.get(RUBICON).uid).isEqualTo("updatedUid");
+        assertThat(uids.uids.get(RUBICON).expires.toInstant())
+                .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
+        assertThat(uids.uids.get("appnexus").uid).isEqualTo("12345");
+        assertThat(uids.uids.get("appnexus").expires.toInstant())
+                .isCloseTo(Instant.now().minus(5, ChronoUnit.MINUTES), within(10, ChronoUnit.SECONDS));
     }
 
     private static PreBidRequest givenPreBidRequest(DigiTrust dt, ObjectNode inventory, ObjectNode visitor) {
@@ -517,5 +530,9 @@ public class ApplicationTest extends VertxTest {
                 .responses(cacheObjects)
                 .build();
         return mapper.writeValueAsString(bidCacheResponse);
+    }
+
+    private static Uids decodeUids(String value) {
+        return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
     }
 }
