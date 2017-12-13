@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
+import java.time.ZonedDateTime;
 import java.util.Map;
 
 @Builder(toBuilder = true)
@@ -25,5 +26,5 @@ public class Uids {
 
     Boolean optout;
 
-    String bday;
+    ZonedDateTime bday;
 }

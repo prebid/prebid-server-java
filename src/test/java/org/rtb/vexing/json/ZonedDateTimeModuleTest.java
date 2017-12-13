@@ -2,7 +2,6 @@ package org.rtb.vexing.json;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.vertx.core.json.Json;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -21,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 public class ZonedDateTimeModuleTest {
 
-    private static final ObjectMapper MAPPER = Json.mapper.registerModule(new ZonedDateTimeModule());
+    private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new ZonedDateTimeModule());
 
     @Test
     public void shouldEncodeSuccessfully() throws IOException {

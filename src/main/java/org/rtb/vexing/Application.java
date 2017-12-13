@@ -23,7 +23,7 @@ import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.adapter.PreBidRequestContextFactory;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.config.ApplicationConfig;
-import org.rtb.vexing.cookie.UidsCookieFactory;
+import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.handler.CookieSyncHandler;
 import org.rtb.vexing.handler.GetuidsHandler;
@@ -122,9 +122,9 @@ public class Application extends AbstractVerticle {
             configureMetricsReporter(metricRegistry, config, vertx);
             final Metrics metrics = Metrics.create(metricRegistry, config);
             final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient);
-            final UidsCookieFactory uidsCookieFactory = UidsCookieFactory.create(config);
+            final UidsCookieService uidsCookieService = UidsCookieService.create(config);
             final PreBidRequestContextFactory preBidRequestContextFactory =
-                    PreBidRequestContextFactory.create(config, psl(), applicationSettings, uidsCookieFactory);
+                    PreBidRequestContextFactory.create(config, psl(), applicationSettings, uidsCookieService);
             final CacheService cacheService = CacheService.create(httpClient, config);
             final GoogleRecaptchaVerifier googleRecaptchaVerifier = GoogleRecaptchaVerifier.create(httpClient, config);
 
@@ -132,10 +132,10 @@ public class Application extends AbstractVerticle {
                     .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog,
                             preBidRequestContextFactory, cacheService, vertx, metrics))
                     .statusHandler(new StatusHandler())
-                    .cookieSyncHandler(new CookieSyncHandler(uidsCookieFactory, adapterCatalog, metrics))
-                    .setuidHandler(new SetuidHandler(uidsCookieFactory, metrics))
-                    .getuidsHandler(new GetuidsHandler(uidsCookieFactory))
-                    .optoutHandler(OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieFactory))
+                    .cookieSyncHandler(new CookieSyncHandler(uidsCookieService, adapterCatalog, metrics))
+                    .setuidHandler(new SetuidHandler(uidsCookieService, metrics))
+                    .getuidsHandler(new GetuidsHandler(uidsCookieService))
+                    .optoutHandler(OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService))
                     .build();
         }
 

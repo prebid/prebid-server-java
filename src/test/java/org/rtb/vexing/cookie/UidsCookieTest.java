@@ -1,26 +1,21 @@
 package org.rtb.vexing.cookie;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.Json;
-import io.vertx.ext.web.Cookie;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
-import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-public class UidsCookieTest extends VertxTest {
+public class UidsCookieTest {
 
     private static final String RUBICON = "rubicon";
     private static final String ADNXS = "adnxs";
@@ -47,7 +42,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void uidFromShouldTolerateNullUids() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build());
 
         // when and then
         assertThat(uidsCookie.uidFrom(RUBICON)).isNull();
@@ -56,7 +51,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void allowsSyncShouldReturnFalseIfOptoutTrue() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().optout(true).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build());
 
         // when and then
         assertThat(uidsCookie.allowsSync()).isFalse();
@@ -65,7 +60,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void allowsSyncShouldReturnTrueIfOptoutAbsent() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build());
 
         // when and then
         assertThat(uidsCookie.allowsSync()).isTrue();
@@ -166,7 +161,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void deleteUidShouldTolerateNullUids() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build());
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.deleteUid(RUBICON);
@@ -217,7 +212,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void updateUidShouldTolerateNullUids() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).build());
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.updateUid(RUBICON, "createdUid");
@@ -229,7 +224,7 @@ public class UidsCookieTest extends VertxTest {
     @Test
     public void updateOptoutShouldReturnUidsCookieWithOptoutFlagOff() {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().optout(true).build());
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build());
 
         // when
         final UidsCookie uidsCookieReturned = uidsCookie.updateOptout(false);
@@ -254,55 +249,18 @@ public class UidsCookieTest extends VertxTest {
     }
 
     @Test
-    public void toCookieShouldReturnCookieWithExpectedValue() {
-        // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new HashMap<>()).build())
-                .updateUid(RUBICON, "rubiconUid")
-                .updateUid(ADNXS, "adnxsUid");
-
-        // when
-        final Cookie cookie = uidsCookie.toCookie();
-
-        // then
-        Map<String, UidWithExpiry> uids = decodeUids(cookie.getValue()).uids;
-
-        assertThat(uids).hasSize(2);
-        assertThat(uids.get(RUBICON).uid).isEqualTo("rubiconUid");
-        assertThat(uids.get(RUBICON).expires.toInstant())
-                .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
-
-        assertThat(uids.get(ADNXS).uid).isEqualTo("adnxsUid");
-        assertThat(uids.get(ADNXS).expires.toInstant())
-                .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
-    }
-
-    @Test
-    public void toCookieShouldReturnCookieWithExpectedExpiration() {
-        // when
-        final Cookie uidsCookie = new UidsCookie(Uids.builder().uids(new HashMap<>()).build()).toCookie();
-
-        // then
-        assertThat(uidsCookie.encode()).containsSequence("Max-Age=15552000; Expires=");
-    }
-
-    private static Uids decodeUids(String value) {
-        return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
-    }
-
-    @Test
     public void toJsonShouldReturnCookieInValidJsonFormat() {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, new UidWithExpiry("J5VLCWQP-26-CWFT", ZonedDateTime.parse("2017-12-30T12:30:40Z[GMT]")));
 
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).bday("2017-08-15T19:47:59.523908376Z")
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder()
+                .uids(uids)
+                .bday(ZonedDateTime.parse("2017-08-15T19:47:59.523908376Z"))
                 .build());
 
-        // when
-        String cookieJson = uidsCookie.toJson();
-
-        // then
-        assertThat(cookieJson).isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\"," +
+        // when and then
+        assertThat(uidsCookie.toJson()).isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\"," +
                 "\"expires\":\"2017-12-30T12:30:40.000000000Z\"}},\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
     }
 }

@@ -12,9 +12,9 @@ import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,36 +22,37 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class UidsCookieFactory {
+public class UidsCookieService {
 
     private static final Logger logger = LoggerFactory.getLogger(UidsCookie.class);
 
-    private static final DateTimeFormatter BDAY_FORMATTER = new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendInstant(9)
-            .toFormatter();
+    private static final String COOKIE_NAME = "uids";
+    private static final long COOKIE_EXPIRATION = Duration.ofDays(180).getSeconds();
 
     private final String optOutCookieName;
     private final String optOutCookieValue;
     private final String hostCookieFamily;
     private final String hostCookieName;
+    private final String hostCookieDomain;
 
-    private UidsCookieFactory(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
-                              String hostCookieName) {
+    private UidsCookieService(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
+                              String hostCookieName, String hostCookieDomain) {
         this.optOutCookieName = optOutCookieName;
         this.optOutCookieValue = optOutCookieValue;
         this.hostCookieFamily = hostCookieFamily;
         this.hostCookieName = hostCookieName;
+        this.hostCookieDomain = hostCookieDomain;
     }
 
-    public static UidsCookieFactory create(ApplicationConfig config) {
+    public static UidsCookieService create(ApplicationConfig config) {
         Objects.requireNonNull(config);
 
-        return new UidsCookieFactory(
+        return new UidsCookieService(
                 config.getString("host_cookie.optout_cookie.name", null),
                 config.getString("host_cookie.optout_cookie.value", null),
                 config.getString("host_cookie.family", null),
-                config.getString("host_cookie.cookie_name", null)
+                config.getString("host_cookie.cookie_name", null),
+                config.getString("host_cookie.domain", null)
         );
     }
 
@@ -59,21 +60,20 @@ public class UidsCookieFactory {
         Objects.requireNonNull(context);
 
         Uids uids = null;
-        final Cookie uidsCookie = context.getCookie(UidsCookie.COOKIE_NAME);
+        final Cookie uidsCookie = context.getCookie(COOKIE_NAME);
         if (uidsCookie != null) {
             try {
                 uids = Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(uidsCookie.getValue())),
                         Uids.class);
             } catch (IllegalArgumentException | DecodeException e) {
-                logger.debug("Could not decode or parse {0} cookie value {1}", UidsCookie.COOKIE_NAME,
-                        uidsCookie.getValue(), e);
+                logger.debug("Could not decode or parse {0} cookie value {1}", COOKIE_NAME, uidsCookie.getValue(), e);
             }
         }
 
         if (uids == null) {
             uids = Uids.builder()
                     .uids(Collections.emptyMap())
-                    .bday(BDAY_FORMATTER.format(Instant.now()))
+                    .bday(ZonedDateTime.now(Clock.systemUTC()))
                     .build();
         }
 
@@ -108,7 +108,21 @@ public class UidsCookieFactory {
                     .build();
         }
 
+        uids.uids.entrySet().removeIf(entry -> UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().uid));
+
         return new UidsCookie(uids);
+    }
+
+    public Cookie toCookie(UidsCookie uidsCookie) {
+        final Cookie cookie = Cookie
+                .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
+                .setMaxAge(COOKIE_EXPIRATION);
+
+        if (StringUtils.isNotBlank(hostCookieDomain)) {
+            cookie.setDomain(hostCookieDomain);
+        }
+
+        return cookie;
     }
 
     private boolean isOptedOut(RoutingContext context) {

@@ -13,7 +13,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.cookie.UidsCookie;
-import org.rtb.vexing.cookie.UidsCookieFactory;
+import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
@@ -36,7 +36,7 @@ public class GetuidsHandlerTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private UidsCookieFactory uidsCookieFactory;
+    private UidsCookieService uidsCookieService;
 
     private GetuidsHandler getuidsHandler;
 
@@ -52,7 +52,9 @@ public class GetuidsHandlerTest extends VertxTest {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
 
-        getuidsHandler = new GetuidsHandler(uidsCookieFactory);
+        given(uidsCookieService.toCookie(any())).willCallRealMethod();
+
+        getuidsHandler = new GetuidsHandler(uidsCookieService);
     }
 
     @Test
@@ -64,12 +66,11 @@ public class GetuidsHandlerTest extends VertxTest {
     public void shouldReturnEncodedLegacyCookieAndDecodedJsonAsResponseBody() {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
-
         uids.put(RUBICON, new UidWithExpiry("J5VLCWQP-26-CWFT", ZonedDateTime.parse("2017-12-30T12:30:40Z[GMT]")));
 
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder()
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder()
                 .uids(uids)
-                .bday("2017-08-15T19:47:59.523908376Z")
+                .bday(ZonedDateTime.parse("2017-08-15T19:47:59.523908376Z"))
                 .build()));
         given(routingContext.addCookie(any())).willReturn(routingContext);
 
@@ -94,9 +95,9 @@ public class GetuidsHandlerTest extends VertxTest {
     @Test
     public void shouldReturnCookieWithEmptyValueAndResponseBody() {
         // given
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder()
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder()
                 .uids(Collections.emptyMap())
-                .bday("2017-08-15T19:47:59.523908376Z")
+                .bday(ZonedDateTime.parse("2017-08-15T19:47:59.523908376Z"))
                 .build()));
         given(routingContext.addCookie(any())).willReturn(routingContext);
 

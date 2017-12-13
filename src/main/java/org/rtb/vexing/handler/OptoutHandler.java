@@ -8,7 +8,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
-import org.rtb.vexing.cookie.UidsCookieFactory;
+import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
 
 import java.net.MalformedURLException;
@@ -22,28 +22,28 @@ public class OptoutHandler {
     private static final String RECAPTCHA_PARAM = "g-recaptcha-response";
     private static final String OPTOUT_PARAM = "optout";
 
-    private final UidsCookieFactory uidsCookieFactory;
+    private final UidsCookieService uidsCookieService;
     private final GoogleRecaptchaVerifier googleRecaptchaVerifier;
     private final String optoutRedirectUrl;
     private final String optoutUrl;
     private final String optinUrl;
 
-    private OptoutHandler(GoogleRecaptchaVerifier googleRecaptchaVerifier, UidsCookieFactory uidsCookieFactory,
+    private OptoutHandler(GoogleRecaptchaVerifier googleRecaptchaVerifier, UidsCookieService uidsCookieService,
                           String optoutRedirectUrl, String optoutUrl, String optinUrl) {
         this.googleRecaptchaVerifier = googleRecaptchaVerifier;
-        this.uidsCookieFactory = uidsCookieFactory;
+        this.uidsCookieService = uidsCookieService;
         this.optoutRedirectUrl = optoutRedirectUrl;
         this.optoutUrl = optoutUrl;
         this.optinUrl = optinUrl;
     }
 
     public static OptoutHandler create(ApplicationConfig config, GoogleRecaptchaVerifier googleRecaptchaVerifier,
-                                       UidsCookieFactory uidsCookieFactory) {
+                                       UidsCookieService uidsCookieService) {
         Objects.requireNonNull(config);
         Objects.requireNonNull(googleRecaptchaVerifier);
-        Objects.requireNonNull(uidsCookieFactory);
+        Objects.requireNonNull(uidsCookieService);
 
-        return new OptoutHandler(googleRecaptchaVerifier, uidsCookieFactory, getOptoutRedirectUrl(config),
+        return new OptoutHandler(googleRecaptchaVerifier, uidsCookieService, getOptoutRedirectUrl(config),
                 validateUrl(config.getString("host_cookie.opt_out_url")),
                 validateUrl(config.getString("host_cookie.opt_in_url")));
     }
@@ -96,10 +96,10 @@ public class OptoutHandler {
     }
 
     private Cookie optCookie(boolean optout, RoutingContext context) {
-        final UidsCookie uidsCookie = uidsCookieFactory
+        final UidsCookie uidsCookie = uidsCookieService
                 .parseFromRequest(context)
                 .updateOptout(optout);
-        return uidsCookie.toCookie();
+        return uidsCookieService.toCookie(uidsCookie);
     }
 
     private String optUrl(boolean optout) {

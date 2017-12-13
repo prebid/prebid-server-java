@@ -144,6 +144,7 @@ public class ApplicationTest extends VertxTest {
                 .put("cache.query", "uuid=%PBS_CACHE_UUID%")
                 .put("recaptcha_url", "http://localhost:" + WIREMOCK_PORT + "/optout")
                 .put("recaptcha_secret", "abc")
+                .put("host_cookie.domain", "cookie-domain")
                 .put("host_cookie.opt_out_url", "http://optout/url")
                 .put("host_cookie.opt_in_url", "http://optin/url");
     }
@@ -272,8 +273,12 @@ public class ApplicationTest extends VertxTest {
 
         assertThat(response.statusCode()).isEqualTo(301);
         assertThat(response.header("location")).isEqualTo("http://optout/url");
+
+        final Cookie cookie = response.getDetailedCookie("uids");
+        assertThat(cookie.getDomain()).isEqualTo("cookie-domain");
+
         // this uids cookie value stands for {"uids":{},"optout":true}
-        final Uids uids = decodeUids(response.cookie("uids"));
+        final Uids uids = decodeUids(cookie.getValue());
         assertThat(uids.uids).isEmpty();
         assertThat(uids.uidsLegacy).isEmpty();
         assertThat(uids.optout).isTrue();
@@ -331,6 +336,7 @@ public class ApplicationTest extends VertxTest {
                 .extract()
                 .detailedCookie("uids");
 
+        assertThat(uidsCookie.getDomain()).isEqualTo("cookie-domain");
         assertThat(uidsCookie.getMaxAge()).isEqualTo(15552000);
         assertThat(uidsCookie.getExpiryDate().toInstant())
                 .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));

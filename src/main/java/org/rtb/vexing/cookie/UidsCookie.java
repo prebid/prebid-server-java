@@ -1,13 +1,10 @@
 package org.rtb.vexing.cookie;
 
 import io.vertx.core.json.Json;
-import io.vertx.ext.web.Cookie;
 import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
-import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,13 +12,11 @@ import java.util.Objects;
 
 public class UidsCookie {
 
-    static final String COOKIE_NAME = "uids";
-    private static final long COOKIE_EXPIRATION = Duration.ofDays(180).getSeconds();
-
     private final Uids uids;
 
     public UidsCookie(Uids uids) {
         this.uids = Objects.requireNonNull(uids);
+        Objects.requireNonNull(uids.uids); // without uids doesn't make sense
     }
 
     public static boolean isFacebookSentinel(String familyName, String uid) {
@@ -43,10 +38,7 @@ public class UidsCookie {
     }
 
     public boolean hasLiveUids() {
-        return uids != null && uids.uids != null
-                && uids.uids.values().stream()
-                .filter(UidsCookie::isLive)
-                .count() > 0;
+        return uids.uids.values().stream().anyMatch(UidsCookie::isLive);
     }
 
     public boolean hasLiveUidFrom(String familyName) {
@@ -59,15 +51,9 @@ public class UidsCookie {
     public UidsCookie deleteUid(String familyName) {
         Objects.requireNonNull(familyName);
 
-        final UidsCookie result;
-        if (uids.uids == null) {
-            result = this;
-        } else {
-            final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.uids);
-            uidsMap.remove(familyName);
-            result = new UidsCookie(uids.toBuilder().uids(uidsMap).build());
-        }
-        return result;
+        final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.uids);
+        uidsMap.remove(familyName);
+        return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
     }
 
     public UidsCookie updateUid(String familyName, String uid) {
@@ -92,13 +78,8 @@ public class UidsCookie {
         return Json.encode(uids);
     }
 
-    public Cookie toCookie() {
-        return Cookie.cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(Json.encodeToBuffer(uids).getBytes()))
-                .setMaxAge(COOKIE_EXPIRATION);
-    }
-
     private UidWithExpiry getUid(String familyName) {
-        return uids != null && uids.uids != null ? uids.uids.get(familyName) : null;
+        return uids.uids != null ? uids.uids.get(familyName) : null;
     }
 
     private static boolean isLive(UidWithExpiry uid) {

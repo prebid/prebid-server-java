@@ -17,7 +17,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
-import org.rtb.vexing.cookie.UidsCookieFactory;
+import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
@@ -47,28 +47,28 @@ public class PreBidRequestContextFactory {
 
     private final PublicSuffixList psl;
     private final ApplicationSettings applicationSettings;
-    private final UidsCookieFactory uidsCookieFactory;
+    private final UidsCookieService uidsCookieService;
 
     private final Random rand = new Random();
 
     private PreBidRequestContextFactory(Long defaultHttpRequestTimeout, PublicSuffixList psl,
-                                        ApplicationSettings applicationSettings, UidsCookieFactory uidsCookieFactory) {
+                                        ApplicationSettings applicationSettings, UidsCookieService uidsCookieService) {
         this.defaultHttpRequestTimeout = defaultHttpRequestTimeout;
         this.psl = psl;
         this.applicationSettings = applicationSettings;
-        this.uidsCookieFactory = uidsCookieFactory;
+        this.uidsCookieService = uidsCookieService;
     }
 
     public static PreBidRequestContextFactory create(ApplicationConfig config, PublicSuffixList psl,
                                                      ApplicationSettings applicationSettings,
-                                                     UidsCookieFactory uidsCookieFactory) {
+                                                     UidsCookieService uidsCookieService) {
         Objects.requireNonNull(config);
         Objects.requireNonNull(psl);
         Objects.requireNonNull(applicationSettings);
-        Objects.requireNonNull(uidsCookieFactory);
+        Objects.requireNonNull(uidsCookieService);
 
         return new PreBidRequestContextFactory(config.getLong("default-timeout-ms"), psl, applicationSettings,
-                uidsCookieFactory);
+                uidsCookieService);
     }
 
     public Future<PreBidRequestContext> fromRequest(RoutingContext context) {
@@ -113,7 +113,7 @@ public class PreBidRequestContextFactory {
 
         if (preBidRequest.app == null) {
             final String referer = referer(httpRequest);
-            final UidsCookie uidsCookie = uidsCookieFactory.parseFromRequest(context);
+            final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
             builder.uidsCookie(uidsCookie)
                     .noLiveUids(!uidsCookie.hasLiveUids())

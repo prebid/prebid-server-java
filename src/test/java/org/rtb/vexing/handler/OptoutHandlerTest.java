@@ -15,10 +15,11 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
-import org.rtb.vexing.cookie.UidsCookieFactory;
+import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.model.Uids;
 import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
 
+import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -40,7 +41,7 @@ public class OptoutHandlerTest extends VertxTest {
     @Mock
     private GoogleRecaptchaVerifier googleRecaptchaVerifier;
     @Mock
-    private UidsCookieFactory uidsCookieFactory;
+    private UidsCookieService uidsCookieService;
 
     private OptoutHandler optoutHandler;
 
@@ -61,9 +62,10 @@ public class OptoutHandlerTest extends VertxTest {
 
         given(googleRecaptchaVerifier.verify(anyString())).willReturn(Future.succeededFuture());
 
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
 
-        optoutHandler = OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieFactory);
+        optoutHandler = OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService);
     }
 
     @Test
@@ -84,7 +86,7 @@ public class OptoutHandlerTest extends VertxTest {
 
         // then
         assertThatIllegalArgumentException().isThrownBy(
-                () -> OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieFactory));
+                () -> OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService));
     }
 
     @Test
@@ -94,7 +96,7 @@ public class OptoutHandlerTest extends VertxTest {
 
         // then
         assertThatIllegalArgumentException().isThrownBy(
-                () -> OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieFactory));
+                () -> OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService));
     }
 
     @Test
@@ -104,7 +106,7 @@ public class OptoutHandlerTest extends VertxTest {
 
         // then
         assertThatIllegalArgumentException().isThrownBy(
-                () -> OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieFactory));
+                () -> OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService));
     }
 
     @Test

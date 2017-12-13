@@ -24,7 +24,7 @@ import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
-import org.rtb.vexing.cookie.UidsCookieFactory;
+import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
@@ -71,7 +71,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Mock
     private ApplicationSettings applicationSettings;
     @Mock
-    private UidsCookieFactory uidsCookieFactory;
+    private UidsCookieService uidsCookieService;
     @Mock
     private UidsCookie uidsCookie;
 
@@ -90,10 +90,10 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         given(config.getLong(eq("default-timeout-ms"))).willReturn(HTTP_REQUEST_TIMEOUT);
 
         // parsed uids cookie
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(uidsCookie);
+        given(uidsCookieService.parseFromRequest(any())).willReturn(uidsCookie);
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
-        factory = PreBidRequestContextFactory.create(config, psl, applicationSettings, uidsCookieFactory);
+        factory = PreBidRequestContextFactory.create(config, psl, applicationSettings, uidsCookieService);
     }
 
     @Test

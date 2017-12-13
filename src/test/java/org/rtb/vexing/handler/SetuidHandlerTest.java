@@ -15,7 +15,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.cookie.UidsCookie;
-import org.rtb.vexing.cookie.UidsCookieFactory;
+import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.metric.CookieSyncMetrics;
 import org.rtb.vexing.metric.CookieSyncMetrics.BidderCookieSyncMetrics;
 import org.rtb.vexing.metric.MetricName;
@@ -27,6 +27,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -43,7 +44,7 @@ public class SetuidHandlerTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private UidsCookieFactory uidsCookieFactory;
+    private UidsCookieService uidsCookieService;
     @Mock
     private Metrics metrics;
     @Mock
@@ -64,26 +65,27 @@ public class SetuidHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
-
         given(routingContext.addCookie(any())).willReturn(routingContext);
 
         given(metrics.cookieSync()).willReturn(cookieSyncMetrics);
         given(cookieSyncMetrics.forBidder(anyString())).willReturn(bidderCookieSyncMetrics);
 
-        setuidHandler = new SetuidHandler(uidsCookieFactory, metrics);
+        given(uidsCookieService.toCookie(any())).willCallRealMethod();
+
+        setuidHandler = new SetuidHandler(uidsCookieService, metrics);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new SetuidHandler(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new SetuidHandler(uidsCookieFactory, null));
+        assertThatNullPointerException().isThrownBy(() -> new SetuidHandler(uidsCookieService, null));
     }
 
     @Test
     public void shouldRespondWithErrorIfOptedOut() {
         // given
-        given(uidsCookieFactory.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().optout(true).build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build()));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -99,7 +101,8 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfBidderParamIsMissing() {
         // given
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -118,7 +121,7 @@ public class SetuidHandlerTest extends VertxTest {
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
@@ -142,7 +145,7 @@ public class SetuidHandlerTest extends VertxTest {
                 "eyJ1aWRzIjp7ImF1ZGllbmNlTmV0d29yayI6ImZhY2Vib29rVWlkIn19"));
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put("audienceNetwork", UidWithExpiry.live("facebookUid"));
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(httpRequest.getParam("bidder")).willReturn("audienceNetwork");
         given(httpRequest.getParam("uid")).willReturn("0");
@@ -165,7 +168,7 @@ public class SetuidHandlerTest extends VertxTest {
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         uids.put(ADNXS, UidWithExpiry.live("12345"));
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
@@ -189,8 +192,8 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldUpdateOptOutsMetricIfOptedOut() {
         // given
         // this uids cookie value stands for {"optout": true}
-        given(uidsCookieFactory.parseFromRequest(any()))
-                .willReturn(new UidsCookie(Uids.builder().optout(true).build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build()));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -204,7 +207,8 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateBadRequestsMetricIfBidderParamIsMissing() {
         // given
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -218,7 +222,8 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldUpdateSetsMetric() {
         // given
-        given(uidsCookieFactory.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().build()));
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
