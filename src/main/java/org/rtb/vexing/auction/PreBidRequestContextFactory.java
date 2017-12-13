@@ -1,4 +1,4 @@
-package org.rtb.vexing.adapter;
+package org.rtb.vexing.auction;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
@@ -15,6 +15,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;

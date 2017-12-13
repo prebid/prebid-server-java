@@ -1,4 +1,4 @@
-package org.rtb.vexing.adapter;
+package org.rtb.vexing.auction;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;

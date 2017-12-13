@@ -23,7 +23,7 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
-import org.rtb.vexing.adapter.PreBidRequestContextFactory;
+import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;

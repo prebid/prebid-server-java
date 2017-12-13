@@ -23,7 +23,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.experimental.FieldDefaults;
 import org.rtb.vexing.adapter.AdapterCatalog;
-import org.rtb.vexing.adapter.PreBidRequestContextFactory;
+import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookieService;
