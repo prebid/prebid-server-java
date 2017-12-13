@@ -9,13 +9,13 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.PutObject;
 import org.rtb.vexing.cache.model.request.PutValue;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.response.Bid;
 
 import java.net.MalformedURLException;
@@ -98,7 +98,7 @@ public class CacheService {
 
         if (statusCode != 200) {
             logger.warn("Cache service response code is {0}, body: {1}", statusCode, body);
-            future.fail(new PreBidRequestException(String.format("HTTP status code %d", statusCode)));
+            future.fail(new PreBidException(String.format("HTTP status code %d", statusCode)));
         } else {
             processBidCacheResponse(body, bids, future);
         }
@@ -120,7 +120,7 @@ public class CacheService {
         }
 
         if (bidCacheResponse.responses == null || bidCacheResponse.responses.size() != bids.size()) {
-            future.fail(new PreBidRequestException("Put response length didn't match"));
+            future.fail(new PreBidException("Put response length didn't match"));
             return;
         }
 

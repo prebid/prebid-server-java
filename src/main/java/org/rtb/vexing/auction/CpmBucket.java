@@ -52,7 +52,7 @@ class CpmBucket {
 
         final BucketConfig bucketConfig = PRICE_BUCKET_CONFIGS.get(priceGranularity);
         if (bucketConfig == null) {
-            logger.error("Price bucket granularity error: '{0}' is not a recognized granularity", priceGranularity);
+            logger.error("Price bucket granularity error: ''{0}'' is not a recognized granularity", priceGranularity);
             result = StringUtils.EMPTY;
         } else if (cpm.compareTo(bucketConfig.bucketMax) > 0) {
             result = format(bucketConfig.bucketMax);

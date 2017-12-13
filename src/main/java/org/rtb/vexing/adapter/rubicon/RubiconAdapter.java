@@ -33,7 +33,6 @@ import lombok.experimental.FieldDefaults;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
-import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconDeviceExt;
@@ -53,6 +52,7 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRP;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoParams;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
@@ -142,7 +142,7 @@ public class RubiconAdapter implements Adapter {
                     .flatMap(adUnitBid -> toBidWithRequestStream(adUnitBid, preBidRequestContext))
                     .collect(Collectors.toList());
             validateBidWithRequests(bidWithRequests);
-        } catch (PreBidRequestException e) {
+        } catch (PreBidException e) {
             logger.warn("Error occurred while constructing bid requests", e);
             result = Future.succeededFuture(BidderResult.builder()
                     .bidderStatus(BidderStatus.builder()
@@ -171,7 +171,7 @@ public class RubiconAdapter implements Adapter {
 
     private static void validateBidWithRequests(List<BidWithRequest> bidWithRequests) {
         if (bidWithRequests.size() == 0) {
-            throw new PreBidRequestException("Invalid ad unit/imp");
+            throw new PreBidException("Invalid ad unit/imp");
         }
     }
 
@@ -195,7 +195,7 @@ public class RubiconAdapter implements Adapter {
 
     private RubiconParams parseAndValidateRubiconParams(AdUnitBid adUnitBid) {
         if (adUnitBid.params == null) {
-            throw new PreBidRequestException("Rubicon params section is missing");
+            throw new PreBidException("Rubicon params section is missing");
         }
 
         final RubiconParams rubiconParams;
@@ -203,15 +203,15 @@ public class RubiconAdapter implements Adapter {
             rubiconParams = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
-            throw new PreBidRequestException(e.getMessage(), e.getCause());
+            throw new PreBidException(e.getMessage(), e.getCause());
         }
 
         if (rubiconParams.accountId == null || rubiconParams.accountId == 0) {
-            throw new PreBidRequestException("Missing accountId param");
+            throw new PreBidException("Missing accountId param");
         } else if (rubiconParams.siteId == null || rubiconParams.siteId == 0) {
-            throw new PreBidRequestException("Missing siteId param");
+            throw new PreBidException("Missing siteId param");
         } else if (rubiconParams.zoneId == null || rubiconParams.zoneId == 0) {
-            throw new PreBidRequestException("Missing zoneId param");
+            throw new PreBidException("Missing zoneId param");
         }
 
         return rubiconParams;

@@ -17,13 +17,13 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.rtb.vexing.VertxTest;
-import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.PutValue;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.cache.model.response.CacheObject;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.response.Bid;
 
 import java.io.IOException;
@@ -169,7 +169,7 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         assertThat(bidCacheResultFuture.failed()).isTrue();
-        assertThat(bidCacheResultFuture.cause()).isInstanceOf(PreBidRequestException.class)
+        assertThat(bidCacheResultFuture.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("HTTP status code 503");
     }
 
@@ -196,7 +196,7 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         assertThat(bidCacheResultFuture.failed()).isTrue();
-        assertThat(bidCacheResultFuture.cause()).isInstanceOf(PreBidRequestException.class)
+        assertThat(bidCacheResultFuture.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("Put response length didn't match");
     }
 

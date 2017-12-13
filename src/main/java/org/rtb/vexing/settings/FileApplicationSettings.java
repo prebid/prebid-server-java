@@ -4,7 +4,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
-import org.rtb.vexing.adapter.PreBidRequestException;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.settings.model.Account;
 import org.rtb.vexing.settings.model.SettingsFile;
 
@@ -62,7 +62,7 @@ class FileApplicationSettings implements ApplicationSettings {
         if (value != null) {
             return Future.succeededFuture(value);
         } else {
-            return Future.failedFuture(new PreBidRequestException("Not found"));
+            return Future.failedFuture(new PreBidException("Not found"));
         }
     }
 }

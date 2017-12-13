@@ -17,6 +17,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.exception.PreBidException;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -67,7 +68,7 @@ public class GoogleRecaptchaVerifier {
     private void handleResponseAndBody(int statusCode, String body, Future<Void> future) {
         if (statusCode != 200) {
             logger.warn("Google recaptcha response code is {0}, body: {1}", statusCode, body);
-            future.fail(new OptoutException(String.format("HTTP status code %d", statusCode)));
+            future.fail(new PreBidException(String.format("HTTP status code %d", statusCode)));
             return;
         }
 
@@ -75,7 +76,7 @@ public class GoogleRecaptchaVerifier {
         try {
             response = Json.decodeValue(body, RecaptchaResponse.class);
         } catch (DecodeException e) {
-            future.fail(new OptoutException(String.format("Cannot parse Google recaptcha response: %s", body)));
+            future.fail(new PreBidException(String.format("Cannot parse Google recaptcha response: %s", body)));
             return;
         }
 
@@ -83,7 +84,7 @@ public class GoogleRecaptchaVerifier {
             future.complete();
         } else {
             final String errors = response.errorCodes != null ? String.join(", ", response.errorCodes) : null;
-            future.fail(new OptoutException(String.format("Google recaptcha verify failed: %s", errors)));
+            future.fail(new PreBidException(String.format("Google recaptcha verify failed: %s", errors)));
         }
     }
 
@@ -100,7 +101,7 @@ public class GoogleRecaptchaVerifier {
         try {
             return URLEncoder.encode(value, "utf-8");
         } catch (UnsupportedEncodingException e) {
-            throw new OptoutException(String.format("Cannot encode request form value: %s", value), e);
+            throw new PreBidException(String.format("Cannot encode request form value: %s", value), e);
         }
     }
 

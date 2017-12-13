@@ -21,11 +21,11 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
-import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
@@ -154,7 +154,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // then
         assertThat(preBidRequestContextFuture.failed()).isTrue();
         assertThat(preBidRequestContextFuture.cause())
-                .isInstanceOf(PreBidRequestException.class)
+                .isInstanceOf(PreBidException.class)
                 .hasMessage("Could not parse")
                 .hasCauseInstanceOf(JsonParseException.class);
     }
@@ -170,7 +170,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // then
         assertThat(preBidRequestContextFuture.failed()).isTrue();
         assertThat(preBidRequestContextFuture.cause())
-                .isInstanceOf(PreBidRequestException.class).hasMessage("Incoming request has no body");
+                .isInstanceOf(PreBidException.class).hasMessage("Incoming request has no body");
     }
 
     @Test
@@ -262,7 +262,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         // then
         assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
-                .returns(Collections.unmodifiableSet(EnumSet.of(MediaType.BANNER, MediaType.VIDEO)), adUnitBid -> adUnitBid.mediaTypes);
+                .returns(Collections.unmodifiableSet(EnumSet.of(MediaType.BANNER, MediaType.VIDEO)), adUnitBid ->
+                        adUnitBid.mediaTypes);
     }
 
     @Test
@@ -345,7 +346,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 givenPreBidRequestCustomizable(builder -> builder.adUnits(singletonList(adUnit))));
 
         given(applicationSettings.getAdUnitConfigById(anyString()))
-                .willReturn(Future.failedFuture(new PreBidRequestException("Not found")));
+                .willReturn(Future.failedFuture(new PreBidException("Not found")));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -569,7 +570,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // then
         assertThat(preBidRequestContextFuture.failed()).isTrue();
         assertThat(preBidRequestContextFuture.cause())
-                .isInstanceOf(PreBidRequestException.class)
+                .isInstanceOf(PreBidException.class)
                 .hasMessage("Invalid URL 'non_an_url': no protocol: non_an_url")
                 .hasCauseInstanceOf(MalformedURLException.class);
     }
@@ -585,7 +586,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // then
         assertThat(preBidRequestContextFuture.failed()).isTrue();
         assertThat(preBidRequestContextFuture.cause())
-                .isInstanceOf(PreBidRequestException.class)
+                .isInstanceOf(PreBidException.class)
                 .hasMessage("Host not found from URL 'http:/path'");
     }
 
@@ -600,7 +601,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // then
         assertThat(preBidRequestContextFuture.failed()).isTrue();
         assertThat(preBidRequestContextFuture.cause())
-                .isInstanceOf(PreBidRequestException.class)
+                .isInstanceOf(PreBidException.class)
                 .hasMessage("Invalid URL 'domain': cannot derive eTLD+1 for domain domain");
     }
 

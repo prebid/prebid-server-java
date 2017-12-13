@@ -15,10 +15,10 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
@@ -79,17 +79,17 @@ public class PreBidRequestContextFactory {
         try {
             json = context.getBodyAsJson();
         } catch (DecodeException e) {
-            return Future.failedFuture(new PreBidRequestException(e.getMessage(), e.getCause()));
+            return Future.failedFuture(new PreBidException(e.getMessage(), e.getCause()));
         }
 
         if (json == null) {
-            return Future.failedFuture(new PreBidRequestException("Incoming request has no body"));
+            return Future.failedFuture(new PreBidException("Incoming request has no body"));
         }
 
         final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
 
         if (preBidRequest.adUnits == null || preBidRequest.adUnits.isEmpty()) {
-            return Future.failedFuture(new PreBidRequestException("No ad units specified"));
+            return Future.failedFuture(new PreBidException("No ad units specified"));
         }
 
         final HttpServerRequest httpRequest = context.request();
@@ -155,7 +155,7 @@ public class PreBidRequestContextFactory {
                     .map(config -> Json.decodeValue(config, new TypeReference<List<Bid>>() {
                     }))
                     .otherwise(exception -> {
-                        logger.warn("Failed to load config '{0}' from cache", unit.configId, exception);
+                        logger.warn("Failed to load config ''{0}'' from cache", unit.configId, exception);
                         return Collections.emptyList();
                     });
         } else {
@@ -222,19 +222,19 @@ public class PreBidRequestContextFactory {
         try {
             url = new URL(referer);
         } catch (MalformedURLException e) {
-            throw new PreBidRequestException(String.format("Invalid URL '%s': %s", referer, e.getMessage()), e);
+            throw new PreBidException(String.format("Invalid URL '%s': %s", referer, e.getMessage()), e);
         }
 
         final String host = url.getHost();
         if (StringUtils.isBlank(host)) {
-            throw new PreBidRequestException(String.format("Host not found from URL '%s'", url.toString()));
+            throw new PreBidException(String.format("Host not found from URL '%s'", url.toString()));
         }
 
         final String domain = psl.getRegistrableDomain(host);
 
         if (domain == null) {
             // null means effective top level domain plus one couldn't be derived
-            throw new PreBidRequestException(
+            throw new PreBidException(
                     String.format("Invalid URL '%s': cannot derive eTLD+1 for domain %s", host, host));
         }
 

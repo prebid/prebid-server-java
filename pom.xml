@@ -108,7 +108,6 @@
             <version>${metrics-influxdb.version}</version>
         </dependency>
 
-
         <!-- Test -->
         <dependency>
             <groupId>junit</groupId>

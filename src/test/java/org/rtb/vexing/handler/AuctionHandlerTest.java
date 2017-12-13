@@ -24,9 +24,9 @@ import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
-import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.metric.AccountMetrics;
 import org.rtb.vexing.metric.AdapterMetrics;
 import org.rtb.vexing.metric.MetricName;
@@ -152,7 +152,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithErrorIfRequestIsNotValid() throws IOException {
         // given
         given(preBidRequestContextFactory.fromRequest(any()))
-                .willReturn(Future.failedFuture(new PreBidRequestException("Could not create")));
+                .willReturn(Future.failedFuture(new PreBidException("Could not create")));
 
         // when
         auctionHandler.auction(routingContext);
@@ -168,7 +168,7 @@ public class AuctionHandlerTest extends VertxTest {
         givenPreBidRequestContextCustomizable(identity(), identity());
 
         given(applicationSettings.getAccountById(any()))
-                .willReturn(Future.failedFuture(new PreBidRequestException("Not found")));
+                .willReturn(Future.failedFuture(new PreBidException("Not found")));
 
         // when
         auctionHandler.auction(routingContext);
@@ -561,7 +561,7 @@ public class AuctionHandlerTest extends VertxTest {
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
         given(applicationSettings.getAccountById(any()))
-                .willReturn(Future.failedFuture(new PreBidRequestException("Not found")));
+                .willReturn(Future.failedFuture(new PreBidException("Not found")));
 
         // when
         auctionHandler.auction(routingContext);
@@ -574,7 +574,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldIncrementErrorMetricIfRequestIsNotValid() {
         // given
         given(preBidRequestContextFactory.fromRequest(any()))
-                .willReturn(Future.failedFuture(new PreBidRequestException("Could not create")));
+                .willReturn(Future.failedFuture(new PreBidException("Could not create")));
 
         // when
         auctionHandler.auction(routingContext);

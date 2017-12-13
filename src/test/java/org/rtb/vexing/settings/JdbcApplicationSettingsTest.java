@@ -10,7 +10,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.rtb.vexing.adapter.PreBidRequestException;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.settings.model.Account;
 
 import java.sql.Connection;
@@ -92,7 +92,7 @@ public class JdbcApplicationSettingsTest {
         // then
         final Async async = context.async();
         future.setHandler(context.asyncAssertFailure(exception -> {
-            assertThat(exception).isInstanceOf(PreBidRequestException.class).hasMessage("Not found");
+            assertThat(exception).isInstanceOf(PreBidException.class).hasMessage("Not found");
             async.complete();
         }));
     }
@@ -123,7 +123,7 @@ public class JdbcApplicationSettingsTest {
         // then
         final Async async = context.async();
         future.setHandler(context.asyncAssertFailure(exception -> {
-            assertThat(exception).isInstanceOf(PreBidRequestException.class).hasMessage("Not found");
+            assertThat(exception).isInstanceOf(PreBidException.class).hasMessage("Not found");
             async.complete();
         }));
     }

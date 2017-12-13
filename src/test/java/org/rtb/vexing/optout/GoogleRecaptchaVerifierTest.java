@@ -18,6 +18,7 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.exception.PreBidException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -45,7 +46,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
     private GoogleRecaptchaVerifier googleRecaptchaVerifier;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         given(httpClient.postAbs(anyString(), any())).willReturn(httpClientRequest);
 
         given(httpClientRequest.putHeader(any(CharSequence.class), any(CharSequence.class)))
@@ -76,7 +77,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
     }
 
     @Test
-    public void shouldRequestToGoogleRecaptchaVerifierWithExpectedRequestBody() throws Exception {
+    public void shouldRequestToGoogleRecaptchaVerifierWithExpectedRequestBody() {
         // when
         googleRecaptchaVerifier.verify("recaptcha1");
 
@@ -123,7 +124,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(OptoutException.class).hasMessage("HTTP status code 503");
+        assertThat(future.cause()).isInstanceOf(PreBidException.class).hasMessage("HTTP status code 503");
     }
 
     @Test
@@ -136,7 +137,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(OptoutException.class);
+        assertThat(future.cause()).isInstanceOf(PreBidException.class);
     }
 
     @Test

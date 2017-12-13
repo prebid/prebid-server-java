@@ -7,7 +7,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.rtb.vexing.adapter.PreBidRequestException;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.settings.model.Account;
 
 import static org.assertj.core.api.Assertions.*;
@@ -67,14 +67,14 @@ public class CachingApplicationSettingsTest {
     public void getAccountByIdShouldPropagateFailure() {
         // given
         given(applicationSettings.getAccountById(anyString()))
-                .willReturn(Future.failedFuture(new PreBidRequestException("Not found")));
+                .willReturn(Future.failedFuture(new PreBidException("Not found")));
 
         // when
         final Future<Account> future = cachingApplicationSettings.getAccountById("accountId");
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(PreBidRequestException.class)
+        assertThat(future.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("Not found");
     }
 
@@ -104,14 +104,14 @@ public class CachingApplicationSettingsTest {
     public void getAdUnitConfigByIdShouldPropagateFailure() {
         // given
         given(applicationSettings.getAdUnitConfigById(anyString()))
-                .willReturn(Future.failedFuture(new PreBidRequestException("Not found")));
+                .willReturn(Future.failedFuture(new PreBidException("Not found")));
 
         // when
         final Future<String> future = cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId");
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(PreBidRequestException.class)
+        assertThat(future.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("Not found");
     }
 }

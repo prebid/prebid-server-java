@@ -28,11 +28,11 @@ import lombok.experimental.FieldDefaults;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
-import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusImpExt;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusImpExtAppnexus;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusKeyVal;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusParams;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
@@ -110,7 +110,7 @@ public class AppnexusAdapter implements Adapter {
         final BidRequestWithUrl bidRequestWithUrl;
         try {
             bidRequestWithUrl = createBidRequest(endpointUrl, bidder, preBidRequestContext);
-        } catch (PreBidRequestException e) {
+        } catch (PreBidException e) {
             logger.warn("Error occurred while constructing bid requests", e);
             return Future.succeededFuture(BidderResult.builder()
                     .bidderStatus(BidderStatus.builder()
@@ -155,7 +155,7 @@ public class AppnexusAdapter implements Adapter {
         if (!adUnitBids.stream()
                 .allMatch(adUnitBid -> adUnitBid.mediaTypes.stream()
                         .allMatch(mediaType -> isValidAdUnitBidMediaType(mediaType, adUnitBid)))) {
-            throw new PreBidRequestException("Invalid AdUnit: VIDEO media type with no video data");
+            throw new PreBidException("Invalid AdUnit: VIDEO media type with no video data");
         }
     }
 
@@ -175,7 +175,7 @@ public class AppnexusAdapter implements Adapter {
 
     private static AppnexusParams parseAndValidateParams(AdUnitBid adUnitBid) {
         if (adUnitBid.params == null) {
-            throw new PreBidRequestException("Appnexus params section is missing");
+            throw new PreBidException("Appnexus params section is missing");
         }
 
         final AppnexusParams params;
@@ -183,12 +183,12 @@ public class AppnexusAdapter implements Adapter {
             params = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, AppnexusParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
-            throw new PreBidRequestException(e.getMessage(), e.getCause());
+            throw new PreBidException(e.getMessage(), e.getCause());
         }
 
         if ((Objects.isNull(params.placementId) || Objects.equals(params.placementId, 0))
                 && (StringUtils.isEmpty(params.invCode) || StringUtils.isEmpty(params.member))) {
-            throw new PreBidRequestException("No placement or member+invcode provided");
+            throw new PreBidException("No placement or member+invcode provided");
         }
         return params;
     }
@@ -202,7 +202,7 @@ public class AppnexusAdapter implements Adapter {
 
     private static void validateImps(List<Imp> imps) {
         if (imps.isEmpty()) {
-            throw new PreBidRequestException("openRTB bids need at least one Imp");
+            throw new PreBidException("openRTB bids need at least one Imp");
         }
     }
 
@@ -423,7 +423,7 @@ public class AppnexusAdapter implements Adapter {
         try {
             final List<Bid.BidBuilder> bids = extractBids(bidRequest, bidResponse, bidder);
             return BidResult.success(bids, bidderDebug);
-        } catch (PreBidRequestException e) {
+        } catch (PreBidException e) {
             logger.warn("Error occurred while extracting bids", e);
             return BidResult.error(bidderDebug, e.getMessage());
         }
@@ -504,7 +504,7 @@ public class AppnexusAdapter implements Adapter {
                 return adUnitBid.bidId;
             }
         }
-        throw new PreBidRequestException(String.format("Unknown ad unit code '%s'", code));
+        throw new PreBidException(String.format("Unknown ad unit code '%s'", code));
     }
 
     private static MediaType mediaTypeFor(String impId, BidRequest bidRequest) {
@@ -549,7 +549,7 @@ public class AppnexusAdapter implements Adapter {
         try {
             redirectUri = URLEncoder.encode(String.format("%s/setuid?bidder=adnxs&uid=$UID", externalUrl), "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            throw new PreBidRequestException("Cannot encode redirect uri");
+            throw new PreBidException("Cannot encode redirect uri");
         }
 
         final UsersyncInfo usersyncInfo = UsersyncInfo.builder()

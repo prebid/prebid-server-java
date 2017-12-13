@@ -7,7 +7,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
-import org.rtb.vexing.adapter.PreBidRequestException;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.settings.model.Account;
 
 import java.util.Objects;
@@ -76,7 +76,7 @@ class JdbcApplicationSettings implements ApplicationSettings {
                 })
                 .map(rs -> {
                     if (rs == null || rs.getResults() == null || rs.getResults().isEmpty()) {
-                        throw new PreBidRequestException("Not found");
+                        throw new PreBidException("Not found");
                     } else {
                         return mapper.apply(rs.getResults().get(0));
                     }

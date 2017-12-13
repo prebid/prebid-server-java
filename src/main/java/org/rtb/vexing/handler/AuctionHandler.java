@@ -13,11 +13,11 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.AdapterCatalog;
-import org.rtb.vexing.adapter.PreBidRequestException;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.TargetingKeywords;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.metric.AccountMetrics;
 import org.rtb.vexing.metric.AdapterMetrics;
 import org.rtb.vexing.metric.MetricName;
@@ -123,7 +123,7 @@ public class AuctionHandler {
     }
 
     private static <T> Future<T> failWith(String message, Throwable exception) {
-        return Future.failedFuture(new PreBidRequestException(message, exception));
+        return Future.failedFuture(new PreBidException(message, exception));
     }
 
     private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext, String accountId) {
@@ -272,7 +272,7 @@ public class AuctionHandler {
             metrics.incCounter(MetricName.error_requests);
             final Throwable exception = responseResult.cause();
             logger.info("Failed to process /auction request", exception);
-            return error(exception instanceof PreBidRequestException
+            return error(exception instanceof PreBidException
                     ? exception.getMessage()
                     : "Unexpected server error");
         }
