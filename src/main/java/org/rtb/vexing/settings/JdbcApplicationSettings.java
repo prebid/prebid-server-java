@@ -81,18 +81,5 @@ class JdbcApplicationSettings implements ApplicationSettings {
                         return mapper.apply(rs.getResults().get(0));
                     }
                 });
-
-        // TODO: block above could be simplified as follows once
-        // https://github.com/vert-x3/vertx-jdbc-client/issues/118 is fixed
-        //
-        // jdbcClient.queryWithParams(query, new JsonArray().add(key), future.completer());
-        //
-        // return future.map(rs -> {
-        //     if (rs == null || rs.getResults() == null || rs.getResults().isEmpty()) {
-        //         throw new PreBidRequestException("Not found");
-        //     } else {
-        //         return mapper.apply(rs.getResults().get(0));
-        //     }
-        // });
     }
 }
