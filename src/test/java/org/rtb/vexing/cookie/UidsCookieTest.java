@@ -12,6 +12,7 @@ import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HashMap;
@@ -286,5 +287,22 @@ public class UidsCookieTest extends VertxTest {
 
     private static Uids decodeUids(String value) {
         return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
+    }
+
+    @Test
+    public void toJsonShouldReturnCookieInValidJsonFormat() {
+        // given
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, new UidWithExpiry("J5VLCWQP-26-CWFT", ZonedDateTime.parse("2017-12-30T12:30:40Z[GMT]")));
+
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(uids).bday("2017-08-15T19:47:59.523908376Z")
+                .build());
+
+        // when
+        String cookieJson = uidsCookie.toJson();
+
+        // then
+        assertThat(cookieJson).isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\"," +
+                "\"expires\":\"2017-12-30T12:30:40.000000000Z\"}},\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
     }
 }

@@ -249,4 +249,21 @@ public class UidsCookieFactoryTest {
         verify(routingContext).getCookie(eq("khaos"));
         assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
     }
+
+    @Test
+    public void shouldCreateUidsFromLegacyUidsIfUidsAreMissed(){
+        // given
+        // this uids cookie value stands for
+        // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"},"tempUIDs":{}},"bday":"2017-08-15T19:47:59.523908376Z"}
+        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn0sInRlbXBVSURzIjp7fX0sImJkYXkiOiIyMDE3LTA" +
+                        "4LTE1VDE5OjQ3OjU5LjUyMzkwODM3NloifQ=="));
+
+        // when
+        final UidsCookie uidsCookie = uidsCookieFactory.parseFromRequest(routingContext);
+
+        // then
+        assertThat(uidsCookie).isNotNull();
+        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
+    }
 }

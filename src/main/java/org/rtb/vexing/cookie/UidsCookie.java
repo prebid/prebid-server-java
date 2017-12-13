@@ -88,6 +88,10 @@ public class UidsCookie {
         return new UidsCookie(uidsBuilder.build());
     }
 
+    public String toJson() {
+        return Json.encode(uids);
+    }
+
     public Cookie toCookie() {
         return Cookie.cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(Json.encodeToBuffer(uids).getBytes()))
                 .setMaxAge(COOKIE_EXPIRATION);

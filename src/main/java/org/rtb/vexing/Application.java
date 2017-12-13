@@ -26,6 +26,7 @@ import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookieFactory;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.handler.CookieSyncHandler;
+import org.rtb.vexing.handler.GetuidsHandler;
 import org.rtb.vexing.handler.OptoutHandler;
 import org.rtb.vexing.handler.SetuidHandler;
 import org.rtb.vexing.handler.StatusHandler;
@@ -92,6 +93,7 @@ public class Application extends AbstractVerticle {
         router.get("/status").handler(dependencyContext.statusHandler::status);
         router.post("/cookie_sync").handler(dependencyContext.cookieSyncHandler::sync);
         router.get("/setuid").handler(dependencyContext.setuidHandler::setuid);
+        router.get("/getuids").handler(dependencyContext.getuidsHandler::getuids);
         router.post("/optout").handler(dependencyContext.optoutHandler::optout);
         router.get("/optout").handler(dependencyContext.optoutHandler::optout);
 
@@ -110,6 +112,7 @@ public class Application extends AbstractVerticle {
         StatusHandler statusHandler;
         CookieSyncHandler cookieSyncHandler;
         SetuidHandler setuidHandler;
+        GetuidsHandler getuidsHandler;
         OptoutHandler optoutHandler;
 
         public static DependencyContext create(Vertx vertx, ApplicationConfig config,
@@ -131,6 +134,7 @@ public class Application extends AbstractVerticle {
                     .statusHandler(new StatusHandler())
                     .cookieSyncHandler(new CookieSyncHandler(uidsCookieFactory, adapterCatalog, metrics))
                     .setuidHandler(new SetuidHandler(uidsCookieFactory, metrics))
+                    .getuidsHandler(new GetuidsHandler(uidsCookieFactory))
                     .optoutHandler(OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieFactory))
                     .build();
         }

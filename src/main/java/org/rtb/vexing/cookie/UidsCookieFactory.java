@@ -76,7 +76,14 @@ public class UidsCookieFactory {
                     .bday(BDAY_FORMATTER.format(Instant.now()))
                     .build();
         }
-        if (uids.uidsLegacy != null) {
+
+        if (uids.uids == null) {
+            uids = uids.toBuilder()
+                    .uids(Collections.emptyMap())
+                    .build();
+        }
+
+        if (uids.uids.isEmpty() && uids.uidsLegacy != null) {
             final Map<String, UidWithExpiry> convertedUids = uids.uidsLegacy.entrySet().stream().collect(
                     Collectors.toMap(Map.Entry::getKey, value -> UidWithExpiry.expired(value.getValue())));
             uids = uids.toBuilder()
