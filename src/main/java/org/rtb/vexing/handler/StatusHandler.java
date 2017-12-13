@@ -1,10 +1,12 @@
 package org.rtb.vexing.handler;
 
+import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 
-public class StatusHandler {
+public class StatusHandler implements Handler<RoutingContext> {
 
-    public void status(RoutingContext context) {
+    @Override
+    public void handle(RoutingContext context) {
         // just respond with HTTP 200 OK
         context.response().end();
     }

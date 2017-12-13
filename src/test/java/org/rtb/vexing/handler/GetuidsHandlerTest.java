@@ -75,7 +75,7 @@ public class GetuidsHandlerTest extends VertxTest {
         given(routingContext.addCookie(any())).willReturn(routingContext);
 
         // when
-        getuidsHandler.getuids(routingContext);
+        getuidsHandler.handle(routingContext);
 
         // then
         final Cookie cookie = captureCookie();
@@ -102,7 +102,7 @@ public class GetuidsHandlerTest extends VertxTest {
         given(routingContext.addCookie(any())).willReturn(routingContext);
 
         // when
-        getuidsHandler.getuids(routingContext);
+        getuidsHandler.handle(routingContext);
 
         // then
         final Cookie cookie = captureCookie();

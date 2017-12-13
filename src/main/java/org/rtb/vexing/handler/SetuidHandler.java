@@ -1,5 +1,6 @@
 package org.rtb.vexing.handler;
 
+import io.vertx.core.Handler;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
@@ -10,7 +11,7 @@ import org.rtb.vexing.metric.Metrics;
 
 import java.util.Objects;
 
-public class SetuidHandler {
+public class SetuidHandler implements Handler<RoutingContext> {
 
     private final UidsCookieService uidsCookieService;
     private final Metrics metrics;
@@ -20,7 +21,8 @@ public class SetuidHandler {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public void setuid(RoutingContext context) {
+    @Override
+    public void handle(RoutingContext context) {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
             context.response().setStatusCode(401).end();

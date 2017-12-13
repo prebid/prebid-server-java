@@ -102,13 +102,13 @@ public class Application extends AbstractVerticle {
                         HttpHeaders.ACCEPT.toString(), HttpHeaders.CONTENT_TYPE.toString())))
                 .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.HEAD,
                         HttpMethod.OPTIONS))));
-        router.post("/auction").handler(dependencyContext.auctionHandler::auction);
-        router.get("/status").handler(dependencyContext.statusHandler::status);
-        router.post("/cookie_sync").handler(dependencyContext.cookieSyncHandler::sync);
-        router.get("/setuid").handler(dependencyContext.setuidHandler::setuid);
-        router.get("/getuids").handler(dependencyContext.getuidsHandler::getuids);
-        router.post("/optout").handler(dependencyContext.optoutHandler::optout);
-        router.get("/optout").handler(dependencyContext.optoutHandler::optout);
+        router.post("/auction").handler(dependencyContext.auctionHandler);
+        router.get("/status").handler(dependencyContext.statusHandler);
+        router.post("/cookie_sync").handler(dependencyContext.cookieSyncHandler);
+        router.get("/setuid").handler(dependencyContext.setuidHandler);
+        router.get("/getuids").handler(dependencyContext.getuidsHandler);
+        router.post("/optout").handler(dependencyContext.optoutHandler);
+        router.get("/optout").handler(dependencyContext.optoutHandler);
 
         final StaticHandler staticHandler = StaticHandler.create("static").setCachingEnabled(false);
         router.get("/static/*").handler(staticHandler);

@@ -29,7 +29,7 @@ public class UidsCookie {
     public String uidFrom(String familyName) {
         Objects.requireNonNull(familyName);
 
-        final UidWithExpiry uid = getUid(familyName);
+        final UidWithExpiry uid = uids.uids.get(familyName);
         return uid != null ? uid.uid : null;
     }
 
@@ -44,7 +44,7 @@ public class UidsCookie {
     public boolean hasLiveUidFrom(String familyName) {
         Objects.requireNonNull(familyName);
 
-        final UidWithExpiry uid = getUid(familyName);
+        final UidWithExpiry uid = uids.uids.get(familyName);
         return uid != null && uid.uid != null && isLive(uid);
     }
 
@@ -60,7 +60,7 @@ public class UidsCookie {
         Objects.requireNonNull(familyName);
         Objects.requireNonNull(uid);
 
-        final Map<String, UidWithExpiry> uidsMap = uids.uids != null ? new HashMap<>(uids.uids) : new HashMap<>();
+        final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.uids);
         uidsMap.put(familyName, UidWithExpiry.live(uid));
         return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
     }
@@ -76,10 +76,6 @@ public class UidsCookie {
 
     public String toJson() {
         return Json.encode(uids);
-    }
-
-    private UidWithExpiry getUid(String familyName) {
-        return uids.uids != null ? uids.uids.get(familyName) : null;
     }
 
     private static boolean isLive(UidWithExpiry uid) {

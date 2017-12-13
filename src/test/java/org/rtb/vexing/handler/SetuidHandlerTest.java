@@ -90,7 +90,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         // when
-        setuidHandler.setuid(routingContext);
+        setuidHandler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(401));
@@ -107,7 +107,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         // when
-        setuidHandler.setuid(routingContext);
+        setuidHandler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
@@ -126,7 +126,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
         // when
-        setuidHandler.setuid(routingContext);
+        setuidHandler.handle(routingContext);
 
         // then
         final Cookie uidsCookie = captureCookie();
@@ -151,7 +151,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("uid")).willReturn("0");
 
         // when
-        setuidHandler.setuid(routingContext);
+        setuidHandler.handle(routingContext);
 
         // then
         final Cookie uidsCookie = captureCookie();
@@ -174,7 +174,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
 
         // when
-        setuidHandler.setuid(routingContext);
+        setuidHandler.handle(routingContext);
 
         // then
         final Cookie uidsCookie = captureCookie();
@@ -198,7 +198,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         // when
-        setuidHandler.setuid(routingContext);
+        setuidHandler.handle(routingContext);
 
         // then
         verify(cookieSyncMetrics).incCounter(eq(MetricName.opt_outs));
@@ -213,7 +213,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         // when
-        setuidHandler.setuid(routingContext);
+        setuidHandler.handle(routingContext);
 
         // then
         verify(cookieSyncMetrics).incCounter(eq(MetricName.bad_requests));
@@ -229,7 +229,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
 
         // when
-        setuidHandler.setuid(routingContext);
+        setuidHandler.handle(routingContext);
 
         // then
         verify(bidderCookieSyncMetrics).incCounter(eq(MetricName.sets));

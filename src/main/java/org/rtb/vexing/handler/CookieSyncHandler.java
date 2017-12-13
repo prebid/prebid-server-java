@@ -1,6 +1,7 @@
 package org.rtb.vexing.handler;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class CookieSyncHandler {
+public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
 
@@ -35,7 +36,8 @@ public class CookieSyncHandler {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public void sync(RoutingContext context) {
+    @Override
+    public void handle(RoutingContext context) {
         metrics.incCounter(MetricName.cookie_sync_requests);
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);

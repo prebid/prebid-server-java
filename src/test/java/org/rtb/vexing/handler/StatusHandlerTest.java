@@ -29,7 +29,7 @@ public class StatusHandlerTest {
         given(routingContext.response()).willReturn(httpResponse);
 
         // when
-        new StatusHandler().status(routingContext);
+        new StatusHandler().handle(routingContext);
 
         // then
         verify(httpResponse, only()).end();

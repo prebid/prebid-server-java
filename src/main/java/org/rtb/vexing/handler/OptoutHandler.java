@@ -1,5 +1,6 @@
 package org.rtb.vexing.handler;
 
+import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -15,7 +16,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Objects;
 
-public class OptoutHandler {
+public class OptoutHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(OptoutHandler.class);
 
@@ -48,7 +49,8 @@ public class OptoutHandler {
                 validateUrl(config.getString("host_cookie.opt_in_url")));
     }
 
-    public void optout(RoutingContext context) {
+    @Override
+    public void handle(RoutingContext context) {
         Objects.requireNonNull(context);
 
         final String recaptcha = getRequestParam(context, RECAPTCHA_PARAM);

@@ -112,7 +112,7 @@ public class OptoutHandlerTest extends VertxTest {
     @Test
     public void shouldFailOnNullArguments() {
         // then
-        assertThatNullPointerException().isThrownBy(() -> optoutHandler.optout(null));
+        assertThatNullPointerException().isThrownBy(() -> optoutHandler.handle(null));
     }
 
     @Test
@@ -122,7 +122,7 @@ public class OptoutHandlerTest extends VertxTest {
         given(httpRequest.getParam("g-recaptcha-response")).willReturn("");
 
         // when
-        optoutHandler.optout(routingContext);
+        optoutHandler.handle(routingContext);
 
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(301);
@@ -136,7 +136,7 @@ public class OptoutHandlerTest extends VertxTest {
         given(httpRequest.getParam("g-recaptcha-response")).willReturn("querystring_rcpt");
 
         // when
-        optoutHandler.optout(routingContext);
+        optoutHandler.handle(routingContext);
 
         // then
         verify(googleRecaptchaVerifier).verify("querystring_rcpt");
@@ -149,7 +149,7 @@ public class OptoutHandlerTest extends VertxTest {
         given(httpRequest.getParam("g-recaptcha-response")).willReturn("querystring_rcpt");
 
         // when
-        optoutHandler.optout(routingContext);
+        optoutHandler.handle(routingContext);
 
         // then
         verify(googleRecaptchaVerifier).verify("form_rcpt");
@@ -161,7 +161,7 @@ public class OptoutHandlerTest extends VertxTest {
         given(googleRecaptchaVerifier.verify(anyString())).willReturn(Future.failedFuture(new RuntimeException("RTE")));
 
         // when
-        optoutHandler.optout(routingContext);
+        optoutHandler.handle(routingContext);
 
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(401);
@@ -174,7 +174,7 @@ public class OptoutHandlerTest extends VertxTest {
         given(httpRequest.getFormAttribute("optout")).willReturn("1");
 
         // when
-        optoutHandler.optout(routingContext);
+        optoutHandler.handle(routingContext);
 
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(301);
@@ -188,7 +188,7 @@ public class OptoutHandlerTest extends VertxTest {
         given(httpRequest.getFormAttribute("optout")).willReturn("");
 
         // when
-        optoutHandler.optout(routingContext);
+        optoutHandler.handle(routingContext);
 
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(301);
@@ -202,7 +202,7 @@ public class OptoutHandlerTest extends VertxTest {
         given(httpRequest.getFormAttribute("optout")).willReturn(null);
 
         // when
-        optoutHandler.optout(routingContext);
+        optoutHandler.handle(routingContext);
 
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(301);

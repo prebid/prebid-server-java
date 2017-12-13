@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class AuctionHandler {
+public class AuctionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
@@ -82,7 +82,8 @@ public class AuctionHandler {
      * Auction handler will resolve all bidders in the incoming ad request, issue the request to the different
      * clients, then return an array of the responses.
      */
-    public void auction(RoutingContext context) {
+    @Override
+    public void handle(RoutingContext context) {
         metrics.incCounter(MetricName.requests);
 
         final boolean isSafari = isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));

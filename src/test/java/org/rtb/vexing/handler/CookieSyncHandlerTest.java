@@ -96,7 +96,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
 
         // when
-        cookieSyncHandler.sync(routingContext);
+        cookieSyncHandler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(401));
@@ -115,7 +115,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
 
         // when
-        cookieSyncHandler.sync(routingContext);
+        cookieSyncHandler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
@@ -132,7 +132,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         // when
-        cookieSyncHandler.sync(routingContext);
+        cookieSyncHandler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
@@ -147,7 +147,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .willReturn(JsonObject.mapFrom(CookieSyncRequest.builder().bidders(emptyList()).build()));
 
         // when
-        cookieSyncHandler.sync(routingContext);
+        cookieSyncHandler.handle(routingContext);
 
         // then
         verify(httpResponse)
@@ -174,7 +174,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(appnexusAdapter.usersyncInfo()).willReturn(appnexusUsersyncInfo);
 
         // when
-        cookieSyncHandler.sync(routingContext);
+        cookieSyncHandler.handle(routingContext);
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
@@ -203,7 +203,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         givenAdaptersReturningFamilyName();
 
         // when
-        cookieSyncHandler.sync(routingContext);
+        cookieSyncHandler.handle(routingContext);
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
@@ -230,7 +230,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(adapterCatalog.isValidCode("unsupported")).willReturn(false);
 
         // when
-        cookieSyncHandler.sync(routingContext);
+        cookieSyncHandler.handle(routingContext);
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
@@ -261,7 +261,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(appnexusAdapter.usersyncInfo()).willReturn(appnexusUsersyncInfo);
 
         // when
-        cookieSyncHandler.sync(routingContext);
+        cookieSyncHandler.handle(routingContext);
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
@@ -283,7 +283,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .willReturn(JsonObject.mapFrom(CookieSyncRequest.builder().bidders(emptyList()).build()));
 
         // when
-        cookieSyncHandler.sync(routingContext);
+        cookieSyncHandler.handle(routingContext);
 
         // then
         verify(metrics).incCounter(eq(MetricName.cookie_sync_requests));
