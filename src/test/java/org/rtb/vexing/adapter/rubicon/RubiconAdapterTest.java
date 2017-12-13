@@ -58,11 +58,14 @@ import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.AdUnitBid.AdUnitBidBuilder;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
+import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.rtb.vexing.model.request.DigiTrust;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.request.PreBidRequest.PreBidRequestBuilder;
+import org.rtb.vexing.model.request.Video;
+import org.rtb.vexing.adapter.rubicon.model.RubiconVideoParams;
 import org.rtb.vexing.model.request.Sdk;
 import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.UsersyncInfo;
@@ -71,6 +74,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -592,6 +596,110 @@ public class RubiconAdapterTest extends VertxTest {
 
 
     @Test
+    public void requestBidsShouldSendTwoBidRequestsIfAdUnitContainsBannerAndVideoMediaTypes() throws Exception {
+        //given
+        bidder = Bidder.from(RUBICON, singletonList(
+                givenAdUnitBidCustomizable(builder -> builder
+                                .mediaTypes(EnumSet.of(MediaType.VIDEO, MediaType.BANNER))
+                                .video(Video.builder()
+                                        .mimes(Collections.singletonList("Mime"))
+                                        .playbackMethod(1)
+                                        .build()),
+                        builder -> builder.video(RubiconVideoParams.builder()
+                                .skip(1)
+                                .skipdelay(2)
+                                .sizeId(3)
+                                .build())
+                )));
+
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
+        verify(httpClientRequest, times(2)).end(bidRequestCaptor.capture());
+        final List<BidRequest> bidRequests = bidRequestCaptor.getAllValues().stream()
+                .map(RubiconAdapterTest::toBidRequest)
+                .collect(Collectors.toList());
+        assertThat(bidRequests).hasSize(2);
+        // check that one of the requests has imp with Banner and another one imp with Video mediaType
+        assertThat(bidRequests).flatExtracting(BidRequest::getImp)
+                .extracting(imp -> imp.getVideo() == null, imp -> imp.getBanner() == null)
+                .containsOnly(tuple(true, false), tuple(false, true));
+    }
+
+    @Test
+    public void requestBidsShouldNotSendRequestIfMediaTypeIsEmpty() throws Exception {
+        //given
+        bidder = Bidder.from(RUBICON, singletonList(
+                givenAdUnitBidCustomizable(builder -> builder
+                        .adUnitCode("adUnitCode1")
+                        .mediaTypes(Collections.emptySet()), identity()
+                )));
+
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        verifyZeroInteractions(httpClientRequest);
+    }
+
+    @Test
+    public void requestBidsShouldNotSendRequestWhenMediaTypeIsVideoAndMimesListIsEmpty() throws Exception {
+        //given
+        bidder = Bidder.from(RUBICON, singletonList(
+                givenAdUnitBidCustomizable(builder -> builder
+                                .adUnitCode("adUnitCode1")
+                                .mediaTypes(Collections.singleton(MediaType.VIDEO))
+                                .video(Video.builder()
+                                        .mimes(Collections.emptyList())
+                                        .playbackMethod(1)
+                                        .build()), identity()
+                )));
+
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        verifyZeroInteractions(httpClientRequest);
+    }
+
+    @Test
+    public void requestBidsShouldSendRequestWithoutVideoExtWhenMediaTypeIsVideoAndRubiconParamsVideoIsNull()
+            throws Exception {
+        //given
+        bidder = Bidder.from(RUBICON, singletonList(
+                givenAdUnitBidCustomizable(builder -> builder
+                                .mediaTypes(Collections.singleton(MediaType.VIDEO))
+                                .video(Video.builder()
+                                        .mimes(Collections.singletonList("Mime"))
+                                        .playbackMethod(1)
+                                        .build()),
+                        identity()
+                )));
+
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
+        verify(httpClientRequest, times(1)).end(bidRequestCaptor.capture());
+        final List<BidRequest> bidRequests = bidRequestCaptor.getAllValues().stream()
+                .map(RubiconAdapterTest::toBidRequest)
+                .collect(Collectors.toList());
+        assertThat(bidRequests).hasSize(1);
+        assertThat(bidRequests.get(0).getImp().get(0).getVideo().getExt()).isNull();
+    }
+
+    @Test
     public void requestBidsShouldSendMultipleBidRequestsIfMultipleAdUnitsInPreBidRequest() throws IOException {
         // given
         bidder = Bidder.from(RUBICON, asList(
@@ -1080,7 +1188,8 @@ public class RubiconAdapterTest extends VertxTest {
         // ad unit bid
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(defaultNamingMapper.valueToTree(rubiconParams));
+                .params(defaultNamingMapper.valueToTree(rubiconParams))
+                .mediaTypes(Collections.singleton(MediaType.BANNER));
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer.apply(adUnitBidBuilderMinimal);
 
         return adUnitBidBuilderCustomized.build();

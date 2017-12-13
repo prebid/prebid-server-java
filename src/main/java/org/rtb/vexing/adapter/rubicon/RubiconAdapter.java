@@ -14,6 +14,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -29,6 +30,7 @@ import io.vertx.core.logging.LoggerFactory;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.PreBidRequestException;
@@ -48,10 +50,14 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtDt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRP;
+import org.rtb.vexing.adapter.rubicon.model.RubiconVideoParams;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
+import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.request.Sdk;
 import org.rtb.vexing.model.response.Bid;
@@ -65,12 +71,16 @@ import java.net.URL;
 import java.time.Clock;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RubiconAdapter implements Adapter {
 
@@ -82,7 +92,8 @@ public class RubiconAdapter implements Adapter {
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
-
+    private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections
+            .unmodifiableSet(EnumSet.of(MediaType.BANNER, MediaType.VIDEO));
     private final String endpointUrl;
     private final UsersyncInfo usersyncInfo;
     private final String authHeader;
@@ -125,7 +136,7 @@ public class RubiconAdapter implements Adapter {
         List<BidWithRequest> bidWithRequests = null;
         try {
             bidWithRequests = bidder.adUnitBids.stream()
-                    .map(adUnitBid -> BidWithRequest.of(adUnitBid, toBidRequest(adUnitBid, preBidRequestContext)))
+                    .flatMap(adUnitBid -> toBidWithRequestStream(adUnitBid, preBidRequestContext))
                     .collect(Collectors.toList());
         } catch (PreBidRequestException e) {
             logger.warn("Error occurred while constructing bid requests", e);
@@ -154,20 +165,22 @@ public class RubiconAdapter implements Adapter {
         return result;
     }
 
-    private BidRequest toBidRequest(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
+    private Stream<BidWithRequest> toBidWithRequestStream(AdUnitBid adUnitBid,
+                                                          PreBidRequestContext preBidRequestContext) {
         final RubiconParams rubiconParams = parseAndValidateRubiconParams(adUnitBid);
-
-        return BidRequest.builder()
-                .id(preBidRequestContext.preBidRequest.tid)
-                .app(makeApp(rubiconParams, preBidRequestContext))
-                .at(1)
-                .tmax(preBidRequestContext.timeout)
-                .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, preBidRequestContext)))
-                .site(makeSite(rubiconParams, preBidRequestContext))
-                .device(makeDevice(preBidRequestContext))
-                .user(makeUser(rubiconParams, preBidRequestContext))
-                .source(makeSource(preBidRequestContext))
-                .build();
+        return makeImps(adUnitBid, rubiconParams, preBidRequestContext)
+                .map(imp -> BidRequest.builder()
+                        .id(preBidRequestContext.preBidRequest.tid)
+                        .app(makeApp(rubiconParams, preBidRequestContext))
+                        .at(1)
+                        .tmax(preBidRequestContext.timeout)
+                        .imp(Collections.singletonList(imp))
+                        .site(makeSite(rubiconParams, preBidRequestContext))
+                        .device(makeDevice(preBidRequestContext))
+                        .user(makeUser(rubiconParams, preBidRequestContext))
+                        .source(makeSource(preBidRequestContext))
+                        .build())
+                .map(bidRequest -> BidWithRequest.of(adUnitBid, bidRequest));
     }
 
     private RubiconParams parseAndValidateRubiconParams(AdUnitBid adUnitBid) {
@@ -202,15 +215,45 @@ public class RubiconAdapter implements Adapter {
                 .build();
     }
 
-    private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams, PreBidRequestContext
-            preBidRequestContext) {
-        return Imp.builder()
-                .id(adUnitBid.adUnitCode)
-                .secure(preBidRequestContext.secure)
-                .instl(adUnitBid.instl)
-                .banner(makeBanner(adUnitBid))
-                .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)))
-                .build();
+    private static Stream<Imp> makeImps(AdUnitBid adUnitBid, RubiconParams rubiconParams,
+                                        PreBidRequestContext preBidRequestContext) {
+
+        return allowedMediaTypes(adUnitBid).stream()
+                .filter(mediaType -> isValidAdUnitBidMediaType(mediaType, adUnitBid))
+                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, rubiconParams))
+                .map(impBuilder -> impBuilder
+                        .id(adUnitBid.adUnitCode)
+                        .secure(preBidRequestContext.secure)
+                        .instl(adUnitBid.instl)
+                        .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)))
+                        .build());
+    }
+
+    private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
+        return !(MediaType.VIDEO.equals(mediaType)
+                && (adUnitBid.video == null || CollectionUtils.isEmpty(adUnitBid.video.mimes)));
+    }
+
+    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
+                                                      RubiconParams rubiconParams) {
+        final Imp.ImpBuilder builder = Imp.builder();
+        switch (mediaType) {
+            case VIDEO:
+                builder.video(makeVideo(adUnitBid, rubiconParams.video));
+                break;
+            case BANNER:
+                builder.banner(makeBanner(adUnitBid));
+                break;
+            default:
+                // unknown media type, just skip it
+        }
+        return builder;
+    }
+
+    private static Set<MediaType> allowedMediaTypes(AdUnitBid adUnitBid) {
+        final Set<MediaType> allowedMediaTypes = new HashSet<>(ALLOWED_MEDIA_TYPES);
+        allowedMediaTypes.retainAll(adUnitBid.mediaTypes);
+        return allowedMediaTypes;
     }
 
     private static RubiconImpExt makeImpExt(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
@@ -246,6 +289,30 @@ public class RubiconAdapter implements Adapter {
                 .format(adUnitBid.sizes)
                 .topframe(adUnitBid.topframe)
                 .ext(Json.mapper.valueToTree(makeBannerExt(adUnitBid.sizes)))
+                .build();
+    }
+
+    private static Video makeVideo(AdUnitBid adUnitBid, RubiconVideoParams rubiconVideoParams) {
+        return Video.builder()
+                .mimes(adUnitBid.video.mimes)
+                .minduration(adUnitBid.video.minduration)
+                .maxduration(adUnitBid.video.maxduration)
+                .w(adUnitBid.sizes.get(0).getW())
+                .h(adUnitBid.sizes.get(0).getH())
+                .startdelay(adUnitBid.video.startdelay)
+                .playbackmethod(Collections.singletonList(adUnitBid.video.playbackMethod))
+                .protocols(adUnitBid.video.protocols)
+                .ext(rubiconVideoParams != null ? Json.mapper.valueToTree(makeVideoExt(rubiconVideoParams)) : null)
+                .build();
+    }
+
+    private static RubiconVideoExt makeVideoExt(RubiconVideoParams rubiconVideoParams) {
+        return RubiconVideoExt.builder()
+                .skip(rubiconVideoParams.skip)
+                .skipdelay(rubiconVideoParams.skipdelay)
+                .rp(RubiconVideoExtRP.builder()
+                        .sizeId(rubiconVideoParams.sizeId)
+                        .build())
                 .build();
     }
 

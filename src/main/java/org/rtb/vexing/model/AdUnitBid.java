@@ -8,8 +8,10 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+import org.rtb.vexing.model.request.Video;
 
 import java.util.List;
+import java.util.Set;
 
 @Builder
 @ToString
@@ -35,4 +37,8 @@ public final class AdUnitBid {
     String bidId;
 
     ObjectNode params;
+
+    Video video;
+
+    Set<MediaType> mediaTypes;
 }

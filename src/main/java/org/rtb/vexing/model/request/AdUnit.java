@@ -38,4 +38,8 @@ public final class AdUnit {
 
     /* 1 = the ad is interstitial or full screen, 0 = not interstitial. */
     Integer instl;  // ... really just a boolean 0|1.
+
+    List<String> mediaTypes;
+
+    Video video;
 }

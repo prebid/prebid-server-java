@@ -1,6 +1,6 @@
 package org.rtb.vexing.adapter.rubicon.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,17 +13,18 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public final class RubiconParams {
+public class RubiconVideoParams {
 
-    Integer accountId;
+    String language;
 
-    Integer siteId;
+    Integer playerHeight;
 
-    Integer zoneId;
+    Integer playerWidth;
 
-    JsonNode inventory;
+    @JsonProperty("size_id")
+    Integer sizeId;
 
-    JsonNode visitor;
+    Integer skip;
 
-    RubiconVideoParams video;
+    Integer skipdelay;
 }

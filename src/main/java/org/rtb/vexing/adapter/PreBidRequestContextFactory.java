@@ -12,6 +12,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.config.ApplicationConfig;
@@ -19,6 +20,7 @@ import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieFactory;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
+import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.Bid;
@@ -28,9 +30,11 @@ import org.rtb.vexing.settings.ApplicationSettings;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -125,6 +129,7 @@ public class PreBidRequestContextFactory {
     private Future<List<Bidder>> extractBidders(PreBidRequest preBidRequest) {
         // this is a List<Future<Stream<AdUnitBid>>> actually
         final List<Future> adUnitBidFutures = preBidRequest.adUnits.stream()
+                .filter(PreBidRequestContextFactory::isValidAdUnit)
                 .map(unit -> resolveUnitBids(unit).map(bids -> bids.stream().map(bid -> toAdUnitBid(unit, bid))))
                 .collect(Collectors.toList());
 
@@ -135,6 +140,10 @@ public class PreBidRequestContextFactory {
                         .entrySet().stream()
                         .map(e -> Bidder.from(e.getKey(), e.getValue()))
                         .collect(Collectors.toList()));
+    }
+
+    private static boolean isValidAdUnit(AdUnit adUnit) {
+        return CollectionUtils.isNotEmpty(adUnit.sizes);
     }
 
     private Future<List<Bid>> resolveUnitBids(AdUnit unit) {
@@ -164,7 +173,29 @@ public class PreBidRequestContextFactory {
                 .adUnitCode(unit.code)
                 .bidId(StringUtils.defaultIfBlank(bid.bidId, Long.toUnsignedString(rand.nextLong())))
                 .params(bid.params)
+                .video(unit.video)
+                .mediaTypes(makeBidMediaTypes(unit.mediaTypes))
                 .build();
+    }
+
+    private Set<MediaType> makeBidMediaTypes(List<String> mediaTypes) {
+        final Set<MediaType> bidMediaTypes;
+        if (mediaTypes != null && !mediaTypes.isEmpty()) {
+            bidMediaTypes = new HashSet<>();
+            for (String mediaType : mediaTypes) {
+                try {
+                    bidMediaTypes.add(MediaType.valueOf(mediaType.toUpperCase()));
+                } catch (IllegalArgumentException exception) {
+                    logger.warn("Invalid mediaType: {0}", mediaType);
+                }
+            }
+            if (bidMediaTypes.size() == 0) {
+                bidMediaTypes.add(MediaType.BANNER);
+            }
+        } else {
+            bidMediaTypes = Collections.singleton(MediaType.BANNER);
+        }
+        return bidMediaTypes;
     }
 
     private long timeoutOrDefault(PreBidRequest preBidRequest) {
