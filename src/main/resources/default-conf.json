@@ -1,16 +1,27 @@
 {
-  "http.port": 8080,
+  "http.port": 8000,
   "http-client.max-pool-size": 32768,
   "http-client.connect-timeout-ms": 2500,
+  "external_url": "http://localhost:8000",
+  "admin_port": 6060,
   "default-timeout-ms": 250,
   "adapters": {
+    "pubmatic": {
+      "endpoint": "http://openbid.pubmatic.com/translator?source=prebid-server"
+    },
     "rubicon": {
       "endpoint": "http://staged-by.rubiconproject.com/a/api/exchange.json",
-      "usersync_url": "none",
-      "XAPI": {
-        "Username": "DELETED",
-        "Password": "DELETED"
-      }
+      "usersync_url": "https://pixel.rubiconproject.com/exchange/sync.php?p=prebid"
+    },
+    "pulsepoint": {
+      "endpoint": "http://bid.contextweb.com/header/s/ortb/prebid-s2s"
+    },
+    "index": {
+      "usersync_url": "//ssum-sec.casalemedia.com/usermatchredir?s=184932&cb=https%3A%2F%2Fprebid.adnxs.com%2Fpbs%2Fv1%2Fsetuid%3Fbidder%3DindexExchange%26uid%3D"
+    },
+    "conversant": {
+      "endpoint": "http://media.msg.dotomi.com/s2s/header/24",
+      "usersync_url": "http://prebid-match.dotomi.com/prebid/match?rurl="
     }
   },
   "metrics": {
