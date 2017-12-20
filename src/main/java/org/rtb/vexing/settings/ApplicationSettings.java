@@ -37,8 +37,8 @@ public interface ApplicationSettings {
     static String postgresUrl(ApplicationConfig config) {
         return String.format("jdbc:postgresql://%s/%s?user=%s&password=%s",
                 config.getString("datacache.host"),
-                config.getString("datacache.database"),
-                config.getString("datacache.username"),
+                config.getString("datacache.dbname"),
+                config.getString("datacache.user"),
                 config.getString("datacache.password"));
     }
 }
