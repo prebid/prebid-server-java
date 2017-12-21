@@ -8,6 +8,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -15,6 +17,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
+import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -27,6 +30,7 @@ import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.handler.CookieSyncHandler;
 import org.rtb.vexing.handler.GetuidsHandler;
+import org.rtb.vexing.handler.NoCacheHandler;
 import org.rtb.vexing.handler.OptoutHandler;
 import org.rtb.vexing.handler.SetuidHandler;
 import org.rtb.vexing.handler.StatusHandler;
@@ -38,6 +42,8 @@ import org.rtb.vexing.settings.ApplicationSettings;
 import org.rtb.vexing.vertx.CloseableAdapter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Properties;
 
 public class Application extends AbstractVerticle {
@@ -89,6 +95,13 @@ public class Application extends AbstractVerticle {
         final Router router = Router.router(vertx);
         router.route().handler(CookieHandler.create());
         router.route().handler(BodyHandler.create());
+        router.route().handler(NoCacheHandler.create());
+        router.route().handler(CorsHandler.create(".*")
+                .allowCredentials(true)
+                .allowedHeaders(new HashSet<>(Arrays.asList(HttpHeaders.ORIGIN.toString(),
+                        HttpHeaders.ACCEPT.toString(), HttpHeaders.CONTENT_TYPE.toString())))
+                .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.HEAD,
+                        HttpMethod.OPTIONS))));
         router.post("/auction").handler(dependencyContext.auctionHandler::auction);
         router.get("/status").handler(dependencyContext.statusHandler::status);
         router.post("/cookie_sync").handler(dependencyContext.cookieSyncHandler::sync);

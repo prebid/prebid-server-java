@@ -227,18 +227,25 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(bidCacheResponseAsString)));
 
         // when
-        final PreBidResponse preBidResponse = given(spec)
+        final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","appnexus":"12345"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYXBwbmV4dXMiOiIxMjM0NSJ9fQ==")
                 .queryParam("debug", "1")
                 .body(preBidRequest)
-                .post("/auction")
-                .as(PreBidResponse.class);
+                .post("/auction");
 
         // then
+        assertThat(response.header("Cache-Control")).isEqualTo("no-cache, no-store, must-revalidate");
+        assertThat(response.header("Pragma")).isEqualTo("no-cache");
+        assertThat(response.header("Expires")).isEqualTo("0");
+        assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
+        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
+
+        final PreBidResponse preBidResponse = response.as(PreBidResponse.class);
         assertThat(preBidResponse.status).isEqualTo("no_cookie");
         assertThat(preBidResponse.tid).isEqualTo("tid");
         assertThat(preBidResponse.bidderStatus).hasSize(1);
@@ -365,6 +372,20 @@ public class ApplicationTest extends VertxTest {
         assertThat(uids.uids.get("appnexus").uid).isEqualTo("12345");
         assertThat(uids.uids.get("appnexus").expires.toInstant())
                 .isCloseTo(Instant.now().minus(5, ChronoUnit.MINUTES), within(10, ChronoUnit.SECONDS));
+    }
+
+    @Test
+    public void optionalsRequestShouldRespondWithOriginalPolicyHeaders() {
+        final Response response = given(spec)
+                .header("Origin", "origin.com")
+                .header("Access-Control-Request-Method", "GET")
+                .when()
+                .options("/");
+
+        assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
+        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("origin.com");
+        assertThat(response.header("Access-Control-Allow-Methods")).contains(asList("HEAD","OPTIONS","GET","POST"));
+        assertThat(response.header("Access-Control-Allow-Headers")).isEqualTo("Origin,Accept,Content-Type");
     }
 
     private static PreBidRequest givenPreBidRequest(DigiTrust dt, ObjectNode inventory, ObjectNode visitor) {
