@@ -457,10 +457,10 @@ public class RubiconAdapter implements Adapter {
         final String bidRequestBody = Json.encode(bidRequest);
 
         final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(bidRequestBody);
-
+        final MediaType mediaType = bidRequest.getImp().get(0).getVideo() != null ? MediaType.VIDEO : MediaType.BANNER;
         final Future<BidResult> future = Future.future();
         httpClient.postAbs(endpointUrl,
-                response -> handleResponse(response, adUnitBid, bidderDebugBuilder, future))
+                response -> handleResponse(response, adUnitBid, mediaType, bidderDebugBuilder, future))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future))
                 .putHeader(HttpHeaders.AUTHORIZATION, authHeader)
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
@@ -471,12 +471,11 @@ public class RubiconAdapter implements Adapter {
         return future;
     }
 
-    private void handleResponse(HttpClientResponse response, AdUnitBid adUnitBid,
-                                BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                Future<BidResult> future) {
+    private void handleResponse(HttpClientResponse response, AdUnitBid adUnitBid, MediaType mediaType,
+                                BidderDebug.BidderDebugBuilder bidderDebugBuilder, Future<BidResult> future) {
         response
-                .bodyHandler(buffer -> future.complete(toBidResult(adUnitBid, bidderDebugBuilder, response.statusCode(),
-                        buffer.toString())))
+                .bodyHandler(buffer -> future.complete(toBidResult(adUnitBid, mediaType, bidderDebugBuilder,
+                        response.statusCode(), buffer.toString())))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future));
     }
 
@@ -490,8 +489,8 @@ public class RubiconAdapter implements Adapter {
                 : BidResult.error(bidderDebug, exception.getMessage()));
     }
 
-    private BidResult toBidResult(AdUnitBid adUnitBid, BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                  int statusCode, String body) {
+    private BidResult toBidResult(AdUnitBid adUnitBid, MediaType mediaType,
+                                  BidderDebug.BidderDebugBuilder bidderDebugBuilder, int statusCode, String body) {
         final BidderDebug bidderDebug = completeBidderDebug(bidderDebugBuilder, statusCode, body);
 
         final BidResult result;
@@ -502,13 +501,14 @@ public class RubiconAdapter implements Adapter {
             logger.warn("Bid response code is {0}, body: {1}", statusCode, body);
             result = BidResult.error(bidderDebug, String.format("HTTP status %d; body: %s", statusCode, body));
         } else {
-            result = processBidResponse(adUnitBid, body, bidderDebug);
+            result = processBidResponse(adUnitBid, mediaType, body, bidderDebug);
         }
 
         return result;
     }
 
-    private BidResult processBidResponse(AdUnitBid adUnitBid, String body, BidderDebug bidderDebug) {
+    private BidResult processBidResponse(AdUnitBid adUnitBid, MediaType mediaType, String body,
+                                         BidderDebug bidderDebug) {
         BidResult result = null;
 
         BidResponse bidResponse = null;
@@ -524,7 +524,7 @@ public class RubiconAdapter implements Adapter {
         if (bid != null) {
             // validate that impId matches expected ad unit code
             result = Objects.equals(bid.getImpid(), adUnitBid.adUnitCode)
-                    ? BidResult.success(toBidBuilder(bid, adUnitBid), bidderDebug)
+                    ? BidResult.success(toBidBuilder(bid, adUnitBid, mediaType), bidderDebug)
                     : BidResult.error(bidderDebug, String.format("Unknown ad unit code '%s'", bid.getImpid()));
         } else if (result == null) {
             result = BidResult.empty(bidderDebug);
@@ -552,12 +552,14 @@ public class RubiconAdapter implements Adapter {
         return bidderDebugBuilder.responseBody(body).statusCode(statusCode).build();
     }
 
-    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdUnitBid adUnitBid) {
+    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdUnitBid adUnitBid,
+                                               MediaType mediaType) {
         return Bid.builder()
                 .code(bid.getImpid())
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
                 .creativeId(bid.getCrid())
+                .mediaType(mediaType.name().toLowerCase())
                 .width(bid.getW())
                 .height(bid.getH())
                 .dealId(bid.getDealid())

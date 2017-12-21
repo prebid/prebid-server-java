@@ -10,7 +10,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
-@Builder
+@Builder(toBuilder = true)
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor

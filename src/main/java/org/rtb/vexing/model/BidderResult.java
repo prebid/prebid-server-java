@@ -11,7 +11,7 @@ import org.rtb.vexing.model.response.BidderStatus;
 
 import java.util.List;
 
-@Builder
+@Builder(toBuilder = true)
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor

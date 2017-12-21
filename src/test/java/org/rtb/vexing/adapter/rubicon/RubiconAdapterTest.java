@@ -935,6 +935,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .width(300)
                 .height(250)
                 .dealId("dealId")
+                .mediaType("banner")
                 .adServerTargeting(singletonMap("key", "value"))
                 .bidder(RUBICON)
                 .bidId("bidId")

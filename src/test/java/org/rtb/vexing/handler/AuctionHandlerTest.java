@@ -1,6 +1,7 @@
 package org.rtb.vexing.handler;
 
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Format;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -46,6 +47,7 @@ import org.rtb.vexing.settings.model.Account;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -359,6 +361,87 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithValidBannerBidIfSizeIsMissedButRecoveredFromAdUnit() throws IOException {
+        // given
+        final List<AdUnitBid> adUnitBids = singletonList(AdUnitBid.builder()
+                .adUnitCode("adUnitCode1")
+                .bidId("bidId1")
+                .sizes(Collections.singletonList(Format.builder().w(100).h(200).build()))
+                .build());
+        final List<Bidder> bidders = singletonList(Bidder.from(RUBICON, adUnitBids));
+
+        givenPreBidRequestContextCustomizable(identity(), builder -> builder.bidders(bidders));
+
+        given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
+                .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
+                .bids(singletonList(
+                        org.rtb.vexing.model.response.Bid.builder().mediaType("banner")
+                                .bidder(RUBICON).code("adUnitCode1").bidId("bidId1").price(new BigDecimal("5.67"))
+                                .build()))
+                .build()));
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.bids).hasSize(1);
+        assertThat(preBidResponse.bidderStatus.get(0).numBids).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldRespondWithValidVideoBidEvenIfSizeIsMissed() throws IOException {
+        // given
+        final List<AdUnitBid> adUnitBids = singletonList(null);
+        final List<Bidder> bidders = singletonList(Bidder.from(RUBICON, adUnitBids));
+
+        givenPreBidRequestContextCustomizable(identity(), builder -> builder.bidders(bidders));
+
+        given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
+                .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
+                .bids(singletonList(
+                        org.rtb.vexing.model.response.Bid.builder().mediaType("video").bidId("bidId1")
+                                .price(new BigDecimal("5.67")).build()))
+                .build()));
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.bids).hasSize(1);
+        assertThat(preBidResponse.bidderStatus.get(0).numBids).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldRespondWithEmptyListIfBidIsBannerAndAdUnitSizesLengthMoreThanOne() throws IOException {
+        // given
+        final List<AdUnitBid> adUnitBids = singletonList(AdUnitBid.builder()
+                .adUnitCode("adUnitCode1")
+                .sizes(asList(Format.builder().w(100).h(200).build(), Format.builder().w(100).h(200).build()))
+                .bidId("bidId1")
+                .build());
+        final List<Bidder> bidders = singletonList(Bidder.from(RUBICON, adUnitBids));
+
+        givenPreBidRequestContextCustomizable(identity(), builder -> builder.bidders(bidders));
+
+        given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
+                .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
+                .bids(singletonList(
+                        org.rtb.vexing.model.response.Bid.builder().code("adUnitCode1").mediaType("banner").bidId("bidId1")
+                                .price(new BigDecimal("5.67")).build()))
+                .build()));
+
+        // when
+        auctionHandler.auction(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.bids).isEmpty();
+        assertThat(preBidResponse.bidderStatus.get(0).numBids).isEqualTo(0);
+    }
+
+    @Test
     public void shouldTolerateUnsupportedBidderInPreBidRequest() throws IOException {
         // given
         final List<Bidder> bidders = asList(
@@ -603,6 +686,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(adapter.requestBids(any(), any()))
                 .willReturn(Future.succeededFuture(BidderResult.builder()
                         .timedOut(timedOut)
+                        .bids(Collections.emptyList())
                         .bidderStatus(BidderStatus.builder()
                                 .bidder(bidder)
                                 .responseTimeMs(500)
