@@ -6,7 +6,9 @@ import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.settings.model.Account;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -18,7 +20,7 @@ public class TargetingKeywordsTest {
     private final PreBidRequest preBidRequest = PreBidRequest.builder().maxKeyLength(20).build();
 
     @Test
-    public void shouldFailonNullArguments() {
+    public void shouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> TargetingKeywords.addTargetingKeywords(null, null, null));
         assertThatNullPointerException().isThrownBy(
                 () -> TargetingKeywords.addTargetingKeywords(preBidRequest, null, null));
@@ -103,5 +105,29 @@ public class TargetingKeywordsTest {
         assertThat(bidsWithKeywords).hasSize(1);
         assertThat(bidsWithKeywords.get(0).adServerTargeting)
                 .doesNotContainKeys("hb_size_bidder", "hb_deal_bidder", "hb_size", "hb_deal");
+    }
+
+    @Test
+    public void shouldAddTargetingKeywordsFromBidderResponse() {
+        // given
+        final Map<String, String> keywords = new HashMap();
+        keywords.put("rpfl_1001", "2_tier0100");
+        final List<Bid> bids = singletonList(Bid.builder().bidder("bidder").price(BigDecimal.ONE).cacheId("cacheId1")
+                .adServerTargeting(keywords).build());
+
+        // when
+        final List<Bid> bidsWithKeywords = TargetingKeywords.addTargetingKeywords(preBidRequest, bids,
+                Account.builder().build());
+
+        // then
+        assertThat(bidsWithKeywords.get(0).adServerTargeting).containsOnly(
+                entry("hb_pb", "1.00"),
+                entry("hb_pb_bidder", "1.00"),
+                entry("hb_bidder", "bidder"),
+                entry("hb_cache_id", "cacheId1"),
+                entry("hb_bidder_bidder", "bidder"),
+                entry("hb_creative_loadtype", "html"),
+                entry("hb_cache_id_bidder", "cacheId1"),
+                entry("rpfl_1001", "2_tier0100"));
     }
 }

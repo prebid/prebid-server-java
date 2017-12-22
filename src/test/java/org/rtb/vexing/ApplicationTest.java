@@ -53,6 +53,9 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconPubExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconTargeting;
+import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtDt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
@@ -384,7 +387,7 @@ public class ApplicationTest extends VertxTest {
 
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("origin.com");
-        assertThat(response.header("Access-Control-Allow-Methods")).contains(asList("HEAD","OPTIONS","GET","POST"));
+        assertThat(response.header("Access-Control-Allow-Methods")).contains(asList("HEAD", "OPTIONS", "GET", "POST"));
         assertThat(response.header("Access-Control-Allow-Headers")).isEqualTo("Origin,Accept,Content-Type");
     }
 
@@ -575,6 +578,14 @@ public class ApplicationTest extends VertxTest {
                                 .w(w)
                                 .h(h)
                                 .dealid(dealId)
+                                .ext(mapper.valueToTree(RubiconTargetingExt.builder()
+                                        .rp(RubiconTargetingExtRp.builder()
+                                                .targeting(singletonList(RubiconTargeting.builder()
+                                                        .key("rpfl_1001")
+                                                        .values(singletonList("2_tier0100"))
+                                                        .build()))
+                                                .build())
+                                        .build()))
                                 .build()))
                         .build()))
                 .build());
@@ -608,7 +619,8 @@ public class ApplicationTest extends VertxTest {
         adServerTargeting.put("hb_deal_rubicon", dealId);
         adServerTargeting.put("hb_size_rubicon", width + "x" + height);
         adServerTargeting.put("hb_bidder_rubicon", bidder);
-
+        adServerTargeting.put("rpfl_1001", "2_tier0100");
+        
         return org.rtb.vexing.model.response.Bid.builder()
                 .code(impId)
                 .price(new BigDecimal(price))

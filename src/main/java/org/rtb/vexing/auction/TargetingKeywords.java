@@ -83,7 +83,7 @@ public class TargetingKeywords {
                     ? preBidRequest.maxKeyLength : Integer.MAX_VALUE;
             this.bidder = bid.bidder;
             this.topBid = topBid;
-            this.keywords = new HashMap<>();
+            this.keywords = bid.adServerTargeting != null ? new HashMap<>(bid.adServerTargeting) : new HashMap<>();
         }
 
         void put(String prefix, String value) {
