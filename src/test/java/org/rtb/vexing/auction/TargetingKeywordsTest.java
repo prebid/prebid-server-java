@@ -110,7 +110,7 @@ public class TargetingKeywordsTest {
     @Test
     public void shouldAddTargetingKeywordsFromBidderResponse() {
         // given
-        final Map<String, String> keywords = new HashMap();
+        final Map<String, String> keywords = new HashMap<>();
         keywords.put("rpfl_1001", "2_tier0100");
         final List<Bid> bids = singletonList(Bid.builder().bidder("bidder").price(BigDecimal.ONE).cacheId("cacheId1")
                 .adServerTargeting(keywords).build());

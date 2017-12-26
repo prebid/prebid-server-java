@@ -6,7 +6,7 @@ accounts:
 configs:
   - id: 14062
     config: >
-              {"bid_id": "bidId2",
+              [{"bid_id": "bidId2",
                "bidder": "rubicon",
                 "params": {
                   "accountId": 5001,
@@ -21,7 +21,7 @@ configs:
                     "search": ["iphone"]
                   }
                 }
-              }
+              }]
   - id: 1001
   - id: 2763
 domains:

@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
 
@@ -38,14 +39,24 @@ public class AdapterCatalogTest {
                 .willReturn("http://rubiconproject.com/x/cookie/x");
         given(applicationConfig.getString(eq("adapters.rubicon.XAPI.Username"))).willReturn("rubicon_user");
         given(applicationConfig.getString(eq("adapters.rubicon.XAPI.Password"))).willReturn("rubicon_password");
+
+        given(applicationConfig.getString(eq("external_url"))).willReturn("http://external-url");
+        given(applicationConfig.getString(eq("adapters.appnexus.endpoint"))).willReturn("http://appnexus-endpoint");
+        given(applicationConfig.getString(eq("adapters.appnexus.usersync_url"))).willReturn(
+                "http://appnexus-usersync-url");
+
         given(applicationConfig.getLong(eq("default-timeout-ms"))).willReturn(250L);
 
         // when
         final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient).getByCode("rubicon");
+        final Adapter appnexusAdapter = AdapterCatalog.create(applicationConfig, httpClient).getByCode("appnexus");
 
         // then
         assertThat(rubiconAdapter)
                 .isNotNull()
                 .isInstanceOf(RubiconAdapter.class);
+        assertThat(appnexusAdapter)
+                .isNotNull()
+                .isInstanceOf(AppnexusAdapter.class);
     }
 }

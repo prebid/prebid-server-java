@@ -9,6 +9,8 @@ import lombok.experimental.FieldDefaults;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderDebug;
 
+import java.util.List;
+
 @Builder
 @ToString
 @EqualsAndHashCode
@@ -16,7 +18,7 @@ import org.rtb.vexing.model.response.BidderDebug;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class BidResult {
 
-    Bid.BidBuilder bidBuilder;
+    List<Bid.BidBuilder> bidBuilders;
 
     BidderDebug bidderDebug;
 
@@ -32,8 +34,8 @@ public class BidResult {
         return new BidResult(null, bidderDebug, error, true);
     }
 
-    public static BidResult success(Bid.BidBuilder bidBuilder, BidderDebug bidderDebug) {
-        return new BidResult(bidBuilder, bidderDebug, null, false);
+    public static BidResult success(List<Bid.BidBuilder> bidBuilders, BidderDebug bidderDebug) {
+        return new BidResult(bidBuilders, bidderDebug, null, false);
     }
 
     public static BidResult empty(BidderDebug bidderDebug) {

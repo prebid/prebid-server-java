@@ -1,6 +1,7 @@
 package org.rtb.vexing.adapter;
 
 import io.vertx.core.http.HttpClient;
+import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
 
@@ -22,7 +23,7 @@ public class AdapterCatalog {
         Objects.requireNonNull(config);
         Objects.requireNonNull(httpClient);
 
-        final Map<String, Adapter> adapters = Stream.of(rubicon(config, httpClient))
+        final Map<String, Adapter> adapters = Stream.of(rubicon(config, httpClient), appnexus(config, httpClient))
                 .collect(Collectors.toMap(Adapter::code, Function.identity()));
 
         return new AdapterCatalog(adapters);
@@ -34,6 +35,14 @@ public class AdapterCatalog {
                 config.getString("adapters.rubicon.usersync_url"),
                 config.getString("adapters.rubicon.XAPI.Username"),
                 config.getString("adapters.rubicon.XAPI.Password"),
+                httpClient);
+    }
+
+    private static AppnexusAdapter appnexus(ApplicationConfig config, HttpClient httpClient) {
+        return new AppnexusAdapter(
+                config.getString("adapters.appnexus.endpoint"),
+                config.getString("adapters.appnexus.usersync_url"),
+                config.getString("external_url"),
                 httpClient);
     }
 

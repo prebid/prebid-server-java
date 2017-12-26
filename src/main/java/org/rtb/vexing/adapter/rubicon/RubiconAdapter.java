@@ -89,15 +89,18 @@ public class RubiconAdapter implements Adapter {
     // RubiconParams and UsersyncInfo fields are not in snake-case
     private static final ObjectMapper DEFAULT_NAMING_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
+
+    private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(
+            EnumSet.of(MediaType.BANNER, MediaType.VIDEO));
+
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
-    private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections
-            .unmodifiableSet(EnumSet.of(MediaType.BANNER, MediaType.VIDEO));
+
     private final String endpointUrl;
     private final UsersyncInfo usersyncInfo;
     private final String authHeader;
-
     private final HttpClient httpClient;
 
     private Clock clock = Clock.systemDefaultZone();
@@ -524,7 +527,7 @@ public class RubiconAdapter implements Adapter {
         if (bid != null) {
             // validate that impId matches expected ad unit code
             result = Objects.equals(bid.getImpid(), adUnitBid.adUnitCode)
-                    ? BidResult.success(toBidBuilder(bid, adUnitBid, mediaType), bidderDebug)
+                    ? BidResult.success(Collections.singletonList(toBidBuilder(bid, adUnitBid, mediaType)), bidderDebug)
                     : BidResult.error(bidderDebug, String.format("Unknown ad unit code '%s'", bid.getImpid()));
         } else if (result == null) {
             result = BidResult.empty(bidderDebug);
@@ -586,7 +589,8 @@ public class RubiconAdapter implements Adapter {
         final Integer responseTime = responseTime(bidderStarted);
 
         final List<Bid> bids = bidResults.stream()
-                .map(br -> br.bidBuilder)
+                .filter(br -> Objects.nonNull(br.bidBuilders))
+                .flatMap(br -> br.bidBuilders.stream())
                 .filter(Objects::nonNull)
                 .map(b -> b.responseTimeMs(responseTime))
                 .map(Bid.BidBuilder::build)
