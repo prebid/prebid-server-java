@@ -99,7 +99,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
                     // validate account id
                     return applicationSettings.getAccountById(preBidRequestContext.preBidRequest.accountId)
-                            // groundwork for price granularity support
                             .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
                             .recover(exception -> failWith("Unknown account id: Unknown account", exception));
                 })

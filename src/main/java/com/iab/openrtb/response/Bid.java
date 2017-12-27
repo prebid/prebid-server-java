@@ -1,10 +1,8 @@
 package com.iab.openrtb.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Value;
-import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -15,9 +13,8 @@ import java.util.List;
  * attribute and constitutes an offer to buy that impression for a given
  * {@code price}.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class Bid {
 
     /** Bidder generated bid ID to assist with logging/tracking. (required) */

@@ -2,6 +2,7 @@ package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
+import lombok.Value;
 
 import java.util.List;
 
@@ -17,9 +18,8 @@ import java.util.List;
  * request depending on whether the media is browser-based web content or a
  * non-browser application, respectively.
  */
-//@Value
-@Builder
-@lombok.Data
+@Builder(toBuilder = true)
+@Value
 public class BidRequest {
 
     /**
@@ -128,7 +128,9 @@ public class BidRequest {
      */
     List<String> bcat;
 
-    /** Block list of advertisers by their domains (e.g., “ford.com”). */
+    /**
+     * Block list of advertisers by their domains (e.g., “ford.com”).
+     */
     List<String> badv;
 
     /**
@@ -151,6 +153,8 @@ public class BidRequest {
      */
     Regs regs;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB
+     */
     ObjectNode ext;
 }

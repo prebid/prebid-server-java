@@ -3,7 +3,7 @@ package com.iab.openrtb.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
 import java.util.List;
 
@@ -20,8 +20,8 @@ import java.util.List;
  * at their discretion. However, any given bid for the impression must conform
  * to one of the offered types.
  */
-@Builder
-@Data
+@Builder(toBuilder = true)
+@Value
 public class Imp {
 
     /**
