@@ -30,13 +30,13 @@ public class CloseableAdapterTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new CloseableAdapter<>(null));
+        assertThatNullPointerException().isThrownBy(() -> new CloseableAdapter(null));
     }
 
     @Test
     public void closeShouldInvokeHandlerWithSuccededFuture() {
         // when
-        new CloseableAdapter<>(closeable).close(completionHandler);
+        new CloseableAdapter(closeable).close(completionHandler);
 
         // then
         verify(completionHandler).handle(eq(Future.succeededFuture()));
@@ -49,7 +49,7 @@ public class CloseableAdapterTest {
         willThrow(exception).given(closeable).close();
 
         // when
-        new CloseableAdapter<>(closeable).close(completionHandler);
+        new CloseableAdapter(closeable).close(completionHandler);
 
         // then
         verify(completionHandler).handle(argThat(future -> future.failed() && future.cause() == exception));

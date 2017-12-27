@@ -8,7 +8,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Objects;
 
-public class CloseableAdapter<T extends Closeable> implements io.vertx.core.Closeable {
+public class CloseableAdapter implements io.vertx.core.Closeable {
 
     private final Closeable adaptee;
 
