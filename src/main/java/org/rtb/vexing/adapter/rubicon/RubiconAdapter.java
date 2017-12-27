@@ -136,11 +136,12 @@ public class RubiconAdapter implements Adapter {
 
         final long bidderStarted = clock.millis();
 
-        List<BidWithRequest> bidWithRequests = null;
+        List<BidWithRequest> bidWithRequests = Collections.emptyList();
         try {
             bidWithRequests = bidder.adUnitBids.stream()
                     .flatMap(adUnitBid -> toBidWithRequestStream(adUnitBid, preBidRequestContext))
                     .collect(Collectors.toList());
+            validateBidWithRequests(bidWithRequests);
         } catch (PreBidRequestException e) {
             logger.warn("Error occurred while constructing bid requests", e);
             result = Future.succeededFuture(BidderResult.builder()
@@ -152,7 +153,7 @@ public class RubiconAdapter implements Adapter {
                     .build());
         }
 
-        if (bidWithRequests != null) {
+        if (result == null) {
             final List<Future> requestBidFutures = bidWithRequests.stream()
                     .map(bidWithRequest -> requestSingleBid(bidWithRequest.bidRequest, preBidRequestContext.timeout,
                             bidWithRequest.adUnitBid))
@@ -166,6 +167,12 @@ public class RubiconAdapter implements Adapter {
         }
 
         return result;
+    }
+
+    private static void validateBidWithRequests(List<BidWithRequest> bidWithRequests) {
+        if (bidWithRequests.size() == 0) {
+            throw new PreBidRequestException("Invalid ad unit/imp");
+        }
     }
 
     private Stream<BidWithRequest> toBidWithRequestStream(AdUnitBid adUnitBid,
@@ -233,8 +240,14 @@ public class RubiconAdapter implements Adapter {
     }
 
     private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
-        return !(MediaType.VIDEO.equals(mediaType)
-                && (adUnitBid.video == null || CollectionUtils.isEmpty(adUnitBid.video.mimes)));
+        switch (mediaType) {
+            case VIDEO:
+                return adUnitBid.video != null && !CollectionUtils.isEmpty(adUnitBid.video.mimes);
+            case BANNER:
+                return adUnitBid.sizes.stream().map(RubiconSize::toId).anyMatch(id -> id > 0);
+            default:
+                return false;
+        }
     }
 
     private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
@@ -320,20 +333,15 @@ public class RubiconAdapter implements Adapter {
     }
 
     private static RubiconBannerExt makeBannerExt(List<Format> sizes) {
-        final List<Integer> rubiconSizeIds = sizes.stream()
+        final List<Integer> validRubiconSizeIds = sizes.stream()
                 .map(RubiconSize::toId)
                 .filter(id -> id > 0)
                 .collect(Collectors.toList());
-
-        if (rubiconSizeIds.isEmpty()) {
-            throw new PreBidRequestException("No valid sizes");
-        }
-
         return RubiconBannerExt.builder()
                 .rp(RubiconBannerExtRp.builder()
-                        .sizeId(rubiconSizeIds.get(0))
-                        .altSizeIds(rubiconSizeIds.size() > 1
-                                ? rubiconSizeIds.subList(1, rubiconSizeIds.size()) : null)
+                        .sizeId(validRubiconSizeIds.get(0))
+                        .altSizeIds(validRubiconSizeIds.size() > 1
+                                ? validRubiconSizeIds.subList(1, validRubiconSizeIds.size()) : null)
                         .mime("text/html")
                         .build())
                 .build();

@@ -81,6 +81,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
@@ -258,11 +259,9 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfNoValidSizesInAdUnit() {
+    public void requestBidShouldFailIfBidWithRequestsListIsEmpty() throws JsonProcessingException {
         // given
-        bidder = givenBidderCustomizable(
-                builder -> builder.sizes(singletonList(Format.builder().w(302).h(252).build())),
-                identity());
+        bidder = Bidder.from(RUBICON, emptyList());
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -270,7 +269,43 @@ public class RubiconAdapterTest extends VertxTest {
         // then
         assertThat(bidderResultFuture.succeeded()).isTrue();
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNotNull().isEqualTo("No valid sizes");
+        assertThat(bidderResult.bidderStatus.error).isNotNull().isEqualTo("Invalid ad unit/imp");
+    }
+
+    @Test
+    public void requestWithoutValidSizesForBannerMediaTypeShouldNotBeSent() {
+        // given
+        bidder = givenBidderCustomizable(
+                builder -> builder.sizes(singletonList(Format.builder().w(302).h(252).build())),
+                identity());
+
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        verifyZeroInteractions(httpClientRequest);
+    }
+
+    @Test
+    public void requestBidShouldBeSentWithFilteredValidSizesForBannerMediaType() throws IOException {
+        // given
+        bidder = givenBidderCustomizable(
+                builder -> builder.sizes(asList(Format.builder().w(302).h(252).build(),
+                        Format.builder().w(300).h(250).build())),
+                identity());
+
+        // when
+        adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidRequest bidRequest = captureBidRequest();
+
+        assertThat(bidRequest.getImp()).hasSize(1)
+                .extracting(Imp::getBanner).isNotNull()
+                .extracting(Banner::getExt).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconBannerExt.class)).isNotNull()
+                .extracting(ext -> ext.rp).isNotNull()
+                .extracting(rp -> rp.sizeId).containsOnly(15);
     }
 
     @Test
