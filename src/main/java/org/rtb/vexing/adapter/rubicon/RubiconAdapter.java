@@ -594,6 +594,7 @@ public class RubiconAdapter implements Adapter {
                 .filter(Objects::nonNull)
                 .map(b -> b.responseTimeMs(responseTime))
                 .map(Bid.BidBuilder::build)
+                .filter(bid -> bid.price.compareTo(BigDecimal.ZERO) != 0)
                 .collect(Collectors.toList());
 
         final BidderStatus.BidderStatusBuilder bidderStatusBuilder = BidderStatus.builder()

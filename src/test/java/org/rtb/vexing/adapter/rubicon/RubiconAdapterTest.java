@@ -653,12 +653,12 @@ public class RubiconAdapterTest extends VertxTest {
         //given
         bidder = Bidder.from(RUBICON, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
-                                .adUnitCode("adUnitCode1")
-                                .mediaTypes(Collections.singleton(MediaType.VIDEO))
-                                .video(Video.builder()
-                                        .mimes(Collections.emptyList())
-                                        .playbackMethod(1)
-                                        .build()), identity()
+                        .adUnitCode("adUnitCode1")
+                        .mediaTypes(Collections.singleton(MediaType.VIDEO))
+                        .video(Video.builder()
+                                .mimes(Collections.emptyList())
+                                .playbackMethod(1)
+                                .build()), identity()
                 )));
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
@@ -956,6 +956,21 @@ public class RubiconAdapterTest extends VertxTest {
         final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bidderStatus.numBids).isNull();
         assertThat(bidderResult.bidderStatus.noBid).isTrue();
+        assertThat(bidderResult.bids).hasSize(0);
+    }
+
+    @Test
+    public void requestBidsShouldFilterOutBidsWithZeroPrice() throws JsonProcessingException {
+        // given
+        final String bidResponse = givenBidResponseCustomizable(identity(), identity(),
+                builder -> builder.price(new BigDecimal(0)), null);
+        givenHttpClientReturnsResponses(200, bidResponse);
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bids).hasSize(0);
     }
 
