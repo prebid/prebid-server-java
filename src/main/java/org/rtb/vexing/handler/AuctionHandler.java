@@ -24,6 +24,7 @@ import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidderResult;
+import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.Tuple2;
 import org.rtb.vexing.model.Tuple3;
@@ -141,8 +142,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
      */
     private static BidderResult dropBidsWithNotValidSize(BidderResult bidderResult, List<AdUnitBid> adUnitBids) {
         final List<Bid> notValidBids = bidderResult.bids.stream()
-                .filter(bid -> Objects.equals("banner", bid.mediaType) && (bid.height == null || bid.height == 0
-                        || bid.width == null || bid.width == 0))
+                .filter(bid -> bid.mediaType == MediaType.banner
+                        && (bid.height == null || bid.height == 0 || bid.width == null || bid.width == 0))
                 .collect(Collectors.toList());
 
         // bids which are not in invalid list are valid

@@ -34,6 +34,7 @@ import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
+import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.rtb.vexing.model.request.PreBidRequest;
@@ -375,7 +376,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
                 .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
                 .bids(singletonList(
-                        org.rtb.vexing.model.response.Bid.builder().mediaType("banner")
+                        org.rtb.vexing.model.response.Bid.builder().mediaType(MediaType.banner)
                                 .bidder(RUBICON).code("adUnitCode1").bidId("bidId1").price(new BigDecimal("5.67"))
                                 .build()))
                 .build()));
@@ -400,7 +401,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
                 .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
                 .bids(singletonList(
-                        org.rtb.vexing.model.response.Bid.builder().mediaType("video").bidId("bidId1")
+                        org.rtb.vexing.model.response.Bid.builder().mediaType(MediaType.video).bidId("bidId1")
                                 .price(new BigDecimal("5.67")).build()))
                 .build()));
 
@@ -428,7 +429,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
                 .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
                 .bids(singletonList(
-                        org.rtb.vexing.model.response.Bid.builder().code("adUnitCode1").mediaType("banner")
+                        org.rtb.vexing.model.response.Bid.builder().code("adUnitCode1").mediaType(MediaType.banner)
                                 .bidId("bidId1").price(new BigDecimal("5.67")).build()))
                 .build()));
 

@@ -81,9 +81,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -259,7 +257,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfBidWithRequestsListIsEmpty() throws JsonProcessingException {
+    public void requestBidShouldFailIfNoValidAdUnits() {
         // given
         bidder = Bidder.from(RUBICON, emptyList());
 
@@ -273,7 +271,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestWithoutValidSizesForBannerMediaTypeShouldNotBeSent() {
+    public void requestBidsShouldNotSendBidRequestForBannerWithoutValidSizes() {
         // given
         bidder = givenBidderCustomizable(
                 builder -> builder.sizes(singletonList(Format.builder().w(302).h(252).build())),
@@ -287,7 +285,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldBeSentWithFilteredValidSizesForBannerMediaType() throws IOException {
+    public void requestBidShouldSendBidRequestForBannerWithFilteredValidSizes() throws IOException {
         // given
         bidder = givenBidderCustomizable(
                 builder -> builder.sizes(asList(Format.builder().w(302).h(252).build(),
@@ -635,7 +633,7 @@ public class RubiconAdapterTest extends VertxTest {
         //given
         bidder = Bidder.from(RUBICON, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
-                                .mediaTypes(EnumSet.of(MediaType.VIDEO, MediaType.BANNER))
+                                .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                                 .video(Video.builder()
                                         .mimes(Collections.singletonList("Mime"))
                                         .playbackMethod(1)
@@ -689,7 +687,7 @@ public class RubiconAdapterTest extends VertxTest {
         bidder = Bidder.from(RUBICON, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .adUnitCode("adUnitCode1")
-                        .mediaTypes(Collections.singleton(MediaType.VIDEO))
+                        .mediaTypes(Collections.singleton(MediaType.video))
                         .video(Video.builder()
                                 .mimes(Collections.emptyList())
                                 .playbackMethod(1)
@@ -710,7 +708,7 @@ public class RubiconAdapterTest extends VertxTest {
         //given
         bidder = Bidder.from(RUBICON, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
-                                .mediaTypes(Collections.singleton(MediaType.VIDEO))
+                                .mediaTypes(Collections.singleton(MediaType.video))
                                 .video(Video.builder()
                                         .mimes(Collections.singletonList("Mime"))
                                         .playbackMethod(1)
@@ -968,7 +966,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .width(300)
                 .height(250)
                 .dealId("dealId")
-                .mediaType("banner")
+                .mediaType(MediaType.banner)
                 .adServerTargeting(singletonMap("key", "value"))
                 .bidder(RUBICON)
                 .bidId("bidId")
@@ -993,7 +991,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidsShouldFilterOutBidsWithZeroPrice() throws JsonProcessingException {
+    public void requestBidsShouldReturnBidderResultWithZeroPriceBidsFilteredOut() throws JsonProcessingException {
         // given
         final String bidResponse = givenBidResponseCustomizable(identity(), identity(),
                 builder -> builder.price(new BigDecimal(0)), null);
@@ -1238,7 +1236,7 @@ public class RubiconAdapterTest extends VertxTest {
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .params(defaultNamingMapper.valueToTree(rubiconParams))
-                .mediaTypes(Collections.singleton(MediaType.BANNER));
+                .mediaTypes(Collections.singleton(MediaType.banner));
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer.apply(adUnitBidBuilderMinimal);
 
         return adUnitBidBuilderCustomized.build();

@@ -185,16 +185,16 @@ public class PreBidRequestContextFactory {
             bidMediaTypes = new HashSet<>();
             for (String mediaType : mediaTypes) {
                 try {
-                    bidMediaTypes.add(MediaType.valueOf(mediaType.toUpperCase()));
-                } catch (IllegalArgumentException exception) {
+                    bidMediaTypes.add(MediaType.valueOf(mediaType.toLowerCase()));
+                } catch (IllegalArgumentException e) {
                     logger.warn("Invalid mediaType: {0}", mediaType);
                 }
             }
             if (bidMediaTypes.size() == 0) {
-                bidMediaTypes.add(MediaType.BANNER);
+                bidMediaTypes.add(MediaType.banner);
             }
         } else {
-            bidMediaTypes = Collections.singleton(MediaType.BANNER);
+            bidMediaTypes = Collections.singleton(MediaType.banner);
         }
         return bidMediaTypes;
     }

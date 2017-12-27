@@ -71,6 +71,7 @@ import org.rtb.vexing.cache.model.request.PutObject;
 import org.rtb.vexing.cache.model.request.PutValue;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.cache.model.response.CacheObject;
+import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.Uids;
 import org.rtb.vexing.model.request.AdUnit;
 import org.rtb.vexing.model.request.CookieSyncRequest;
@@ -196,7 +197,7 @@ public class ApplicationTest extends VertxTest {
         final String rubiconBidRequest2 =
                 givenRubiconBidRequest("adUnitCode1", 4001, 2001, 3001, inventory, visitor, dt,
                         givenRubiconBanner(singletonList(
-                        Format.builder().w(300).h(250).build()), 15, null), null);
+                                Format.builder().w(300).h(250).build()), 15, null), null);
         final String rubiconBidResponse2 = givenBidResponse("bidResponseId2", "seatId2", "adUnitCode1", "10.00", "adm2",
                 "crid2", 300, 250, "dealId1");
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
@@ -207,7 +208,7 @@ public class ApplicationTest extends VertxTest {
         final String rubiconBidRequest3 =
                 givenRubiconBidRequest("adUnitCode2", 7001, 5001, 6001, inventory, visitor, dt,
                         givenRubiconBanner(singletonList(
-                        Format.builder().w(300).h(600).build()), 10, null), null);
+                                Format.builder().w(300).h(600).build()), 10, null), null);
         final String rubiconBidResponse3 = givenBidResponse("bidResponseId3", "seatId3", "adUnitCode2", "4.26", "adm3",
                 "crid3", 300, 600, "dealId3");
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
@@ -300,13 +301,13 @@ public class ApplicationTest extends VertxTest {
                 bidderDebug(APPNEXUS, appnexusBidRequest1, appnexusBidResponse1));
 
         assertThat(preBidResponse.bids).hasSize(4).containsOnly(
-                bid("adUnitCode1", "8.43", "883db7d2-3013-4ce0-a454-adc7d208ef0c", "crid1", "video", 300, 250,
+                bid("adUnitCode1", "8.43", "883db7d2-3013-4ce0-a454-adc7d208ef0c", "crid1", MediaType.video, 300, 250,
                         "dealId1", "8.40", RUBICON, "bidId1", rubiconResponseTime, false),
-                bid("adUnitCode1", "10.00", "883db7d2-3013-4ce0-a454-adc7d208ef0c", "crid2", "banner", 300, 250,
+                bid("adUnitCode1", "10.00", "883db7d2-3013-4ce0-a454-adc7d208ef0c", "crid2", MediaType.banner, 300, 250,
                         "dealId1", "10.00", RUBICON, "bidId1", rubiconResponseTime, true),
-                bid("adUnitCode2", "4.26", "8e057b3c-9c05-4760-8636-58b6a0c2e183", "crid3", "banner", 300, 600,
+                bid("adUnitCode2", "4.26", "8e057b3c-9c05-4760-8636-58b6a0c2e183", "crid3", MediaType.banner, 300, 600,
                         "dealId3", "4.20", RUBICON, "bidId2", rubiconResponseTime, true),
-                bid("adUnitCode4", "5.78", "e9d86ce0-61fe-47bc-8a4b-391b102f7940", "crid4", "video", 300, 250,
+                bid("adUnitCode4", "5.78", "e9d86ce0-61fe-47bc-8a4b-391b102f7940", "crid4", MediaType.video, 300, 250,
                         "dealId4", "5.70", APPNEXUS, "bidId4", appnexusResponseTime, true));
     }
 
@@ -751,7 +752,7 @@ public class ApplicationTest extends VertxTest {
     }
 
     private static org.rtb.vexing.model.response.Bid bid(
-            String impId, String price, String cacheId, String crid, String mediaType, int width,
+            String impId, String price, String cacheId, String crid, MediaType mediaType, int width,
             int height, String dealId, String priceBucket, String bidder, String bidId, Integer responseTime,
             boolean isTopBid) {
 

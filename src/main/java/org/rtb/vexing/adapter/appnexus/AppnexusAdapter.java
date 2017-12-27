@@ -68,7 +68,7 @@ public class AppnexusAdapter implements Adapter {
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(
-            EnumSet.of(MediaType.BANNER, MediaType.VIDEO));
+            EnumSet.of(MediaType.banner, MediaType.video));
 
     private static final int AD_POSITION_ABOVE_THE_FOLD = 1;
     private static final int AD_POSITION_BELOW_THE_FOLD = 3;
@@ -160,7 +160,7 @@ public class AppnexusAdapter implements Adapter {
     }
 
     private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
-        return !(MediaType.VIDEO.equals(mediaType)
+        return !(MediaType.video.equals(mediaType)
                 && (adUnitBid.video == null || CollectionUtils.isEmpty(adUnitBid.video.mimes)));
     }
 
@@ -231,10 +231,10 @@ public class AppnexusAdapter implements Adapter {
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
         switch (mediaType) {
-            case VIDEO:
+            case video:
                 impBuilder.video(makeVideo(adUnitBid));
                 break;
-            case BANNER:
+            case banner:
                 impBuilder.banner(makeBanner(adUnitBid, params.position));
                 break;
             default:
@@ -490,7 +490,7 @@ public class AppnexusAdapter implements Adapter {
                         .price(bid.getPrice())
                         .adm(bid.getAdm())
                         .creativeId(bid.getCrid())
-                        .mediaType(mediaTypeFor(bid.getImpid(), bidRequest).name().toLowerCase())
+                        .mediaType(mediaTypeFor(bid.getImpid(), bidRequest))
                         .width(bid.getW())
                         .height(bid.getH())
                         .dealId(bid.getDealid())
@@ -508,11 +508,11 @@ public class AppnexusAdapter implements Adapter {
     }
 
     private static MediaType mediaTypeFor(String impId, BidRequest bidRequest) {
-        MediaType mediaType = MediaType.BANNER;
+        MediaType mediaType = MediaType.banner;
         for (Imp imp : bidRequest.getImp()) {
             if (Objects.equals(imp.getId(), impId)) {
                 if (imp.getVideo() != null) {
-                    mediaType = MediaType.VIDEO;
+                    mediaType = MediaType.video;
                 }
                 break;
             }

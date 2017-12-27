@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+import org.rtb.vexing.model.MediaType;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -38,7 +39,7 @@ public final class Bid {
     String creativeId;
 
     // Shows whether the creative is a video or banner.
-    String mediaType;
+    MediaType mediaType;
 
     // Bidder.bidderCode of the Bidder who made this bid.
     String bidder;

@@ -94,7 +94,7 @@ public class RubiconAdapter implements Adapter {
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(
-            EnumSet.of(MediaType.BANNER, MediaType.VIDEO));
+            EnumSet.of(MediaType.banner, MediaType.video));
 
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
@@ -241,9 +241,9 @@ public class RubiconAdapter implements Adapter {
 
     private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
         switch (mediaType) {
-            case VIDEO:
+            case video:
                 return adUnitBid.video != null && !CollectionUtils.isEmpty(adUnitBid.video.mimes);
-            case BANNER:
+            case banner:
                 return adUnitBid.sizes.stream().map(RubiconSize::toId).anyMatch(id -> id > 0);
             default:
                 return false;
@@ -254,10 +254,10 @@ public class RubiconAdapter implements Adapter {
                                                       RubiconParams rubiconParams) {
         final Imp.ImpBuilder builder = Imp.builder();
         switch (mediaType) {
-            case VIDEO:
+            case video:
                 builder.video(makeVideo(adUnitBid, rubiconParams.video));
                 break;
-            case BANNER:
+            case banner:
                 builder.banner(makeBanner(adUnitBid));
                 break;
             default:
@@ -468,7 +468,7 @@ public class RubiconAdapter implements Adapter {
         final String bidRequestBody = Json.encode(bidRequest);
 
         final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(bidRequestBody);
-        final MediaType mediaType = bidRequest.getImp().get(0).getVideo() != null ? MediaType.VIDEO : MediaType.BANNER;
+        final MediaType mediaType = bidRequest.getImp().get(0).getVideo() != null ? MediaType.video : MediaType.banner;
         final Future<BidResult> future = Future.future();
         httpClient.postAbs(endpointUrl,
                 response -> handleResponse(response, adUnitBid, mediaType, bidderDebugBuilder, future))
@@ -570,7 +570,7 @@ public class RubiconAdapter implements Adapter {
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
                 .creativeId(bid.getCrid())
-                .mediaType(mediaType.name().toLowerCase())
+                .mediaType(mediaType)
                 .width(bid.getW())
                 .height(bid.getH())
                 .dealId(bid.getDealid())

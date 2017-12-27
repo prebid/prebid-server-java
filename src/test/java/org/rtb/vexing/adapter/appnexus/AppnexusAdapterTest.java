@@ -91,7 +91,7 @@ public class AppnexusAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         // given
 
         // http client returns http client request
@@ -317,7 +317,7 @@ public class AppnexusAdapterTest extends VertxTest {
         //given
         bidder = Bidder.from(APPNEXUS, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
-                                .mediaTypes(EnumSet.of(MediaType.VIDEO, MediaType.BANNER))
+                                .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                                 .video(Video.builder()
                                         .mimes(singletonList("Mime"))
                                         .playbackMethod(1)
@@ -361,7 +361,7 @@ public class AppnexusAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidsShouldNotSendRequestIfMediaTypeIsEmpty() throws Exception {
+    public void requestBidsShouldNotSendRequestIfMediaTypeIsEmpty() {
         //given
         bidder = Bidder.from(APPNEXUS, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
@@ -383,12 +383,12 @@ public class AppnexusAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidsShouldNotSendRequestWhenMediaTypeIsVideoAndMimesListIsEmpty() throws Exception {
+    public void requestBidsShouldNotSendRequestWhenMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
         bidder = Bidder.from(APPNEXUS, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .adUnitCode("adUnitCode1")
-                                .mediaTypes(Collections.singleton(MediaType.VIDEO))
+                                .mediaTypes(Collections.singleton(MediaType.video))
                                 .video(Video.builder()
                                         .mimes(Collections.emptyList())
                                         .build()),
@@ -609,7 +609,7 @@ public class AppnexusAdapterTest extends VertxTest {
                 .dealId("dealId")
                 .bidder(APPNEXUS)
                 .bidId("bidId")
-                .mediaType(MediaType.BANNER.name().toLowerCase())
+                .mediaType(MediaType.banner)
                 .responseTimeMs(bidderResult.bidderStatus.responseTimeMs)
                 .build());
     }
@@ -646,7 +646,8 @@ public class AppnexusAdapterTest extends VertxTest {
         assertThat(bidderResult.bidderStatus.usersync).isNotNull();
         assertThat(defaultNamingMapper.treeToValue(bidderResult.bidderStatus.usersync, UsersyncInfo.class)).
                 isEqualTo(UsersyncInfo.builder()
-                        .url("http://ib.adnxs.com/getuid?http%3A%2F%2Fexternal.com%2Fsetuid%3Fbidder%3Dadnxs%26uid%3D%24UID")
+                        .url("http://ib.adnxs.com/getuid?http%3A%2F%2Fexternal" +
+                                ".com%2Fsetuid%3Fbidder%3Dadnxs%26uid%3D%24UID")
                         .type("redirect")
                         .supportCORS(false)
                         .build());
@@ -778,7 +779,8 @@ public class AppnexusAdapterTest extends VertxTest {
 
     private static Bidder givenBidderCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
-            Function<AppnexusParams.AppnexusParamsBuilder, AppnexusParams.AppnexusParamsBuilder> paramsBuilderCustomizer) {
+            Function<AppnexusParams.AppnexusParamsBuilder, AppnexusParams.AppnexusParamsBuilder>
+                    paramsBuilderCustomizer) {
 
         return Bidder.from(APPNEXUS, singletonList(
                 givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer, paramsBuilderCustomizer)));
@@ -786,7 +788,8 @@ public class AppnexusAdapterTest extends VertxTest {
 
     private static AdUnitBid givenAdUnitBidCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
-            Function<AppnexusParams.AppnexusParamsBuilder, AppnexusParams.AppnexusParamsBuilder> paramsBuilderCustomizer) {
+            Function<AppnexusParams.AppnexusParamsBuilder, AppnexusParams.AppnexusParamsBuilder>
+                    paramsBuilderCustomizer) {
 
         // appnexusParams
         final AppnexusParams.AppnexusParamsBuilder paramsBuilder = AppnexusParams.builder()
@@ -800,7 +803,7 @@ public class AppnexusAdapterTest extends VertxTest {
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .params(defaultNamingMapper.valueToTree(params))
-                .mediaTypes(Collections.singleton(MediaType.BANNER));
+                .mediaTypes(Collections.singleton(MediaType.banner));
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer.apply(
                 adUnitBidBuilderMinimal);
 
@@ -808,8 +811,10 @@ public class AppnexusAdapterTest extends VertxTest {
     }
 
     private PreBidRequestContext givenPreBidRequestContextCustomizable(
-            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext.PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
-            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
+            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext
+                    .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
+            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
+                    preBidRequestBuilderCustomizer) {
 
         final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder().accountId(
                 "accountId");

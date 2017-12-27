@@ -202,7 +202,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .adUnitCode("adUnitCode")
                 .bidId("bidId")
                 .params(rubiconParams(1001, 2001, 3001))
-                .mediaTypes(Collections.singleton(MediaType.BANNER))
+                .mediaTypes(Collections.singleton(MediaType.banner))
                 .build())));
     }
 
@@ -222,7 +222,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         // then
         assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
-                .returns(Collections.singleton(MediaType.BANNER), adUnitBid -> adUnitBid.mediaTypes);
+                .returns(Collections.singleton(MediaType.banner), adUnitBid -> adUnitBid.mediaTypes);
     }
 
     @Test
@@ -242,7 +242,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         // then
         assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
-                .returns(Collections.singleton(MediaType.BANNER), adUnitBid -> adUnitBid.mediaTypes);
+                .returns(Collections.singleton(MediaType.banner), adUnitBid -> adUnitBid.mediaTypes);
     }
 
     @Test
@@ -262,8 +262,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         // then
         assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
-                .returns(Collections.unmodifiableSet(EnumSet.of(MediaType.BANNER, MediaType.VIDEO)), adUnitBid ->
-                        adUnitBid.mediaTypes);
+                .returns(EnumSet.of(MediaType.banner, MediaType.video), adUnitBid -> adUnitBid.mediaTypes);
     }
 
     @Test
@@ -334,7 +333,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .bidId("bidId")
                 .sizes(Collections.singletonList(Format.builder().h(100).w(200).build()))
                 .params(rubiconParams(4001, 5001, 6001))
-                .mediaTypes(Collections.singleton(MediaType.BANNER))
+                .mediaTypes(Collections.singleton(MediaType.banner))
                 .build())));
     }
 
