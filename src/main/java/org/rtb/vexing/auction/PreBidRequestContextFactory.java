@@ -214,7 +214,13 @@ public class PreBidRequestContextFactory {
     }
 
     private static String referer(HttpServerRequest httpRequest) {
-        return httpRequest.headers().get(HttpHeaders.REFERER);
+        final String urlOverride = httpRequest.getParam("url_override");
+        final String url = StringUtils.isNotBlank(urlOverride) ? urlOverride
+                : httpRequest.headers().get(HttpHeaders.REFERER);
+
+        return StringUtils.isNotBlank(url) && !StringUtils.startsWith(url, "http")
+                ? String.format("http://%s", url)
+                : url;
     }
 
     private String domain(String referer) {

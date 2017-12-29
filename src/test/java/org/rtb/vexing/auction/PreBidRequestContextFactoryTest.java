@@ -562,7 +562,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldFailIfRefererCouldNotBeParsed() {
         // given
-        httpRequest.headers().set(REFERER, "non_an_url");
+        httpRequest.headers().set(REFERER, "httpP://non_an_url");
 
         // when
         final Future<PreBidRequestContext> preBidRequestContextFuture = factory.fromRequest(routingContext);
@@ -571,7 +571,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         assertThat(preBidRequestContextFuture.failed()).isTrue();
         assertThat(preBidRequestContextFuture.cause())
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'non_an_url': no protocol: non_an_url")
+                .hasMessage("Invalid URL 'httpP://non_an_url': unknown protocol: httpp")
                 .hasCauseInstanceOf(MalformedURLException.class);
     }
 
@@ -603,6 +603,58 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         assertThat(preBidRequestContextFuture.cause())
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Invalid URL 'domain': cannot derive eTLD+1 for domain domain");
+    }
+
+    @Test
+    public void shouldDeriveRefererAndDomainFromRequestParamIfUrlOverrideParamExists() {
+        // given
+        given(httpRequest.getParam("url_override")).willReturn("http://exampleoverrride.com");
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(preBidRequestContext.referer).isEqualTo("http://exampleoverrride.com");
+        assertThat(preBidRequestContext.domain).isEqualTo("exampleoverrride.com");
+    }
+
+    @Test
+    public void shouldDeriveRefererAndDomainFromRefererHeaderIfUrlOverrideParamBlank() {
+        // given
+        given(httpRequest.getParam("url_override")).willReturn("");
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(preBidRequestContext.referer).isEqualTo("http://example.com");
+        assertThat(preBidRequestContext.domain).isEqualTo("example.com");
+    }
+
+    @Test
+    public void shouldPrefixHttpSchemeToUrlIfUrlOverrideParamDoesNotContainScheme() {
+        // given
+        given(httpRequest.getParam("url_override")).willReturn("example.com");
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(preBidRequestContext.referer).isEqualTo("http://example.com");
+        assertThat(preBidRequestContext.domain).isEqualTo("example.com");
+    }
+
+    @Test
+    public void shouldPrefixHttpSchemeToUrlIfRefererHeaderDoesNotContainScheme() {
+        // given
+        httpRequest.headers().set(REFERER, "example.com");
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(preBidRequestContext.referer).isEqualTo("http://example.com");
+        assertThat(preBidRequestContext.domain).isEqualTo("example.com");
     }
 
     private JsonObject givenPreBidRequestCustomizable(
