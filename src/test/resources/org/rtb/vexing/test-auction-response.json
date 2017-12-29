@@ -1,0 +1,128 @@
+{
+  "tid": "tid",
+  "status": "no_cookie",
+  "bidder_status": [
+    {
+      "bidder": "appnexus",
+      "response_time_ms": "{{ appnexus.response_time_ms }}",
+      "num_bids": 1,
+      "debug": [
+        {
+          "request_uri": "{{ appnexus.exchange_uri }}?member_id=member1",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode4\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1]},\"tagid\":\"invCode1\",\"bidfloor\":1.0,\"ext\":{\"appnexus\":{\"placement_id\":9848285,\"keywords\":\"k1=v1,k1=v2\",\"traffic_source_code\":\"trafficSourceCode1\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"12345\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "response_body": "{\"id\":\"bidResponseId4\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode4\",\"price\":5.78,\"adm\":\"adm4\",\"crid\":\"crid4\",\"dealid\":\"dealId4\",\"w\":300,\"h\":250}],\"seat\":\"seatId4\",\"group\":0}]}",
+          "status_code": 200
+        }
+      ]
+    },
+    {
+      "bidder": "rubicon",
+      "response_time_ms": "{{ rubicon.response_time_ms }}",
+      "num_bids": 2,
+      "debug": [
+        {
+          "request_uri": "{{ rubicon.exchange_uri }}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode1\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1],\"ext\":{\"skip\":5,\"skipdelay\":1,\"rp\":{\"size_id\":15}}},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"rating\":[\"5-star\"],\"prodtype\":[\"tech\"]},\"track\":{\"mint\":\"prebid\",\"mint_version\":\"source1_platform1_version1\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"id\":\"12345\",\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"ext\":{\"rp\":{\"target\":{\"ucat\":[\"new\"],\"search\":[\"iphone\"]}},\"dt\":{\"id\":\"id\",\"keyv\":123,\"preference\":0}}},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "response_body": "{\"id\":\"bidResponseId1\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode1\",\"price\":8.43,\"adm\":\"adm1\",\"crid\":\"crid1\",\"dealid\":\"dealId1\",\"w\":300,\"h\":250,\"ext\":{\"rp\":{\"targeting\":[{\"key\":\"rpfl_1001\",\"values\":[\"2_tier0100\"]}]}}}],\"seat\":\"seatId1\",\"group\":0}]}",
+          "status_code": 200
+        },
+        {
+          "request_uri": "{{ rubicon.exchange_uri }}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode2\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":600,\"ext\":{\"rp\":{\"size_id\":10,\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":7001,\"track\":{\"mint\":\"prebid\",\"mint_version\":\"source1_platform1_version1\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":5001}}},\"ext\":{\"rp\":{\"site_id\":6001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"id\":\"12345\",\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"ext\":{\"dt\":{\"id\":\"id\",\"keyv\":123,\"preference\":0}}},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "response_body": "{\"id\":\"bidResponseId2\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode2\",\"price\":4.26,\"adm\":\"adm2\",\"crid\":\"crid2\",\"dealid\":\"dealId2\",\"w\":300,\"h\":600}],\"seat\":\"seatId2\",\"group\":0}]}",
+          "status_code": 200
+        },
+        {
+          "request_uri": "{{ rubicon.exchange_uri }}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode3\",\"banner\":{\"format\":[{\"w\":768,\"h\":1024},{\"w\":980,\"h\":400}],\"w\":768,\"h\":1024,\"ext\":{\"rp\":{\"size_id\":102,\"alt_size_ids\":[80],\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":4001,\"track\":{\"mint\":\"prebid\",\"mint_version\":\"source1_platform1_version1\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"id\":\"12345\",\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"ext\":{\"dt\":{\"id\":\"id\",\"keyv\":123,\"preference\":0}}},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "response_body": "{\"id\":\"bidResponseId3\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode3\",\"price\":5.12,\"adm\":\"adm3\",\"crid\":\"crid3\",\"dealid\":\"dealId3\",\"w\":0,\"h\":0}],\"seat\":\"seatId3\",\"group\":0}]}",
+          "status_code": 200
+        }
+      ]
+    }
+  ],
+  "bids": [
+    {
+      "bid_id": "bidId4",
+      "code": "adUnitCode4",
+      "creative_id": "crid4",
+      "media_type": "video",
+      "bidder": "appnexus",
+      "price": 5.78,
+      "width": 300,
+      "height": 250,
+      "deal_id": "dealId4",
+      "cache_id": "e9d86ce0-61fe-47bc-8a4b-391b102f7940",
+      "cache_url": "{{ cache_resource_url }}e9d86ce0-61fe-47bc-8a4b-391b102f7940",
+      "response_time_ms": "{{ appnexus.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "5.70",
+        "hb_pb_appnexus": "5.70",
+        "hb_size": "300x250",
+        "hb_bidder_appnexus": "appnexus",
+        "hb_bidder": "appnexus",
+        "hb_deal_appnexus": "dealId4",
+        "hb_cache_id": "e9d86ce0-61fe-47bc-8a4b-391b102f7940",
+        "hb_creative_loadtype": "html",
+        "hb_size_appnexus": "300x250",
+        "hb_deal": "dealId4",
+        "hb_cache_id_appnexus": "e9d86ce0-61fe-47bc-8a4b-391b102f7940"
+      }
+    },
+    {
+      "bid_id": "bidId2",
+      "code": "adUnitCode2",
+      "creative_id": "crid2",
+      "media_type": "banner",
+      "bidder": "rubicon",
+      "price": 4.26,
+      "width": 300,
+      "height": 600,
+      "deal_id": "dealId2",
+      "cache_id": "8e057b3c-9c05-4760-8636-58b6a0c2e183",
+      "cache_url": "{{ cache_resource_url }}8e057b3c-9c05-4760-8636-58b6a0c2e183",
+      "response_time_ms": "{{ rubicon.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "4.20",
+        "hb_pb_rubicon": "4.20",
+        "hb_cache_id_rubicon": "8e057b3c-9c05-4760-8636-58b6a0c2e183",
+        "hb_deal_rubicon": "dealId2",
+        "hb_size": "300x600",
+        "hb_bidder": "rubicon",
+        "hb_size_rubicon": "300x600",
+        "hb_bidder_rubicon": "rubicon",
+        "hb_cache_id": "8e057b3c-9c05-4760-8636-58b6a0c2e183",
+        "hb_creative_loadtype": "html",
+        "hb_deal": "dealId2"
+      }
+    },
+    {
+      "bid_id": "bidId1",
+      "code": "adUnitCode1",
+      "creative_id": "crid1",
+      "media_type": "video",
+      "bidder": "rubicon",
+      "price": 8.43,
+      "width": 300,
+      "height": 250,
+      "deal_id": "dealId1",
+      "cache_id": "883db7d2-3013-4ce0-a454-adc7d208ef0c",
+      "cache_url": "{{ cache_resource_url }}883db7d2-3013-4ce0-a454-adc7d208ef0c",
+      "response_time_ms": "{{ rubicon.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "8.40",
+        "hb_pb_rubicon": "8.40",
+        "hb_cache_id_rubicon": "883db7d2-3013-4ce0-a454-adc7d208ef0c",
+        "hb_deal_rubicon": "dealId1",
+        "hb_size": "300x250",
+        "hb_bidder": "rubicon",
+        "hb_size_rubicon": "300x250",
+        "hb_bidder_rubicon": "rubicon",
+        "hb_cache_id": "883db7d2-3013-4ce0-a454-adc7d208ef0c",
+        "hb_creative_loadtype": "html",
+        "hb_deal": "dealId1",
+        "rpfl_1001": "2_tier0100"
+      }
+    }
+  ]
+}
