@@ -30,6 +30,7 @@ import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.handler.CookieSyncHandler;
 import org.rtb.vexing.handler.GetuidsHandler;
+import org.rtb.vexing.handler.IpHandler;
 import org.rtb.vexing.handler.NoCacheHandler;
 import org.rtb.vexing.handler.OptoutHandler;
 import org.rtb.vexing.handler.SetuidHandler;
@@ -109,6 +110,7 @@ public class Application extends AbstractVerticle {
         router.get("/getuids").handler(dependencyContext.getuidsHandler);
         router.post("/optout").handler(dependencyContext.optoutHandler);
         router.get("/optout").handler(dependencyContext.optoutHandler);
+        router.get("/ip").handler(dependencyContext.ipHandler);
 
         final StaticHandler staticHandler = StaticHandler.create("static").setCachingEnabled(false);
         router.get("/static/*").handler(staticHandler);
@@ -127,6 +129,7 @@ public class Application extends AbstractVerticle {
         SetuidHandler setuidHandler;
         GetuidsHandler getuidsHandler;
         OptoutHandler optoutHandler;
+        IpHandler ipHandler;
 
         public static DependencyContext create(Vertx vertx, ApplicationConfig config,
                                                ApplicationSettings applicationSettings) {
@@ -149,6 +152,7 @@ public class Application extends AbstractVerticle {
                     .setuidHandler(new SetuidHandler(uidsCookieService, metrics))
                     .getuidsHandler(new GetuidsHandler(uidsCookieService))
                     .optoutHandler(OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService))
+                    .ipHandler(new IpHandler())
                     .build();
         }
 
