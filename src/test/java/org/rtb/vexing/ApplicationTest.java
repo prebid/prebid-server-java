@@ -48,6 +48,7 @@ public class ApplicationTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
+    private static final String FACEBOOK = "audienceNetwork";
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
 
@@ -58,7 +59,7 @@ public class ApplicationTest extends VertxTest {
 
     private static final RequestSpecification spec = new RequestSpecBuilder()
             .setBaseUri("http://localhost")
-            .setPort(8080)
+            .setPort(APP_PORT)
             .setConfig(RestAssuredConfig.config()
                     .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
             .build();
@@ -91,6 +92,10 @@ public class ApplicationTest extends VertxTest {
                 .put("adapters.rubicon.XAPI.Password", "rubicon_password")
                 .put("adapters.appnexus.endpoint", "http://localhost:" + WIREMOCK_PORT + "/appnexus-exchange")
                 .put("adapters.appnexus.usersync_url", "//usersync-url/getuid?")
+                .put("adapters.facebook.endpoint", "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange")
+                .put("adapters.facebook.nonSecureEndpoint", "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange")
+                .put("adapters.facebook.usersync_url", "//facebook-usersync-url")
+                .put("adapters.facebook.platform_id", "101")
                 .put("datacache.type", "filecache")
                 .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml")
                 .put("metrics.metricType", "flushingCounter")
@@ -127,10 +132,15 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("test-rubicon-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("test-rubicon-bid-response-3.json"))));
 
-        // appnexus bid response for ad unit 1
+        // appnexus bid response for ad unit 4
         wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("test-appnexus-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("test-appnexus-bid-response-1.json"))));
+
+        // facebook bid response for ad unit 5
+        wireMockRule.stubFor(post(urlPathEqualTo("/facebook-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("test-facebook-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("test-facebook-bid-response-1.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
@@ -143,8 +153,10 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
+                // this uids cookie value stands for
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NS"
+                        + "IsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCJ9fQ==")
                 .queryParam("debug", "1")
                 .body(jsonFrom("test-auction-request.json"))
                 .post("/auction");
@@ -285,6 +297,7 @@ public class ApplicationTest extends VertxTest {
         final Map<String, String> exchanges = new HashMap<>();
         exchanges.put(RUBICON, "http://localhost:" + WIREMOCK_PORT + "/rubicon-exchange?tk_xint=rp-pbs");
         exchanges.put(APPNEXUS, "http://localhost:" + WIREMOCK_PORT + "/appnexus-exchange");
+        exchanges.put(FACEBOOK, "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange");
 
         String result = template.replaceAll("\\{\\{ cache_resource_url }}",
                 "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=");

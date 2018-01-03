@@ -153,6 +153,27 @@
           1
         ]
       }
+    },
+    {
+      "code": "adUnitCode5",
+      "sizes": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId5",
+          "bidder": "audienceNetwork",
+          "params": {
+            "placementId": "pub1_place1"
+          }
+        }
+      ],
+      "media_types": [
+        "banner"
+      ]
     }
   ],
   "device": {

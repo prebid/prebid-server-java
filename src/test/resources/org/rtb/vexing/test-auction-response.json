@@ -3,6 +3,19 @@
   "status": "no_cookie",
   "bidder_status": [
     {
+      "bidder": "audienceNetwork",
+      "response_time_ms": "{{ audienceNetwork.response_time_ms }}",
+      "num_bids": 1,
+      "debug": [
+        {
+          "request_uri": "{{ audienceNetwork.exchange_uri }}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode5\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"pub1_place1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"pub1\"}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"FB-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"platformid\":101}}",
+          "response_body": "{\"id\":\"bidResponseId5\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode5\",\"price\":5.78,\"adm\":\"adm5\",\"crid\":\"crid5\",\"dealid\":\"dealId5\",\"w\":300,\"h\":250}],\"seat\":\"seatId5\",\"group\":0}]}",
+          "status_code": 200
+        }
+      ]
+    },
+    {
       "bidder": "appnexus",
       "response_time_ms": "{{ appnexus.response_time_ms }}",
       "num_bids": 1,
@@ -67,6 +80,28 @@
         "hb_size_appnexus": "300x250",
         "hb_deal": "dealId4",
         "hb_cache_id_appnexus": "e9d86ce0-61fe-47bc-8a4b-391b102f7940"
+      }
+    },
+    {
+      "bid_id": "bidId5",
+      "code": "adUnitCode5",
+      "bidder": "audienceNetwork",
+      "price": 5.78,
+      "width": 300,
+      "height": 250,
+      "cache_id": "6c5e7ac7-6538-4158-be2a-ca005588cfe9",
+      "cache_url": "{{ cache_resource_url }}6c5e7ac7-6538-4158-be2a-ca005588cfe9",
+      "response_time_ms": "{{ audienceNetwork.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "5.70",
+        "hb_bidder_audienceNetwork": "audienceNetwork",
+        "hb_size": "300x250",
+        "hb_cache_id_audienceNetwork": "6c5e7ac7-6538-4158-be2a-ca005588cfe9",
+        "hb_bidder": "audienceNetwork",
+        "hb_cache_id": "6c5e7ac7-6538-4158-be2a-ca005588cfe9",
+        "hb_size_audienceNetwork": "300x250",
+        "hb_pb_audienceNetwork": "5.70",
+        "hb_creative_loadtype": "demand_sdk"
       }
     },
     {

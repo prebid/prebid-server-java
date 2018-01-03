@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
+import org.rtb.vexing.adapter.facebook.FacebookAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
 
@@ -34,6 +35,8 @@ public class AdapterCatalogTest {
     @Test
     public void getShouldReturnConfiguredAdapter() {
         // given
+        given(applicationConfig.getLong(eq("default-timeout-ms"))).willReturn(250L);
+
         given(applicationConfig.getString(eq("adapters.rubicon.endpoint"))).willReturn("http://rubiconproject.com/x");
         given(applicationConfig.getString(eq("adapters.rubicon.usersync_url")))
                 .willReturn("http://rubiconproject.com/x/cookie/x");
@@ -42,21 +45,29 @@ public class AdapterCatalogTest {
 
         given(applicationConfig.getString(eq("external_url"))).willReturn("http://external-url");
         given(applicationConfig.getString(eq("adapters.appnexus.endpoint"))).willReturn("http://appnexus-endpoint");
-        given(applicationConfig.getString(eq("adapters.appnexus.usersync_url"))).willReturn(
-                "http://appnexus-usersync-url");
+        given(applicationConfig.getString(eq("adapters.appnexus.usersync_url")))
+                .willReturn("http://appnexus-usersync-url");
 
-        given(applicationConfig.getLong(eq("default-timeout-ms"))).willReturn(250L);
+        given(applicationConfig.getString(eq("adapters.facebook.endpoint"))).willReturn("http://facebook-endpoint");
+        given(applicationConfig.getString(eq("adapters.facebook.nonSecureEndpoint")))
+                .willReturn("http://facebook-endpoint");
+        given(applicationConfig.getString(eq("adapters.facebook.usersync_url")))
+                .willReturn("http://facebook-usersync-url");
+        given(applicationConfig.getString(eq("adapters.facebook.platform_id"))).willReturn("42");
 
-        // when
-        final Adapter rubiconAdapter = AdapterCatalog.create(applicationConfig, httpClient).getByCode("rubicon");
-        final Adapter appnexusAdapter = AdapterCatalog.create(applicationConfig, httpClient).getByCode("appnexus");
+        // when and then
+        final AdapterCatalog adapterCatalog = AdapterCatalog.create(applicationConfig, httpClient);
 
-        // then
-        assertThat(rubiconAdapter)
+        assertThat(adapterCatalog.getByCode("rubicon"))
                 .isNotNull()
                 .isInstanceOf(RubiconAdapter.class);
-        assertThat(appnexusAdapter)
+
+        assertThat(adapterCatalog.getByCode("appnexus"))
                 .isNotNull()
                 .isInstanceOf(AppnexusAdapter.class);
+
+        assertThat(adapterCatalog.getByCode("audienceNetwork"))
+                .isNotNull()
+                .isInstanceOf(FacebookAdapter.class);
     }
 }

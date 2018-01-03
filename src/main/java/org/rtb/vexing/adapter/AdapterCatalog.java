@@ -2,6 +2,7 @@ package org.rtb.vexing.adapter;
 
 import io.vertx.core.http.HttpClient;
 import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
+import org.rtb.vexing.adapter.facebook.FacebookAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
 
@@ -23,7 +24,8 @@ public class AdapterCatalog {
         Objects.requireNonNull(config);
         Objects.requireNonNull(httpClient);
 
-        final Map<String, Adapter> adapters = Stream.of(rubicon(config, httpClient), appnexus(config, httpClient))
+        final Map<String, Adapter> adapters = Stream.of(rubicon(config, httpClient), appnexus(config, httpClient),
+                facebook(config, httpClient))
                 .collect(Collectors.toMap(Adapter::code, Function.identity()));
 
         return new AdapterCatalog(adapters);
@@ -44,6 +46,16 @@ public class AdapterCatalog {
                 config.getString("adapters.appnexus.usersync_url"),
                 config.getString("external_url"),
                 httpClient);
+    }
+
+    private static FacebookAdapter facebook(ApplicationConfig config, HttpClient httpClient) {
+        return new FacebookAdapter(
+                config.getString("adapters.facebook.endpoint"),
+                config.getString("adapters.facebook.nonSecureEndpoint"),
+                config.getString("adapters.facebook.usersync_url"),
+                config.getString("adapters.facebook.platform_id"),
+                httpClient
+        );
     }
 
     public Adapter getByCode(String code) {

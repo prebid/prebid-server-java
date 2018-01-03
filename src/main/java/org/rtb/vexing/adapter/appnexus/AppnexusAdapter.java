@@ -70,8 +70,8 @@ public class AppnexusAdapter implements Adapter {
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(
             EnumSet.of(MediaType.banner, MediaType.video));
 
-    private static final int AD_POSITION_ABOVE_THE_FOLD = 1;
-    private static final int AD_POSITION_BELOW_THE_FOLD = 3;
+    private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold
+    private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
 
     // UsersyncInfo and AppnexusParams fields are not in snake-case
     private static final ObjectMapper DEFAULT_NAMING_MAPPER = new ObjectMapper()
@@ -79,17 +79,18 @@ public class AppnexusAdapter implements Adapter {
 
     private static final Clock CLOCK = Clock.systemDefaultZone();
 
-    private final HttpClient httpClient;
     private final String endpointUrl;
     private final ObjectNode usersyncInfo;
+    private final HttpClient httpClient;
 
     public AppnexusAdapter(String endpointUrl, String usersyncUrl, String externalUrl, HttpClient httpClient) {
         this.endpointUrl = validateUrl(Objects.requireNonNull(endpointUrl));
-        this.httpClient = Objects.requireNonNull(httpClient);
 
         Objects.requireNonNull(usersyncUrl);
         Objects.requireNonNull(externalUrl);
         usersyncInfo = createUsersyncInfo(usersyncUrl, externalUrl);
+
+        this.httpClient = Objects.requireNonNull(httpClient);
     }
 
     private static String validateUrl(String url) {
@@ -141,7 +142,7 @@ public class AppnexusAdapter implements Adapter {
                 .app(preBidRequestContext.preBidRequest.app)
                 .site(makeSite(preBidRequestContext))
                 .device(makeDevice(preBidRequestContext))
-                .user(makeUser(preBidRequestContext, cookieFamily()))
+                .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
                 .build();
 
@@ -256,12 +257,10 @@ public class AppnexusAdapter implements Adapter {
                 .format(adUnitBid.sizes)
                 .topframe(adUnitBid.topframe);
 
-        if (StringUtils.isNotEmpty(position)) {
-            if (Objects.equals(position, "above")) {
-                builder.pos(AD_POSITION_ABOVE_THE_FOLD);
-            } else if (Objects.equals(position, "below")) {
-                builder.pos(AD_POSITION_BELOW_THE_FOLD);
-            }
+        if (Objects.equals(position, "above")) {
+            builder.pos(AD_POSITION_ABOVE_THE_FOLD);
+        } else if (Objects.equals(position, "below")) {
+            builder.pos(AD_POSITION_BELOW_THE_FOLD);
         }
 
         return builder.build();
@@ -329,10 +328,10 @@ public class AppnexusAdapter implements Adapter {
                 .build();
     }
 
-    private static User makeUser(PreBidRequestContext preBidRequestContext, String familyName) {
+    private User makeUser(PreBidRequestContext preBidRequestContext) {
         return preBidRequestContext.preBidRequest.app != null ? preBidRequestContext.preBidRequest.user
                 : User.builder()
-                .buyeruid(preBidRequestContext.uidsCookie.uidFrom(familyName))
+                .buyeruid(preBidRequestContext.uidsCookie.uidFrom(cookieFamily()))
                 // id is a UID for "adnxs" (see logic in open-source implementation)
                 .id(preBidRequestContext.uidsCookie.uidFrom("adnxs"))
                 .build();
@@ -350,14 +349,12 @@ public class AppnexusAdapter implements Adapter {
     }
 
     private static String endpointUrl(String endpointUrl, List<AdUnitBidWithParams> adUnitBidsWithParams) {
-        final AppnexusParams foundParams = adUnitBidsWithParams.stream()
+        return adUnitBidsWithParams.stream()
                 .map(adUnitBidWithParams -> adUnitBidWithParams.params)
                 .filter(params -> StringUtils.isNotEmpty(params.invCode) && StringUtils.isNotBlank(params.member))
                 .reduce((first, second) -> second)
-                .orElse(null);
-
-        return foundParams == null ? endpointUrl
-                : String.format("%s%s", endpointUrl, String.format("?member_id=%s", foundParams.member));
+                .map(params -> String.format("%s%s", endpointUrl, String.format("?member_id=%s", params.member)))
+                .orElse(endpointUrl);
     }
 
     private Future<BidResult> requestExchange(BidRequestWithUrl bidRequestWithUrl, Bidder bidder, long timeout) {
