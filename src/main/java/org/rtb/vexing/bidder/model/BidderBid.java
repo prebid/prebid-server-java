@@ -3,7 +3,6 @@ package org.rtb.vexing.bidder.model;
 import com.iab.openrtb.response.Bid;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
@@ -16,7 +15,6 @@ import org.rtb.vexing.model.openrtb.ext.response.BidType;
  * This is distinct from the {@link com.iab.openrtb.response.SeatBid} so that the prebid-server ext can be passed
  * back with type safety.
  */
-@Builder
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")

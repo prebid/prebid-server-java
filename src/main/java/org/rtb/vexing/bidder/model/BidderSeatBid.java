@@ -3,7 +3,6 @@ package org.rtb.vexing.bidder.model;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
@@ -18,10 +17,9 @@ import java.util.List;
  * This is distinct from the {@link com.iab.openrtb.response.SeatBid} so that the prebid-server ext can be passed
  * back with type safety.
  */
-@Builder
 @ToString
 @EqualsAndHashCode
-@AllArgsConstructor
+@AllArgsConstructor(staticName = "of")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class BidderSeatBid {
 
@@ -48,7 +46,16 @@ public class BidderSeatBid {
     List<ExtHttpCall> httpCalls;
 
     /**
-     * List of errors produced by bidder
+     * List of errors produced by bidder. Errors should describe situations which
+     * make the bid (or no-bid) "less than ideal." Common examples include:
+     * <p>
+     * 1. Connection issues.
+     * 2. Imps with Media Types which this Bidder doesn't support.
+     * 3. Timeout expired before all expected bids were returned.
+     * 4. The Server sent back an unexpected Response, so some bids were ignored.
+     * <p>
+     * Any errors will be user-facing in the API.
+     * Error messages should help publishers understand what might account for "bad" bids.
      */
     List<String> errors;
 }

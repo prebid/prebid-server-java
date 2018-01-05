@@ -1,24 +1,27 @@
-package org.rtb.vexing.auction.model;
+package org.rtb.vexing.bidder.model;
 
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
-import org.rtb.vexing.bidder.model.BidderSeatBid;
 
 /**
- * Structure to pass {@link BidderSeatBid} along with bidder name and extra tracking data generated during bidding
+ * Packages together the fields needed to make an http request.
  */
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class BidderResponse {
+public class HttpRequest {
 
-    String bidder;
+    HttpMethod method;
 
-    BidderSeatBid seatBid;
+    String uri;
 
-    int responseTime;
+    String body;
+
+    MultiMap headers;
 }

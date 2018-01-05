@@ -1,24 +1,23 @@
-package org.rtb.vexing.auction.model;
+package org.rtb.vexing.bidder.model;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
-import org.rtb.vexing.bidder.model.BidderSeatBid;
+
+import java.util.List;
 
 /**
- * Structure to pass {@link BidderSeatBid} along with bidder name and extra tracking data generated during bidding
+ * Defines generic result that might bear error alongside.
  */
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class BidderResponse {
+public class Result<T> {
 
-    String bidder;
+    T value;
 
-    BidderSeatBid seatBid;
-
-    int responseTime;
+    List<String> errors;
 }

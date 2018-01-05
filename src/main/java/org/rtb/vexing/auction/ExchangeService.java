@@ -10,10 +10,9 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.rtb.vexing.auction.model.BidderRequest;
 import org.rtb.vexing.auction.model.BidderResponse;
+import org.rtb.vexing.bidder.HttpConnector;
 import org.rtb.vexing.bidder.model.BidderBid;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.response.ExtBidPrebid;
@@ -31,24 +30,29 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Executes an OpenRTB v2.5 Auction.
+ */
 public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
+
+    private final HttpConnector httpConnector;
 
     private final BidderCatalog bidderCatalog;
 
     private Clock clock = Clock.systemDefaultZone();
 
-    public ExchangeService(BidderCatalog bidderCatalog) {
+    public ExchangeService(HttpConnector httpConnector, BidderCatalog bidderCatalog) {
+        this.httpConnector = Objects.requireNonNull(httpConnector);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
     }
 
     /**
-     * Executes an OpenRTB v2.5 Auction.
+     * Runs an auction: delegates request to applicable bidders, gathers responses from them and constructs final
+     * response containing returned bids and additional information in extensions.
      */
     public Future<BidResponse> holdAuction(BidRequest bidRequest) {
-        Objects.requireNonNull(bidRequest);
-
         final List<BidderRequest> bidderRequests = extractBidderRequests(bidRequest);
 
         // Randomize the list to make the auction more fair
@@ -121,7 +125,7 @@ public class ExchangeService {
      * recorded response time.
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime) {
-        return bidderCatalog.byName(bidderRequest.bidder).requestBids(bidderRequest.bidRequest)
+        return httpConnector.requestBids(bidderCatalog.byName(bidderRequest.bidder), bidderRequest.bidRequest)
                 .map(result -> BidderResponse.of(bidderRequest.bidder, result, responseTime(startTime)));
     }
 
@@ -131,7 +135,7 @@ public class ExchangeService {
      */
     private static BidResponse toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest) {
         final List<SeatBid> seatBids = bidderResponses.stream()
-                .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.seatBid.bids))
+                .filter(bidderResponse -> !bidderResponse.seatBid.bids.isEmpty())
                 .map(ExchangeService::toSeatBid)
                 .collect(Collectors.toList());
 
@@ -161,7 +165,7 @@ public class ExchangeService {
 
         if (bidderResponse.seatBid.ext != null) {
             seatBidBuilder.ext(Json.mapper.valueToTree(
-                    ExtPrebid.<Void, ObjectNode>of(null, bidderResponse.seatBid.ext)));
+                    ExtPrebid.of(null, bidderResponse.seatBid.ext)));
         }
 
         return seatBidBuilder.build();
@@ -187,11 +191,11 @@ public class ExchangeService {
                 .collect(Collectors.toMap(r -> r.bidder, r -> r.responseTime));
 
         final Map<String, List<String>> errors = results.stream()
-                .collect(Collectors.toMap(r -> r.bidder, r -> ListUtils.emptyIfNull(r.seatBid.errors)));
+                .collect(Collectors.toMap(r -> r.bidder, r -> r.seatBid.errors));
 
         final Map<String, List<ExtHttpCall>> httpCalls = bidRequest.getTest() == 1
                 ? results.stream()
-                .collect(Collectors.toMap(r -> r.bidder, r -> ListUtils.emptyIfNull(r.seatBid.httpCalls)))
+                .collect(Collectors.toMap(r -> r.bidder, r -> r.seatBid.httpCalls))
                 : null;
 
         return ExtBidResponse.builder()
