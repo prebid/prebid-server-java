@@ -28,7 +28,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.experimental.FieldDefaults;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -192,10 +191,7 @@ public class FacebookAdapter implements Adapter {
 
     private static List<AdUnitBidWithParams> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
-                .map(adUnitBid -> AdUnitBidWithParams.builder()
-                        .adUnitBid(adUnitBid)
-                        .params(parseAndValidateParams(adUnitBid))
-                        .build())
+                .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
@@ -221,10 +217,7 @@ public class FacebookAdapter implements Adapter {
             throw new PreBidException(String.format("Invalid placementId param '%s'", params.placementId));
         }
 
-        return Params.builder()
-                .placementId(params.placementId)
-                .pubId(splitted[0])
-                .build();
+        return Params.of(params.placementId, splitted[0]);
     }
 
     private Stream<BidWithRequest> createBidWithRequests(AdUnitBidWithParams adUnitBidWithParams,
@@ -542,7 +535,7 @@ public class FacebookAdapter implements Adapter {
         return usersyncInfo;
     }
 
-    @Builder
+    @AllArgsConstructor(staticName = "of")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     private static class Params {
 
@@ -551,7 +544,7 @@ public class FacebookAdapter implements Adapter {
         String pubId;
     }
 
-    @Builder
+    @AllArgsConstructor(staticName = "of")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     private static class AdUnitBidWithParams {
 

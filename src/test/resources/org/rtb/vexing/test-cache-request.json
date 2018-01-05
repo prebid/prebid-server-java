@@ -31,6 +31,14 @@
         "width": 300,
         "height": 600
       }
+    },
+    {
+      "type": "json",
+      "value": {
+        "adm": "adm6",
+        "width": 300,
+        "height": 250
+      }
     }
   ]
 }

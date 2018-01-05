@@ -118,8 +118,9 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         httpRequest.headers().set(REFERER, "http://www.example.com");
 
         final AdUnit adUnit = AdUnit.builder()
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .code("adUnitCode1")
                 .sizes(Collections.singletonList(Format.builder().w(100).h(100).build()))
+                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
                 .build();
 
         given(routingContext.getBodyAsJson()).willReturn(
@@ -210,8 +211,9 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     public void shouldPopulateAdUnitBidWithBannerTypeIfMediaTypeIsNull() {
         // given
         final AdUnit adUnit = AdUnit.builder()
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .code("adUnitCode1")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
+                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
                 .build();
 
         given(routingContext.getBodyAsJson()).willReturn(
@@ -229,8 +231,9 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     public void shouldPopulateAdUnitBidWithBannerIfMediaTypeIsUnknown() {
         // given
         final AdUnit adUnit = AdUnit.builder()
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .code("adUnitCode1")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
+                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
                 .mediaTypes(Collections.singletonList("RandomMediaType"))
                 .build();
 
@@ -249,8 +252,9 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     public void shouldPopulateAdUnitWithBannerAndVideoIfBothArePresent() {
         // given
         final AdUnit adUnit = AdUnit.builder()
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .code("adUnitCode1")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
+                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
                 .mediaTypes(asList("banner", "video"))
                 .build();
 
@@ -290,11 +294,36 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotReturnAdUnitsWithNullAdUnitCode() {
+        //given
+        final AdUnit adUnit = AdUnit.builder()
+                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .sizes(singletonList(Format.builder().w(300).h(250).build()))
+                .build();
+        final AdUnit adUnit2 = AdUnit.builder()
+                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .code("AdUnitCode2")
+                .sizes(singletonList(Format.builder().w(300).h(250).build()))
+                .build();
+
+        given(routingContext.getBodyAsJson()).willReturn(
+                givenPreBidRequestCustomizable(builder -> builder.adUnits(asList(adUnit, adUnit2))));
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
+                .returns("AdUnitCode2", adUnitBid -> adUnitBid.adUnitCode);
+    }
+
+    @Test
     public void shouldExtractMultipleBidders() {
         // given
         final AdUnit adUnit = AdUnit.builder()
-                .bids(asList(Bid.builder().bidder(RUBICON).build(), Bid.builder().bidder(APPNEXUS).build()))
+                .code("adUnitCode1")
                 .sizes(Collections.singletonList(Format.builder().h(100).w(200).build()))
+                .bids(asList(Bid.builder().bidder(RUBICON).build(), Bid.builder().bidder(APPNEXUS).build()))
                 .build();
         given(routingContext.getBodyAsJson()).willReturn(
                 givenPreBidRequestCustomizable(builder -> builder.adUnits(asList(adUnit, adUnit))));
@@ -310,7 +339,9 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldExpandAdUnitConfig() throws JsonProcessingException {
         // given
-        final AdUnit adUnit = AdUnit.builder().configId("configId")
+        final AdUnit adUnit = AdUnit.builder()
+                .configId("configId")
+                .code("adUnitCode1")
                 .sizes(Collections.singletonList(Format.builder().h(100).w(200).build()))
                 .build();
         given(routingContext.getBodyAsJson()).willReturn(
@@ -331,6 +362,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         assertThat(preBidRequestContext.bidders).containsOnly(Bidder.from(RUBICON, singletonList(AdUnitBid.builder()
                 .bidderCode(RUBICON)
                 .bidId("bidId")
+                .adUnitCode("adUnitCode1")
                 .sizes(Collections.singletonList(Format.builder().h(100).w(200).build()))
                 .params(rubiconParams(4001, 5001, 6001))
                 .mediaTypes(Collections.singleton(MediaType.banner))
@@ -376,6 +408,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         given(routingContext.getBodyAsJson()).willReturn(givenPreBidRequestCustomizable(identity()));
 
         final AdUnit adUnit = AdUnit.builder()
+                .code("adUnitCode1")
                 .sizes(Collections.singletonList(Format.builder().w(100).h(100).build()))
                 .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
                 .build();

@@ -49,6 +49,7 @@ public class ApplicationTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
     private static final String FACEBOOK = "audienceNetwork";
+    private static final String PULSEPOINT = "pulsepoint";
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
 
@@ -96,6 +97,8 @@ public class ApplicationTest extends VertxTest {
                 .put("adapters.facebook.nonSecureEndpoint", "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange")
                 .put("adapters.facebook.usersync_url", "//facebook-usersync-url")
                 .put("adapters.facebook.platform_id", "101")
+                .put("adapters.pulsepoint.endpoint", "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange")
+                .put("adapters.pulsepoint.usersync_url", "//pulsepoint-usersync")
                 .put("datacache.type", "filecache")
                 .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml")
                 .put("metrics.metricType", "flushingCounter")
@@ -142,6 +145,11 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("test-facebook-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("test-facebook-bid-response-1.json"))));
 
+        // pulsepoint bid response for ad unit 6
+        wireMockRule.stubFor(post(urlPathEqualTo("/pulsepoint-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("test-pulsepoint-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("test-pulsepoint-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("test-cache-request.json")))
@@ -154,9 +162,9 @@ public class ApplicationTest extends VertxTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for
-                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NS"
-                        + "IsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCJ9fQ==")
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID","pulsepoint":"PP-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsIm"
+                        + "F1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQifX0=")
                 .queryParam("debug", "1")
                 .body(jsonFrom("test-auction-request.json"))
                 .post("/auction");
@@ -298,6 +306,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(RUBICON, "http://localhost:" + WIREMOCK_PORT + "/rubicon-exchange?tk_xint=rp-pbs");
         exchanges.put(APPNEXUS, "http://localhost:" + WIREMOCK_PORT + "/appnexus-exchange");
         exchanges.put(FACEBOOK, "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange");
+        exchanges.put(PULSEPOINT, "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange");
 
         String result = template.replaceAll("\\{\\{ cache_resource_url }}",
                 "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=");

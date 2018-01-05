@@ -3,6 +3,7 @@ package org.rtb.vexing.adapter;
 import io.vertx.core.http.HttpClient;
 import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
 import org.rtb.vexing.adapter.facebook.FacebookAdapter;
+import org.rtb.vexing.adapter.pulsepoint.PulsepointAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
 
@@ -24,8 +25,11 @@ public class AdapterCatalog {
         Objects.requireNonNull(config);
         Objects.requireNonNull(httpClient);
 
-        final Map<String, Adapter> adapters = Stream.of(rubicon(config, httpClient), appnexus(config, httpClient),
-                facebook(config, httpClient))
+        final Map<String, Adapter> adapters = Stream.of(
+                rubicon(config, httpClient),
+                appnexus(config, httpClient),
+                facebook(config, httpClient),
+                pulsepoint(config, httpClient))
                 .collect(Collectors.toMap(Adapter::code, Function.identity()));
 
         return new AdapterCatalog(adapters);
@@ -54,8 +58,15 @@ public class AdapterCatalog {
                 config.getString("adapters.facebook.nonSecureEndpoint"),
                 config.getString("adapters.facebook.usersync_url"),
                 config.getString("adapters.facebook.platform_id"),
-                httpClient
-        );
+                httpClient);
+    }
+
+    private static PulsepointAdapter pulsepoint(ApplicationConfig config, HttpClient httpClient) {
+        return new PulsepointAdapter(
+                config.getString("adapters.pulsepoint.endpoint"),
+                config.getString("adapters.pulsepoint.usersync_url"),
+                config.getString("external_url"),
+                httpClient);
     }
 
     public Adapter getByCode(String code) {

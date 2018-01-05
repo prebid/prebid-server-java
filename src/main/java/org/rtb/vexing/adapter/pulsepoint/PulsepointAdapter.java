@@ -1,12 +1,14 @@
-package org.rtb.vexing.adapter.appnexus;
+package org.rtb.vexing.adapter.pulsepoint;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
@@ -24,14 +26,12 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.experimental.FieldDefaults;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
-import org.rtb.vexing.adapter.appnexus.model.AppnexusImpExt;
-import org.rtb.vexing.adapter.appnexus.model.AppnexusImpExtAppnexus;
-import org.rtb.vexing.adapter.appnexus.model.AppnexusKeyVal;
-import org.rtb.vexing.adapter.appnexus.model.AppnexusParams;
+import org.rtb.vexing.adapter.pulsepoint.model.PulsepointParams;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
@@ -45,12 +45,10 @@ import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
 import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.time.Clock;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -60,11 +58,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class AppnexusAdapter implements Adapter {
+public class PulsepointAdapter implements Adapter {
 
-    private static final Logger logger = LoggerFactory.getLogger(AppnexusAdapter.class);
+    private static final Logger logger = LoggerFactory.getLogger(PulsepointAdapter.class);
 
-    // UsersyncInfo and AppnexusParams fields are not in snake-case
+    // UsersyncInfo fields are not in snake-case
     private static final ObjectMapper DEFAULT_NAMING_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -73,9 +71,6 @@ public class AppnexusAdapter implements Adapter {
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(
             EnumSet.of(MediaType.banner, MediaType.video));
 
-    private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold
-    private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
-
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
@@ -83,7 +78,7 @@ public class AppnexusAdapter implements Adapter {
     private final ObjectNode usersyncInfo;
     private final HttpClient httpClient;
 
-    public AppnexusAdapter(String endpointUrl, String usersyncUrl, String externalUrl, HttpClient httpClient) {
+    public PulsepointAdapter(String endpointUrl, String usersyncUrl, String externalUrl, HttpClient httpClient) {
         this.endpointUrl = validateUrl(Objects.requireNonNull(endpointUrl));
 
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
@@ -102,7 +97,8 @@ public class AppnexusAdapter implements Adapter {
     private static ObjectNode createUsersyncInfo(String usersyncUrl, String externalUrl) {
         final String redirectUri;
         try {
-            redirectUri = URLEncoder.encode(String.format("%s/setuid?bidder=adnxs&uid=$UID", externalUrl), "UTF-8");
+            redirectUri = URLEncoder.encode(String.format("%s/setuid?bidder=pulsepoint&uid=%s", externalUrl,
+                    "%%VGUID%%"), "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new PreBidException("Cannot encode redirect uri");
         }
@@ -123,9 +119,9 @@ public class AppnexusAdapter implements Adapter {
 
         final long bidderStarted = CLOCK.millis();
 
-        final BidRequestWithUrl bidRequestWithUrl;
+        final BidRequest bidRequest;
         try {
-            bidRequestWithUrl = createBidRequest(endpointUrl, bidder, preBidRequestContext);
+            bidRequest = createBidRequest(bidder, preBidRequestContext);
         } catch (PreBidException e) {
             logger.warn("Error occurred while constructing bid requests", e);
             return Future.succeededFuture(BidderResult.builder()
@@ -137,30 +133,31 @@ public class AppnexusAdapter implements Adapter {
                     .build());
         }
 
-        return requestExchange(bidRequestWithUrl, bidder, preBidRequestContext.timeout)
+        return requestExchange(bidRequest, bidder, preBidRequestContext.timeout)
                 .compose(bidResult -> toBidderResult(bidResult, bidder, preBidRequestContext, bidderStarted));
     }
 
-    private BidRequestWithUrl createBidRequest(String endpointUrl, Bidder bidder,
-                                               PreBidRequestContext preBidRequestContext) {
+    private BidRequest createBidRequest(Bidder bidder, PreBidRequestContext preBidRequestContext) {
         validateAdUnitBidsMediaTypes(bidder.adUnitBids);
 
         final List<AdUnitBidWithParams> adUnitBidsWithParams = createAdUnitBidsWithParams(bidder.adUnitBids);
         final List<Imp> imps = validateImps(makeImps(adUnitBidsWithParams, preBidRequestContext));
 
-        final BidRequest bidRequest = BidRequest.builder()
+        final String publisherId = adUnitBidsWithParams.stream()
+                .map(adUnitBidWithParams -> adUnitBidWithParams.params.publisherId)
+                .reduce((first, second) -> second).orElse(null);
+
+        return BidRequest.builder()
                 .id(preBidRequestContext.preBidRequest.tid)
                 .at(1)
                 .tmax(preBidRequestContext.timeout)
                 .imp(imps)
-                .app(preBidRequestContext.preBidRequest.app)
-                .site(makeSite(preBidRequestContext))
+                .app(makeApp(preBidRequestContext, publisherId))
+                .site(makeSite(preBidRequestContext, publisherId))
                 .device(makeDevice(preBidRequestContext))
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
                 .build();
-
-        return BidRequestWithUrl.of(bidRequest, endpointUrl(endpointUrl, adUnitBidsWithParams));
     }
 
     private static void validateAdUnitBidsMediaTypes(List<AdUnitBid> adUnitBids) {
@@ -182,24 +179,53 @@ public class AppnexusAdapter implements Adapter {
                 .collect(Collectors.toList());
     }
 
-    private static AppnexusParams parseAndValidateParams(AdUnitBid adUnitBid) {
+    private static Params parseAndValidateParams(AdUnitBid adUnitBid) {
         if (adUnitBid.params == null) {
-            throw new PreBidException("Appnexus params section is missing");
+            throw new PreBidException("Pulsepoint params section is missing");
         }
 
-        final AppnexusParams params;
+        final PulsepointParams params;
         try {
-            params = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, AppnexusParams.class);
+            params = Json.mapper.convertValue(adUnitBid.params, PulsepointParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
-        if ((Objects.isNull(params.placementId) || Objects.equals(params.placementId, 0))
-                && (StringUtils.isEmpty(params.invCode) || StringUtils.isEmpty(params.member))) {
-            throw new PreBidException("No placement or member+invcode provided");
+        if (Objects.isNull(params.publisherId) || Objects.equals(params.publisherId, 0)) {
+            throw new PreBidException("Missing PublisherId param cp");
         }
-        return params;
+        if (Objects.isNull(params.tagId) || Objects.equals(params.tagId, 0)) {
+            throw new PreBidException("Missing TagId param ct");
+        }
+        if (StringUtils.isEmpty(params.adSize)) {
+            throw new PreBidException("Missing AdSize param cf");
+        }
+
+        final String[] sizes = params.adSize.toLowerCase().split("x");
+        if (sizes.length != 2) {
+            throw new PreBidException(String.format("Invalid AdSize param %s", params.adSize));
+        }
+        final int width;
+        try {
+            width = Integer.parseInt(sizes[0]);
+        } catch (NumberFormatException e) {
+            throw new PreBidException(String.format("Invalid Width param %s", sizes[0]));
+        }
+
+        final int height;
+        try {
+            height = Integer.parseInt(sizes[1]);
+        } catch (NumberFormatException e) {
+            throw new PreBidException(String.format("Invalid Height param %s", sizes[1]));
+        }
+
+        return Params.builder()
+                .publisherId(String.valueOf(params.publisherId))
+                .tagId(String.valueOf(params.tagId))
+                .adSizeWidth(width)
+                .adSizeHeight(height)
+                .build();
     }
 
     private static List<Imp> makeImps(List<AdUnitBidWithParams> adUnitBidsWithParams,
@@ -212,16 +238,14 @@ public class AppnexusAdapter implements Adapter {
     private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams adUnitBidWithParams,
                                                     PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.adUnitBid;
-        final AppnexusParams params = adUnitBidWithParams.params;
+        final Params params = adUnitBidWithParams.params;
 
         return allowedMediaTypes(adUnitBid).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
                         .id(adUnitBid.adUnitCode)
                         .instl(adUnitBid.instl)
                         .secure(preBidRequestContext.secure)
-                        .tagid(StringUtils.stripToNull(params.invCode))
-                        .bidfloor(bidfloor(params))
-                        .ext(Json.mapper.valueToTree(makeImpExt(params)))
+                        .tagid(params.tagId)
                         .build());
     }
 
@@ -231,7 +255,7 @@ public class AppnexusAdapter implements Adapter {
                 .collect(Collectors.toSet());
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid, AppnexusParams params) {
+    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid, Params params) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
         switch (mediaType) {
@@ -239,7 +263,7 @@ public class AppnexusAdapter implements Adapter {
                 impBuilder.video(makeVideo(adUnitBid));
                 break;
             case banner:
-                impBuilder.banner(makeBanner(adUnitBid, params.position));
+                impBuilder.banner(makeBanner(adUnitBid, params));
                 break;
             default:
                 // unknown media type, just skip it
@@ -260,53 +284,13 @@ public class AppnexusAdapter implements Adapter {
                 .build();
     }
 
-    private static Banner makeBanner(AdUnitBid adUnitBid, String position) {
-        final Banner.BannerBuilder builder = Banner.builder()
-                .w(adUnitBid.sizes.get(0).getW())
-                .h(adUnitBid.sizes.get(0).getH())
+    private static Banner makeBanner(AdUnitBid adUnitBid, Params params) {
+        return Banner.builder()
+                .w(params.adSizeWidth)
+                .h(params.adSizeHeight)
                 .format(adUnitBid.sizes)
-                .topframe(adUnitBid.topframe);
-
-        if (Objects.equals(position, "above")) {
-            builder.pos(AD_POSITION_ABOVE_THE_FOLD);
-        } else if (Objects.equals(position, "below")) {
-            builder.pos(AD_POSITION_BELOW_THE_FOLD);
-        }
-
-        return builder.build();
-    }
-
-    private static Float bidfloor(AppnexusParams params) {
-        return params.reserve != null && params.reserve.compareTo(BigDecimal.ZERO) > 0
-                ? params.reserve.floatValue() // TODO: we need to factor in currency here if non-USD
-                : null;
-    }
-
-    private static AppnexusImpExt makeImpExt(AppnexusParams params) {
-        return AppnexusImpExt.builder()
-                .appnexus(AppnexusImpExtAppnexus.builder()
-                        .placementId(params.placementId)
-                        .keywords(makeKeywords(params))
-                        .trafficSourceCode(params.trafficSourceCode)
-                        .build())
+                .topframe(adUnitBid.topframe)
                 .build();
-    }
-
-    private static String makeKeywords(AppnexusParams params) {
-        if (CollectionUtils.isEmpty(params.keywords)) {
-            return null;
-        }
-        final List<String> kvs = new ArrayList<>();
-        for (AppnexusKeyVal keyVal : params.keywords) {
-            if (keyVal.values == null || keyVal.values.isEmpty()) {
-                kvs.add(keyVal.key);
-            } else {
-                for (String value : keyVal.values) {
-                    kvs.add(String.format("%s=%s", keyVal.key, value));
-                }
-            }
-        }
-        return kvs.stream().collect(Collectors.joining(","));
     }
 
     private static List<Imp> validateImps(List<Imp> imps) {
@@ -316,10 +300,18 @@ public class AppnexusAdapter implements Adapter {
         return imps;
     }
 
-    private static Site makeSite(PreBidRequestContext preBidRequestContext) {
+    private static App makeApp(PreBidRequestContext preBidRequestContext, String publisherId) {
+        final App app = preBidRequestContext.preBidRequest.app;
+        return app == null ? null : app.toBuilder()
+                .publisher(Publisher.builder().id(publisherId).build())
+                .build();
+    }
+
+    private static Site makeSite(PreBidRequestContext preBidRequestContext, String publisherId) {
         return preBidRequestContext.preBidRequest.app != null ? null : Site.builder()
                 .domain(preBidRequestContext.domain)
                 .page(preBidRequestContext.referer)
+                .publisher(Publisher.builder().id(publisherId).build())
                 .build();
     }
 
@@ -358,28 +350,18 @@ public class AppnexusAdapter implements Adapter {
         return sourceBuilder.build();
     }
 
-    private static String endpointUrl(String endpointUrl, List<AdUnitBidWithParams> adUnitBidsWithParams) {
-        return adUnitBidsWithParams.stream()
-                .map(adUnitBidWithParams -> adUnitBidWithParams.params)
-                .filter(params -> StringUtils.isNotEmpty(params.invCode) && StringUtils.isNotBlank(params.member))
-                .reduce((first, second) -> second)
-                .map(params -> String.format("%s%s", endpointUrl, String.format("?member_id=%s", params.member)))
-                .orElse(endpointUrl);
-    }
-
     private static int responseTime(long bidderStarted) {
         return Math.toIntExact(CLOCK.millis() - bidderStarted);
     }
 
-    private Future<BidResult> requestExchange(BidRequestWithUrl bidRequestWithUrl, Bidder bidder, long timeout) {
-        final String bidRequestBody = Json.encode(bidRequestWithUrl.bidRequest);
+    private Future<BidResult> requestExchange(BidRequest bidRequest, Bidder bidder, long timeout) {
+        final String bidRequestBody = Json.encode(bidRequest);
 
-        final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(bidRequestWithUrl.endpointUrl,
-                bidRequestBody);
+        final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(endpointUrl, bidRequestBody);
 
         final Future<BidResult> future = Future.future();
-        httpClient.postAbs(bidRequestWithUrl.endpointUrl,
-                response -> handleResponse(bidRequestWithUrl.bidRequest, response, bidder, bidderDebugBuilder, future))
+        httpClient.postAbs(endpointUrl,
+                response -> handleResponse(response, bidder, bidderDebugBuilder, future))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future))
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
@@ -402,16 +384,16 @@ public class AppnexusAdapter implements Adapter {
                 .build();
     }
 
-    private void handleResponse(BidRequest bidRequest, HttpClientResponse response, Bidder bidder,
+    private void handleResponse(HttpClientResponse response, Bidder bidder,
                                 BidderDebug.BidderDebugBuilder bidderDebugBuilder, Future<BidResult> future) {
         response
-                .bodyHandler(buffer -> future.complete(toBidResult(bidRequest, bidder, bidderDebugBuilder,
-                        response.statusCode(), buffer.toString())))
+                .bodyHandler(buffer -> future.complete(toBidResult(bidder, bidderDebugBuilder, response.statusCode(),
+                        buffer.toString())))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future));
     }
 
-    private BidResult toBidResult(BidRequest bidRequest, Bidder bidder,
-                                  BidderDebug.BidderDebugBuilder bidderDebugBuilder, int statusCode, String body) {
+    private BidResult toBidResult(Bidder bidder, BidderDebug.BidderDebugBuilder bidderDebugBuilder, int statusCode,
+                                  String body) {
         final BidderDebug bidderDebug = completeBidderDebug(bidderDebugBuilder, statusCode, body);
 
         if (statusCode == 204) {
@@ -419,7 +401,7 @@ public class AppnexusAdapter implements Adapter {
         }
         if (statusCode != 200) {
             logger.warn("Bid response code is {0}, body: {1}", statusCode, body);
-            return BidResult.error(bidderDebug, String.format("HTTP status %d; body: %s", statusCode, body));
+            return BidResult.error(bidderDebug, String.format("HTTP status %d", statusCode));
         }
 
         final BidResponse bidResponse;
@@ -431,7 +413,7 @@ public class AppnexusAdapter implements Adapter {
         }
 
         try {
-            final List<Bid.BidBuilder> bids = extractBids(bidRequest, bidResponse, bidder);
+            final List<Bid.BidBuilder> bids = extractBids(bidResponse, bidder);
             return BidResult.success(bids, bidderDebug);
         } catch (PreBidException e) {
             logger.warn("Error occurred while extracting bids", e);
@@ -439,7 +421,7 @@ public class AppnexusAdapter implements Adapter {
         }
     }
 
-    private List<Bid.BidBuilder> extractBids(BidRequest bidRequest, BidResponse bidResponse, Bidder bidder) {
+    private List<Bid.BidBuilder> extractBids(BidResponse bidResponse, Bidder bidder) {
         return bidResponse == null || bidResponse.getSeatbid() == null ? null : bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> Objects.nonNull(seatBid.getBid()))
@@ -452,11 +434,8 @@ public class AppnexusAdapter implements Adapter {
                         .price(bid.getPrice())
                         .adm(bid.getAdm())
                         .creativeId(bid.getCrid())
-                        .mediaType(mediaTypeFor(bid.getImpid(), bidRequest))
                         .width(bid.getW())
-                        .height(bid.getH())
-                        .dealId(bid.getDealid())
-                        .nurl(bid.getNurl()))
+                        .height(bid.getH()))
                 .collect(Collectors.toList());
     }
 
@@ -469,17 +448,13 @@ public class AppnexusAdapter implements Adapter {
         throw new PreBidException(String.format("Unknown ad unit code '%s'", code));
     }
 
-    private static MediaType mediaTypeFor(String impId, BidRequest bidRequest) {
-        MediaType mediaType = MediaType.banner;
-        for (Imp imp : bidRequest.getImp()) {
-            if (Objects.equals(imp.getId(), impId)) {
-                if (imp.getVideo() != null) {
-                    mediaType = MediaType.video;
-                }
-                break;
-            }
-        }
-        return mediaType;
+    private void handleException(Throwable exception, BidderDebug.BidderDebugBuilder bidderDebugBuilder,
+                                 Future<BidResult> future) {
+        logger.warn("Error occurred while sending bid request to an exchange", exception);
+        final BidderDebug bidderDebug = bidderDebugBuilder.build();
+        future.complete(exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
+                ? BidResult.timeout(bidderDebug, "Timed out")
+                : BidResult.error(bidderDebug, exception.getMessage()));
     }
 
     private Future<BidderResult> toBidderResult(BidResult bidResult, Bidder bidder,
@@ -525,23 +500,14 @@ public class AppnexusAdapter implements Adapter {
                 .build());
     }
 
-    private void handleException(Throwable exception, BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                 Future<BidResult> future) {
-        logger.warn("Error occurred while sending bid request to an exchange", exception);
-        final BidderDebug bidderDebug = bidderDebugBuilder.build();
-        future.complete(exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
-                ? BidResult.timeout(bidderDebug, "Timed out")
-                : BidResult.error(bidderDebug, exception.getMessage()));
-    }
-
     @Override
     public String code() {
-        return "appnexus";
+        return "pulsepoint";
     }
 
     @Override
     public String cookieFamily() {
-        return "adnxs";
+        return "pulsepoint";
     }
 
     @Override
@@ -555,15 +521,19 @@ public class AppnexusAdapter implements Adapter {
 
         AdUnitBid adUnitBid;
 
-        AppnexusParams params;
+        Params params;
     }
 
-    @AllArgsConstructor(staticName = "of")
+    @Builder
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class BidRequestWithUrl {
+    private static class Params {
 
-        BidRequest bidRequest;
+        String publisherId;
 
-        String endpointUrl;
+        String tagId;
+
+        int adSizeWidth;
+
+        int adSizeHeight;
     }
 }

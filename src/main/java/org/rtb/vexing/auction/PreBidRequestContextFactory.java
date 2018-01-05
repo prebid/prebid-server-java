@@ -144,7 +144,7 @@ public class PreBidRequestContextFactory {
     }
 
     private static boolean isValidAdUnit(AdUnit adUnit) {
-        return CollectionUtils.isNotEmpty(adUnit.sizes);
+        return Objects.nonNull(adUnit.code) && CollectionUtils.isNotEmpty(adUnit.sizes);
     }
 
     private Future<List<Bid>> resolveUnitBids(AdUnit unit) {
