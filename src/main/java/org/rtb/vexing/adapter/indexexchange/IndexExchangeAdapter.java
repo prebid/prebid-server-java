@@ -1,9 +1,8 @@
-package org.rtb.vexing.adapter.pulsepoint;
+package org.rtb.vexing.adapter.indexexchange;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -24,14 +23,10 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.experimental.FieldDefaults;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
-import org.rtb.vexing.adapter.pulsepoint.model.PulsepointParams;
+import org.rtb.vexing.adapter.indexexchange.model.IndexExchangeParams;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidResult;
@@ -39,15 +34,14 @@ import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.time.Clock;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -58,9 +52,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class PulsepointAdapter implements Adapter {
+public class IndexExchangeAdapter implements Adapter {
 
-    private static final Logger logger = LoggerFactory.getLogger(PulsepointAdapter.class);
+    private static final Logger logger = LoggerFactory.getLogger(IndexExchangeAdapter.class);
 
     // UsersyncInfo fields are not in snake-case
     private static final ObjectMapper DEFAULT_NAMING_MAPPER = new ObjectMapper()
@@ -78,10 +72,10 @@ public class PulsepointAdapter implements Adapter {
     private final ObjectNode usersyncInfo;
     private final HttpClient httpClient;
 
-    public PulsepointAdapter(String endpointUrl, String usersyncUrl, String externalUrl, HttpClient httpClient) {
+    public IndexExchangeAdapter(String endpointUrl, String usersyncUrl, HttpClient httpClient) {
         this.endpointUrl = validateUrl(Objects.requireNonNull(endpointUrl));
 
-        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
+        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl));
 
         this.httpClient = Objects.requireNonNull(httpClient);
     }
@@ -94,17 +88,9 @@ public class PulsepointAdapter implements Adapter {
         }
     }
 
-    private static ObjectNode createUsersyncInfo(String usersyncUrl, String externalUrl) {
-        final String redirectUri;
-        try {
-            redirectUri = URLEncoder.encode(String.format("%s/setuid?bidder=pulsepoint&uid=%s", externalUrl,
-                    "%%VGUID%%"), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new PreBidException("Cannot encode redirect uri");
-        }
-
+    private static ObjectNode createUsersyncInfo(String usersyncUrl) {
         final UsersyncInfo usersyncInfo = UsersyncInfo.builder()
-                .url(String.format("%s%s", usersyncUrl, redirectUri))
+                .url(usersyncUrl)
                 .type("redirect")
                 .supportCORS(false)
                 .build();
@@ -121,6 +107,8 @@ public class PulsepointAdapter implements Adapter {
 
         final BidRequest bidRequest;
         try {
+            validatePreBidRequest(preBidRequestContext.preBidRequest);
+
             bidRequest = createBidRequest(bidder, preBidRequestContext);
         } catch (PreBidException e) {
             logger.warn("Error occurred while constructing bid requests", e);
@@ -137,14 +125,20 @@ public class PulsepointAdapter implements Adapter {
                 .compose(bidResult -> toBidderResult(bidResult, bidder, preBidRequestContext, bidderStarted));
     }
 
+    private static void validatePreBidRequest(PreBidRequest preBidRequest) {
+        if (preBidRequest.app != null) {
+            throw new PreBidException("Index doesn't support apps");
+        }
+    }
+
     private BidRequest createBidRequest(Bidder bidder, PreBidRequestContext preBidRequestContext) {
         validateAdUnitBidsMediaTypes(bidder.adUnitBids);
 
-        final List<AdUnitBidWithParams> adUnitBidsWithParams = createAdUnitBidsWithParams(bidder.adUnitBids);
-        final List<Imp> imps = validateImps(makeImps(adUnitBidsWithParams, preBidRequestContext));
+        final List<Imp> imps = validateImps(makeImps(bidder.adUnitBids, preBidRequestContext));
 
-        final String publisherId = adUnitBidsWithParams.stream()
-                .map(adUnitBidWithParams -> adUnitBidWithParams.params.publisherId)
+        final Integer siteId = bidder.adUnitBids.stream()
+                .map(IndexExchangeAdapter::parseAndValidateParams)
+                .map(params -> params.siteId)
                 .reduce((first, second) -> second).orElse(null);
 
         return BidRequest.builder()
@@ -152,8 +146,7 @@ public class PulsepointAdapter implements Adapter {
                 .at(1)
                 .tmax(preBidRequestContext.timeout)
                 .imp(imps)
-                .app(makeApp(preBidRequestContext, publisherId))
-                .site(makeSite(preBidRequestContext, publisherId))
+                .site(makeSite(preBidRequestContext, siteId))
                 .device(makeDevice(preBidRequestContext))
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
@@ -173,79 +166,42 @@ public class PulsepointAdapter implements Adapter {
                 && (adUnitBid.video == null || CollectionUtils.isEmpty(adUnitBid.video.mimes)));
     }
 
-    private static List<AdUnitBidWithParams> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
-        return adUnitBids.stream()
-                .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
-                .collect(Collectors.toList());
-    }
-
-    private static Params parseAndValidateParams(AdUnitBid adUnitBid) {
+    private static IndexExchangeParams parseAndValidateParams(AdUnitBid adUnitBid) {
         if (adUnitBid.params == null) {
-            throw new PreBidException("Pulsepoint params section is missing");
+            throw new PreBidException("IndexExchange params section is missing");
         }
 
-        final PulsepointParams params;
+        final IndexExchangeParams params;
         try {
-            params = Json.mapper.convertValue(adUnitBid.params, PulsepointParams.class);
+            params = Json.mapper.convertValue(adUnitBid.params, IndexExchangeParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
-            throw new PreBidException(e.getMessage(), e.getCause());
+            throw new PreBidException(String.format("unmarshal params '%s' failed: %s", adUnitBid.params,
+                    e.getMessage()), e.getCause());
         }
 
-        if (params.publisherId == null || params.publisherId == 0) {
-            throw new PreBidException("Missing PublisherId param cp");
-        }
-        if (params.tagId == null || params.tagId == 0) {
-            throw new PreBidException("Missing TagId param ct");
-        }
-        if (StringUtils.isEmpty(params.adSize)) {
-            throw new PreBidException("Missing AdSize param cf");
+        if (params.siteId == null || params.siteId == 0) {
+            throw new PreBidException("Missing siteID param");
         }
 
-        final String[] sizes = params.adSize.toLowerCase().split("x");
-        if (sizes.length != 2) {
-            throw new PreBidException(String.format("Invalid AdSize param %s", params.adSize));
-        }
-        final int width;
-        try {
-            width = Integer.parseInt(sizes[0]);
-        } catch (NumberFormatException e) {
-            throw new PreBidException(String.format("Invalid Width param %s", sizes[0]));
-        }
-
-        final int height;
-        try {
-            height = Integer.parseInt(sizes[1]);
-        } catch (NumberFormatException e) {
-            throw new PreBidException(String.format("Invalid Height param %s", sizes[1]));
-        }
-
-        return Params.builder()
-                .publisherId(String.valueOf(params.publisherId))
-                .tagId(String.valueOf(params.tagId))
-                .adSizeWidth(width)
-                .adSizeHeight(height)
+        return IndexExchangeParams.builder()
+                .siteId(params.siteId)
                 .build();
     }
 
-    private static List<Imp> makeImps(List<AdUnitBidWithParams> adUnitBidsWithParams,
-                                      PreBidRequestContext preBidRequestContext) {
-        return adUnitBidsWithParams.stream()
-                .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
+    private static List<Imp> makeImps(List<AdUnitBid> adUnitBids, PreBidRequestContext preBidRequestContext) {
+        return adUnitBids.stream()
+                .flatMap(adUnitBid -> makeImpsForAdUnitBid(adUnitBid, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams adUnitBidWithParams,
-                                                    PreBidRequestContext preBidRequestContext) {
-        final AdUnitBid adUnitBid = adUnitBidWithParams.adUnitBid;
-        final Params params = adUnitBidWithParams.params;
-
+    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
         return allowedMediaTypes(adUnitBid).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
+                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
                         .id(adUnitBid.adUnitCode)
                         .instl(adUnitBid.instl)
                         .secure(preBidRequestContext.secure)
-                        .tagid(params.tagId)
+                        .tagid(adUnitBid.adUnitCode)
                         .build());
     }
 
@@ -255,7 +211,7 @@ public class PulsepointAdapter implements Adapter {
                 .collect(Collectors.toSet());
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid, Params params) {
+    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
         switch (mediaType) {
@@ -263,7 +219,7 @@ public class PulsepointAdapter implements Adapter {
                 impBuilder.video(makeVideo(adUnitBid));
                 break;
             case banner:
-                impBuilder.banner(makeBanner(adUnitBid, params));
+                impBuilder.banner(makeBanner(adUnitBid));
                 break;
             default:
                 // unknown media type, just skip it
@@ -284,10 +240,10 @@ public class PulsepointAdapter implements Adapter {
                 .build();
     }
 
-    private static Banner makeBanner(AdUnitBid adUnitBid, Params params) {
+    private static Banner makeBanner(AdUnitBid adUnitBid) {
         return Banner.builder()
-                .w(params.adSizeWidth)
-                .h(params.adSizeHeight)
+                .w(adUnitBid.sizes.get(0).getW())
+                .h(adUnitBid.sizes.get(0).getH())
                 .format(adUnitBid.sizes)
                 .topframe(adUnitBid.topframe)
                 .build();
@@ -300,18 +256,13 @@ public class PulsepointAdapter implements Adapter {
         return imps;
     }
 
-    private static App makeApp(PreBidRequestContext preBidRequestContext, String publisherId) {
-        final App app = preBidRequestContext.preBidRequest.app;
-        return app == null ? null : app.toBuilder()
-                .publisher(Publisher.builder().id(publisherId).build())
-                .build();
-    }
-
-    private static Site makeSite(PreBidRequestContext preBidRequestContext, String publisherId) {
-        return preBidRequestContext.preBidRequest.app != null ? null : Site.builder()
+    private static Site makeSite(PreBidRequestContext preBidRequestContext, Integer siteId) {
+        return Site.builder()
                 .domain(preBidRequestContext.domain)
                 .page(preBidRequestContext.referer)
-                .publisher(Publisher.builder().id(publisherId).build())
+                .publisher(Publisher.builder()
+                        .id(siteId != null ? String.valueOf(siteId) : null)
+                        .build())
                 .build();
     }
 
@@ -321,18 +272,14 @@ public class PulsepointAdapter implements Adapter {
         // create a copy since device might be shared with other adapters
         final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
 
-        if (preBidRequestContext.preBidRequest.app == null) {
-            deviceBuilder.ua(preBidRequestContext.ua);
-        }
-
         return deviceBuilder
                 .ip(preBidRequestContext.ip)
+                .ua(preBidRequestContext.ua)
                 .build();
     }
 
     private User makeUser(PreBidRequestContext preBidRequestContext) {
-        return preBidRequestContext.preBidRequest.app != null ? preBidRequestContext.preBidRequest.user
-                : User.builder()
+        return User.builder()
                 .buyeruid(preBidRequestContext.uidsCookie.uidFrom(cookieFamily()))
                 // id is a UID for "adnxs" (see logic in open-source implementation)
                 .id(preBidRequestContext.uidsCookie.uidFrom("adnxs"))
@@ -340,14 +287,10 @@ public class PulsepointAdapter implements Adapter {
     }
 
     private static Source makeSource(PreBidRequestContext preBidRequestContext) {
-        final Source.SourceBuilder sourceBuilder = Source.builder()
-                .tid(preBidRequestContext.preBidRequest.tid);
-
-        if (preBidRequestContext.preBidRequest.app == null) {
-            sourceBuilder.fd(1); // upstream, aka header
-        }
-
-        return sourceBuilder.build();
+        return Source.builder()
+                .tid(preBidRequestContext.preBidRequest.tid)
+                .fd(1)
+                .build();
     }
 
     private static int responseTime(long bidderStarted) {
@@ -408,7 +351,7 @@ public class PulsepointAdapter implements Adapter {
             bidResponse = Json.decodeValue(body, BidResponse.class);
         } catch (DecodeException e) {
             logger.warn("Error occurred while parsing bid response: {0}", body, e);
-            return BidResult.error(bidderDebug, e.getMessage());
+            return BidResult.error(bidderDebug, String.format("Error parsing response: %s", e.getMessage()));
         }
 
         try {
@@ -434,7 +377,8 @@ public class PulsepointAdapter implements Adapter {
                         .adm(bid.getAdm())
                         .creativeId(bid.getCrid())
                         .width(bid.getW())
-                        .height(bid.getH()))
+                        .height(bid.getH())
+                        .dealId(bid.getDealid()))
                 .collect(Collectors.toList());
     }
 
@@ -501,38 +445,16 @@ public class PulsepointAdapter implements Adapter {
 
     @Override
     public String code() {
-        return "pulsepoint";
+        return "indexExchange";
     }
 
     @Override
     public String cookieFamily() {
-        return "pulsepoint";
+        return "indexExchange";
     }
 
     @Override
     public ObjectNode usersyncInfo() {
         return usersyncInfo;
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class AdUnitBidWithParams {
-
-        AdUnitBid adUnitBid;
-
-        Params params;
-    }
-
-    @Builder
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class Params {
-
-        String publisherId;
-
-        String tagId;
-
-        int adSizeWidth;
-
-        int adSizeHeight;
     }
 }

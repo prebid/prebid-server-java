@@ -160,7 +160,7 @@ public class AppnexusAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
+    public void requestBidsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
         bidder = Bidder.from(APPNEXUS, asList(
                 givenAdUnitBidCustomizable(identity(), identity()),
@@ -180,7 +180,7 @@ public class AppnexusAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
+    public void requestBidsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("placementId", new TextNode("non-integer"));
@@ -196,7 +196,7 @@ public class AppnexusAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfPlacementOrMemberWithInvcodeMissingInAdUnitBidParams() {
+    public void requestBidsShouldFailIfPlacementOrMemberWithInvcodeMissingInAdUnitBidParams() {
         // given
         bidder = givenBidderCustomizable(identity(), builder -> builder.placementId(null));
 

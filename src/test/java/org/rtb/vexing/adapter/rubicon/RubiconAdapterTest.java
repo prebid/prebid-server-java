@@ -179,7 +179,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
+    public void requestBidsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
         bidder = Bidder.from(RUBICON, asList(
                 givenAdUnitBidCustomizable(identity(), identity()),
@@ -199,7 +199,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
+    public void requestBidsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("accountId", new TextNode("non-integer"));
@@ -215,7 +215,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAccountIdMissingInAdUnitBidParams() {
+    public void requestBidsShouldFailIfAccountIdMissingInAdUnitBidParams() {
         // given
         bidder = givenBidderCustomizable(identity(), builder -> builder.accountId(null));
 
@@ -229,7 +229,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfSiteIdMissingInAdUnitBidParams() {
+    public void requestBidsShouldFailIfSiteIdMissingInAdUnitBidParams() {
         // given
         bidder = givenBidderCustomizable(identity(), builder -> builder.siteId(null));
 
@@ -243,7 +243,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfZoneIdMissingInAdUnitBidParams() {
+    public void requestBidsShouldFailIfZoneIdMissingInAdUnitBidParams() {
         // given
         bidder = givenBidderCustomizable(identity(), builder -> builder.zoneId(null));
 
@@ -257,7 +257,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfNoValidAdUnits() {
+    public void requestBidsShouldFailIfNoValidAdUnits() {
         // given
         bidder = Bidder.from(RUBICON, emptyList());
 
@@ -285,7 +285,7 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldSendBidRequestForBannerWithFilteredValidSizes() throws IOException {
+    public void requestBidsShouldSendBidRequestForBannerWithFilteredValidSizes() throws IOException {
         // given
         bidder = givenBidderCustomizable(
                 builder -> builder.sizes(asList(Format.builder().w(302).h(252).build(),

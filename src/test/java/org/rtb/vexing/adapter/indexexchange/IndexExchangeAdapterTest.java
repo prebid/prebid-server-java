@@ -1,4 +1,4 @@
-package org.rtb.vexing.adapter.facebook;
+package org.rtb.vexing.adapter.indexexchange;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -13,6 +13,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.channel.ConnectTimeoutException;
@@ -33,8 +34,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.rtb.vexing.VertxTest;
-import org.rtb.vexing.adapter.facebook.model.FacebookExt;
-import org.rtb.vexing.adapter.facebook.model.FacebookParams;
+import org.rtb.vexing.adapter.indexexchange.model.IndexExchangeParams;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
@@ -47,15 +47,12 @@ import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
@@ -64,18 +61,15 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-public class FacebookAdapterTest extends VertxTest {
+public class IndexExchangeAdapterTest extends VertxTest {
 
-    private static final String ADAPTER = "audienceNetwork";
-    private static final String ENDPOINT_URL = "https://secure-endpoint.org";
-    private static final String NONSECURE_ENDPOINT_URL = ENDPOINT_URL;
-    private static final String USERSYNC_URL = "http://usersync.org";
-    private static final String PLATFORM_ID = "100";
+    private static final String ENDPOINT_URL = "http://exchange.org";
+    private static final String USERSYNC_URL = "//usersync.org";
+    private static final String ADAPTER = "indexExchange";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -87,7 +81,7 @@ public class FacebookAdapterTest extends VertxTest {
     @Mock
     private UidsCookie uidsCookie;
 
-    private FacebookAdapter adapter;
+    private IndexExchangeAdapter adapter;
     private Bidder bidder;
     private PreBidRequestContext preBidRequestContext;
 
@@ -107,42 +101,26 @@ public class FacebookAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
 
         // adapter
-        adapter = new FacebookAdapter(ENDPOINT_URL, NONSECURE_ENDPOINT_URL, USERSYNC_URL, PLATFORM_ID, httpClient);
+        adapter = new IndexExchangeAdapter(ENDPOINT_URL, USERSYNC_URL, httpClient);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(null, null, null, null, null));
+                () -> new IndexExchangeAdapter(null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(ENDPOINT_URL, null, null, null, null));
+                () -> new IndexExchangeAdapter(ENDPOINT_URL, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(ENDPOINT_URL, NONSECURE_ENDPOINT_URL, null, null, null));
+                () -> new IndexExchangeAdapter(ENDPOINT_URL, USERSYNC_URL, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(ENDPOINT_URL, NONSECURE_ENDPOINT_URL, USERSYNC_URL, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(ENDPOINT_URL, NONSECURE_ENDPOINT_URL, USERSYNC_URL, PLATFORM_ID, null));
+                () -> new IndexExchangeAdapter(ENDPOINT_URL, USERSYNC_URL, null));
     }
 
     @Test
-    public void creationShouldFailOnInvalidEndpoints() {
+    public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter("invalid_url", NONSECURE_ENDPOINT_URL, USERSYNC_URL, PLATFORM_ID,
-                        httpClient))
-                .withMessage("URL supplied is not valid: 'invalid_url'");
-
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter(ENDPOINT_URL, "invalid_url", USERSYNC_URL, PLATFORM_ID,
-                        httpClient))
-                .withMessage("URL supplied is not valid: 'invalid_url'");
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidPlatformId() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter(ENDPOINT_URL, NONSECURE_ENDPOINT_URL, USERSYNC_URL, "non-number",
-                        httpClient))
-                .withMessage("Platform ID is not valid number: 'non-number'");
+                .isThrownBy(() -> new IndexExchangeAdapter("invalid_url", USERSYNC_URL, httpClient))
+                .withMessage("URL supplied is not valid");
     }
 
     @Test
@@ -157,7 +135,7 @@ public class FacebookAdapterTest extends VertxTest {
         adapter.requestBids(bidder, preBidRequestContext);
 
         // then
-        verify(httpClient).postAbs(contains("secure-endpoint.org"), any());
+        verify(httpClient).postAbs(eq("http://exchange.org"), any());
         verify(httpClientRequest)
                 .putHeader(eq(new AsciiString("Content-Type")), eq("application/json;charset=utf-8"));
         verify(httpClientRequest)
@@ -166,11 +144,10 @@ public class FacebookAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidsShouldFailIfAdUnitBidHasInvalidFieldsForVideo() {
-        bidder = givenBidderCustomizable(builder -> builder
-                        .mediaTypes(new HashSet<>(singletonList(MediaType.video)))
-                        .video(Video.builder().build()), // no mimes
-                identity());
+    public void requestBidsShouldFailIfAppIsPresentInPreBidRequest() throws IOException {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
+                .app(App.builder().build()));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -178,32 +155,7 @@ public class FacebookAdapterTest extends VertxTest {
         // then
         assertThat(bidderResultFuture.succeeded()).isTrue();
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNotNull()
-                .startsWith("Invalid AdUnit: VIDEO media type with no video data");
-        assertThat(bidderResult.bidderStatus.responseTimeMs).isNotNull();
-        assertThat(bidderResult.bids).isEmpty();
-        verifyZeroInteractions(httpClient);
-    }
-
-    @Test
-    public void requestBidsShouldFailIfAdUnitBidHasInvalidFieldsForBanner() {
-        bidder = givenBidderCustomizable(builder -> builder
-                        .mediaTypes(new HashSet<>(singletonList(MediaType.banner)))
-                        .instl(0)
-                        .sizes(singletonList(Format.builder().h(42).build())),
-                identity());
-
-        // when
-        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
-
-        // then
-        assertThat(bidderResultFuture.succeeded()).isTrue();
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNotNull()
-                .startsWith("Facebook do not support banner height other than 50, 90 and 250");
-        assertThat(bidderResult.bidderStatus.responseTimeMs).isNotNull();
-        assertThat(bidderResult.bids).isEmpty();
-        verifyZeroInteractions(httpClient);
+        assertThat(bidderResult.bidderStatus.error).isNotNull().startsWith("Index doesn't support apps");
     }
 
     @Test
@@ -220,17 +172,17 @@ public class FacebookAdapterTest extends VertxTest {
         assertThat(bidderResultFuture.succeeded()).isTrue();
         final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bidderStatus).isNotNull()
-                .returns("Facebook params section is missing", status -> status.error);
+                .returns("IndexExchange params section is missing", status -> status.error);
         assertThat(bidderResult.bidderStatus.responseTimeMs).isNotNull();
         assertThat(bidderResult.bids).isEmpty();
         verifyZeroInteractions(httpClient);
     }
 
     @Test
-    public void requestBidsShouldFailIfPlacementIdParamIsMissing() {
+    public void requestBidsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
-        params.set("placementId", null);
+        params.set("siteID", new TextNode("non-integer"));
         bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
 
         // when
@@ -240,17 +192,14 @@ public class FacebookAdapterTest extends VertxTest {
         assertThat(bidderResultFuture.succeeded()).isTrue();
         final BidderResult bidderResult = bidderResultFuture.result();
         assertThat(bidderResult.bidderStatus.error).isNotNull()
-                .startsWith("Missing placementId param");
-        assertThat(bidderResult.bidderStatus.responseTimeMs).isNotNull();
-        assertThat(bidderResult.bids).isEmpty();
-        verifyZeroInteractions(httpClient);
+                .startsWith("unmarshal params '{\"siteID\":\"non-integer\"}' failed: Cannot deserialize value of type");
     }
 
     @Test
-    public void requestBidsShouldFailIfPlacementIdParamHasInvalidFormat() {
+    public void requestBidsShouldFailIfAdUnitBidParamSiteIdIsMissing() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
-        params.set("placementId", new TextNode("invalid-placement-id"));
+        params.set("siteID", null);
         bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
 
         // when
@@ -259,28 +208,7 @@ public class FacebookAdapterTest extends VertxTest {
         // then
         assertThat(bidderResultFuture.succeeded()).isTrue();
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNotNull()
-                .startsWith("Invalid placementId param 'invalid-placement-id'");
-        assertThat(bidderResult.bidderStatus.responseTimeMs).isNotNull();
-        assertThat(bidderResult.bids).isEmpty();
-        verifyZeroInteractions(httpClient);
-    }
-
-    @Test
-    public void requestBidsShouldFailIfNoImpsCreated() {
-        bidder = givenBidderCustomizable(builder -> builder.mediaTypes(emptySet()), identity());
-
-        // when
-        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
-
-        // then
-        assertThat(bidderResultFuture.succeeded()).isTrue();
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNotNull()
-                .startsWith("openRTB bids need at least one Imp");
-        assertThat(bidderResult.bidderStatus.responseTimeMs).isNotNull();
-        assertThat(bidderResult.bids).isEmpty();
-        verifyZeroInteractions(httpClient);
+        assertThat(bidderResult.bidderStatus.error).isNotNull().startsWith("Missing siteID param");
     }
 
     @Test
@@ -289,12 +217,11 @@ public class FacebookAdapterTest extends VertxTest {
         bidder = givenBidderCustomizable(
                 builder -> builder
                         .bidderCode(ADAPTER)
-                        .adUnitCode("adUnitCode")
+                        .adUnitCode("adUnitCode1")
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build())),
-                paramsBuilder -> paramsBuilder
-                        .placementId("pub1_place1"));
+                paramsBuilder -> paramsBuilder.siteId(486));
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(
                 builder -> builder
@@ -302,12 +229,12 @@ public class FacebookAdapterTest extends VertxTest {
                         .referer("http://www.example.com")
                         .domain("example.com")
                         .ip("192.168.144.1")
-                        .ua("userAgent"),
+                        .ua("userAgent1"),
                 builder -> builder
-                        .tid("tid")
+                        .tid("tid1")
         );
 
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid1");
 
         // when
         adapter.requestBids(bidder, preBidRequestContext);
@@ -317,16 +244,16 @@ public class FacebookAdapterTest extends VertxTest {
 
         assertThat(bidRequest).isEqualTo(
                 BidRequest.builder()
-                        .id("tid")
+                        .id("tid1")
                         .at(1)
                         .tmax(1500L)
                         .imp(singletonList(Imp.builder()
-                                .id("adUnitCode")
+                                .id("adUnitCode1")
                                 .instl(1)
-                                .tagid("pub1_place1")
+                                .tagid("adUnitCode1")
                                 .banner(Banner.builder()
-                                        .w(0)
-                                        .h(0)
+                                        .w(300)
+                                        .h(250)
                                         .topframe(1)
                                         .format(singletonList(Format.builder()
                                                 .w(300)
@@ -337,64 +264,30 @@ public class FacebookAdapterTest extends VertxTest {
                         .site(Site.builder()
                                 .domain("example.com")
                                 .page("http://www.example.com")
-                                .publisher(Publisher.builder().id("pub1").build())
+                                .publisher(Publisher.builder().id("486").build())
                                 .build())
                         .device(Device.builder()
-                                .ua("userAgent")
+                                .ua("userAgent1")
                                 .ip("192.168.144.1")
                                 .build())
                         .user(User.builder()
-                                .buyeruid("buyerUid")
+                                .buyeruid("buyerUid1")
                                 .build())
                         .source(Source.builder()
                                 .fd(1)
-                                .tid("tid")
+                                .tid("tid1")
                                 .build())
-                        .ext(mapper.valueToTree(FacebookExt.builder()
-                                .platformid(Integer.valueOf(PLATFORM_ID)).build()))
                         .build());
     }
 
     @Test
-    public void requestBidsShouldSendBidRequestWithAppFromPreBidRequest() throws IOException {
-        // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
-                .app(App.builder().id("appId").build()).user(User.builder().build()));
-
-        // when
-        adapter.requestBids(bidder, preBidRequestContext);
-
-        // then
-        final BidRequest bidRequest = captureBidRequest();
-        assertThat(bidRequest.getApp()).isNotNull()
-                .returns("appId", from(App::getId));
-    }
-
-    @Test
-    public void requestBidsShouldSendBidRequestWithUserFromPreBidRequestIfAppPresent() throws IOException {
-        // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
-                .app(App.builder().build())
-                .user(User.builder().buyeruid("buyerUid").build()));
-
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUidFromCookie");
-
-        // when
-        adapter.requestBids(bidder, preBidRequestContext);
-
-        // then
-        final BidRequest bidRequest = captureBidRequest();
-        assertThat(bidRequest.getUser()).isEqualTo(User.builder().buyeruid("buyerUid").build());
-    }
-
-    @Test
-    public void requestBidsShouldSendTwoBidRequestsIfAdUnitContainsBannerAndVideoMediaTypes() throws Exception {
+    public void requestBidsShouldSendOneBidRequestIfAdUnitContainsBannerAndVideoMediaTypes() throws Exception {
         //given
         bidder = Bidder.from(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                                 .video(Video.builder()
-                                        .mimes(singletonList("Mime"))
+                                        .mimes(singletonList("Mime1"))
                                         .playbackMethod(1)
                                         .build()),
                         identity()
@@ -406,22 +299,71 @@ public class FacebookAdapterTest extends VertxTest {
         adapter.requestBids(bidder, preBidRequestContext);
 
         // then
-        final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClientRequest, times(2)).end(bidRequestCaptor.capture());
+        final BidRequest bidRequest = captureBidRequest();
 
-        final List<BidRequest> bidRequests = bidRequestCaptor.getAllValues().stream()
-                .map(FacebookAdapterTest::toBidRequest)
-                .collect(Collectors.toList());
-        assertThat(bidRequests).hasSize(2);
-
-        // check that one of the requests has imp with Banner and another one imp with Video mediaType
-        assertThat(bidRequests).flatExtracting(BidRequest::getImp)
-                .extracting(imp -> imp.getVideo() == null, imp -> imp.getBanner() == null)
-                .containsOnly(tuple(true, false), tuple(false, true));
+        assertThat(bidRequest).isNotNull();
+        // check that one of the requests has imp with Banner and imp with Video mediaType
+        assertThat(bidRequest.getImp())
+                .containsOnly(
+                        Imp.builder()
+                                .video(com.iab.openrtb.request.Video.builder().w(300).h(250)
+                                        .mimes(singletonList("Mime1")).playbackmethod(singletonList(1)).build())
+                                .build(),
+                        Imp.builder()
+                                .banner(Banner.builder().w(300).h(250)
+                                        .format(singletonList(Format.builder().w(300).h(250).build())).build())
+                                .build()
+                );
     }
 
     @Test
-    public void requestBidsShouldSendMultipleBidRequestsIfMultipleAdUnitsInPreBidRequest() throws IOException {
+    public void requestBidsShouldNotSendRequestIfMediaTypeIsEmpty() {
+        //given
+        bidder = Bidder.from(ADAPTER, singletonList(
+                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1").mediaTypes(emptySet()),
+                        identity())));
+
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        verifyZeroInteractions(httpClientRequest);
+
+        assertThat(bidderResultFuture.succeeded()).isTrue();
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.error).isNotNull().isEqualTo("openRTB bids need at least one Imp");
+    }
+
+    @Test
+    public void requestBidsShouldNotSendRequestWhenMediaTypeIsVideoAndMimesListIsEmpty() {
+        //given
+        bidder = Bidder.from(ADAPTER, singletonList(
+                givenAdUnitBidCustomizable(builder -> builder
+                                .adUnitCode("adUnitCode1")
+                                .mediaTypes(singleton(MediaType.video))
+                                .video(Video.builder()
+                                        .mimes(emptyList())
+                                        .build()),
+                        identity())));
+
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+
+        // when
+        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
+
+        // then
+        verifyZeroInteractions(httpClientRequest);
+
+        assertThat(bidderResultFuture.succeeded()).isTrue();
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.error).isNotNull()
+                .isEqualTo("Invalid AdUnit: VIDEO media type with no video data");
+    }
+
+    @Test
+    public void requestBidsShouldSendOneBidRequestsIfMultipleAdUnitsInPreBidRequest() throws IOException {
         // given
         bidder = Bidder.from(ADAPTER, asList(
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
@@ -431,13 +373,8 @@ public class FacebookAdapterTest extends VertxTest {
         adapter.requestBids(bidder, preBidRequestContext);
 
         // then
-        final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClientRequest, times(2)).end(bidRequestCaptor.capture());
-        final List<BidRequest> bidRequests = bidRequestCaptor.getAllValues().stream()
-                .map(FacebookAdapterTest::toBidRequest)
-                .collect(Collectors.toList());
-        assertThat(bidRequests).hasSize(2)
-                .flatExtracting(BidRequest::getImp)
+        final BidRequest bidRequest = captureBidRequest();
+        assertThat(bidRequest.getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
     }
 
@@ -523,7 +460,7 @@ public class FacebookAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isEqualTo("HTTP status 503; body: response");
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("HTTP status 503");
     }
 
     @Test
@@ -536,7 +473,7 @@ public class FacebookAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).startsWith("Failed to decode");
+        assertThat(bidderResult.bidderStatus.error).startsWith("Error parsing response: Failed to decode");
     }
 
     @Test
@@ -546,7 +483,7 @@ public class FacebookAdapterTest extends VertxTest {
         bidder = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"), identity());
 
         final String bidResponse = givenBidResponseCustomizable(identity(), identity(),
-                builder -> builder.impid("anotherAdUnitCode"));
+                singletonList(builder -> builder.impid("anotherAdUnitCode")));
         givenHttpClientReturnsResponses(200, bidResponse);
 
         // when
@@ -567,7 +504,7 @@ public class FacebookAdapterTest extends VertxTest {
                 .willReturn(httpClientRequest)
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException()));
 
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity());
+        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), singletonList(identity()));
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
         given(httpClientResponse.bodyHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)))
@@ -583,32 +520,6 @@ public class FacebookAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidsShouldReturnBidderResultWithLatestErrorIfBidsAreAbsent() throws JsonProcessingException {
-        // given
-        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity(), identity());
-        bidder = Bidder.from(ADAPTER, asList(adUnitBid, adUnitBid, adUnitBid));
-
-        given(httpClientRequest.exceptionHandler(any()))
-                .willReturn(httpClientRequest)
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException()))
-                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException()));
-
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
-        given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("response")))
-                .willReturn(httpClientResponse)
-                .willReturn(httpClientResponse);
-
-        // when
-        final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
-
-        // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isEqualTo("Timed out");
-        assertThat(bidderResult.bids).hasSize(0);
-    }
-
-    @Test
     public void requestBidsShouldReturnBidderResultWithExpectedFields() throws JsonProcessingException {
         // given
         bidder = givenBidderCustomizable(
@@ -619,12 +530,14 @@ public class FacebookAdapterTest extends VertxTest {
         final String bidResponse = givenBidResponseCustomizable(
                 builder -> builder.id("bidResponseId"),
                 builder -> builder.seat("seatId"),
-                builder -> builder
+                singletonList(builder -> builder
                         .impid("adUnitCode")
                         .price(new BigDecimal("8.43"))
                         .adm("adm")
+                        .crid("crid")
                         .w(300)
                         .h(250)
+                        .dealid("dealId"))
         );
         givenHttpClientReturnsResponses(200, bidResponse);
 
@@ -644,10 +557,12 @@ public class FacebookAdapterTest extends VertxTest {
                 .code("adUnitCode")
                 .price(new BigDecimal("8.43"))
                 .adm("adm")
+                .creativeId("crid")
                 .width(300)
                 .height(250)
                 .bidder(ADAPTER)
                 .bidId("bidId")
+                .dealId("dealId")
                 .responseTimeMs(bidderResult.bidderStatus.responseTimeMs)
                 .build());
     }
@@ -655,8 +570,8 @@ public class FacebookAdapterTest extends VertxTest {
     @Test
     public void requestBidsShouldReturnBidderResultWithZeroBidsIfEmptyBidResponse() throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(builder -> builder.seatbid(null), identity(),
-                identity()));
+        givenHttpClientReturnsResponses(200,
+                givenBidResponseCustomizable(builder -> builder.seatbid(null), identity(), singletonList(identity())));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -669,10 +584,11 @@ public class FacebookAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidsShouldReturnBidderResultWithNoCookieIfNoFacebookUidInCookieAndNoAppInPreBidRequest()
+    public void requestBidsShouldReturnBidderResultWithNoCookieIfNoIndexExchangeUidInCookieAndNoAppInPreBidRequest()
             throws IOException {
         // given
-        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity()));
+        givenHttpClientReturnsResponses(200,
+                givenBidResponseCustomizable(identity(), identity(), singletonList(identity())));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -683,20 +599,21 @@ public class FacebookAdapterTest extends VertxTest {
         assertThat(bidderResult.bidderStatus.usersync).isNotNull();
         assertThat(defaultNamingMapper.treeToValue(bidderResult.bidderStatus.usersync, UsersyncInfo.class)).
                 isEqualTo(UsersyncInfo.builder()
-                        .url(USERSYNC_URL)
+                        .url("//usersync.org")
                         .type("redirect")
                         .supportCORS(false)
                         .build());
     }
 
     @Test
-    public void requestBidsShouldReturnBidderResultWithoutNoCookieIfNoFacebookUidInCookieAndAppPresentInPreBidRequest()
+    public void requestBidsShouldReturnBidderResultWithoutNoCookieIfNoIndexExchangeUidInCookieAndAppPresentInPreBidRequest()
             throws IOException {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
                 builder -> builder.app(App.builder().build()).user(User.builder().build()));
 
-        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity()));
+        givenHttpClientReturnsResponses(200,
+                givenBidResponseCustomizable(identity(), identity(), singletonList(identity())));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -708,13 +625,13 @@ public class FacebookAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidsShouldReturnBidderResultWithMultipleBidsIfMultipleAdUnitsInPreBidRequest()
+    public void requestBidsShouldReturnBidderResultWithOneBidIfMultipleAdUnitsInPreBidRequest()
             throws JsonProcessingException {
         // given
         final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity(), identity());
         bidder = Bidder.from(ADAPTER, asList(adUnitBid, adUnitBid));
 
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity());
+        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), singletonList(identity()));
         givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
@@ -722,34 +639,7 @@ public class FacebookAdapterTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bids).hasSize(2);
-    }
-
-    @Test
-    public void requestBidsShouldSendRequestToRandomEndpoint() throws IOException {
-        // given
-        adapter = new FacebookAdapter("https://secure-endpoint.org", "http://non-secure-endpoint.org", USERSYNC_URL,
-                PLATFORM_ID, httpClient
-        );
-        preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(true), identity());
-
-        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity()));
-
-        // when
-        final List<Future<BidderResult>> futures = IntStream.range(0, 36)
-                .mapToObj(value -> adapter.requestBids(bidder, preBidRequestContext))
-                .collect(Collectors.toList());
-
-        // then
-        final boolean usedSecureUrl = futures.stream()
-                .anyMatch(future -> future.result().bidderStatus.debug.get(0).requestUri
-                        .equals("https://secure-endpoint.org"));
-        assertThat(usedSecureUrl).isTrue();
-
-        final boolean usedNonSecureUrl = futures.stream()
-                .anyMatch(future -> future.result().bidderStatus.debug.get(0).requestUri
-                        .equals("http://non-secure-endpoint.org"));
-        assertThat(usedNonSecureUrl).isTrue();
+        assertThat(bidderResult.bids).hasSize(1);
     }
 
     @Test
@@ -761,11 +651,10 @@ public class FacebookAdapterTest extends VertxTest {
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
-        final String bidResponse1 = givenBidResponseCustomizable(builder -> builder.id("bidResponseId1"),
-                identity(), identity());
-        final String bidResponse2 = givenBidResponseCustomizable(builder -> builder.id("bidResponseId2"),
-                identity(), identity());
-        givenHttpClientReturnsResponses(200, bidResponse1, bidResponse2);
+        final String bidResponse = givenBidResponseCustomizable(builder -> builder.id("bidResponseId1"),
+                identity(),
+                asList(bidBuilder -> bidBuilder.impid("adUnitCode1"), bidBuilder -> bidBuilder.impid("adUnitCode2")));
+        givenHttpClientReturnsResponses(200, bidResponse);
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -774,31 +663,25 @@ public class FacebookAdapterTest extends VertxTest {
         final BidderResult bidderResult = bidderResultFuture.result();
 
         final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClientRequest, times(2)).end(bidRequestCaptor.capture());
+        verify(httpClientRequest).end(bidRequestCaptor.capture());
         final List<String> bidRequests = bidRequestCaptor.getAllValues();
 
-        assertThat(bidderResult.bidderStatus.debug).hasSize(2).containsOnly(
+        assertThat(bidderResult.bidderStatus.debug).hasSize(1).containsOnly(
                 BidderDebug.builder()
                         .requestUri(ENDPOINT_URL)
                         .requestBody(bidRequests.get(0))
-                        .responseBody(bidResponse1)
-                        .statusCode(200)
-                        .build(),
-                BidderDebug.builder()
-                        .requestUri(ENDPOINT_URL)
-                        .requestBody(bidRequests.get(1))
-                        .responseBody(bidResponse2)
+                        .responseBody(bidResponse)
                         .statusCode(200)
                         .build());
     }
 
     @Test
-    public void requestBidsShouldReturnBidderResultWithoutDebugIfFlagIsFalse()
-            throws JsonProcessingException {
+    public void requestBidsShouldReturnBidderResultWithoutDebugIfFlagIsFalse() throws JsonProcessingException {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(false), identity());
 
-        givenHttpClientReturnsResponses(200, givenBidResponseCustomizable(identity(), identity(), identity()));
+        givenHttpClientReturnsResponses(200,
+                givenBidResponseCustomizable(identity(), identity(), singletonList(identity())));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -848,7 +731,8 @@ public class FacebookAdapterTest extends VertxTest {
 
     private static Bidder givenBidderCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
-            Function<FacebookParams.FacebookParamsBuilder, FacebookParams.FacebookParamsBuilder> paramsBuilderCustomizer) {
+            Function<IndexExchangeParams.IndexExchangeParamsBuilder, IndexExchangeParams.IndexExchangeParamsBuilder>
+                    paramsBuilderCustomizer) {
 
         return Bidder.from(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer, paramsBuilderCustomizer)));
@@ -856,14 +740,15 @@ public class FacebookAdapterTest extends VertxTest {
 
     private static AdUnitBid givenAdUnitBidCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
-            Function<FacebookParams.FacebookParamsBuilder, FacebookParams.FacebookParamsBuilder> paramsBuilderCustomizer) {
+            Function<IndexExchangeParams.IndexExchangeParamsBuilder, IndexExchangeParams.IndexExchangeParamsBuilder>
+                    paramsBuilderCustomizer) {
 
         // params
-        final FacebookParams.FacebookParamsBuilder paramsBuilder = FacebookParams.builder()
-                .placementId("pubId1_placement1");
-        final FacebookParams.FacebookParamsBuilder paramsBuilderCustomized = paramsBuilderCustomizer
+        final IndexExchangeParams.IndexExchangeParamsBuilder paramsBuilder = IndexExchangeParams.builder()
+                .siteId(42);
+        final IndexExchangeParams.IndexExchangeParamsBuilder paramsBuilderCustomized = paramsBuilderCustomizer
                 .apply(paramsBuilder);
-        final FacebookParams params = paramsBuilderCustomized.build();
+        final IndexExchangeParams params = paramsBuilderCustomized.build();
 
         // ad unit bid
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
@@ -877,11 +762,13 @@ public class FacebookAdapterTest extends VertxTest {
     }
 
     private PreBidRequestContext givenPreBidRequestContextCustomizable(
-            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext.PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
-            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
+            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext
+                    .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
+            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
+                    preBidRequestBuilderCustomizer) {
 
-        final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder().accountId(
-                "accountId");
+        final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
+                .accountId("accountId");
         final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderCustomized = preBidRequestBuilderCustomizer
                 .apply(preBidRequestBuilderMinimal);
         final PreBidRequest preBidRequest = preBidRequestBuilderCustomized.build();
@@ -902,12 +789,10 @@ public class FacebookAdapterTest extends VertxTest {
         return mapper.readValue(bidRequestCaptor.getValue(), BidRequest.class);
     }
 
-    private static BidRequest toBidRequest(String bidRequest) {
-        try {
-            return mapper.readValue(bidRequest, BidRequest.class);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    private void givenHttpClientProducesException(Throwable throwable) {
+        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
+        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
     }
 
     private void givenHttpClientReturnsResponses(int statusCode, String... bidResponses) {
@@ -919,12 +804,6 @@ public class FacebookAdapterTest extends VertxTest {
         for (String bidResponse : bidResponses) {
             currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)));
         }
-    }
-
-    private void givenHttpClientProducesException(Throwable throwable) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
-        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
     }
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
@@ -955,17 +834,19 @@ public class FacebookAdapterTest extends VertxTest {
     private static String givenBidResponseCustomizable(
             Function<BidResponse.BidResponseBuilder, BidResponse.BidResponseBuilder> bidResponseBuilderCustomizer,
             Function<SeatBid.SeatBidBuilder, SeatBid.SeatBidBuilder> seatBidBuilderCustomizer,
-            Function<com.iab.openrtb.response.Bid.BidBuilder, com.iab.openrtb.response.Bid.BidBuilder>
-                    bidBuilderCustomizer) throws JsonProcessingException {
+            List<Function<Bid.BidBuilder, Bid.BidBuilder>>
+                    bidBuilderCustomizers) throws JsonProcessingException {
 
         // bid
-        final com.iab.openrtb.response.Bid.BidBuilder bidBuilderMinimal = com.iab.openrtb.response.Bid.builder();
-        final com.iab.openrtb.response.Bid.BidBuilder bidBuilderCustomized =
-                bidBuilderCustomizer.apply(bidBuilderMinimal);
-        final com.iab.openrtb.response.Bid bid = bidBuilderCustomized.build();
+        final com.iab.openrtb.response.Bid.BidBuilder bidBuilderMinimal = com.iab.openrtb.response.Bid.builder()
+                .price(new BigDecimal("5.67"));
+
+        List<Bid> bids = bidBuilderCustomizers.stream()
+                .map(bidBuilderBidBuilderFunction -> bidBuilderBidBuilderFunction.apply(bidBuilderMinimal).build())
+                .collect(Collectors.toList());
 
         // seatBid
-        final SeatBid.SeatBidBuilder seatBidBuilderMinimal = SeatBid.builder().bid(singletonList(bid));
+        final SeatBid.SeatBidBuilder seatBidBuilderMinimal = SeatBid.builder().bid(bids);
         final SeatBid.SeatBidBuilder seatBidBuilderCustomized = seatBidBuilderCustomizer.apply(seatBidBuilderMinimal);
         final SeatBid seatBid = seatBidBuilderCustomized.build();
 

@@ -197,6 +197,27 @@
       "media_types": [
         "banner"
       ]
+    },
+    {
+      "code": "adUnitCode7",
+      "sizes": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId7",
+          "bidder": "indexExchange",
+          "params": {
+            "siteID": 486
+          }
+        }
+      ],
+      "media_types": [
+        "banner"
+      ]
     }
   ],
   "device": {

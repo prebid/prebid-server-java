@@ -146,7 +146,7 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
+    public void requestBidsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
         bidder = Bidder.from(ADAPTER, asList(
                 givenAdUnitBidCustomizable(identity(), identity()),
@@ -166,7 +166,7 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
+    public void requestBidsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("cp", new TextNode("non-integer"));
@@ -182,7 +182,7 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAdUnitBidParamPublisherIdIsMissing() {
+    public void requestBidsShouldFailIfAdUnitBidParamPublisherIdIsMissing() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("cp", null);
@@ -198,7 +198,7 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAdUnitBidParamTagIdIsMissing() {
+    public void requestBidsShouldFailIfAdUnitBidParamTagIdIsMissing() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("cp", new IntNode(1));
@@ -215,7 +215,7 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAdUnitBidParamAdSizeIsMissing() {
+    public void requestBidsShouldFailIfAdUnitBidParamAdSizeIsMissing() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("cp", new IntNode(1));
@@ -233,7 +233,7 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAdUnitBidParamAdSizeIsInvalid() {
+    public void requestBidsShouldFailIfAdUnitBidParamAdSizeIsInvalid() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("cp", new IntNode(1));
@@ -251,7 +251,7 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAdUnitBidParamAdSizeWidthIsInvalid() {
+    public void requestBidsShouldFailIfAdUnitBidParamAdSizeWidthIsInvalid() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("cp", new IntNode(1));
@@ -269,7 +269,7 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void requestBidShouldFailIfAdUnitBidParamAdSizeHeightIsInvalid() {
+    public void requestBidsShouldFailIfAdUnitBidParamAdSizeHeightIsInvalid() {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("cp", new IntNode(1));

@@ -6,18 +6,26 @@
   "admin_port": 6060,
   "default-timeout-ms": 250,
   "adapters": {
-    "pubmatic": {
-      "endpoint": "http://openbid.pubmatic.com/translator?source=prebid-server"
-    },
     "rubicon": {
       "endpoint": "http://staged-by.rubiconproject.com/a/api/exchange.json",
       "usersync_url": "https://pixel.rubiconproject.com/exchange/sync.php?p=prebid"
     },
-    "pulsepoint": {
-      "endpoint": "http://bid.contextweb.com/header/s/ortb/prebid-s2s"
+    "appnexus": {
+      "usersync_url": "//ib.adnxs.com/getuid?"
     },
-    "index": {
+    "facebook": {
+      "endpoint": "https://an.facebook.com/placementbid.ortb",
+      "nonSecureEndpoint": "http://an.facebook.com/placementbid.ortb"
+    },
+    "pulsepoint": {
+      "endpoint": "http://bid.contextweb.com/header/s/ortb/prebid-s2s",
+      "usersync_url": "//bh.contextweb.com/rtset?pid=561205&ev=1&rurl="
+    },
+    "indexexchange": {
       "usersync_url": "//ssum-sec.casalemedia.com/usermatchredir?s=184932&cb=https%3A%2F%2Fprebid.adnxs.com%2Fpbs%2Fv1%2Fsetuid%3Fbidder%3DindexExchange%26uid%3D"
+    },
+    "pubmatic": {
+      "endpoint": "http://openbid.pubmatic.com/translator?source=prebid-server"
     },
     "conversant": {
       "endpoint": "http://media.msg.dotomi.com/s2s/header/24",

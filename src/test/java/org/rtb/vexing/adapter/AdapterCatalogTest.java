@@ -8,6 +8,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
 import org.rtb.vexing.adapter.facebook.FacebookAdapter;
+import org.rtb.vexing.adapter.indexexchange.IndexExchangeAdapter;
 import org.rtb.vexing.adapter.pulsepoint.PulsepointAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
@@ -60,6 +61,11 @@ public class AdapterCatalogTest {
         given(applicationConfig.getString(eq("adapters.pulsepoint.usersync_url")))
                 .willReturn("http://pulsepoint-usersync-url");
 
+        given(applicationConfig.getString(eq("adapters.indexexchange.endpoint")))
+                .willReturn("http://indexexchange-endpoint");
+        given(applicationConfig.getString(eq("adapters.indexexchange.usersync_url")))
+                .willReturn("http://indexexchange-usersync-url");
+
         // when
         final AdapterCatalog adapterCatalog = AdapterCatalog.create(applicationConfig, httpClient);
 
@@ -79,5 +85,9 @@ public class AdapterCatalogTest {
         assertThat(adapterCatalog.getByCode("pulsepoint"))
                 .isNotNull()
                 .isInstanceOf(PulsepointAdapter.class);
+
+        assertThat(adapterCatalog.getByCode("indexExchange"))
+                .isNotNull()
+                .isInstanceOf(IndexExchangeAdapter.class);
     }
 }
