@@ -78,11 +78,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private Future<BidRequest> validateRequest(BidRequest bidRequest) {
         final Future<BidRequest> result;
-
-        // TODO: implement proper validation
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
         if (validationResult.hasErrors()) {
-            result = Future.failedFuture(new InvalidRequestException(validationResult.errors()));
+            result = Future.failedFuture(new InvalidRequestException(validationResult.errors));
         } else {
             result = Future.succeededFuture(bidRequest);
         }

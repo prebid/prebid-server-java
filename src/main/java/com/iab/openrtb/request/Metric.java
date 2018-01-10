@@ -2,6 +2,7 @@ package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import lombok.Builder;
 import lombok.Value;
 
 /**
@@ -11,6 +12,7 @@ import lombok.Value;
  * Each metric is identified by its type, reports the value of the metric,
  * and optionally identifies the source or vendor measuring the value.
  */
+@Builder
 @Value
 public class Metric {
 

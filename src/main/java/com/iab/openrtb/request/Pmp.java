@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
  * represented as a collection of {@link Deal} objects.
  * Refer to Section 7.3 for more details.
  */
+@Builder(toBuilder = true)
 @Value
 public class Pmp {
 
