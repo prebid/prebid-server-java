@@ -218,6 +218,27 @@
       "media_types": [
         "banner"
       ]
+    },
+    {
+      "code": "adUnitCode8",
+      "sizes": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId8",
+          "bidder": "Lifestreet",
+          "params": {
+            "slot_tag": "slot.tag1"
+          }
+        }
+      ],
+      "media_types": [
+        "banner"
+      ]
     }
   ],
   "device": {

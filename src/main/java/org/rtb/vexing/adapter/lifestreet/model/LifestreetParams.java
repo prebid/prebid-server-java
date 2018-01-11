@@ -1,6 +1,5 @@
-package org.rtb.vexing.adapter.indexexchange.model;
+package org.rtb.vexing.adapter.lifestreet.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -11,8 +10,7 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class IndexExchangeParams {
+public class LifestreetParams {
 
-    @JsonProperty("siteID")
-    Integer siteId;
+    String slotTag;
 }

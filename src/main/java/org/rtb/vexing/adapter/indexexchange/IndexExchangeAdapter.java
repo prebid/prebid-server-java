@@ -184,9 +184,7 @@ public class IndexExchangeAdapter implements Adapter {
             throw new PreBidException("Missing siteID param");
         }
 
-        return IndexExchangeParams.builder()
-                .siteId(params.siteId)
-                .build();
+        return params;
     }
 
     private static List<Imp> makeImps(List<AdUnitBid> adUnitBids, PreBidRequestContext preBidRequestContext) {

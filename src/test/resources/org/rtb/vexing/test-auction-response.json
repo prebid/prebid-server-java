@@ -67,6 +67,19 @@
       ]
     },
     {
+      "bidder": "Lifestreet",
+      "response_time_ms": "{{ Lifestreet.response_time_ms }}",
+      "num_bids": 1,
+      "debug": [
+        {
+          "request_uri": "{{ Lifestreet.exchange_uri }}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode8\",\"banner\":{\"w\":300,\"h\":250},\"tagid\":\"slot.tag1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"LS-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "response_body": "{\"id\":\"bidResponseId8\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode8\",\"price\":5.78,\"adm\":\"adm8\",\"crid\":\"crid8\",\"dealid\":\"dealId8\",\"w\":300,\"h\":250}],\"seat\":\"seatId8\",\"group\":0}]}",
+          "status_code": 200
+        }
+      ]
+    },
+    {
       "bidder": "indexExchange",
       "response_time_ms": "{{ indexExchange.response_time_ms }}",
       "num_bids": 1,
@@ -81,6 +94,32 @@
     }
   ],
   "bids": [
+    {
+      "bid_id": "bidId8",
+      "code": "adUnitCode8",
+      "creative_id": "crid8",
+      "bidder": "Lifestreet",
+      "price": 5.78,
+      "width": 300,
+      "height": 250,
+      "deal_id": "dealId8",
+      "cache_id": "f5f475e6-c786-4596-92e5-1f9a33285b5e",
+      "cache_url": "{{ cache_resource_url }}f5f475e6-c786-4596-92e5-1f9a33285b5e",
+      "response_time_ms": "{{ Lifestreet.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "5.70",
+        "hb_size_Lifestreet": "300x250",
+        "hb_deal_Lifestreet": "dealId8",
+        "hb_pb_Lifestreet": "5.70",
+        "hb_size": "300x250",
+        "hb_bidder": "Lifestreet",
+        "hb_cache_id": "f5f475e6-c786-4596-92e5-1f9a33285b5e",
+        "hb_creative_loadtype": "html",
+        "hb_deal": "dealId8",
+        "hb_bidder_Lifestreet": "Lifestreet",
+        "hb_cache_id_Lifestreet": "f5f475e6-c786-4596-92e5-1f9a33285b5e"
+      }
+    },
     {
       "bid_id": "bidId6",
       "code": "adUnitCode6",

@@ -24,6 +24,10 @@
     "indexexchange": {
       "usersync_url": "//ssum-sec.casalemedia.com/usermatchredir?s=184932&cb=https%3A%2F%2Fprebid.adnxs.com%2Fpbs%2Fv1%2Fsetuid%3Fbidder%3DindexExchange%26uid%3D"
     },
+    "lifestreet": {
+      "endpoint": "https://prebid.s2s.lfstmedia.com/adrequest",
+      "usersync_url": "//ads.lfstmedia.com/idsync/137062?synced=1&ttl=1s&rurl="
+    },
     "pubmatic": {
       "endpoint": "http://openbid.pubmatic.com/translator?source=prebid-server"
     },

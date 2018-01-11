@@ -4,6 +4,7 @@ import io.vertx.core.http.HttpClient;
 import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
 import org.rtb.vexing.adapter.facebook.FacebookAdapter;
 import org.rtb.vexing.adapter.indexexchange.IndexExchangeAdapter;
+import org.rtb.vexing.adapter.lifestreet.LifestreetAdapter;
 import org.rtb.vexing.adapter.pulsepoint.PulsepointAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
@@ -31,7 +32,8 @@ public class AdapterCatalog {
                 appnexus(config, httpClient),
                 facebook(config, httpClient),
                 pulsepoint(config, httpClient),
-                index(config, httpClient))
+                index(config, httpClient),
+                lifestreet(config, httpClient))
                 .collect(Collectors.toMap(Adapter::code, Function.identity()));
 
         return new AdapterCatalog(adapters);
@@ -75,6 +77,14 @@ public class AdapterCatalog {
         return new IndexExchangeAdapter(
                 config.getString("adapters.indexexchange.endpoint"),
                 config.getString("adapters.indexexchange.usersync_url"),
+                httpClient);
+    }
+
+    private static LifestreetAdapter lifestreet(ApplicationConfig config, HttpClient httpClient) {
+        return new LifestreetAdapter(
+                config.getString("adapters.lifestreet.endpoint"),
+                config.getString("adapters.lifestreet.usersync_url"),
+                config.getString("external_url"),
                 httpClient);
     }
 
