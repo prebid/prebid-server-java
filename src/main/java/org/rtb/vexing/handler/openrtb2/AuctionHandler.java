@@ -14,6 +14,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.auction.ExchangeService;
+import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.validation.RequestValidator;
 import org.rtb.vexing.validation.ValidationResult;
 
@@ -29,18 +30,21 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final long maxRequestSize;
     private final RequestValidator requestValidator;
     private final ExchangeService exchangeService;
+    private final PreBidRequestContextFactory preBidRequestContextFactory;
 
-    AuctionHandler(long maxRequestSize, RequestValidator requestValidator, ExchangeService exchangeService) {
+    AuctionHandler(long maxRequestSize, RequestValidator requestValidator, ExchangeService exchangeService,
+                   PreBidRequestContextFactory preBidRequestContextFactory) {
         this.maxRequestSize = maxRequestSize;
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.exchangeService = Objects.requireNonNull(exchangeService);
+        this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
     }
 
     @Override
     public void handle(RoutingContext context) {
         parseRequest(context)
                 .compose(AuctionHandler::processStoredRequests)
-                .map(AuctionHandler::populateDerivedFields)
+                .map(bidRequest -> preBidRequestContextFactory.fromRequest(bidRequest, context.request()))
                 .compose(this::validateRequest)
                 .compose(exchangeService::holdAuction)
                 .setHandler(responseResult -> handleResult(responseResult, context));
@@ -69,11 +73,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private static Future<BidRequest> processStoredRequests(BidRequest bidRequest) {
         // TODO: implement stored requests processing
         return Future.succeededFuture(bidRequest);
-    }
-
-    private static BidRequest populateDerivedFields(BidRequest bidRequest) {
-        // TODO: implement derived fields population
-        return bidRequest;
     }
 
     private Future<BidRequest> validateRequest(BidRequest bidRequest) {

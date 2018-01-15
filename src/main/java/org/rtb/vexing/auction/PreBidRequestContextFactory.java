@@ -1,6 +1,9 @@
 package org.rtb.vexing.auction;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Site;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -98,6 +101,66 @@ public class PreBidRequestContextFactory {
                 .map(bidders -> PreBidRequestContext.builder().bidders(bidders))
                 .map(builder -> populatePreBidRequestContextBuilder(context, preBidRequest, httpRequest, builder))
                 .map(PreBidRequestContext.PreBidRequestContextBuilder::build);
+    }
+
+    public BidRequest fromRequest(BidRequest bidRequest, HttpServerRequest request) {
+        final BidRequest result;
+
+        final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
+        final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
+
+        if (populatedDevice != null || populatedSite != null) {
+            result = bidRequest.toBuilder()
+                    .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
+                    .site(populatedSite != null ? populatedSite : bidRequest.getSite())
+                    .build();
+        } else {
+            result = bidRequest;
+        }
+
+        return result;
+    }
+
+    private Device populateDevice(Device device, HttpServerRequest request) {
+        final Device result;
+
+        final String ip = device != null ? device.getIp() : null;
+        final String ua = device != null ? device.getUa() : null;
+
+        if (StringUtils.isBlank(ip) || StringUtils.isBlank(ua)) {
+            final Device.DeviceBuilder builder = device == null ? Device.builder() : device.toBuilder();
+            builder.ip(StringUtils.isNotBlank(ip) ? ip : ip(request));
+            builder.ua(StringUtils.isNotBlank(ua) ? ua : ua(request));
+
+            result = builder.build();
+        } else {
+            result = null;
+        }
+
+        return result;
+    }
+
+    private Site populateSite(Site site, HttpServerRequest request) {
+        Site result = null;
+
+        final String page = site != null ? site.getPage() : null;
+        final String domain = site != null ? site.getDomain() : null;
+
+        if (StringUtils.isBlank(page) || StringUtils.isBlank(domain)) {
+            final String refererCandidate = referer(request);
+            if (StringUtils.isNotBlank(refererCandidate)) {
+                try {
+                    final String parsedDomain = domain(refererCandidate);
+                    final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
+                    builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
+                    builder.page(StringUtils.isNotBlank(page) ? page : refererCandidate);
+                    result = builder.build();
+                } catch (PreBidException e) {
+                    logger.warn("Error occurred while populating bid request", e);
+                }
+            }
+        }
+        return result;
     }
 
     private PreBidRequestContext.PreBidRequestContextBuilder populatePreBidRequestContextBuilder(
@@ -213,16 +276,6 @@ public class PreBidRequestContextFactory {
                 ? 1 : null;
     }
 
-    private static String referer(HttpServerRequest httpRequest) {
-        final String urlOverride = httpRequest.getParam("url_override");
-        final String url = StringUtils.isNotBlank(urlOverride) ? urlOverride
-                : httpRequest.headers().get(HttpHeaders.REFERER);
-
-        return StringUtils.isNotBlank(url) && !StringUtils.startsWith(url, "http")
-                ? String.format("http://%s", url)
-                : url;
-    }
-
     private String domain(String referer) {
         final URL url;
         try {
@@ -247,8 +300,18 @@ public class PreBidRequestContextFactory {
         return domain;
     }
 
-    private static String ua(HttpServerRequest httpRequest) {
-        return httpRequest.headers().get(HttpHeaders.USER_AGENT);
+    private static String referer(HttpServerRequest httpRequest) {
+        final String urlOverride = httpRequest.getParam("url_override");
+        final String url = StringUtils.isNotBlank(urlOverride) ? urlOverride
+                : StringUtils.trimToNull(httpRequest.headers().get(HttpHeaders.REFERER));
+
+        return StringUtils.isNotBlank(url) && !StringUtils.startsWith(url, "http")
+                ? String.format("http://%s", url)
+                : url;
+    }
+
+    private static String ua(HttpServerRequest request) {
+        return StringUtils.trimToNull(request.headers().get(HttpHeaders.USER_AGENT));
     }
 
     private static String ip(HttpServerRequest httpRequest) {

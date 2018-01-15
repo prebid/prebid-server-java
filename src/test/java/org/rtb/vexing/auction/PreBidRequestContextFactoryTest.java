@@ -4,7 +4,10 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Site;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Future;
@@ -49,7 +52,9 @@ import static org.apache.commons.lang3.math.NumberUtils.isDigits;
 import static org.apache.commons.lang3.math.NumberUtils.toLong;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 public class PreBidRequestContextFactoryTest extends VertxTest {
@@ -687,6 +692,144 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // then
         assertThat(preBidRequestContext.referer).isEqualTo("http://example.com");
         assertThat(preBidRequestContext.domain).isEqualTo("example.com");
+    }
+
+    @Test
+    public void shouldPopulateRequestFieldsFromHeadersWhenHeadersFilledAndBodyFieldsEmpty() {
+        // given
+        httpRequest.headers().set("User-Agent", "UnitTest");
+        httpRequest.headers().set("X-Forwarded-For", "203.0.113.195, 70.41.3.18, 150.172.238.178");
+        httpRequest.headers().set("X-Real-IP", "54.83.132.159");
+        httpRequest.headers().set("Referer", "http://example.com");
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(BidRequest.builder().build(), httpRequest);
+
+        // then
+        assertThat(populatedBidRequest.getSite().getPage()).isEqualTo("http://example.com");
+        assertThat(populatedBidRequest.getSite().getDomain()).isEqualTo("example.com");
+        assertThat(populatedBidRequest.getDevice().getIp()).isEqualTo("203.0.113.195");
+        assertThat(populatedBidRequest.getDevice().getUa()).isEqualTo("UnitTest");
+    }
+
+    @Test
+    public void shouldNotPopulateRequestFieldsFromHeadersWhenRequestFieldsPopulated() {
+        // given
+        httpRequest.headers().set("User-Agent", "UnitTest");
+        httpRequest.headers().set("X-Forwarded-For", "203.0.113.195, 70.41.3.18, 150.172.238.178");
+        httpRequest.headers().set("X-Real-IP", "54.83.132.159");
+        httpRequest.headers().set("Referer", "http://example.com");
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().domain("test.com").page("http://test.com")
+                        .build())
+                .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3")
+                        .build())
+                .build();
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(bidRequest, httpRequest);
+
+        // then
+        assertThat(populatedBidRequest.getSite().getPage()).isEqualTo("http://test.com");
+        assertThat(populatedBidRequest.getSite().getDomain()).isEqualTo("test.com");
+        assertThat(populatedBidRequest.getDevice().getIp()).isEqualTo("56.76.12.3");
+        assertThat(populatedBidRequest.getDevice().getUa()).isEqualTo("UnitTestUA");
+    }
+
+    @Test
+    public void shouldNotPopulateSiteRequestFieldsFromHeadersWhenRefererSkipped() {
+        // given
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3")
+                        .build())
+                .build();
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(bidRequest, httpRequest);
+
+        // then
+        assertThat(populatedBidRequest.getSite()).isNull();
+    }
+
+    @Test
+    public void shouldNotPopulateSiteDomainAndPageRequestFieldsFromHeadersWhenRefererSkipped() {
+        // given
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().domain("home.com")
+                        .build())
+                .build();
+
+        //when
+        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
+
+        // then
+        assertThat(result.getSite().getDomain()).isEqualTo("home.com");
+        assertThat(result.getSite().getPage()).isNull();
+    }
+
+    @Test
+    public void shouldNotPopulateRequestFieldsFromHeadersWhenBothHeadersAndBodyFieldsEmpty() {
+        // given
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
+
+        // then
+        assertThat(result.getSite()).isNull();
+        // Device IP field is created in any case since it derives from the request remote address attribute
+        // if X-Forwarded-For and X-Real-IP headers are empty
+        assertThat(result.getDevice()).isNotNull();
+        assertThat(result.getDevice().getIp()).isEqualTo("192.168.244.1");
+    }
+
+    @Test
+    public void shouldPopulateRequestDeviceIpFieldFromXForwardedHeaderWhenBodyFieldEmpty() {
+        // given
+        httpRequest.headers().set("X-Forwarded-For", "203.0.113.195, 70.41.3.18");
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // then
+        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
+
+        //then
+        assertThat(result.getDevice()).isNotNull();
+        assertThat(result.getDevice().getIp()).isEqualTo("203.0.113.195");
+    }
+
+    @Test
+    public void shouldPopulateRequestDeviceIpFieldFromXREalIpHeaderWhenBodyFieldEmpty() {
+        // given
+        httpRequest.headers().set("X-Real-IP", "54.83.132.159");
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
+
+        // then
+        assertThat(result.getDevice()).isNotNull();
+        assertThat(result.getDevice().getIp()).isEqualTo("54.83.132.159");
+    }
+
+    @Test
+    public void shouldNotPopulateSiteDomainAndPageRequestFieldsFromHeadersWhenRefererDomainMissed() {
+        // given
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        httpRequest.headers().set("Referer", "http://.com:50505");
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().domain("home.com")
+                        .build())
+                .build();
+
+        //when
+        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
+
+        // then
+        assertThat(result.getSite().getDomain()).isEqualTo("home.com");
+        assertThat(result.getSite().getPage()).isNull();
     }
 
     private JsonObject givenPreBidRequestCustomizable(

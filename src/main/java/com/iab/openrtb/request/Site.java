@@ -12,7 +12,7 @@ import java.util.List;
  * {@link Site} and an {@link App} object. At a minimum, it is useful to provide
  * a site ID or page URL, but this is not strictly required.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Site {
 
