@@ -11,9 +11,6 @@ import org.rtb.vexing.model.openrtb.ext.response.BidType;
 
 /**
  * Bid returned by a {@link Bidder}.
- * <p>
- * This is distinct from the {@link com.iab.openrtb.response.SeatBid} so that the prebid-server ext can be passed
- * back with type safety.
  */
 @ToString
 @EqualsAndHashCode
@@ -21,6 +18,9 @@ import org.rtb.vexing.model.openrtb.ext.response.BidType;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class BidderBid {
 
+    /**
+     * bid.ext will become "response.seatbid[i].bid.ext.bidder" in the final OpenRTB response
+     */
     Bid bid;
 
     /**

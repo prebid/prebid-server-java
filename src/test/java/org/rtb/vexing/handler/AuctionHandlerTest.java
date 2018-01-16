@@ -54,8 +54,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -329,7 +328,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .bids(asList(
                         org.rtb.vexing.model.response.Bid.builder()
                                 .bidder(RUBICON).code("adUnitCode1").bidId("bidId1").price(new BigDecimal("5.67"))
-                                .responseTimeMs(60).build(),
+                                .responseTimeMs(60).adServerTargeting(singletonMap("rpfl_1001", "2_tier0100")).build(),
                         org.rtb.vexing.model.response.Bid.builder()
                                 .bidder(RUBICON).code("adUnitCode2").bidId("bidId2").price(new BigDecimal("6.35"))
                                 .responseTimeMs(80).build()))
@@ -351,6 +350,9 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
         assertThat(preBidResponse.bids).extracting(b -> b.adServerTargeting).doesNotContainNull();
+        // verify that ad server targeting has been preserved
+        assertThat(preBidResponse.bids).extracting(b -> b.bidId, b -> b.adServerTargeting.get("rpfl_1001"))
+                .contains(tuple("bidId1", "2_tier0100"));
         // weird way to verify that sorting has happened before bids grouped by ad unit code are enriched with targeting
         // keywords
         assertThat(preBidResponse.bids).extracting(b -> b.bidId, b -> b.adServerTargeting.get("hb_bidder"))

@@ -1,42 +1,42 @@
 package org.rtb.vexing.auction;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 class CpmBucket {
 
-    private static final Logger logger = LoggerFactory.getLogger(CpmBucket.class);
+    enum PriceGranularity {
+        low, medium, med, high, auto, dense
+    }
 
-    private static final Map<String, BucketConfig> PRICE_BUCKET_CONFIGS = new HashMap<>();
+    private static final EnumMap<PriceGranularity, BucketConfig> PRICE_BUCKET_CONFIGS =
+            new EnumMap<>(PriceGranularity.class);
 
     static {
-        priceBucketConfig("low", config(0, 5, 0.5));
+        priceBucketConfig(PriceGranularity.low, config(0, 5, 0.5));
         final Bucket medConfig = config(0, 20, 0.1);
-        priceBucketConfig("medium", medConfig);
+        priceBucketConfig(PriceGranularity.medium, medConfig);
         // Seems that PBS was written with medium = "med", so hacking that in
-        priceBucketConfig("med", medConfig);
-        priceBucketConfig("high", config(0, 20, 0.01));
-        priceBucketConfig("auto",
+        priceBucketConfig(PriceGranularity.med, medConfig);
+        priceBucketConfig(PriceGranularity.high, config(0, 20, 0.01));
+        priceBucketConfig(PriceGranularity.auto,
                 config(0, 5, 0.05),
                 config(5, 10, 0.1),
                 config(10, 20, 0.5));
-        priceBucketConfig("dense",
+        priceBucketConfig(PriceGranularity.dense,
                 config(0, 3, 0.01),
                 config(3, 8, 0.05),
                 config(8, 20, 0.5));
     }
 
-    private static void priceBucketConfig(String priceGranularity, Bucket... configs) {
+    private static void priceBucketConfig(PriceGranularity priceGranularity, Bucket... configs) {
         PRICE_BUCKET_CONFIGS.put(priceGranularity, new BucketConfig(Arrays.asList(configs)));
     }
 
@@ -47,14 +47,11 @@ class CpmBucket {
     private CpmBucket() {
     }
 
-    static String fromCpm(BigDecimal cpm, String priceGranularity) {
+    static String fromCpm(BigDecimal cpm, PriceGranularity priceGranularity) {
         final String result;
 
         final BucketConfig bucketConfig = PRICE_BUCKET_CONFIGS.get(priceGranularity);
-        if (bucketConfig == null) {
-            logger.error("Price bucket granularity error: ''{0}'' is not a recognized granularity", priceGranularity);
-            result = StringUtils.EMPTY;
-        } else if (cpm.compareTo(bucketConfig.bucketMax) > 0) {
+        if (cpm.compareTo(bucketConfig.bucketMax) > 0) {
             result = format(bucketConfig.bucketMax);
         } else {
             result = bucketConfig.findBucketFor(cpm)

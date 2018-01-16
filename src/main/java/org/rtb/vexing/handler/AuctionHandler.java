@@ -14,7 +14,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
-import org.rtb.vexing.auction.TargetingKeywords;
+import org.rtb.vexing.auction.TargetingKeywordsCreator;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;
 import org.rtb.vexing.exception.PreBidException;
@@ -42,6 +42,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -243,20 +244,30 @@ public class AuctionHandler implements Handler<RoutingContext> {
         PreBidResponse result = preBidResponse;
 
         if (preBidRequest.sortBids != null && preBidRequest.sortBids == 1) {
+            final TargetingKeywordsCreator keywordsCreator =
+                    TargetingKeywordsCreator.withSettings(account.priceGranularity, preBidRequest.maxKeyLength);
+
             final List<Bid> bidsWithKeywords = preBidResponse.bids.stream()
                     .collect(Collectors.groupingBy(bid -> bid.code))
                     .values().stream()
                     .peek(bids -> bids.sort(Comparator.<Bid, BigDecimal>comparing(bid -> bid.price)
                             .reversed()
                             .thenComparing(bid -> bid.responseTimeMs)))
-                    .flatMap(bids ->
-                            TargetingKeywords.addTargetingKeywords(preBidRequest, bids, account).stream())
+                    .flatMap(bids -> bids.stream().map(bid -> bid.toBuilder().adServerTargeting(joinMaps(
+                            keywordsCreator.makeFor(bid, bid == bids.get(0)), bid.adServerTargeting)).build()))
                     .collect(Collectors.toList());
 
             result = preBidResponse.toBuilder().bids(bidsWithKeywords).build();
         }
 
         return result;
+    }
+
+    private static <K, V> Map<K, V> joinMaps(Map<K, V> left, Map<K, V> right) {
+        if (right != null) {
+            left.putAll(right);
+        }
+        return left;
     }
 
     private void respondWith(PreBidResponse response, RoutingContext context) {

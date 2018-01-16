@@ -72,6 +72,7 @@ public class HttpConnector {
                         response -> handleResponse(response, result, httpRequest))
                         .exceptionHandler(exception -> handleException(exception, result, httpRequest));
         httpClientRequest.headers().addAll(httpRequest.headers);
+        // FIXME: default timeout?
         if (bidRequest.getTmax() != null && bidRequest.getTmax() > 0) {
             httpClientRequest.setTimeout(bidRequest.getTmax());
         }

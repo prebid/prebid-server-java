@@ -1,5 +1,6 @@
 package org.rtb.vexing.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -14,18 +15,24 @@ import org.rtb.vexing.auction.model.BidderRequest;
 import org.rtb.vexing.auction.model.BidderResponse;
 import org.rtb.vexing.bidder.HttpConnector;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
+import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
+import org.rtb.vexing.model.openrtb.ext.request.ExtRequestTargeting;
 import org.rtb.vexing.model.openrtb.ext.response.ExtBidPrebid;
 import org.rtb.vexing.model.openrtb.ext.response.ExtBidResponse;
 import org.rtb.vexing.model.openrtb.ext.response.ExtHttpCall;
 import org.rtb.vexing.model.openrtb.ext.response.ExtResponseDebug;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -58,6 +65,14 @@ public class ExchangeService {
         // Randomize the list to make the auction more fair
         Collections.shuffle(bidderRequests);
 
+        // build targeting keywords creator
+        final TargetingKeywordsCreator keywordsCreator;
+        try {
+            keywordsCreator = buildKeywordsCreator(bidRequest);
+        } catch (PreBidException e) {
+            return Future.failedFuture(e);
+        }
+
         final long startTime = clock.millis();
 
         // send all the requests to the bidders and gathers results
@@ -66,7 +81,7 @@ public class ExchangeService {
                 .collect(Collectors.toList()));
 
         // produce response from bidder results
-        return bidderResults.map(result -> toBidResponse(result.result().list(), bidRequest));
+        return bidderResults.map(result -> toBidResponse(result.result().list(), bidRequest, keywordsCreator));
     }
 
     /**
@@ -110,6 +125,29 @@ public class ExchangeService {
     }
 
     /**
+     * Extracts targeting keywords settings from the bid request and creates {@link TargetingKeywordsCreator}
+     * instance if they
+     * are present. Returns null if bidrequest.ext.prebid.targeting is missing - it means that no targeting keywords
+     * should be included in bid response.
+     */
+    private static TargetingKeywordsCreator buildKeywordsCreator(BidRequest bidRequest) {
+        final TargetingKeywordsCreator result;
+
+        try {
+            final ExtBidRequest requestExt = bidRequest.getExt() != null
+                    ? Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
+            final ExtRequestTargeting targeting = requestExt != null && requestExt.prebid != null
+                    ? requestExt.prebid.targeting : null;
+            result = targeting != null
+                    ? TargetingKeywordsCreator.withSettings(targeting.pricegranularity, targeting.lengthmax) : null;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
+        }
+
+        return result;
+    }
+
+    /**
      * Creates a new imp extension for particular bidder having:
      * <ul>
      * <li>"bidder" field populated with an imp.ext.{bidder} field value, not null</li>
@@ -133,13 +171,16 @@ public class ExchangeService {
      * Takes all the bids supplied by the bidder and crafts an OpenRTB {@link BidResponse} to send back to the
      * requester.
      */
-    private static BidResponse toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest) {
+    private static BidResponse toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
+                                             TargetingKeywordsCreator keywordsCreator) {
+        final Set<Bid> winningBids = determineWinningBids(keywordsCreator, bidderResponses);
+
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.seatBid.bids.isEmpty())
-                .map(ExchangeService::toSeatBid)
+                .map(bidderRespone -> toSeatBid(bidderRespone, keywordsCreator, winningBids))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest);
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, keywordsCreator);
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -151,21 +192,38 @@ public class ExchangeService {
     }
 
     /**
+     * Determines wining bids for each impId (ad unit code). Winning bid is the one with the highest price.
+     */
+    private static Set<Bid> determineWinningBids(TargetingKeywordsCreator keywordsCreator,
+                                                 List<BidderResponse> bidderResponses) {
+        // determine winning bids only if targeting keywords are requested
+        return keywordsCreator == null ? Collections.emptySet() : bidderResponses.stream()
+                .flatMap(bidderResponse -> bidderResponse.seatBid.bids.stream().map(bidderBid -> bidderBid.bid))
+                // group bids by impId (ad unit code)
+                .collect(Collectors.groupingBy(Bid::getImpid))
+                .values().stream()
+                // sort each bid list by price and pick a winning bid for each impId
+                .peek(bids -> bids.sort(Comparator.comparing(Bid::getPrice).reversed()))
+                .map(bids -> bids.get(0)) // each list is guaranteed to be non-empty
+                .collect(Collectors.toSet());
+    }
+
+    /**
      * Creates an OpenRTB {@link SeatBid} for a bidder. It will contain all the bids supplied by a bidder and a "bidder"
      * extension field populated.
      */
-    private static SeatBid toSeatBid(BidderResponse bidderResponse) {
+    private static SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
+                                     Set<Bid> winningBids) {
         final SeatBid.SeatBidBuilder seatBidBuilder = SeatBid.builder()
                 .seat(bidderResponse.bidder)
                 // prebid cannot support roadblocking
                 .group(0)
                 .bid(bidderResponse.seatBid.bids.stream()
-                        .map(ExchangeService::toBid)
+                        .map(bidderBid -> toBid(bidderBid, bidderResponse.bidder, keywordsCreator, winningBids))
                         .collect(Collectors.toList()));
 
         if (bidderResponse.seatBid.ext != null) {
-            seatBidBuilder.ext(Json.mapper.valueToTree(
-                    ExtPrebid.of(null, bidderResponse.seatBid.ext)));
+            seatBidBuilder.ext(Json.mapper.valueToTree(ExtPrebid.of(null, bidderResponse.seatBid.ext)));
         }
 
         return seatBidBuilder.build();
@@ -174,24 +232,41 @@ public class ExchangeService {
     /**
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated
      */
-    private static Bid toBid(BidderBid bidderBid) {
-        final ExtBidPrebid prebidExt = ExtBidPrebid.builder().type(bidderBid.type).build();
+    private static Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
+                             Set<Bid> winningBids) {
+        final Bid bid = bidderBid.bid;
+        final Map<String, String> targetingKeywords = keywordsCreator != null
+                ? keywordsCreator.makeFor(bid, bidder, winningBids.contains(bid))
+                : null;
 
-        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bidderBid.bid.getExt());
+        final ExtBidPrebid prebidExt = ExtBidPrebid.builder()
+                .type(bidderBid.type)
+                .targeting(targetingKeywords)
+                .build();
 
-        return bidderBid.bid.toBuilder().ext(Json.mapper.valueToTree(bidExt)).build();
+        final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
+
+        return bid.toBuilder().ext(Json.mapper.valueToTree(bidExt)).build();
     }
 
     /**
      * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
      * bidders
      */
-    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest) {
+    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
+                                                   TargetingKeywordsCreator keywordsCreator) {
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(r -> r.bidder, r -> r.responseTime));
 
         final Map<String, List<String>> errors = results.stream()
                 .collect(Collectors.toMap(r -> r.bidder, r -> r.seatBid.errors));
+        // if price granularity in request is not valid - add corresponding error message for each bidder
+        if (keywordsCreator != null && !keywordsCreator.isPriceGranularityValid()) {
+            final String priceGranularityError = String.format(
+                    "Price bucket granularity error: '%s' is not a recognized granularity",
+                    keywordsCreator.priceGranularity());
+            errors.replaceAll((k, v) -> append(v, priceGranularityError));
+        }
 
         final Map<String, List<ExtHttpCall>> httpCalls = bidRequest.getTest() == 1
                 ? results.stream()
@@ -203,6 +278,12 @@ public class ExchangeService {
                 .errors(errors)
                 .debug(httpCalls != null ? ExtResponseDebug.of(httpCalls) : null)
                 .build();
+    }
+
+    private static <T> List<T> append(List<T> originalList, T value) {
+        final List<T> list = new ArrayList<>(originalList);
+        list.add(value);
+        return list;
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {
