@@ -11,6 +11,7 @@
       "usersync_url": "https://pixel.rubiconproject.com/exchange/sync.php?p=prebid"
     },
     "appnexus": {
+      "endpoint": "http://ib.adnxs.com/openrtb2",
       "usersync_url": "//ib.adnxs.com/getuid?"
     },
     "facebook": {
@@ -29,7 +30,8 @@
       "usersync_url": "//ads.lfstmedia.com/idsync/137062?synced=1&ttl=1s&rurl="
     },
     "pubmatic": {
-      "endpoint": "http://openbid.pubmatic.com/translator?source=prebid-server"
+      "endpoint": "http://openbid.pubmatic.com/translator?source=prebid-server",
+      "usersync_url": "//ads.pubmatic.com/AdServer/js/user_sync.html?predirect="
     },
     "conversant": {
       "endpoint": "http://media.msg.dotomi.com/s2s/header/24",

@@ -425,7 +425,7 @@ public class FacebookAdapter implements Adapter {
         try {
             bidResponse = Json.decodeValue(body, BidResponse.class);
         } catch (DecodeException e) {
-            logger.warn("Error occurred while parsing bid response: {0}", body, e);
+            logger.warn("Error occurred while parsing bid response: {0}", e, body);
             return BidResult.error(bidderDebug, e.getMessage());
         }
 

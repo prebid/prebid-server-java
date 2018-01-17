@@ -1,0 +1,38 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "adUnitCode9",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "slot9"
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId9",
+      "domain": "example.com"
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "192.168.244.1",
+    "pxratio": 4.2
+  },
+  "user": {
+    "id": "12345",
+    "buyeruid": "PM-UID"
+  },
+  "test": 0,
+  "at": 1,
+  "tmax": 1000,
+  "allimps": 0,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  }
+}

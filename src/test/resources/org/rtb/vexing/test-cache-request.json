@@ -3,6 +3,14 @@
     {
       "type": "json",
       "value": {
+        "adm": "adm9",
+        "width": 300,
+        "height": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "adm": "adm5",
         "width": 300,
         "height": 250

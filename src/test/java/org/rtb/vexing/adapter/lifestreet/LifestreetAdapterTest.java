@@ -22,11 +22,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -103,7 +98,7 @@ public class LifestreetAdapterTest extends VertxTest {
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
-        bidder = givenBidderCustomizable(identity(), identity());
+        bidder = givenBidderCustomizable(identity());
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
 
@@ -154,8 +149,7 @@ public class LifestreetAdapterTest extends VertxTest {
     public void requestBidsShouldFailIfAdUnitBidHasInvalidFieldsForVideo() {
         bidder = givenBidderCustomizable(builder -> builder
                         .mediaTypes(new HashSet<>(singletonList(MediaType.video)))
-                        .video(Video.builder().build()), // no mimes
-                identity());
+                .video(Video.builder().build()));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -174,8 +168,8 @@ public class LifestreetAdapterTest extends VertxTest {
     public void requestBidsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
         bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(identity(), identity()),
-                givenAdUnitBidCustomizable(builder -> builder.params(null), identity())));
+                givenAdUnitBidCustomizable(identity()),
+                givenAdUnitBidCustomizable(builder -> builder.params(null))));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -195,7 +189,7 @@ public class LifestreetAdapterTest extends VertxTest {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("slot_tag", null);
-        bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
+        bidder = givenBidderCustomizable(builder -> builder.params(params));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -211,7 +205,7 @@ public class LifestreetAdapterTest extends VertxTest {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("slot_tag", new TextNode("invalid"));
-        bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
+        bidder = givenBidderCustomizable(builder -> builder.params(params));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -224,7 +218,7 @@ public class LifestreetAdapterTest extends VertxTest {
 
     @Test
     public void requestBidsShouldFailIfNoImpsCreated() {
-        bidder = givenBidderCustomizable(builder -> builder.mediaTypes(emptySet()), identity());
+        bidder = givenBidderCustomizable(builder -> builder.mediaTypes(emptySet()));
 
         // when
         final Future<BidderResult> bidderResultFuture = adapter.requestBids(bidder, preBidRequestContext);
@@ -248,9 +242,8 @@ public class LifestreetAdapterTest extends VertxTest {
                         .adUnitCode("adUnitCode")
                         .instl(1)
                         .topframe(1)
-                        .sizes(singletonList(Format.builder().w(300).h(250).build())),
-                paramsBuilder -> paramsBuilder
-                        .slotTag("slot.TAG"));
+                        .sizes(singletonList(Format.builder().w(300).h(250).build()))
+                        .params(mapper.valueToTree(LifestreetParams.of("slot.TAG"))));
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(
                 builder -> builder
@@ -345,9 +338,7 @@ public class LifestreetAdapterTest extends VertxTest {
                                 .video(Video.builder()
                                         .mimes(singletonList("Mime"))
                                         .playbackMethod(1)
-                                        .build()),
-                        identity()
-                )));
+                                        .build()))));
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
 
@@ -373,8 +364,8 @@ public class LifestreetAdapterTest extends VertxTest {
     public void requestBidsShouldSendMultipleBidRequestsIfMultipleAdUnitsInPreBidRequest() throws IOException {
         // given
         bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"), identity())));
+                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
+                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
 
         // when
         adapter.requestBids(bidder, preBidRequestContext);
@@ -492,7 +483,7 @@ public class LifestreetAdapterTest extends VertxTest {
     public void requestBidsShouldReturnBidderResultWithErrorIfBidImpIdDoesNotMatchAdUnitCode()
             throws JsonProcessingException {
         // given
-        bidder = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"), identity());
+        bidder = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"));
 
         final String bidResponse = givenBidResponseCustomizable(identity(), identity(),
                 builder -> builder.impid("anotherAdUnitCode"));
@@ -509,7 +500,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void requestBidsShouldReturnBidderResultWithoutErrorIfBidsArePresent() throws JsonProcessingException {
         // given
-        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity(), identity());
+        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity());
         bidder = Bidder.from(ADAPTER, asList(adUnitBid, adUnitBid));
 
         given(httpClientRequest.exceptionHandler(any()))
@@ -534,7 +525,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void requestBidsShouldReturnBidderResultWithLatestErrorIfBidsAreAbsent() throws JsonProcessingException {
         // given
-        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity(), identity());
+        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity());
         bidder = Bidder.from(ADAPTER, asList(adUnitBid, adUnitBid, adUnitBid));
 
         given(httpClientRequest.exceptionHandler(any()))
@@ -561,9 +552,7 @@ public class LifestreetAdapterTest extends VertxTest {
     public void requestBidsShouldReturnBidderResultWithExpectedFields() throws JsonProcessingException {
         // given
         bidder = givenBidderCustomizable(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId1").adUnitCode("adUnitCode1"),
-                identity()
-        );
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId1").adUnitCode("adUnitCode1"));
 
         final String bidResponse = givenBidResponseCustomizable(
                 builder -> builder.id("bidResponseId1"),
@@ -666,7 +655,7 @@ public class LifestreetAdapterTest extends VertxTest {
     public void requestBidsShouldReturnBidderResultWithMultipleBidsIfMultipleAdUnitsInPreBidRequest()
             throws JsonProcessingException {
         // given
-        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity(), identity());
+        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity());
         bidder = Bidder.from(ADAPTER, asList(adUnitBid, adUnitBid));
 
         final String bidResponse = givenBidResponseCustomizable(identity(), identity(), identity());
@@ -686,8 +675,8 @@ public class LifestreetAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(true), identity());
 
         bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"), identity())));
+                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
+                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
 
         final String bidResponse1 = givenBidResponseCustomizable(builder -> builder.id("bidResponseId1"),
                 identity(), identity());
@@ -775,27 +764,19 @@ public class LifestreetAdapterTest extends VertxTest {
     }
 
     private static Bidder givenBidderCustomizable(
-            Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
-            Function<Params.ParamsBuilder, Params.ParamsBuilder> paramsBuilderCustomizer) {
+            Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
 
         return Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer, paramsBuilderCustomizer)));
+                givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer)));
     }
 
     private static AdUnitBid givenAdUnitBidCustomizable(
-            Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
-            Function<Params.ParamsBuilder, Params.ParamsBuilder> paramsBuilderCustomizer) {
-
-        // params
-        final Params.ParamsBuilder paramsBuilder = Params.builder().slotTag("slot.tag1");
-        final Params.ParamsBuilder paramsBuilderCustomized = paramsBuilderCustomizer.apply(paramsBuilder);
-        final Params params = paramsBuilderCustomized.build();
-
-        // ad unit bid
+            Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(mapper.valueToTree(LifestreetParams.of(params.slotTag)))
+                .params(mapper.valueToTree(LifestreetParams.of("slot.tag1")))
                 .mediaTypes(singleton(MediaType.banner));
+
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer
                 .apply(adUnitBidBuilderMinimal);
 
@@ -903,14 +884,5 @@ public class LifestreetAdapterTest extends VertxTest {
         final BidResponse bidResponse = bidResponseBuilderCustomized.build();
 
         return mapper.writeValueAsString(bidResponse);
-    }
-
-    @Builder
-    @ToString
-    @EqualsAndHashCode
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class Params {
-
-        String slotTag;
     }
 }

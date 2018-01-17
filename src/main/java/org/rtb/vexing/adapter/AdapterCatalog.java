@@ -5,6 +5,7 @@ import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
 import org.rtb.vexing.adapter.facebook.FacebookAdapter;
 import org.rtb.vexing.adapter.indexexchange.IndexExchangeAdapter;
 import org.rtb.vexing.adapter.lifestreet.LifestreetAdapter;
+import org.rtb.vexing.adapter.pubmatic.PubmaticAdapter;
 import org.rtb.vexing.adapter.pulsepoint.PulsepointAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
@@ -33,7 +34,8 @@ public class AdapterCatalog {
                 facebook(config, httpClient),
                 pulsepoint(config, httpClient),
                 index(config, httpClient),
-                lifestreet(config, httpClient))
+                lifestreet(config, httpClient),
+                pubmatic(config, httpClient))
                 .collect(Collectors.toMap(Adapter::code, Function.identity()));
 
         return new AdapterCatalog(adapters);
@@ -84,6 +86,14 @@ public class AdapterCatalog {
         return new LifestreetAdapter(
                 config.getString("adapters.lifestreet.endpoint"),
                 config.getString("adapters.lifestreet.usersync_url"),
+                config.getString("external_url"),
+                httpClient);
+    }
+
+    private static PubmaticAdapter pubmatic(ApplicationConfig config, HttpClient httpClient) {
+        return new PubmaticAdapter(
+                config.getString("adapters.pubmatic.endpoint"),
+                config.getString("adapters.pubmatic.usersync_url"),
                 config.getString("external_url"),
                 httpClient);
     }

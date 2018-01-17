@@ -3,6 +3,19 @@
   "status": "no_cookie",
   "bidder_status": [
     {
+      "bidder": "Pubmatic",
+      "response_time_ms": "{{ Pubmatic.response_time_ms }}",
+      "num_bids": 1,
+      "debug": [
+        {
+          "request_uri": "{{ Pubmatic.exchange_uri }}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode9\",\"banner\":{\"w\":300,\"h\":250},\"tagid\":\"slot9\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId9\",\"domain\":\"example.com\"}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"PM-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "response_body": "{\"id\":\"bidResponseId9\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode9\",\"price\":5.78,\"adm\":\"adm9\",\"crid\":\"crid9\",\"dealid\":\"dealId9\",\"w\":300,\"h\":250}],\"seat\":\"seatId9\",\"group\":0}]}",
+          "status_code": 200
+        }
+      ]
+    },
+    {
       "bidder": "audienceNetwork",
       "response_time_ms": "{{ audienceNetwork.response_time_ms }}",
       "num_bids": 1,
@@ -118,6 +131,32 @@
         "hb_deal": "dealId8",
         "hb_bidder_Lifestreet": "Lifestreet",
         "hb_cache_id_Lifestreet": "f5f475e6-c786-4596-92e5-1f9a33285b5e"
+      }
+    },
+    {
+      "bid_id": "bidId9",
+      "code": "adUnitCode9",
+      "creative_id": "crid9",
+      "bidder": "Pubmatic",
+      "price": 5.78,
+      "width": 300,
+      "height": 250,
+      "deal_id": "dealId9",
+      "cache_id": "c3bbbf5c-df5a-44d8-a556-494731e348f3",
+      "cache_url": "{{ cache_resource_url }}c3bbbf5c-df5a-44d8-a556-494731e348f3",
+      "response_time_ms": "{{ Pubmatic.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "5.70",
+        "hb_deal_Pubmatic": "dealId9",
+        "hb_size_Pubmatic": "300x250",
+        "hb_size": "300x250",
+        "hb_bidder": "Pubmatic",
+        "hb_cache_id": "c3bbbf5c-df5a-44d8-a556-494731e348f3",
+        "hb_pb_Pubmatic": "5.70",
+        "hb_bidder_Pubmatic": "Pubmatic",
+        "hb_cache_id_Pubmatic": "c3bbbf5c-df5a-44d8-a556-494731e348f3",
+        "hb_creative_loadtype": "html",
+        "hb_deal": "dealId9"
       }
     },
     {

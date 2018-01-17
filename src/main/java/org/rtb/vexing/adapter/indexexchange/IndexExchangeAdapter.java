@@ -348,7 +348,7 @@ public class IndexExchangeAdapter implements Adapter {
         try {
             bidResponse = Json.decodeValue(body, BidResponse.class);
         } catch (DecodeException e) {
-            logger.warn("Error occurred while parsing bid response: {0}", body, e);
+            logger.warn("Error occurred while parsing bid response: {0}", e, body);
             return BidResult.error(bidderDebug, String.format("Error parsing response: %s", e.getMessage()));
         }
 
@@ -364,7 +364,7 @@ public class IndexExchangeAdapter implements Adapter {
     private List<Bid.BidBuilder> extractBids(BidResponse bidResponse, Bidder bidder) {
         return bidResponse == null || bidResponse.getSeatbid() == null ? null : bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .filter(seatBid -> Objects.nonNull(seatBid.getBid()))
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream())
                 .filter(Objects::nonNull)
                 .map(bid -> Bid.builder()
@@ -420,7 +420,9 @@ public class IndexExchangeAdapter implements Adapter {
 
         if (StringUtils.isNotBlank(bidResult.error)) {
             bidderStatusBuilder.error(bidResult.error);
-            bidderResultBuilder.timedOut(bidResult.timedOut);
+            bidderResultBuilder
+                    .timedOut(bidResult.timedOut)
+                    .bids(Collections.emptyList());
         } else {
             final List<Bid> bids = CollectionUtils.isEmpty(bidResult.bidBuilders) ? Collections.emptyList()
                     : bidResult.bidBuilders.stream()

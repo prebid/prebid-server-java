@@ -53,6 +53,7 @@ public class ApplicationTest extends VertxTest {
     private static final String PULSEPOINT = "pulsepoint";
     private static final String INDEXEXCHANGE = "indexExchange";
     private static final String LIFESTREET = "Lifestreet";
+    private static final String PUBMATIC = "Pubmatic";
 
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
@@ -107,6 +108,8 @@ public class ApplicationTest extends VertxTest {
                 .put("adapters.indexexchange.usersync_url", "//indexexchange-usersync")
                 .put("adapters.lifestreet.endpoint", "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange")
                 .put("adapters.lifestreet.usersync_url", "//lifestreet-usersync")
+                .put("adapters.pubmatic.endpoint", "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange")
+                .put("adapters.pubmatic.usersync_url", "//pubmatic-usersync")
                 .put("datacache.type", "filecache")
                 .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml")
                 .put("metrics.metricType", "flushingCounter")
@@ -168,6 +171,11 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("test-lifestreet-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("test-lifestreet-bid-response-1.json"))));
 
+        // pulsepoint bid response for ad unit 9
+        wireMockRule.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("test-pubmatic-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("test-pubmatic-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("test-cache-request.json")))
@@ -180,10 +188,9 @@ public class ApplicationTest extends VertxTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for
-                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID","pulsepoint":"PP-UID","indexExchange":"IE-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsIm"
-                        + "F1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiS"
-                        + "UUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCJ9fQ==")
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID","pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID"}}
+                .cookie("uids",
+                        "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIn19")
                 .queryParam("debug", "1")
                 .body(jsonFrom("test-auction-request.json"))
                 .post("/auction");
@@ -360,6 +367,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(PULSEPOINT, "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange");
         exchanges.put(INDEXEXCHANGE, "http://localhost:" + WIREMOCK_PORT + "/indexexchange-exchange");
         exchanges.put(LIFESTREET, "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange");
+        exchanges.put(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange");
 
         String result = template.replaceAll("\\{\\{ cache_resource_url }}",
                 "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=");

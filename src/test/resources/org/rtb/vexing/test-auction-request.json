@@ -239,6 +239,28 @@
       "media_types": [
         "banner"
       ]
+    },
+    {
+      "code": "adUnitCode9",
+      "sizes": [
+        {
+          "w": 200,
+          "h": 150
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId9",
+          "bidder": "Pubmatic",
+          "params": {
+            "publisherId": "publisherId9",
+            "adSlot": "slot9@300x250:zzz"
+          }
+        }
+      ],
+      "media_types": [
+        "banner"
+      ]
     }
   ],
   "device": {

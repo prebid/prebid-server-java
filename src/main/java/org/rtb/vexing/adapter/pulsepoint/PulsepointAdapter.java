@@ -143,17 +143,15 @@ public class PulsepointAdapter implements Adapter {
         final List<AdUnitBidWithParams> adUnitBidsWithParams = createAdUnitBidsWithParams(bidder.adUnitBids);
         final List<Imp> imps = validateImps(makeImps(adUnitBidsWithParams, preBidRequestContext));
 
-        final String publisherId = adUnitBidsWithParams.stream()
-                .map(adUnitBidWithParams -> adUnitBidWithParams.params.publisherId)
-                .reduce((first, second) -> second).orElse(null);
+        final Publisher publisher = makePublisher(adUnitBidsWithParams);
 
         return BidRequest.builder()
                 .id(preBidRequestContext.preBidRequest.tid)
                 .at(1)
                 .tmax(preBidRequestContext.timeout)
                 .imp(imps)
-                .app(makeApp(preBidRequestContext, publisherId))
-                .site(makeSite(preBidRequestContext, publisherId))
+                .app(makeApp(preBidRequestContext, publisher))
+                .site(makeSite(preBidRequestContext, publisher))
                 .device(makeDevice(preBidRequestContext))
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
@@ -300,18 +298,25 @@ public class PulsepointAdapter implements Adapter {
         return imps;
     }
 
-    private static App makeApp(PreBidRequestContext preBidRequestContext, String publisherId) {
+    private Publisher makePublisher(List<AdUnitBidWithParams> adUnitBidsWithParams) {
+        final String publisherId = adUnitBidsWithParams.stream()
+                .map(adUnitBidWithParams -> adUnitBidWithParams.params.publisherId)
+                .reduce((first, second) -> second).orElse(null);
+        return Publisher.builder().id(publisherId).build();
+    }
+
+    private static App makeApp(PreBidRequestContext preBidRequestContext, Publisher publisher) {
         final App app = preBidRequestContext.preBidRequest.app;
         return app == null ? null : app.toBuilder()
-                .publisher(Publisher.builder().id(publisherId).build())
+                .publisher(publisher)
                 .build();
     }
 
-    private static Site makeSite(PreBidRequestContext preBidRequestContext, String publisherId) {
+    private static Site makeSite(PreBidRequestContext preBidRequestContext, Publisher publisher) {
         return preBidRequestContext.preBidRequest.app != null ? null : Site.builder()
                 .domain(preBidRequestContext.domain)
                 .page(preBidRequestContext.referer)
-                .publisher(Publisher.builder().id(publisherId).build())
+                .publisher(publisher)
                 .build();
     }
 
@@ -407,7 +412,7 @@ public class PulsepointAdapter implements Adapter {
         try {
             bidResponse = Json.decodeValue(body, BidResponse.class);
         } catch (DecodeException e) {
-            logger.warn("Error occurred while parsing bid response: {0}", body, e);
+            logger.warn("Error occurred while parsing bid response: {0}", e, body);
             return BidResult.error(bidderDebug, e.getMessage());
         }
 
@@ -423,7 +428,7 @@ public class PulsepointAdapter implements Adapter {
     private List<Bid.BidBuilder> extractBids(BidResponse bidResponse, Bidder bidder) {
         return bidResponse == null || bidResponse.getSeatbid() == null ? null : bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .filter(seatBid -> Objects.nonNull(seatBid.getBid()))
+                .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream())
                 .filter(Objects::nonNull)
                 .map(bid -> Bid.builder()
@@ -478,7 +483,9 @@ public class PulsepointAdapter implements Adapter {
 
         if (StringUtils.isNotBlank(bidResult.error)) {
             bidderStatusBuilder.error(bidResult.error);
-            bidderResultBuilder.timedOut(bidResult.timedOut);
+            bidderResultBuilder
+                    .timedOut(bidResult.timedOut)
+                    .bids(Collections.emptyList());
         } else {
             final List<Bid> bids = CollectionUtils.isEmpty(bidResult.bidBuilders) ? Collections.emptyList()
                     : bidResult.bidBuilders.stream()

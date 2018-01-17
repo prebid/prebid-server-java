@@ -10,6 +10,7 @@ import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
 import org.rtb.vexing.adapter.facebook.FacebookAdapter;
 import org.rtb.vexing.adapter.indexexchange.IndexExchangeAdapter;
 import org.rtb.vexing.adapter.lifestreet.LifestreetAdapter;
+import org.rtb.vexing.adapter.pubmatic.PubmaticAdapter;
 import org.rtb.vexing.adapter.pulsepoint.PulsepointAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.rtb.vexing.config.ApplicationConfig;
@@ -71,6 +72,10 @@ public class AdapterCatalogTest {
         given(applicationConfig.getString(eq("adapters.lifestreet.usersync_url")))
                 .willReturn("http://lifestreet-usersync-url");
 
+        given(applicationConfig.getString(eq("adapters.pubmatic.endpoint"))).willReturn("http://pubmatic-endpoint");
+        given(applicationConfig.getString(eq("adapters.pubmatic.usersync_url")))
+                .willReturn("http://pubmatic-usersync-url");
+
         // when
         final AdapterCatalog adapterCatalog = AdapterCatalog.create(applicationConfig, httpClient);
 
@@ -98,5 +103,9 @@ public class AdapterCatalogTest {
         assertThat(adapterCatalog.getByCode("Lifestreet"))
                 .isNotNull()
                 .isInstanceOf(LifestreetAdapter.class);
+
+        assertThat(adapterCatalog.getByCode("Pubmatic"))
+                .isNotNull()
+                .isInstanceOf(PubmaticAdapter.class);
     }
 }
