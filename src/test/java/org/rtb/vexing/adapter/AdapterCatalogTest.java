@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
+import org.rtb.vexing.adapter.conversant.ConversantAdapter;
 import org.rtb.vexing.adapter.facebook.FacebookAdapter;
 import org.rtb.vexing.adapter.indexexchange.IndexExchangeAdapter;
 import org.rtb.vexing.adapter.lifestreet.LifestreetAdapter;
@@ -76,6 +77,10 @@ public class AdapterCatalogTest {
         given(applicationConfig.getString(eq("adapters.pubmatic.usersync_url")))
                 .willReturn("http://pubmatic-usersync-url");
 
+        given(applicationConfig.getString(eq("adapters.conversant.endpoint"))).willReturn("http://conversant-endpoint");
+        given(applicationConfig.getString(eq("adapters.conversant.usersync_url")))
+                .willReturn("http://conversant-usersync-url");
+
         // when
         final AdapterCatalog adapterCatalog = AdapterCatalog.create(applicationConfig, httpClient);
 
@@ -107,5 +112,9 @@ public class AdapterCatalogTest {
         assertThat(adapterCatalog.getByCode("Pubmatic"))
                 .isNotNull()
                 .isInstanceOf(PubmaticAdapter.class);
+
+        assertThat(adapterCatalog.getByCode("conversant"))
+                .isNotNull()
+                .isInstanceOf(ConversantAdapter.class);
     }
 }

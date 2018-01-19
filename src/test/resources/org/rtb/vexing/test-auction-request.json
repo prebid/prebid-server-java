@@ -261,6 +261,42 @@
       "media_types": [
         "banner"
       ]
+    },
+    {
+      "code": "adUnitCode10",
+      "sizes": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId10",
+          "bidder": "conversant",
+          "params": {
+            "site_id": "siteId1",
+            "secure": 42,
+            "tag_id": "tagId1",
+            "position": 28,
+            "bidfloor": 7.32,
+            "mobile": 64,
+            "mimes": [
+              "mime1"
+            ],
+            "api": [
+              1
+            ],
+            "protocols": [
+              5
+            ],
+            "maxduration": 30
+          }
+        }
+      ],
+      "media_types": [
+        "banner"
+      ]
     }
   ],
   "device": {

@@ -67,6 +67,19 @@
       ]
     },
     {
+      "bidder": "conversant",
+      "response_time_ms": "{{ conversant.response_time_ms }}",
+      "num_bids": 1,
+      "debug": [
+        {
+          "request_uri": "{{ conversant.exchange_uri }}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode10\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250,\"pos\":28},\"displaymanager\":\"prebid-s2s\",\"tagid\":\"tagId1\",\"bidfloor\":7.32,\"secure\":42}],\"site\":{\"id\":\"siteId1\",\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"mobile\":64},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"CV-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "response_body": "{\"id\":\"bidResponseId10\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode10\",\"price\":5.78,\"adm\":\"adm10\",\"crid\":\"crid10\",\"dealid\":\"dealId10\",\"w\":300,\"h\":250}],\"seat\":\"seatId10\",\"group\":0}]}",
+          "status_code": 200
+        }
+      ]
+    },
+    {
       "bidder": "pulsepoint",
       "response_time_ms": "{{ pulsepoint.response_time_ms }}",
       "num_bids": 1,
@@ -310,6 +323,30 @@
         "hb_creative_loadtype": "html",
         "hb_deal": "dealId1",
         "rpfl_1001": "2_tier0100"
+      }
+    },
+    {
+      "bid_id": "bidId10",
+      "code": "adUnitCode10",
+      "creative_id": "crid10",
+      "media_type": "banner",
+      "bidder": "conversant",
+      "price": 5.78,
+      "width": 300,
+      "height": 250,
+      "cache_id": "45c9c3f3-046c-494e-8890-cb63f9cd5fa3",
+      "cache_url": "{{ cache_resource_url }}45c9c3f3-046c-494e-8890-cb63f9cd5fa3",
+      "response_time_ms": "{{ conversant.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "5.70",
+        "hb_cache_id_conversant": "45c9c3f3-046c-494e-8890-cb63f9cd5fa3",
+        "hb_size": "300x250",
+        "hb_pb_conversant": "5.70",
+        "hb_bidder_conversant": "conversant",
+        "hb_bidder": "conversant",
+        "hb_cache_id": "45c9c3f3-046c-494e-8890-cb63f9cd5fa3",
+        "hb_creative_loadtype": "html",
+        "hb_size_conversant": "300x250"
       }
     }
   ]

@@ -2,6 +2,7 @@ package org.rtb.vexing.adapter;
 
 import io.vertx.core.http.HttpClient;
 import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
+import org.rtb.vexing.adapter.conversant.ConversantAdapter;
 import org.rtb.vexing.adapter.facebook.FacebookAdapter;
 import org.rtb.vexing.adapter.indexexchange.IndexExchangeAdapter;
 import org.rtb.vexing.adapter.lifestreet.LifestreetAdapter;
@@ -35,7 +36,8 @@ public class AdapterCatalog {
                 pulsepoint(config, httpClient),
                 index(config, httpClient),
                 lifestreet(config, httpClient),
-                pubmatic(config, httpClient))
+                pubmatic(config, httpClient),
+                conversant(config, httpClient))
                 .collect(Collectors.toMap(Adapter::code, Function.identity()));
 
         return new AdapterCatalog(adapters);
@@ -94,6 +96,14 @@ public class AdapterCatalog {
         return new PubmaticAdapter(
                 config.getString("adapters.pubmatic.endpoint"),
                 config.getString("adapters.pubmatic.usersync_url"),
+                config.getString("external_url"),
+                httpClient);
+    }
+
+    private static ConversantAdapter conversant(ApplicationConfig config, HttpClient httpClient) {
+        return new ConversantAdapter(
+                config.getString("adapters.conversant.endpoint"),
+                config.getString("adapters.conversant.usersync_url"),
                 config.getString("external_url"),
                 httpClient);
     }

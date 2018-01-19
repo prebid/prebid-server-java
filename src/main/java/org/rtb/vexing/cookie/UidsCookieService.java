@@ -108,7 +108,9 @@ public class UidsCookieService {
                     .build();
         }
 
-        uids.uids.entrySet().removeIf(entry -> UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().uid));
+        uids.uids.entrySet().removeIf(entry ->
+                UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().uid)
+                        || StringUtils.isEmpty(entry.getValue().uid));
 
         return new UidsCookie(uids);
     }
