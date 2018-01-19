@@ -28,4 +28,10 @@ public interface Bidder {
      * "subpar" in some way. For example: the server response didn't have the expected format.
      */
     Result<List<BidderBid>> makeBids(HttpCall httpCall);
+
+    /**
+     * Provides a family name by which user ids within bidder's realm are stored in
+     * {@link org.rtb.vexing.cookie.UidsCookie}.
+     */
+    String cookieFamilyName();
 }

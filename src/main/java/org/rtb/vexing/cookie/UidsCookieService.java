@@ -92,12 +92,12 @@ public class UidsCookieService {
                     .build();
         }
 
-        final Cookie hostCookie = hostCookieName != null ? context.getCookie(hostCookieName) : null;
+        final String hostCookie = parseHostCookie(context);
         final boolean isOptedOut = isOptedOut(context);
 
         if (uids.uids.get(hostCookieFamily) == null && hostCookie != null && !isOptedOut) {
             final Map<String, UidWithExpiry> uidsWithHostCookie = new HashMap<>(uids.uids);
-            uidsWithHostCookie.put(hostCookieFamily, UidWithExpiry.live(hostCookie.getValue()));
+            uidsWithHostCookie.put(hostCookieFamily, UidWithExpiry.live(hostCookie));
             uids = uids.toBuilder().uids(uidsWithHostCookie).build();
         }
 
@@ -125,6 +125,11 @@ public class UidsCookieService {
         }
 
         return cookie;
+    }
+
+    public String parseHostCookie(RoutingContext context) {
+        final Cookie cookie = hostCookieName != null ? context.getCookie(hostCookieName) : null;
+        return cookie != null ? cookie.getValue() : null;
     }
 
     private boolean isOptedOut(RoutingContext context) {

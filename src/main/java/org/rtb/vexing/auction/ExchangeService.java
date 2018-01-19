@@ -5,16 +5,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
+import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.auction.model.BidderRequest;
 import org.rtb.vexing.auction.model.BidderResponse;
 import org.rtb.vexing.bidder.HttpConnector;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
@@ -59,8 +62,8 @@ public class ExchangeService {
      * Runs an auction: delegates request to applicable bidders, gathers responses from them and constructs final
      * response containing returned bids and additional information in extensions.
      */
-    public Future<BidResponse> holdAuction(BidRequest bidRequest) {
-        final List<BidderRequest> bidderRequests = extractBidderRequests(bidRequest);
+    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie) {
+        final List<BidderRequest> bidderRequests = extractBidderRequests(bidRequest, uidsCookie);
 
         // Randomize the list to make the auction more fair
         Collections.shuffle(bidderRequests);
@@ -89,13 +92,17 @@ public class ExchangeService {
      * <p>
      * This will copy the {@link BidRequest} into a list of requests, where the {@link BidRequest}.imp[].ext field
      * will only consist of the "prebid" field and the field for the appropriate bidder parameters. We will drop all
-     * extended fields beyond this context, so this will not be compatible with any other uses of the extension area.
-     * That is, this method will work, but the bidders will not see any other extension fields.
+     * extended fields beyond this context, so this will not be compatible with any other uses of the extension area
+     * i.e. the bidders will not see any other extension fields.
+     * <p>
+     * Each of the created {@link BidRequest}s will have bidrequest.user.buyerid field populated with the value from
+     * {@link UidsCookie} corresponding to bidder's family name unless buyerid is already in the original OpenRTB
+     * request (in this case it will not be overridden).
      * <p>
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog}.
      */
-    private List<BidderRequest> extractBidderRequests(BidRequest bidRequest) {
+    private List<BidderRequest> extractBidderRequests(BidRequest bidRequest, UidsCookie uidsCookie) {
         // sanity check: discard imps without extension
         final List<Imp> imps = bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
@@ -110,8 +117,10 @@ public class ExchangeService {
                 .collect(Collectors.toList());
 
         return bidders.stream()
-                // for each bidder create a new request that is a copy of original request except imp extensions
+                // for each bidder create a new request that is a copy of original request except buyerid and imp
+                // extensions
                 .map(bidder -> BidderRequest.of(bidder, bidRequest.toBuilder()
+                        .user(userWithBuyerid(bidder, bidRequest, uidsCookie))
                         .imp(imps.stream()
                                 .filter(imp -> imp.getExt().hasNonNull(bidder))
                                 // for each imp create a new imp with extension crafted to contain only
@@ -122,6 +131,27 @@ public class ExchangeService {
                                 .collect(Collectors.toList()))
                         .build()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns either original {@link User} (if there is no user id for the bidder in uids cookie or buyerid is
+     * already there) or new {@link User} with buyerid filled with user id from uids cookie.
+     */
+    private User userWithBuyerid(String bidder, BidRequest bidRequest, UidsCookie uidsCookie) {
+        final User result;
+
+        final String buyerid = uidsCookie.uidFrom(bidderCatalog.byName(bidder).cookieFamilyName());
+
+        final User user = bidRequest.getUser();
+        if (StringUtils.isNotBlank(buyerid) && (user == null || StringUtils.isBlank(user.getBuyeruid()))) {
+            final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
+            builder.buyeruid(buyerid);
+            result = builder.build();
+        } else {
+            result = user;
+        }
+
+        return result;
     }
 
     /**

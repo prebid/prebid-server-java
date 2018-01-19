@@ -15,6 +15,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
+import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.validation.RequestValidator;
 import org.rtb.vexing.validation.ValidationResult;
 
@@ -31,22 +32,25 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final RequestValidator requestValidator;
     private final ExchangeService exchangeService;
     private final PreBidRequestContextFactory preBidRequestContextFactory;
+    private final UidsCookieService uidsCookieService;
 
     AuctionHandler(long maxRequestSize, RequestValidator requestValidator, ExchangeService exchangeService,
-                   PreBidRequestContextFactory preBidRequestContextFactory) {
+                   PreBidRequestContextFactory preBidRequestContextFactory, UidsCookieService uidsCookieService) {
         this.maxRequestSize = maxRequestSize;
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
+        this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
     }
 
     @Override
     public void handle(RoutingContext context) {
         parseRequest(context)
                 .compose(AuctionHandler::processStoredRequests)
-                .map(bidRequest -> preBidRequestContextFactory.fromRequest(bidRequest, context.request()))
+                .map(bidRequest -> preBidRequestContextFactory.fromRequest(bidRequest, context))
                 .compose(this::validateRequest)
-                .compose(exchangeService::holdAuction)
+                .compose(bidRequest ->
+                        exchangeService.holdAuction(bidRequest, uidsCookieService.parseFromRequest(context)))
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
 

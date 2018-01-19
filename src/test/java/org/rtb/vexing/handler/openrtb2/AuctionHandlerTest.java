@@ -16,16 +16,14 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
+import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.validation.RequestValidator;
 import org.rtb.vexing.validation.ValidationResult;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -39,7 +37,10 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private ExchangeService exchangeService;
     @Mock
-    private PreBidRequestContextFactory factory;
+    private PreBidRequestContextFactory preBidRequestContextFactory;
+    @Mock
+    private UidsCookieService uidsCookieService;
+
     private AuctionHandler auctionHandler;
 
     @Mock
@@ -55,15 +56,18 @@ public class AuctionHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
-        auctionHandler = new AuctionHandler(Long.MAX_VALUE, requestValidator, exchangeService, factory);
+        auctionHandler = new AuctionHandler(Long.MAX_VALUE, requestValidator, exchangeService,
+                preBidRequestContextFactory, uidsCookieService);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(0, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(0, requestValidator, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(0, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(0, requestValidator, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(0, requestValidator, exchangeService,
-                null));
+                null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(0, requestValidator, exchangeService,
+                preBidRequestContextFactory, null));
     }
 
     @Test
@@ -82,7 +86,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfRequestBodyExceedsMaxRequestSize() {
         // given
-        auctionHandler = new AuctionHandler(1, requestValidator, exchangeService, factory);
+        auctionHandler = new AuctionHandler(1, requestValidator, exchangeService, preBidRequestContextFactory,
+                uidsCookieService);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -129,7 +134,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
 
-        given(exchangeService.holdAuction(any())).willThrow(new RuntimeException("Unexpected exception"));
+        given(exchangeService.holdAuction(any(), any())).willThrow(new RuntimeException("Unexpected exception"));
 
         // when
         auctionHandler.handle(routingContext);
@@ -144,17 +149,18 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
 
-        given(factory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
 
-        given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
+        given(exchangeService.holdAuction(any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
-        verify(exchangeService).holdAuction(any(BidRequest.class));
+        verify(exchangeService).holdAuction(any(), any());
         verify(httpResponse).end(eq("{}"));
     }
 }

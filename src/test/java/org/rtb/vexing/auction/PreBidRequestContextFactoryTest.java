@@ -8,6 +8,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Future;
@@ -52,9 +53,7 @@ import static org.apache.commons.lang3.math.NumberUtils.isDigits;
 import static org.apache.commons.lang3.math.NumberUtils.toLong;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 
 public class PreBidRequestContextFactoryTest extends VertxTest {
@@ -695,119 +694,104 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldPopulateRequestFieldsFromHeadersWhenHeadersFilledAndBodyFieldsEmpty() {
+    public void shouldSetFieldsFromHeadersIfBodyFieldsEmpty() {
         // given
         httpRequest.headers().set("User-Agent", "UnitTest");
-        httpRequest.headers().set("X-Forwarded-For", "203.0.113.195, 70.41.3.18, 150.172.238.178");
-        httpRequest.headers().set("X-Real-IP", "54.83.132.159");
         httpRequest.headers().set("Referer", "http://example.com");
+        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
 
         // when
-        final BidRequest populatedBidRequest = factory.fromRequest(BidRequest.builder().build(), httpRequest);
+        final BidRequest populatedBidRequest = factory.fromRequest(BidRequest.builder().build(), routingContext);
 
         // then
-        assertThat(populatedBidRequest.getSite().getPage()).isEqualTo("http://example.com");
-        assertThat(populatedBidRequest.getSite().getDomain()).isEqualTo("example.com");
-        assertThat(populatedBidRequest.getDevice().getIp()).isEqualTo("203.0.113.195");
-        assertThat(populatedBidRequest.getDevice().getUa()).isEqualTo("UnitTest");
+        assertThat(populatedBidRequest.getSite()).isEqualTo(
+                Site.builder().page("http://example.com").domain("example.com").build());
+        assertThat(populatedBidRequest.getDevice()).isEqualTo(
+                Device.builder().ip("192.168.244.1").ua("UnitTest").build());
+        assertThat(populatedBidRequest.getUser()).isEqualTo(User.builder().id("userId").build());
     }
 
     @Test
-    public void shouldNotPopulateRequestFieldsFromHeadersWhenRequestFieldsPopulated() {
+    public void shouldNotSetFieldsFromHeadersIfRequestFieldsNotEmpty() {
         // given
         httpRequest.headers().set("User-Agent", "UnitTest");
-        httpRequest.headers().set("X-Forwarded-For", "203.0.113.195, 70.41.3.18, 150.172.238.178");
-        httpRequest.headers().set("X-Real-IP", "54.83.132.159");
         httpRequest.headers().set("Referer", "http://example.com");
+        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
         final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("test.com").page("http://test.com")
-                        .build())
-                .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3")
-                        .build())
+                .site(Site.builder().domain("test.com").page("http://test.com").build())
+                .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
+                .user(User.builder().id("userId").build())
                 .build();
 
         // when
-        final BidRequest populatedBidRequest = factory.fromRequest(bidRequest, httpRequest);
+        final BidRequest populatedBidRequest = factory.fromRequest(bidRequest, routingContext);
 
         // then
-        assertThat(populatedBidRequest.getSite().getPage()).isEqualTo("http://test.com");
-        assertThat(populatedBidRequest.getSite().getDomain()).isEqualTo("test.com");
-        assertThat(populatedBidRequest.getDevice().getIp()).isEqualTo("56.76.12.3");
-        assertThat(populatedBidRequest.getDevice().getUa()).isEqualTo("UnitTestUA");
+        assertThat(populatedBidRequest).isSameAs(bidRequest);
     }
 
     @Test
-    public void shouldNotPopulateSiteRequestFieldsFromHeadersWhenRefererSkipped() {
+    public void shouldNotSetSiteIfNoReferer() {
         // given
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3")
-                        .build())
-                .build();
 
         // when
-        final BidRequest populatedBidRequest = factory.fromRequest(bidRequest, httpRequest);
+        final BidRequest populatedBidRequest = factory.fromRequest(BidRequest.builder().build(), routingContext);
 
         // then
         assertThat(populatedBidRequest.getSite()).isNull();
     }
 
     @Test
-    public void shouldNotPopulateSiteDomainAndPageRequestFieldsFromHeadersWhenRefererSkipped() {
+    public void shouldNotSetSitePageIfNoReferer() {
         // given
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("home.com")
-                        .build())
+                .site(Site.builder().domain("home.com").build())
                 .build();
 
-        //when
-        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
+        // when
+        final BidRequest result = factory.fromRequest(bidRequest, routingContext);
 
         // then
-        assertThat(result.getSite().getDomain()).isEqualTo("home.com");
-        assertThat(result.getSite().getPage()).isNull();
+        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
     }
 
     @Test
-    public void shouldNotPopulateRequestFieldsFromHeadersWhenBothHeadersAndBodyFieldsEmpty() {
+    public void shouldNotSetSitePageIfRefererCouldNotBeParsed() {
         // given
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        final BidRequest bidRequest = BidRequest.builder().build();
+        httpRequest.headers().set("Referer", "http://.com:50505");
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().domain("home.com").build())
+                .build();
 
         // when
-        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
+        final BidRequest result = factory.fromRequest(bidRequest, routingContext);
 
         // then
-        assertThat(result.getSite()).isNull();
-        // Device IP field is created in any case since it derives from the request remote address attribute
-        // if X-Forwarded-For and X-Real-IP headers are empty
-        assertThat(result.getDevice()).isNotNull();
-        assertThat(result.getDevice().getIp()).isEqualTo("192.168.244.1");
+        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
     }
 
     @Test
-    public void shouldPopulateRequestDeviceIpFieldFromXForwardedHeaderWhenBodyFieldEmpty() {
+    public void shouldSetDeviceIpFromXForwardedFor() {
         // given
         httpRequest.headers().set("X-Forwarded-For", "203.0.113.195, 70.41.3.18");
-        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final BidRequest result = factory.fromRequest(BidRequest.builder().build(), routingContext);
 
         // then
-        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
-
-        //then
         assertThat(result.getDevice()).isNotNull();
         assertThat(result.getDevice().getIp()).isEqualTo("203.0.113.195");
     }
 
     @Test
-    public void shouldPopulateRequestDeviceIpFieldFromXREalIpHeaderWhenBodyFieldEmpty() {
+    public void shouldSetDeviceIpFromXRealIp() {
         // given
         httpRequest.headers().set("X-Real-IP", "54.83.132.159");
-        final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
+        final BidRequest result = factory.fromRequest(BidRequest.builder().build(), routingContext);
 
         // then
         assertThat(result.getDevice()).isNotNull();
@@ -815,21 +799,15 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotPopulateSiteDomainAndPageRequestFieldsFromHeadersWhenRefererDomainMissed() {
+    public void shouldNotSetUserIfNoHostCookie() {
         // given
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        httpRequest.headers().set("Referer", "http://.com:50505");
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("home.com")
-                        .build())
-                .build();
+        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
 
-        //when
-        final BidRequest result = factory.fromRequest(bidRequest, httpRequest);
+        // when
+        final BidRequest result = factory.fromRequest(BidRequest.builder().build(), routingContext);
 
         // then
-        assertThat(result.getSite().getDomain()).isEqualTo("home.com");
-        assertThat(result.getSite().getPage()).isNull();
+        assertThat(result.getUser()).isNull();
     }
 
     private JsonObject givenPreBidRequestCustomizable(

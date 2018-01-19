@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -103,16 +104,20 @@ public class PreBidRequestContextFactory {
                 .map(PreBidRequestContext.PreBidRequestContextBuilder::build);
     }
 
-    public BidRequest fromRequest(BidRequest bidRequest, HttpServerRequest request) {
+    public BidRequest fromRequest(BidRequest bidRequest, RoutingContext context) {
         final BidRequest result;
+
+        final HttpServerRequest request = context.request();
 
         final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
         final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
+        final User populatedUser = populateUser(bidRequest.getUser(), context);
 
-        if (populatedDevice != null || populatedSite != null) {
+        if (populatedDevice != null || populatedSite != null || populatedUser != null) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
+                    .user(populatedUser != null ? populatedUser : bidRequest.getUser())
                     .build();
         } else {
             result = bidRequest;
@@ -147,19 +152,36 @@ public class PreBidRequestContextFactory {
         final String domain = site != null ? site.getDomain() : null;
 
         if (StringUtils.isBlank(page) || StringUtils.isBlank(domain)) {
-            final String refererCandidate = referer(request);
-            if (StringUtils.isNotBlank(refererCandidate)) {
+            final String referer = referer(request);
+            if (StringUtils.isNotBlank(referer)) {
                 try {
-                    final String parsedDomain = domain(refererCandidate);
+                    final String parsedDomain = domain(referer);
                     final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
                     builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
-                    builder.page(StringUtils.isNotBlank(page) ? page : refererCandidate);
+                    builder.page(StringUtils.isNotBlank(page) ? page : referer);
                     result = builder.build();
                 } catch (PreBidException e) {
                     logger.warn("Error occurred while populating bid request", e);
                 }
             }
         }
+        return result;
+    }
+
+    private User populateUser(User user, RoutingContext context) {
+        User result = null;
+
+        final String id = user != null ? user.getId() : null;
+
+        if (StringUtils.isBlank(id)) {
+            final String parsedId = uidsCookieService.parseHostCookie(context);
+            if (StringUtils.isNotBlank(parsedId)) {
+                final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
+                builder.id(parsedId);
+                result = builder.build();
+            }
+        }
+
         return result;
     }
 

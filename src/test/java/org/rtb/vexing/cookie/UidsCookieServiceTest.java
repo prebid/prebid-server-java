@@ -25,9 +25,9 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.*;
 
 public class UidsCookieServiceTest extends VertxTest {
 
@@ -215,7 +215,7 @@ public class UidsCookieServiceTest extends VertxTest {
 
     @Test
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsAbsent() {
-        //given
+        // given
         given(config.getString(eq("host_cookie.family"), eq(null))).willReturn("rubicon");
         given(config.getString(eq("host_cookie.cookie_name"), eq(null))).willReturn("khaos");
 
@@ -235,13 +235,12 @@ public class UidsCookieServiceTest extends VertxTest {
 
     @Test
     public void shouldReturnRubiconCookieValueFromUidsCookieWhenUidValueIsPresent() {
-        //given
+        // given
         given(config.getString(eq("host_cookie.family"), eq(null))).willReturn("rubicon");
         given(config.getString(eq("host_cookie.cookie_name"), eq(null))).willReturn("khaos");
 
         given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos",
                 "abc123"));
-        // given
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
         given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
                 "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
@@ -250,6 +249,7 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
+
         // then
         verify(routingContext).getCookie(eq("uids"));
         verify(routingContext).getCookie(eq("khaos"));
@@ -334,6 +334,47 @@ public class UidsCookieServiceTest extends VertxTest {
         // then
         assertThat(uidsCookie).isNotNull();
         assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
+    }
+
+    @Test
+    public void shouldParseHostCookie() {
+        // given
+        given(config.getString(eq("host_cookie.cookie_name"), isNull())).willReturn("khaos");
+
+        given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos", "userId"));
+
+        uidsCookieService = UidsCookieService.create(config);
+
+        // when
+        final String hostCookie = uidsCookieService.parseHostCookie(routingContext);
+
+        // then
+        assertThat(hostCookie).isEqualTo("userId");
+    }
+
+    @Test
+    public void shouldNotReadHostCookieIfNameNotSpecified() {
+        // when
+        final String hostCookie = uidsCookieService.parseHostCookie(routingContext);
+
+        // then
+        verifyZeroInteractions(routingContext);
+        assertThat(hostCookie).isNull();
+    }
+
+    @Test
+    public void shouldReturnNullIfHostCookieIsNotPresent() {
+        // given
+        given(config.getString(eq("host_cookie.cookie_name"), isNull())).willReturn("khaos");
+
+        // this is not necessary but explicitly stated for clarity
+        given(routingContext.getCookie(eq("khaos"))).willReturn(null);
+
+        // when
+        final String hostCookie = uidsCookieService.parseHostCookie(routingContext);
+
+        // then
+        assertThat(hostCookie).isNull();
     }
 
     private static String encodeUids(Uids uids) {
