@@ -1,15 +1,23 @@
 package org.rtb.vexing.validation;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.networknt.schema.ValidationMessage;
+import io.vertx.core.json.DecodeException;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.experimental.FieldDefaults;
 import org.junit.Before;
 import org.junit.Test;
 import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.config.ApplicationConfig;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -79,24 +87,18 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void schemaShouldReturnSchemaString() {
+    public void schemaShouldReturnSchemasString() throws IOException {
 
         //given
+        final String expected = readFromClasspath("/org/rtb/vexing/validation/schemas.json");
         bidderParamValidator = BidderParamValidator.create("/org/rtb/vexing/validation/schema");
-        final BidderParamValidator.Bidder bidder = BidderParamValidator.Bidder.rubicon;
 
         //when
-        final String result = bidderParamValidator.schema(bidder);
+        final String result = bidderParamValidator.schemas();
 
         //then
-        assertThat(result).isEqualTo("{\n" +
-                "  \"type\":\"object\",\n" +
-                "  \"properties\": {\n" +
-                "    \"foo\": {\n" +
-                "      \"type\": \"string\"\n" +
-                "    }\n" +
-                "  }\n" +
-                "}");
+
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -115,5 +117,20 @@ public class BidderParamValidatorTest extends VertxTest {
         Integer accountId;
         Integer siteId;
         Integer zoneId;
+    }
+
+    private static String readFromClasspath(String path) {
+        String content = null;
+
+        final InputStream resourceAsStream = ApplicationConfig.class.getResourceAsStream(path);
+        if (resourceAsStream != null) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream,
+                    StandardCharsets.UTF_8))) {
+                content = reader.lines().collect(Collectors.joining("\n"));
+            } catch (IOException e) {
+
+            }
+        }
+        return content;
     }
 }

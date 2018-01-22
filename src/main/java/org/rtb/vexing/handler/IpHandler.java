@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * This component enables tracing of incoming HTTP request's parameters
+ */
 public class IpHandler implements Handler<RoutingContext> {
 
     @Override

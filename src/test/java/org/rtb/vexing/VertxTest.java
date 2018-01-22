@@ -6,6 +6,8 @@ import io.vertx.core.json.Json;
 import org.junit.BeforeClass;
 import org.rtb.vexing.json.ObjectMapperConfigurer;
 
+import java.io.IOException;
+
 public abstract class VertxTest {
 
     protected static ObjectMapper mapper;

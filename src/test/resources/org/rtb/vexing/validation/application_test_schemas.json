@@ -1,0 +1,305 @@
+{
+  "appnexus": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Appnexus Adapter Params",
+    "description": "A schema which validates params accepted by the AppNexus adapter",
+    "type": "object",
+    "properties": {
+      "placementId": {
+        "type": "integer",
+        "description": "An ID which identifies this placement of the impression"
+      },
+      "invCode": {
+        "type": "string",
+        "description": "A code identifying the inventory of this placement."
+      },
+      "member": {
+        "type": "string",
+        "description": "An ID which identifies the member selling the impression."
+      },
+      "keywords": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "description": "A key with one or more values associated with it. These are used in buy-side segment targeting.",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "value": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "key",
+            "value"
+          ]
+        }
+      },
+      "trafficSourceCode": {
+        "type": "string",
+        "description": "Specifies the third-party source of this impression."
+      },
+      "reserve": {
+        "type": "number",
+        "description": "The minimium acceptable bid, in CPM, using US Dollars"
+      },
+      "position": {
+        "type": "string",
+        "enum": [
+          "above",
+          "below"
+        ],
+        "description": "Specifies the ad unit as above or below the fold"
+      }
+    },
+    "oneOf": [
+      {
+        "required": [
+          "placementId"
+        ]
+      },
+      {
+        "required": [
+          "invCode",
+          "member"
+        ]
+      }
+    ],
+    "not": {
+      "required": [
+        "placementId",
+        "invCode",
+        "member"
+      ]
+    }
+  },
+  "facebook": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Facebook Adapter Params",
+    "description": "A schema which validates params accepted by the Facebook adapter",
+    "type": "object",
+    "properties": {
+      "placementId": {
+        "type": "string",
+        "description": "An ID which identifies the placement selling the impression"
+      }
+    },
+    "required": [
+      "placementId"
+    ]
+  },
+  "index": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Index Adapter Params",
+    "description": "A schema which validates params accepted by the Index adapter",
+    "type": "object",
+    "properties": {
+      "siteID": {
+        "type": "integer",
+        "description": "An ID which identifies the site selling the impression"
+      }
+    },
+    "required": [
+      "siteID"
+    ]
+  },
+  "lifestreet": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Lifestreet Adapter Params",
+    "description": "A schema which validates params accepted by the Lifestreet adapter",
+    "type": "object",
+    "properties": {
+      "slot_tag": {
+        "type": "string",
+        "description": "A tag which identifies the ad slot"
+      }
+    },
+    "required": [
+      "slot_tag"
+    ]
+  },
+  "pubmatic": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Pubmatic Adapter Params",
+    "description": "A schema which validates params accepted by the Pubmatic adapter",
+    "type": "object",
+    "properties": {
+      "publisherId": {
+        "type": "string",
+        "description": "An ID which identifies the publisher"
+      },
+      "adSlot": {
+        "type": "string",
+        "description": "An ID which identifies the ad slot"
+      }
+    },
+    "required": [
+      "publisherId",
+      "adSlot"
+    ]
+  },
+  "pulsepoint": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Pulsepoint Adapter Params",
+    "description": "A schema which validates params accepted by the Pulsepoint adapter",
+    "type": "object",
+    "properties": {
+      "cp": {
+        "type": "integer",
+        "description": "An ID which identifies the publisher selling the impression"
+      },
+      "ct": {
+        "type": "integer",
+        "description": "An ID which identifies the ad slot being sold"
+      },
+      "cf": {
+        "type": "string",
+        "pattern": "^[0-9]+x[0-9]+$",
+        "description": "The size of the ad slot being sold. This should be a string like 300x250"
+      }
+    },
+    "required": [
+      "cp",
+      "ct",
+      "cf"
+    ]
+  },
+  "rubicon": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Rubicon Adapter Params",
+    "description": "A schema which validates params accepted by the Rubicon adapter",
+    "type": "object",
+    "properties": {
+      "accountId": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "An ID which identifies the publisher's account"
+      },
+      "siteId": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "An ID which identifies the site selling the impression"
+      },
+      "zoneId": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "An ID which identifies the sub-section of the site where the impression is located"
+      },
+      "inventory": {
+        "type": "object",
+        "description": "An object defining arbitrary targeting key/value pairs related to the page",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "visitor": {
+        "type": "object",
+        "description": "An object defining arbitrary targeting key/value pairs related to the visitor",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "video": {
+        "type": "object",
+        "description": "An object defining additional Rubicon video parameters",
+        "properties": {
+          "Language": {
+            "type": "string",
+            "description": "Language of the ad - should match content video"
+          },
+          "PlayerHeight": {
+            "type": "integer",
+            "description": "Height in pixels of the video player"
+          },
+          "PlayerWidth": {
+            "type": "integer",
+            "description": "Width in pixels of the video player"
+          },
+          "VideoSizeID": {
+            "type": "integer",
+            "description": "Rubicon size_id, used to describe type of video ad (preroll, postroll, etc)"
+          },
+          "Skip": {
+            "type": "integer",
+            "description": "Can this ad be skipped ( 0 = no, 1 = yes)"
+          },
+          "SkipDelay": {
+            "type": "integer",
+            "description": "number of seconds until the ad can be skipped"
+          }
+        }
+      }
+    },
+    "required": [
+      "accountId",
+      "siteId",
+      "zoneId"
+    ]
+  },
+  "conversant": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Conversant Adapter Params",
+    "description": "A schema which validates params accepted by the Conversant adapter.",
+    "type": "object",
+    "properties": {
+      "site_id": {
+        "type": "string",
+        "description": "A Conversant specific ID which identifies the site."
+      },
+      "secure": {
+        "type": "integer",
+        "description": "Override http/https context on ad markup."
+      },
+      "bidfloor": {
+        "type": "number",
+        "description": "Minimum bid price that will be considered."
+      },
+      "tag_id": {
+        "type": "string",
+        "description": "Identifies specific ad placement."
+      },
+      "position": {
+        "type": "integer",
+        "description": "Ad position on screen."
+      },
+      "mobile": {
+        "type": "integer",
+        "description": "Indicate if the site is mobile optimized."
+      },
+      "mimes": {
+        "type": "array",
+        "description": "Array of content MIME types.  For videos only.",
+        "items": {
+          "type": "string"
+        }
+      },
+      "maxduration": {
+        "type": "integer",
+        "description": "Maximum duration in seconds.  For videos only."
+      },
+      "api": {
+        "type": "array",
+        "description": "Array of supported API frameworks.  For videos only.",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "protocols": {
+        "type": "array",
+        "description": "Array of supported video protocols.  For videos only.",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "site_id"
+    ]
+  }
+}

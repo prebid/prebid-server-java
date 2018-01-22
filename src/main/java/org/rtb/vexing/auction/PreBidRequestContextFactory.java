@@ -104,6 +104,14 @@ public class PreBidRequestContextFactory {
                 .map(PreBidRequestContext.PreBidRequestContextBuilder::build);
     }
 
+    /**
+     * Method determines {@link BidRequest} properties which were not set explicitly by the client, but can be
+     * updated by values derived from headers and other request attributes.
+     *
+     * @param bidRequest an incoming request body
+     * @param context a routing context
+     * @return the original bidRequest passed into the method or updated instance
+     */
     public BidRequest fromRequest(BidRequest bidRequest, RoutingContext context) {
         final BidRequest result;
 
@@ -126,6 +134,14 @@ public class PreBidRequestContextFactory {
         return result;
     }
 
+    /**
+     * Populates the request body's 'device' section from the incoming http request if the original is partially filled
+     * and the request contains necessary info (User-Agent, IP-address).
+     *
+     * @param device an original {@link Device} object from the request body
+     * @param request incoming http request
+     * @return the updated or empty(null) device entity
+     */
     private Device populateDevice(Device device, HttpServerRequest request) {
         final Device result;
 
@@ -145,6 +161,14 @@ public class PreBidRequestContextFactory {
         return result;
     }
 
+    /**
+     * Populates the request body's 'site' section from the incoming http request if the original is partially filled
+     * and the request contains necessary info (domain, page).
+     *
+     * @param site an original {@link Site} object from the request body
+     * @param request incoming http request
+     * @return the updated or empty(null) site entity
+     */
     private Site populateSite(Site site, HttpServerRequest request) {
         Site result = null;
 
@@ -322,27 +346,47 @@ public class PreBidRequestContextFactory {
         return domain;
     }
 
-    private static String referer(HttpServerRequest httpRequest) {
-        final String urlOverride = httpRequest.getParam("url_override");
+    /**
+     * Determines Referer by checking 'url_override' request parameter, or if it's empty 'Referer' header. Then if
+     * result is not blank and missing 'http://' prefix appends it.
+     *
+     * @param request incoming http request
+     * @return a refere value
+     */
+    private static String referer(HttpServerRequest request) {
+        final String urlOverride = request.getParam("url_override");
         final String url = StringUtils.isNotBlank(urlOverride) ? urlOverride
-                : StringUtils.trimToNull(httpRequest.headers().get(HttpHeaders.REFERER));
+                : StringUtils.trimToNull(request.headers().get(HttpHeaders.REFERER));
 
         return StringUtils.isNotBlank(url) && !StringUtils.startsWith(url, "http")
                 ? String.format("http://%s", url)
                 : url;
     }
 
+    /**
+     * Determines User-Agent by checking 'User-Agent' http header.
+     *
+     * @param request incoming http request
+     * @return a user agent value
+     */
     private static String ua(HttpServerRequest request) {
         return StringUtils.trimToNull(request.headers().get(HttpHeaders.USER_AGENT));
     }
 
-    private static String ip(HttpServerRequest httpRequest) {
+    /**
+     * Determines IP-Address by checking "X-Forwarded-For", "X-Real-IP" http headers or remote host address
+     * if both are empty.
+     *
+     * @param request incoming http request
+     * @return an ip value
+     */
+    private static String ip(HttpServerRequest request) {
         return ObjectUtils.firstNonNull(
                 StringUtils.trimToNull(
                         // X-Forwarded-For: client1, proxy1, proxy2
-                        StringUtils.substringBefore(httpRequest.headers().get("X-Forwarded-For"), ",")),
-                StringUtils.trimToNull(httpRequest.headers().get("X-Real-IP")),
-                StringUtils.trimToNull(httpRequest.remoteAddress().host()));
+                        StringUtils.substringBefore(request.headers().get("X-Forwarded-For"), ",")),
+                StringUtils.trimToNull(request.headers().get("X-Real-IP")),
+                StringUtils.trimToNull(request.remoteAddress().host()));
     }
 
     private static boolean isDebug(PreBidRequest preBidRequest, HttpServerRequest httpRequest) {

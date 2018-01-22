@@ -1,8 +1,1 @@
-{
-  "type":"object",
-  "properties": {
-    "foo": {
-      "type": "string"
-    }
-  }
-}
+{"index":"test"}

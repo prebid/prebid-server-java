@@ -362,6 +362,16 @@ public class ApplicationTest extends VertxTest {
                 "Accept-Encoding: gzip,deflate");
     }
 
+    @Test
+    public void biddersParamsShouldReturnBidderSchemas() throws IOException {
+        final String result = given(spec)
+                .when()
+                .get("/bidders/params")
+                .asString();
+
+        assertThat(result).isEqualTo(jsonFrom("/org/rtb/vexing/validation/application_test_schemas.json"));
+    }
+
     private String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(this.getClass().getResourceAsStream(file)));

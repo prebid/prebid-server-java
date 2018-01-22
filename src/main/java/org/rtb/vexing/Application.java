@@ -28,6 +28,7 @@ import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.handler.AuctionHandler;
+import org.rtb.vexing.handler.BidderParamHandler;
 import org.rtb.vexing.handler.CookieSyncHandler;
 import org.rtb.vexing.handler.GetuidsHandler;
 import org.rtb.vexing.handler.IpHandler;
@@ -40,6 +41,7 @@ import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.metric.ReporterFactory;
 import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
 import org.rtb.vexing.settings.ApplicationSettings;
+import org.rtb.vexing.validation.BidderParamValidator;
 import org.rtb.vexing.vertx.CloseableAdapter;
 
 import java.io.IOException;
@@ -111,6 +113,7 @@ public class Application extends AbstractVerticle {
         router.post("/optout").handler(dependencyContext.optoutHandler);
         router.get("/optout").handler(dependencyContext.optoutHandler);
         router.get("/ip").handler(dependencyContext.ipHandler);
+        router.get("/bidders/params").handler(dependencyContext.bidderParamHandler);
 
         final StaticHandler staticHandler = StaticHandler.create("static").setCachingEnabled(false);
         router.get("/static/*").handler(staticHandler);
@@ -130,6 +133,7 @@ public class Application extends AbstractVerticle {
         GetuidsHandler getuidsHandler;
         OptoutHandler optoutHandler;
         IpHandler ipHandler;
+        BidderParamHandler bidderParamHandler;
 
         public static DependencyContext create(Vertx vertx, ApplicationConfig config,
                                                ApplicationSettings applicationSettings) {
@@ -143,6 +147,7 @@ public class Application extends AbstractVerticle {
                     PreBidRequestContextFactory.create(config, psl(), applicationSettings, uidsCookieService);
             final CacheService cacheService = CacheService.create(httpClient, config);
             final GoogleRecaptchaVerifier googleRecaptchaVerifier = GoogleRecaptchaVerifier.create(httpClient, config);
+            final BidderParamValidator bidderParamValidator = BidderParamValidator.create("/static/bidder-params");
 
             return builder()
                     .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog,
@@ -153,6 +158,7 @@ public class Application extends AbstractVerticle {
                     .getuidsHandler(new GetuidsHandler(uidsCookieService))
                     .optoutHandler(OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService))
                     .ipHandler(new IpHandler())
+                    .bidderParamHandler(new BidderParamHandler(bidderParamValidator))
                     .build();
         }
 
