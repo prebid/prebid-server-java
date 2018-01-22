@@ -1,5 +1,7 @@
 package org.rtb.vexing.validation;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -11,10 +13,38 @@ import com.iab.openrtb.request.Video;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+/**
+ * A component that validates {@link BidRequest} objects for openrtb2 auction endpoint.
+ * Validations are processed by the validate method and returns {@link ValidationResult}
+ */
 public class RequestValidator {
 
+    private static final String PREBID_EXT = "prebid";
+
+    private final BidderParamValidator bidderParamValidator;
+
+    /**
+     * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
+     * properties of bidRequest
+     * @param bidderParamValidator
+     */
+    public RequestValidator(BidderParamValidator bidderParamValidator) {
+        this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
+    }
+
+    /**
+     * Validates the {@link BidRequest} against a list of validation checks, however, reports only one problem
+     * at a time.
+     * @param bidRequest the bidRequest passed in.
+     * @return the ValidationResult object
+     */
     public ValidationResult validate(BidRequest bidRequest) {
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
@@ -80,6 +110,35 @@ public class RequestValidator {
         }
 
         validatePmp(imp.getPmp(), index);
+        validateImpExt(imp.getExt(), index);
+    }
+
+    private void validateImpExt(ObjectNode ext, int impIndex) throws ValidationException {
+        if (ext == null || ext.size() < 1) {
+            throw new ValidationException("request.imp[%s].ext must contain at least one bidder", impIndex);
+        }
+
+        final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = ext.fields();
+        while (bidderExtensions.hasNext()) {
+            final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
+            final String bidderName = bidderExtension.getKey();
+
+            if (bidderParamValidator.isValidBidderName(bidderName)) {
+                final BidderParamValidator.Bidder bidder = BidderParamValidator.Bidder.valueOf(bidderName);
+                final Set<String> messages = bidderParamValidator.validate(bidder,
+                        bidderExtension.getValue());
+
+                if (!messages.isEmpty()) {
+                    throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex, bidder,
+                            messages.stream().collect(Collectors.joining("\n")));
+                }
+            } else if (!PREBID_EXT.equals(bidderName)) {
+                throw new ValidationException("request.imp[%d].ext contains unknown bidder: %s", impIndex,
+                        bidderName);
+            }
+
+        }
+
     }
 
     private void validatePmp(Pmp pmp, int impIndex) throws ValidationException {

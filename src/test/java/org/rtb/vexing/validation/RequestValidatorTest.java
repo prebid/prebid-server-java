@@ -1,5 +1,6 @@
 package org.rtb.vexing.validation;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -12,26 +13,49 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
+import io.vertx.core.json.Json;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.experimental.FieldDefaults;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 
 public class RequestValidatorTest {
+
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private BidderParamValidator bidderParamValidator;
 
     private RequestValidator requestValidator;
 
     @Before
     public void setUp() {
-        requestValidator = new RequestValidator();
+        given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
+        given(bidderParamValidator.isValidBidderName(eq("rubicon"))).willReturn(Boolean.TRUE);
+
+        requestValidator = new RequestValidator(bidderParamValidator);
     }
 
     @Test
-    public void shouldValidateOnlyOneErrorAtATime() {
+    public void validateShouldReturnOnlyOneErrorAtATime() {
         //given
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -44,7 +68,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateEmptyStringRequestIdValue() {
+    public void validateShouldReturnValidationMessageWhenRequestIdIsEmpty() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder().id("").build();
 
@@ -56,7 +80,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateNullRequestIdValue() {
+    public void validateShouldReturnValidationMessageWhenRequestIdIsNull() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder().id(null).build();
 
@@ -68,7 +92,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateNegativeTmax() {
+    public void validateShouldReturnValidationMessageWhenTmaxIsNegative() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder().id("1").tmax(-100L).build();
 
@@ -80,7 +104,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldNotValidateNegativeTMaxIfAttributeMissed() {
+    public void validateShouldReturnValidationMessageWhenTmaxIsNull() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder().tmax(null).build();
 
@@ -93,7 +117,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateNumberOfImps() {
+    public void validateShouldReturnValidationMessageWhenNumberOfImpsIsZero() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder().imp(null).build();
 
@@ -105,7 +129,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateImpIdNull() {
+    public void validateShouldReturnValidationMessageWhenImpIdNull() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder().id(null).build()))
@@ -119,7 +143,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateImpIdEmptyString() {
+    public void validateShouldReturnValidationMessageWhenImpIdEmptyString() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder().id("").build()))
@@ -133,7 +157,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateMetricsNotSupported() {
+    public void validateShouldReturnValidationMessageWhenMetricTypeIsSpecified() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
@@ -151,7 +175,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateIfAnyMediaPresentInRequest() {
+    public void validateShouldReturnValidationMessageWhenNoneOfMediaTypeIsPresent() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
@@ -171,7 +195,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateVideoMimesIfVideoAttrPresentInRequest() {
+    public void validateShouldReturnValidationMessageWhenVideAttributeIsPresentButVideaMimesMissed() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
@@ -189,7 +213,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateAudioMimesIfAudioAttrPresentInRequest() {
+    public void validateShouldReturnValidationMessageWhenAudioAttributePresentButAudioMimesMissed() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
@@ -207,7 +231,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateNativeRequestAttributeNullValue() {
+    public void validateShouldReturnValidationMessageWhenNativeRequestAttributeNullValue() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
@@ -224,7 +248,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateNativeRequestAttributeEmpty() {
+    public void validateShouldReturnValidationMessageWhenNativeRequestAttributeEmpty() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
@@ -241,7 +265,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenBothHWAndRatiosPresent() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatHWAndRatiosPresent() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(2).wmin(3).wratio(4).hratio(5));
@@ -256,7 +280,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenHeightWeightAndOneOfRatiosPresent() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatHeightWeightAndOneOfRatiosPresent() {
         //give
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(2).hratio(5));
@@ -271,7 +295,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenRatiosAndOneOfSizesPresent() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosAndOneOfSizesPresent() {
 
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
@@ -287,7 +311,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenSizesSpecifiedOnly() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatSizesSpecifiedOnly() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(2));
@@ -300,7 +324,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenRatiosSpecifiedOnly() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosSpecifiedOnly() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(3).wratio(4).hratio(5));
@@ -313,7 +337,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenNeitherSizesNorRatiosPresent() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatSizesAndRatiosPresent() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                Function.identity());
@@ -327,7 +351,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenStaticSizesUsedAndHeightIsNull() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatStaticSizesUsedAndHeightIsNull() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(null).w(1));
@@ -341,7 +365,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenStaticSizesUsedAndHeightIsZero() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatStaticSizesUsedAndHeightIsZero() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(0).w(1));
@@ -355,7 +379,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenStaticSizesUsedAndWeightIsNull() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatStaticSizesUsedAndWeightIsNull() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(null));
@@ -369,7 +393,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenStaticSizesUsedAndWeightIsZero() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatStaticSizesUsedAndWeightIsZero() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(0));
@@ -383,7 +407,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenRatiosUsedAndWMinIsNull() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWMinIsNull() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(null).wratio(2).hratio(1));
@@ -397,7 +421,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenRatiosUsedAndWMinIsZero() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWMinIsZero() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(0).wratio(2).hratio(1));
@@ -411,7 +435,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenRatiosUsedAndWRatioIsNull() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWRatioIsNull() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(1).wratio(null).hratio(1));
@@ -425,7 +449,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenRatiosUsedAndWRatioIsZero() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWRatioIsZero() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(1).wratio(0).hratio(1));
@@ -440,7 +464,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenRatiosUsedAndHRatioIsNull() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndHRatioIsNull() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(1).wratio(5).hratio(null));
@@ -454,7 +478,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBannerFormatWhenRatiosUsedAndHRatioIsZero() {
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndHRatioIsZero() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(1).wratio(5).hratio(0));
@@ -468,7 +492,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidatePmpDealIdIsNotNull() {
+    public void validateShouldReturnValidationMessageWhenPmpDealIdIsNull() {
         //given
         final BidRequest bidRequest = overwritePmpFirstDealInFirstImp(validBidRequestBuilder().build(),
                 dealBuilder -> Deal.builder().id(null));
@@ -482,7 +506,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidatePmpDealIdIsEmptyString() {
+    public void validateShouldReturnValidationMessageWhenPmpDealIdIsEmptyString() {
         //given
         final BidRequest bidRequest = overwritePmpFirstDealInFirstImp(validBidRequestBuilder().build(),
                 dealBuilder -> Deal.builder().id(""));
@@ -494,7 +518,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateSiteIdAndPageIsNull() {
+    public void validateShouldReturnValidationMessageWhenSiteIdAndPageIsNull() {
         //given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id(null)).build();
@@ -508,7 +532,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateSiteIdIsEmptyStringAndPageIsNull() {
+    public void validateShouldReturnValidationMessageWhenSiteIdIsEmptyStringAndPageIsNull() {
         //given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("")).build();
@@ -522,7 +546,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidatePageIdIsNullAndSiteIdIsPresent() {
+    public void validateShouldReturnEmptyValidationMessagesWhenPageIdIsNullAndSiteIdIsPresent() {
         //given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("1").page(null)).build();
@@ -535,7 +559,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateSitePageIsEmptyString() {
+    public void validateShouldReturnValidationMessageWhenSitePageIsEmptyString() {
         //given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("1").page("")).build();
@@ -548,7 +572,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateSiteEmptyIdAndPageEmpty() {
+    public void validateShouldReturnValidationMessageWhenSiteIdAndPageBothEmpty() {
         //given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("").page("")).build();
@@ -561,7 +585,7 @@ public class RequestValidatorTest {
                 "or request.site.page.");
     }
     @Test
-    public void shouldValidateRequestAppAndRequestSiteBothMissed() {
+    public void validateShouldReturnValidationMessageWhenRequestAppAndRequestSiteBothMissed() {
         //given
         final BidRequest.BidRequestBuilder bidRequestBuilder = overwriteSite(validBidRequestBuilder(),
                 Function.identity());
@@ -576,7 +600,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateRequestAppAndRequestSiteBothPresent() {
+    public void validateShouldReturnValidationMessageWhenRequestAppAndRequestSiteBothPresent() {
         //given
         final BidRequest.BidRequestBuilder bidRequestBuilder = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("1").page("2"));
@@ -591,7 +615,7 @@ public class RequestValidatorTest {
     }
 
     @Test
-    public void shouldValidateBidRequestSuccess() {
+    public void validateShouldReturnEmptyValidationMessagesWhenBidRequestIsOk() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder().build();
 
@@ -600,6 +624,63 @@ public class RequestValidatorTest {
 
         //then
         assertThat(result.errors).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenNoImpExtBiddersPresent() {
+        //given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(null).build())).build();
+
+        //when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        //then
+        assertValidationResult(result, "request.imp[0].ext must contain at least one bidder");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessagesWhenImpExtBidderIsUnknown() {
+        //given
+        final BidRequest bidRequest = validBidRequestBuilder().build();
+        given(bidderParamValidator.isValidBidderName(eq("rubicon"))).willReturn(Boolean.FALSE);
+
+        //when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        //then
+        assertValidationResult(result, "request.imp[0].ext contains unknown bidder: rubicon");
+    }
+
+    @Test
+    public void validateShouldReturnEmptyValidationMessagesWhenOnlyPrebidImpExtExist() {
+        //given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .ext(Ext.builder().build().toObjectNode()).build())).build();
+
+        //when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        //then
+        assertThat(result.errors).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBidderExtIsInvalid() {
+        //given
+        final BidRequest bidRequest = validBidRequestBuilder().build();
+        given(bidderParamValidator.validate(any(), any()))
+                .willReturn(new LinkedHashSet<>(Arrays.asList("errorMessage1", "errorMessage2")));
+
+        //when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        //then
+        assertValidationResult(result, "request.imp[0].ext.rubicon failed validation.\n"
+                + "errorMessage1\n"
+                + "errorMessage2");
     }
 
     private static void assertValidationResult(ValidationResult result, String msg) {
@@ -621,7 +702,10 @@ public class RequestValidatorTest {
                 .banner(Banner.builder()
                         .format(singletonList(Format.builder().wmin(1).wratio(5).hratio(1).build()))
                         .build())
-                .pmp(Pmp.builder().deals(singletonList(Deal.builder().id("1").build())).build());
+                .pmp(Pmp.builder().deals(singletonList(Deal.builder().id("1").build())).build())
+                .ext(Ext.builder()
+                        .rubicon(Rubicon.builder().accountId(1).siteId(2).zoneId(3).build())
+                        .build().toObjectNode());
     }
 
     private static BidRequest overwriteBannerFormatInFirstImp(BidRequest bidRequest,
@@ -653,4 +737,23 @@ public class RequestValidatorTest {
         return builder.app(appModifier.apply(App.builder()).build());
     }
 
+    @Builder(toBuilder = true)
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
+    private static class Ext {
+        Rubicon rubicon;
+
+        String prebid = "test";
+
+        private ObjectNode toObjectNode()  {
+            return Json.mapper.convertValue(this, ObjectNode.class);
+        }
+    }
+
+    @Builder(toBuilder = true)
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
+    private static class Rubicon {
+        Integer accountId;
+        Integer siteId;
+        Integer zoneId;
+    }
 }
