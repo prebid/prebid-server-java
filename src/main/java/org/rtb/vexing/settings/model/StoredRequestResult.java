@@ -1,4 +1,4 @@
-package org.rtb.vexing.model.openrtb.ext.request;
+package org.rtb.vexing.settings.model;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -6,17 +6,15 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
-/**
- * Defines the contract for bidrequest.ext
- */
+import java.util.List;
+import java.util.Map;
+
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ExtBidRequest {
+public class StoredRequestResult {
 
-    /**
-     * Defines the contract for bidrequest.ext.prebid
-     */
-    ExtRequestPrebid prebid;
+    Map<String, String> storedIdToJson;
+    List<String> errors;
 }

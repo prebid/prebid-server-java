@@ -7,16 +7,16 @@ import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
 /**
- * Defines the contract for bidrequest.ext
+ * Defines the contract for bidrequest.imp[i].ext
  */
 @ToString
 @EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ExtBidRequest {
+public class ExtImp {
 
     /**
-     * Defines the contract for bidrequest.ext.prebid
+     * Defines the contract for bidrequest.imp[i].ext.prebid
      */
-    ExtRequestPrebid prebid;
+    ExtImpPrebid prebid;
 }

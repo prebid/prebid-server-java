@@ -15,5 +15,13 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class ExtRequestPrebid {
 
+    /**
+     * Defines the contract for bidrequest.ext.prebid.targeting
+     */
     ExtRequestTargeting targeting;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.storedrequest
+     */
+    ExtStoredRequest storedrequest;
 }

@@ -18,6 +18,7 @@
         <vertx.version>3.5.0</vertx.version>
         <postgresql.version>42.1.4</postgresql.version>
         <jackson.version>2.9.0</jackson.version>
+        <jsonpatch.version>1.9</jsonpatch.version>
         <lombok.version>1.16.16</lombok.version>
         <psl.version>2.2.0</psl.version>
         <commons.version>3.6</commons.version>
@@ -71,6 +72,11 @@
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-afterburner</artifactId>
             <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.fge</groupId>
+            <artifactId>json-patch</artifactId>
+            <version>${jsonpatch.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

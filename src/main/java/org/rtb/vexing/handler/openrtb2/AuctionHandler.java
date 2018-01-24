@@ -15,11 +15,12 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
+import org.rtb.vexing.auction.StoredRequestProcessor;
 import org.rtb.vexing.cookie.UidsCookieService;
+import org.rtb.vexing.exception.InvalidRequestException;
 import org.rtb.vexing.validation.RequestValidator;
 import org.rtb.vexing.validation.ValidationResult;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -31,14 +32,17 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final long maxRequestSize;
     private final RequestValidator requestValidator;
     private final ExchangeService exchangeService;
+    private final StoredRequestProcessor storedRequestProcessor;
     private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final UidsCookieService uidsCookieService;
 
     AuctionHandler(long maxRequestSize, RequestValidator requestValidator, ExchangeService exchangeService,
+                   StoredRequestProcessor storedRequestProcessor,
                    PreBidRequestContextFactory preBidRequestContextFactory, UidsCookieService uidsCookieService) {
         this.maxRequestSize = maxRequestSize;
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.exchangeService = Objects.requireNonNull(exchangeService);
+        this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
     }
@@ -46,7 +50,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext context) {
         parseRequest(context)
-                .compose(AuctionHandler::processStoredRequests)
+                .compose(storedRequestProcessor::processStoredRequests)
                 .map(bidRequest -> preBidRequestContextFactory.fromRequest(bidRequest, context))
                 .compose(this::validateRequest)
                 .compose(bidRequest ->
@@ -72,11 +76,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         }
 
         return result;
-    }
-
-    private static Future<BidRequest> processStoredRequests(BidRequest bidRequest) {
-        // TODO: implement stored requests processing
-        return Future.succeededFuture(bidRequest);
     }
 
     private Future<BidRequest> validateRequest(BidRequest bidRequest) {
@@ -109,22 +108,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
                         .end(String.format("Critical error while running the auction: %s", exception.getMessage()));
             }
-        }
-    }
-
-    private static class InvalidRequestException extends RuntimeException {
-        private final List<String> messages;
-
-        InvalidRequestException(String message) {
-            this.messages = Collections.singletonList(message);
-        }
-
-        InvalidRequestException(List<String> messages) {
-            this.messages = messages;
-        }
-
-        List<String> getMessages() {
-            return messages;
         }
     }
 }

@@ -45,5 +45,9 @@
     "max_pool_size": 20,
     "cache_size": 10000,
     "ttl_seconds": 360
+  },
+  "stored_requests": {
+    "type": "filesystem",
+    "configpath": "./"
   }
 }
