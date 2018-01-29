@@ -5,11 +5,11 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.rtb</groupId>
-    <artifactId>vexing</artifactId>
+    <groupId>org.prebid</groupId>
+    <artifactId>prebid-server</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
-    <name>vexing</name>
+    <name>Prebid server</name>
     <description>Server-side Header Bidding</description>
 
     <properties>

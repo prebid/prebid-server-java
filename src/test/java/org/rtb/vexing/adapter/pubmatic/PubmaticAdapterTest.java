@@ -46,7 +46,6 @@ import org.rtb.vexing.model.response.UsersyncInfo;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -85,7 +84,7 @@ public class PubmaticAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         // given
 
         // http client returns http client request
@@ -180,6 +179,7 @@ public class PubmaticAdapterTest extends VertxTest {
         verifyZeroInteractions(httpClient);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void requestBidsShouldSendBidRequestWithNotModifiedImpIfInvalidParams() throws IOException {
         // given
@@ -210,7 +210,7 @@ public class PubmaticAdapterTest extends VertxTest {
         assertThat(bidRequest.getImp()).extracting(Imp::getTagid)
                 .containsOnly("slot1", null, null, null, null, null);
 
-        final List formats = singletonList(Format.builder().w(480).h(320).build());
+        final List<Format> formats = singletonList(Format.builder().w(480).h(320).build());
         assertThat(bidRequest.getImp()).extracting(Imp::getBanner).extracting(Banner::getFormat)
                 .containsOnly(null, formats, formats, formats, formats, formats);
 
@@ -779,8 +779,10 @@ public class PubmaticAdapterTest extends VertxTest {
     }
 
     private PreBidRequestContext givenPreBidRequestContextCustomizable(
-            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext.PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
-            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
+            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext
+                    .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
+            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
+                    preBidRequestBuilderCustomizer) {
 
         final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder().accountId(
                 "accountId");

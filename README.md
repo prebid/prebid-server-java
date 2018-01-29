@@ -71,19 +71,19 @@ Example configuration:
 Build and run fat JAR from the command line:
 ```shell
 mvn clean package
-java -jar target/vexing-0.0.1-SNAPSHOT-fat.jar
+java -jar target/prebid-server-0.0.1-SNAPSHOT-fat.jar
 ```
 
 Feel free to optimize the command line to suit your environment
 (`instances` argument below works on OSX)
 ```shell
-java -jar target/vexing-0.0.1-SNAPSHOT-fat.jar \
+java -jar target/prebid-server-0.0.1-SNAPSHOT-fat.jar \
   --instances `sysctl -n hw.ncpu` -server \
   -Dvertx.disableWebsockets=true -Dvertx.flashPolicyHandler=false \
   -Dvertx.threadChecks=false -Dvertx.disableContextTimings=true \
   -Dvertx.disableTCCL=true \
   -XX:+UseG1GC -XX:+UseNUMA -XX:+UseParallelGC -XX:+AggressiveOpts \
-  -conf src/main/conf/vexing-conf.json
+  -conf src/main/conf/prebid-server-conf.json
 ```
 
 If you have the `vertx` binary on your path, you can also start with
@@ -99,5 +99,5 @@ Setting the option "vertx.disableFileCPResolving" to true disables creating cach
 Vert.x caches files that are served from the classpath into a file on disk in a sub-directory of a directory called ".vertx" in the current working directory by default.
 You can set another location with "vertx.cacheDirBase" key, for ex:
 ```shell
--Dvertx.cacheDirBase=/tmp/vexing
+-Dvertx.cacheDirBase=/tmp/prebid-server
 ```
