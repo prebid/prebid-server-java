@@ -168,7 +168,7 @@ public class HttpConnectorTest {
         givenHttpClientReturnsResponses(200, "responseBody");
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null), BidderBid.of(null, null));
-        given(bidder.makeBids(any())).willReturn(Result.of(bids, emptyList()));
+        given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
 
         // when
         final BidderSeatBid bidderSeatBid = httpConnector.requestBids(bidder, BidRequest.builder().build()).result();
@@ -187,7 +187,7 @@ public class HttpConnectorTest {
 
         givenHttpClientReturnsResponses(200, "responseBody1", "responseBody2");
 
-        given(bidder.makeBids(any())).willReturn(Result.of(emptyList(), emptyList()));
+        given(bidder.makeBids(any(), any())).willReturn(Result.of(emptyList(), emptyList()));
 
         // when
         final BidderSeatBid bidderSeatBid = httpConnector.requestBids(bidder, BidRequest.builder().test(1).build())
@@ -284,7 +284,7 @@ public class HttpConnectorTest {
                 // continue normally for subsequent requests
                 .willReturn(200);
 
-        given(bidder.makeBids(any())).willReturn(
+        given(bidder.makeBids(any(), any())).willReturn(
                 Result.of(singletonList(BidderBid.of(null, null)), singletonList("makeBidsError")));
 
         // when
@@ -293,7 +293,7 @@ public class HttpConnectorTest {
 
         // then
         // only one call is expected since other requests failed with errors
-        verify(bidder).makeBids(any());
+        verify(bidder).makeBids(any(), any());
         assertThat(bidderSeatBid.bids).hasSize(1);
         assertThat(bidderSeatBid.errors).hasSize(5).containsOnly(
                 "makeHttpRequestsError",

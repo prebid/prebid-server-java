@@ -23,7 +23,11 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.experimental.FieldDefaults;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
+import org.rtb.vexing.auction.StoredRequestProcessor;
+import org.rtb.vexing.bidder.HttpConnector;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookieService;
@@ -41,7 +45,9 @@ import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.metric.ReporterFactory;
 import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
 import org.rtb.vexing.settings.ApplicationSettings;
+import org.rtb.vexing.settings.StoredRequestFetcher;
 import org.rtb.vexing.validation.BidderParamValidator;
+import org.rtb.vexing.validation.RequestValidator;
 import org.rtb.vexing.vertx.CloseableAdapter;
 
 import java.io.IOException;
@@ -60,7 +66,8 @@ public class Application extends AbstractVerticle {
     public void start(Future<Void> startFuture) {
         ApplicationConfig.create(vertx, "/default-conf.json")
                 .compose(config -> ApplicationSettings.create(vertx, config)
-                        .compose(settings -> initialize(config, settings)))
+                        .compose(settings -> StoredRequestFetcher.create(vertx, config)
+                                .compose(fetcher -> initialize(config, settings, fetcher))))
                 .compose(
                         httpServer -> {
                             logger.debug("Vexing server has been started successfully");
@@ -69,8 +76,10 @@ public class Application extends AbstractVerticle {
                         startFuture);
     }
 
-    private Future<HttpServer> initialize(ApplicationConfig config, ApplicationSettings applicationSettings) {
-        final DependencyContext dependencyContext = DependencyContext.create(vertx, config, applicationSettings);
+    private Future<HttpServer> initialize(ApplicationConfig config, ApplicationSettings applicationSettings,
+                                          StoredRequestFetcher storedRequestFetcher) {
+        final DependencyContext dependencyContext =
+                DependencyContext.create(vertx, config, applicationSettings, storedRequestFetcher);
 
         configureJSON();
 
@@ -105,6 +114,7 @@ public class Application extends AbstractVerticle {
                         HttpHeaders.ACCEPT.toString(), HttpHeaders.CONTENT_TYPE.toString())))
                 .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.HEAD,
                         HttpMethod.OPTIONS))));
+        router.post("/openrtb2/auction").handler(dependencyContext.openrtbAuctionHandler);
         router.post("/auction").handler(dependencyContext.auctionHandler);
         router.get("/status").handler(dependencyContext.statusHandler);
         router.post("/cookie_sync").handler(dependencyContext.cookieSyncHandler);
@@ -127,6 +137,7 @@ public class Application extends AbstractVerticle {
     private static class DependencyContext {
 
         AuctionHandler auctionHandler;
+        org.rtb.vexing.handler.openrtb2.AuctionHandler openrtbAuctionHandler;
         StatusHandler statusHandler;
         CookieSyncHandler cookieSyncHandler;
         SetuidHandler setuidHandler;
@@ -136,7 +147,8 @@ public class Application extends AbstractVerticle {
         BidderParamHandler bidderParamHandler;
 
         public static DependencyContext create(Vertx vertx, ApplicationConfig config,
-                                               ApplicationSettings applicationSettings) {
+                                               ApplicationSettings applicationSettings,
+                                               StoredRequestFetcher storedRequestFetcher) {
             final HttpClient httpClient = httpClient(vertx, config);
             final MetricRegistry metricRegistry = new MetricRegistry();
             configureMetricsReporter(metricRegistry, config, vertx);
@@ -147,11 +159,20 @@ public class Application extends AbstractVerticle {
                     PreBidRequestContextFactory.create(config, psl(), applicationSettings, uidsCookieService);
             final CacheService cacheService = CacheService.create(httpClient, config);
             final GoogleRecaptchaVerifier googleRecaptchaVerifier = GoogleRecaptchaVerifier.create(httpClient, config);
-            final BidderParamValidator bidderParamValidator = BidderParamValidator.create("/static/bidder-params");
+            final BidderCatalog bidderCatalog = BidderCatalog.create(config);
+            final BidderParamValidator bidderParamValidator = BidderParamValidator.create(bidderCatalog,
+                    "/static/bidder-params");
+            final RequestValidator requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator);
+            final HttpConnector httpConnector = new HttpConnector(httpClient);
+            final ExchangeService exchangeService = new ExchangeService(httpConnector, bidderCatalog);
+            final StoredRequestProcessor storedRequestProcessor = new StoredRequestProcessor(storedRequestFetcher);
 
             return builder()
                     .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog,
                             preBidRequestContextFactory, cacheService, vertx, metrics))
+                    .openrtbAuctionHandler(org.rtb.vexing.handler.openrtb2.AuctionHandler.create(config,
+                            requestValidator, exchangeService, storedRequestProcessor, preBidRequestContextFactory,
+                            uidsCookieService))
                     .statusHandler(new StatusHandler())
                     .cookieSyncHandler(new CookieSyncHandler(uidsCookieService, adapterCatalog, metrics))
                     .setuidHandler(new SetuidHandler(uidsCookieService, metrics))

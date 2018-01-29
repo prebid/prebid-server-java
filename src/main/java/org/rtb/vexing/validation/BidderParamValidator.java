@@ -8,13 +8,13 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
+import org.rtb.vexing.auction.BidderCatalog;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -31,22 +31,18 @@ public class BidderParamValidator {
     private static final String JSON_FILE_EXT = ".json";
     private static final String FILE_SEP = "/";
 
-    private final Map<Bidder, JsonSchema> bidderSchemas;
+    private final Map<String, JsonSchema> bidderSchemas;
     private final String schemas;
 
-    private BidderParamValidator(Map<Bidder, JsonSchema> bidderSchemas, String schemas) {
+    private BidderParamValidator(Map<String, JsonSchema> bidderSchemas, String schemas) {
         this.bidderSchemas = bidderSchemas;
         this.schemas = schemas;
     }
 
     /**
      * Validates the {@link JsonNode} input parameter against bidder's JSON-schema
-     *
-     * @param bidder the bidder who's schema intended to be used for validation
-     * @param jsonNode the node which needs to be validated
-     * @return the set of {@link java.lang.String} messages
      */
-    public Set<String> validate(Bidder bidder, JsonNode jsonNode) {
+    public Set<String> validate(String bidder, JsonNode jsonNode) {
         return bidderSchemas.get(bidder).validate(jsonNode).stream()
                 .map(ValidationMessage::getMessage)
                 .collect(Collectors.toSet());
@@ -76,45 +72,29 @@ public class BidderParamValidator {
     }
 
     /**
-     * Checks if the bidder with passed name exists.
-     * @param name the name of the bidder, {@link java.lang.String} representation
-     * @return {@code true} if the name is valid BidderName otherwise {@code false}
-     */
-    boolean isValidBidderName(String name) {
-        try {
-            Bidder.valueOf(name);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-    }
-
-    /**
      * Constructs an instance of {@link BidderParamValidator}. This method requires all the necessary JSON schemas
      * exist as CLASSPATH resources, otherwise {@link IllegalArgumentException} will be thrown. This method consumes
      * schema directory parameter that defines the root directory for files containing schema. By convention the name
      * of each schema file same as corresponding bidder name.
-     *
-     * @param schemaDirectory contains JSON-schemas
-     * @return configured instance of BidderParamValidator
      */
-    public static BidderParamValidator create(String schemaDirectory) {
+    public static BidderParamValidator create(BidderCatalog bidderCatalog, String schemaDirectory) {
+        Objects.requireNonNull(bidderCatalog);
         Objects.requireNonNull(schemaDirectory);
 
-        final Map<Bidder, JsonNode> bidderRawSchemas = new LinkedHashMap<>();
+        final Map<String, JsonNode> bidderRawSchemas = new LinkedHashMap<>();
 
-        EnumSet.allOf(Bidder.class)
+        bidderCatalog.names()
                 .forEach(bidder -> bidderRawSchemas.put(bidder, readFromClasspath(schemaDirectory, bidder)));
 
         return new BidderParamValidator(toBidderSchemas(bidderRawSchemas), toSchemas(bidderRawSchemas));
     }
 
-    private static Map<Bidder, JsonSchema> toBidderSchemas(Map<Bidder, JsonNode> bidderRawSchemas) {
+    private static Map<String, JsonSchema> toBidderSchemas(Map<String, JsonNode> bidderRawSchemas) {
         return bidderRawSchemas.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> toBidderSchema(e.getValue(), e.getKey())));
     }
 
-    private static String toSchemas(Map<Bidder, JsonNode> bidderRawSchemas) {
+    private static String toSchemas(Map<String, JsonNode> bidderRawSchemas) {
         try {
             return Json.mapper.writeValueAsString(bidderRawSchemas);
         } catch (JsonProcessingException e) {
@@ -122,7 +102,7 @@ public class BidderParamValidator {
         }
     }
 
-    private static JsonSchema toBidderSchema(JsonNode schema, Bidder bidder) {
+    private static JsonSchema toBidderSchema(JsonNode schema, String bidder) {
         final JsonSchema result;
         try {
             result = SCHEMA_FACTORY.getSchema(schema);
@@ -132,7 +112,7 @@ public class BidderParamValidator {
         return result;
     }
 
-    private static JsonNode readFromClasspath(String schemaDirectory, Bidder bidder) {
+    private static JsonNode readFromClasspath(String schemaDirectory, String bidder) {
         final JsonNode result;
         final String path = schemaDirectory + FILE_SEP + bidder + JSON_FILE_EXT;
 
@@ -153,7 +133,7 @@ public class BidderParamValidator {
         return result;
     }
 
-    private static JsonNode toJsonNode(String content, Bidder bidder) {
+    private static JsonNode toJsonNode(String content, String bidder) {
         final JsonNode result;
         if (StringUtils.isNotBlank(content)) {
             try {
@@ -166,12 +146,5 @@ public class BidderParamValidator {
                     String.format("Couldn't parse %s bidder schema. File is empty", bidder));
         }
         return result;
-    }
-
-    /**
-     * This type represents all known bidders who's schemas should exist on a schema directory
-     */
-    public enum Bidder {
-        appnexus, facebook, index, lifestreet, pubmatic, pulsepoint, rubicon, conversant
     }
 }

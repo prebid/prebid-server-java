@@ -2,6 +2,7 @@ package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
+import lombok.Data;
 
 import java.util.List;
 
@@ -20,8 +21,8 @@ import java.util.List;
  * objects of those types. However, any given bid for the impression must
  * conform to one of the offered types.
  */
-@Builder
-@lombok.Data
+@Builder(toBuilder = true)
+@Data
 public class Banner {
 
     /**

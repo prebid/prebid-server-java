@@ -27,7 +27,13 @@ public interface Bidder {
      * The errors should contain a list of errors which explain why this bidder's bids will be
      * "subpar" in some way. For example: the server response didn't have the expected format.
      */
-    Result<List<BidderBid>> makeBids(HttpCall httpCall);
+    Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest);
+
+    /**
+     * Provides a bidder's name that will be used to determine if a bidder should participate in auction by
+     * inspecting bidrequest.imp[i].ext.{bidder} fields.
+     */
+    String name();
 
     /**
      * Provides a family name by which user ids within bidder's realm are stored in

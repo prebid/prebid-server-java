@@ -1,46 +1,50 @@
 package org.rtb.vexing.validation;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.App.AppBuilder;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Deal;
+import com.iab.openrtb.request.Deal.DealBuilder;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Format.FormatBuilder;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Site.SiteBuilder;
 import com.iab.openrtb.request.Video;
-import io.vertx.core.json.Json;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.experimental.FieldDefaults;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.auction.BidderCatalog;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
-public class RequestValidatorTest {
+public class RequestValidatorTest extends VertxTest {
+
+    public static final String RUBICON = "rubicon";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private BidderCatalog bidderCatalog;
     @Mock
     private BidderParamValidator bidderParamValidator;
 
@@ -49,9 +53,9 @@ public class RequestValidatorTest {
     @Before
     public void setUp() {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
-        given(bidderParamValidator.isValidBidderName(eq("rubicon"))).willReturn(Boolean.TRUE);
+        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(Boolean.TRUE);
 
-        requestValidator = new RequestValidator(bidderParamValidator);
+        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator);
     }
 
     @Test
@@ -76,7 +80,7 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request missing required field: \"id\"");
+        assertThat(result.errors).hasSize(1).element(0).isEqualTo("request missing required field: \"id\"");
     }
 
     @Test
@@ -88,7 +92,7 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request missing required field: \"id\"");
+        assertThat(result.errors).hasSize(1).element(0).isEqualTo("request missing required field: \"id\"");
     }
 
     @Test
@@ -100,7 +104,7 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.tmax must be nonnegative. Got -100");
+        assertThat(result.errors).hasSize(1).element(0).isEqualTo("request.tmax must be nonnegative. Got -100");
     }
 
     @Test
@@ -125,7 +129,7 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp must contain at least one element.");
+        assertThat(result.errors).hasSize(1).element(0).isEqualTo("request.imp must contain at least one element.");
     }
 
     @Test
@@ -139,7 +143,7 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0] missing required field: \"id\"");
+        assertThat(result.errors).hasSize(1).element(0).isEqualTo("request.imp[0] missing required field: \"id\"");
     }
 
     @Test
@@ -153,7 +157,7 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0] missing required field: \"id\"");
+        assertThat(result.errors).hasSize(1).element(0).isEqualTo("request.imp[0] missing required field: \"id\"");
     }
 
     @Test
@@ -170,8 +174,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].metric is not yet supported by prebid-server. " +
-                "Support may be added in the future.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].metric is not yet supported by prebid-server. " +
+                        "Support may be added in the future.");
     }
 
     @Test
@@ -190,8 +195,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0] must contain at least one of \"banner\", " +
-                "\"video\", \"audio\", or \"native\"");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0] must contain at least one of \"banner\", \"video\", \"audio\", or " +
+                        "\"native\"");
     }
 
     @Test
@@ -208,8 +214,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].video.mimes must contain at least one " +
-                "supported MIME type");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].video.mimes must contain at least one supported MIME type");
     }
 
     @Test
@@ -226,8 +232,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].audio.mimes must contain at least one " +
-                "supported MIME type");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].audio.mimes must contain at least one supported MIME type");
     }
 
     @Test
@@ -243,8 +249,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].native.request must be a JSON encoded string" +
-                " conforming to the openrtb 1.2 Native spec");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].native.request must be a JSON encoded string conforming to the openrtb 1.2" +
+                        " Native spec");
     }
 
     @Test
@@ -260,8 +267,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].native.request must be a JSON encoded string" +
-                " conforming to the openrtb 1.2 Native spec");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].native.request must be a JSON encoded string conforming to the openrtb 1.2" +
+                        " Native spec");
     }
 
     @Test
@@ -274,9 +282,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] should define *either* " +
-                "{w, h} *or* {wmin, wratio, hratio}, but not both. If both are valid, send two \"format\" " +
-                "objects in the request.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, " +
+                        "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
     }
 
     @Test
@@ -289,9 +297,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] should define *either* " +
-                "{w, h} *or* {wmin, wratio, hratio}, but not both. If both are valid, send two \"format\" " +
-                "objects in the request.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, " +
+                        "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
     }
 
     @Test
@@ -305,9 +313,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] should define *either* " +
-                "{w, h} *or* {wmin, wratio, hratio}, but not both. If both are valid, send two \"format\" " +
-                "objects in the request.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, " +
+                        "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
     }
 
     @Test
@@ -340,14 +348,15 @@ public class RequestValidatorTest {
     public void validateShouldReturnValidationMessageWhenBannerFormatSizesAndRatiosPresent() {
         //given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
-               Function.identity());
+                Function.identity());
 
         //when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] should define *either* {w, h}" +
-                " (for static size requirements) *or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} (for static size " +
+                        "requirements) *or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero.");
     }
 
     @Test
@@ -360,8 +369,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"h\" " +
-                "and \"w\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
 
     @Test
@@ -374,8 +383,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"h\" " +
-                "and \"w\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
 
     @Test
@@ -388,8 +397,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"h\" " +
-                "and \"w\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
 
     @Test
@@ -402,8 +411,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"h\" " +
-                "and \"w\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
 
     @Test
@@ -416,8 +425,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"wmin\"," +
-                " \"wratio\", and \"hratio\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define " +
+                        "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
     }
 
     @Test
@@ -430,8 +440,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"wmin\"," +
-                " \"wratio\", and \"hratio\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define " +
+                        "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
     }
 
     @Test
@@ -444,8 +455,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"wmin\"," +
-                " \"wratio\", and \"hratio\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
+                        " properties.");
     }
 
     @Test
@@ -459,8 +471,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"wmin\"," +
-                " \"wratio\", and \"hratio\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
+                        " properties.");
     }
 
     @Test
@@ -473,8 +486,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"wmin\"," +
-                " \"wratio\", and \"hratio\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
+                        " properties.");
     }
 
     @Test
@@ -487,8 +501,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "Request imp[0].banner.format[0] must define non-zero \"wmin\"," +
-                " \"wratio\", and \"hratio\" properties.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
+                        " properties.");
     }
 
     @Test
@@ -502,7 +517,9 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].pmp.deals[0] missing required field: \"id\"");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].pmp.deals[0] missing required field: \"id\"");
+
     }
 
     @Test
@@ -514,7 +531,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].pmp.deals[0] missing required field: \"id\"");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].pmp.deals[0] missing required field: \"id\"");
     }
 
     @Test
@@ -527,8 +545,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.site should include at least one of request.site.id " +
-                "or request.site.page.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.site should include at least one of request.site.id or request.site.page.");
     }
 
     @Test
@@ -541,8 +559,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.site should include at least one of request.site.id " +
-                "or request.site.page.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.site should include at least one of request.site.id or request.site.page.");
     }
 
     @Test
@@ -581,9 +599,10 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.site should include at least one of request.site.id " +
-                "or request.site.page.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.site should include at least one of request.site.id or request.site.page.");
     }
+
     @Test
     public void validateShouldReturnValidationMessageWhenRequestAppAndRequestSiteBothMissed() {
         //given
@@ -596,7 +615,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.site or request.app must be defined, but not both.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.site or request.app must be defined, but not both.");
     }
 
     @Test
@@ -611,7 +631,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.site or request.app must be defined, but not both.");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.site or request.app must be defined, but not both.");
     }
 
     @Test
@@ -637,20 +658,22 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].ext must contain at least one bidder");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].ext must contain at least one bidder");
     }
 
     @Test
     public void validateShouldReturnValidationMessagesWhenImpExtBidderIsUnknown() {
         //given
         final BidRequest bidRequest = validBidRequestBuilder().build();
-        given(bidderParamValidator.isValidBidderName(eq("rubicon"))).willReturn(Boolean.FALSE);
+        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(Boolean.FALSE);
 
         //when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].ext contains unknown bidder: rubicon");
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].ext contains unknown bidder: rubicon");
     }
 
     @Test
@@ -658,7 +681,7 @@ public class RequestValidatorTest {
         //given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
-                        .ext(Ext.builder().build().toObjectNode()).build())).build();
+                        .ext(mapper.valueToTree(singletonMap("prebid", "test"))).build())).build();
 
         //when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -678,14 +701,8 @@ public class RequestValidatorTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-        assertValidationResult(result, "request.imp[0].ext.rubicon failed validation.\n"
-                + "errorMessage1\n"
-                + "errorMessage2");
-    }
-
-    private static void assertValidationResult(ValidationResult result, String msg) {
-        assertThat(result.errors).hasSize(1);
-        assertThat(result.errors.get(0)).isEqualTo(msg);
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].ext.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
     }
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {
@@ -703,57 +720,31 @@ public class RequestValidatorTest {
                         .format(singletonList(Format.builder().wmin(1).wratio(5).hratio(1).build()))
                         .build())
                 .pmp(Pmp.builder().deals(singletonList(Deal.builder().id("1").build())).build())
-                .ext(Ext.builder()
-                        .rubicon(Rubicon.builder().accountId(1).siteId(2).zoneId(3).build())
-                        .build().toObjectNode());
+                .ext(mapper.valueToTree(singletonMap("rubicon", 0)));
     }
 
-    private static BidRequest overwriteBannerFormatInFirstImp(BidRequest bidRequest,
-                                                              Function<Format.FormatBuilder,
-                                                                      Format.FormatBuilder> formatModifier) {
+    private static BidRequest overwriteBannerFormatInFirstImp(
+            BidRequest bidRequest, Function<FormatBuilder, FormatBuilder> formatModifier) {
         bidRequest.getImp().get(0).getBanner()
                 .setFormat(singletonList(formatModifier.apply(Format.builder()).build()));
         return bidRequest;
     }
 
-    private static BidRequest overwritePmpFirstDealInFirstImp(BidRequest bidRequest,
-                                                              Function<Deal.DealBuilder,
-                                                                      Deal.DealBuilder> dealModifier) {
-        final Pmp pmp =  bidRequest.getImp().get(0).getPmp().toBuilder()
+    private static BidRequest overwritePmpFirstDealInFirstImp(
+            BidRequest bidRequest, Function<DealBuilder, DealBuilder> dealModifier) {
+        final Pmp pmp = bidRequest.getImp().get(0).getPmp().toBuilder()
                 .deals((singletonList(dealModifier.apply(dealModifier.apply(Deal.builder())).build()))).build();
 
         return bidRequest.toBuilder().imp(singletonList(validImpBuilder().pmp(pmp).build())).build();
     }
 
-    private static BidRequest.BidRequestBuilder overwriteSite(BidRequest.BidRequestBuilder builder,
-                                                              Function<Site.SiteBuilder,
-                                                                      Site.SiteBuilder> siteModifier) {
+    private static BidRequest.BidRequestBuilder overwriteSite(
+            BidRequest.BidRequestBuilder builder, Function<SiteBuilder, SiteBuilder> siteModifier) {
         return builder.site(siteModifier.apply(Site.builder()).build());
     }
 
-    private static BidRequest.BidRequestBuilder overwriteApp(BidRequest.BidRequestBuilder builder,
-                                                             Function<App.AppBuilder,
-                                                                     App.AppBuilder> appModifier) {
+    private static BidRequest.BidRequestBuilder overwriteApp(
+            BidRequest.BidRequestBuilder builder, Function<AppBuilder, AppBuilder> appModifier) {
         return builder.app(appModifier.apply(App.builder()).build());
-    }
-
-    @Builder(toBuilder = true)
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-    private static class Ext {
-        Rubicon rubicon;
-
-        String prebid = "test";
-
-        private ObjectNode toObjectNode()  {
-            return Json.mapper.convertValue(this, ObjectNode.class);
-        }
-    }
-
-    @Builder(toBuilder = true)
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-    private static class Rubicon {
-        Integer accountId;
-        Integer siteId;
-        Integer zoneId;
     }
 }

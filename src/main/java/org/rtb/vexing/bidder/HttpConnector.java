@@ -125,7 +125,7 @@ public class HttpConnector {
 
         final List<Result<List<BidderBid>>> createdBids = calls.stream()
                 .filter(httpCall -> StringUtils.isBlank(httpCall.error))
-                .map(bidder::makeBids)
+                .map(httpCall -> bidder.makeBids(httpCall, bidRequest))
                 .collect(Collectors.toList());
 
         final List<BidderBid> bids = createdBids.stream()

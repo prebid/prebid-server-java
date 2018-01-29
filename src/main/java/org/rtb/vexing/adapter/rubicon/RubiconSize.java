@@ -12,7 +12,7 @@ import java.util.Map;
 @EqualsAndHashCode
 @AllArgsConstructor(staticName = "$", access = AccessLevel.PRIVATE)
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-final class RubiconSize {
+public final class RubiconSize {
 
     private static final Map<RubiconSize, Integer> SIZES = new HashMap<>();
 
@@ -65,7 +65,7 @@ final class RubiconSize {
     Integer w;
     Integer h;
 
-    static int toId(Format size) {
+    public static int toId(Format size) {
         return SIZES.getOrDefault($(size.getW(), size.getH()), 0);
     }
 }

@@ -1,0 +1,73 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "minduration": 20,
+        "maxduration": 60,
+        "protocols": [
+          1
+        ],
+        "w": 300,
+        "h": 250,
+        "startdelay": 5,
+        "skipmin": 0,
+        "skipafter": 0,
+        "playbackmethod": [
+          1
+        ]
+      },
+      "ext": {
+        "rubicon": {
+          "accountId": 2001,
+          "siteId": 3001,
+          "zoneId": 4001,
+          "inventory": {
+            "rating": "5-star",
+            "prodtype": "tech"
+          },
+          "visitor": {
+            "ucat": "new",
+            "search": "iphone"
+          },
+          "video": {
+            "size_id": 15,
+            "skip": 5,
+            "skipdelay": 1
+          }
+        }
+      }
+    },
+    {
+      "ext": {
+        "prebid": {
+          "storedrequest": {
+            "id": "test-rubicon-stored-request-2"
+          }
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2
+  },
+  "test": 1,
+  "at": 1,
+  "tmax": 1000,
+  "allimps": 0,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": "med"
+      }
+    }
+  }
+}

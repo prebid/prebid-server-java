@@ -15,6 +15,8 @@ import java.util.Collections;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -40,14 +42,16 @@ public class FileStoredRequestFetcherTest {
     @Test
     public void shouldReturnResultWithConfigNotFoundErrorForNotExistingId() {
         // given
-        given(fileSystem.readDirBlocking(REQUEST_CONFIG_PATH)).willReturn(singletonList("1.json"));
-        given(fileSystem.readFileBlocking("1.json")).willReturn(Buffer.buffer("value1"));
+        given(fileSystem.readDirBlocking(eq(REQUEST_CONFIG_PATH)))
+                .willReturn(singletonList("/home/user/requests/1.json"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("value1"));
         fileStoredRequestFetcher = FileStoredRequestFetcher.create(REQUEST_CONFIG_PATH, fileSystem).result();
 
         // when
         final Future<StoredRequestResult> storedRequestResult = fileStoredRequestFetcher
                 .getStoredRequestsById(Collections.singleton("2"));
         // then
+        verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
         assertThat(storedRequestResult.succeeded()).isTrue();
         assertThat(storedRequestResult.result().errors).isNotNull().hasSize(1)
                 .isEqualTo(singletonList("No config found for id: 2"));
@@ -58,14 +62,16 @@ public class FileStoredRequestFetcherTest {
     @Test
     public void shouldReturnResultWithEmptyErrorListIfAllIdsArePresent() {
         // given
-        given(fileSystem.readDirBlocking(REQUEST_CONFIG_PATH)).willReturn(singletonList("1.json"));
-        given(fileSystem.readFileBlocking("1.json")).willReturn(Buffer.buffer("value1"));
+        given(fileSystem.readDirBlocking(eq(REQUEST_CONFIG_PATH))).willReturn(singletonList
+                ("/home/user/requests/1.json"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("value1"));
         fileStoredRequestFetcher = FileStoredRequestFetcher.create(REQUEST_CONFIG_PATH, fileSystem).result();
 
         // when
         final Future<StoredRequestResult> storedRequestResult = fileStoredRequestFetcher
                 .getStoredRequestsById(Collections.singleton("1"));
         // then
+        verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
         assertThat(storedRequestResult.result().errors).isNotNull().isEmpty();
         assertThat(storedRequestResult.result().storedIdToJson).isNotNull().hasSize(1)
                 .isEqualTo(Collections.singletonMap("1", "value1"));
@@ -74,7 +80,7 @@ public class FileStoredRequestFetcherTest {
     @Test
     public void initializationShouldNotReadFromNonJsonFiles() {
         // given
-        given(fileSystem.readDirBlocking(REQUEST_CONFIG_PATH)).willReturn(singletonList("1.txt"));
+        given(fileSystem.readDirBlocking(REQUEST_CONFIG_PATH)).willReturn(singletonList("/home/user/requests/1.txt"));
         given(fileSystem.readFileBlocking("2.txt")).willReturn(Buffer.buffer("value2"));
 
         // when

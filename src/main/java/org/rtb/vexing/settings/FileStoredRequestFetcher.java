@@ -5,6 +5,7 @@ import io.vertx.core.file.FileSystem;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.settings.model.StoredRequestResult;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -35,10 +36,10 @@ public class FileStoredRequestFetcher implements StoredRequestFetcher {
     public static Future<FileStoredRequestFetcher> create(String requestConfigPath, FileSystem fileSystem) {
         Objects.requireNonNull(requestConfigPath);
         Objects.requireNonNull(fileSystem);
-        final List<String> filesNames = fileSystem.readDirBlocking(requestConfigPath);
-        final Map<String, String> storedRequests = filesNames.stream()
-                .filter(filename -> filename.endsWith(JSON_SUFFIX))
-                .collect(Collectors.toMap(filename -> StringUtils.removeEnd(filename, JSON_SUFFIX),
+        final List<String> filesPaths = fileSystem.readDirBlocking(requestConfigPath);
+        final Map<String, String> storedRequests = filesPaths.stream()
+                .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
+                .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
                         filename -> fileSystem.readFileBlocking(filename).toString()));
         return Future.succeededFuture(new FileStoredRequestFetcher(storedRequests));
     }

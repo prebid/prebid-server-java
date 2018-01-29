@@ -1,5 +1,6 @@
 package org.rtb.vexing;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
@@ -39,10 +40,12 @@ import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.RestAssured.given;
+import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.hamcrest.Matchers.equalTo;
 
 @RunWith(VertxUnitRunner.class)
 public class ApplicationTest extends VertxTest {
@@ -85,13 +88,16 @@ public class ApplicationTest extends VertxTest {
         vertx.close(context.asyncAssertSuccess());
     }
 
-    private static JsonObject config() {
+    private JsonObject config() {
+        final String resourcesRoot = "src/test/resources/org/rtb/vexing/" + this.getClass().getSimpleName() + "/";
+
         return new JsonObject()
                 .put("external_url", "http://localhost:" + APP_PORT)
                 .put("http.port", APP_PORT)
                 .put("http-client.max-pool-size", 32768)
                 .put("http-client.connect-timeout-ms", 1000)
                 .put("default-timeout-ms", 250L)
+                .put("max_request_size", Long.MAX_VALUE)
                 .put("adapters.rubicon.endpoint",
                         "http://localhost:" + WIREMOCK_PORT + "/rubicon-exchange?tk_xint=rp-pbs")
                 .put("adapters.rubicon.usersync_url", "http://localhost:" + WIREMOCK_PORT + "/cookie")
@@ -114,7 +120,9 @@ public class ApplicationTest extends VertxTest {
                 .put("adapters.conversant.endpoint", "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange")
                 .put("adapters.conversant.usersync_url", "//conversant-usersync")
                 .put("datacache.type", "filecache")
-                .put("datacache.filename", "src/test/resources/org/rtb/vexing/test-app-settings.yml")
+                .put("datacache.filename", resourcesRoot + "test-app-settings.yml")
+                .put("stored_requests.type", "filesystem")
+                .put("stored_requests.configpath", resourcesRoot + "storedrequests")
                 .put("metrics.metricType", "flushingCounter")
                 .put("cache.scheme", "http")
                 .put("cache.host", "localhost:" + WIREMOCK_PORT)
@@ -127,67 +135,22 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void auctionShouldRespondWithBidsFromDifferentExchanges() throws IOException {
+    public void openrtb2AuctionShouldRespondWithBidsFromDifferentExchanges() throws IOException {
         // given
-        // rubicon bid response for ad unit 1
+        // rubicon bid response for imp 1
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withQueryParam("tk_xint", equalTo("rp-pbs"))
+                .withQueryParam("tk_xint", WireMock.equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("Accept", equalTo("application/json"))
-                .withHeader("User-Agent", equalTo("prebid-server/1.0"))
-                .withRequestBody(equalToJson(jsonFrom("test-rubicon-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-rubicon-bid-response-1.json"))));
+                .withHeader("Accept", WireMock.equalTo("application/json"))
+                .withHeader("User-Agent", WireMock.equalTo("prebid-server/1.0"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-rubicon-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-rubicon-bid-response-1.json"))));
 
-        // rubicon bid response for ad unit 2
+        // rubicon bid response for imp 2
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("test-rubicon-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-rubicon-bid-response-2.json"))));
-
-        // rubicon bid response for ad unit 3
-        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("test-rubicon-bid-request-3.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-rubicon-bid-response-3.json"))));
-
-        // appnexus bid response for ad unit 4
-        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("test-appnexus-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-appnexus-bid-response-1.json"))));
-
-        // facebook bid response for ad unit 5
-        wireMockRule.stubFor(post(urlPathEqualTo("/facebook-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("test-facebook-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-facebook-bid-response-1.json"))));
-
-        // pulsepoint bid response for ad unit 6
-        wireMockRule.stubFor(post(urlPathEqualTo("/pulsepoint-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("test-pulsepoint-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-pulsepoint-bid-response-1.json"))));
-
-        // pulsepoint bid response for ad unit 7
-        wireMockRule.stubFor(post(urlPathEqualTo("/indexexchange-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("test-indexexchange-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-indexexchange-bid-response-1.json"))));
-
-        // pulsepoint bid response for ad unit 8
-        wireMockRule.stubFor(post(urlPathEqualTo("/lifestreet-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("test-lifestreet-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-lifestreet-bid-response-1.json"))));
-
-        // pulsepoint bid response for ad unit 9
-        wireMockRule.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("test-pubmatic-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-pubmatic-bid-response-1.json"))));
-
-        // pulsepoint bid response for ad unit 10
-        wireMockRule.stubFor(post(urlPathEqualTo("/conversant-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("test-conversant-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-conversant-bid-response-1.json"))));
-
-        // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("test-cache-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("test-cache-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-rubicon-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-rubicon-bid-response-2.json"))));
 
         // when
         final Response response = given(spec)
@@ -196,11 +159,98 @@ public class ApplicationTest extends VertxTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for
-                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID","pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID","conversant":"CV-UID"}}
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
+                // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
+                // "conversant":"CV-UID"}}
+                .cookie("uids",
+                        "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCJ9fQ==")
+                .body(jsonFrom("openrtb2/test-auction-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
+                response, "ext.responsetimemillis.%s");
+
+        assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
+    }
+
+    @Test
+    public void auctionShouldRespondWithBidsFromDifferentExchanges() throws IOException {
+        // given
+        // rubicon bid response for ad unit 1
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withQueryParam("tk_xint", WireMock.equalTo("rp-pbs"))
+                .withBasicAuth("rubicon_user", "rubicon_password")
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Accept", WireMock.equalTo("application/json"))
+                .withHeader("User-Agent", WireMock.equalTo("prebid-server/1.0"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-rubicon-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-rubicon-bid-response-1.json"))));
+
+        // rubicon bid response for ad unit 2
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-rubicon-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-rubicon-bid-response-2.json"))));
+
+        // rubicon bid response for ad unit 3
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-rubicon-bid-request-3.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-rubicon-bid-response-3.json"))));
+
+        // appnexus bid response for ad unit 4
+        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-appnexus-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-appnexus-bid-response-1.json"))));
+
+        // facebook bid response for ad unit 5
+        wireMockRule.stubFor(post(urlPathEqualTo("/facebook-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-facebook-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-facebook-bid-response-1.json"))));
+
+        // pulsepoint bid response for ad unit 6
+        wireMockRule.stubFor(post(urlPathEqualTo("/pulsepoint-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-pulsepoint-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-pulsepoint-bid-response-1.json"))));
+
+        // pulsepoint bid response for ad unit 7
+        wireMockRule.stubFor(post(urlPathEqualTo("/indexexchange-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-indexexchange-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-indexexchange-bid-response-1.json"))));
+
+        // pulsepoint bid response for ad unit 8
+        wireMockRule.stubFor(post(urlPathEqualTo("/lifestreet-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-lifestreet-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-lifestreet-bid-response-1.json"))));
+
+        // pulsepoint bid response for ad unit 9
+        wireMockRule.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-pubmatic-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-pubmatic-bid-response-1.json"))));
+
+        // pulsepoint bid response for ad unit 10
+        wireMockRule.stubFor(post(urlPathEqualTo("/conversant-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-conversant-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-conversant-bid-response-1.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-cache-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-cache-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
+                // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
+                // "conversant":"CV-UID"}}
                 .cookie("uids",
                         "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCJ9fQ==")
                 .queryParam("debug", "1")
-                .body(jsonFrom("test-auction-request.json"))
+                .body(jsonFrom("auction/test-auction-request.json"))
                 .post("/auction");
 
         // then
@@ -210,7 +260,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("test-auction-response.json"), response);
+        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/test-auction-response.json"),
+                response, "bidder_status.find { it.bidder == '%s' }.response_time_ms");
 
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -225,7 +276,7 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void optoutShouldSetOptOutFlagAndRedirectToOptOutUrl() {
         wireMockRule.stubFor(post("/optout")
-                .withRequestBody(equalTo("secret=abc&response=recaptcha1"))
+                .withRequestBody(WireMock.equalTo("secret=abc&response=recaptcha1"))
                 .willReturn(aResponse().withBody("{\"success\": true}")));
 
         final Response response = given(spec)
@@ -364,20 +415,21 @@ public class ApplicationTest extends VertxTest {
 
     @Test
     public void biddersParamsShouldReturnBidderSchemas() throws IOException {
-        final String result = given(spec)
+        given(spec)
                 .when()
                 .get("/bidders/params")
-                .asString();
-
-        assertThat(result).isEqualTo(jsonFrom("/org/rtb/vexing/validation/application_test_schemas.json"));
+                .then()
+                .assertThat()
+                .body(equalTo(jsonFrom("params/test-bidder-params-schemas.json")));
     }
 
     private String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
-        return mapper.writeValueAsString(mapper.readTree(this.getClass().getResourceAsStream(file)));
+        return mapper.writeValueAsString(mapper.readTree(this.getClass().getResourceAsStream(
+                this.getClass().getSimpleName() + "/" + file)));
     }
 
-    private static String auctionResponseFrom(String template, Response response) {
+    private static String auctionResponseFrom(String template, Response response, String responseTimePath) {
         final Map<String, String> exchanges = new HashMap<>();
         exchanges.put(RUBICON, "http://localhost:" + WIREMOCK_PORT + "/rubicon-exchange?tk_xint=rp-pbs");
         exchanges.put(APPNEXUS, "http://localhost:" + WIREMOCK_PORT + "/appnexus-exchange");
@@ -393,11 +445,13 @@ public class ApplicationTest extends VertxTest {
 
         for (final Map.Entry<String, String> exchangeEntry : exchanges.entrySet()) {
             final String exchange = exchangeEntry.getKey();
-            result = result
-                    .replaceAll("\\{\\{ " + exchange + "\\.exchange_uri }}", exchangeEntry.getValue())
-                    .replaceAll("\"\\{\\{ " + exchange + "\\.response_time_ms }}\"",
-                            response.path("bidder_status.find { it.bidder == '" + exchange + "' }.response_time_ms")
-                                    .toString());
+            result = result.replaceAll("\\{\\{ " + exchange + "\\.exchange_uri }}", exchangeEntry.getValue());
+            final Integer responseTime = response.path(format(responseTimePath, exchange));
+            if (responseTime != null) {
+                result = result.replaceAll("\"\\{\\{ " + exchange + "\\.response_time_ms }}\"",
+                        responseTime.toString());
+
+            }
         }
 
         return result;

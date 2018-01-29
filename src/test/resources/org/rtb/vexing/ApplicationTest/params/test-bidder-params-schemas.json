@@ -1,4 +1,19 @@
 {
+  "lifestreet": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Lifestreet Adapter Params",
+    "description": "A schema which validates params accepted by the Lifestreet adapter",
+    "type": "object",
+    "properties": {
+      "slot_tag": {
+        "type": "string",
+        "description": "A tag which identifies the ad slot"
+      }
+    },
+    "required": [
+      "slot_tag"
+    ]
+  },
   "appnexus": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Appnexus Adapter Params",
@@ -94,36 +109,6 @@
       "placementId"
     ]
   },
-  "index": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Index Adapter Params",
-    "description": "A schema which validates params accepted by the Index adapter",
-    "type": "object",
-    "properties": {
-      "siteID": {
-        "type": "integer",
-        "description": "An ID which identifies the site selling the impression"
-      }
-    },
-    "required": [
-      "siteID"
-    ]
-  },
-  "lifestreet": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Lifestreet Adapter Params",
-    "description": "A schema which validates params accepted by the Lifestreet adapter",
-    "type": "object",
-    "properties": {
-      "slot_tag": {
-        "type": "string",
-        "description": "A tag which identifies the ad slot"
-      }
-    },
-    "required": [
-      "slot_tag"
-    ]
-  },
   "pubmatic": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Pubmatic Adapter Params",
@@ -142,32 +127,6 @@
     "required": [
       "publisherId",
       "adSlot"
-    ]
-  },
-  "pulsepoint": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Pulsepoint Adapter Params",
-    "description": "A schema which validates params accepted by the Pulsepoint adapter",
-    "type": "object",
-    "properties": {
-      "cp": {
-        "type": "integer",
-        "description": "An ID which identifies the publisher selling the impression"
-      },
-      "ct": {
-        "type": "integer",
-        "description": "An ID which identifies the ad slot being sold"
-      },
-      "cf": {
-        "type": "string",
-        "pattern": "^[0-9]+x[0-9]+$",
-        "description": "The size of the ad slot being sold. This should be a string like 300x250"
-      }
-    },
-    "required": [
-      "cp",
-      "ct",
-      "cf"
     ]
   },
   "rubicon": {
@@ -242,6 +201,32 @@
       "zoneId"
     ]
   },
+  "pulsepoint": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Pulsepoint Adapter Params",
+    "description": "A schema which validates params accepted by the Pulsepoint adapter",
+    "type": "object",
+    "properties": {
+      "cp": {
+        "type": "integer",
+        "description": "An ID which identifies the publisher selling the impression"
+      },
+      "ct": {
+        "type": "integer",
+        "description": "An ID which identifies the ad slot being sold"
+      },
+      "cf": {
+        "type": "string",
+        "pattern": "^[0-9]+x[0-9]+$",
+        "description": "The size of the ad slot being sold. This should be a string like 300x250"
+      }
+    },
+    "required": [
+      "cp",
+      "ct",
+      "cf"
+    ]
+  },
   "conversant": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Conversant Adapter Params",
@@ -300,6 +285,21 @@
     },
     "required": [
       "site_id"
+    ]
+  },
+  "indexExchange": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Index Adapter Params",
+    "description": "A schema which validates params accepted by the Index adapter",
+    "type": "object",
+    "properties": {
+      "siteID": {
+        "type": "integer",
+        "description": "An ID which identifies the site selling the impression"
+      }
+    },
+    "required": [
+      "siteID"
     ]
   }
 }

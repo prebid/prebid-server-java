@@ -12,6 +12,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.rtb.vexing.auction.BidderCatalog;
 
 import java.util.Iterator;
 import java.util.List;
@@ -28,22 +29,21 @@ public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
 
+    private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
      * properties of bidRequest
-     * @param bidderParamValidator
      */
-    public RequestValidator(BidderParamValidator bidderParamValidator) {
+    public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
     }
 
     /**
      * Validates the {@link BidRequest} against a list of validation checks, however, reports only one problem
      * at a time.
-     * @param bidRequest the bidRequest passed in.
-     * @return the ValidationResult object
      */
     public ValidationResult validate(BidRequest bidRequest) {
         try {
@@ -52,8 +52,7 @@ public class RequestValidator {
             }
 
             if (bidRequest.getTmax() != null && bidRequest.getTmax() < 0L) {
-                throw new ValidationException("request.tmax must be nonnegative. Got %s",
-                        bidRequest.getTmax());
+                throw new ValidationException("request.tmax must be nonnegative. Got %s", bidRequest.getTmax());
             }
 
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
@@ -67,8 +66,7 @@ public class RequestValidator {
             if ((bidRequest.getSite() == null && bidRequest.getApp() == null)
                     || (bidRequest.getSite() != null && bidRequest.getApp() != null)) {
 
-                throw new ValidationException("request.site or request.app must be defined, "
-                        + "but not both.");
+                throw new ValidationException("request.site or request.app must be defined, but not both.");
             }
             validateSite(bidRequest.getSite());
         } catch (ValidationException ex) {
@@ -79,8 +77,8 @@ public class RequestValidator {
 
     private void validateSite(Site site) throws ValidationException {
         if (site != null && StringUtils.isBlank(site.getId()) && StringUtils.isBlank(site.getPage())) {
-            throw new ValidationException("request.site should include at least one of "
-                    + "request.site.id or request.site.page.");
+            throw new ValidationException(
+                    "request.site should include at least one of request.site.id or request.site.page.");
         }
     }
 
@@ -89,12 +87,14 @@ public class RequestValidator {
             throw new ValidationException("request.imp[%d] missing required field: \"id\"", index);
         }
         if (imp.getMetric() != null && !imp.getMetric().isEmpty()) {
-            throw new ValidationException("request.imp[%d].metric is not yet supported by "
-                    + "prebid-server. Support may be added in the future.", index);
+            throw new ValidationException(
+                    "request.imp[%d].metric is not yet supported by prebid-server. Support may be added in the future.",
+                    index);
         }
         if (imp.getBanner() == null && imp.getVideo() == null && imp.getAudio() == null && imp.getXNative() == null) {
-            throw new ValidationException("request.imp[%d] must contain at least one of \"banner\","
-                    + " \"video\", \"audio\", or \"native\"", index);
+            throw new ValidationException(
+                    "request.imp[%d] must contain at least one of \"banner\", \"video\", \"audio\", or \"native\"",
+                    index);
         }
 
         validateBanner(imp.getBanner(), index);
@@ -123,18 +123,15 @@ public class RequestValidator {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
             final String bidderName = bidderExtension.getKey();
 
-            if (bidderParamValidator.isValidBidderName(bidderName)) {
-                final BidderParamValidator.Bidder bidder = BidderParamValidator.Bidder.valueOf(bidderName);
-                final Set<String> messages = bidderParamValidator.validate(bidder,
-                        bidderExtension.getValue());
+            if (bidderCatalog.isValidName(bidderName)) {
+                final Set<String> messages = bidderParamValidator.validate(bidderName, bidderExtension.getValue());
 
                 if (!messages.isEmpty()) {
-                    throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex, bidder,
+                    throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex, bidderName,
                             messages.stream().collect(Collectors.joining("\n")));
                 }
             } else if (!PREBID_EXT.equals(bidderName)) {
-                throw new ValidationException("request.imp[%d].ext contains unknown bidder: %s", impIndex,
-                        bidderName);
+                throw new ValidationException("request.imp[%d].ext contains unknown bidder: %s", impIndex, bidderName);
             }
 
         }
@@ -145,8 +142,8 @@ public class RequestValidator {
         if (pmp != null && pmp.getDeals() != null) {
             for (int dealIndex = 0; dealIndex < pmp.getDeals().size(); dealIndex++) {
                 if (StringUtils.isBlank(pmp.getDeals().get(dealIndex).getId())) {
-                    throw new ValidationException("request.imp[%d].pmp.deals[%d] missing "
-                            + "required field: \"id\"", impIndex, dealIndex);
+                    throw new ValidationException("request.imp[%d].pmp.deals[%d] missing required field: \"id\"",
+                            impIndex, dealIndex);
                 }
             }
         }
@@ -194,15 +191,15 @@ public class RequestValidator {
 
     private void validateVideoMimes(Video video, int impIndex) throws ValidationException {
         if (video != null) {
-            validateMimes(video.getMimes(), "request.imp[%d].video.mimes must contain at least "
-                    + "one supported MIME type", impIndex);
+            validateMimes(video.getMimes(),
+                    "request.imp[%d].video.mimes must contain at least one supported MIME type", impIndex);
         }
     }
 
     private void validateAudioMimes(Audio audio, int impIndex) throws ValidationException {
         if (audio != null) {
-            validateMimes(audio.getMimes(), "request.imp[%d].audio.mimes must contain at least "
-                    + "one supported MIME type", impIndex);
+            validateMimes(audio.getMimes(),
+                    "request.imp[%d].audio.mimes must contain at least one supported MIME type", impIndex);
         }
     }
 
