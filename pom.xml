@@ -9,12 +9,31 @@
     <artifactId>prebid-server</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
-    <name>Prebid server</name>
-    <description>Server-side Header Bidding</description>
+    <name>prebid-server</name>
+    <description>Prebid Server (Server-side Header Bidding)</description>
+
+    <organization>
+        <name>Prebid.org</name>
+        <url>http://prebid.org/</url>
+    </organization>
 
     <properties>
+        <!-- used for rpm packaging -->
+        <build.number>0</build.number>
+        <ci.buildResultKey>manual</ci.buildResultKey>
+        <ci.buildTimeStamp>${maven.build.timestamp}</ci.buildTimeStamp>
+        <ci.repository.revision.number>manual</ci.repository.revision.number>
+        <mvn.build.timestamp.format>yyyy-MM-dd HH:mm</mvn.build.timestamp.format>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+
         <!-- the main class -->
         <main.verticle>org.rtb.vexing.Application</main.verticle>
+
+        <!-- dependencies versions -->
         <vertx.version>3.5.0</vertx.version>
         <postgresql.version>42.1.4</postgresql.version>
         <jackson.version>2.9.0</jackson.version>
@@ -25,11 +44,8 @@
         <commons.collections.version>4.1</commons.collections.version>
         <metrics.version>3.2.3</metrics.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencies>
@@ -188,6 +204,13 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -246,8 +269,7 @@
                             </transformers>
                             <artifactSet>
                             </artifactSet>
-                            <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-fat.jar
-                            </outputFile>
+                            <outputFile>${project.build.directory}/${project.name}.jar</outputFile>
                         </configuration>
                     </execution>
                 </executions>
@@ -301,4 +323,58 @@
             </plugin>
         </plugins>
     </reporting>
+
+    <profiles>
+        <profile>
+            <id>rpm</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>rpm-maven-plugin</artifactId>
+                        <version>2.1.5</version>
+                        <executions>
+                            <execution>
+                                <id>generate-rpm</id>
+                                <goals>
+                                    <goal>rpm</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <name>${project.name}</name>
+                            <version>${project.version}</version>
+                            <release>${build.number}</release>
+                            <license>Rubicon Project</license>
+                            <distribution>${project.name}</distribution>
+                            <group>System/RP</group>
+                            <packager>Rubicon Project</packager>
+                            <vendor>Rubicon Project</vendor>
+                            <description>Rubicon Project Prebid Server</description>
+                            <summary>Rubicon Project Prebid Server</summary>
+                            <needarch>false</needarch>
+                            <url>http://www.rubiconproject.com</url>
+                            <defineStatements>
+                                <defineStatement>name ${project.name}</defineStatement>
+                                <defineStatement>_tmppath %{_topdir}/tmp</defineStatement>
+                            </defineStatements>
+                            <mappings>
+                                <mapping>
+                                    <directory>/apps/${project.name}</directory>
+                                    <filemode>755</filemode>
+                                    <username>prodicon</username>
+                                    <groupname>prodicon</groupname>
+                                    <sources>
+                                        <source>
+                                            <location>${project.build.directory}/${project.name}.jar</location>
+                                        </source>
+                                    </sources>
+                                </mapping>
+                            </mappings>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
