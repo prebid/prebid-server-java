@@ -42,12 +42,16 @@
     "metricType": "flushingCounter"
   },
   "datacache": {
-    "max_pool_size": 20,
     "cache_size": 10000,
     "ttl_seconds": 360
   },
   "stored_requests": {
     "type": "filesystem",
-    "configpath": "./"
+    "configpath": "./",
+    "max_pool_size": 20,
+    "in_memory_cache": {
+      "cache_size": 10000,
+      "ttl_seconds": 360
+    }
   }
 }

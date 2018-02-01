@@ -36,6 +36,7 @@
         <!-- dependencies versions -->
         <vertx.version>3.5.0</vertx.version>
         <postgresql.version>42.1.4</postgresql.version>
+        <mysql.version>6.0.6</mysql.version>
         <jackson.version>2.9.0</jackson.version>
         <jsonpatch.version>1.9</jsonpatch.version>
         <lombok.version>1.16.16</lombok.version>
@@ -73,6 +74,11 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>${mysql.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

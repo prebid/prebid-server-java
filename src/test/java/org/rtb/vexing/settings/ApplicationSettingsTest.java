@@ -12,6 +12,7 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.config.ApplicationConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,7 +41,7 @@ public class ApplicationSettingsTest {
         // given
         given(vertx.fileSystem()).willReturn(fileSystem);
         given(fileSystem.readFileBlocking(any())).willReturn(Buffer.buffer("accounts:"));
-        given(applicationConfig.getString(eq("datacache.type"))).willReturn("filecache");
+        given(applicationConfig.getString(eq("datacache.type"))).willReturn("filesystem");
         given(applicationConfig.getString(eq("datacache.filename"))).willReturn("ignored");
 
         // when
@@ -50,4 +51,14 @@ public class ApplicationSettingsTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isInstanceOf(FileApplicationSettings.class);
     }
+
+    @Test
+    public void createShouldThrowIllegalStateExceptionWhenSqlProviderDoNotMatchWithFetchers(){
+        // given
+        given(applicationConfig.getString(eq("datacache.type"))).willReturn("postgres");
+        given(applicationConfig.getString(eq("stored_requests.type"))).willReturn("mysql");
+
+        assertThatIllegalStateException().isThrownBy(() -> ApplicationSettings.create(vertx, applicationConfig));
+    }
+
 }

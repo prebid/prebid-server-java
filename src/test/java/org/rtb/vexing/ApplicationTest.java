@@ -119,7 +119,7 @@ public class ApplicationTest extends VertxTest {
                 .put("adapters.pubmatic.usersync_url", "//pubmatic-usersync")
                 .put("adapters.conversant.endpoint", "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange")
                 .put("adapters.conversant.usersync_url", "//conversant-usersync")
-                .put("datacache.type", "filecache")
+                .put("datacache.type", "filesystem")
                 .put("datacache.filename", resourcesRoot + "test-app-settings.yml")
                 .put("stored_requests.type", "filesystem")
                 .put("stored_requests.configpath", resourcesRoot + "storedrequests")
