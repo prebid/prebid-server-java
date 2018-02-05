@@ -13,6 +13,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.adapter.HttpConnector;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.TargetingKeywordsCreator;
 import org.rtb.vexing.cache.CacheService;
@@ -22,9 +23,7 @@ import org.rtb.vexing.metric.AccountMetrics;
 import org.rtb.vexing.metric.AdapterMetrics;
 import org.rtb.vexing.metric.MetricName;
 import org.rtb.vexing.metric.Metrics;
-import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.BidderResult;
-import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.Tuple2;
 import org.rtb.vexing.model.Tuple3;
@@ -39,12 +38,10 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -60,18 +57,20 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final CacheService cacheService;
     private final Metrics metrics;
+    private final HttpConnector httpConnector;
 
     private String date;
     private final Clock clock = Clock.systemDefaultZone();
 
     public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters,
                           PreBidRequestContextFactory preBidRequestContextFactory, CacheService cacheService,
-                          Vertx vertx, Metrics metrics) {
+                          Vertx vertx, Metrics metrics, HttpConnector httpConnector) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.adapters = Objects.requireNonNull(adapters);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
+        this.httpConnector = Objects.requireNonNull(httpConnector);
 
         // Refresh the date included in the response header every second.
         final Handler<Long> dateUpdater = event -> date = DateTimeFormatter.RFC_1123_DATE_TIME.format(
@@ -132,47 +131,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return preBidRequestContext.bidders.stream()
                 .filter(bidder -> adapters.isValidCode(bidder.bidderCode))
                 .peek(bidder -> updateAdapterRequestMetrics(bidder.bidderCode, accountId))
-                .map(bidder -> adapters.getByCode(bidder.bidderCode).requestBids(bidder, preBidRequestContext)
-                        .map(bidderResult -> dropBidsWithNotValidSize(bidderResult, bidder.adUnitBids)))
+                .map(bidder -> httpConnector.call(adapters.getByCode(bidder.bidderCode), bidder, preBidRequestContext))
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Removes from Bidder result bids with zero width or height if it is not possible to find these values
-     * in correspond AdUnitBid
-     */
-    private static BidderResult dropBidsWithNotValidSize(BidderResult bidderResult, List<AdUnitBid> adUnitBids) {
-        final List<Bid> notValidBids = bidderResult.bids.stream()
-                .filter(bid -> bid.mediaType == MediaType.banner
-                        && (bid.height == null || bid.height == 0 || bid.width == null || bid.width == 0))
-                .collect(Collectors.toList());
-
-        // bids which are not in invalid list are valid
-        final List<Bid> validBids = new ArrayList<>(bidderResult.bids);
-        validBids.removeAll(notValidBids);
-
-        for (final Bid bid : notValidBids) {
-            Optional<AdUnitBid> matchingAdUnit = adUnitBids.stream()
-                    .filter(adUnitBid -> adUnitBid.adUnitCode.equals(bid.code) && adUnitBid.bidId.equals(bid.bidId)
-                            && adUnitBid.sizes.size() == 1)
-                    .findAny();
-            if (matchingAdUnit.isPresent()) {
-                final Bid validBid = bid.toBuilder()
-                        .width(matchingAdUnit.get().sizes.get(0).getW())
-                        .height(matchingAdUnit.get().sizes.get(0).getH())
-                        .build();
-                validBids.add(validBid);
-            } else {
-                logger.warn("Bid was rejected for bidder {0} because no size was defined", bid.bidder);
-            }
-        }
-        if (bidderResult.bids.size() != validBids.size()) {
-            bidderResult = bidderResult.toBuilder()
-                    .bids(validBids)
-                    .bidderStatus(bidderResult.bidderStatus.toBuilder().numBids(validBids.size()).build())
-                    .build();
-        }
-        return bidderResult;
     }
 
     private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,

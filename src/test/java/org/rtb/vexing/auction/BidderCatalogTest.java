@@ -97,7 +97,7 @@ public class BidderCatalogTest {
 //
 //        assertThat(bidderCatalog.byName("indexExchange"))
 //                .isNotNull()
-//                .isInstanceOf(IndexExchangeAdapter.class);
+//                .isInstanceOf(IndexAdapter.class);
 //
 //        assertThat(bidderCatalog.byName("Lifestreet"))
 //                .isNotNull()

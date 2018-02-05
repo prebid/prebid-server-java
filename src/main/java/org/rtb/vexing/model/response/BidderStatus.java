@@ -1,6 +1,5 @@
 package org.rtb.vexing.model.response;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,7 +30,7 @@ public final class BidderStatus {
 
     Boolean noBid;
 
-    ObjectNode usersync;
+    UsersyncInfo usersync;
 
     List<BidderDebug> debug;
 }

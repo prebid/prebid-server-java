@@ -1,7 +1,6 @@
 package org.rtb.vexing.handler;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.util.AsciiString;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.DecodeException;
@@ -166,11 +165,11 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         givenAdaptersReturningFamilyName();
 
-        final ObjectNode appnexusUsersyncInfo = defaultNamingMapper.valueToTree(UsersyncInfo.builder()
+        final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.builder()
                 .url("http://adnxsexample.com")
                 .type("redirect")
                 .supportCORS(false)
-                .build());
+                .build();
         given(appnexusAdapter.usersyncInfo()).willReturn(appnexusUsersyncInfo);
 
         // when
@@ -253,11 +252,11 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         givenAdaptersReturningFamilyName();
 
-        final ObjectNode appnexusUsersyncInfo = defaultNamingMapper.valueToTree(UsersyncInfo.builder()
+        final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.builder()
                 .url("http://adnxsexample.com")
                 .type("redirect")
                 .supportCORS(false)
-                .build());
+                .build();
         given(appnexusAdapter.usersyncInfo()).willReturn(appnexusUsersyncInfo);
 
         // when

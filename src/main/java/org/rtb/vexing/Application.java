@@ -27,7 +27,6 @@ import org.rtb.vexing.auction.BidderCatalog;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.StoredRequestProcessor;
-import org.rtb.vexing.bidder.HttpConnector;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookieService;
@@ -154,6 +153,8 @@ public class Application extends AbstractVerticle {
             configureMetricsReporter(metricRegistry, config, vertx);
             final Metrics metrics = Metrics.create(metricRegistry, config);
             final AdapterCatalog adapterCatalog = AdapterCatalog.create(config, httpClient);
+            final org.rtb.vexing.adapter.HttpConnector legacyHttpConnector =
+                    new org.rtb.vexing.adapter.HttpConnector(httpClient);
             final UidsCookieService uidsCookieService = UidsCookieService.create(config);
             final PreBidRequestContextFactory preBidRequestContextFactory =
                     PreBidRequestContextFactory.create(config, psl(), applicationSettings, uidsCookieService);
@@ -163,13 +164,14 @@ public class Application extends AbstractVerticle {
             final BidderParamValidator bidderParamValidator = BidderParamValidator.create(bidderCatalog,
                     "/static/bidder-params");
             final RequestValidator requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator);
-            final HttpConnector httpConnector = new HttpConnector(httpClient);
+            final org.rtb.vexing.bidder.HttpConnector httpConnector =
+                    new org.rtb.vexing.bidder.HttpConnector(httpClient);
             final ExchangeService exchangeService = new ExchangeService(httpConnector, bidderCatalog);
             final StoredRequestProcessor storedRequestProcessor = new StoredRequestProcessor(storedRequestFetcher);
 
             return builder()
                     .auctionHandler(new AuctionHandler(applicationSettings, adapterCatalog,
-                            preBidRequestContextFactory, cacheService, vertx, metrics))
+                            preBidRequestContextFactory, cacheService, vertx, metrics, legacyHttpConnector))
                     .openrtbAuctionHandler(org.rtb.vexing.handler.openrtb2.AuctionHandler.create(config,
                             requestValidator, exchangeService, storedRequestProcessor, preBidRequestContextFactory,
                             uidsCookieService))

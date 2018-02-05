@@ -326,11 +326,11 @@ public class ApplicationTest extends VertxTest {
                 .bidderStatus(singletonList(BidderStatus.builder()
                         .bidder(RUBICON)
                         .noCookie(true)
-                        .usersync(defaultNamingMapper.valueToTree(UsersyncInfo.builder()
+                        .usersync(UsersyncInfo.builder()
                                 .url("http://localhost:" + WIREMOCK_PORT + "/cookie")
                                 .type("redirect")
                                 .supportCORS(false)
-                                .build()))
+                                .build())
                         .build()))
                 .build());
     }

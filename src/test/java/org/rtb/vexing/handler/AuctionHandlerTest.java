@@ -23,6 +23,7 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.AdapterCatalog;
+import org.rtb.vexing.adapter.HttpConnector;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cache.model.BidCacheResult;
@@ -92,15 +93,16 @@ public class AuctionHandlerTest extends VertxTest {
     private AccountMetrics accountMetrics;
     @Mock
     private AdapterMetrics accountAdapterMetrics;
-
-    private AuctionHandler auctionHandler;
-
     @Mock
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
+    @Mock
+    private HttpConnector httpConnector;
+
+    private AuctionHandler auctionHandler;
 
     @Before
     public void setUp() {
@@ -126,26 +128,29 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
         auctionHandler = new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory,
-                cacheService, vertx, metrics);
+                cacheService, vertx, metrics, httpConnector);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(null, null, null, null, null, null));
+                () -> new AuctionHandler(null, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, null, null, null, null, null));
+                () -> new AuctionHandler(applicationSettings, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, null, null, null, null));
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
                 () -> new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory, null,
-                        null, null));
+                        null, null, null));
         assertThatNullPointerException().isThrownBy(
                 () -> new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory,
-                        cacheService, null, null));
+                        cacheService, null, null, null));
         assertThatNullPointerException().isThrownBy(
                 () -> new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory,
-                        cacheService, vertx, null));
+                        cacheService, vertx, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory,
+                        cacheService, vertx, metrics, null));
     }
 
     @Test
@@ -210,7 +215,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
-        given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.failedFuture(new RuntimeException()));
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.failedFuture(new RuntimeException()));
 
         // when
         auctionHandler.handle(routingContext);
@@ -225,7 +230,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
+        givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
         given(cacheService.saveBids(anyList())).willReturn(Future.succeededFuture(singletonList(BidCacheResult
                 .builder()
@@ -252,7 +257,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
+        givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
         // when
         auctionHandler.handle(routingContext);
@@ -270,7 +275,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity());
+        givenBidderRespondingWithBids(RUBICON, identity());
 
         // when
         auctionHandler.handle(routingContext);
@@ -284,7 +289,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
+        givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
         given(cacheService.saveBids(anyList())).willReturn(Future.failedFuture("http exception"));
 
@@ -302,9 +307,31 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith2AdUnitsAnd2BidsEach(builder -> builder.noLiveUids(false));
 
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1", "bidId2");
-        givenAdapterRespondingWithBids(appnexusAdapter, APPNEXUS, identity(), "bidId3", "bidId4");
-
+        given(httpConnector.call(any(), any(), any()))
+                .willReturn(Future.succeededFuture(BidderResult.builder()
+                        .bidderStatus(BidderStatus.builder()
+                                .bidder(RUBICON)
+                                .responseTimeMs(100)
+                                .build())
+                        .bids(Arrays.stream(new String[]{"bidId1", "bidId2"})
+                                .map(id -> org.rtb.vexing.model.response.Bid.builder()
+                                        .bidId(id)
+                                        .price(new BigDecimal("5.67"))
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build()))
+                .willReturn(Future.succeededFuture(BidderResult.builder()
+                        .bidderStatus(BidderStatus.builder()
+                                .bidder(APPNEXUS)
+                                .responseTimeMs(100)
+                                .build())
+                        .bids(Arrays.stream(new String[]{"bidId3", "bidId4"})
+                                .map(id -> org.rtb.vexing.model.response.Bid.builder()
+                                        .bidId(id)
+                                        .price(new BigDecimal("5.67"))
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build()));
         // when
         auctionHandler.handle(routingContext);
 
@@ -323,26 +350,32 @@ public class AuctionHandlerTest extends VertxTest {
         final List<Bidder> bidders = asList(Bidder.from(RUBICON, adUnitBids), Bidder.from(APPNEXUS, adUnitBids));
         givenPreBidRequestContextCustomizable(builder -> builder.sortBids(1), builder -> builder.bidders(bidders));
 
-        given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build())
-                .bids(asList(
-                        org.rtb.vexing.model.response.Bid.builder()
-                                .bidder(RUBICON).code("adUnitCode1").bidId("bidId1").price(new BigDecimal("5.67"))
-                                .responseTimeMs(60).adServerTargeting(singletonMap("rpfl_1001", "2_tier0100")).build(),
-                        org.rtb.vexing.model.response.Bid.builder()
-                                .bidder(RUBICON).code("adUnitCode2").bidId("bidId2").price(new BigDecimal("6.35"))
-                                .responseTimeMs(80).build()))
-                .build()));
-        given(appnexusAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bidderStatus(BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build())
-                .bids(asList(
-                        org.rtb.vexing.model.response.Bid.builder()
-                                .bidder(APPNEXUS).code("adUnitCode1").bidId("bidId3").price(new BigDecimal("5.67"))
-                                .responseTimeMs(50).build(),
-                        org.rtb.vexing.model.response.Bid.builder()
-                                .bidder(APPNEXUS).code("adUnitCode2").bidId("bidId4").price(new BigDecimal("7.15"))
-                                .responseTimeMs(100).build()))
-                .build()));
+        given(httpConnector.call(any(), any(), any()))
+                .willReturn(Future.succeededFuture(BidderResult.builder()
+                        .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build())
+                        .bids(asList(
+                                org.rtb.vexing.model.response.Bid.builder()
+                                        .bidder(RUBICON).code("adUnitCode1").bidId("bidId1")
+                                        .price(new BigDecimal("5.67"))
+                                        .responseTimeMs(60).adServerTargeting(
+                                        singletonMap("rpfl_1001", "2_tier0100")).build(),
+                                org.rtb.vexing.model.response.Bid.builder()
+                                        .bidder(RUBICON).code("adUnitCode2").bidId("bidId2")
+                                        .price(new BigDecimal("6.35"))
+                                        .responseTimeMs(80).build()))
+                        .build()))
+                .willReturn(Future.succeededFuture(BidderResult.builder()
+                        .bidderStatus(BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build())
+                        .bids(asList(
+                                org.rtb.vexing.model.response.Bid.builder()
+                                        .bidder(APPNEXUS).code("adUnitCode1").bidId("bidId3")
+                                        .price(new BigDecimal("5.67"))
+                                        .responseTimeMs(50).build(),
+                                org.rtb.vexing.model.response.Bid.builder()
+                                        .bidder(APPNEXUS).code("adUnitCode2").bidId("bidId4")
+                                        .price(new BigDecimal("7.15"))
+                                        .responseTimeMs(100).build()))
+                        .build()));
 
         // when
         auctionHandler.handle(routingContext);
@@ -375,7 +408,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenPreBidRequestContextCustomizable(identity(), builder -> builder.bidders(bidders));
 
-        given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
                 .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
                 .bids(singletonList(
                         org.rtb.vexing.model.response.Bid.builder().mediaType(MediaType.banner)
@@ -400,7 +433,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenPreBidRequestContextCustomizable(identity(), builder -> builder.bidders(bidders));
 
-        given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
                 .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
                 .bids(singletonList(
                         org.rtb.vexing.model.response.Bid.builder().mediaType(MediaType.video).bidId("bidId1")
@@ -417,34 +450,6 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithEmptyListIfBidIsBannerAndAdUnitSizesLengthMoreThanOne() throws IOException {
-        // given
-        final List<AdUnitBid> adUnitBids = singletonList(AdUnitBid.builder()
-                .adUnitCode("adUnitCode1")
-                .sizes(asList(Format.builder().w(100).h(200).build(), Format.builder().w(100).h(200).build()))
-                .bidId("bidId1")
-                .build());
-        final List<Bidder> bidders = singletonList(Bidder.from(RUBICON, adUnitBids));
-
-        givenPreBidRequestContextCustomizable(identity(), builder -> builder.bidders(bidders));
-
-        given(rubiconAdapter.requestBids(any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
-                .bids(singletonList(
-                        org.rtb.vexing.model.response.Bid.builder().code("adUnitCode1").mediaType(MediaType.banner)
-                                .bidId("bidId1").price(new BigDecimal("5.67")).build()))
-                .build()));
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.bids).isEmpty();
-        assertThat(preBidResponse.bidderStatus.get(0).numBids).isEqualTo(0);
-    }
-
-    @Test
     public void shouldTolerateUnsupportedBidderInPreBidRequest() throws IOException {
         // given
         final List<Bidder> bidders = asList(
@@ -452,7 +457,7 @@ public class AuctionHandlerTest extends VertxTest {
                 Bidder.from(RUBICON, singletonList(null)));
         givenPreBidRequestContextCustomizable(identity(), builder -> builder.bidders(bidders));
 
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
+        givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
         // when
         auctionHandler.handle(routingContext);
@@ -470,8 +475,28 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith2AdUnitsAnd2BidsEach(identity());
 
-        givenAdapterRespondingWithError(rubiconAdapter, RUBICON, "rubicon error", false);
-        givenAdapterRespondingWithBids(appnexusAdapter, APPNEXUS, identity(), "bidId1");
+        given(httpConnector.call(any(), any(), any()))
+                .willReturn(Future.succeededFuture(BidderResult.builder()
+                        .timedOut(false)
+                        .bids(Collections.emptyList())
+                        .bidderStatus(BidderStatus.builder()
+                                .bidder(RUBICON)
+                                .responseTimeMs(500)
+                                .error("rubicon error")
+                                .build())
+                        .build()))
+                .willReturn(Future.succeededFuture(BidderResult.builder()
+                        .bidderStatus(BidderStatus.builder()
+                                .bidder(APPNEXUS)
+                                .responseTimeMs(100)
+                                .build())
+                        .bids(Arrays.stream(new String[]{"bidId1"})
+                                .map(id -> org.rtb.vexing.model.response.Bid.builder()
+                                        .bidId(id)
+                                        .price(new BigDecimal("5.67"))
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build()));
 
         // when
         auctionHandler.handle(routingContext);
@@ -496,7 +521,7 @@ public class AuctionHandlerTest extends VertxTest {
             return null;
         });
 
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, builder -> builder.noCookie(true).numBids(1), "bidId1");
+        givenBidderRespondingWithBids(RUBICON, builder -> builder.noCookie(true).numBids(1), "bidId1");
 
         // when
         auctionHandler.handle(routingContext);
@@ -531,7 +556,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, builder -> builder.noBid(true));
+        givenBidderRespondingWithBids(RUBICON, builder -> builder.noBid(true));
 
         // when
         auctionHandler.handle(routingContext);
@@ -591,7 +616,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
-        givenAdapterRespondingWithError(rubiconAdapter, RUBICON, "rubicon error", false);
+        givenBidderRespondingWithError(RUBICON, "rubicon error", false);
 
         // when
         auctionHandler.handle(routingContext);
@@ -606,7 +631,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(identity());
 
-        givenAdapterRespondingWithError(rubiconAdapter, RUBICON, "time out", true);
+        givenBidderRespondingWithError(RUBICON, "time out", true);
 
         // when
         auctionHandler.handle(routingContext);
@@ -621,7 +646,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextCustomizableWith1AdUnitAnd1Bid(builder -> builder.cacheMarkup(1));
 
-        givenAdapterRespondingWithBids(rubiconAdapter, RUBICON, identity(), "bidId1");
+        givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
         given(cacheService.saveBids(anyList())).willReturn(Future.failedFuture("http exception"));
 
@@ -667,10 +692,9 @@ public class AuctionHandlerTest extends VertxTest {
         given(preBidRequestContextFactory.fromRequest(any())).willReturn(Future.succeededFuture(preBidRequestContext));
     }
 
-    private void givenAdapterRespondingWithBids(
-            Adapter adapter, String bidder, Function<BidderStatusBuilder, BidderStatusBuilder>
+    private void givenBidderRespondingWithBids(String bidder, Function<BidderStatusBuilder, BidderStatusBuilder>
             bidderStatusBuilderCustomizer, String... bidIds) {
-        given(adapter.requestBids(any(), any()))
+        given(httpConnector.call(any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidderResult.builder()
                         .bidderStatus(bidderStatusBuilderCustomizer.apply(BidderStatus.builder()
                                 .bidder(bidder)
@@ -685,8 +709,8 @@ public class AuctionHandlerTest extends VertxTest {
                         .build()));
     }
 
-    private void givenAdapterRespondingWithError(Adapter adapter, String bidder, String error, boolean timedOut) {
-        given(adapter.requestBids(any(), any()))
+    private void givenBidderRespondingWithError(String bidder, String error, boolean timedOut) {
+        given(httpConnector.call(any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidderResult.builder()
                         .timedOut(timedOut)
                         .bids(Collections.emptyList())

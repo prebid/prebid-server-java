@@ -9,7 +9,7 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
 import org.rtb.vexing.adapter.conversant.ConversantAdapter;
 import org.rtb.vexing.adapter.facebook.FacebookAdapter;
-import org.rtb.vexing.adapter.indexexchange.IndexExchangeAdapter;
+import org.rtb.vexing.adapter.index.IndexAdapter;
 import org.rtb.vexing.adapter.lifestreet.LifestreetAdapter;
 import org.rtb.vexing.adapter.pubmatic.PubmaticAdapter;
 import org.rtb.vexing.adapter.pulsepoint.PulsepointAdapter;
@@ -103,7 +103,7 @@ public class AdapterCatalogTest {
 
         assertThat(adapterCatalog.getByCode("indexExchange"))
                 .isNotNull()
-                .isInstanceOf(IndexExchangeAdapter.class);
+                .isInstanceOf(IndexAdapter.class);
 
         assertThat(adapterCatalog.getByCode("Lifestreet"))
                 .isNotNull()

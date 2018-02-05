@@ -1,24 +1,18 @@
-package org.rtb.vexing.model.response;
+package org.rtb.vexing.adapter.index.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
-@Builder
 @ToString
 @EqualsAndHashCode
-@AllArgsConstructor
+@AllArgsConstructor(staticName = "of")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class UsersyncInfo {
+public class IndexParams {
 
-    String url;
-
-    String type;
-
-    @JsonProperty("supportCORS")
-    Boolean supportCORS;
+    @JsonProperty("siteID")
+    Integer siteId;
 }

@@ -1,5 +1,7 @@
-package org.rtb.vexing.adapter.pubmatic;
+package org.rtb.vexing.adapter.index;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -20,9 +22,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
+import org.rtb.vexing.adapter.index.model.IndexParams;
 import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
-import org.rtb.vexing.adapter.pubmatic.model.PubmaticParams;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
@@ -48,13 +50,11 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
-public class PubmaticAdapterTest extends VertxTest {
+public class IndexAdapterTest extends VertxTest {
 
-    private static final String ADAPTER = "Pubmatic";
-    private static final String UID_COOKIE = "pubmatic";
-    private static final String ENDPOINT_URL = "http://endpoint.org/";
+    private static final String ADAPTER = "indexExchange";
+    private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -65,37 +65,36 @@ public class PubmaticAdapterTest extends VertxTest {
     private Bidder bidder;
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
-    private PubmaticAdapter adapter;
+    private IndexAdapter adapter;
 
     @Before
     public void setUp() {
         bidder = givenBidderCustomizable(identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        adapter = new PubmaticAdapter(ENDPOINT_URL, USERSYNC_URL, EXTERNAL_URL);
+        exchangeCall = givenExchangeCallCustomizable(identity(), identity());
+        adapter = new IndexAdapter(ENDPOINT_URL, USERSYNC_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new PubmaticAdapter(null, null, null));
+                () -> new IndexAdapter(null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new PubmaticAdapter(ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new PubmaticAdapter(ENDPOINT_URL, USERSYNC_URL, null));
+                () -> new IndexAdapter(ENDPOINT_URL, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new PubmaticAdapter("invalid_url", USERSYNC_URL, EXTERNAL_URL))
+                .isThrownBy(() -> new IndexAdapter("invalid_url", USERSYNC_URL))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
         assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.builder()
-                .url("//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dpubmatic%26uid%3D")
-                .type("iframe")
+                .url("//usersync.org/")
+                .type("redirect")
                 .supportCORS(false)
                 .build());
     }
@@ -109,79 +108,59 @@ public class PubmaticAdapterTest extends VertxTest {
         assertThat(httpRequests).flatExtracting(r -> r.headers.entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json;charset=utf-8"),
-                        tuple("Accept", "application/json"),
-                        tuple("Set-Cookie", "KADUSERCOOKIE="));
+                        tuple("Accept", "application/json"));
     }
 
     @Test
-    public void makeHttpRequestsShouldFailIfNoAtLeastOneValidAdunitBidParams() {
+    public void makeHttpRequestsShouldFailIfAppIsPresentInPreBidRequest() {
         // given
-        bidder = Bidder.from(ADAPTER, singletonList(
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
+                .app(App.builder().build()));
+
+        // when and then
+        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+                .isExactlyInstanceOf(PreBidException.class)
+                .hasMessage("Index doesn't support apps");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
+        // given
+        bidder = Bidder.from(ADAPTER, asList(
+                givenAdUnitBidCustomizable(identity()),
                 givenAdUnitBidCustomizable(builder -> builder.params(null))));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("Incorrect adSlot / Publisher param");
+                .hasMessage("IndexExchange params section is missing");
     }
 
     @Test
-    public void requestBidsShouldSendBidRequestWithNotModifiedImpIfInvalidParams() {
+    public void makeHttpRequestsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(identity()),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of(null, null)))),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of("publisherID", null)))),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of("publisherID", "slot42")))),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of("publisherID", "slot42@200")))),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of("publisherID", "slot42@200xNonNumber"))))
-        ));
+        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        params.set("siteID", new TextNode("non-integer"));
+        bidder = givenBidderCustomizable(builder -> builder.params(params));
 
-        given(uidsCookie.uidFrom(eq(UID_COOKIE))).willReturn("buyerUid");
-
-        // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp()).hasSize(6);
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp())
-                .extracting(Imp::getTagid)
-                .containsOnly("slot1", null, null, null, null, null);
-
-        final List formats = singletonList(Format.builder().w(480).h(320).build());
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp())
-                .extracting(Imp::getBanner).extracting(Banner::getFormat)
-                .containsOnly(null, formats, formats, formats, formats, formats);
-
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp())
-                .extracting(Imp::getBanner).extracting(Banner::getW)
-                .containsOnly(300, 480, 480, 480, 480, 480);
-
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp())
-                .extracting(Imp::getBanner).extracting(Banner::getH)
-                .containsOnly(250, 320, 320, 320, 320, 320);
+        // when and then
+        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+                .isExactlyInstanceOf(PreBidException.class)
+                .hasMessageStartingWith(
+                        "unmarshal params '{\"siteID\":\"non-integer\"}' failed: Cannot deserialize value of type");
     }
 
     @Test
-    public void requestBidsShouldTolerateAdSlotExtraSuffix() {
+    public void makeHttpRequestsShouldFailIfAdUnitBidParamPublisherIdIsMissing() {
         // given
-        bidder = givenBidderCustomizable(
-                builder -> builder
-                        .params(defaultNamingMapper
-                                .valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
+        final ObjectNode params = mapper.createObjectNode();
+        params.set("siteID", null);
+        bidder = givenBidderCustomizable(builder -> builder.params(params));
 
-        given(uidsCookie.uidFrom(eq(UID_COOKIE))).willReturn("buyerUid");
-
-        // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).isNotEmpty();
+        // when and then
+        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+                .isExactlyInstanceOf(PreBidException.class)
+                .hasMessage("Missing siteID param");
     }
 
     @Test
@@ -227,8 +206,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                        .params(defaultNamingMapper
-                                .valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
+                        .params(defaultNamingMapper.valueToTree(IndexParams.of(486))));
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(
                 builder -> builder
@@ -236,12 +214,12 @@ public class PubmaticAdapterTest extends VertxTest {
                         .referer("http://www.example.com")
                         .domain("example.com")
                         .ip("192.168.144.1")
-                        .ua("userAgent"),
+                        .ua("userAgent1"),
                 builder -> builder
-                        .tid("tid")
+                        .tid("tid1")
         );
 
-        given(uidsCookie.uidFrom(eq(UID_COOKIE))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid1");
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
@@ -250,100 +228,40 @@ public class PubmaticAdapterTest extends VertxTest {
         assertThat(httpRequests).hasSize(1)
                 .extracting(r -> r.bidRequest)
                 .containsOnly(BidRequest.builder()
-                        .id("tid")
+                        .id("tid1")
                         .at(1)
                         .tmax(1500L)
                         .imp(singletonList(Imp.builder()
                                 .id("adUnitCode1")
                                 .instl(1)
-                                .tagid("slot42")
+                                .tagid("adUnitCode1")
                                 .banner(Banner.builder()
-                                        .w(200)
-                                        .h(150)
+                                        .w(300)
+                                        .h(250)
                                         .topframe(1)
+                                        .format(singletonList(Format.builder()
+                                                .w(300)
+                                                .h(250)
+                                                .build()))
                                         .build())
                                 .build()))
                         .site(Site.builder()
                                 .domain("example.com")
                                 .page("http://www.example.com")
-                                .publisher(Publisher.builder().id("publisherID").domain("example.com").build())
+                                .publisher(Publisher.builder().id("486").build())
                                 .build())
                         .device(Device.builder()
-                                .ua("userAgent")
+                                .ua("userAgent1")
                                 .ip("192.168.144.1")
                                 .build())
                         .user(User.builder()
-                                .buyeruid("buyerUid")
+                                .buyeruid("buyerUid1")
                                 .build())
                         .source(Source.builder()
                                 .fd(1)
-                                .tid("tid")
+                                .tid("tid1")
                                 .build())
                         .build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithAppFromPreBidRequest() {
-        // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
-                .app(App.builder().id("appId").build()).user(User.builder().build()));
-
-        // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest.getApp().getId())
-                .containsOnly("appId");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithUserFromPreBidRequestIfAppPresent() {
-        // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
-                .app(App.builder().build())
-                .user(User.builder().buyeruid("buyerUid").build()));
-
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUidFromCookie");
-
-        // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest.getUser())
-                .containsOnly(User.builder().buyeruid("buyerUid").build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
-        //given
-        bidder = Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(builder -> builder
-                        .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
-                        .video(Video.builder()
-                                .mimes(singletonList("Mime1"))
-                                .playbackMethod(1)
-                                .build()))));
-
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-
-        // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.bidRequest.getImp())
-                .containsOnly(
-                        Imp.builder()
-                                .video(com.iab.openrtb.request.Video.builder().w(480).h(320)
-                                        .mimes(singletonList("Mime1")).playbackmethod(singletonList(1)).build())
-                                .build(),
-                        Imp.builder()
-                                .banner(Banner.builder().w(300).h(250).build())
-                                .tagid("slot1")
-                                .build()
-                );
     }
 
     @Test
@@ -368,7 +286,7 @@ public class PubmaticAdapterTest extends VertxTest {
         bidder = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"));
 
         exchangeCall = givenExchangeCallCustomizable(identity(),
-                b -> b.seatbid(singletonList(SeatBid.builder()
+                bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder().impid("anotherAdUnitCode").build()))
                         .build())));
 
@@ -376,6 +294,54 @@ public class PubmaticAdapterTest extends VertxTest {
         assertThatThrownBy(() -> adapter.extractBids(bidder, exchangeCall))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Unknown ad unit code 'anotherAdUnitCode'");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
+        //given
+        bidder = Bidder.from(ADAPTER, singletonList(
+                givenAdUnitBidCustomizable(builder -> builder
+                        .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
+                        .video(Video.builder()
+                                .mimes(singletonList("Mime1"))
+                                .playbackMethod(1)
+                                .build()))));
+
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+
+        // when
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(2)
+                .extracting(imp -> imp.getVideo() == null, imp -> imp.getBanner() == null)
+                .containsOnly(tuple(true, false), tuple(false, true));
+    }
+
+    @Test
+    public void extractBidsShouldReturnMultipleBidBuildersIfMultipleAdUnitsInPreBidRequestAndBidsInResponse() {
+        // given
+        bidder = Bidder.from(ADAPTER, asList(
+                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
+                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
+
+        exchangeCall = givenExchangeCallCustomizable(identity(),
+                bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .seat("seatId")
+                                .bid(asList(Bid.builder().impid("adUnitCode1").build(),
+                                        Bid.builder().impid("adUnitCode2").build()))
+                                .build())));
+
+        // when
+        final List<org.rtb.vexing.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
+                .map(org.rtb.vexing.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
+
+        // then
+        assertThat(bids).hasSize(2)
+                .extracting(bid -> bid.code)
+                .containsOnly("adUnitCode1", "adUnitCode2");
     }
 
     @Test
@@ -431,41 +397,17 @@ public class PubmaticAdapterTest extends VertxTest {
         assertThat(adapter.extractBids(bidder, ExchangeCall.empty(null))).isEmpty();
     }
 
-    @Test
-    public void extractBidsShouldReturnMultipleBidBuildersIfMultipleAdUnitsInPreBidRequestAndBidsInResponse() {
-        // given
-        bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
-
-        exchangeCall = givenExchangeCallCustomizable(identity(),
-                bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .seat("seatId")
-                                .bid(asList(Bid.builder().impid("adUnitCode1").build(),
-                                        Bid.builder().impid("adUnitCode2").build()))
-                                .build())));
-
-        // when
-        final List<org.rtb.vexing.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
-                .map(org.rtb.vexing.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
-
-        // then
-        assertThat(bids).hasSize(2)
-                .extracting(bid -> bid.code)
-                .containsOnly("adUnitCode1", "adUnitCode2");
-    }
-
     private static Bidder givenBidderCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
-        return Bidder.from(ADAPTER, singletonList(givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer)));
+        return Bidder.from(ADAPTER, singletonList(
+                givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer)));
     }
 
     private static AdUnitBid givenAdUnitBidCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
-                .sizes(singletonList(Format.builder().w(480).h(320).build()))
-                .params(defaultNamingMapper.valueToTree(PubmaticParams.of("publisherId1", "slot1@300x250:zzz")))
+                .sizes(singletonList(Format.builder().w(300).h(250).build()))
+                .params(defaultNamingMapper.valueToTree(IndexParams.of(42)))
                 .mediaTypes(singleton(MediaType.banner));
 
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer

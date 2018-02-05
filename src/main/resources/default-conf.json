@@ -7,7 +7,7 @@
   "default-timeout-ms": 250,
   "adapters": {
     "rubicon": {
-      "endpoint": "http://staged-by.rubiconproject.com/a/api/exchange.json",
+      "endpoint": "http://exapi-us-east.rubiconproject.com/a/api/exchange.json",
       "usersync_url": "https://pixel.rubiconproject.com/exchange/sync.php?p=prebid"
     },
     "appnexus": {

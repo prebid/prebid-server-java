@@ -4,7 +4,7 @@ import io.vertx.core.http.HttpClient;
 import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
 import org.rtb.vexing.adapter.conversant.ConversantAdapter;
 import org.rtb.vexing.adapter.facebook.FacebookAdapter;
-import org.rtb.vexing.adapter.indexexchange.IndexExchangeAdapter;
+import org.rtb.vexing.adapter.index.IndexAdapter;
 import org.rtb.vexing.adapter.lifestreet.LifestreetAdapter;
 import org.rtb.vexing.adapter.pubmatic.PubmaticAdapter;
 import org.rtb.vexing.adapter.pulsepoint.PulsepointAdapter;
@@ -48,16 +48,15 @@ public class AdapterCatalog {
                 config.getString("adapters.rubicon.endpoint"),
                 config.getString("adapters.rubicon.usersync_url"),
                 config.getString("adapters.rubicon.XAPI.Username"),
-                config.getString("adapters.rubicon.XAPI.Password"),
-                httpClient);
+                config.getString("adapters.rubicon.XAPI.Password"));
     }
 
     private static AppnexusAdapter appnexus(ApplicationConfig config, HttpClient httpClient) {
         return new AppnexusAdapter(
                 config.getString("adapters.appnexus.endpoint"),
                 config.getString("adapters.appnexus.usersync_url"),
-                config.getString("external_url"),
-                httpClient);
+                config.getString("external_url")
+        );
     }
 
     private static FacebookAdapter facebook(ApplicationConfig config, HttpClient httpClient) {
@@ -65,47 +64,41 @@ public class AdapterCatalog {
                 config.getString("adapters.facebook.endpoint"),
                 config.getString("adapters.facebook.nonSecureEndpoint"),
                 config.getString("adapters.facebook.usersync_url"),
-                config.getString("adapters.facebook.platform_id"),
-                httpClient);
+                config.getString("adapters.facebook.platform_id"));
     }
 
     private static PulsepointAdapter pulsepoint(ApplicationConfig config, HttpClient httpClient) {
         return new PulsepointAdapter(
                 config.getString("adapters.pulsepoint.endpoint"),
                 config.getString("adapters.pulsepoint.usersync_url"),
-                config.getString("external_url"),
-                httpClient);
+                config.getString("external_url"));
     }
 
-    private static IndexExchangeAdapter index(ApplicationConfig config, HttpClient httpClient) {
-        return new IndexExchangeAdapter(
+    private static IndexAdapter index(ApplicationConfig config, HttpClient httpClient) {
+        return new IndexAdapter(
                 config.getString("adapters.indexexchange.endpoint"),
-                config.getString("adapters.indexexchange.usersync_url"),
-                httpClient);
+                config.getString("adapters.indexexchange.usersync_url"));
     }
 
     private static LifestreetAdapter lifestreet(ApplicationConfig config, HttpClient httpClient) {
         return new LifestreetAdapter(
                 config.getString("adapters.lifestreet.endpoint"),
                 config.getString("adapters.lifestreet.usersync_url"),
-                config.getString("external_url"),
-                httpClient);
+                config.getString("external_url"));
     }
 
     private static PubmaticAdapter pubmatic(ApplicationConfig config, HttpClient httpClient) {
         return new PubmaticAdapter(
                 config.getString("adapters.pubmatic.endpoint"),
                 config.getString("adapters.pubmatic.usersync_url"),
-                config.getString("external_url"),
-                httpClient);
+                config.getString("external_url"));
     }
 
     private static ConversantAdapter conversant(ApplicationConfig config, HttpClient httpClient) {
         return new ConversantAdapter(
                 config.getString("adapters.conversant.endpoint"),
                 config.getString("adapters.conversant.usersync_url"),
-                config.getString("external_url"),
-                httpClient);
+                config.getString("external_url"));
     }
 
     public Adapter getByCode(String code) {
