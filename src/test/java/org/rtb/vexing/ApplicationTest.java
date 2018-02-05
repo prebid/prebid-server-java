@@ -11,16 +11,9 @@ import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,6 +23,9 @@ import org.rtb.vexing.model.request.CookieSyncRequest;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.CookieSyncResponse;
 import org.rtb.vexing.model.response.UsersyncInfo;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -47,7 +43,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.hamcrest.Matchers.equalTo;
 
-@RunWith(VertxUnitRunner.class)
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@TestPropertySource(locations = "classpath:org/rtb/vexing/ApplicationTest/test-application.properties")
 public class ApplicationTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
@@ -73,66 +71,6 @@ public class ApplicationTest extends VertxTest {
             .setConfig(RestAssuredConfig.config()
                     .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
             .build();
-
-    private Vertx vertx;
-
-    @Before
-    public void setUp(TestContext context) {
-        vertx = Vertx.vertx();
-        final DeploymentOptions options = new DeploymentOptions().setConfig(config());
-        vertx.deployVerticle(Application.class.getName(), options, context.asyncAssertSuccess());
-    }
-
-    @After
-    public void tearDown(TestContext context) {
-        vertx.close(context.asyncAssertSuccess());
-    }
-
-    private JsonObject config() {
-        final String resourcesRoot = "src/test/resources/org/rtb/vexing/" + this.getClass().getSimpleName() + "/";
-
-        return new JsonObject()
-                .put("external_url", "http://localhost:" + APP_PORT)
-                .put("http.port", APP_PORT)
-                .put("http-client.max-pool-size", 32768)
-                .put("http-client.connect-timeout-ms", 1000)
-                .put("default-timeout-ms", 250L)
-                .put("max_request_size", Long.MAX_VALUE)
-                .put("adapters.rubicon.endpoint",
-                        "http://localhost:" + WIREMOCK_PORT + "/rubicon-exchange?tk_xint=rp-pbs")
-                .put("adapters.rubicon.usersync_url", "http://localhost:" + WIREMOCK_PORT + "/cookie")
-                .put("adapters.rubicon.XAPI.Username", "rubicon_user")
-                .put("adapters.rubicon.XAPI.Password", "rubicon_password")
-                .put("adapters.appnexus.endpoint", "http://localhost:" + WIREMOCK_PORT + "/appnexus-exchange")
-                .put("adapters.appnexus.usersync_url", "//usersync-url/getuid?")
-                .put("adapters.facebook.endpoint", "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange")
-                .put("adapters.facebook.nonSecureEndpoint", "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange")
-                .put("adapters.facebook.usersync_url", "//facebook-usersync")
-                .put("adapters.facebook.platform_id", "101")
-                .put("adapters.pulsepoint.endpoint", "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange")
-                .put("adapters.pulsepoint.usersync_url", "//pulsepoint-usersync")
-                .put("adapters.indexexchange.endpoint", "http://localhost:" + WIREMOCK_PORT + "/indexexchange-exchange")
-                .put("adapters.indexexchange.usersync_url", "//indexexchange-usersync")
-                .put("adapters.lifestreet.endpoint", "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange")
-                .put("adapters.lifestreet.usersync_url", "//lifestreet-usersync")
-                .put("adapters.pubmatic.endpoint", "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange")
-                .put("adapters.pubmatic.usersync_url", "//pubmatic-usersync")
-                .put("adapters.conversant.endpoint", "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange")
-                .put("adapters.conversant.usersync_url", "//conversant-usersync")
-                .put("datacache.type", "filesystem")
-                .put("datacache.filename", resourcesRoot + "test-app-settings.yml")
-                .put("stored_requests.type", "filesystem")
-                .put("stored_requests.configpath", resourcesRoot + "storedrequests")
-                .put("metrics.metricType", "flushingCounter")
-                .put("cache.scheme", "http")
-                .put("cache.host", "localhost:" + WIREMOCK_PORT)
-                .put("cache.query", "uuid=%PBS_CACHE_UUID%")
-                .put("recaptcha_url", "http://localhost:" + WIREMOCK_PORT + "/optout")
-                .put("recaptcha_secret", "abc")
-                .put("host_cookie.domain", "cookie-domain")
-                .put("host_cookie.opt_out_url", "http://optout/url")
-                .put("host_cookie.opt_in_url", "http://optin/url");
-    }
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromDifferentExchanges() throws IOException {
@@ -162,8 +100,9 @@ public class ApplicationTest extends VertxTest {
                 // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
                 // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
                 // "conversant":"CV-UID"}}
-                .cookie("uids",
-                        "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCJ9fQ==")
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbm" +
+                        "NlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwi" +
+                        "bGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
@@ -446,7 +385,8 @@ public class ApplicationTest extends VertxTest {
         for (final Map.Entry<String, String> exchangeEntry : exchanges.entrySet()) {
             final String exchange = exchangeEntry.getKey();
             result = result.replaceAll("\\{\\{ " + exchange + "\\.exchange_uri }}", exchangeEntry.getValue());
-            final Integer responseTime = response.path(format(responseTimePath, exchange));
+            final Object val = response.path(format(responseTimePath, exchange));
+            final Integer responseTime = val instanceof Integer ? (Integer) val : null;
             if (responseTime != null) {
                 result = result.replaceAll("\"\\{\\{ " + exchange + "\\.response_time_ms }}\"",
                         responseTime.toString());

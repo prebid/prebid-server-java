@@ -9,18 +9,14 @@ import org.assertj.core.api.SoftAssertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.rtb.vexing.config.ApplicationConfig;
 
 import java.util.EnumMap;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
 
 public class MetricsTest {
 
@@ -29,23 +25,20 @@ public class MetricsTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
-    private ApplicationConfig config;
     private MetricRegistry metricRegistry;
+
     private Metrics metrics;
 
     @Before
     public void setUp() {
-        given(config.getString(eq("metrics.metricType"))).willReturn("counter");
-
         metricRegistry = new MetricRegistry();
-        metrics = Metrics.create(metricRegistry, config);
+        metrics = new Metrics(metricRegistry, CounterType.counter);
     }
 
     @Test
     public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> Metrics.create(null, null));
-        assertThatNullPointerException().isThrownBy(() -> Metrics.create(metricRegistry, null));
+        assertThatNullPointerException().isThrownBy(() -> new Metrics(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new Metrics(metricRegistry, null));
     }
 
     @Test
@@ -166,12 +159,11 @@ public class MetricsTest {
 
         for (CounterType counterType : CounterType.values()) {
             // given
-            given(config.getString(eq("metrics.metricType"))).willReturn(counterType.name());
 
             metricRegistry = new MetricRegistry();
 
             // when
-            metricsConsumer.accept(Metrics.create(metricRegistry, config));
+            metricsConsumer.accept(new Metrics(metricRegistry, CounterType.valueOf(counterType.name())));
 
             // then
             softly.assertThat(metricRegistry.getMetrics()).hasValueSatisfying(new Condition<>(

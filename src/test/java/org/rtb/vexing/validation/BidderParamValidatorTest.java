@@ -72,11 +72,11 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenBidderExtIsOk() {
 
-        //given
+        // given
         final RubiconExt ext = RubiconExt.builder().accountId(1).siteId(2).zoneId(3).build();
         final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
 
-        //when
+        // when
         final Set<String> messages = bidderParamValidator.validate(RUBICON, node);
 
         //then
@@ -86,7 +86,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessagesWhenBidderExtNotValid() {
 
-        //given
+        // given
         final RubiconExt ext = RubiconExt.builder().siteId(2).zoneId(3).build();
 
         final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
@@ -100,12 +100,12 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void schemaShouldReturnSchemasString() throws IOException {
 
-        //given
+        // given
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("test-rubicon", "test-appnexus")));
 
         bidderParamValidator = BidderParamValidator.create(bidderCatalog, "schema/valid");
 
-        //when
+        // when
         final String result = bidderParamValidator.schemas();
 
         //then

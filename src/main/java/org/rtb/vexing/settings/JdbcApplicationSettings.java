@@ -9,11 +9,12 @@ import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.settings.model.Account;
+import org.rtb.vexing.spring.config.StoredRequestProperties;
 
 import java.util.Objects;
 import java.util.function.Function;
 
-class JdbcApplicationSettings implements ApplicationSettings {
+public class JdbcApplicationSettings implements ApplicationSettings {
 
     private final JDBCClient jdbcClient;
 
@@ -21,7 +22,7 @@ class JdbcApplicationSettings implements ApplicationSettings {
         this.jdbcClient = jdbcClient;
     }
 
-    public static Future<JdbcApplicationSettings> create(Vertx vertx, String url, String driverClass, int maxPoolSize) {
+    public static JdbcApplicationSettings create(Vertx vertx, String url, String driverClass, int maxPoolSize) {
         Objects.requireNonNull(vertx);
         Objects.requireNonNull(url);
         Objects.requireNonNull(driverClass);
@@ -34,11 +35,7 @@ class JdbcApplicationSettings implements ApplicationSettings {
                 .put("driver_class", driverClass)
                 .put("max_pool_size", maxPoolSize));
 
-        // verify connection
-        final Future<ResultSet> result = Future.future();
-        jdbcClient.query("SELECT 1", result.completer());
-
-        return result.map(new JdbcApplicationSettings(jdbcClient));
+        return new JdbcApplicationSettings(jdbcClient);
     }
 
     @Override
@@ -56,6 +53,16 @@ class JdbcApplicationSettings implements ApplicationSettings {
         Objects.requireNonNull(adUnitConfigId);
         return executeQuery("SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1", adUnitConfigId,
                 result -> result.getString(0));
+    }
+
+    /**
+     * Start acquiring a connection
+     */
+    @Override
+    public Future<Void> initialize() {
+        final Future<ResultSet> result = Future.future();
+        jdbcClient.query("SELECT 1", result.completer());
+        return result.map(ignored -> null);
     }
 
     private <T> Future<T> executeQuery(String query, String key, Function<JsonArray, T> mapper) {
@@ -81,5 +88,18 @@ class JdbcApplicationSettings implements ApplicationSettings {
                         return mapper.apply(rs.getResults().get(0));
                     }
                 });
+    }
+
+    public static String jdbcUrl(StoredRequestProperties properties, String protocol) {
+        return String.format("%s//%s/%s?user=%s&password=%s&useSSL=false",
+                protocol,
+                Objects.requireNonNull(properties.getHost(), message("host")),
+                Objects.requireNonNull(properties.getDbname(), message("dbname")),
+                Objects.requireNonNull(properties.getUser(), message("user")),
+                Objects.requireNonNull(properties.getPassword(), message("password")));
+    }
+
+    private static String message(String field) {
+        return String.format("Configuration property datacache.%s is missing", field);
     }
 }

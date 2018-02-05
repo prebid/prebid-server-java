@@ -1,7 +1,6 @@
 package org.rtb.vexing.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.rtb.vexing.config.ApplicationConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,20 +18,13 @@ public class Metrics extends UpdatableMetrics {
     private final Map<String, AdapterMetrics> adapterMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
 
-    private Metrics(MetricRegistry metricRegistry, CounterType counterType) {
+    public Metrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(metricRegistry, counterType, Enum::name);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
-    }
-
-    public static Metrics create(MetricRegistry metricRegistry, ApplicationConfig config) {
-        Objects.requireNonNull(metricRegistry);
-        Objects.requireNonNull(config);
-
-        return new Metrics(metricRegistry, CounterType.valueOf(config.getString("metrics.metricType")));
     }
 
     public AccountMetrics forAccount(String account) {

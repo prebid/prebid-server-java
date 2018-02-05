@@ -9,6 +9,7 @@ import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.settings.model.StoredRequestResult;
+import org.rtb.vexing.spring.config.StoredRequestProperties;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,9 +38,9 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
 
     /**
      * Creates {@link JdbcStoredRequestFetcher} instance, query test connection simple select and returns
-     * {@link Future<JdbcStoredRequestFetcher>}
+     * {@link JdbcStoredRequestFetcher}
      */
-    public static Future<JdbcStoredRequestFetcher> create(Vertx vertx, String url, String driverClass, int maxPoolSize,
+    public static JdbcStoredRequestFetcher create(Vertx vertx, String url, String driverClass, int maxPoolSize,
                                                           String selectQuery) {
         Objects.requireNonNull(vertx);
         Objects.requireNonNull(url);
@@ -54,11 +55,7 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
                 .put("driver_class", driverClass)
                 .put("max_pool_size", maxPoolSize));
 
-        // verify connection
-        final Future<ResultSet> result = Future.future();
-        jdbcClient.query("SELECT 1", result.completer());
-
-        return result.map(new JdbcStoredRequestFetcher(jdbcClient, selectQuery));
+        return new JdbcStoredRequestFetcher(jdbcClient, selectQuery);
     }
 
     /**
@@ -77,6 +74,16 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
                 .compose(connection -> executeQueryWithParam(connection, createParametrizedQuery(ids.size()),
                         idsQueryParameters))
                 .map(resultSet -> mapResultSetToStoredRequestResult(resultSet, ids));
+    }
+
+    /**
+     * Start acquiring a connection
+     */
+    @Override
+    public Future<Void> initialize() {
+        final Future<ResultSet> result = Future.future();
+        jdbcClient.query("SELECT 1", result.completer());
+        return result.map(ignored -> null);
     }
 
     /**
@@ -130,5 +137,21 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
             }
         }
         return StoredRequestResult.of(storedIdToJson, errors);
+    }
+
+    /**
+     * Creates String representation of jdbc configuration from StoredRequestProperties{@link StoredRequestProperties}
+     */
+    public static String jdbcUrl(StoredRequestProperties properties, String protocol) {
+        return String.format("%s//%s/%s?user=%s&password=%s&useSSL=false",
+                protocol,
+                Objects.requireNonNull(properties.getHost(), message("host")),
+                Objects.requireNonNull(properties.getDbname(), message("dbname")),
+                Objects.requireNonNull(properties.getUser(), message("user")),
+                Objects.requireNonNull(properties.getPassword(), message("password")));
+    }
+
+    static String message(String field) {
+        return String.format("Configuration property stored-requests.%s is missing", field);
     }
 }

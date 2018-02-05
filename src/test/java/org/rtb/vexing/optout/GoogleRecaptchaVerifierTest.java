@@ -17,7 +17,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.rtb.vexing.VertxTest;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.exception.PreBidException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,8 +39,6 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;
-    @Mock
-    private ApplicationConfig config;
 
     private GoogleRecaptchaVerifier googleRecaptchaVerifier;
 
@@ -57,17 +54,15 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.getFormAttribute("g-recaptcha-response")).willReturn("recaptcha1");
 
-        given(config.getString("recaptcha_url")).willReturn("http://optout/url");
-        given(config.getString("recaptcha_secret")).willReturn("abc");
-
-        googleRecaptchaVerifier = GoogleRecaptchaVerifier.create(httpClient, config);
+        googleRecaptchaVerifier = new GoogleRecaptchaVerifier(httpClient, "http://optout/url", "abc");
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         // then
-        assertThatNullPointerException().isThrownBy(() -> GoogleRecaptchaVerifier.create(null, null));
-        assertThatNullPointerException().isThrownBy(() -> GoogleRecaptchaVerifier.create(httpClient, null));
+        assertThatNullPointerException().isThrownBy(() -> new GoogleRecaptchaVerifier(null, "http://out/url", "abc"));
+        assertThatNullPointerException().isThrownBy(() -> new GoogleRecaptchaVerifier(httpClient, null, "abc"));
+        assertThatNullPointerException().isThrownBy(() -> new GoogleRecaptchaVerifier(httpClient, "http://url/", null));
     }
 
     @Test

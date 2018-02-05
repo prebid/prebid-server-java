@@ -96,7 +96,8 @@ public class PulsepointAdapterTest extends VertxTest {
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
         assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.builder()
-                .url("//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dpulsepoint%26uid%3D%25%25VGUID%25%25")
+                .url("//usersync.org/http%3A%2F%2Fexternal" +
+                        ".org%2F%2Fsetuid%3Fbidder%3Dpulsepoint%26uid%3D%25%25VGUID%25%25")
                 .type("redirect")
                 .supportCORS(false)
                 .build());

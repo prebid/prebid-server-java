@@ -10,13 +10,13 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-class CachingApplicationSettings implements ApplicationSettings {
+public class CachingApplicationSettings implements ApplicationSettings {
 
     private final ApplicationSettings delegate;
     private final Map<String, Account> accountCache;
     private final Map<String, String> adUnitConfigCache;
 
-    CachingApplicationSettings(ApplicationSettings delegate, int ttl, int size) {
+    public CachingApplicationSettings(ApplicationSettings delegate, int ttl, int size) {
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
@@ -34,6 +34,11 @@ class CachingApplicationSettings implements ApplicationSettings {
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId) {
         return getFromCacheOrDelegate(adUnitConfigCache, adUnitConfigId, delegate::getAdUnitConfigById);
+    }
+
+    @Override
+    public Future<Void> initialize() {
+        return delegate.initialize();
     }
 
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key,

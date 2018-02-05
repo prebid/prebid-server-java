@@ -11,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
@@ -25,7 +24,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -38,29 +36,13 @@ public class UidsCookieServiceTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private ApplicationConfig config;
-    @Mock
     private RoutingContext routingContext;
 
     private UidsCookieService uidsCookieService;
 
     @Before
     public void setUp() {
-        given(config.getString(eq("host_cookie.domain"), eq(null))).willReturn("cookie-domain");
-        given(config.getString(eq("host_cookie.optout_cookie.name"), eq(null))).willReturn("trp_optout");
-        given(config.getString(eq("host_cookie.optout_cookie.value"), eq(null))).willReturn("true");
-
-        uidsCookieService = UidsCookieService.create(config);
-    }
-
-    @Test
-    public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> UidsCookieService.create(null));
-    }
-
-    @Test
-    public void createShouldTolerateMissingConfigParameters() {
-        assertThatCode(() -> UidsCookieService.create(config)).doesNotThrowAnyException();
+        uidsCookieService = new UidsCookieService("trp_optout", "true", null, null, "cookie-domain");
     }
 
     @Test
@@ -180,10 +162,7 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieNameNotSpecified() {
         // given
-        given(config.getString(eq("host_cookie.optout_cookie.name"), eq(null))).willReturn(null);
-
-        uidsCookieService = UidsCookieService.create(config);
-
+        uidsCookieService = new UidsCookieService(null, "true", null, null, "cookie-domain");
         given(routingContext.getCookie(eq("trp_optout"))).willReturn(Cookie.cookie("trp_optout", "true"));
 
         // when
@@ -198,10 +177,7 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieValueNotSpecified() {
         // given
-        given(config.getString(eq("host_cookie.optout_cookie.value"), eq(null))).willReturn(null);
-
-        uidsCookieService = UidsCookieService.create(config);
-
+        uidsCookieService = new UidsCookieService("trp_optout", null, null, null, "cookie-domain");
         given(routingContext.getCookie(eq("trp_optout"))).willReturn(Cookie.cookie("trp_optout", "true"));
 
         // when
@@ -216,13 +192,9 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsAbsent() {
         // given
-        given(config.getString(eq("host_cookie.family"), eq(null))).willReturn("rubicon");
-        given(config.getString(eq("host_cookie.cookie_name"), eq(null))).willReturn("khaos");
-
+        uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon", "khaos", "cookie-domain");
         given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos",
                 "abc123"));
-
-        uidsCookieService = UidsCookieService.create(config);
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -236,16 +208,13 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnRubiconCookieValueFromUidsCookieWhenUidValueIsPresent() {
         // given
-        given(config.getString(eq("host_cookie.family"), eq(null))).willReturn("rubicon");
-        given(config.getString(eq("host_cookie.cookie_name"), eq(null))).willReturn("khaos");
+        uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon", "khaos", "cookie-domain");
 
         given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos",
                 "abc123"));
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
         given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
                 "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
-
-        uidsCookieService = UidsCookieService.create(config);
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -339,11 +308,9 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldParseHostCookie() {
         // given
-        given(config.getString(eq("host_cookie.cookie_name"), isNull())).willReturn("khaos");
+        uidsCookieService = new UidsCookieService("trp_optout", "true", null, "khaos", "cookie-domain");
 
         given(routingContext.getCookie(eq("khaos"))).willReturn(Cookie.cookie("khaos", "userId"));
-
-        uidsCookieService = UidsCookieService.create(config);
 
         // when
         final String hostCookie = uidsCookieService.parseHostCookie(routingContext);
@@ -364,9 +331,6 @@ public class UidsCookieServiceTest extends VertxTest {
 
     @Test
     public void shouldReturnNullIfHostCookieIsNotPresent() {
-        // given
-        given(config.getString(eq("host_cookie.cookie_name"), isNull())).willReturn("khaos");
-
         // this is not necessary but explicitly stated for clarity
         given(routingContext.getCookie(eq("khaos"))).willReturn(null);
 

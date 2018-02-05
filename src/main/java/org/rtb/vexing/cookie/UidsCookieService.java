@@ -8,7 +8,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.model.UidWithExpiry;
 import org.rtb.vexing.model.Uids;
 
@@ -35,25 +34,13 @@ public class UidsCookieService {
     private final String hostCookieName;
     private final String hostCookieDomain;
 
-    private UidsCookieService(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
-                              String hostCookieName, String hostCookieDomain) {
+    public UidsCookieService(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
+                             String hostCookieName, String hostCookieDomain) {
         this.optOutCookieName = optOutCookieName;
         this.optOutCookieValue = optOutCookieValue;
         this.hostCookieFamily = hostCookieFamily;
         this.hostCookieName = hostCookieName;
         this.hostCookieDomain = hostCookieDomain;
-    }
-
-    public static UidsCookieService create(ApplicationConfig config) {
-        Objects.requireNonNull(config);
-
-        return new UidsCookieService(
-                config.getString("host_cookie.optout_cookie.name", null),
-                config.getString("host_cookie.optout_cookie.value", null),
-                config.getString("host_cookie.family", null),
-                config.getString("host_cookie.cookie_name", null),
-                config.getString("host_cookie.domain", null)
-        );
     }
 
     public UidsCookie parseFromRequest(RoutingContext context) {

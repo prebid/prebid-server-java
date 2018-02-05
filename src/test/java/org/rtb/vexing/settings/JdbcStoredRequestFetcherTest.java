@@ -62,9 +62,8 @@ public class JdbcStoredRequestFetcherTest {
     public void setUp(TestContext context) {
         vertx = Vertx.vertx();
 
-        JdbcStoredRequestFetcher.create(vertx, JDBC_URL, "org.h2.Driver", 10, selectQuery)
-                .setHandler(context.asyncAssertSuccess(jdbcStoredRequestFetcher -> this.jdbcStoredRequestFetcher =
-                        jdbcStoredRequestFetcher));
+        this.jdbcStoredRequestFetcher = JdbcStoredRequestFetcher.create(vertx, JDBC_URL, "org.h2.Driver", 10,
+                selectQuery);
     }
 
     @Test
@@ -105,23 +104,18 @@ public class JdbcStoredRequestFetcherTest {
     public void getStoredRequestsUnionSelectByIdsShouldReturnStoredRequests(TestContext context) {
         // given
         JdbcStoredRequestFetcher.create(vertx, JDBC_URL, "org.h2.Driver", 10, selectUnionQuery)
-                .setHandler(context.asyncAssertSuccess(jdbcUnionRequestFetcher ->
-                {
-                    // when
-                    final Future<StoredRequestResult> future = jdbcUnionRequestFetcher.getStoredRequestsById(
-                            new HashSet<>(asList("1", "2", "3")));
-
+                // when
+                .getStoredRequestsById(new HashSet<>(asList("1", "2", "3")))
+                .setHandler(context.asyncAssertSuccess(res -> {
                     // then
-                    final Async async = context.async();
                     final Map<String, String> expectedResultMap = new HashMap<>();
                     expectedResultMap.put("1", "value1");
                     expectedResultMap.put("2", "value2");
                     expectedResultMap.put("3", "value3");
-                    future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-                        assertThat(storedRequestResult).isEqualTo(StoredRequestResult
+
+                    assertThat(res).isEqualTo(StoredRequestResult
                                 .of(expectedResultMap, Collections.emptyList()));
-                        async.complete();
-                    }));
+
                 }));
     }
 
@@ -146,20 +140,13 @@ public class JdbcStoredRequestFetcherTest {
     public void getStoredRequestByIdShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
         JdbcStoredRequestFetcher.create(vertx, JDBC_URL, "org.h2.Driver", 10, selectFromOneColumnTableQuery)
-                .setHandler(context.asyncAssertSuccess(jdbcOneColumnTableStoredRequestFetcher ->
-                {
-                    // when
-                    final Future<StoredRequestResult> future = jdbcOneColumnTableStoredRequestFetcher
-                            .getStoredRequestsById(new HashSet<>(asList("1", "2", "3")));
-
+                 // when
+                .getStoredRequestsById(new HashSet<>(asList("1", "2", "3")))
+                .setHandler(context.asyncAssertSuccess(storedRequestResult -> {
                     // then
-                    final Async async = context.async();
                     final Map<String, String> expectedResultMap = Collections.emptyMap();
-                    future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-                        assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(expectedResultMap,
-                                Collections.singletonList("Result set column number is less than expected")));
-                        async.complete();
-                    }));
+                    assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(expectedResultMap,
+                            Collections.singletonList("Result set column number is less than expected")));
                 }));
     }
 

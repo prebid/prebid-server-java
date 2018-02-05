@@ -460,7 +460,8 @@ public class FacebookAdapterTest extends VertxTest {
 
     private static Bidder givenBidderCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
-            Function<FacebookParams.FacebookParamsBuilder, FacebookParams.FacebookParamsBuilder> paramsBuilderCustomizer) {
+            Function<FacebookParams.FacebookParamsBuilder, FacebookParams.FacebookParamsBuilder>
+                    paramsBuilderCustomizer) {
 
         return Bidder.from(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer, paramsBuilderCustomizer)));
@@ -468,7 +469,8 @@ public class FacebookAdapterTest extends VertxTest {
 
     private static AdUnitBid givenAdUnitBidCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
-            Function<FacebookParams.FacebookParamsBuilder, FacebookParams.FacebookParamsBuilder> paramsBuilderCustomizer) {
+            Function<FacebookParams.FacebookParamsBuilder, FacebookParams.FacebookParamsBuilder>
+                    paramsBuilderCustomizer) {
 
         // params
         final FacebookParams.FacebookParamsBuilder paramsBuilder = FacebookParams.builder()

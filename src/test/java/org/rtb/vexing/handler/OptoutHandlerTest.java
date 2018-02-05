@@ -13,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.model.Uids;
@@ -37,8 +36,6 @@ public class OptoutHandlerTest extends VertxTest {
     @Mock
     private HttpServerResponse httpResponse;
     @Mock
-    private ApplicationConfig config;
-    @Mock
     private GoogleRecaptchaVerifier googleRecaptchaVerifier;
     @Mock
     private UidsCookieService uidsCookieService;
@@ -56,57 +53,32 @@ public class OptoutHandlerTest extends VertxTest {
         given(httpResponse.putHeader(any(CharSequence.class), anyString())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
-        given(config.getString("external_url")).willReturn("http://external/url");
-        given(config.getString("host_cookie.opt_out_url")).willReturn("http://optout/url");
-        given(config.getString("host_cookie.opt_in_url")).willReturn("http://optin/url");
-
         given(googleRecaptchaVerifier.verify(anyString())).willReturn(Future.succeededFuture());
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
 
-        optoutHandler = OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService);
+        optoutHandler = new OptoutHandler(googleRecaptchaVerifier, uidsCookieService,
+                OptoutHandler.getOptoutRedirectUrl("http://external/url"), "http://optout/url", "http://optin/url");
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         // then
         assertThatNullPointerException().isThrownBy(
-                () -> OptoutHandler.create(null, null, null));
+                () -> new OptoutHandler(null, uidsCookieService, "http://url.com", "http://url.com", "http://url.com"));
         assertThatNullPointerException().isThrownBy(
-                () -> OptoutHandler.create(config, null, null));
+                () -> new OptoutHandler(googleRecaptchaVerifier, null, "http://url.com", "http://url.com",
+                        "http://url.com"));
         assertThatNullPointerException().isThrownBy(
-                () -> OptoutHandler.create(config, googleRecaptchaVerifier, null));
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidExternalUrlConfig() {
-        // given
-        given(config.getString("external_url")).willReturn("invalid_url");
-
-        // then
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService));
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidOptOutlUrlConfig() {
-        // given
-        given(config.getString("host_cookie.opt_out_url")).willReturn("invalid_url");
-
-        // then
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService));
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidOptInlUrlConfig() {
-        // given
-        given(config.getString("host_cookie.opt_in_url")).willReturn("invalid_url");
-
-        // then
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> OptoutHandler.create(config, googleRecaptchaVerifier, uidsCookieService));
+                () -> new OptoutHandler(googleRecaptchaVerifier, uidsCookieService, null, "http://url.com",
+                        "http://url.com"));
+        assertThatNullPointerException().isThrownBy(
+                () -> new OptoutHandler(googleRecaptchaVerifier, uidsCookieService, "http://ext-url.com", null,
+                        "http://url.com"));
+        assertThatNullPointerException().isThrownBy(
+                () -> new OptoutHandler(googleRecaptchaVerifier, uidsCookieService, "http://url.com",
+                        "http://ext-url.com", null));
     }
 
     @Test
@@ -207,6 +179,17 @@ public class OptoutHandlerTest extends VertxTest {
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(301);
         assertThat(captureResponseLocationHeader()).isEqualTo("http://optin/url");
+    }
+
+    @Test
+    public void getOptoutRedirectUrlShouldReturnExternalUrl() {
+        assertThat(OptoutHandler.getOptoutRedirectUrl("http://test.com"))
+                .isEqualTo("http://test.com/static/optout.html");
+    }
+
+    @Test
+    public void getOptoutRedirectUrlFailsOnInvalidUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> OptoutHandler.getOptoutRedirectUrl("test"));
     }
 
     private Integer captureResponseStatusCode() {

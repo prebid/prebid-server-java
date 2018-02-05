@@ -30,10 +30,10 @@ public class FileStoredRequestFetcher implements StoredRequestFetcher {
 
     /**
      * Creates {@link FileStoredRequestFetcher} instance by looking for .json file extension and creates
-     * {@link Map} file names without .json extension to file content. Returns succeeded
-     * {@link Future<FileStoredRequestFetcher>}
+     * {@link Map} file names without .json extension to file content. Returns an instance of
+     * {@link FileStoredRequestFetcher}
      */
-    public static Future<FileStoredRequestFetcher> create(String requestConfigPath, FileSystem fileSystem) {
+    public static FileStoredRequestFetcher create(String requestConfigPath, FileSystem fileSystem) {
         Objects.requireNonNull(requestConfigPath);
         Objects.requireNonNull(fileSystem);
         final List<String> filesPaths = fileSystem.readDirBlocking(requestConfigPath);
@@ -41,7 +41,7 @@ public class FileStoredRequestFetcher implements StoredRequestFetcher {
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
                 .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
                         filename -> fileSystem.readFileBlocking(filename).toString()));
-        return Future.succeededFuture(new FileStoredRequestFetcher(storedRequests));
+        return new FileStoredRequestFetcher(storedRequests);
     }
 
     /**
@@ -62,5 +62,10 @@ public class FileStoredRequestFetcher implements StoredRequestFetcher {
             errors = Collections.emptyList();
         }
         return Future.succeededFuture(StoredRequestResult.of(storedRequests, errors));
+    }
+
+    @Override
+    public Future<Void> initialize() {
+        return Future.succeededFuture(null);
     }
 }

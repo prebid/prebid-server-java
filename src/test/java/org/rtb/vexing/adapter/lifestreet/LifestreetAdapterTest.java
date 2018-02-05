@@ -95,7 +95,8 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
         assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.builder()
-                .url("//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dlifestreet%26uid%3D%24%24visitor_cookie%24%24")
+                .url("//usersync.org/http%3A%2F%2Fexternal" +
+                        ".org%2F%2Fsetuid%3Fbidder%3Dlifestreet%26uid%3D%24%24visitor_cookie%24%24")
                 .type("redirect")
                 .supportCORS(false)
                 .build());

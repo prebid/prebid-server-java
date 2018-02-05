@@ -12,7 +12,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.rtb.vexing.VertxTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -48,12 +47,12 @@ public class IpHandlerTest {
 
     @Test
     public void shouldFallbackRealIpToRemoteAddressAndForwardedIpToEmptyString() {
-        //given
+        // given
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
         headers.add("User-Agent", "UnitTest");
 
-        //when
+        // when
         handler.handle(routingContext);
 
         //then
@@ -68,13 +67,13 @@ public class IpHandlerTest {
 
     @Test
     public void shouldFallbackRealIpToForwardedIp() {
-        //given
+        // given
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
         headers.add("User-Agent", "UnitTest");
         headers.add("X-Forwarded-For", "203.0.113.195");
 
-        //when
+        // when
         handler.handle(routingContext);
 
         //then
@@ -90,13 +89,13 @@ public class IpHandlerTest {
 
     @Test
     public void shouldFallbackForwardedIPToXRealIpHeaderValue() {
-        //given
+        // given
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
         headers.add("User-Agent", "UnitTest");
         headers.add("X-Real-IP", "203.0.113.195");
 
-        //when
+        // when
         handler.handle(routingContext);
 
         //then
@@ -112,7 +111,7 @@ public class IpHandlerTest {
 
     @Test
     public void shouldWriteIPInfoIntoResponse() {
-        //given
+        // given
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
         headers.add("User-Agent", "UnitTest");
@@ -121,7 +120,7 @@ public class IpHandlerTest {
         headers.add("Content-Type", "application/json");
         headers.add("Test-Header", "test-header-value");
 
-        //when
+        // when
         handler.handle(routingContext);
 
         //then
@@ -140,12 +139,12 @@ public class IpHandlerTest {
 
     @Test
     public void shouldExtractOnlyServerIpValueFromXForwardedForHeader() {
-        //given
+        // given
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
         headers.add("X-Forwarded-For", "203.0.113.195, 70.41.3.18, 150.172.238.178");
 
-        //when
+        // when
         handler.handle(routingContext);
 
         //then

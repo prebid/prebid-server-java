@@ -16,7 +16,6 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.exception.PreBidException;
 
 import java.io.UnsupportedEncodingException;
@@ -32,18 +31,10 @@ public class GoogleRecaptchaVerifier {
     private final String recaptchaUrl;
     private final String recaptchaSecret;
 
-    private GoogleRecaptchaVerifier(HttpClient httpClient, String recaptchaUrl, String recaptchaSecret) {
-        this.httpClient = httpClient;
-        this.recaptchaUrl = recaptchaUrl;
-        this.recaptchaSecret = recaptchaSecret;
-    }
-
-    public static GoogleRecaptchaVerifier create(HttpClient httpClient, ApplicationConfig config) {
-        Objects.requireNonNull(httpClient);
-        Objects.requireNonNull(config);
-
-        return new GoogleRecaptchaVerifier(httpClient, config.getString("recaptcha_url"),
-                config.getString("recaptcha_secret"));
+    public GoogleRecaptchaVerifier(HttpClient httpClient, String recaptchaUrl, String recaptchaSecret) {
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.recaptchaUrl = Objects.requireNonNull(recaptchaUrl);
+        this.recaptchaSecret = Objects.requireNonNull(recaptchaSecret);
     }
 
     public Future<Void> verify(String recaptcha) {

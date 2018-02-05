@@ -7,7 +7,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
@@ -29,24 +28,13 @@ public class OptoutHandler implements Handler<RoutingContext> {
     private final String optoutUrl;
     private final String optinUrl;
 
-    private OptoutHandler(GoogleRecaptchaVerifier googleRecaptchaVerifier, UidsCookieService uidsCookieService,
+    public OptoutHandler(GoogleRecaptchaVerifier googleRecaptchaVerifier, UidsCookieService uidsCookieService,
                           String optoutRedirectUrl, String optoutUrl, String optinUrl) {
-        this.googleRecaptchaVerifier = googleRecaptchaVerifier;
-        this.uidsCookieService = uidsCookieService;
-        this.optoutRedirectUrl = optoutRedirectUrl;
-        this.optoutUrl = optoutUrl;
-        this.optinUrl = optinUrl;
-    }
-
-    public static OptoutHandler create(ApplicationConfig config, GoogleRecaptchaVerifier googleRecaptchaVerifier,
-                                       UidsCookieService uidsCookieService) {
-        Objects.requireNonNull(config);
-        Objects.requireNonNull(googleRecaptchaVerifier);
-        Objects.requireNonNull(uidsCookieService);
-
-        return new OptoutHandler(googleRecaptchaVerifier, uidsCookieService, getOptoutRedirectUrl(config),
-                validateUrl(config.getString("host_cookie.opt_out_url")),
-                validateUrl(config.getString("host_cookie.opt_in_url")));
+        this.googleRecaptchaVerifier = Objects.requireNonNull(googleRecaptchaVerifier);
+        this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.optoutRedirectUrl = Objects.requireNonNull(optoutRedirectUrl);
+        this.optoutUrl = Objects.requireNonNull(optoutUrl);
+        this.optinUrl = Objects.requireNonNull(optinUrl);
     }
 
     @Override
@@ -113,20 +101,12 @@ public class OptoutHandler implements Handler<RoutingContext> {
         return StringUtils.isNotEmpty(recaptcha) ? recaptcha : context.request().getParam(paramName);
     }
 
-    private static String getOptoutRedirectUrl(ApplicationConfig config) {
+    public static String getOptoutRedirectUrl(String externalUrl) {
         try {
-            final URL externalUrl = new URL(config.getString("external_url"));
-            return new URL(externalUrl.toExternalForm() + "/static/optout.html").toString();
+            final URL url = new URL(externalUrl);
+            return new URL(url.toExternalForm() + "/static/optout.html").toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get optout redirect url", e);
-        }
-    }
-
-    private static String validateUrl(String url) {
-        try {
-            return new URL(url).toString();
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(String.format("Could not get url from string: %s", url), e);
         }
     }
 }

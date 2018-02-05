@@ -45,7 +45,7 @@ public class FileStoredRequestFetcherTest {
         given(fileSystem.readDirBlocking(eq(REQUEST_CONFIG_PATH)))
                 .willReturn(singletonList("/home/user/requests/1.json"));
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("value1"));
-        fileStoredRequestFetcher = FileStoredRequestFetcher.create(REQUEST_CONFIG_PATH, fileSystem).result();
+        fileStoredRequestFetcher = FileStoredRequestFetcher.create(REQUEST_CONFIG_PATH, fileSystem);
 
         // when
         final Future<StoredRequestResult> storedRequestResult = fileStoredRequestFetcher
@@ -65,7 +65,7 @@ public class FileStoredRequestFetcherTest {
         given(fileSystem.readDirBlocking(eq(REQUEST_CONFIG_PATH))).willReturn(singletonList
                 ("/home/user/requests/1.json"));
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("value1"));
-        fileStoredRequestFetcher = FileStoredRequestFetcher.create(REQUEST_CONFIG_PATH, fileSystem).result();
+        fileStoredRequestFetcher = FileStoredRequestFetcher.create(REQUEST_CONFIG_PATH, fileSystem);
 
         // when
         final Future<StoredRequestResult> storedRequestResult = fileStoredRequestFetcher
@@ -84,7 +84,7 @@ public class FileStoredRequestFetcherTest {
         given(fileSystem.readFileBlocking("2.txt")).willReturn(Buffer.buffer("value2"));
 
         // when
-        fileStoredRequestFetcher = FileStoredRequestFetcher.create(REQUEST_CONFIG_PATH, fileSystem).result();
+        fileStoredRequestFetcher = FileStoredRequestFetcher.create(REQUEST_CONFIG_PATH, fileSystem);
 
         //then
         verify(fileSystem, never()).readFileBlocking("2.txt");

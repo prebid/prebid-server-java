@@ -26,7 +26,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.rubicon.model.RubiconParams;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.exception.PreBidException;
@@ -65,9 +64,6 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
-    private ApplicationConfig config;
     @Mock
     private RoutingContext routingContext;
     @Mock
@@ -91,23 +87,25 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
         httpRequest.headers().set(REFERER, "http://example.com");
 
-        // default timeout config
-        given(config.getLong(eq("default-timeout-ms"))).willReturn(HTTP_REQUEST_TIMEOUT);
-
         // parsed uids cookie
         given(uidsCookieService.parseFromRequest(any())).willReturn(uidsCookie);
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
-        factory = PreBidRequestContextFactory.create(config, psl, applicationSettings, uidsCookieService);
+        factory = new PreBidRequestContextFactory(HTTP_REQUEST_TIMEOUT, psl, applicationSettings, uidsCookieService);
     }
 
     @Test
     public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(config, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> PreBidRequestContextFactory.create(config, psl, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> PreBidRequestContextFactory.create(config, psl, applicationSettings, null));
+        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(1L, psl, applicationSettings,
+                null));
+        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(1L, psl, null,
+                uidsCookieService));
+        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(1L, null, applicationSettings,
+                uidsCookieService));
+        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(null, psl,
+                applicationSettings, uidsCookieService));
+
     }
 
     @Test
@@ -275,7 +273,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
     @Test
     public void shouldNotReturnAdUnitsWithNullSizes() {
-        //given
+        // given
         final AdUnit adUnit = AdUnit.builder()
                 .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
                 .code("AdUnitCode1")
@@ -299,7 +297,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
     @Test
     public void shouldNotReturnAdUnitsWithNullAdUnitCode() {
-        //given
+        // given
         final AdUnit adUnit = AdUnit.builder()
                 .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))

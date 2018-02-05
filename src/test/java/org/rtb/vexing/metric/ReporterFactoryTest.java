@@ -9,14 +9,12 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.spring.config.MetricsProperties;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 public class ReporterFactoryTest {
@@ -26,7 +24,7 @@ public class ReporterFactoryTest {
 
     private MetricRegistry metricRegistry;
     @Mock
-    private ApplicationConfig config;
+    private MetricsProperties properties;
 
     @Before
     public void setUp() {
@@ -41,19 +39,27 @@ public class ReporterFactoryTest {
 
     @Test
     public void createShouldReturnEmptyIfTypeIsMissingInConfig() {
-        assertThat(ReporterFactory.create(metricRegistry, config)).isEmpty();
+        assertThat(ReporterFactory.create(metricRegistry, properties)).isEmpty();
+    }
+
+    @Test
+    public void createShouldFailWhenRequiredPropertiesNull() {
+        given(properties.getType()).willReturn("graphite");
+
+        assertThatNullPointerException().isThrownBy(() ->
+                ReporterFactory.create(metricRegistry, properties));
     }
 
     @Test
     public void createShouldReturnGraphiteReporter() {
         // given
-        given(config.getString(eq("metrics.type"), anyString())).willReturn("graphite");
-        given(config.getString(eq("metrics.host"))).willReturn("localhost:20003");
-        given(config.getString(eq("metrics.prefix"))).willReturn("someprefix");
-        given(config.getInteger(eq("metrics.interval"))).willReturn(5);
+        given(properties.getType()).willReturn("graphite");
+        given(properties.getHost()).willReturn("localhost:20003");
+        given(properties.getPrefix()).willReturn("someprefix");
+        given(properties.getInterval()).willReturn(5);
 
         // when
-        final Optional<ScheduledReporter> reporter = ReporterFactory.create(metricRegistry, config);
+        final Optional<ScheduledReporter> reporter = ReporterFactory.create(metricRegistry, properties);
 
         // then
         assertThat(reporter).containsInstanceOf(GraphiteReporter.class);

@@ -2,6 +2,7 @@ package org.rtb.vexing.settings;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -51,9 +52,7 @@ public class JdbcApplicationSettingsTest {
     public void setUp(TestContext context) {
         vertx = Vertx.vertx();
 
-        JdbcApplicationSettings.create(vertx, JDBC_URL, "org.h2.Driver", 10)
-                .setHandler(context.asyncAssertSuccess(jdbcApplicationSettings -> this.jdbcApplicationSettings =
-                        jdbcApplicationSettings));
+        this.jdbcApplicationSettings = JdbcApplicationSettings.create(vertx, JDBC_URL, "org.h2.Driver", 10);
     }
 
     @Test

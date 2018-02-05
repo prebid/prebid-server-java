@@ -650,7 +650,8 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnBidRequestsWithoutVideoExtWhenMediaTypeIsVideoAndRubiconParamsVideoIsNull() {
+    public void makeHttpRequestsShouldReturnBidRequestsWithoutVideoExtWhenMediaTypeIsVideoAndRubiconParamsVideoIsNull
+            () {
         //given
         bidder = Bidder.from(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder

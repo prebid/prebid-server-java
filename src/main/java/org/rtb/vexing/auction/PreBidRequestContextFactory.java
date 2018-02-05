@@ -19,7 +19,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.exception.PreBidException;
@@ -56,24 +55,12 @@ public class PreBidRequestContextFactory {
 
     private final Random rand = new Random();
 
-    private PreBidRequestContextFactory(Long defaultHttpRequestTimeout, PublicSuffixList psl,
+    public PreBidRequestContextFactory(Long defaultHttpRequestTimeout, PublicSuffixList psl,
                                         ApplicationSettings applicationSettings, UidsCookieService uidsCookieService) {
-        this.defaultHttpRequestTimeout = defaultHttpRequestTimeout;
-        this.psl = psl;
-        this.applicationSettings = applicationSettings;
-        this.uidsCookieService = uidsCookieService;
-    }
-
-    public static PreBidRequestContextFactory create(ApplicationConfig config, PublicSuffixList psl,
-                                                     ApplicationSettings applicationSettings,
-                                                     UidsCookieService uidsCookieService) {
-        Objects.requireNonNull(config);
-        Objects.requireNonNull(psl);
-        Objects.requireNonNull(applicationSettings);
-        Objects.requireNonNull(uidsCookieService);
-
-        return new PreBidRequestContextFactory(config.getLong("default-timeout-ms"), psl, applicationSettings,
-                uidsCookieService);
+        this.defaultHttpRequestTimeout = Objects.requireNonNull(defaultHttpRequestTimeout);
+        this.psl = Objects.requireNonNull(psl);
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
     }
 
     public Future<PreBidRequestContext> fromRequest(RoutingContext context) {

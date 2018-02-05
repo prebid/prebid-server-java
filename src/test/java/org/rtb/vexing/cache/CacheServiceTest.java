@@ -22,7 +22,6 @@ import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.PutValue;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.cache.model.response.CacheObject;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.response.Bid;
 
@@ -49,8 +48,6 @@ public class CacheServiceTest extends VertxTest {
     private HttpClient httpClient;
     @Mock
     private HttpClientRequest httpClientRequest;
-    @Mock
-    private ApplicationConfig config;
 
     private CacheService cacheService;
 
@@ -63,27 +60,53 @@ public class CacheServiceTest extends VertxTest {
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
-        given(config.getString("cache.scheme")).willReturn("http");
-        given(config.getString("cache.host")).willReturn("cache-service-host");
-        given(config.getString("cache.query")).willReturn("uuid=%PBS_CACHE_UUID%");
-
-        cacheService = CacheService.create(httpClient, config);
+        cacheService = new CacheService(httpClient, "http://cache-service/cache",
+                "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
     }
 
     @Test
-    public void creationShouldFailOnNullArguments() {
+    public void constructorShouldFailOnNullArguments() {
         // then
-        assertThatNullPointerException().isThrownBy(() -> CacheService.create(null, null));
-        assertThatNullPointerException().isThrownBy(() -> CacheService.create(httpClient, null));
+        assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, null, "url"));
+        assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, "url", null));
+        assertThatNullPointerException().isThrownBy(() -> new CacheService(null, "url", "url"));
     }
 
     @Test
-    public void creationShouldFailOnInvalidCacheServiceUrl() {
-        // given
-        given(config.getString("cache.scheme")).willReturn("invalid_scheme");
-
+    public void getCacheEndpointUrlShouldFailOnInvalidCacheServiceUrl() {
         // then
-        assertThatIllegalArgumentException().isThrownBy(() -> CacheService.create(httpClient, config));
+        assertThatIllegalArgumentException().isThrownBy(() -> CacheService.getCacheEndpointUrl("http",
+                "{invalid:host}"));
+        assertThatIllegalArgumentException().isThrownBy(() -> CacheService.getCacheEndpointUrl("invalid-schema",
+                "example-server:80808"));
+    }
+
+    @Test
+    public void getCacheEndpointUrlShouldReturnValidUrl() {
+        // when
+        final String result = CacheService.getCacheEndpointUrl("http", "example.com");
+
+        //then
+        assertThat(result).isEqualTo("http://example.com/cache");
+    }
+
+    @Test
+    public void getCachedAssetUrlTemplateShouldFailOnInvalidCacheServiceUrl() {
+        // then
+        assertThatIllegalArgumentException().isThrownBy(() -> CacheService.getCachedAssetUrlTemplate("qs", "http",
+                "{invalid:host}"));
+        assertThatIllegalArgumentException().isThrownBy(() -> CacheService.getCachedAssetUrlTemplate("qs",
+                "invalid-schema",
+                "example-server:80808"));
+    }
+
+    @Test
+    public void getCachedAssetUrlTemplateShouldReturnValidUrl() {
+        // when
+        final String result = CacheService.getCachedAssetUrlTemplate("qs", "http", "example.com");
+
+        //then
+        assertThat(result).isEqualTo("http://example.com/cache?qs");
     }
 
     @Test
@@ -222,10 +245,8 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void shouldMakeHttpRequestUsingConfigurationParams() {
         // given
-        given(config.getString("cache.scheme")).willReturn("https");
-        given(config.getString("cache.host")).willReturn("cache-service-host:8888");
-        cacheService = CacheService.create(httpClient, config);
-
+        cacheService = new CacheService(httpClient, "https://cache-service-host:8888/cache",
+                "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
         // when
         cacheService.saveBids(singleEmptyBid());
 

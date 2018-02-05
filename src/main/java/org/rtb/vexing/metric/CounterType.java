@@ -1,5 +1,5 @@
 package org.rtb.vexing.metric;
 
-enum CounterType {
+public enum CounterType {
     counter, flushingCounter, meter
 }

@@ -25,10 +25,10 @@ public class IpHandler implements Handler<RoutingContext> {
         final String hostIp = request.remoteAddress().host();
 
         final String xRealIpHeaderValue = getXRealIpHeaderValue(request);
-        final String xFowardedForHeaderValue = getXFowardedForHeaderValue(request);
+        final String xForwardedForHeaderValue = getXForwardedForHeaderValue(request);
 
-        final String forwardedIp = ObjectUtils.firstNonNull(xFowardedForHeaderValue, xRealIpHeaderValue, "");
-        final String realIp = ObjectUtils.firstNonNull(xFowardedForHeaderValue, xRealIpHeaderValue, hostIp);
+        final String forwardedIp = ObjectUtils.firstNonNull(xForwardedForHeaderValue, xRealIpHeaderValue, "");
+        final String realIp = ObjectUtils.firstNonNull(xForwardedForHeaderValue, xRealIpHeaderValue, hostIp);
 
         final List<String> result = new ArrayList<>();
         result.add(String.format("User Agent: %s", ObjectUtils.firstNonNull(userAgent, "")));
@@ -44,7 +44,7 @@ public class IpHandler implements Handler<RoutingContext> {
                 .collect(Collectors.joining("\n")));
     }
 
-    private String getXFowardedForHeaderValue(HttpServerRequest request) {
+    private String getXForwardedForHeaderValue(HttpServerRequest request) {
         return StringUtils.trimToNull(StringUtils.substringBefore(request.headers().get("X-Forwarded-For"), ","));
     }
 

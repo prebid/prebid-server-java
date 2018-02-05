@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-class FileApplicationSettings implements ApplicationSettings {
+public class FileApplicationSettings implements ApplicationSettings {
 
     private final Map<String, Account> accounts;
     private final Map<String, String> configs;
@@ -34,16 +34,16 @@ class FileApplicationSettings implements ApplicationSettings {
         return list != null ? list.stream().collect(Collectors.toMap(keyMapper, valueMapper)) : Collections.emptyMap();
     }
 
-    public static Future<FileApplicationSettings> create(FileSystem fileSystem, String fileName) {
+    public static FileApplicationSettings create(FileSystem fileSystem, String fileName) {
         Objects.requireNonNull(fileSystem);
         Objects.requireNonNull(fileName);
 
         final Buffer buf = fileSystem.readFileBlocking(fileName);
         try {
             final SettingsFile settingsFile = new YAMLMapper().readValue(buf.getBytes(), SettingsFile.class);
-            return Future.succeededFuture(new FileApplicationSettings(settingsFile));
+            return new FileApplicationSettings(settingsFile);
         } catch (IOException e) {
-            return Future.failedFuture(e);
+            throw new IllegalArgumentException("Couldn't read file settings", e);
         }
     }
 
@@ -55,6 +55,11 @@ class FileApplicationSettings implements ApplicationSettings {
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId) {
         return mapValueToFuture(configs, adUnitConfigId);
+    }
+
+    @Override
+    public Future<Void> initialize() {
+        return Future.succeededFuture(null);
     }
 
     private static <T> Future<T> mapValueToFuture(Map<String, T> map, String key) {

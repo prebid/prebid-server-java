@@ -10,8 +10,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.settings.model.Account;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
@@ -34,11 +33,9 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("invalid"));
 
-        //when
-        final Future<FileApplicationSettings> future = FileApplicationSettings.create(fileSystem, "ignore");
-
-        // then
-        assertThat(future.failed()).isTrue();
+        // when and then
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> FileApplicationSettings.create(fileSystem, "ignore"));
     }
 
     @Test
@@ -46,10 +43,9 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs:"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore")
-                .result();
+        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
-        //when
+        // when
         final Future<Account> account = applicationSettings.getAccountById("123");
 
         // then
@@ -61,10 +57,9 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore")
-                .result();
+        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
-        //when
+        // when
         final Future<Account> account = applicationSettings.getAccountById("123");
 
         // then
@@ -77,10 +72,9 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore")
-                .result();
+        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
-        //when
+        // when
         final Future<Account> account = applicationSettings.getAccountById("789");
 
         // then
@@ -92,10 +86,9 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore")
-                .result();
+        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
-        //when
+        // when
         final Future<String> config = applicationSettings.getAdUnitConfigById("123");
 
         // then
@@ -108,8 +101,7 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
                 "configs: [ {id: '123', config: '{\"bidder\": \"rubicon\"}'}, {id: '456'} ]"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore")
-                .result();
+        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
         // when
         final Future<String> adUnitConfigById1 = applicationSettings.getAdUnitConfigById("123");
@@ -127,10 +119,9 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs: [ id: '123', id: '456' ]"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore")
-                .result();
+        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
-        //when
+        // when
         final Future<String> config = applicationSettings.getAdUnitConfigById("789");
 
         // then

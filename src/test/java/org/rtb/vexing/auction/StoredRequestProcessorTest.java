@@ -29,10 +29,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
@@ -186,7 +183,7 @@ public class StoredRequestProcessorTest extends VertxTest {
 
     @Test
     public void shouldReturnFailedFutureIfBidRequestStoredRequestIdHasIncorrectType() throws IOException {
-        //given
+        // given
         final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
                 .ext((ObjectNode) Json.mapper.createObjectNode()
                         .set("prebid", Json.mapper.createObjectNode()
@@ -273,7 +270,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
                 .imp(singletonList(imp)));
 
-        //when
+        // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(bidRequest);
 
         //then

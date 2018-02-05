@@ -279,7 +279,8 @@ public class HttpConnectorTest extends VertxTest {
     }
 
     @Test
-    public void callShouldReturnBidderResultWithErrorIfAtLeastOneErrorOccursWhileHttpRequestForNotToleratedErrorsAdapter()
+    public void
+    callShouldReturnBidderResultWithErrorIfAtLeastOneErrorOccursWhileHttpRequestForNotToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
@@ -320,7 +321,8 @@ public class HttpConnectorTest extends VertxTest {
     }
 
     @Test
-    public void callShouldReturnBidderResultWithoutErrorIfAtLeastOneBidIsPresentWhileHttpRequestForToleratedErrorsAdapter()
+    public void
+    callShouldReturnBidderResultWithoutErrorIfAtLeastOneBidIsPresentWhileHttpRequestForToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
@@ -363,7 +365,8 @@ public class HttpConnectorTest extends VertxTest {
     }
 
     @Test
-    public void callShouldReturnBidderResultWithErrorIfAtLeastOneErrorOccursWhileExtractingForNotToleratedErrorsAdapter()
+    public void
+    callShouldReturnBidderResultWithErrorIfAtLeastOneErrorOccursWhileExtractingForNotToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
@@ -390,7 +393,8 @@ public class HttpConnectorTest extends VertxTest {
     }
 
     @Test
-    public void callShouldReturnBidderResultWithoutErrorIfAtLeastOneBidIsPresentWhileExtractingForToleratedErrorsAdapter()
+    public void
+    callShouldReturnBidderResultWithoutErrorIfAtLeastOneBidIsPresentWhileExtractingForToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
@@ -580,7 +584,8 @@ public class HttpConnectorTest extends VertxTest {
     }
 
     private static HttpRequest givenHttpRequestCustomizable(MultiMap headers,
-                                                            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
+                                                            Function<BidRequest.BidRequestBuilder, BidRequest
+                                                                    .BidRequestBuilder> bidRequestBuilderCustomizer) {
         return HttpRequest.of("uri", headers, bidRequestBuilderCustomizer.apply(BidRequest.builder()).build());
     }
 

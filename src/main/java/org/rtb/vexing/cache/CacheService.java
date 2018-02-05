@@ -14,7 +14,6 @@ import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.PutObject;
 import org.rtb.vexing.cache.model.request.PutValue;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.response.Bid;
 
@@ -40,17 +39,10 @@ public class CacheService {
     private final String endpointUrl;
     private final String cachedAssetUrlTemplate;
 
-    private CacheService(HttpClient httpClient, String endpointUrl, String cachedAssetUrlTemplate) {
-        this.httpClient = httpClient;
-        this.endpointUrl = endpointUrl;
-        this.cachedAssetUrlTemplate = cachedAssetUrlTemplate;
-    }
-
-    public static CacheService create(HttpClient httpClient, ApplicationConfig config) {
-        Objects.requireNonNull(httpClient);
-        Objects.requireNonNull(config);
-
-        return new CacheService(httpClient, getEndpointUrl(config), getCachedAssetUrlTemplate(config));
+    public CacheService(HttpClient httpClient, String endpointUrl, String cachedAssetUrlTemplate) {
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.endpointUrl = Objects.requireNonNull(endpointUrl);
+        this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
     }
 
     public Future<List<BidCacheResult>> saveBids(List<Bid> bids) {
@@ -138,25 +130,25 @@ public class CacheService {
         return cachedAssetUrlTemplate.replaceFirst("%PBS_CACHE_UUID%", uuid);
     }
 
-    private static String getEndpointUrl(ApplicationConfig config) {
+    public static String getCacheEndpointUrl(String cacheSchema, String cacheHost) {
         try {
-            final URL baseUrl = getBaseUrl(config);
+            final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
             return new URL(baseUrl, "/cache").toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cache endpoint for prebid cache service", e);
         }
     }
 
-    private static String getCachedAssetUrlTemplate(ApplicationConfig config) {
+    public static String getCachedAssetUrlTemplate(String cacheQuery, String cacheSchema, String cacheHost) {
         try {
-            final URL baseUrl = getBaseUrl(config);
-            return new URL(baseUrl, "/cache?" + config.getString("cache.query")).toString();
+            final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
+            return new URL(baseUrl, "/cache?" + cacheQuery).toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cached asset url template for prebid cache service", e);
         }
     }
 
-    private static URL getBaseUrl(ApplicationConfig config) throws MalformedURLException {
-        return new URL(config.getString("cache.scheme") + "://" + config.getString("cache.host"));
+    private static URL getCacheBaseUrl(String cacheSchema, String cacheHost) throws MalformedURLException {
+        return new URL(cacheSchema + "://" + cacheHost);
     }
 }

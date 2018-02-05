@@ -22,7 +22,7 @@ public class CachingStoredRequestFetcher implements StoredRequestFetcher {
     private final StoredRequestFetcher delegate;
     private final Map<String, String> storedRequestCache;
 
-    CachingStoredRequestFetcher(StoredRequestFetcher delegate, int ttl, int size) {
+    public CachingStoredRequestFetcher(StoredRequestFetcher delegate, int ttl, int size) {
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
@@ -36,6 +36,11 @@ public class CachingStoredRequestFetcher implements StoredRequestFetcher {
     @Override
     public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids) {
         return getFromCacheOrDelegate(storedRequestCache, ids, delegate::getStoredRequestsById);
+    }
+
+    @Override
+    public Future<Void> initialize() {
+        return delegate.initialize();
     }
 
     /**

@@ -60,10 +60,10 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnOnlyOneErrorAtATime() {
-        //given
+        // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -73,10 +73,10 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenRequestIdIsEmpty() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder().id("").build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -85,10 +85,10 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenRequestIdIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder().id(null).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -97,10 +97,10 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenTmaxIsNegative() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder().id("1").tmax(-100L).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -109,10 +109,10 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenTmaxIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder().tmax(null).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -122,10 +122,10 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenNumberOfImpsIsZero() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder().imp(null).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -134,12 +134,12 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenImpIdNull() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder().id(null).build()))
                 .build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -148,12 +148,12 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenImpIdEmptyString() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder().id("").build()))
                 .build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -162,7 +162,7 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenMetricTypeIsSpecified() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .metric(singletonList(Metric.builder().type("none")
@@ -170,7 +170,7 @@ public class RequestValidatorTest extends VertxTest {
                         .build()))
                 .build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -181,7 +181,7 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenNoneOfMediaTypeIsPresent() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .video(null)
@@ -191,7 +191,7 @@ public class RequestValidatorTest extends VertxTest {
                         .build()))
                 .build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -202,7 +202,7 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenVideAttributeIsPresentButVideaMimesMissed() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .video(Video.builder().mimes(emptyList())
@@ -210,7 +210,7 @@ public class RequestValidatorTest extends VertxTest {
                         .build()))
                 .build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -220,7 +220,7 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenAudioAttributePresentButAudioMimesMissed() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .audio(Audio.builder().mimes(emptyList())
@@ -228,7 +228,7 @@ public class RequestValidatorTest extends VertxTest {
                         .build()))
                 .build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -238,14 +238,14 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenNativeRequestAttributeNullValue() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .xNative(Native.builder().request(null).build())
                         .build()))
                 .build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -256,14 +256,14 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenNativeRequestAttributeEmpty() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .xNative(Native.builder().request("").build())
                         .build()))
                 .build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -274,11 +274,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatHWAndRatiosPresent() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(2).wmin(3).wratio(4).hratio(5));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -293,7 +293,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(2).hratio(5));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -305,11 +305,11 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatRatiosAndOneOfSizesPresent() {
 
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).wmin(3).wratio(4).hratio(5));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -320,11 +320,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatSizesSpecifiedOnly() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(2));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -333,11 +333,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatRatiosSpecifiedOnly() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(3).wratio(4).hratio(5));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -346,11 +346,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatSizesAndRatiosPresent() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 Function.identity());
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -361,11 +361,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatStaticSizesUsedAndHeightIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(null).w(1));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -375,11 +375,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatStaticSizesUsedAndHeightIsZero() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(0).w(1));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -389,11 +389,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatStaticSizesUsedAndWeightIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(null));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -403,11 +403,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatStaticSizesUsedAndWeightIsZero() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(0));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -417,11 +417,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWMinIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(null).wratio(2).hratio(1));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -432,11 +432,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWMinIsZero() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(0).wratio(2).hratio(1));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -447,11 +447,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWRatioIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(1).wratio(null).hratio(1));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -462,12 +462,12 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWRatioIsZero() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(1).wratio(0).hratio(1));
 
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -478,11 +478,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndHRatioIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(1).wratio(5).hratio(null));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -493,11 +493,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndHRatioIsZero() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(1).wratio(5).hratio(0));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -508,12 +508,12 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenPmpDealIdIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = overwritePmpFirstDealInFirstImp(validBidRequestBuilder().build(),
                 dealBuilder -> Deal.builder().id(null));
 
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -524,10 +524,10 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenPmpDealIdIsEmptyString() {
-        //given
+        // given
         final BidRequest bidRequest = overwritePmpFirstDealInFirstImp(validBidRequestBuilder().build(),
                 dealBuilder -> Deal.builder().id(""));
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -537,11 +537,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenSiteIdAndPageIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id(null)).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -551,11 +551,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenSiteIdIsEmptyStringAndPageIsNull() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("")).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -565,11 +565,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnEmptyValidationMessagesWhenPageIdIsNullAndSiteIdIsPresent() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("1").page(null)).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -578,11 +578,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenSitePageIsEmptyString() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("1").page("")).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -591,11 +591,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenSiteIdAndPageBothEmpty() {
-        //given
+        // given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("").page("")).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -605,13 +605,13 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenRequestAppAndRequestSiteBothMissed() {
-        //given
+        // given
         final BidRequest.BidRequestBuilder bidRequestBuilder = overwriteSite(validBidRequestBuilder(),
                 Function.identity());
 
         final BidRequest bidRequest = overwriteApp(bidRequestBuilder, Function.identity()).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -621,13 +621,13 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenRequestAppAndRequestSiteBothPresent() {
-        //given
+        // given
         final BidRequest.BidRequestBuilder bidRequestBuilder = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("1").page("2"));
 
         final BidRequest bidRequest = overwriteApp(bidRequestBuilder, appBuilder -> App.builder().id("3")).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -637,10 +637,10 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnEmptyValidationMessagesWhenBidRequestIsOk() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -649,12 +649,12 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenNoImpExtBiddersPresent() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .ext(null).build())).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -664,11 +664,11 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessagesWhenImpExtBidderIsUnknown() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(Boolean.FALSE);
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -678,12 +678,12 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnEmptyValidationMessagesWhenOnlyPrebidImpExtExist() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .ext(mapper.valueToTree(singletonMap("prebid", "test"))).build())).build();
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
@@ -692,12 +692,12 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBidderExtIsInvalid() {
-        //given
+        // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
         given(bidderParamValidator.validate(any(), any()))
                 .willReturn(new LinkedHashSet<>(Arrays.asList("errorMessage1", "errorMessage2")));
 
-        //when
+        // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then

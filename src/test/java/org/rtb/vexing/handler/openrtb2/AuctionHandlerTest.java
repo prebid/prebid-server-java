@@ -19,7 +19,6 @@ import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.StoredRequestProcessor;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.validation.RequestValidator;
 import org.rtb.vexing.validation.ValidationResult;
@@ -36,8 +35,6 @@ public class AuctionHandlerTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
-    private ApplicationConfig config;
     @Mock
     private RequestValidator requestValidator;
     @Mock
@@ -61,29 +58,27 @@ public class AuctionHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(config.getLong("max_request_size")).willReturn(Long.MAX_VALUE);
-
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
-        auctionHandler = AuctionHandler.create(config, requestValidator, exchangeService,
+        auctionHandler = new AuctionHandler(Integer.MAX_VALUE, requestValidator, exchangeService,
                 storedRequestProcessor,
                 preBidRequestContextFactory, uidsCookieService);
     }
 
     @Test
-    public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> AuctionHandler.create(null, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> AuctionHandler.create(config, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> AuctionHandler.create(config, requestValidator, null, null,
+    public void creationShouldFailOnNullArguments() {
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(0, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, requestValidator, null, null,
                 null, null));
-        assertThatNullPointerException().isThrownBy(() -> AuctionHandler.create(config, requestValidator,
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, requestValidator,
                 exchangeService, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> AuctionHandler.create(config, requestValidator,
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, requestValidator,
                 exchangeService, storedRequestProcessor, null, null));
-        assertThatNullPointerException().isThrownBy(() -> AuctionHandler.create(config, requestValidator,
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, requestValidator,
                 exchangeService, storedRequestProcessor, preBidRequestContextFactory, null));
     }
 
@@ -103,8 +98,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfRequestBodyExceedsMaxRequestSize() {
         // given
-        given(config.getLong("max_request_size")).willReturn(1L);
-        auctionHandler = AuctionHandler.create(config, requestValidator, exchangeService, storedRequestProcessor,
+        auctionHandler = new AuctionHandler(1, requestValidator, exchangeService, storedRequestProcessor,
                 preBidRequestContextFactory, uidsCookieService);
 
 

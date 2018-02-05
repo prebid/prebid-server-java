@@ -18,7 +18,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.StoredRequestProcessor;
-import org.rtb.vexing.config.ApplicationConfig;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.exception.InvalidRequestException;
 import org.rtb.vexing.validation.RequestValidator;
@@ -39,24 +38,16 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final UidsCookieService uidsCookieService;
 
-    private AuctionHandler(long maxRequestSize, RequestValidator requestValidator, ExchangeService exchangeService,
-                           StoredRequestProcessor storedRequestProcessor,
-                           PreBidRequestContextFactory preBidRequestContextFactory, UidsCookieService
-                                   uidsCookieService) {
+    public AuctionHandler(long maxRequestSize, RequestValidator requestValidator, ExchangeService exchangeService,
+                          StoredRequestProcessor storedRequestProcessor,
+                          PreBidRequestContextFactory preBidRequestContextFactory,
+                          UidsCookieService uidsCookieService) {
         this.maxRequestSize = maxRequestSize;
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-    }
-
-    public static AuctionHandler create(ApplicationConfig config, RequestValidator requestValidator,
-                                        ExchangeService exchangeService, StoredRequestProcessor storedRequestProcessor,
-                                        PreBidRequestContextFactory preBidRequestContextFactory,
-                                        UidsCookieService uidsCookieService) {
-        return new AuctionHandler(config.getLong("max_request_size"), requestValidator, exchangeService,
-                storedRequestProcessor, preBidRequestContextFactory, uidsCookieService);
     }
 
     @Override

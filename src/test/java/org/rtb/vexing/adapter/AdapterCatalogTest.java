@@ -1,120 +1,114 @@
 package org.rtb.vexing.adapter;
 
-import io.vertx.core.http.HttpClient;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
-import org.rtb.vexing.adapter.appnexus.AppnexusAdapter;
-import org.rtb.vexing.adapter.conversant.ConversantAdapter;
-import org.rtb.vexing.adapter.facebook.FacebookAdapter;
-import org.rtb.vexing.adapter.index.IndexAdapter;
-import org.rtb.vexing.adapter.lifestreet.LifestreetAdapter;
-import org.rtb.vexing.adapter.pubmatic.PubmaticAdapter;
-import org.rtb.vexing.adapter.pulsepoint.PulsepointAdapter;
-import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
-import org.rtb.vexing.config.ApplicationConfig;
+import org.rtb.vexing.adapter.model.ExchangeCall;
+import org.rtb.vexing.adapter.model.HttpRequest;
+import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.model.Bidder;
+import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.response.Bid;
+import org.rtb.vexing.model.response.UsersyncInfo;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
 
 public class AdapterCatalogTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
-    private ApplicationConfig applicationConfig;
-    @Mock
-    private HttpClient httpClient;
-
     @Test
-    public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(null, null));
-        assertThatNullPointerException().isThrownBy(() -> AdapterCatalog.create(applicationConfig, null));
+    public void constructorShouldFailONullArguments() {
+        assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(null));
     }
 
     @Test
-    public void getShouldReturnConfiguredAdapter() {
+    public void getByCodeShouldReturnAdapterWhenAdapterExist() {
         // given
-        given(applicationConfig.getString(eq("external_url"))).willReturn("http://external-url");
-        given(applicationConfig.getLong(eq("default-timeout-ms"))).willReturn(250L);
+        final List<Adapter> adapters = Arrays.asList(createAdapter());
 
-        given(applicationConfig.getString(eq("adapters.rubicon.endpoint"))).willReturn("http://rubiconproject.com/x");
-        given(applicationConfig.getString(eq("adapters.rubicon.usersync_url")))
-                .willReturn("http://rubiconproject.com/x/cookie/x");
-        given(applicationConfig.getString(eq("adapters.rubicon.XAPI.Username"))).willReturn("rubicon_user");
-        given(applicationConfig.getString(eq("adapters.rubicon.XAPI.Password"))).willReturn("rubicon_password");
-
-        given(applicationConfig.getString(eq("adapters.appnexus.endpoint"))).willReturn("http://appnexus-endpoint");
-        given(applicationConfig.getString(eq("adapters.appnexus.usersync_url")))
-                .willReturn("http://appnexus-usersync-url");
-
-        given(applicationConfig.getString(eq("adapters.facebook.endpoint"))).willReturn("http://facebook-endpoint");
-        given(applicationConfig.getString(eq("adapters.facebook.nonSecureEndpoint")))
-                .willReturn("http://facebook-endpoint");
-        given(applicationConfig.getString(eq("adapters.facebook.usersync_url")))
-                .willReturn("http://facebook-usersync-url");
-        given(applicationConfig.getString(eq("adapters.facebook.platform_id"))).willReturn("42");
-
-        given(applicationConfig.getString(eq("adapters.pulsepoint.endpoint"))).willReturn("http://pulsepoint-endpoint");
-        given(applicationConfig.getString(eq("adapters.pulsepoint.usersync_url")))
-                .willReturn("http://pulsepoint-usersync-url");
-
-        given(applicationConfig.getString(eq("adapters.indexexchange.endpoint")))
-                .willReturn("http://indexexchange-endpoint");
-        given(applicationConfig.getString(eq("adapters.indexexchange.usersync_url")))
-                .willReturn("http://indexexchange-usersync-url");
-
-        given(applicationConfig.getString(eq("adapters.lifestreet.endpoint"))).willReturn("http://lifestreet-endpoint");
-        given(applicationConfig.getString(eq("adapters.lifestreet.usersync_url")))
-                .willReturn("http://lifestreet-usersync-url");
-
-        given(applicationConfig.getString(eq("adapters.pubmatic.endpoint"))).willReturn("http://pubmatic-endpoint");
-        given(applicationConfig.getString(eq("adapters.pubmatic.usersync_url")))
-                .willReturn("http://pubmatic-usersync-url");
-
-        given(applicationConfig.getString(eq("adapters.conversant.endpoint"))).willReturn("http://conversant-endpoint");
-        given(applicationConfig.getString(eq("adapters.conversant.usersync_url")))
-                .willReturn("http://conversant-usersync-url");
+        final AdapterCatalog catalog = new AdapterCatalog(adapters);
 
         // when
-        final AdapterCatalog adapterCatalog = AdapterCatalog.create(applicationConfig, httpClient);
+        final Adapter result = catalog.getByCode("test");
 
-        // then
-        assertThat(adapterCatalog.getByCode("rubicon"))
-                .isNotNull()
-                .isInstanceOf(RubiconAdapter.class);
+        //then
+        assertThat(result.code()).isEqualTo("test");
+    }
 
-        assertThat(adapterCatalog.getByCode("appnexus"))
-                .isNotNull()
-                .isInstanceOf(AppnexusAdapter.class);
+    @Test
+    public void getByCodeShouldReturnNullWhenAdapterNotExist() {
+        // given
+        final List<Adapter> adapters = new ArrayList<>();
+        final AdapterCatalog catalog = new AdapterCatalog(adapters);
 
-        assertThat(adapterCatalog.getByCode("audienceNetwork"))
-                .isNotNull()
-                .isInstanceOf(FacebookAdapter.class);
+        // when
+        final Adapter result = catalog.getByCode("test");
 
-        assertThat(adapterCatalog.getByCode("pulsepoint"))
-                .isNotNull()
-                .isInstanceOf(PulsepointAdapter.class);
+        //then
+        assertThat(result).isNull();
+    }
 
-        assertThat(adapterCatalog.getByCode("indexExchange"))
-                .isNotNull()
-                .isInstanceOf(IndexAdapter.class);
+    @Test
+    public void isValidCodeShouldReturnFalseWhenAdapterNotExist() {
+        // given
+        final List<Adapter> adapters = new ArrayList<>();
+        final AdapterCatalog catalog = new AdapterCatalog(adapters);
 
-        assertThat(adapterCatalog.getByCode("Lifestreet"))
-                .isNotNull()
-                .isInstanceOf(LifestreetAdapter.class);
+        // when
+        final Boolean result = catalog.isValidCode("test");
 
-        assertThat(adapterCatalog.getByCode("Pubmatic"))
-                .isNotNull()
-                .isInstanceOf(PubmaticAdapter.class);
+        //then
+        assertThat(result).isFalse();
+    }
 
-        assertThat(adapterCatalog.getByCode("conversant"))
-                .isNotNull()
-                .isInstanceOf(ConversantAdapter.class);
+    @Test
+    public void isValidCodeShouldReturnTrueWhenAdapterExist() {
+        // given
+        final List<Adapter> adapters = Arrays.asList(createAdapter());
+        final AdapterCatalog catalog = new AdapterCatalog(adapters);
+
+        // when
+        final Boolean result = catalog.isValidCode("test");
+
+        //then
+        assertThat(result).isTrue();
+    }
+
+    private static Adapter createAdapter() {
+        return new Adapter() {
+
+            @Override
+            public String code() {
+                return "test";
+            }
+
+            @Override
+            public String cookieFamily() {
+                return null;
+            }
+
+            @Override
+            public UsersyncInfo usersyncInfo() {
+                return null;
+            }
+
+            @Override
+            public List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext)
+                    throws PreBidException {
+                return null;
+            }
+
+            @Override
+            public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) throws PreBidException {
+                return null;
+            }
+
+            @Override
+            public boolean tolerateErrors() {
+                return false;
+            }
+        };
     }
 }
