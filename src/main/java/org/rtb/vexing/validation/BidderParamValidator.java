@@ -49,7 +49,7 @@ public class BidderParamValidator {
     }
 
     /**
-     * Returns the JSON object combining all schemas for all bidders. Each bidder has a subnode with it's schema within
+     * Returns a JSON object combining all schemas for all bidders. Each bidder has a subnode with its schema within
      * framing object.
      * <pre>
      * {code
@@ -57,7 +57,7 @@ public class BidderParamValidator {
      *          "appnexus": {
      *              "schema": "...."
      *          },
-     *          "facebook": {
+     *          "audienceNetwork": {
      *              "schema": "..."
      *          },
      *          "rubicon": {
@@ -74,7 +74,7 @@ public class BidderParamValidator {
     /**
      * Constructs an instance of {@link BidderParamValidator}. This method requires all the necessary JSON schemas
      * exist as CLASSPATH resources, otherwise {@link IllegalArgumentException} will be thrown. This method consumes
-     * schema directory parameter that defines the root directory for files containing schema. By convention the name
+     * schema directory parameter that defines the root directory for files containing schemas. By convention the name
      * of each schema file same as corresponding bidder name.
      */
     public static BidderParamValidator create(BidderCatalog bidderCatalog, String schemaDirectory) {

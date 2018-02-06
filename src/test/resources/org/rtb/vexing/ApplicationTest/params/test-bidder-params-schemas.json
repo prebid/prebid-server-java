@@ -14,6 +14,21 @@
       "slot_tag"
     ]
   },
+  "audienceNetwork": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Facebook Audience Network Adapter Params",
+    "description": "A schema which validates params accepted by the Facebook Audience Network adapter",
+    "type": "object",
+    "properties": {
+      "placementId": {
+        "type": "string",
+        "description": "An ID which identifies the placement selling the impression"
+      }
+    },
+    "required": [
+      "placementId"
+    ]
+  },
   "appnexus": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Appnexus Adapter Params",
@@ -93,21 +108,6 @@
         "member"
       ]
     }
-  },
-  "facebook": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Facebook Adapter Params",
-    "description": "A schema which validates params accepted by the Facebook adapter",
-    "type": "object",
-    "properties": {
-      "placementId": {
-        "type": "string",
-        "description": "An ID which identifies the placement selling the impression"
-      }
-    },
-    "required": [
-      "placementId"
-    ]
   },
   "pubmatic": {
     "$schema": "http://json-schema.org/draft-04/schema#",

@@ -31,7 +31,7 @@ public class FacebookBidder implements Bidder {
 
     @Override
     public String name() {
-        return "facebook";
+        return "audienceNetwork";
     }
 
     @Override

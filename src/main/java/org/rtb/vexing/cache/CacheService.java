@@ -1,5 +1,6 @@
 package org.rtb.vexing.cache;
 
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClient;
@@ -76,7 +77,7 @@ public class CacheService {
         final PutObject.PutObjectBuilder builder = PutObject.builder();
         if (MediaType.video.equals(bid.mediaType)) {
             builder.type("xml");
-            builder.value(Json.mapper.valueToTree(bid.adm));
+            builder.value(new TextNode(bid.adm));
         } else {
             builder.type("json");
             builder.value(Json.mapper.valueToTree(
