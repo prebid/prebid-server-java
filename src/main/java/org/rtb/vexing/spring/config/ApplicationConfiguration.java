@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.ext.web.Router;
 import org.rtb.vexing.PrebidVerticle;
+import org.rtb.vexing.json.ObjectMapperConfigurer;
 import org.rtb.vexing.settings.ApplicationSettings;
 import org.rtb.vexing.settings.StoredRequestFetcher;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +12,8 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+
+import javax.annotation.PostConstruct;
 
 @Configuration
 public class ApplicationConfiguration {
@@ -40,5 +43,10 @@ public class ApplicationConfiguration {
             StoredRequestFetcher storedRequestFetcher) {
 
         return new PrebidVerticle(vertx, router, applicationSettings, storedRequestFetcher, port);
+    }
+
+    @PostConstruct
+    void initializeObjectMapper() {
+        ObjectMapperConfigurer.configure();
     }
 }

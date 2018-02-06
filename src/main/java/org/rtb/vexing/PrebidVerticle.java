@@ -7,7 +7,6 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
-import org.rtb.vexing.json.ObjectMapperConfigurer;
 import org.rtb.vexing.settings.ApplicationSettings;
 import org.rtb.vexing.settings.StoredRequestFetcher;
 
@@ -35,8 +34,6 @@ public class PrebidVerticle extends AbstractVerticle {
      */
     @Override
     public void start(Future<Void> startFuture) {
-        ObjectMapperConfigurer.configure();
-
         applicationSettings.initialize()
                 .compose(ignored -> storedRequestFetcher.initialize())
                 .compose(ignored -> startHttpServer())
