@@ -18,11 +18,13 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.cache.model.BidCacheResult;
+import org.rtb.vexing.cache.model.request.BannerValue;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
-import org.rtb.vexing.cache.model.request.PutValue;
+import org.rtb.vexing.cache.model.request.PutObject;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.cache.model.response.CacheObject;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.response.Bid;
 
 import java.io.IOException;
@@ -126,11 +128,22 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRequestToCacheServiceWithExpectedParams() throws IOException {
+    public void shouldRequestToCacheServiceWithExpectedParams() throws Exception {
+        // given
+        final String val1 = "<script type=\"application/javascript\" src=\"http://nym1-ib.adnxs"
+                + "f3919239&pp=${AUCTION_PRICE}&\"></script>";
+        final String val2 = "<img src=\"https://tpp.hpppf.com/simgad/11261207092432736464\" border=\"0\" "
+                + "width=\"184\" height=\"90\" alt=\"\" class=\"img_ad\">";
+
         // when
         cacheService.saveBids(asList(
                 Bid.builder().adm("adm1").nurl("nurl1").height(100).width(200).build(),
-                Bid.builder().adm("adm2").nurl("nurl2").height(300).width(400).build()
+                Bid.builder().adm("adm2").nurl("nurl2").height(300).width(400).build(),
+
+                Bid.builder().adm(val1)
+                        .mediaType(MediaType.video).build(),
+                Bid.builder().adm(val2)
+                        .mediaType(MediaType.video).build()
         ));
 
         // then
@@ -138,21 +151,37 @@ public class CacheServiceTest extends VertxTest {
 
         assertThat(bidCacheRequest.puts).isNotNull();
         assertThat(bidCacheRequest.puts).isNotEmpty();
-        assertThat(bidCacheRequest.puts.size()).isEqualTo(2);
+        assertThat(bidCacheRequest.puts.size()).isEqualTo(4);
 
-        final PutValue putValue1 = bidCacheRequest.puts.get(0).value;
-        assertThat(putValue1).isNotNull();
+        final PutObject putObject1 = bidCacheRequest.puts.get(0);
+        final BannerValue putValue1 = mapper.treeToValue(putObject1.value, BannerValue.class);
+        assertThat(putObject1).isNotNull();
+
         assertThat(putValue1.adm).isEqualTo("adm1");
         assertThat(putValue1.nurl).isEqualTo("nurl1");
         assertThat(putValue1.height).isEqualTo(100);
         assertThat(putValue1.width).isEqualTo(200);
+        assertThat(putValue1.width).isEqualTo(200);
+        assertThat(putObject1.type).isEqualTo("json");
 
-        final PutValue putValue2 = bidCacheRequest.puts.get(1).value;
+        final PutObject putObject2 = bidCacheRequest.puts.get(1);
+        final BannerValue putValue2 = mapper.treeToValue(putObject2.value, BannerValue.class);
         assertThat(putValue2).isNotNull();
         assertThat(putValue2.adm).isEqualTo("adm2");
         assertThat(putValue2.nurl).isEqualTo("nurl2");
         assertThat(putValue2.height).isEqualTo(300);
         assertThat(putValue2.width).isEqualTo(400);
+        assertThat(putObject2.type).isEqualTo("json");
+
+        final PutObject putObject3 = bidCacheRequest.puts.get(2);
+        assertThat(putObject3).isNotNull();
+        assertThat(putObject3.value.asText()).isEqualTo(val1);
+        assertThat(putObject3.type).isEqualTo("xml");
+
+        final PutObject putObject4 = bidCacheRequest.puts.get(3);
+        assertThat(putObject4).isNotNull();
+        assertThat(putObject4.value.asText()).isEqualTo(val2);
+        assertThat(putObject4.type).isEqualTo("xml");
     }
 
     @Test

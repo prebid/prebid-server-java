@@ -1,5 +1,6 @@
 package org.rtb.vexing.cache.model.request;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,5 +17,5 @@ public class PutObject {
 
     String type;
 
-    PutValue value;
+    JsonNode value;
 }

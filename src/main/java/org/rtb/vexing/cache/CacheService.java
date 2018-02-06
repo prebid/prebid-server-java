@@ -10,11 +10,12 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.rtb.vexing.cache.model.BidCacheResult;
+import org.rtb.vexing.cache.model.request.BannerValue;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.PutObject;
-import org.rtb.vexing.cache.model.request.PutValue;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.response.Bid;
 
 import java.net.MalformedURLException;
@@ -63,20 +64,26 @@ public class CacheService {
 
     private BidCacheRequest toBidCacheRequest(List<Bid> bids) {
         final List<PutObject> putObjects = bids.stream()
-                .map(bid -> PutObject.builder()
-                        .type("json")
-                        .value(PutValue.builder()
-                                .adm(bid.adm)
-                                .nurl(bid.nurl)
-                                .width(bid.width)
-                                .height(bid.height)
-                                .build())
-                        .build())
+                .map(this::toPutObject)
                 .collect(Collectors.toList());
 
         return BidCacheRequest.builder()
                 .puts(putObjects)
                 .build();
+    }
+
+    private PutObject toPutObject(Bid bid) {
+        final PutObject.PutObjectBuilder builder = PutObject.builder();
+        if (MediaType.video.equals(bid.mediaType)) {
+            builder.type("xml");
+            builder.value(Json.mapper.valueToTree(bid.adm));
+        } else {
+            builder.type("json");
+            builder.value(Json.mapper.valueToTree(
+                    BannerValue.builder().adm(bid.adm).nurl(bid.nurl).width(bid.width).height(bid.height)
+                            .build()));
+        }
+        return builder.build();
     }
 
     private void handleResponse(HttpClientResponse response, List<Bid> bids, Future<List<BidCacheResult>> future) {

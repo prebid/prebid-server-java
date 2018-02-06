@@ -12,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class PutValue {
+public class BannerValue {
 
     String adm;
 
