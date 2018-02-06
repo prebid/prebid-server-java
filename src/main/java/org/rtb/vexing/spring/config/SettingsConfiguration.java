@@ -2,6 +2,11 @@ package org.rtb.vexing.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.jdbc.JDBCClient;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.rtb.vexing.settings.ApplicationSettings;
 import org.rtb.vexing.settings.CachingApplicationSettings;
 import org.rtb.vexing.settings.CachingStoredRequestFetcher;
@@ -10,30 +15,23 @@ import org.rtb.vexing.settings.FileStoredRequestFetcher;
 import org.rtb.vexing.settings.JdbcApplicationSettings;
 import org.rtb.vexing.settings.JdbcStoredRequestFetcher;
 import org.rtb.vexing.settings.StoredRequestFetcher;
-import org.springframework.beans.factory.annotation.Lookup;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
-import java.util.Objects;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 @Configuration
 public class SettingsConfiguration {
-
-    @Lookup
-    ApplicationSettings applicationSettings() {
-        return null;
-    }
-
-    @Lookup
-    ApplicationSettings jdbcApplicationSettings() {
-        return null;
-    }
 
     @Bean(name = "applicationSettings")
     @ConditionalOnProperty(name = "datacache.type", havingValue = "filesystem")
@@ -44,48 +42,24 @@ public class SettingsConfiguration {
         return FileApplicationSettings.create(fileSystem, filename);
     }
 
-    @Bean(name = "jdbcApplicationSettings")
-    @ConditionalOnProperty(name = "datacache.type", havingValue = "postgres")
-    JdbcApplicationSettings postgresApplicationSettings(
-            @Value("${stored-requests.max-pool-size}") int maxPoolSize,
-            Vertx vertx,
-            StoredRequestProperties storedRequestProperties) {
-
-        return JdbcApplicationSettings.create(vertx,
-                JdbcApplicationSettings.jdbcUrl(storedRequestProperties, "jdbc:postgresql:"), "org.postgresql.Driver",
-                maxPoolSize);
-    }
-
-    @Bean(name = "jdbcApplicationSettings")
-    @ConditionalOnProperty(name = "datacache.type", havingValue = "mysql")
-    JdbcApplicationSettings mysqlApplicationSettings(
-            @Value("${stored-requests.max-pool-size}") int maxPoolSize,
-            Vertx vertx,
-            StoredRequestProperties storedRequestProperties) {
-
-        return JdbcApplicationSettings.create(vertx,
-                JdbcApplicationSettings.jdbcUrl(storedRequestProperties, "jdbc:mysql:"), "com.mysql.cj.jdbc.Driver",
-                maxPoolSize);
-    }
-
     @Bean(name = "applicationSettings")
-    @Primary
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    @ConditionalOnExpression("'${datacache.type}' != 'filesystem'")
-    CachingApplicationSettings cachingApplicationSettings(DataCacheProperties dataCacheProperties) {
-        return new CachingApplicationSettings(jdbcApplicationSettings(),
-                Objects.requireNonNull(dataCacheProperties.getTtlSeconds()),
-                Objects.requireNonNull(dataCacheProperties.getCacheSize()));
+    @ConditionalOnExpression("'${datacache.type}' == 'postgres' or '${datacache.type}' == 'mysql'")
+    ApplicationSettings cachingApplicationSettings(
+            JdbcApplicationSettings jdbcApplicationSettings,
+            ApplicationSettingsCacheProperties applicationSettingsCacheProperties) {
+
+        return new CachingApplicationSettings(
+                jdbcApplicationSettings,
+                applicationSettingsCacheProperties.getTtlSeconds(),
+                applicationSettingsCacheProperties.getCacheSize());
     }
 
-    @Lookup
-    StoredRequestFetcher storedRequestFetcher() {
-        return null;
-    }
-
-    @Lookup
-    StoredRequestFetcher jdbcStoredRequestFetcher() {
-        return null;
+    @Bean
+    @ConditionalOnExpression("('${datacache.type}' == 'postgres' or '${datacache.type}' == 'mysql')"
+            + " and '${datacache.type}' == '${stored-requests.type}'")
+    JdbcApplicationSettings jdbcApplicationSettings(JDBCClient jdbcClient) {
+        return new JdbcApplicationSettings(jdbcClient);
     }
 
     @Bean(name = "storedRequestFetcher")
@@ -97,52 +71,106 @@ public class SettingsConfiguration {
         return FileStoredRequestFetcher.create(configPath, fileSystem);
     }
 
-    @Bean(name = "jdbcStoredRequestFetcher")
-    @ConditionalOnProperty(name = "stored-requests.type", havingValue = "postgres")
-    JdbcStoredRequestFetcher postgresStoredRequestFetcher(
-            @Value("${stored-requests.max-pool-size}") int maxPoolSize,
-            @Value("${stored-requests.query}") String query,
-            Vertx vertx,
-            StoredRequestProperties storedRequestProperties) {
-
-        return JdbcStoredRequestFetcher.create(vertx,
-                JdbcApplicationSettings.jdbcUrl(storedRequestProperties, "jdbc:postgresql:"), "org.postgresql.Driver",
-                maxPoolSize, query);
-    }
-
-    @Bean(name = "jdbcStoredRequestFetcher")
-    @ConditionalOnProperty(name = "stored-requests.type", havingValue = "mysql")
-    JdbcStoredRequestFetcher mysqlStoredRequestFetcher(
-            @Value("${stored-requests.max-pool-size}") int maxPoolSize,
-            @Value("${stored-requests.query}") String query,
-            Vertx vertx,
-            StoredRequestProperties storedRequestProperties) {
-
-        return JdbcStoredRequestFetcher.create(vertx,
-                JdbcStoredRequestFetcher.jdbcUrl(storedRequestProperties, "jdbc:mysql:"), "com.mysql.cj.jdbc.Driver",
-                maxPoolSize, query);
-    }
-
     @Bean(name = "storedRequestFetcher")
-    @Primary
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    @ConditionalOnExpression("'${stored-requests.type}' != 'filesystem'"
-            + " and '${stored-requests.in-memory-cache.ttl-seconds}' != null"
-            + " and '${stored-requests.in-memory-cache.cache-size}' != null")
-    CachingStoredRequestFetcher cachingStoredRequestFetcher(
-            @Value("${stored-requests.in-memory-cache.ttl-seconds}") int ttlSeconds,
-            @Value("${stored-requests.in-memory-cache.cache-size}") int cacheSize) {
+    @ConditionalOnProperty(prefix = "stored-requests.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+    @ConditionalOnExpression("'${stored-requests.type}' == 'postgres' or '${stored-requests.type}' == 'mysql'")
+    StoredRequestFetcher cachingStoredRequestFetcher(
+            JdbcStoredRequestFetcher jdbcStoredRequestFetcher,
+            StoredRequestsCacheProperties storedRequestsCacheProperties) {
 
-        return new CachingStoredRequestFetcher(jdbcStoredRequestFetcher(), ttlSeconds, cacheSize);
+        return new CachingStoredRequestFetcher(
+                jdbcStoredRequestFetcher,
+                storedRequestsCacheProperties.getTtlSeconds(),
+                storedRequestsCacheProperties.getCacheSize());
     }
 
     @Bean
-    DataCacheProperties datacacheProperties() {
-        return new DataCacheProperties();
+    @ConditionalOnExpression("'${stored-requests.type}' == 'postgres' or '${stored-requests.type}' == 'mysql'")
+    JdbcStoredRequestFetcher jdbcStoredRequestFetcher(
+            @Value("${stored-requests.query}") String query,
+            JDBCClient jdbcClient) {
+
+        return new JdbcStoredRequestFetcher(jdbcClient, query);
     }
 
     @Bean
-    StoredRequestProperties storedRequestProperties() {
-        return new StoredRequestProperties();
+    @ConditionalOnExpression("'${datacache.type}' == 'postgres' or '${datacache.type}' == 'mysql'"
+            + " or '${stored-requests.type}' == 'postgres' or '${stored-requests.type}' == 'mysql'")
+    JDBCClient jdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
+        final String jdbcUrl = String.format("%s//%s/%s?user=%s&password=%s&useSSL=false",
+                storedRequestsDatabaseProperties.getType().jdbcUrlPrefix,
+                storedRequestsDatabaseProperties.getHost(),
+                storedRequestsDatabaseProperties.getDbname(),
+                storedRequestsDatabaseProperties.getUser(),
+                storedRequestsDatabaseProperties.getPassword());
+
+        return JDBCClient.createShared(vertx, new JsonObject()
+                .put("url", jdbcUrl)
+                .put("driver_class", storedRequestsDatabaseProperties.getType().jdbcDriver)
+                .put("max_pool_size", storedRequestsDatabaseProperties.getMaxPoolSize()));
+    }
+
+    @AllArgsConstructor
+    private enum DbType {
+        postgres("jdbc:postgresql:", "org.postgresql.Driver"),
+        mysql("jdbc:mysql:", "com.mysql.cj.jdbc.Driver");
+
+        private final String jdbcUrlPrefix;
+        private final String jdbcDriver;
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "stored-requests")
+    @ConditionalOnExpression("'${stored-requests.type}' == 'postgres' or '${stored-requests.type}' == 'mysql'")
+    @Validated
+    @Data
+    @NoArgsConstructor
+    private static class StoredRequestsDatabaseProperties {
+
+        @NotNull
+        private DbType type;
+        @Min(1)
+        private Integer maxPoolSize;
+        @NotBlank
+        private String host;
+        @NotBlank
+        private String dbname;
+        @NotBlank
+        private String user;
+        @NotBlank
+        private String password;
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "stored-requests.in-memory-cache")
+    @ConditionalOnProperty(prefix = "stored-requests.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+    @Validated
+    @Data
+    @NoArgsConstructor
+    private static class StoredRequestsCacheProperties {
+
+        @NotNull
+        @Min(1)
+        private Integer ttlSeconds;
+        @NotNull
+        @Min(1)
+        private Integer cacheSize;
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "datacache")
+    @ConditionalOnExpression("'${datacache.type}' == 'postgres' or '${datacache.type}' == 'mysql'")
+    @Validated
+    @Data
+    @NoArgsConstructor
+    private static class ApplicationSettingsCacheProperties {
+
+        @NotNull
+        @Min(1)
+        private Integer ttlSeconds;
+        @NotNull
+        @Min(1)
+        private Integer cacheSize;
     }
 }

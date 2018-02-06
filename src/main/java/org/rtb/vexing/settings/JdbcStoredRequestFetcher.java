@@ -1,15 +1,12 @@
 package org.rtb.vexing.settings;
 
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.settings.model.StoredRequestResult;
-import org.rtb.vexing.spring.config.StoredRequestProperties;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,31 +28,9 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
     private final JDBCClient jdbcClient;
     private final String selectQuery;
 
-    private JdbcStoredRequestFetcher(JDBCClient jdbcClient, String selectQuery) {
-        this.jdbcClient = jdbcClient;
-        this.selectQuery = selectQuery;
-    }
-
-    /**
-     * Creates {@link JdbcStoredRequestFetcher} instance, query test connection simple select and returns
-     * {@link JdbcStoredRequestFetcher}
-     */
-    public static JdbcStoredRequestFetcher create(Vertx vertx, String url, String driverClass, int maxPoolSize,
-                                                          String selectQuery) {
-        Objects.requireNonNull(vertx);
-        Objects.requireNonNull(url);
-        Objects.requireNonNull(driverClass);
-        Objects.requireNonNull(selectQuery);
-        if (maxPoolSize <= 0) {
-            throw new IllegalArgumentException("maxPoolSize must be positive");
-        }
-
-        final JDBCClient jdbcClient = JDBCClient.createShared(vertx, new JsonObject()
-                .put("url", url)
-                .put("driver_class", driverClass)
-                .put("max_pool_size", maxPoolSize));
-
-        return new JdbcStoredRequestFetcher(jdbcClient, selectQuery);
+    public JdbcStoredRequestFetcher(JDBCClient jdbcClient, String selectQuery) {
+        this.jdbcClient = Objects.requireNonNull(jdbcClient);
+        this.selectQuery = Objects.requireNonNull(selectQuery);
     }
 
     /**
@@ -137,21 +112,5 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
             }
         }
         return StoredRequestResult.of(storedIdToJson, errors);
-    }
-
-    /**
-     * Creates String representation of jdbc configuration from StoredRequestProperties{@link StoredRequestProperties}
-     */
-    public static String jdbcUrl(StoredRequestProperties properties, String protocol) {
-        return String.format("%s//%s/%s?user=%s&password=%s&useSSL=false",
-                protocol,
-                Objects.requireNonNull(properties.getHost(), message("host")),
-                Objects.requireNonNull(properties.getDbname(), message("dbname")),
-                Objects.requireNonNull(properties.getUser(), message("user")),
-                Objects.requireNonNull(properties.getPassword(), message("password")));
-    }
-
-    static String message(String field) {
-        return String.format("Configuration property stored-requests.%s is missing", field);
     }
 }

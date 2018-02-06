@@ -1,15 +1,12 @@
 package org.rtb.vexing.settings;
 
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.settings.model.Account;
-import org.rtb.vexing.spring.config.StoredRequestProperties;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -18,24 +15,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     private final JDBCClient jdbcClient;
 
-    private JdbcApplicationSettings(JDBCClient jdbcClient) {
-        this.jdbcClient = jdbcClient;
-    }
-
-    public static JdbcApplicationSettings create(Vertx vertx, String url, String driverClass, int maxPoolSize) {
-        Objects.requireNonNull(vertx);
-        Objects.requireNonNull(url);
-        Objects.requireNonNull(driverClass);
-        if (maxPoolSize <= 0) {
-            throw new IllegalArgumentException("maxPoolSize must be positive");
-        }
-
-        final JDBCClient jdbcClient = JDBCClient.createShared(vertx, new JsonObject()
-                .put("url", url)
-                .put("driver_class", driverClass)
-                .put("max_pool_size", maxPoolSize));
-
-        return new JdbcApplicationSettings(jdbcClient);
+    public JdbcApplicationSettings(JDBCClient jdbcClient) {
+        this.jdbcClient = Objects.requireNonNull(jdbcClient);
     }
 
     @Override
@@ -88,18 +69,5 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         return mapper.apply(rs.getResults().get(0));
                     }
                 });
-    }
-
-    public static String jdbcUrl(StoredRequestProperties properties, String protocol) {
-        return String.format("%s//%s/%s?user=%s&password=%s&useSSL=false",
-                protocol,
-                Objects.requireNonNull(properties.getHost(), message("host")),
-                Objects.requireNonNull(properties.getDbname(), message("dbname")),
-                Objects.requireNonNull(properties.getUser(), message("user")),
-                Objects.requireNonNull(properties.getPassword(), message("password")));
-    }
-
-    private static String message(String field) {
-        return String.format("Configuration property datacache.%s is missing", field);
     }
 }

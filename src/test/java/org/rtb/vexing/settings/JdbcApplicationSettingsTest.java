@@ -2,10 +2,12 @@ package org.rtb.vexing.settings;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.ext.sql.ResultSet;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -18,17 +20,19 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 @RunWith(VertxUnitRunner.class)
 public class JdbcApplicationSettingsTest {
 
     private static final String JDBC_URL = "jdbc:h2:mem:test";
+
+    private static Connection connection;
+
     private Vertx vertx;
 
     private JdbcApplicationSettings jdbcApplicationSettings;
-
-    private static Connection connection;
 
     @BeforeClass
     public static void beforeClass() throws SQLException {
@@ -49,20 +53,23 @@ public class JdbcApplicationSettingsTest {
     }
 
     @Before
-    public void setUp(TestContext context) {
+    public void setUp() {
         vertx = Vertx.vertx();
 
-        this.jdbcApplicationSettings = JdbcApplicationSettings.create(vertx, JDBC_URL, "org.h2.Driver", 10);
+        this.jdbcApplicationSettings = new JdbcApplicationSettings(JDBCClient.createShared(vertx, new JsonObject()
+                .put("url", JDBC_URL)
+                .put("driver_class", "org.h2.Driver")
+                .put("max_pool_size", 10)));
+    }
+
+    @After
+    public void tearDown(TestContext context) {
+        vertx.close(context.asyncAssertSuccess());
     }
 
     @Test
-    public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> JdbcApplicationSettings.create(null, null, null, 0));
-        assertThatNullPointerException().isThrownBy(() -> JdbcApplicationSettings.create(vertx, null, null, 0));
-        assertThatNullPointerException().isThrownBy(() -> JdbcApplicationSettings.create(vertx, "url", null, 0));
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> JdbcApplicationSettings.create(vertx, "url", "driverClass", 0))
-                .withMessage("maxPoolSize must be positive");
+    public void creationShouldFailOnNullArguments() {
+        assertThatNullPointerException().isThrownBy(() -> new JdbcApplicationSettings(null));
     }
 
     @Test

@@ -126,6 +126,7 @@ public class PubmaticAdapterTest extends VertxTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void requestBidsShouldSendBidRequestWithNotModifiedImpIfInvalidParams() {
         // given
         bidder = Bidder.from(ADAPTER, asList(

@@ -2,9 +2,12 @@ package org.rtb.vexing.settings;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -22,20 +25,24 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 @RunWith(VertxUnitRunner.class)
 public class JdbcStoredRequestFetcherTest {
 
     private static final String JDBC_URL = "jdbc:h2:mem:test";
-    private Vertx vertx;
-    private JdbcStoredRequestFetcher jdbcStoredRequestFetcher;
+    private static final String selectQuery = "SELECT reqid, requestData FROM stored_requests WHERE reqid IN " +
+            "(%ID_LIST%)";
+    private static final String selectUnionQuery = "SELECT reqid, requestData FROM stored_requests where reqid IN " +
+            "(%ID_LIST%) UNION SELECT reqid, requestData FROM stored_requests2 where reqid IN (%ID_LIST%)";
+    private static final String selectFromOneColumnTableQuery = "SELECT reqid FROM one_column_table WHERE reqid IN " +
+            "(%ID_LIST%)";
+
     private static Connection connection;
-    private final String selectQuery = "SELECT reqid, requestData FROM stored_requests WHERE reqid IN (%ID_LIST%)";
-    private final String selectUnionQuery = "SELECT reqid, requestData FROM stored_requests where reqid IN (%ID_LIST%) "
-            + "UNION SELECT reqid, requestData FROM stored_requests2 where reqid IN (%ID_LIST%)";
-    private final String selectFromOneColumnTableQuery = "SELECT reqid FROM one_column_table WHERE reqid IN (%ID_LIST%)";
+
+    private Vertx vertx;
+
+    private JdbcStoredRequestFetcher jdbcStoredRequestFetcher;
 
     @BeforeClass
     public static void beforeClass() throws SQLException {
@@ -62,19 +69,25 @@ public class JdbcStoredRequestFetcherTest {
     public void setUp(TestContext context) {
         vertx = Vertx.vertx();
 
-        this.jdbcStoredRequestFetcher = JdbcStoredRequestFetcher.create(vertx, JDBC_URL, "org.h2.Driver", 10,
-                selectQuery);
+        this.jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(jdbcClient(vertx), selectQuery);
+    }
+
+    private static JDBCClient jdbcClient(Vertx vertx) {
+        return JDBCClient.createShared(vertx, new JsonObject()
+                .put("url", JDBC_URL)
+                .put("driver_class", "org.h2.Driver")
+                .put("max_pool_size", 10));
+    }
+
+    @After
+    public void tearDown(TestContext context) {
+        vertx.close(context.asyncAssertSuccess());
     }
 
     @Test
     public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> JdbcStoredRequestFetcher.create(null, null, null, 0, null));
-        assertThatNullPointerException().isThrownBy(() -> JdbcStoredRequestFetcher.create(vertx, null, null, 0, null));
-        assertThatNullPointerException().isThrownBy(() -> JdbcStoredRequestFetcher.create(vertx, "url", "org.h2.Driver",
-                0, null));
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> JdbcStoredRequestFetcher.create(vertx, "url", "driverClass", 0, selectQuery))
-                .withMessage("maxPoolSize must be positive");
+        assertThatNullPointerException().isThrownBy(() -> new JdbcStoredRequestFetcher(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new JdbcStoredRequestFetcher(jdbcClient(vertx), null));
     }
 
     @Test
@@ -103,34 +116,35 @@ public class JdbcStoredRequestFetcherTest {
     @Test
     public void getStoredRequestsUnionSelectByIdsShouldReturnStoredRequests(TestContext context) {
         // given
-        JdbcStoredRequestFetcher.create(vertx, JDBC_URL, "org.h2.Driver", 10, selectUnionQuery)
-                // when
-                .getStoredRequestsById(new HashSet<>(asList("1", "2", "3")))
-                .setHandler(context.asyncAssertSuccess(res -> {
-                    // then
-                    final Map<String, String> expectedResultMap = new HashMap<>();
-                    expectedResultMap.put("1", "value1");
-                    expectedResultMap.put("2", "value2");
-                    expectedResultMap.put("3", "value3");
+        jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(jdbcClient(vertx), selectUnionQuery);
 
-                    assertThat(res).isEqualTo(StoredRequestResult
-                                .of(expectedResultMap, Collections.emptyList()));
+        // when
+        final Future<StoredRequestResult> storedRequestResultFuture =
+                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")));
 
-                }));
+        // then
+        final Async async = context.async();
+        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+            final Map<String, String> expectedResultMap = new HashMap<>();
+            expectedResultMap.put("1", "value1");
+            expectedResultMap.put("2", "value2");
+            expectedResultMap.put("3", "value3");
+            assertThat(storedRequestResult).isEqualTo(
+                    StoredRequestResult.of(expectedResultMap, Collections.emptyList()));
+            async.complete();
+        }));
     }
 
     @Test
     public void getStoredRequestsByIdsShouldReturnStoredRequestsWithError(TestContext context) {
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture = jdbcStoredRequestFetcher.getStoredRequestsById(
-                new HashSet<>(asList("1", "3")));
+        final Future<StoredRequestResult> storedRequestResultFuture =
+                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "3")));
 
         // then
         final Async async = context.async();
-        final Map<String, String> expectedResultMap = new HashMap<>();
-        expectedResultMap.put("1", "value1");
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(expectedResultMap,
+            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(Collections.singletonMap("1", "value1"),
                     Collections.singletonList("No config found for id: 3")));
             async.complete();
         }));
@@ -139,22 +153,26 @@ public class JdbcStoredRequestFetcherTest {
     @Test
     public void getStoredRequestByIdShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        JdbcStoredRequestFetcher.create(vertx, JDBC_URL, "org.h2.Driver", 10, selectFromOneColumnTableQuery)
-                 // when
-                .getStoredRequestsById(new HashSet<>(asList("1", "2", "3")))
-                .setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-                    // then
-                    final Map<String, String> expectedResultMap = Collections.emptyMap();
-                    assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(expectedResultMap,
-                            Collections.singletonList("Result set column number is less than expected")));
-                }));
+        jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(jdbcClient(vertx), selectFromOneColumnTableQuery);
+
+        // when
+        final Future<StoredRequestResult> storedRequestResultFuture =
+                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")));
+
+        // then
+        final Async async = context.async();
+        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(Collections.emptyMap(),
+                    Collections.singletonList("Result set column number is less than expected")));
+            async.complete();
+        }));
     }
 
     @Test
     public void getStoredRequestsByIdsShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture = jdbcStoredRequestFetcher.getStoredRequestsById(
-                new HashSet<>(asList("3", "4")));
+        final Future<StoredRequestResult> storedRequestResultFuture =
+                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("3", "4")));
 
         // then
         final Async async = context.async();
