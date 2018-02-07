@@ -1,3 +1,6 @@
+spring:
+  main:
+    banner-mode: "off"
 vertx:
   verticle:
     deploy-timeout-ms: 5000
