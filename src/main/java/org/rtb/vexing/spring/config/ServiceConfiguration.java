@@ -1,6 +1,5 @@
 package org.rtb.vexing.spring.config;
 
-import com.codahale.metrics.MetricRegistry;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
@@ -13,15 +12,11 @@ import org.rtb.vexing.auction.StoredRequestProcessor;
 import org.rtb.vexing.bidder.HttpConnector;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cookie.UidsCookieService;
-import org.rtb.vexing.metric.CounterType;
-import org.rtb.vexing.metric.Metrics;
-import org.rtb.vexing.metric.ReporterFactory;
 import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
 import org.rtb.vexing.settings.ApplicationSettings;
 import org.rtb.vexing.settings.StoredRequestFetcher;
 import org.rtb.vexing.validation.BidderParamValidator;
 import org.rtb.vexing.validation.RequestValidator;
-import org.rtb.vexing.vertx.CloseableAdapter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
@@ -57,22 +52,6 @@ public class ServiceConfiguration {
             UidsCookieService uidsCookieService) {
 
         return new PreBidRequestContextFactory(defaultTimeoutMs, psl, applicationSettings, uidsCookieService);
-    }
-
-    @Bean
-    Metrics metrics(
-            @Value("${metrics.metricType}") CounterType counterType,
-            MetricRegistry metricRegistry,
-            MetricsProperties metricsProperties,
-            Vertx vertx) {
-
-        configureMetricsReporter(metricRegistry, metricsProperties, vertx);
-        return new Metrics(metricRegistry, counterType);
-    }
-
-    @Bean
-    MetricRegistry metricRegistry() {
-        return new MetricRegistry();
     }
 
     @Bean
@@ -155,17 +134,4 @@ public class ServiceConfiguration {
             throw new IllegalArgumentException("Could not initialize public suffix list", e);
         }
     }
-
-    @Bean
-    MetricsProperties metricsProperties() {
-        return new MetricsProperties();
-    }
-
-    private static void configureMetricsReporter(MetricRegistry metricRegistry, MetricsProperties metricsProperties,
-                                                 Vertx vertx) {
-        ReporterFactory.create(metricRegistry, metricsProperties)
-                .map(CloseableAdapter::new)
-                .ifPresent(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));
-    }
-
 }
