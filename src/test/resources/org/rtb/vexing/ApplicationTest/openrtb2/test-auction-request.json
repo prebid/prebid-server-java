@@ -69,5 +69,14 @@
         "pricegranularity": "med"
       }
     }
+  },
+  "user" : {
+    "ext" : {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   }
 }

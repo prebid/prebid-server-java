@@ -50,7 +50,6 @@ import org.rtb.vexing.model.AdUnitBid.AdUnitBidBuilder;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
-import org.rtb.vexing.model.request.DigiTrust;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.request.Sdk;
 import org.rtb.vexing.model.request.Video;
@@ -509,17 +508,13 @@ public class RubiconAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnBidRequestsWithInventoryAndVisitorDataFromPreBidRequest() {
+    public void makeHttpRequestsShouldReturnBidRequestsWithInventoryDataFromPreBidRequest() {
         // given
         final ObjectNode inventory = mapper.createObjectNode();
         inventory.set("rating", mapper.createArrayNode().add(new TextNode("5-star")));
         inventory.set("prodtype", mapper.createArrayNode().add((new TextNode("tech"))));
 
-        final ObjectNode visitor = mapper.createObjectNode();
-        visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
-        visitor.set("search", mapper.createArrayNode().add((new TextNode("iphone"))));
-
-        bidder = givenBidderCustomizable(identity(), builder -> builder.inventory(inventory).visitor(visitor));
+        bidder = givenBidderCustomizable(identity(), builder -> builder.inventory(inventory));
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
@@ -528,15 +523,11 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .flatExtracting(r -> r.bidRequest.getImp()).hasSize(1)
                 .extracting(imp -> imp.getExt().at("/rp/target")).containsOnly(inventory);
-
-        assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getUser()).isNotNull()
-                .extracting(user -> user.getExt().at("/rp/target")).containsOnly(visitor);
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnBidRequestsWithoutDigiTrustIfVisitorIsPresentAndDtIsAbsent() {
-        //given
+    public void makeHttpRequestsShouldReturnBidRequestsWithVisitorDataFromPreBidRequest() {
+        // given
         final ObjectNode visitor = mapper.createObjectNode();
         visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
         visitor.set("search", mapper.createArrayNode().add((new TextNode("iphone"))));
@@ -547,66 +538,10 @@ public class RubiconAdapterTest extends VertxTest {
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
-        assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getUser()).isNotNull()
-                .extracting(User::getExt).isNotNull()
-                .extracting(objectNode -> objectNode.at("/dt")).containsOnly(MissingNode.getInstance());
 
         assertThat(httpRequests)
                 .extracting(r -> r.bidRequest.getUser()).isNotNull()
-                .extracting(User::getExt).isNotNull()
-                .extracting(objectNode -> objectNode.at("/rp")).doesNotContainNull();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnBidRequestsWithDigiTrustFromPreBidRequest() {
-        //given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(
-                identity(),
-                builder -> builder
-                        .tid("tid")
-                        .digiTrust(DigiTrust.builder()
-                                .id("id")
-                                .keyv(123)
-                                .pref(0)
-                                .build()));
-
-        // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
-
-        // then
-        final ObjectNode digiTrust = mapper.createObjectNode();
-        digiTrust.set("id", new TextNode("id"));
-        digiTrust.set("keyv", new IntNode(123));
-        digiTrust.set("preference", new IntNode(0));
-
-        assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getUser()).isNotNull()
-                .extracting(User::getExt).isNotNull()
-                .extracting(objectNode -> objectNode.at("/dt")).containsOnly(digiTrust);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnBidRequestsWithoutDTFromPreBidRequestIfPrefIsNotZero() {
-        //given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(
-                identity(),
-                builder -> builder
-                        .tid("tid")
-                        .digiTrust(DigiTrust.builder()
-                                .id("id")
-                                .keyv(123)
-                                .pref(1)
-                                .build()));
-
-        // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
-
-        // then
-        assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getUser()).isNotNull()
-                .extracting(User::getExt).isNotNull()
-                .extracting(objectNode -> objectNode.at("/dt")).containsOnly(MissingNode.getInstance());
+                .extracting(user -> user.getExt().at("/rp/target")).containsOnly(visitor);
     }
 
     @Test

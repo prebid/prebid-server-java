@@ -1,22 +1,19 @@
-package org.rtb.vexing.adapter.rubicon.model;
+package org.rtb.vexing.model.openrtb.ext.request;
 
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
-@Builder
+/**
+ * Defines the contract for bidrequest.user.ext
+ */
+@Builder(toBuilder = true)
 @ToString
 @EqualsAndHashCode
-@AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class RubiconUserExtDt {
+public class ExtUser {
 
-    String id;
-
-    Integer keyv;
-
-    Integer preference;
+    ExtUserDigiTrust digitrust;
 }

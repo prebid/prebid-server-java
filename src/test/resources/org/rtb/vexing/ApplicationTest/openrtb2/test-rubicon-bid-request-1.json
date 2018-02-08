@@ -77,6 +77,11 @@
           "ucat": "new",
           "search": "iphone"
         }
+      },
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
       }
     }
   },

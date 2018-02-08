@@ -42,6 +42,8 @@ import org.rtb.vexing.bidder.model.HttpRequest;
 import org.rtb.vexing.bidder.model.HttpResponse;
 import org.rtb.vexing.bidder.model.Result;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
+import org.rtb.vexing.model.openrtb.ext.request.ExtUser;
+import org.rtb.vexing.model.openrtb.ext.request.ExtUserDigiTrust;
 import org.rtb.vexing.model.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.rtb.vexing.model.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
 import org.rtb.vexing.model.openrtb.ext.request.rubicon.RubiconVideoParams;
@@ -275,6 +277,37 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldFillUserExtIfUserAndDigigtrustPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().ext(
+                        mapper.valueToTree(ExtUser.builder()
+                            .digitrust(ExtUserDigiTrust.builder()
+                                    .id("id").keyv(123).pref(0)
+                                    .build())
+                                .build()))
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder);
+        // when
+        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.errors).isEmpty();
+        assertThat(result.value).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .containsOnly(User.builder()
+                        .ext(mapper.valueToTree(
+                                RubiconUserExt.builder()
+                                        .digitrust(ExtUserDigiTrust.builder()
+                                        .id("id").keyv(123).pref(0)
+                                        .build())
+                                .build()))
+                        .build());
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotChangeUserVisitorIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -308,7 +341,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // created manually, because mapper creates Double ObjectNode instead of BigDecimal
         // for floating point numbers (affects testing only)
-        ObjectNode rp = mapper.createObjectNode();
+        final ObjectNode rp = mapper.createObjectNode();
         rp.set("rp", mapper.createObjectNode().put("pixelratio", new Double("4.2")));
 
         assertThat(result.errors).isEmpty();

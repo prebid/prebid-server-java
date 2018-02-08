@@ -1,5 +1,6 @@
 package org.rtb.vexing.validation;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.App.AppBuilder;
 import com.iab.openrtb.request.Audio;
@@ -15,6 +16,7 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Site.SiteBuilder;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import org.junit.Before;
 import org.junit.Rule;
@@ -24,6 +26,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.model.openrtb.ext.request.ExtUserDigiTrust;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -703,6 +706,52 @@ public class RequestValidatorTest extends VertxTest {
         //then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].ext.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenDigiTrustOmittedForUserExt() {
+        // given
+        final ObjectNode ext = mapper.createObjectNode();
+        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder().ext(ext).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        //then
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.user contains a digitrust object that is not valid.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenDigiTrustPrefEqualZero() {
+        // given
+        final ObjectNode ext = mapper.valueToTree(ExtUserDigiTrust.builder().pref(0).build());
+        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder().ext(ext).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        //then
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.user contains a digitrust object that is not valid.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenUserExtFailedToBeParsed() {
+        // given
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.put("digitrust", "invalid");
+        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder().ext(ext).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        //then
+        assertThat(result.errors).hasSize(1).element(0)
+                .isEqualTo("request.user.ext object is not valid.");
     }
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {

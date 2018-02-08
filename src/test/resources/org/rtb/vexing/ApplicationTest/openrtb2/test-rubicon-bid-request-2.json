@@ -57,7 +57,14 @@
     }
   },
   "user": {
-    "buyeruid": "J5VLCWQP-26-CWFT"
+    "buyeruid": "J5VLCWQP-26-CWFT",
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
   "test": 1,
   "at": 1,

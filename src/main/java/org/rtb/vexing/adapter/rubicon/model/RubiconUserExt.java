@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+import org.rtb.vexing.model.openrtb.ext.request.ExtUserDigiTrust;
 
 @Builder
 @ToString
@@ -16,5 +17,5 @@ public final class RubiconUserExt {
 
     RubiconUserExtRp rp;
 
-    RubiconUserExtDt dt;
+    ExtUserDigiTrust digitrust;
 }

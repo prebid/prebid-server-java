@@ -1,5 +1,6 @@
 package org.rtb.vexing.validation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
@@ -9,10 +10,13 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.model.openrtb.ext.request.ExtUser;
 
 import java.util.Iterator;
 import java.util.List;
@@ -69,6 +73,7 @@ public class RequestValidator {
                 throw new ValidationException("request.site or request.app must be defined, but not both.");
             }
             validateSite(bidRequest.getSite());
+            validateUser(bidRequest.getUser());
         } catch (ValidationException ex) {
             return ValidationResult.error(ex.getMessage());
         }
@@ -79,6 +84,19 @@ public class RequestValidator {
         if (site != null && StringUtils.isBlank(site.getId()) && StringUtils.isBlank(site.getPage())) {
             throw new ValidationException(
                     "request.site should include at least one of request.site.id or request.site.page.");
+        }
+    }
+
+    private void validateUser(User user) throws ValidationException {
+        if (user != null && user.getExt() != null) {
+            try {
+                final ExtUser extUser = Json.mapper.treeToValue(user.getExt(), ExtUser.class);
+                if (extUser.digitrust == null || extUser.digitrust.pref != 0) {
+                    throw new ValidationException("request.user contains a digitrust object that is not valid.");
+                }
+            } catch (JsonProcessingException e) {
+                throw new ValidationException("request.user.ext object is not valid.");
+            }
         }
     }
 

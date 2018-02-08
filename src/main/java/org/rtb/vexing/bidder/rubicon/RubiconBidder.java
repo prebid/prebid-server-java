@@ -1,6 +1,8 @@
 package org.rtb.vexing.bidder.rubicon;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -45,6 +47,8 @@ import org.rtb.vexing.bidder.model.HttpResponse;
 import org.rtb.vexing.bidder.model.Result;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
+import org.rtb.vexing.model.openrtb.ext.request.ExtUser;
+import org.rtb.vexing.model.openrtb.ext.request.ExtUserDigiTrust;
 import org.rtb.vexing.model.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.rtb.vexing.model.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.rtb.vexing.model.openrtb.ext.response.BidType;
@@ -235,13 +239,35 @@ public class RubiconBidder implements Bidder {
     }
 
     private static User makeUser(User user, ExtImpRubicon rubiconImpExt) {
-        return user == null || rubiconImpExt.visitor.isNull() ? user : user.toBuilder().ext(Json.mapper.valueToTree(
-                RubiconUserExt.builder()
-                        .rp(RubiconUserExtRp.builder()
-                                .target(rubiconImpExt.visitor)
-                                .build())
-                        .build()))
-                .build();
+        User result = user;
+
+        final RubiconUserExtRp userExtRp = user != null && !rubiconImpExt.visitor.isNull() ? RubiconUserExtRp.builder()
+                .target(rubiconImpExt.visitor).build() : null;
+
+        final ExtUserDigiTrust userExtDt = user != null && user.getExt() != null
+                ? getExtUserDigiTrustFromUserExt(user.getExt())
+                : null;
+
+        if (userExtRp != null || userExtDt != null) {
+            result = user.toBuilder()
+                    .ext(Json.mapper.valueToTree(RubiconUserExt.builder()
+                            .rp(userExtRp)
+                            .digitrust(userExtDt)
+                            .build()))
+                    .build();
+        }
+
+        return result;
+    }
+
+    private static ExtUserDigiTrust getExtUserDigiTrustFromUserExt(ObjectNode extNode) {
+        try {
+            final ExtUser extUser = Json.mapper.treeToValue(extNode, ExtUser.class);
+            return extUser != null ? extUser.digitrust : null;
+        } catch (JsonProcessingException e) {
+            logger.warn("Error occurred while parsing bidrequest.user.ext", e);
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private static Device makeDevice(Device device) {

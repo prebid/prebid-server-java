@@ -3,11 +3,6 @@
   "tid": "tid",
   "cache_markup": 1,
   "sort_bids": 1,
-  "digi_trust": {
-    "id": "id",
-    "keyv": 123,
-    "pref": 0
-  },
   "timeout_millis": 1000,
   "ad_units": [
     {

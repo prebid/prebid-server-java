@@ -34,8 +34,6 @@ public final class PreBidRequest {
     // length should be 20.
     Integer maxKeyLength;
 
-    DigiTrust digiTrust;
-
     /*
      * Flag to indicate if the impression requires secure HTTPS URL creative
      * assets and markup, where 0 = non-secure, 1 = secure. If omitted, the
