@@ -391,7 +391,7 @@
                             </defineStatements>
                             <mappings>
                                 <mapping>
-                                    <directory>/apps/${project.name}</directory>
+                                    <directory>/app/${project.name}</directory>
                                     <filemode>755</filemode>
                                     <username>prodicon</username>
                                     <groupname>prodicon</groupname>
