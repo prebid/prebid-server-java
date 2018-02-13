@@ -15,6 +15,7 @@ import org.rtb.vexing.settings.FileStoredRequestFetcher;
 import org.rtb.vexing.settings.JdbcApplicationSettings;
 import org.rtb.vexing.settings.JdbcStoredRequestFetcher;
 import org.rtb.vexing.settings.StoredRequestFetcher;
+import org.rtb.vexing.vertx.JdbcClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -58,7 +59,7 @@ public class SettingsConfiguration {
     @Bean
     @ConditionalOnExpression("('${datacache.type}' == 'postgres' or '${datacache.type}' == 'mysql')"
             + " and '${datacache.type}' == '${stored-requests.type}'")
-    JdbcApplicationSettings jdbcApplicationSettings(JDBCClient jdbcClient) {
+    JdbcApplicationSettings jdbcApplicationSettings(JdbcClient jdbcClient) {
         return new JdbcApplicationSettings(jdbcClient);
     }
 
@@ -89,7 +90,7 @@ public class SettingsConfiguration {
     @ConditionalOnExpression("'${stored-requests.type}' == 'postgres' or '${stored-requests.type}' == 'mysql'")
     JdbcStoredRequestFetcher jdbcStoredRequestFetcher(
             @Value("${stored-requests.query}") String query,
-            JDBCClient jdbcClient) {
+            JdbcClient jdbcClient) {
 
         return new JdbcStoredRequestFetcher(jdbcClient, query);
     }
@@ -97,18 +98,27 @@ public class SettingsConfiguration {
     @Bean
     @ConditionalOnExpression("'${datacache.type}' == 'postgres' or '${datacache.type}' == 'mysql'"
             + " or '${stored-requests.type}' == 'postgres' or '${stored-requests.type}' == 'mysql'")
-    JDBCClient jdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
-        final String jdbcUrl = String.format("%s//%s/%s?user=%s&password=%s&useSSL=false",
+    JdbcClient jdbcClient(Vertx vertx, JDBCClient vertxJdbcClient) {
+        return new JdbcClient(vertx, vertxJdbcClient);
+    }
+
+    @Bean
+    @ConditionalOnExpression("'${datacache.type}' == 'postgres' or '${datacache.type}' == 'mysql'"
+            + " or '${stored-requests.type}' == 'postgres' or '${stored-requests.type}' == 'mysql'")
+    JDBCClient vertxJdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
+        final String jdbcUrl = String.format("%s//%s/%s?useSSL=false",
                 storedRequestsDatabaseProperties.getType().jdbcUrlPrefix,
                 storedRequestsDatabaseProperties.getHost(),
-                storedRequestsDatabaseProperties.getDbname(),
-                storedRequestsDatabaseProperties.getUser(),
-                storedRequestsDatabaseProperties.getPassword());
+                storedRequestsDatabaseProperties.getDbname());
 
         return JDBCClient.createShared(vertx, new JsonObject()
                 .put("url", jdbcUrl)
+                .put("user", storedRequestsDatabaseProperties.getUser())
+                .put("password", storedRequestsDatabaseProperties.getPassword())
                 .put("driver_class", storedRequestsDatabaseProperties.getType().jdbcDriver)
-                .put("max_pool_size", storedRequestsDatabaseProperties.getMaxPoolSize()));
+                .put("initial_pool_size", storedRequestsDatabaseProperties.getPoolSize())
+                .put("min_pool_size", storedRequestsDatabaseProperties.getPoolSize())
+                .put("max_pool_size", storedRequestsDatabaseProperties.getPoolSize()));
     }
 
     @AllArgsConstructor
@@ -130,8 +140,9 @@ public class SettingsConfiguration {
 
         @NotNull
         private DbType type;
+        @NotNull
         @Min(1)
-        private Integer maxPoolSize;
+        private Integer poolSize;
         @NotBlank
         private String host;
         @NotBlank

@@ -14,6 +14,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.rtb.vexing.settings.model.StoredRequestResult;
+import org.rtb.vexing.vertx.JdbcClient;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -69,7 +70,8 @@ public class JdbcStoredRequestFetcherTest {
     public void setUp(TestContext context) {
         vertx = Vertx.vertx();
 
-        this.jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(jdbcClient(vertx), selectQuery);
+        this.jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(new JdbcClient(vertx, jdbcClient(vertx)),
+                selectQuery);
     }
 
     private static JDBCClient jdbcClient(Vertx vertx) {
@@ -87,7 +89,8 @@ public class JdbcStoredRequestFetcherTest {
     @Test
     public void createShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new JdbcStoredRequestFetcher(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new JdbcStoredRequestFetcher(jdbcClient(vertx), null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new JdbcStoredRequestFetcher(new JdbcClient(vertx, jdbcClient(vertx)), null));
     }
 
     @Test
@@ -116,7 +119,8 @@ public class JdbcStoredRequestFetcherTest {
     @Test
     public void getStoredRequestsUnionSelectByIdsShouldReturnStoredRequests(TestContext context) {
         // given
-        jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(jdbcClient(vertx), selectUnionQuery);
+        jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(new JdbcClient(vertx, jdbcClient(vertx)),
+                selectUnionQuery);
 
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
@@ -153,7 +157,8 @@ public class JdbcStoredRequestFetcherTest {
     @Test
     public void getStoredRequestByIdShouldReturnErrorIfResultContainsLessColumnsThanExpected(TestContext context) {
         // given
-        jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(jdbcClient(vertx), selectFromOneColumnTableQuery);
+        jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(new JdbcClient(vertx, jdbcClient(vertx)),
+                selectFromOneColumnTableQuery);
 
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =

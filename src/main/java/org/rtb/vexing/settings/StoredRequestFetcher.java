@@ -14,9 +14,4 @@ public interface StoredRequestFetcher {
      * Fetches stored requests by ids.
      */
     Future<StoredRequestResult> getStoredRequestsById(Set<String> ids);
-
-    /**
-     * Verifies initialization of a fetcher
-     */
-    Future<Void> initialize();
 }

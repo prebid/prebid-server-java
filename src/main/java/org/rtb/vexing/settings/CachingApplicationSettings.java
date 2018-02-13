@@ -36,11 +36,6 @@ public class CachingApplicationSettings implements ApplicationSettings {
         return getFromCacheOrDelegate(adUnitConfigCache, adUnitConfigId, delegate::getAdUnitConfigById);
     }
 
-    @Override
-    public Future<Void> initialize() {
-        return delegate.initialize();
-    }
-
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key,
                                                         Function<String, Future<T>> retriever) {
         Objects.requireNonNull(key);

@@ -24,7 +24,7 @@ public class FileApplicationSettings implements ApplicationSettings {
     private FileApplicationSettings(SettingsFile settingsFile) {
         this.accounts = toMap(settingsFile.accounts,
                 Function.identity(),
-                account -> Account.builder().id(account).build());
+                account -> Account.of(account, null));
         this.configs = toMap(settingsFile.configs,
                 config -> config.id,
                 config -> config.config != null ? config.config : "");
@@ -55,11 +55,6 @@ public class FileApplicationSettings implements ApplicationSettings {
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId) {
         return mapValueToFuture(configs, adUnitConfigId);
-    }
-
-    @Override
-    public Future<Void> initialize() {
-        return Future.succeededFuture(null);
     }
 
     private static <T> Future<T> mapValueToFuture(Map<String, T> map, String key) {

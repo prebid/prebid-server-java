@@ -56,7 +56,7 @@ public class PreBidRequestContextFactory {
     private final Random rand = new Random();
 
     public PreBidRequestContextFactory(Long defaultHttpRequestTimeout, PublicSuffixList psl,
-                                        ApplicationSettings applicationSettings, UidsCookieService uidsCookieService) {
+                                       ApplicationSettings applicationSettings, UidsCookieService uidsCookieService) {
         this.defaultHttpRequestTimeout = Objects.requireNonNull(defaultHttpRequestTimeout);
         this.psl = Objects.requireNonNull(psl);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
@@ -96,7 +96,7 @@ public class PreBidRequestContextFactory {
      * updated by values derived from headers and other request attributes.
      *
      * @param bidRequest an incoming request body
-     * @param context a routing context
+     * @param context    a routing context
      * @return the original bidRequest passed into the method or updated instance
      */
     public BidRequest fromRequest(BidRequest bidRequest, RoutingContext context) {
@@ -125,7 +125,7 @@ public class PreBidRequestContextFactory {
      * Populates the request body's 'device' section from the incoming http request if the original is partially filled
      * and the request contains necessary info (User-Agent, IP-address).
      *
-     * @param device an original {@link Device} object from the request body
+     * @param device  an original {@link Device} object from the request body
      * @param request incoming http request
      * @return the updated or empty(null) device entity
      */
@@ -152,7 +152,7 @@ public class PreBidRequestContextFactory {
      * Populates the request body's 'site' section from the incoming http request if the original is partially filled
      * and the request contains necessary info (domain, page).
      *
-     * @param site an original {@link Site} object from the request body
+     * @param site    an original {@link Site} object from the request body
      * @param request incoming http request
      * @return the updated or empty(null) site entity
      */
@@ -251,7 +251,7 @@ public class PreBidRequestContextFactory {
                     .map(config -> Json.decodeValue(config, new TypeReference<List<Bid>>() {
                     }))
                     .otherwise(exception -> {
-                        logger.warn("Failed to load config ''{0}'' from cache", unit.configId, exception);
+                        logger.warn("Failed to load config ''{0}'' from cache", exception, unit.configId);
                         return Collections.emptyList();
                     });
         } else {

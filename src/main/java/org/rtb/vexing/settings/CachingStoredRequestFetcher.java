@@ -38,11 +38,6 @@ public class CachingStoredRequestFetcher implements StoredRequestFetcher {
         return getFromCacheOrDelegate(storedRequestCache, ids, delegate::getStoredRequestsById);
     }
 
-    @Override
-    public Future<Void> initialize() {
-        return delegate.initialize();
-    }
-
     /**
      * Retrieves stored requests from cache and collects ids which were absent. For absent ids makes look up to original
      * source, combines results and updates cache with missed stored request. In case when origin source returns Failed

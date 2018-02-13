@@ -64,7 +64,7 @@ public class FileApplicationSettingsTest {
 
         // then
         assertThat(account.succeeded()).isTrue();
-        assertThat(account.result()).isEqualTo(Account.builder().id("123").build());
+        assertThat(account.result()).isEqualTo(Account.of("123", null));
     }
 
     @Test

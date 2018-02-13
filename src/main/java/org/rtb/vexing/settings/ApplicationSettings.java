@@ -8,6 +8,4 @@ public interface ApplicationSettings {
     Future<Account> getAccountById(String accountId);
 
     Future<String> getAdUnitConfigById(String adUnitConfigId);
-
-    Future<Void> initialize();
 }

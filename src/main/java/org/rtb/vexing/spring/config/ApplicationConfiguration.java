@@ -1,12 +1,13 @@
 package org.rtb.vexing.spring.config;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.file.FileSystem;
 import io.vertx.ext.web.Router;
 import org.rtb.vexing.PrebidVerticle;
 import org.rtb.vexing.json.ObjectMapperConfigurer;
-import org.rtb.vexing.settings.ApplicationSettings;
-import org.rtb.vexing.settings.StoredRequestFetcher;
+import org.rtb.vexing.vertx.JdbcClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
@@ -19,8 +20,8 @@ import javax.annotation.PostConstruct;
 public class ApplicationConfiguration {
 
     @Bean
-    Vertx vertx() {
-        return Vertx.vertx();
+    Vertx vertx(@Value("${vertx.worker-pool-size}") Integer workerPoolSize) {
+        return Vertx.vertx(new VertxOptions().setWorkerPoolSize(workerPoolSize));
     }
 
     @Bean
@@ -39,10 +40,9 @@ public class ApplicationConfiguration {
             @Value("${http.port}") int port,
             Vertx vertx,
             Router router,
-            ApplicationSettings applicationSettings,
-            StoredRequestFetcher storedRequestFetcher) {
+            @Autowired(required = false) JdbcClient jdbcClient) {
 
-        return new PrebidVerticle(vertx, router, applicationSettings, storedRequestFetcher, port);
+        return new PrebidVerticle(vertx, router, jdbcClient, port);
     }
 
     @PostConstruct

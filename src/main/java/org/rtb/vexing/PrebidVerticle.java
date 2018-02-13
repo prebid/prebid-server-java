@@ -7,8 +7,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
-import org.rtb.vexing.settings.ApplicationSettings;
-import org.rtb.vexing.settings.StoredRequestFetcher;
+import org.rtb.vexing.vertx.JdbcClient;
 
 public class PrebidVerticle extends AbstractVerticle {
 
@@ -17,15 +16,12 @@ public class PrebidVerticle extends AbstractVerticle {
     private final Integer port;
     private final Vertx vertx;
     private final Router router;
-    private final ApplicationSettings applicationSettings;
-    private final StoredRequestFetcher storedRequestFetcher;
+    private final JdbcClient jdbcClient;
 
-    public PrebidVerticle(Vertx vertx, Router router, ApplicationSettings applicationSettings,
-                          StoredRequestFetcher storedRequestFetcher, Integer port) {
+    public PrebidVerticle(Vertx vertx, Router router, JdbcClient jdbcClient, Integer port) {
         this.vertx = vertx;
         this.router = router;
-        this.applicationSettings = applicationSettings;
-        this.storedRequestFetcher = storedRequestFetcher;
+        this.jdbcClient = jdbcClient;
         this.port = port;
     }
 
@@ -34,8 +30,8 @@ public class PrebidVerticle extends AbstractVerticle {
      */
     @Override
     public void start(Future<Void> startFuture) {
-        applicationSettings.initialize()
-                .compose(ignored -> storedRequestFetcher.initialize())
+        final Future<Void> jdbcClientFuture = jdbcClient != null ? jdbcClient.initialize() : Future.succeededFuture();
+        jdbcClientFuture
                 .compose(ignored -> startHttpServer())
                 .compose(
                         httpServer -> {
@@ -43,7 +39,6 @@ public class PrebidVerticle extends AbstractVerticle {
                             startFuture.complete();
                         },
                         startFuture);
-
     }
 
     private Future<HttpServer> startHttpServer() {

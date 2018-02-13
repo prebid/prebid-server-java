@@ -2,6 +2,7 @@ spring:
   main:
     banner-mode: "off"
 vertx:
+  worker-pool-size: 20
   verticle:
     deploy-timeout-ms: 5000
     instances: 1
@@ -44,7 +45,7 @@ datacache:
   cache-size: 10000
   ttl-seconds: 360
 stored-requests:
-  max-pool-size: 20
+  pool-size: 20
   in-memory-cache:
     cache-size: 10000
     ttl-seconds: 360

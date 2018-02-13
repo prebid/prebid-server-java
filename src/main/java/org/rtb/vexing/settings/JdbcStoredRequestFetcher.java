@@ -1,12 +1,10 @@
 package org.rtb.vexing.settings;
 
 import io.vertx.core.Future;
-import io.vertx.core.json.JsonArray;
-import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.ResultSet;
-import io.vertx.ext.sql.SQLConnection;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.settings.model.StoredRequestResult;
+import org.rtb.vexing.vertx.JdbcClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,10 +23,10 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
 
     private static final String ID_PLACEHOLDER = "%ID_LIST%";
 
-    private final JDBCClient jdbcClient;
+    private final JdbcClient jdbcClient;
     private final String selectQuery;
 
-    public JdbcStoredRequestFetcher(JDBCClient jdbcClient, String selectQuery) {
+    public JdbcStoredRequestFetcher(JdbcClient jdbcClient, String selectQuery) {
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
         this.selectQuery = Objects.requireNonNull(selectQuery);
     }
@@ -39,26 +37,13 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
     @Override
     public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids) {
         Objects.requireNonNull(ids);
-        final Future<SQLConnection> connectionFuture = Future.future();
-        jdbcClient.getConnection(connectionFuture.completer());
+
         final List<String> idsQueryParameters = new ArrayList<>();
         IntStream.rangeClosed(1, StringUtils.countMatches(selectQuery, ID_PLACEHOLDER))
                 .forEach(i -> idsQueryParameters.addAll(ids));
 
-        return connectionFuture
-                .compose(connection -> executeQueryWithParam(connection, createParametrizedQuery(ids.size()),
-                        idsQueryParameters))
-                .map(resultSet -> mapResultSetToStoredRequestResult(resultSet, ids));
-    }
-
-    /**
-     * Start acquiring a connection
-     */
-    @Override
-    public Future<Void> initialize() {
-        final Future<ResultSet> result = Future.future();
-        jdbcClient.query("SELECT 1", result.completer());
-        return result.map(ignored -> null);
+        return jdbcClient.executeQuery(createParametrizedQuery(ids.size()), idsQueryParameters,
+                result -> mapToModel(result, ids));
     }
 
     /**
@@ -72,24 +57,10 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
     }
 
     /**
-     * Executes query with parameters and returns {@link Future<ResultSet>}
-     */
-    private Future<ResultSet> executeQueryWithParam(SQLConnection connection, String parametrizedQuery,
-                                                    List<String> ids) {
-        final Future<ResultSet> resultSetFuture = Future.future();
-        connection.queryWithParams(parametrizedQuery, new JsonArray(ids),
-                ar -> {
-                    connection.close();
-                    resultSetFuture.handle(ar);
-                });
-        return resultSetFuture;
-    }
-
-    /**
      * Maps {@link ResultSet} to {@link StoredRequestResult}. In case of {@link ResultSet} size is less than ids number
      * creates an error for each missing id and add it to result.
      */
-    private StoredRequestResult mapResultSetToStoredRequestResult(ResultSet rs, Set<String> ids) {
+    private StoredRequestResult mapToModel(ResultSet rs, Set<String> ids) {
         final List<String> errors = new ArrayList<>();
         final Map<String, String> storedIdToJson;
         if (rs == null || rs.getResults() == null || rs.getResults().isEmpty()) {

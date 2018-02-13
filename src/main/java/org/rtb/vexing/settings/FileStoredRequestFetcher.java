@@ -63,9 +63,4 @@ public class FileStoredRequestFetcher implements StoredRequestFetcher {
         }
         return Future.succeededFuture(StoredRequestResult.of(storedRequests, errors));
     }
-
-    @Override
-    public Future<Void> initialize() {
-        return Future.succeededFuture(null);
-    }
 }

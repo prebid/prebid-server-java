@@ -50,7 +50,7 @@ public class CachingApplicationSettingsTest {
     public void getAccountByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
         given(applicationSettings.getAccountById(eq("accountId")))
-                .willReturn(Future.succeededFuture(Account.builder().id("accountId").priceGranularity("med").build()));
+                .willReturn(Future.succeededFuture(Account.of("accountId", "med")));
 
         // when
         final Future<Account> future = cachingApplicationSettings.getAccountById("accountId");
@@ -58,7 +58,7 @@ public class CachingApplicationSettingsTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(Account.builder().id("accountId").priceGranularity("med").build());
+        assertThat(future.result()).isEqualTo(Account.of("accountId", "med"));
         verify(applicationSettings).getAccountById(eq("accountId"));
         verifyNoMoreInteractions(applicationSettings);
     }

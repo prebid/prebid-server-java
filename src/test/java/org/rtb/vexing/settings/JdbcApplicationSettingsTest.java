@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.settings.model.Account;
+import org.rtb.vexing.vertx.JdbcClient;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -56,10 +57,11 @@ public class JdbcApplicationSettingsTest {
     public void setUp() {
         vertx = Vertx.vertx();
 
-        this.jdbcApplicationSettings = new JdbcApplicationSettings(JDBCClient.createShared(vertx, new JsonObject()
-                .put("url", JDBC_URL)
-                .put("driver_class", "org.h2.Driver")
-                .put("max_pool_size", 10)));
+        this.jdbcApplicationSettings = new JdbcApplicationSettings(new JdbcClient(vertx, JDBCClient.createShared(vertx,
+                new JsonObject()
+                        .put("url", JDBC_URL)
+                        .put("driver_class", "org.h2.Driver")
+                        .put("max_pool_size", 10))));
     }
 
     @After
@@ -85,7 +87,7 @@ public class JdbcApplicationSettingsTest {
         // then
         final Async async = context.async();
         future.setHandler(context.asyncAssertSuccess(account -> {
-            assertThat(account).isEqualTo(Account.builder().id("accountId").priceGranularity("med").build());
+            assertThat(account).isEqualTo(Account.of("accountId", "med"));
             async.complete();
         }));
     }
