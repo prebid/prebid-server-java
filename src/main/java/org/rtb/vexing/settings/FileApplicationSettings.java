@@ -5,6 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.settings.model.Account;
 import org.rtb.vexing.settings.model.SettingsFile;
 
@@ -48,16 +49,17 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Account> getAccountById(String accountId) {
+    public Future<Account> getAccountById(String accountId, GlobalTimeout timeout) {
         return mapValueToFuture(accounts, accountId);
     }
 
     @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId) {
+    public Future<String> getAdUnitConfigById(String adUnitConfigId, GlobalTimeout timeout) {
         return mapValueToFuture(configs, adUnitConfigId);
     }
 
     private static <T> Future<T> mapValueToFuture(Map<String, T> map, String key) {
+        Objects.requireNonNull(key);
         final T value = map.get(key);
         if (value != null) {
             return Future.succeededFuture(value);

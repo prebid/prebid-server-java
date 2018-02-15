@@ -100,7 +100,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         return BidRequest.builder()
                 .id(preBidRequestContext.preBidRequest.tid)
                 .at(1)
-                .tmax(preBidRequestContext.timeout)
+                .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
                 .imp(imps)
                 .app(makeApp(preBidRequestContext, publisher))
                 .site(makeSite(preBidRequestContext, publisher))

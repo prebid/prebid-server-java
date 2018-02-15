@@ -218,13 +218,13 @@ public class AppnexusAdapterTest extends VertxTest {
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(
                 builder -> builder
-                        .timeout(1500L)
                         .referer("http://www.example.com")
                         .domain("example.com")
                         .ip("192.168.144.1")
                         .ua("userAgent"),
                 builder -> builder
                         .tid("tid1")
+                        .timeoutMillis(1500L)
                         .device(Device.builder()
                                 .pxratio(new BigDecimal("4.2"))
                                 .build())
@@ -519,8 +519,7 @@ public class AppnexusAdapterTest extends VertxTest {
         final PreBidRequestContext.PreBidRequestContextBuilder preBidRequestContextBuilderMinimal =
                 PreBidRequestContext.builder()
                         .preBidRequest(preBidRequest)
-                        .uidsCookie(uidsCookie)
-                        .timeout(1000L);
+                        .uidsCookie(uidsCookie);
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 

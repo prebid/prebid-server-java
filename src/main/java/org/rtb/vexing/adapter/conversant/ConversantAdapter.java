@@ -103,7 +103,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
         return BidRequest.builder()
                 .id(preBidRequestContext.preBidRequest.tid)
                 .at(1)
-                .tmax(preBidRequestContext.timeout)
+                .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
                 .imp(imps)
                 .app(preBidRequestContext.preBidRequest.app)
                 .site(makeSite(preBidRequestContext, adUnitBidsWithParams))

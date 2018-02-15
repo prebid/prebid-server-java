@@ -14,6 +14,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.settings.model.Account;
 import org.rtb.vexing.vertx.JdbcClient;
 
@@ -76,13 +77,14 @@ public class JdbcApplicationSettingsTest {
 
     @Test
     public void getAccountByIdShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> jdbcApplicationSettings.getAccountById(null));
+        assertThatNullPointerException().isThrownBy(() -> jdbcApplicationSettings.getAccountById(null, null));
+        assertThatNullPointerException().isThrownBy(() -> jdbcApplicationSettings.getAccountById("accountId", null));
     }
 
     @Test
     public void getAccountByIdShouldReturnAccount(TestContext context) {
         // when
-        final Future<Account> future = jdbcApplicationSettings.getAccountById("accountId");
+        final Future<Account> future = jdbcApplicationSettings.getAccountById("accountId", timeout());
 
         // then
         final Async async = context.async();
@@ -95,7 +97,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldFailIfAccountNotFound(TestContext context) {
         // when
-        final Future<Account> future = jdbcApplicationSettings.getAccountById("non-existing");
+        final Future<Account> future = jdbcApplicationSettings.getAccountById("non-existing", timeout());
 
         // then
         final Async async = context.async();
@@ -107,13 +109,15 @@ public class JdbcApplicationSettingsTest {
 
     @Test
     public void getAdUnitConfigByIdShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> jdbcApplicationSettings.getAdUnitConfigById(null));
+        assertThatNullPointerException().isThrownBy(() -> jdbcApplicationSettings.getAdUnitConfigById(null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> jdbcApplicationSettings.getAdUnitConfigById("adUnitConfigId", null));
     }
 
     @Test
     public void getAdUnitConfigByIdShouldReturnConfig(TestContext context) {
         // when
-        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("adUnitConfigId");
+        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("adUnitConfigId", timeout());
 
         // then
         final Async async = context.async();
@@ -126,7 +130,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAdUnitConfigByIdShouldFailIfConfigNotFound(TestContext context) {
         // when
-        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("non-existing");
+        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("non-existing", timeout());
 
         // then
         final Async async = context.async();
@@ -134,5 +138,9 @@ public class JdbcApplicationSettingsTest {
             assertThat(exception).isInstanceOf(PreBidException.class).hasMessage("Not found");
             async.complete();
         }));
+    }
+
+    private static GlobalTimeout timeout() {
+        return GlobalTimeout.create(500);
     }
 }

@@ -8,11 +8,11 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.settings.model.Account;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -43,34 +43,37 @@ public class CachingApplicationSettingsTest {
 
     @Test
     public void getAccountByIdShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> cachingApplicationSettings.getAccountById(null));
+        assertThatNullPointerException().isThrownBy(() -> cachingApplicationSettings.getAccountById(null, null));
+        assertThatNullPointerException().isThrownBy(() -> cachingApplicationSettings.getAccountById("accountId", null));
     }
 
     @Test
     public void getAccountByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
-        given(applicationSettings.getAccountById(eq("accountId")))
+        final GlobalTimeout timeout = GlobalTimeout.create(500);
+        given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
                 .willReturn(Future.succeededFuture(Account.of("accountId", "med")));
 
         // when
-        final Future<Account> future = cachingApplicationSettings.getAccountById("accountId");
-        cachingApplicationSettings.getAccountById("accountId");
+        final Future<Account> future = cachingApplicationSettings.getAccountById("accountId", timeout);
+        cachingApplicationSettings.getAccountById("accountId", timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(Account.of("accountId", "med"));
-        verify(applicationSettings).getAccountById(eq("accountId"));
+        verify(applicationSettings).getAccountById(eq("accountId"), same(timeout));
         verifyNoMoreInteractions(applicationSettings);
     }
 
     @Test
     public void getAccountByIdShouldPropagateFailure() {
         // given
-        given(applicationSettings.getAccountById(anyString()))
+        given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
 
         // when
-        final Future<Account> future = cachingApplicationSettings.getAccountById("accountId");
+        final Future<Account> future =
+                cachingApplicationSettings.getAccountById("accountId", GlobalTimeout.create(500));
 
         // then
         assertThat(future.failed()).isTrue();
@@ -80,34 +83,38 @@ public class CachingApplicationSettingsTest {
 
     @Test
     public void getAdUnitConfigByIdShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> cachingApplicationSettings.getAdUnitConfigById(null));
+        assertThatNullPointerException().isThrownBy(() -> cachingApplicationSettings.getAdUnitConfigById(null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId", null));
     }
 
     @Test
     public void getAdUnitConfigByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
-        given(applicationSettings.getAdUnitConfigById(eq("adUnitConfigId")))
+        final GlobalTimeout timeout = GlobalTimeout.create(500);
+        given(applicationSettings.getAdUnitConfigById(eq("adUnitConfigId"), same(timeout)))
                 .willReturn(Future.succeededFuture("config"));
 
         // when
-        final Future<String> future = cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId");
-        cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId");
+        final Future<String> future = cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId", timeout);
+        cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId", timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo("config");
-        verify(applicationSettings).getAdUnitConfigById(eq("adUnitConfigId"));
+        verify(applicationSettings).getAdUnitConfigById(eq("adUnitConfigId"), same(timeout));
         verifyNoMoreInteractions(applicationSettings);
     }
 
     @Test
     public void getAdUnitConfigByIdShouldPropagateFailure() {
         // given
-        given(applicationSettings.getAdUnitConfigById(anyString()))
+        given(applicationSettings.getAdUnitConfigById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
 
         // when
-        final Future<String> future = cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId");
+        final Future<String> future =
+                cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId", GlobalTimeout.create(500));
 
         // then
         assertThat(future.failed()).isTrue();

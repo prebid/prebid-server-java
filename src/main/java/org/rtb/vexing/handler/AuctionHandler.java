@@ -99,7 +99,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
                     updateAppAndNoCookieMetrics(preBidRequestContext, isSafari);
 
                     // validate account id
-                    return applicationSettings.getAccountById(preBidRequestContext.preBidRequest.accountId)
+                    return applicationSettings.getAccountById(
+                            preBidRequestContext.preBidRequest.accountId, preBidRequestContext.timeout)
                             .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
                             .recover(exception -> failWith("Unknown account id: Unknown account", exception));
                 })
@@ -115,7 +116,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                                     bidderResults.result().<BidderResult>list()));
                 })
                 .map(result -> Tuple3.of(result.left, result.middle, composePreBidResponse(result.left, result.right)))
-                .compose(result -> processCacheMarkup(result.left.preBidRequest, result.right)
+                .compose(result -> processCacheMarkup(result.left, result.right)
                         .recover(exception ->
                                 failWith(String.format("Prebid cache failed: %s", exception.getMessage()), exception))
                         .map(response -> Tuple3.of(result.left, result.middle, response)))
@@ -162,12 +163,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .build();
     }
 
-    private Future<PreBidResponse> processCacheMarkup(PreBidRequest preBidRequest, PreBidResponse preBidResponse) {
+    private Future<PreBidResponse> processCacheMarkup(PreBidRequestContext preBidRequestContext,
+                                                      PreBidResponse preBidResponse) {
         final Future<PreBidResponse> result;
 
+        final Integer cacheMarkup = preBidRequestContext.preBidRequest.cacheMarkup;
         final List<Bid> bids = preBidResponse.bids;
-        if (preBidRequest.cacheMarkup != null && preBidRequest.cacheMarkup == 1 && !bids.isEmpty()) {
-            result = cacheService.cacheBids(bids)
+        if (cacheMarkup != null && cacheMarkup == 1 && !bids.isEmpty()) {
+            result = cacheService.cacheBids(bids, preBidRequestContext.timeout)
                     .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults));
         } else {
             result = Future.succeededFuture(preBidResponse);

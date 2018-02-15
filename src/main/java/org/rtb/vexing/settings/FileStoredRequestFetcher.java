@@ -3,6 +3,7 @@ package org.rtb.vexing.settings;
 import io.vertx.core.Future;
 import io.vertx.core.file.FileSystem;
 import org.apache.commons.lang3.StringUtils;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.settings.model.StoredRequestResult;
 
 import java.io.File;
@@ -49,7 +50,9 @@ public class FileStoredRequestFetcher implements StoredRequestFetcher {
      * to list for each missed Id. Returns {@link Future<StoredRequestResult>} with all loaded files and errors list.
      */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids) {
+    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, GlobalTimeout timeout) {
+        Objects.requireNonNull(ids);
+
         final List<String> errors;
         final List<String> missedIds = ids.stream()
                 .filter(s -> !storedRequests.containsKey(s))

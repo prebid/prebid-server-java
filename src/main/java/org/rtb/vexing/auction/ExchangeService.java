@@ -21,6 +21,7 @@ import org.rtb.vexing.bidder.model.BidderBid;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtRequestTargeting;
@@ -49,26 +50,29 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
 
+    private static final Clock CLOCK = Clock.systemDefaultZone();
+
     private final HttpConnector httpConnector;
-
     private final BidderCatalog bidderCatalog;
-
     private final CacheService cacheService;
-
-    private Clock clock = Clock.systemDefaultZone();
+    private long expectedCacheTime;
 
     public ExchangeService(HttpConnector httpConnector, BidderCatalog bidderCatalog,
-                           CacheService cacheService) {
+                           CacheService cacheService, long expectedCacheTime) {
         this.httpConnector = Objects.requireNonNull(httpConnector);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.cacheService = Objects.requireNonNull(cacheService);
+        if (expectedCacheTime < 0) {
+            throw new IllegalArgumentException("Expected cache time could not be negative");
+        }
+        this.expectedCacheTime = expectedCacheTime;
     }
 
     /**
      * Runs an auction: delegates request to applicable bidders, gathers responses from them and constructs final
      * response containing returned bids and additional information in extensions.
      */
-    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie) {
+    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, GlobalTimeout globalTimeout) {
         final List<BidderRequest> bidderRequests = extractBidderRequests(bidRequest, uidsCookie);
 
         // extract ext from bid request
@@ -89,16 +93,17 @@ public class ExchangeService {
         // Randomize the list to make the auction more fair
         Collections.shuffle(bidderRequests);
 
-        final long startTime = clock.millis();
+        final long startTime = CLOCK.millis();
 
         // send all the requests to the bidders and gathers results
         final CompositeFuture bidderResults = CompositeFuture.join(bidderRequests.stream()
-                .map(bidderRequest -> requestBids(bidderRequest, startTime))
+                .map(bidderRequest -> requestBids(bidderRequest, startTime,
+                        auctionTimeout(globalTimeout, shouldCacheBids)))
                 .collect(Collectors.toList()));
 
         // produce response from bidder results
         return bidderResults.compose(result ->
-                toBidResponse(result.result().list(), bidRequest, keywordsCreator, shouldCacheBids));
+                toBidResponse(result.result().list(), bidRequest, keywordsCreator, shouldCacheBids, globalTimeout));
     }
 
     /**
@@ -220,11 +225,24 @@ public class ExchangeService {
     }
 
     /**
+     * If we need to cache bids, then it will take some time to call prebid cache.
+     * We should reduce the amount of time the bidders have, to compensate.
+     */
+    private GlobalTimeout auctionTimeout(GlobalTimeout timeout, boolean shouldCacheBids) {
+        // A static timeout here is not ideal. This is a hack because we have some aggressive timelines for OpenRTB
+        // support.
+        // In reality, the cache response time will probably fluctuate with the traffic over time. Someday, this
+        // should be replaced by code which tracks the response time of recent cache calls and adjusts the time
+        // dynamically.
+        return shouldCacheBids ? timeout.minus(expectedCacheTime) : timeout;
+    }
+
+    /**
      * Passes the request to a corresponding bidder and wraps response in {@link BidderResponse} which also holds
      * recorded response time.
      */
-    private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime) {
-        return httpConnector.requestBids(bidderCatalog.byName(bidderRequest.bidder), bidderRequest.bidRequest)
+    private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, GlobalTimeout timeout) {
+        return httpConnector.requestBids(bidderCatalog.byName(bidderRequest.bidder), bidderRequest.bidRequest, timeout)
                 .map(result -> BidderResponse.of(bidderRequest.bidder, result, responseTime(startTime)));
     }
 
@@ -233,10 +251,11 @@ public class ExchangeService {
      * requester.
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                              TargetingKeywordsCreator keywordsCreator, boolean shouldCacheBids) {
+                                              TargetingKeywordsCreator keywordsCreator, boolean shouldCacheBids,
+                                              GlobalTimeout timeout) {
         final List<Bid> winningBids = determineWinningBids(keywordsCreator, bidderResponses);
 
-        return toWinningBidsWithCacheIds(shouldCacheBids, winningBids, keywordsCreator)
+        return toWinningBidsWithCacheIds(shouldCacheBids, winningBids, keywordsCreator, timeout)
                 .map(winningBidsWithCacheIds ->
                         toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
                                 winningBidsWithCacheIds));
@@ -263,7 +282,8 @@ public class ExchangeService {
      * Corresponds cacheId (or null if not present) to each {@link Bid}.
      */
     private Future<Map<Bid, String>> toWinningBidsWithCacheIds(boolean shouldCacheBids, List<Bid> winningBids,
-                                                               TargetingKeywordsCreator keywordsCreator) {
+                                                               TargetingKeywordsCreator keywordsCreator,
+                                                               GlobalTimeout timeout) {
         final Future<Map<Bid, String>> result;
 
         if (!shouldCacheBids) {
@@ -274,7 +294,7 @@ public class ExchangeService {
                     .filter(bid -> keywordsCreator.isNonZeroCpm(bid.getPrice()))
                     .collect(Collectors.toList());
 
-            result = cacheService.cacheBidsOpenrtb(winningBidsWithNonZeroCpm)
+            result = cacheService.cacheBidsOpenrtb(winningBidsWithNonZeroCpm, timeout)
                     .recover(throwable -> Future.succeededFuture(Collections.emptyList())) // just skip cache errors
                     .map(cacheIds -> mergeCacheResults(winningBidsWithNonZeroCpm, cacheIds, winningBids));
         }
@@ -426,6 +446,6 @@ public class ExchangeService {
     }
 
     private int responseTime(long startTime) {
-        return Math.toIntExact(clock.millis() - startTime);
+        return Math.toIntExact(CLOCK.millis() - startTime);
     }
 }

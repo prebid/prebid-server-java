@@ -3,12 +3,13 @@ package org.rtb.vexing.settings;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.settings.model.Account;
 
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public class CachingApplicationSettings implements ApplicationSettings {
 
@@ -27,18 +28,19 @@ public class CachingApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Account> getAccountById(String accountId) {
-        return getFromCacheOrDelegate(accountCache, accountId, delegate::getAccountById);
+    public Future<Account> getAccountById(String accountId, GlobalTimeout timeout) {
+        return getFromCacheOrDelegate(accountCache, accountId, timeout, delegate::getAccountById);
     }
 
     @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId) {
-        return getFromCacheOrDelegate(adUnitConfigCache, adUnitConfigId, delegate::getAdUnitConfigById);
+    public Future<String> getAdUnitConfigById(String adUnitConfigId, GlobalTimeout timeout) {
+        return getFromCacheOrDelegate(adUnitConfigCache, adUnitConfigId, timeout, delegate::getAdUnitConfigById);
     }
 
-    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key,
-                                                        Function<String, Future<T>> retriever) {
+    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key, GlobalTimeout timeout,
+                                                        BiFunction<String, GlobalTimeout, Future<T>> retriever) {
         Objects.requireNonNull(key);
+        Objects.requireNonNull(timeout);
 
         final Future<T> result;
 
@@ -46,7 +48,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
         if (cachedValue != null) {
             result = Future.succeededFuture(cachedValue);
         } else {
-            result = retriever.apply(key)
+            result = retriever.apply(key, timeout)
                     .map(value -> {
                         cache.put(key, value);
                         return value;

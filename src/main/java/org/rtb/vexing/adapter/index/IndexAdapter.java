@@ -92,7 +92,7 @@ public class IndexAdapter extends OpenrtbAdapter {
         return BidRequest.builder()
                 .id(preBidRequestContext.preBidRequest.tid)
                 .at(1)
-                .tmax(preBidRequestContext.timeout)
+                .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
                 .imp(imps)
                 .site(makeSite(preBidRequestContext, siteId))
                 .device(deviceBuilder(preBidRequestContext).build())

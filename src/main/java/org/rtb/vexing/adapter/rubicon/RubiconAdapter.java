@@ -137,7 +137,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
                         .id(preBidRequestContext.preBidRequest.tid)
                         .app(makeApp(rubiconParams, preBidRequestContext))
                         .at(1)
-                        .tmax(preBidRequestContext.timeout)
+                        .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
                         .imp(Collections.singletonList(imp))
                         .site(makeSite(rubiconParams, preBidRequestContext))
                         .device(makeDevice(preBidRequestContext))

@@ -8,19 +8,14 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.exception.InvalidRequestException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.settings.model.StoredRequestResult;
 
 import java.util.Collections;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static java.util.Collections.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -52,29 +47,32 @@ public class CachingStoredRequestFetcherTest {
     @Test
     public void getStoredRequestByIdShouldReturnResultOnSuccessiveCalls() {
         // given
-        given(storedRequestFetcher.getStoredRequestsById(eq(singleton("id"))))
+        final GlobalTimeout timeout = GlobalTimeout.create(500);
+        given(storedRequestFetcher.getStoredRequestsById(eq(singleton("id")), same(timeout)))
                 .willReturn(Future.succeededFuture(StoredRequestResult.of(Collections.singletonMap("id", "json"),
                         emptyList())));
         // when
-        final Future<StoredRequestResult> future = cachingStoredRequestFetcher.getStoredRequestsById(singleton("id"));
-        cachingStoredRequestFetcher.getStoredRequestsById(singleton("id"));
+        final Future<StoredRequestResult> future =
+                cachingStoredRequestFetcher.getStoredRequestsById(singleton("id"), timeout);
+        cachingStoredRequestFetcher.getStoredRequestsById(singleton("id"), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(StoredRequestResult.of(Collections.singletonMap("id", "json"),
                 emptyList()));
-        verify(storedRequestFetcher).getStoredRequestsById(eq(singleton("id")));
+        verify(storedRequestFetcher).getStoredRequestsById(eq(singleton("id")), same(timeout));
         verifyNoMoreInteractions(storedRequestFetcher);
     }
 
     @Test
     public void getStoredRequestByIdShouldPropagateFailure() {
         // given
-        given(storedRequestFetcher.getStoredRequestsById(any()))
+        given(storedRequestFetcher.getStoredRequestsById(any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Not found")));
 
         // when
-        Future<StoredRequestResult> future = cachingStoredRequestFetcher.getStoredRequestsById(singleton("id"));
+        final Future<StoredRequestResult> future =
+                cachingStoredRequestFetcher.getStoredRequestsById(singleton("id"), GlobalTimeout.create(500));
 
         // then
         assertThat(future.failed()).isTrue();
@@ -85,12 +83,13 @@ public class CachingStoredRequestFetcherTest {
     @Test
     public void getStoredRequestByIdShouldReturnResultWithErrorsOnNotSuccessiveCallToCacheAndErrorInDelegateCall() {
         // given
-        given(storedRequestFetcher.getStoredRequestsById(eq(singleton("id"))))
+        given(storedRequestFetcher.getStoredRequestsById(eq(singleton("id")), any()))
                 .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(),
                         singletonList("Stored requests for ids id was not found"))));
 
         // when
-        Future<StoredRequestResult> future = cachingStoredRequestFetcher.getStoredRequestsById(singleton("id"));
+        final Future<StoredRequestResult> future =
+                cachingStoredRequestFetcher.getStoredRequestsById(singleton("id"), GlobalTimeout.create(500));
 
         // then
         assertThat(future.succeeded()).isTrue();

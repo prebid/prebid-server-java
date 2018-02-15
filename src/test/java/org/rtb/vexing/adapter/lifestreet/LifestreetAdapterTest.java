@@ -199,12 +199,12 @@ public class LifestreetAdapterTest extends VertxTest {
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(
                 builder -> builder
-                        .timeout(1500L)
                         .referer("http://www.example.com")
                         .domain("example.com")
                         .ip("192.168.144.1")
                         .ua("userAgent"),
                 builder -> builder
+                        .timeoutMillis(1500L)
                         .tid("tid")
         );
 
@@ -433,8 +433,7 @@ public class LifestreetAdapterTest extends VertxTest {
         final PreBidRequestContext.PreBidRequestContextBuilder preBidRequestContextBuilderMinimal =
                 PreBidRequestContext.builder()
                         .preBidRequest(preBidRequest)
-                        .uidsCookie(uidsCookie)
-                        .timeout(1000L);
+                        .uidsCookie(uidsCookie);
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 

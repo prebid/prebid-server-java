@@ -46,7 +46,7 @@ public class FileApplicationSettingsTest {
         final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
         // when
-        final Future<Account> account = applicationSettings.getAccountById("123");
+        final Future<Account> account = applicationSettings.getAccountById("123", null);
 
         // then
         assertThat(account.failed()).isTrue();
@@ -60,7 +60,7 @@ public class FileApplicationSettingsTest {
         final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
         // when
-        final Future<Account> account = applicationSettings.getAccountById("123");
+        final Future<Account> account = applicationSettings.getAccountById("123", null);
 
         // then
         assertThat(account.succeeded()).isTrue();
@@ -75,7 +75,7 @@ public class FileApplicationSettingsTest {
         final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
         // when
-        final Future<Account> account = applicationSettings.getAccountById("789");
+        final Future<Account> account = applicationSettings.getAccountById("789", null);
 
         // then
         assertThat(account.failed()).isTrue();
@@ -89,7 +89,7 @@ public class FileApplicationSettingsTest {
         final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
         // when
-        final Future<String> config = applicationSettings.getAdUnitConfigById("123");
+        final Future<String> config = applicationSettings.getAdUnitConfigById("123", null);
 
         // then
         assertThat(config.failed()).isTrue();
@@ -104,8 +104,8 @@ public class FileApplicationSettingsTest {
         final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
         // when
-        final Future<String> adUnitConfigById1 = applicationSettings.getAdUnitConfigById("123");
-        final Future<String> adUnitConfigById2 = applicationSettings.getAdUnitConfigById("456");
+        final Future<String> adUnitConfigById1 = applicationSettings.getAdUnitConfigById("123", null);
+        final Future<String> adUnitConfigById2 = applicationSettings.getAdUnitConfigById("456", null);
 
         // then
         assertThat(adUnitConfigById1.succeeded()).isTrue();
@@ -122,7 +122,7 @@ public class FileApplicationSettingsTest {
         final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
 
         // when
-        final Future<String> config = applicationSettings.getAdUnitConfigById("789");
+        final Future<String> config = applicationSettings.getAdUnitConfigById("789", null);
 
         // then
         assertThat(config.failed()).isTrue();

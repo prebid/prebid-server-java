@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
@@ -83,11 +84,12 @@ public class PreBidRequestContextFactory {
             return Future.failedFuture(new PreBidException("No ad units specified"));
         }
 
-        final HttpServerRequest httpRequest = context.request();
+        final GlobalTimeout timeout = timeoutOrDefault(preBidRequest);
 
-        return extractBidders(preBidRequest)
+        return extractBidders(preBidRequest, timeout)
                 .map(bidders -> PreBidRequestContext.builder().bidders(bidders))
-                .map(builder -> populatePreBidRequestContextBuilder(context, preBidRequest, httpRequest, builder))
+                .map(builder -> populatePreBidRequestContextBuilder(context, preBidRequest, context.request(), builder))
+                .map(builder -> builder.timeout(timeout))
                 .map(PreBidRequestContext.PreBidRequestContextBuilder::build);
     }
 
@@ -202,7 +204,6 @@ public class PreBidRequestContextFactory {
 
         builder
                 .preBidRequest(preBidRequest)
-                .timeout(timeoutOrDefault(preBidRequest))
                 .ip(ip(httpRequest))
                 .secure(secure(httpRequest))
                 .isDebug(isDebug(preBidRequest, httpRequest))
@@ -223,11 +224,12 @@ public class PreBidRequestContextFactory {
         return builder;
     }
 
-    private Future<List<Bidder>> extractBidders(PreBidRequest preBidRequest) {
+    private Future<List<Bidder>> extractBidders(PreBidRequest preBidRequest, GlobalTimeout timeout) {
         // this is a List<Future<Stream<AdUnitBid>>> actually
         final List<Future> adUnitBidFutures = preBidRequest.adUnits.stream()
                 .filter(PreBidRequestContextFactory::isValidAdUnit)
-                .map(unit -> resolveUnitBids(unit).map(bids -> bids.stream().map(bid -> toAdUnitBid(unit, bid))))
+                .map(unit -> resolveUnitBids(unit, timeout)
+                        .map(bids -> bids.stream().map(bid -> toAdUnitBid(unit, bid))))
                 .collect(Collectors.toList());
 
         return CompositeFuture.join(adUnitBidFutures)
@@ -243,11 +245,11 @@ public class PreBidRequestContextFactory {
         return Objects.nonNull(adUnit.code) && CollectionUtils.isNotEmpty(adUnit.sizes);
     }
 
-    private Future<List<Bid>> resolveUnitBids(AdUnit unit) {
+    private Future<List<Bid>> resolveUnitBids(AdUnit unit, GlobalTimeout timeout) {
         final Future<List<Bid>> result;
 
         if (StringUtils.isNotBlank(unit.configId)) {
-            result = applicationSettings.getAdUnitConfigById(unit.configId)
+            result = applicationSettings.getAdUnitConfigById(unit.configId, timeout)
                     .map(config -> Json.decodeValue(config, new TypeReference<List<Bid>>() {
                     }))
                     .otherwise(exception -> {
@@ -295,12 +297,12 @@ public class PreBidRequestContextFactory {
         return bidMediaTypes;
     }
 
-    private long timeoutOrDefault(PreBidRequest preBidRequest) {
+    private GlobalTimeout timeoutOrDefault(PreBidRequest preBidRequest) {
         Long value = preBidRequest.timeoutMillis;
         if (value == null || value <= 0 || value > 2000L) {
             value = defaultHttpRequestTimeout;
         }
-        return value;
+        return GlobalTimeout.create(value);
     }
 
     private static Integer secure(HttpServerRequest httpRequest) {

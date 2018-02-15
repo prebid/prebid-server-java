@@ -16,12 +16,14 @@ import org.rtb.vexing.bidder.model.HttpCall;
 import org.rtb.vexing.bidder.model.HttpRequest;
 import org.rtb.vexing.bidder.model.HttpResponse;
 import org.rtb.vexing.bidder.model.Result;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.openrtb.ext.response.ExtHttpCall;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,12 +49,12 @@ public class HttpConnector {
     /**
      * Executes given request to a given bidder.
      */
-    public Future<BidderSeatBid> requestBids(Bidder bidder, BidRequest bidRequest) {
+    public Future<BidderSeatBid> requestBids(Bidder bidder, BidRequest bidRequest, GlobalTimeout timeout) {
         final Result<List<HttpRequest>> httpRequests = bidder.makeHttpRequests(bidRequest);
 
         final Future<BidderSeatBid> result = Future.future();
         CompositeFuture.join(httpRequests.value.stream()
-                .map(httpRequest -> doRequest(httpRequest, bidRequest))
+                .map(httpRequest -> doRequest(httpRequest, timeout))
                 .collect(Collectors.toList()))
                 .setHandler(httpRequestsResult ->
                         result.complete(toBidderSeatBid(bidder, bidRequest, httpRequests.errors,
@@ -64,18 +66,21 @@ public class HttpConnector {
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private Future<HttpCall> doRequest(HttpRequest httpRequest, BidRequest bidRequest) {
+    private Future<HttpCall> doRequest(HttpRequest httpRequest, GlobalTimeout timeout) {
         final Future<HttpCall> result = Future.future();
+
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            handleException(new TimeoutException("Timeout has been exceeded"), result, httpRequest);
+            return result;
+        }
 
         final HttpClientRequest httpClientRequest =
                 httpClient.requestAbs(httpRequest.method, httpRequest.uri,
                         response -> handleResponse(response, result, httpRequest))
                         .exceptionHandler(exception -> handleException(exception, result, httpRequest));
         httpClientRequest.headers().addAll(httpRequest.headers);
-        // FIXME: default timeout?
-        if (bidRequest.getTmax() != null && bidRequest.getTmax() > 0) {
-            httpClientRequest.setTimeout(bidRequest.getTmax());
-        }
+        httpClientRequest.setTimeout(remainingTimeout);
         httpClientRequest.end(httpRequest.body);
 
         return result;
@@ -92,7 +97,7 @@ public class HttpConnector {
      * Handles request (e.g. read timeout) and response (e.g. connection reset) errors producing partial
      * {@link HttpCall} containing request and error description.
      */
-    private void handleException(Throwable exception, Future<HttpCall> result, HttpRequest httpRequest) {
+    private static void handleException(Throwable exception, Future<HttpCall> result, HttpRequest httpRequest) {
         logger.warn("Error occurred while sending HTTP request to a bidder", exception);
         result.complete(HttpCall.partial(httpRequest, exception.getMessage()));
     }

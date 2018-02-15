@@ -24,16 +24,20 @@ import org.rtb.vexing.cache.model.request.PutObject;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.cache.model.response.CacheObject;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.response.Bid;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -127,16 +131,18 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldFailIfBidsAreNull() {
+    public void shouldFailOnNullArguments() {
         // then
-        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBids(null));
-        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBidsOpenrtb(null));
+        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBids(null, null));
+        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBids(emptyList(), null));
+        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBidsOpenrtb(null, null));
+        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBidsOpenrtb(emptyList(), null));
     }
 
     @Test
     public void cacheBidsShouldReturnEmptyResponseIfBidsAreEmpty() {
         // when
-        final List<BidCacheResult> result = cacheService.cacheBids(emptyList()).result();
+        final List<BidCacheResult> result = cacheService.cacheBids(emptyList(), timeout()).result();
 
         // then
         verifyZeroInteractions(httpClient);
@@ -144,23 +150,32 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsShouldRequestToCacheServiceWithExpectedParams() throws Exception {
+    public void cacheBidsShouldPerformHttpRequestWithExpectedTimeout() {
+        // when
+        cacheService.cacheBids(singleBidList(), GlobalTimeout.create(1000));
+
+        // then
+        final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
+        assertThat(timeoutCaptor.getValue()).isCloseTo(1000L, offset(20L));
+    }
+
+    @Test
+    public void cacheBidsShouldPerformHttpRequestWithExpectedBody() throws Exception {
         // given
-        final String val1 = "<script type=\"application/javascript\" src=\"http://nym1-ib.adnxs"
+        final String adm3 = "<script type=\"application/javascript\" src=\"http://nym1-ib.adnxs"
                 + "f3919239&pp=${AUCTION_PRICE}&\"></script>";
-        final String val2 = "<img src=\"https://tpp.hpppf.com/simgad/11261207092432736464\" border=\"0\" "
+        final String adm4 = "<img src=\"https://tpp.hpppf.com/simgad/11261207092432736464\" border=\"0\" "
                 + "width=\"184\" height=\"90\" alt=\"\" class=\"img_ad\">";
 
         // when
-        cacheService.cacheBids(asList(
-                Bid.builder().adm("adm1").nurl("nurl1").height(100).width(200).build(),
-                Bid.builder().adm("adm2").nurl("nurl2").height(300).width(400).build(),
-
-                Bid.builder().adm(val1)
-                        .mediaType(MediaType.video).build(),
-                Bid.builder().adm(val2)
-                        .mediaType(MediaType.video).build()
-        ));
+        cacheService.cacheBids(
+                asList(
+                        Bid.builder().adm("adm1").nurl("nurl1").height(100).width(200).build(),
+                        Bid.builder().adm("adm2").nurl("nurl2").height(300).width(400).build(),
+                        Bid.builder().adm(adm3).mediaType(MediaType.video).build(),
+                        Bid.builder().adm(adm4).mediaType(MediaType.video).build()),
+                timeout());
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -191,13 +206,25 @@ public class CacheServiceTest extends VertxTest {
 
         final PutObject putObject3 = bidCacheRequest.puts.get(2);
         assertThat(putObject3).isNotNull();
-        assertThat(putObject3.value.asText()).isEqualTo(val1);
+        assertThat(putObject3.value.asText()).isEqualTo(adm3);
         assertThat(putObject3.type).isEqualTo("xml");
 
         final PutObject putObject4 = bidCacheRequest.puts.get(3);
         assertThat(putObject4).isNotNull();
-        assertThat(putObject4.value.asText()).isEqualTo(val2);
+        assertThat(putObject4.value.asText()).isEqualTo(adm4);
         assertThat(putObject4.type).isEqualTo("xml");
+    }
+
+    @Test
+    public void cacheBidsShouldFailIfGlobalTimeoutAlreadyExpired() {
+        // when
+        final Future<?> future = cacheService.cacheBids(singleBidList(),
+                GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000));
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(TimeoutException.class);
+        verifyZeroInteractions(httpClient);
     }
 
     @Test
@@ -207,7 +234,7 @@ public class CacheServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList());
+        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -220,7 +247,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList());
+        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -233,7 +260,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(503, "response");
 
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList());
+        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -247,7 +274,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "response");
 
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList());
+        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -260,7 +287,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "{}");
 
         // when
-        final Future<?> future = cacheService.cacheBids(singleBidList());
+        final Future<?> future = cacheService.cacheBids(singleBidList(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -276,7 +303,7 @@ public class CacheServiceTest extends VertxTest {
                 .build()));
 
         // when
-        final Future<List<BidCacheResult>> future = cacheService.cacheBids(singleBidList());
+        final Future<List<BidCacheResult>> future = cacheService.cacheBids(singleBidList(), timeout());
 
         // then
         final List<BidCacheResult> bidCacheResults = future.result();
@@ -293,7 +320,7 @@ public class CacheServiceTest extends VertxTest {
         cacheService = new CacheService(httpClient, "https://cache-service-host:8888/cache",
                 "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
         // when
-        cacheService.cacheBids(singleBidList());
+        cacheService.cacheBids(singleBidList(), timeout());
 
         // then
         verify(httpClient).postAbs(eq("https://cache-service-host:8888/cache"), any());
@@ -302,12 +329,38 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldReturnEmptyResultIfBidsAreEmpty() {
         // when
-        final Future<?> future = cacheService.cacheBidsOpenrtb(emptyList());
+        final Future<?> future = cacheService.cacheBidsOpenrtb(emptyList(), timeout());
 
         // then
         verifyZeroInteractions(httpClient);
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(emptyList());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedTimeout() {
+        // when
+        cacheService.cacheBidsOpenrtb(singleBidListOpenrtb(), GlobalTimeout.create(1000));
+
+        // then
+        final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
+        // offset value is greater here since cacheBidsOpenrtb performs mapper.valueToTree and this call might take a
+        // little more time if mapper's caches hasn't been warmed up (this might happen if the test is the first one
+        // that triggers mapper activity with affected classes)
+        assertThat(timeoutCaptor.getValue()).isCloseTo(1000L, offset(200L));
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldFailIfGlobalTimeoutAlreadyExpired() {
+        // when
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb(),
+                GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000));
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(TimeoutException.class);
+        verifyZeroInteractions(httpClient);
     }
 
     @Test
@@ -317,7 +370,7 @@ public class CacheServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -330,7 +383,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -343,7 +396,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(503, "response");
 
         // when
-        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -357,7 +410,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "response");
 
         // when
-        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -370,7 +423,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "{}");
 
         // when
-        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb(), timeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -379,19 +432,23 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtb() throws JsonProcessingException {
+    public void cacheBidsOpenrtbShouldReturnCacheResult() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(BidCacheResponse.builder()
                 .responses(singletonList(CacheObject.builder().uuid("uuid1").build()))
                 .build()));
 
         // when
-        final Future<List<String>> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+        final Future<List<String>> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb(), timeout());
 
         // then
         final List<String> result = future.result();
         assertThat(result).hasSize(1)
                 .containsOnly("uuid1");
+    }
+
+    private static GlobalTimeout timeout() {
+        return GlobalTimeout.create(500);
     }
 
     private static List<com.iab.openrtb.response.Bid> singleBidListOpenrtb() {

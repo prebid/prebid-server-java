@@ -19,6 +19,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
@@ -80,15 +81,21 @@ public class HttpConnector {
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private Future<ExchangeCall> doRequest(HttpRequest httpRequest, long timeout) {
+    private Future<ExchangeCall> doRequest(HttpRequest httpRequest, GlobalTimeout timeout) {
         final String body = Json.encode(httpRequest.bidRequest);
         final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(httpRequest.uri, body);
         final Future<ExchangeCall> future = Future.future();
 
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            handleException(new TimeoutException(), bidderDebugBuilder, future);
+            return future;
+        }
+
         final HttpClientRequest httpClientRequest = httpClient.postAbs(httpRequest.uri,
                 response -> handleResponse(bidderDebugBuilder, response, future, httpRequest.bidRequest))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future))
-                .setTimeout(timeout);
+                .setTimeout(remainingTimeout);
 
         if (httpRequest.headers != null && !httpRequest.headers.isEmpty()) {
             httpClientRequest.headers().addAll(httpRequest.headers);

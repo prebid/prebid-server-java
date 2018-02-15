@@ -3,6 +3,7 @@ package org.rtb.vexing.settings;
 import io.vertx.core.Future;
 import io.vertx.ext.sql.ResultSet;
 import org.apache.commons.lang3.StringUtils;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.settings.model.StoredRequestResult;
 import org.rtb.vexing.vertx.JdbcClient;
 
@@ -35,15 +36,17 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
      * Runs a process to get StoredRequest ids from database and returns {@link Future<StoredRequestResult>}
      */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids) {
+    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, GlobalTimeout timeout) {
         Objects.requireNonNull(ids);
+        Objects.requireNonNull(timeout);
 
         final List<String> idsQueryParameters = new ArrayList<>();
         IntStream.rangeClosed(1, StringUtils.countMatches(selectQuery, ID_PLACEHOLDER))
                 .forEach(i -> idsQueryParameters.addAll(ids));
 
         return jdbcClient.executeQuery(createParametrizedQuery(ids.size()), idsQueryParameters,
-                result -> mapToModel(result, ids));
+                result -> mapToModel(result, ids),
+                timeout);
     }
 
     /**

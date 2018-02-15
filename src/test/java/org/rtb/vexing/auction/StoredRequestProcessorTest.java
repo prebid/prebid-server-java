@@ -3,18 +3,22 @@ package org.rtb.vexing.auction;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Imp.ImpBuilder;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.exception.InvalidRequestException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtImp;
 import org.rtb.vexing.model.openrtb.ext.request.ExtImpPrebid;
@@ -32,11 +36,16 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class StoredRequestProcessorTest extends VertxTest {
+
+    private static final int DEFAULT_TIMEOUT = 500;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -48,22 +57,22 @@ public class StoredRequestProcessorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        storedRequestProcessor = new StoredRequestProcessor(storedRequestFetcher);
+        storedRequestProcessor = new StoredRequestProcessor(storedRequestFetcher, DEFAULT_TIMEOUT);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new StoredRequestProcessor(null));
+        assertThatNullPointerException().isThrownBy(() -> new StoredRequestProcessor(null, DEFAULT_TIMEOUT));
     }
 
     @Test
     public void shouldReturnMergedBidRequestAndImps() throws IOException {
 
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .ext(Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, ExtStoredRequest.of("bidRequest"), null))))
-                .imp(singletonList(givenImpCustomizable(impBuilder -> impBuilder
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("imp")))))))));
 
         String storedRequestImpJson = mapper.writeValueAsString(Imp.builder().banner(Banner.builder()
@@ -75,7 +84,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         final Map<String, String> storedRequestFetchResult = new HashMap<>();
         storedRequestFetchResult.put("bidRequest", storedRequestBidRequestJson);
         storedRequestFetchResult.put("imp", storedRequestImpJson);
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn(
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn(
                 Future.succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList())));
 
         // when
@@ -101,7 +110,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnMergedBidRequest() throws IOException {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .ext(Json.mapper.valueToTree(
                         ExtBidRequest.of(ExtRequestPrebid.of(null, ExtStoredRequest.of("123"), null))))
                 .imp(emptyList()));
@@ -109,7 +118,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         String storedRequestBidRequestJson = mapper.writeValueAsString(BidRequest.builder().id("test-request-id")
                 .tmax(1000L).build());
         final Map<String, String> storedRequestFetchResult = singletonMap("123", storedRequestBidRequestJson);
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn((Future
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -129,13 +138,13 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureWhenStoredBidRequestJsonIsNotValid() {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .ext(Json.mapper.valueToTree(
                         ExtBidRequest.of(ExtRequestPrebid.of(null, ExtStoredRequest.of("123"), null))))
                 .imp(emptyList()));
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", "{{}");
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn((Future
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -150,14 +159,14 @@ public class StoredRequestProcessorTest extends VertxTest {
 
     @Test
     public void shouldReturnFailedFutureWhenMergedResultCantBeConvertedToBidRequest() throws IOException {
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .ext(Json.mapper.valueToTree(
                         ExtBidRequest.of(ExtRequestPrebid.of(null, ExtStoredRequest.of("123"), null))))
                 .imp(emptyList()));
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", mapper.writeValueAsString(
                 Json.mapper.createObjectNode().put("tmax", "stringValue")));
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn((Future
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -173,7 +182,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfIdWasNotPresentInStoredRequest() {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .ext(Json.mapper.valueToTree(
                         ExtBidRequest.of(ExtRequestPrebid.of(null, ExtStoredRequest.of(null), null)))));
 
@@ -189,7 +198,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfBidRequestStoredRequestIdHasIncorrectType() {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .ext((ObjectNode) Json.mapper.createObjectNode()
                         .set("prebid", Json.mapper.createObjectNode()
                                 .set("storedrequest", Json.mapper.createObjectNode()
@@ -209,15 +218,15 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithMergedImp() throws IOException {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
-                .imp(singletonList(givenImpCustomizable(impBuilder -> impBuilder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("123")))))))));
 
         String storedRequestImpJson = mapper.writeValueAsString(Imp.builder().banner(Banner.builder()
                 .format(singletonList(Format.builder().w(300).h(250).build())).build()).build());
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", storedRequestImpJson);
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn((Future
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -234,8 +243,8 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureWhenIdIsMissedInPrebidRequest() {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
-                .imp(singletonList(givenImpCustomizable(impBuilder -> impBuilder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of(null)))))))));
 
         // when
@@ -250,12 +259,12 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureWhenJsonBodyWasNotFoundByFetcher() {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
-                .imp(singletonList(givenImpCustomizable(impBuilder ->
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(singletonList(givenImp(impBuilder ->
                         impBuilder.ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.
                                 of(ExtStoredRequest.of("123")))))))));
 
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn((Future
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("No config found for id: 123")))));
 
         // when
@@ -270,9 +279,9 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnImpAndBidRequestWithoutChangesIfStoredRequestIsAbsentInPrebid() {
         // given
-        final Imp imp = givenImpCustomizable(impBuilder -> impBuilder.ext(Json.mapper.valueToTree(ExtImp.of(
+        final Imp imp = givenImp(impBuilder -> impBuilder.ext(Json.mapper.valueToTree(ExtImp.of(
                 ExtImpPrebid.of(null)))));
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .imp(singletonList(imp)));
 
         // when
@@ -288,11 +297,11 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnChangedImpWithStoredRequestAndNotModifiedImpWithoutStoreRequest() throws IOException {
         // given
-        final Imp impWithoutStoredRequest = givenImpCustomizable(impBuilder -> impBuilder
+        final Imp impWithoutStoredRequest = givenImp(impBuilder -> impBuilder
                 .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(null)))));
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .imp(asList(impWithoutStoredRequest,
-                        givenImpCustomizable(impBuilder -> impBuilder
+                        givenImp(impBuilder -> impBuilder
                                 .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of(
                                         "123")))))))));
 
@@ -300,7 +309,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .format(singletonList(Format.builder().w(300).h(250).build())).build()).build());
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", storedRequestImpJson);
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn((Future
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -318,10 +327,10 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfOneImpWithValidStoredRequestAndAnotherWithMissedId() {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
-                .imp(asList(givenImpCustomizable(impBuilder -> impBuilder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(asList(givenImp(impBuilder -> impBuilder
                                 .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of(null)))))),
-                        givenImpCustomizable(impBuilder -> impBuilder
+                        givenImp(impBuilder -> impBuilder
                                 .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of(
                                         "123")))))))));
         // when
@@ -336,8 +345,8 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfImpsStoredRequestIdHasIncorrectType() {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
-                .imp(singletonList(givenImpCustomizable(impBuilder ->
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(singletonList(givenImp(impBuilder ->
                         impBuilder
                                 .ext((ObjectNode) Json.mapper.createObjectNode()
                                         .set("prebid", Json.mapper.createObjectNode()
@@ -357,11 +366,11 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredRequestFetcherReturnsFailedFuture() {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
-                .imp(singletonList(givenImpCustomizable(impBuilder -> impBuilder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("123")))))))));
 
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn((Future
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
                 .failedFuture(new Exception("Error during file fetching"))));
 
         // when
@@ -378,12 +387,12 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureWhenStoredImpJsonIsNotValid() {
         // given
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
-                .imp(singletonList(givenImpCustomizable(impBuilder -> impBuilder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("123")))))))));
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", "{{}");
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn((Future
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -398,13 +407,13 @@ public class StoredRequestProcessorTest extends VertxTest {
 
     @Test
     public void shouldReturnFailedFutureWhenMergedResultCantBeConvertedToImp() throws IOException {
-        final BidRequest bidRequest = givenBidRequestCustomizable(builder -> builder
-                .imp(singletonList(givenImpCustomizable(impBuilder -> impBuilder
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("123")))))))));
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", mapper.writeValueAsString(
                 Json.mapper.createObjectNode().put("secure", "stringValue")));
-        given(storedRequestFetcher.getStoredRequestsById(any())).willReturn((Future
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -417,17 +426,52 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .hasMessage("Can't convert merging result for storedRequestId 123");
     }
 
-    private static BidRequest givenBidRequestCustomizable(Function<BidRequest.BidRequestBuilder,
-            BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
-        final BidRequest.BidRequestBuilder bidRequestBuilderMinimal = BidRequest.builder().imp(emptyList());
-        final BidRequest.BidRequestBuilder bidRequestBuilderCustomized = bidRequestBuilderCustomizer
-                .apply(bidRequestBuilderMinimal);
+    @Test
+    public void shouldUseTimeoutFromRequest() {
+        // given
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn(Future.failedFuture((String) null));
+
+        // when
+        storedRequestProcessor.processStoredRequests(givenBidRequest(
+                builder -> builder
+                        .ext(Json.mapper.valueToTree(
+                                ExtBidRequest.of(ExtRequestPrebid.of(null, ExtStoredRequest.of("bidRequest"), null))))
+                        .tmax(1000L)));
+
+        // then
+        final ArgumentCaptor<GlobalTimeout> timeoutCaptor = ArgumentCaptor.forClass(GlobalTimeout.class);
+        verify(storedRequestFetcher).getStoredRequestsById(anySet(), timeoutCaptor.capture());
+        assertThat(timeoutCaptor.getValue().remaining()).isCloseTo(1000L, offset(20L));
+    }
+
+    @Test
+    public void shouldUseDefaultTimeoutIfMissingInRequest() {
+        // given
+        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn(Future.failedFuture((String) null));
+
+        // when
+        storedRequestProcessor.processStoredRequests(givenBidRequest(
+                builder -> builder
+                        .ext(Json.mapper.valueToTree(ExtBidRequest.of(
+                                ExtRequestPrebid.of(null, ExtStoredRequest.of("bidRequest"), null))))));
+
+        // then
+        final ArgumentCaptor<GlobalTimeout> timeoutCaptor = ArgumentCaptor.forClass(GlobalTimeout.class);
+        verify(storedRequestFetcher).getStoredRequestsById(anySet(), timeoutCaptor.capture());
+        assertThat(timeoutCaptor.getValue().remaining()).isCloseTo(DEFAULT_TIMEOUT, offset(20L));
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer) {
+        final BidRequestBuilder bidRequestBuilderMinimal = BidRequest.builder().imp(emptyList());
+        final BidRequestBuilder bidRequestBuilderCustomized =
+                bidRequestBuilderCustomizer.apply(bidRequestBuilderMinimal);
         return bidRequestBuilderCustomized.build();
     }
 
-    private static Imp givenImpCustomizable(Function<Imp.ImpBuilder, Imp.ImpBuilder> impBuilderCustomizer) {
-        final Imp.ImpBuilder impBuilderMinimal = Imp.builder();
-        final Imp.ImpBuilder impBuilderCustomized = impBuilderCustomizer.apply(impBuilderMinimal);
+    private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impBuilderCustomizer) {
+        final ImpBuilder impBuilderMinimal = Imp.builder();
+        final ImpBuilder impBuilderCustomized = impBuilderCustomizer.apply(impBuilderMinimal);
         return impBuilderCustomized.build();
     }
 }

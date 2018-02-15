@@ -126,15 +126,16 @@ public class WebConfiguration {
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     org.rtb.vexing.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
-            @Value("${max-request-size}") int maxRequestSize,
+            @Value("${auction.max-request-size}") int maxRequestSize,
+            @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
             RequestValidator requestValidator,
             ExchangeService exchangeService,
             StoredRequestProcessor storedRequestProcessor,
             PreBidRequestContextFactory preBidRequestContextFactory,
             UidsCookieService uidsCookieService) {
 
-        return new org.rtb.vexing.handler.openrtb2.AuctionHandler(maxRequestSize, requestValidator, exchangeService,
-                storedRequestProcessor, preBidRequestContextFactory, uidsCookieService);
+        return new org.rtb.vexing.handler.openrtb2.AuctionHandler(maxRequestSize, defaultTimeoutMs, requestValidator,
+                exchangeService, storedRequestProcessor, preBidRequestContextFactory, uidsCookieService);
     }
 
     @Bean

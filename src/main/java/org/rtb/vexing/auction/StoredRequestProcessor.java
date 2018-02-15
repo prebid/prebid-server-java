@@ -12,6 +12,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.rtb.vexing.exception.InvalidRequestException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtImp;
 import org.rtb.vexing.model.openrtb.ext.request.ExtStoredRequest;
@@ -38,9 +39,11 @@ public class StoredRequestProcessor {
     private static final ObjectMapper MAPPER = Json.mapper;
 
     private final StoredRequestFetcher storedRequestFetcher;
+    private final long defaultTimeout;
 
-    public StoredRequestProcessor(StoredRequestFetcher storedRequestFetcher) {
+    public StoredRequestProcessor(StoredRequestFetcher storedRequestFetcher, long defaultTimeout) {
         this.storedRequestFetcher = Objects.requireNonNull(storedRequestFetcher);
+        this.defaultTimeout = defaultTimeout;
     }
 
     /**
@@ -66,7 +69,8 @@ public class StoredRequestProcessor {
         if (storedRequestIds.isEmpty()) {
             return Future.succeededFuture(bidRequest);
         }
-        return storedRequestFetcher.getStoredRequestsById(storedRequestIds)
+
+        return storedRequestFetcher.getStoredRequestsById(storedRequestIds, timeout(bidRequest))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed with exception: %s", exception))))
                 .compose(storedRequestResult -> storedRequestResult.errors.size() > 0
@@ -80,7 +84,7 @@ public class StoredRequestProcessor {
      * Runs {@link BidRequest} and {@link Imp}s merge processes.
      */
     private BidRequest mergeBidRequestAndImps(BidRequest bidRequest, String storedRequestId,
-                                             Map<Imp, String> impToStoredId, StoredRequestResult storedRequestResult) {
+                                              Map<Imp, String> impToStoredId, StoredRequestResult storedRequestResult) {
         return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedRequestResult), impToStoredId,
                 storedRequestResult);
     }
@@ -214,5 +218,13 @@ public class StoredRequestProcessor {
             }
         }
         return null;
+    }
+
+    /**
+     * If the request defines tmax explicitly, then it is returned as is. Otherwise default timeout is returned.
+     */
+    private GlobalTimeout timeout(BidRequest bidRequest) {
+        final Long tmax = bidRequest.getTmax();
+        return GlobalTimeout.create(tmax != null && tmax > 0 ? tmax : defaultTimeout);
     }
 }

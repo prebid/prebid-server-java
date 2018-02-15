@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.settings.model.StoredRequestResult;
 import org.rtb.vexing.vertx.JdbcClient;
 
@@ -25,6 +26,8 @@ import java.util.HashSet;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
@@ -67,7 +70,7 @@ public class JdbcStoredRequestFetcherTest {
     }
 
     @Before
-    public void setUp(TestContext context) {
+    public void setUp() {
         vertx = Vertx.vertx();
 
         this.jdbcStoredRequestFetcher = new JdbcStoredRequestFetcher(new JdbcClient(vertx, jdbcClient(vertx)),
@@ -95,14 +98,16 @@ public class JdbcStoredRequestFetcherTest {
 
     @Test
     public void getStoredRequestByIdShouldReturnFailedFutureWithNullPointerExceptionCause() {
-        assertThatNullPointerException().isThrownBy(() -> jdbcStoredRequestFetcher.getStoredRequestsById(null));
+        assertThatNullPointerException().isThrownBy(() -> jdbcStoredRequestFetcher.getStoredRequestsById(null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> jdbcStoredRequestFetcher.getStoredRequestsById(emptySet(), null));
     }
 
     @Test
     public void getStoredRequestsByIdsShouldReturnStoredRequests(TestContext context) {
         // when
         final Future<StoredRequestResult> future =
-                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "2")));
+                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "2")), timeout());
 
         // then
         final Async async = context.async();
@@ -124,7 +129,7 @@ public class JdbcStoredRequestFetcherTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")));
+                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")), timeout());
 
         // then
         final Async async = context.async();
@@ -143,7 +148,7 @@ public class JdbcStoredRequestFetcherTest {
     public void getStoredRequestsByIdsShouldReturnStoredRequestsWithError(TestContext context) {
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "3")));
+                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "3")), timeout());
 
         // then
         final Async async = context.async();
@@ -162,12 +167,12 @@ public class JdbcStoredRequestFetcherTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")));
+                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")), timeout());
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(Collections.emptyMap(),
+            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(emptyMap(),
                     Collections.singletonList("Result set column number is less than expected")));
             async.complete();
         }));
@@ -177,14 +182,18 @@ public class JdbcStoredRequestFetcherTest {
     public void getStoredRequestsByIdsShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("3", "4")));
+                jdbcStoredRequestFetcher.getStoredRequestsById(new HashSet<>(asList("3", "4")), timeout());
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(Collections.emptyMap(),
+            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(emptyMap(),
                     Collections.singletonList("Stored requests for ids [3, 4] was not found")));
             async.complete();
         }));
+    }
+
+    private static GlobalTimeout timeout() {
+        return GlobalTimeout.create(500);
     }
 }

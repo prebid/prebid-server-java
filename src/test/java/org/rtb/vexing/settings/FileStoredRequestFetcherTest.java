@@ -49,7 +49,7 @@ public class FileStoredRequestFetcherTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResult = fileStoredRequestFetcher
-                .getStoredRequestsById(Collections.singleton("2"));
+                .getStoredRequestsById(Collections.singleton("2"), null);
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
         assertThat(storedRequestResult.succeeded()).isTrue();
@@ -69,7 +69,7 @@ public class FileStoredRequestFetcherTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResult = fileStoredRequestFetcher
-                .getStoredRequestsById(Collections.singleton("1"));
+                .getStoredRequestsById(Collections.singleton("1"), null);
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
         assertThat(storedRequestResult.result().errors).isNotNull().isEmpty();

@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 import org.rtb.vexing.cookie.UidsCookie;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.request.PreBidRequest;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public class PreBidRequestContext {
 
     UidsCookie uidsCookie;
 
-    long timeout;
+    GlobalTimeout timeout;
 
     Integer secure;
 

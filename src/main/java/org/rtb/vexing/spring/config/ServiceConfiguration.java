@@ -90,15 +90,19 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    ExchangeService exchangeService(HttpConnector httpConnector, BidderCatalog bidderCatalog,
-                                    CacheService cacheService) {
-        return new ExchangeService(httpConnector, bidderCatalog, cacheService);
+    ExchangeService exchangeService(
+            @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
+            HttpConnector httpConnector, BidderCatalog bidderCatalog, CacheService cacheService) {
+
+        return new ExchangeService(httpConnector, bidderCatalog, cacheService, expectedCacheTimeMs);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    StoredRequestProcessor storedRequestProcessor(StoredRequestFetcher storedRequestFetcher) {
-        return new StoredRequestProcessor(storedRequestFetcher);
+    StoredRequestProcessor storedRequestProcessor(
+            @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
+            StoredRequestFetcher storedRequestFetcher) {
+        return new StoredRequestProcessor(storedRequestFetcher, defaultTimeoutMs);
     }
 
     @Bean

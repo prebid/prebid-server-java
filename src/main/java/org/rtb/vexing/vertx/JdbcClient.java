@@ -6,6 +6,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
+import org.rtb.vexing.execution.GlobalTimeout;
 
 import java.util.List;
 import java.util.Objects;
@@ -39,16 +40,25 @@ public class JdbcClient {
      * Executes query with parameters and returns {@link Future<T>} eventually holding result mapped to a model
      * object by provided mapper
      */
-    public <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper) {
+    public <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper,
+                                      GlobalTimeout timeout) {
+        Objects.requireNonNull(query);
+        Objects.requireNonNull(params);
+        Objects.requireNonNull(mapper);
+        Objects.requireNonNull(timeout);
+
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            return Future.failedFuture(timeoutException());
+        }
+
         // timeout implementation is inspired by this answer:
         // https://groups.google.com/d/msg/vertx/eSf3AQagGGU/K7pztnjLc_EJ
         final Future<ResultSet> queryResultFuture = Future.future();
-        // FIXME: timeout
-        final int timeout = 500;
-        final long timerId = vertx.setTimer(timeout, id -> {
+        final long timerId = vertx.setTimer(remainingTimeout, id -> {
             // no need for synchronization since timer is fired on the same event loop thread
             if (!queryResultFuture.isComplete()) {
-                queryResultFuture.fail(new TimeoutException("Timed out while executing SQL query"));
+                queryResultFuture.fail(timeoutException());
             }
         });
 
@@ -67,10 +77,16 @@ public class JdbcClient {
                 })
                 .setHandler(ar -> {
                     vertx.cancelTimer(timerId);
-                    // this may produce harmless exception if timeout exceeds before successful result becomes ready
-                    queryResultFuture.handle(ar);
+                    // check is to avoid harmless exception if timeout exceeds before successful result becomes ready
+                    if (!queryResultFuture.isComplete()) {
+                        queryResultFuture.handle(ar);
+                    }
                 });
 
         return queryResultFuture.map(mapper);
+    }
+
+    private static TimeoutException timeoutException() {
+        return new TimeoutException("Timed out while executing SQL query");
     }
 }

@@ -20,9 +20,11 @@ import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.StoredRequestProcessor;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.exception.InvalidRequestException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.validation.RequestValidator;
 import org.rtb.vexing.validation.ValidationResult;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -31,18 +33,22 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
+    private static final Clock CLOCK = Clock.systemDefaultZone();
+
     private final long maxRequestSize;
+    private final long defaultTimeout;
     private final RequestValidator requestValidator;
     private final ExchangeService exchangeService;
     private final StoredRequestProcessor storedRequestProcessor;
     private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final UidsCookieService uidsCookieService;
 
-    public AuctionHandler(long maxRequestSize, RequestValidator requestValidator, ExchangeService exchangeService,
-                          StoredRequestProcessor storedRequestProcessor,
+    public AuctionHandler(long maxRequestSize, long defaultTimeout, RequestValidator requestValidator,
+                          ExchangeService exchangeService, StoredRequestProcessor storedRequestProcessor,
                           PreBidRequestContextFactory preBidRequestContextFactory,
                           UidsCookieService uidsCookieService) {
         this.maxRequestSize = maxRequestSize;
+        this.defaultTimeout = defaultTimeout;
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -52,12 +58,18 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
+        // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
+        // for bids. However, tmax may be defined in the Stored Request data.
+        // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
+        // more accurately if we note the real start time, and use it to compute the auction timeout.
+        final long startTime = CLOCK.millis();
+
         parseRequest(context)
                 .compose(storedRequestProcessor::processStoredRequests)
                 .map(bidRequest -> preBidRequestContextFactory.fromRequest(bidRequest, context))
                 .compose(this::validateRequest)
-                .compose(bidRequest ->
-                        exchangeService.holdAuction(bidRequest, uidsCookieService.parseFromRequest(context)))
+                .compose(bidRequest -> exchangeService.holdAuction(
+                        bidRequest, uidsCookieService.parseFromRequest(context), timeout(bidRequest, startTime)))
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
 
@@ -91,6 +103,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
         }
 
         return result;
+    }
+
+    private GlobalTimeout timeout(BidRequest bidRequest, long startTime) {
+        final Long tmax = bidRequest.getTmax();
+        return GlobalTimeout.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
     }
 
     private void handleResult(AsyncResult<BidResponse> responseResult, RoutingContext context) {

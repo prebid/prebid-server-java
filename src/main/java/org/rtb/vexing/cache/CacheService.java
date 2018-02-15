@@ -16,6 +16,7 @@ import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.PutObject;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.response.Bid;
 
@@ -24,6 +25,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -33,7 +35,6 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    private static final long HTTP_REQUEST_TIMEOUT = 1000L; // FIXME: request should be bounded by client timeout
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
@@ -52,14 +53,16 @@ public class CacheService {
      * <p>
      * The returned result will always have the same number of elements as the values argument.
      */
-    public Future<List<BidCacheResult>> cacheBids(List<Bid> bids) {
+    public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, GlobalTimeout timeout) {
         Objects.requireNonNull(bids);
+        Objects.requireNonNull(timeout);
+
         if (bids.isEmpty()) {
             return Future.succeededFuture(Collections.emptyList());
         }
 
         final String body = Json.encode(toRequest(bids));
-        return makeRequest(body, bids.size())
+        return makeRequest(body, bids.size(), timeout)
                 .map(this::toResponse);
     }
 
@@ -69,14 +72,16 @@ public class CacheService {
      * Stores JSON values for the given {@link com.iab.openrtb.response.Bid}s in the cache.
      * The returned result will always have the same number of elements as the values argument.
      */
-    public Future<List<String>> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids) {
+    public Future<List<String>> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids, GlobalTimeout timeout) {
         Objects.requireNonNull(bids);
+        Objects.requireNonNull(timeout);
+
         if (bids.isEmpty()) {
             return Future.succeededFuture(Collections.emptyList());
         }
 
         final String body = Json.encode(toRequestOpenrtb(bids));
-        return makeRequest(body, bids.size())
+        return makeRequest(body, bids.size(), timeout)
                 .map(this::toResponseOpenrtb);
     }
 
@@ -129,13 +134,20 @@ public class CacheService {
     /**
      * Asks external prebid cache service to store the given value.
      */
-    private Future<BidCacheResponse> makeRequest(String body, int bidCount) {
+    private Future<BidCacheResponse> makeRequest(String body, int bidCount, GlobalTimeout timeout) {
         final Future<BidCacheResponse> future = Future.future();
+
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            handleException(new TimeoutException(), future);
+            return future;
+        }
+
         httpClient.postAbs(endpointUrl, response -> handleResponse(response, bidCount, future))
                 .exceptionHandler(exception -> handleException(exception, future))
                 .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                .setTimeout(HTTP_REQUEST_TIMEOUT)
+                .setTimeout(remainingTimeout)
                 .end(body);
         return future;
     }

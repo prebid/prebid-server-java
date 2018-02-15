@@ -3,11 +3,15 @@ package org.rtb.vexing.adapter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.Bid.BidBuilder;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.BidResponse.BidResponseBuilder;
 import com.iab.openrtb.response.SeatBid;
+import com.iab.openrtb.response.SeatBid.SeatBidBuilder;
 import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -30,18 +34,24 @@ import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.exception.PreBidException;
+import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.AdUnitBid;
+import org.rtb.vexing.model.AdUnitBid.AdUnitBidBuilder;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.BidderResult;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -50,11 +60,11 @@ import static java.util.Collections.*;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.*;
 
 public class HttpConnectorTest extends VertxTest {
@@ -78,7 +88,7 @@ public class HttpConnectorTest extends VertxTest {
     @Before
     public void setUp() {
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
-                .willReturn(singletonList(givenHttpRequestCustomizable(null, identity())));
+                .willReturn(singletonList(givenHttpRequest(null, identity())));
 
         given(httpClient.postAbs(anyString(), any())).willReturn(httpClientRequest);
 
@@ -87,7 +97,7 @@ public class HttpConnectorTest extends VertxTest {
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
         bidder = Bidder.from(null, null);
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+        preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         httpConnector = new HttpConnector(httpClient);
     }
 
@@ -109,7 +119,7 @@ public class HttpConnectorTest extends VertxTest {
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add("key1", "value1");
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
-                .willReturn(singletonList(givenHttpRequestCustomizable(headers, identity())));
+                .willReturn(singletonList(givenHttpRequest(headers, identity())));
 
         // when
         httpConnector.call(adapter, bidder, preBidRequestContext);
@@ -117,14 +127,24 @@ public class HttpConnectorTest extends VertxTest {
         // then
         assertThat(httpClientRequest.headers()).extracting(Map.Entry::getKey).containsOnly("key1");
         assertThat(httpClientRequest.headers()).extracting(Map.Entry::getValue).containsOnly("value1");
-        verify(httpClientRequest).setTimeout(eq(1000L));
+    }
+
+    @Test
+    public void callShouldPerformHttpRequestsWithExpectedTimeout() {
+        // when
+        httpConnector.call(adapter, bidder, preBidRequestContext);
+
+        // then
+        final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
+        assertThat(timeoutCaptor.getValue()).isCloseTo(1000L, offset(20L));
     }
 
     @Test
     public void callShouldPerformHttpRequestsWithExpectedBody() throws IOException {
         // given
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
-                .willReturn(singletonList(givenHttpRequestCustomizable(null, b -> b.id("bidRequest1"))));
+                .willReturn(singletonList(givenHttpRequest(null, b -> b.id("bidRequest1"))));
 
         // when
         httpConnector.call(adapter, bidder, preBidRequestContext);
@@ -163,10 +183,44 @@ public class HttpConnectorTest extends VertxTest {
     }
 
     @Test
+    public void callShouldSubmitTimeOutErrorToAdapterIfGlobalTimeoutAlreadyExpired() {
+        // given
+        preBidRequestContext = givenPreBidRequestContext(
+                builder -> builder.timeout(GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000)),
+                identity());
+
+        // when
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.timedOut).isTrue();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("Timed out");
+        verifyZeroInteractions(httpClient);
+    }
+
+    @Test
     public void callShouldSubmitTimeOutErrorToAdapterIfConnectTimeoutOccurs() {
         // given
         given(httpClientRequest.exceptionHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(new ConnectTimeoutException()));
+
+        // when
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.timedOut).isTrue();
+        assertThat(bidderResult.bidderStatus).isNotNull();
+        assertThat(bidderResult.bidderStatus.error).isEqualTo("Timed out");
+    }
+
+    @Test
+    public void callShouldSubmitTimeOutErrorToAdapterIfTimeoutOccurs() {
+        // given
+        given(httpClientRequest.exceptionHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException()));
 
         // when
         final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
@@ -198,9 +252,6 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        httpConnector.call(adapter, bidder, preBidRequestContext);
-
-        // then
         final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
 
         // then
@@ -214,9 +265,6 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(204, "response");
 
         // when
-        httpConnector.call(adapter, bidder, preBidRequestContext);
-
-        // then
         final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
 
         // then
@@ -231,9 +279,6 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(503, "response");
 
         // when
-        httpConnector.call(adapter, bidder, preBidRequestContext);
-
-        // then
         final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
 
         // then
@@ -257,13 +302,13 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldReturnBidderResultWithoutErrorIfBidsArePresent() throws JsonProcessingException {
         // given
-        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity());
+        final AdUnitBid adUnitBid = givenAdUnitBid(identity());
         bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()));
 
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), singletonList(identity()));
+        final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
         given(httpClientResponse.bodyHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)))
@@ -284,17 +329,17 @@ public class HttpConnectorTest extends VertxTest {
             throws JsonProcessingException {
         // given
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
-                .willReturn(asList(givenHttpRequestCustomizable(null, identity()),
-                        givenHttpRequestCustomizable(null, identity())));
+                .willReturn(asList(givenHttpRequest(null, identity()),
+                        givenHttpRequest(null, identity())));
 
-        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity());
+        final AdUnitBid adUnitBid = givenAdUnitBid(identity());
         bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()));
 
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), singletonList(identity()));
+        final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(200);
         given(httpClientResponse.bodyHandler(any()))
@@ -326,19 +371,19 @@ public class HttpConnectorTest extends VertxTest {
             throws JsonProcessingException {
         // given
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
-                .willReturn(asList(givenHttpRequestCustomizable(null, identity()),
-                        givenHttpRequestCustomizable(null, identity())));
+                .willReturn(asList(givenHttpRequest(null, identity()),
+                        givenHttpRequest(null, identity())));
 
         given(adapter.tolerateErrors()).willReturn(true);
 
-        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity());
+        final AdUnitBid adUnitBid = givenAdUnitBid(identity());
         bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()))
                 .willReturn(null);
 
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), singletonList(identity()));
+        final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(200);
         given(httpClientResponse.bodyHandler(any()))
@@ -370,17 +415,17 @@ public class HttpConnectorTest extends VertxTest {
             throws JsonProcessingException {
         // given
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
-                .willReturn(asList(givenHttpRequestCustomizable(null, identity()),
-                        givenHttpRequestCustomizable(null, identity())));
+                .willReturn(asList(givenHttpRequest(null, identity()),
+                        givenHttpRequest(null, identity())));
 
-        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity());
+        final AdUnitBid adUnitBid = givenAdUnitBid(identity());
         bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()))
                 .willThrow(new PreBidException("adapter extractBids exception"));
 
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), singletonList(identity()));
+        final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
@@ -398,19 +443,19 @@ public class HttpConnectorTest extends VertxTest {
             throws JsonProcessingException {
         // given
         given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
-                .willReturn(asList(givenHttpRequestCustomizable(null, identity()),
-                        givenHttpRequestCustomizable(null, identity())));
+                .willReturn(asList(givenHttpRequest(null, identity()),
+                        givenHttpRequest(null, identity())));
 
         given(adapter.tolerateErrors()).willReturn(true);
 
-        final AdUnitBid adUnitBid = givenAdUnitBidCustomizable(identity());
+        final AdUnitBid adUnitBid = givenAdUnitBid(identity());
         bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()))
                 .willThrow(new PreBidException("adapter extractBids exception"));
 
-        final String bidResponse = givenBidResponseCustomizable(identity(), identity(), singletonList(identity()));
+        final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
@@ -427,7 +472,7 @@ public class HttpConnectorTest extends VertxTest {
             throws JsonProcessingException {
         // given
         bidder = Bidder.from("bidderCode1", singletonList(
-                givenAdUnitBidCustomizable(builder -> builder
+                givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .sizes(asList(Format.builder().w(100).h(200).build(), Format.builder().w(100).h(200).build()))
                         .bidId("bidId1"))));
@@ -439,7 +484,7 @@ public class HttpConnectorTest extends VertxTest {
                         .mediaType(MediaType.banner)));
 
         givenHttpClientReturnsResponses(200,
-                givenBidResponseCustomizable(identity(), identity(), singletonList(identity())));
+                givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
         final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
@@ -455,7 +500,7 @@ public class HttpConnectorTest extends VertxTest {
             throws IOException {
         // given
         givenHttpClientReturnsResponses(200,
-                givenBidResponseCustomizable(identity(), identity(), singletonList(identity())));
+                givenBidResponse(identity(), identity(), singletonList(identity())));
 
         given(adapter.usersyncInfo()).willReturn(UsersyncInfo.builder().url("url1").build());
 
@@ -473,11 +518,11 @@ public class HttpConnectorTest extends VertxTest {
     public void callShouldReturnBidderResultWithoutNoCookieIfNoAdapterUidInCookieAndAppPresentInPreBidRequest()
             throws IOException {
         // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
+        preBidRequestContext = givenPreBidRequestContext(identity(),
                 builder -> builder.app(App.builder().build()).user(User.builder().build()));
 
         givenHttpClientReturnsResponses(200,
-                givenBidResponseCustomizable(identity(), identity(), singletonList(identity())));
+                givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
         final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
@@ -491,13 +536,13 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldReturnBidderResultWithDebugIfFlagIsTrue() throws JsonProcessingException {
         // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(true), identity());
+        preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 
         bidder = Bidder.from("bidderCode1", asList(
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1")),
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
-        final String bidResponse = givenBidResponseCustomizable(builder -> builder.id("bidResponseId1"),
+        final String bidResponse = givenBidResponse(builder -> builder.id("bidResponseId1"),
                 identity(),
                 asList(bidBuilder -> bidBuilder.impid("adUnitCode1"), bidBuilder -> bidBuilder.impid("adUnitCode2")));
         givenHttpClientReturnsResponses(200, bidResponse);
@@ -524,10 +569,10 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldReturnBidderResultWithoutDebugIfFlagIsFalse() throws JsonProcessingException {
         // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(false), identity());
+        preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(false), identity());
 
         givenHttpClientReturnsResponses(200,
-                givenBidResponseCustomizable(identity(), identity(), singletonList(identity())));
+                givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
         final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
@@ -537,9 +582,30 @@ public class HttpConnectorTest extends VertxTest {
     }
 
     @Test
+    public void callShouldReturnBidderResultWithDebugIfFlagIsTrueAndGlobalTimeoutAlreadyExpired() {
+        // given
+        preBidRequestContext = givenPreBidRequestContext(
+                builder -> builder
+                        .timeout(GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000))
+                        .isDebug(true),
+                identity());
+
+        // when
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+
+        // then
+        final BidderResult bidderResult = bidderResultFuture.result();
+        assertThat(bidderResult.bidderStatus.debug).hasSize(1);
+
+        final BidderDebug bidderDebug = bidderResult.bidderStatus.debug.get(0);
+        assertThat(bidderDebug.requestUri).isNotBlank();
+        assertThat(bidderDebug.requestBody).isNotBlank();
+    }
+
+    @Test
     public void callShouldReturnBidderResultWithDebugIfFlagIsTrueAndHttpRequestFails() {
         // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(true), identity());
+        preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 
         given(httpClientRequest.exceptionHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
@@ -559,7 +625,7 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldReturnBidderResultWithDebugIfFlagIsTrueAndResponseIsNotSuccessful() {
         // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(builder -> builder.isDebug(true), identity());
+        preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 
         givenHttpClientReturnsResponses(503, "response");
 
@@ -583,58 +649,53 @@ public class HttpConnectorTest extends VertxTest {
         return mapper.readValue(bidRequestCaptor.getValue(), BidRequest.class);
     }
 
-    private static HttpRequest givenHttpRequestCustomizable(MultiMap headers,
-                                                            Function<BidRequest.BidRequestBuilder, BidRequest
-                                                                    .BidRequestBuilder> bidRequestBuilderCustomizer) {
+    private static HttpRequest givenHttpRequest(
+            MultiMap headers, Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer) {
+
         return HttpRequest.of("uri", headers, bidRequestBuilderCustomizer.apply(BidRequest.builder()).build());
     }
 
-    private static AdUnitBid givenAdUnitBidCustomizable(
-            Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
-
-        final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
+    private static AdUnitBid givenAdUnitBid(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
+        final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .adUnitCode("adUnitCode1")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .mediaTypes(singleton(MediaType.banner));
         return adUnitBidBuilderCustomizer.apply(adUnitBidBuilderMinimal).build();
     }
 
-    private PreBidRequestContext givenPreBidRequestContextCustomizable(
-            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext
-                    .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
-            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
-                    preBidRequestBuilderCustomizer) {
+    private PreBidRequestContext givenPreBidRequestContext(
+            Function<PreBidRequestContextBuilder, PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
+            Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
-        final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
+        final PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
                 .accountId("accountId");
         final PreBidRequest preBidRequest = preBidRequestBuilderCustomizer.apply(preBidRequestBuilderMinimal).build();
 
-        final PreBidRequestContext.PreBidRequestContextBuilder preBidRequestContextBuilderMinimal =
+        final PreBidRequestContextBuilder preBidRequestContextBuilderMinimal =
                 PreBidRequestContext.builder()
                         .preBidRequest(preBidRequest)
                         .uidsCookie(uidsCookie)
-                        .timeout(1000L);
+                        .timeout(GlobalTimeout.create(1000L));
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 
-    private static String givenBidResponseCustomizable(
-            Function<BidResponse.BidResponseBuilder, BidResponse.BidResponseBuilder> bidResponseBuilderCustomizer,
-            Function<SeatBid.SeatBidBuilder, SeatBid.SeatBidBuilder> seatBidBuilderCustomizer,
-            List<Function<Bid.BidBuilder, Bid.BidBuilder>>
-                    bidBuilderCustomizers) throws JsonProcessingException {
+    private static String givenBidResponse(
+            Function<BidResponseBuilder, BidResponseBuilder> bidResponseBuilderCustomizer,
+            Function<SeatBidBuilder, SeatBidBuilder> seatBidBuilderCustomizer,
+            List<Function<BidBuilder, BidBuilder>> bidBuilderCustomizers) throws JsonProcessingException {
 
         // bid
-        final com.iab.openrtb.response.Bid.BidBuilder bidBuilderMinimal = com.iab.openrtb.response.Bid.builder();
+        final BidBuilder bidBuilderMinimal = com.iab.openrtb.response.Bid.builder();
         final List<Bid> bids = bidBuilderCustomizers.stream()
                 .map(bidBuilderBidBuilderFunction -> bidBuilderBidBuilderFunction.apply(bidBuilderMinimal).build())
                 .collect(Collectors.toList());
 
         // seatBid
-        final SeatBid.SeatBidBuilder seatBidBuilderMinimal = SeatBid.builder().bid(bids);
+        final SeatBidBuilder seatBidBuilderMinimal = SeatBid.builder().bid(bids);
         final SeatBid seatBid = seatBidBuilderCustomizer.apply(seatBidBuilderMinimal).build();
 
         // bidResponse
-        final BidResponse.BidResponseBuilder bidResponseBuilderMinimal = BidResponse.builder()
+        final BidResponseBuilder bidResponseBuilderMinimal = BidResponse.builder()
                 .seatbid(singletonList(seatBid));
         final BidResponse bidResponse = bidResponseBuilderCustomizer.apply(bidResponseBuilderMinimal).build();
 

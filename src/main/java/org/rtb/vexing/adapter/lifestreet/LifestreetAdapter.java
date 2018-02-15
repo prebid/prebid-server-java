@@ -116,7 +116,7 @@ public class LifestreetAdapter extends OpenrtbAdapter {
                 .map(imp -> BidRequest.builder()
                         .id(preBidRequestContext.preBidRequest.tid)
                         .at(1)
-                        .tmax(preBidRequestContext.timeout)
+                        .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
                         .imp(Collections.singletonList(imp))
                         .app(preBidRequestContext.preBidRequest.app)
                         .site(makeSite(preBidRequestContext))

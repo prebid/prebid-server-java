@@ -160,7 +160,7 @@ public class FacebookAdapter extends OpenrtbAdapter {
                 .map(imp -> BidRequest.builder()
                         .id(preBidRequestContext.preBidRequest.tid)
                         .at(1)
-                        .tmax(preBidRequestContext.timeout)
+                        .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
                         .imp(Collections.singletonList(imp))
                         .app(makeApp(preBidRequestContext, adUnitBidWithParams.params))
                         .site(makeSite(preBidRequestContext, adUnitBidWithParams.params))
