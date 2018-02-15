@@ -53,8 +53,8 @@ public class ApplicationTest extends VertxTest {
     private static final String FACEBOOK = "audienceNetwork";
     private static final String PULSEPOINT = "pulsepoint";
     private static final String INDEXEXCHANGE = "indexExchange";
-    private static final String LIFESTREET = "Lifestreet";
-    private static final String PUBMATIC = "Pubmatic";
+    private static final String LIFESTREET = "lifestreet";
+    private static final String PUBMATIC = "pubmatic";
     private static final String CONVERSANT = "conversant";
 
     private static final int APP_PORT = 8080;
@@ -89,6 +89,11 @@ public class ApplicationTest extends VertxTest {
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-rubicon-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-rubicon-bid-response-2.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-cache-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-cache-response.json"))));
 
         // when
         final Response response = given(spec)

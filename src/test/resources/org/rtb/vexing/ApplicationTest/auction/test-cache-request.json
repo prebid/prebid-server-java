@@ -3,7 +3,7 @@
     {
       "type": "json",
       "value": {
-        "adm": "adm9",
+        "adm": "adm8",
         "width": 300,
         "height": 250
       }
@@ -19,6 +19,14 @@
     {
       "type": "xml",
       "value": "adm4"
+    },
+    {
+      "type": "json",
+      "value": {
+        "adm": "adm9",
+        "width": 300,
+        "height": 250
+      }
     },
     {
       "type": "xml",
@@ -44,14 +52,6 @@
       "type": "json",
       "value": {
         "adm": "adm6",
-        "width": 300,
-        "height": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "adm": "adm8",
         "width": 300,
         "height": 250
       }

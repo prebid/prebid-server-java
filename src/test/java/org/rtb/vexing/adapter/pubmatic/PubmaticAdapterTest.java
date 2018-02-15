@@ -50,8 +50,7 @@ import static org.mockito.BDDMockito.given;
 
 public class PubmaticAdapterTest extends VertxTest {
 
-    private static final String ADAPTER = "Pubmatic";
-    private static final String UID_COOKIE = "pubmatic";
+    private static final String ADAPTER = "pubmatic";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
     private static final String EXTERNAL_URL = "http://external.org/";
@@ -143,7 +142,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .valueToTree(PubmaticParams.of("publisherID", "slot42@200xNonNumber"))))
         ));
 
-        given(uidsCookie.uidFrom(eq(UID_COOKIE))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
@@ -176,7 +175,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .params(defaultNamingMapper
                                 .valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
 
-        given(uidsCookie.uidFrom(eq(UID_COOKIE))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
@@ -242,7 +241,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .tid("tid")
         );
 
-        given(uidsCookie.uidFrom(eq(UID_COOKIE))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);

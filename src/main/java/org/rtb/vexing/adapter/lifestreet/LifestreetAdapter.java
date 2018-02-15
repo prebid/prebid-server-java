@@ -55,7 +55,7 @@ public class LifestreetAdapter extends OpenrtbAdapter {
 
     @Override
     public String code() {
-        return "Lifestreet";
+        return "lifestreet";
     }
 
     @Override

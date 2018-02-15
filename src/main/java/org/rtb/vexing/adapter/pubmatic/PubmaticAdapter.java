@@ -64,7 +64,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
 
     @Override
     public String code() {
-        return "Pubmatic";
+        return "pubmatic";
     }
 
     @Override

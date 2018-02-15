@@ -232,7 +232,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.saveBids(anyList())).willReturn(Future.succeededFuture(singletonList(BidCacheResult
+        given(cacheService.cacheBids(anyList())).willReturn(Future.succeededFuture(singletonList(BidCacheResult
                 .builder()
                 .cacheId("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315")
                 .cacheUrl("cached_asset_url")
@@ -243,7 +243,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(cacheService).saveBids(anyList());
+        verify(cacheService).cacheBids(anyList());
 
         final PreBidResponse preBidResponse = capturePreBidResponse();
         assertThat(preBidResponse.bids).extracting(b -> b.adm).containsNull();
@@ -291,7 +291,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.saveBids(anyList())).willReturn(Future.failedFuture("http exception"));
+        given(cacheService.cacheBids(anyList())).willReturn(Future.failedFuture("http exception"));
 
         // when
         auctionHandler.handle(routingContext);
@@ -648,7 +648,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.saveBids(anyList())).willReturn(Future.failedFuture("http exception"));
+        given(cacheService.cacheBids(anyList())).willReturn(Future.failedFuture("http exception"));
 
         // when
         auctionHandler.handle(routingContext);

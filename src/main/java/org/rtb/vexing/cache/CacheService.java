@@ -27,7 +27,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Interacts with prebid cache service
+ * Client stores values in Prebid Cache. For more info, see https://github.com/prebid/prebid-cache
  */
 public class CacheService {
 
@@ -47,25 +47,45 @@ public class CacheService {
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
     }
 
-    public Future<List<BidCacheResult>> saveBids(List<Bid> bids) {
+    /**
+     * Makes cache for bids (legacy).
+     * <p>
+     * The returned result will always have the same number of elements as the values argument.
+     */
+    public Future<List<BidCacheResult>> cacheBids(List<Bid> bids) {
         Objects.requireNonNull(bids);
         if (bids.isEmpty()) {
             return Future.succeededFuture(Collections.emptyList());
         }
 
-        final Future<List<BidCacheResult>> future = Future.future();
-        httpClient.postAbs(endpointUrl, response -> handleResponse(response, bids, future))
-                .exceptionHandler(exception -> handleException(exception, future))
-                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                .setTimeout(HTTP_REQUEST_TIMEOUT)
-                .end(Json.encode(toBidCacheRequest(bids)));
-        return future;
+        final String body = Json.encode(toRequest(bids));
+        return makeRequest(body, bids.size())
+                .map(this::toResponse);
     }
 
-    private BidCacheRequest toBidCacheRequest(List<Bid> bids) {
+    /**
+     * Makes cache for OpenRTB bids.
+     * <p>
+     * Stores JSON values for the given {@link com.iab.openrtb.response.Bid}s in the cache.
+     * The returned result will always have the same number of elements as the values argument.
+     */
+    public Future<List<String>> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids) {
+        Objects.requireNonNull(bids);
+        if (bids.isEmpty()) {
+            return Future.succeededFuture(Collections.emptyList());
+        }
+
+        final String body = Json.encode(toRequestOpenrtb(bids));
+        return makeRequest(body, bids.size())
+                .map(this::toResponseOpenrtb);
+    }
+
+    /**
+     * Creates bid cache request for the given {@link Bid}s.
+     */
+    private static BidCacheRequest toRequest(List<Bid> bids) {
         final List<PutObject> putObjects = bids.stream()
-                .map(this::toPutObject)
+                .map(CacheService::toPutObject)
                 .collect(Collectors.toList());
 
         return BidCacheRequest.builder()
@@ -73,7 +93,10 @@ public class CacheService {
                 .build();
     }
 
-    private PutObject toPutObject(Bid bid) {
+    /**
+     * Makes put object from {@link Bid}. Used for legacy auction request.
+     */
+    private static PutObject toPutObject(Bid bid) {
         final PutObject.PutObjectBuilder builder = PutObject.builder();
         if (MediaType.video.equals(bid.mediaType)) {
             builder.type("xml");
@@ -87,57 +110,115 @@ public class CacheService {
         return builder.build();
     }
 
-    private void handleResponse(HttpClientResponse response, List<Bid> bids, Future<List<BidCacheResult>> future) {
+    /**
+     * Creates bid cache request for the given {@link com.iab.openrtb.response.Bid}s.
+     */
+    private static BidCacheRequest toRequestOpenrtb(List<com.iab.openrtb.response.Bid> bids) {
+        final List<PutObject> putObjects = bids.stream()
+                .map(bid -> PutObject.builder()
+                        .type("json")
+                        .value(Json.mapper.valueToTree(bid))
+                        .build())
+                .collect(Collectors.toList());
+
+        return BidCacheRequest.builder()
+                .puts(putObjects)
+                .build();
+    }
+
+    /**
+     * Asks external prebid cache service to store the given value.
+     */
+    private Future<BidCacheResponse> makeRequest(String body, int bidCount) {
+        final Future<BidCacheResponse> future = Future.future();
+        httpClient.postAbs(endpointUrl, response -> handleResponse(response, bidCount, future))
+                .exceptionHandler(exception -> handleException(exception, future))
+                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
+                .setTimeout(HTTP_REQUEST_TIMEOUT)
+                .end(body);
+        return future;
+    }
+
+    /**
+     * Adds body handler and exception handler to {@link HttpClientResponse}.
+     */
+    private static void handleResponse(HttpClientResponse response, int bidCount, Future<BidCacheResponse> future) {
         response
-                .bodyHandler(buffer -> handleResponseAndBody(response.statusCode(), buffer.toString(), bids, future))
+                .bodyHandler(
+                        buffer -> handleResponseAndBody(response.statusCode(), buffer.toString(), bidCount, future))
                 .exceptionHandler(exception -> handleException(exception, future));
     }
 
-    private void handleResponseAndBody(int statusCode, String body, List<Bid> bids,
-                                       Future<List<BidCacheResult>> future) {
-
+    /**
+     * Analyzes response status/body and completes input {@link Future}
+     * with obtained result from prebid cache service or fails it in case of errors.
+     */
+    private static void handleResponseAndBody(int statusCode, String body, int bidCount,
+                                              Future<BidCacheResponse> future) {
         if (statusCode != 200) {
             logger.warn("Cache service response code is {0}, body: {1}", statusCode, body);
-            future.fail(new PreBidException(String.format("HTTP status code %d", statusCode)));
-        } else {
-            processBidCacheResponse(body, bids, future);
+            future.fail(new PreBidException(String.format("HTTP status code %d, body: %s", statusCode, body)));
+            return;
         }
-    }
 
-    private void handleException(Throwable exception, Future<List<BidCacheResult>> future) {
-        logger.warn("Error occurred while sending request to cache service", exception);
-        future.fail(exception);
-    }
-
-    private void processBidCacheResponse(String body, List<Bid> bids, Future<List<BidCacheResult>> future) {
         final BidCacheResponse bidCacheResponse;
         try {
             bidCacheResponse = Json.decodeValue(body, BidCacheResponse.class);
         } catch (DecodeException e) {
-            logger.warn("Error occurred while parsing bid cache response: {0}", body, e);
+            logger.warn("Error occurred while parsing bid cache response: {0}", e, body);
             future.fail(e);
             return;
         }
 
-        if (bidCacheResponse.responses == null || bidCacheResponse.responses.size() != bids.size()) {
+        if (bidCacheResponse.responses == null || bidCacheResponse.responses.size() != bidCount) {
             future.fail(new PreBidException("Put response length didn't match"));
             return;
         }
 
-        final List<BidCacheResult> results = bidCacheResponse.responses.stream()
-                .map(cacheResponse -> BidCacheResult.builder()
-                        .cacheId(cacheResponse.uuid)
-                        .cacheUrl(getCachedAssetURL(cacheResponse.uuid))
-                        .build())
-                .collect(Collectors.toList());
-        future.complete(results);
+        future.complete(bidCacheResponse);
     }
 
+    /**
+     * Completes input {@link Future} with the given exception.
+     */
+    private static void handleException(Throwable exception, Future<BidCacheResponse> future) {
+        logger.warn("Error occurred while sending request to cache service", exception);
+        future.fail(exception);
+    }
+
+    /**
+     * Creates prebid cache service response for legacy auction request.
+     */
+    private List<BidCacheResult> toResponse(BidCacheResponse bidCacheResponse) {
+        return bidCacheResponse.responses.stream()
+                .map(cacheObject -> BidCacheResult.builder()
+                        .cacheId(cacheObject.uuid)
+                        .cacheUrl(getCachedAssetURL(cacheObject.uuid))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Creates prebid cache service response for OpenRTB auction request.
+     */
+    private List<String> toResponseOpenrtb(BidCacheResponse bidCacheResponse) {
+        return bidCacheResponse.responses.stream()
+                .map(cacheObject -> cacheObject.uuid)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Composes cached asset URL for the given UUID cache value.
+     */
     public String getCachedAssetURL(String uuid) {
         Objects.requireNonNull(uuid);
         return cachedAssetUrlTemplate.replaceFirst("%PBS_CACHE_UUID%", uuid);
     }
 
+    /**
+     * Composes prebid cache service url against the given schema and host.
+     */
     public static String getCacheEndpointUrl(String cacheSchema, String cacheHost) {
         try {
             final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
@@ -147,6 +228,9 @@ public class CacheService {
         }
     }
 
+    /**
+     * Composes cached asset url template against the given query, schema and host.
+     */
     public static String getCachedAssetUrlTemplate(String cacheQuery, String cacheSchema, String cacheHost) {
         try {
             final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
@@ -156,6 +240,9 @@ public class CacheService {
         }
     }
 
+    /**
+     * Returns prebid cache service url or throws {@link MalformedURLException} if error occurs.
+     */
     private static URL getCacheBaseUrl(String cacheSchema, String cacheHost) throws MalformedURLException {
         return new URL(cacheSchema + "://" + cacheHost);
     }

@@ -16,6 +16,7 @@ import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtUser;
 
 import java.util.Iterator;
@@ -59,6 +60,10 @@ public class RequestValidator {
                 throw new ValidationException("request.tmax must be nonnegative. Got %s", bidRequest.getTmax());
             }
 
+            if (bidRequest.getExt() != null) {
+                validateExt(bidRequest.getExt());
+            }
+
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
                 throw new ValidationException("request.imp must contain at least one element.");
             }
@@ -78,6 +83,14 @@ public class RequestValidator {
             return ValidationResult.error(ex.getMessage());
         }
         return ValidationResult.success();
+    }
+
+    private void validateExt(ObjectNode ext) throws ValidationException {
+        try {
+            Json.mapper.treeToValue(ext, ExtBidRequest.class);
+        } catch (JsonProcessingException e) {
+            throw new ValidationException("request.ext is invalid: %s", e.getMessage());
+        }
     }
 
     private void validateSite(Site site) throws ValidationException {

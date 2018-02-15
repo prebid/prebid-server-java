@@ -16,11 +16,13 @@
               "targeting": {
                 "hb_pb": "8.40",
                 "hb_pb_rubicon": "8.40",
+                "hb_cache_id_rubicon": "a93c0531-d0e9-43f8-9b98-b60116c8dc84",
                 "hb_deal_rubicon": "dealId1",
                 "hb_size": "300x250",
                 "hb_bidder": "rubicon",
                 "hb_size_rubicon": "300x250",
                 "hb_bidder_rubicon": "rubicon",
+                "hb_cache_id": "a93c0531-d0e9-43f8-9b98-b60116c8dc84",
                 "hb_creative_loadtype": "html",
                 "hb_deal": "dealId1"
               },
@@ -53,11 +55,13 @@
               "targeting": {
                 "hb_pb": "4.20",
                 "hb_pb_rubicon": "4.20",
+                "hb_cache_id_rubicon": "683fe79f-6df7-4971-ac70-820e0486992d",
                 "hb_deal_rubicon": "dealId2",
                 "hb_size": "300x600",
                 "hb_bidder": "rubicon",
                 "hb_size_rubicon": "300x600",
                 "hb_bidder_rubicon": "rubicon",
+                "hb_cache_id": "683fe79f-6df7-4971-ac70-820e0486992d",
                 "hb_creative_loadtype": "html",
                 "hb_deal": "dealId2"
               },
@@ -76,13 +80,13 @@
         "rubicon": [
           {
             "uri": "{{ rubicon.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1],\"ext\":{\"skip\":5,\"skipdelay\":1,\"rp\":{\"size_id\":15}}},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"rating\":\"5-star\",\"prodtype\":\"tech\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"ext\":{\"rp\":{\"target\":{\"ucat\":\"new\",\"search\":\"iphone\"}},\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"prebid\":{\"targeting\":{\"pricegranularity\":\"med\"}}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1],\"ext\":{\"skip\":5,\"skipdelay\":1,\"rp\":{\"size_id\":15}}},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"rating\":\"5-star\",\"prodtype\":\"tech\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"ext\":{\"rp\":{\"target\":{\"ucat\":\"new\",\"search\":\"iphone\"}},\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"prebid\":{\"targeting\":{\"pricegranularity\":\"med\"},\"cache\":{\"bids\":[]}}}}",
             "responsebody": "{\"id\":\"bidResponseId1\",\"seatbid\":[{\"bid\":[{\"impid\":\"impId1\",\"price\":8.43,\"adm\":\"adm1\",\"crid\":\"crid1\",\"dealid\":\"dealId1\",\"w\":300,\"h\":250,\"ext\":{\"rp\":{\"targeting\":[{\"key\":\"rpfl_1001\",\"values\":[\"2_tier0100\"]}]}}}],\"seat\":\"seatId1\",\"group\":0}]}",
             "status": 200
           },
           {
             "uri": "{{ rubicon.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId2\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":600,\"ext\":{\"rp\":{\"size_id\":10,\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":7001,\"track\":{\"mint\":\"\",\"mint_version\":\"\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":5001}}},\"ext\":{\"rp\":{\"site_id\":6001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"prebid\":{\"targeting\":{\"pricegranularity\":\"med\"}}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId2\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":600,\"ext\":{\"rp\":{\"size_id\":10,\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":7001,\"track\":{\"mint\":\"\",\"mint_version\":\"\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":5001}}},\"ext\":{\"rp\":{\"site_id\":6001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"prebid\":{\"targeting\":{\"pricegranularity\":\"med\"},\"cache\":{\"bids\":[]}}}}",
             "responsebody": "{\"id\":\"bidResponseId2\",\"seatbid\":[{\"bid\":[{\"impid\":\"impId2\",\"price\":4.26,\"adm\":\"adm2\",\"crid\":\"crid2\",\"dealid\":\"dealId2\",\"w\":300,\"h\":600}],\"seat\":\"seatId2\",\"group\":0}]}",
             "status": 200
           }

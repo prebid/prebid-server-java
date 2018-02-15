@@ -225,7 +225,7 @@
       "bids": [
         {
           "bid_id": "bidId8",
-          "bidder": "Lifestreet",
+          "bidder": "lifestreet",
           "params": {
             "slot_tag": "slot.tag1"
           }
@@ -246,7 +246,7 @@
       "bids": [
         {
           "bid_id": "bidId9",
-          "bidder": "Pubmatic",
+          "bidder": "pubmatic",
           "params": {
             "publisherId": "publisherId9",
             "adSlot": "slot9@300x250:zzz"

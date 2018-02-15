@@ -67,11 +67,11 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void constructorShouldFailOnNullArguments() {
+    public void creationShouldFailOnNullArguments() {
         // then
-        assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, null, "url"));
+        assertThatNullPointerException().isThrownBy(() -> new CacheService(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, null, null));
         assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, "url", null));
-        assertThatNullPointerException().isThrownBy(() -> new CacheService(null, "url", "url"));
     }
 
     @Test
@@ -112,15 +112,31 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldFailIfBidsAreNull() {
+    public void getCachedAssetURLShouldFailIfUUIDIsMissing() {
         // then
-        assertThatNullPointerException().isThrownBy(() -> cacheService.saveBids(null));
+        assertThatNullPointerException().isThrownBy(() -> cacheService.getCachedAssetURL(null));
     }
 
     @Test
-    public void shouldReturnEmptyResponseIfBidsAreEmpty() {
+    public void getCachedAssetURLShouldReturnExpectedValue() {
         // when
-        final List<BidCacheResult> result = cacheService.saveBids(emptyList()).result();
+        final String cachedAssetURL = cacheService.getCachedAssetURL("uuid1");
+
+        // then
+        assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=uuid1");
+    }
+
+    @Test
+    public void shouldFailIfBidsAreNull() {
+        // then
+        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBids(null));
+        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBidsOpenrtb(null));
+    }
+
+    @Test
+    public void cacheBidsShouldReturnEmptyResponseIfBidsAreEmpty() {
+        // when
+        final List<BidCacheResult> result = cacheService.cacheBids(emptyList()).result();
 
         // then
         verifyZeroInteractions(httpClient);
@@ -128,7 +144,7 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRequestToCacheServiceWithExpectedParams() throws Exception {
+    public void cacheBidsShouldRequestToCacheServiceWithExpectedParams() throws Exception {
         // given
         final String val1 = "<script type=\"application/javascript\" src=\"http://nym1-ib.adnxs"
                 + "f3919239&pp=${AUCTION_PRICE}&\"></script>";
@@ -136,7 +152,7 @@ public class CacheServiceTest extends VertxTest {
                 + "width=\"184\" height=\"90\" alt=\"\" class=\"img_ad\">";
 
         // when
-        cacheService.saveBids(asList(
+        cacheService.cacheBids(asList(
                 Bid.builder().adm("adm1").nurl("nurl1").height(100).width(200).build(),
                 Bid.builder().adm("adm2").nurl("nurl2").height(300).width(400).build(),
 
@@ -185,85 +201,85 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldFailIfHttpRequestFails() {
+    public void cacheBidsShouldFailIfHttpRequestFails() {
         // given
         given(httpClientRequest.exceptionHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+        final Future<?> future = cacheService.cacheBids(singleBidList());
 
         // then
-        assertThat(bidCacheResultFuture.failed()).isTrue();
-        assertThat(bidCacheResultFuture.cause()).isInstanceOf(RuntimeException.class).hasMessage("Request exception");
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(RuntimeException.class).hasMessage("Request exception");
     }
 
     @Test
-    public void shouldFailIfReadingHttpResponseFails() {
+    public void cacheBidsShouldFailIfReadingHttpResponseFails() {
         // given
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+        final Future<?> future = cacheService.cacheBids(singleBidList());
 
         // then
-        assertThat(bidCacheResultFuture.failed()).isTrue();
-        assertThat(bidCacheResultFuture.cause()).isInstanceOf(RuntimeException.class).hasMessage("Response exception");
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(RuntimeException.class).hasMessage("Response exception");
     }
 
     @Test
-    public void shouldFailIfResponseCodeIsNot200() {
+    public void cacheBidsShouldFailIfResponseCodeIsNot200() {
         // given
         givenHttpClientReturnsResponse(503, "response");
 
         // when
-        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+        final Future<?> future = cacheService.cacheBids(singleBidList());
 
         // then
-        assertThat(bidCacheResultFuture.failed()).isTrue();
-        assertThat(bidCacheResultFuture.cause()).isInstanceOf(PreBidException.class)
-                .hasMessage("HTTP status code 503");
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("HTTP status code 503, body: response");
     }
 
     @Test
-    public void shouldFailIfResponseBodyCouldNotBeParsed() {
+    public void cacheBidsShouldFailIfResponseBodyCouldNotBeParsed() {
         // given
         givenHttpClientReturnsResponse(200, "response");
 
         // when
-        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+        final Future<?> future = cacheService.cacheBids(singleBidList());
 
         // then
-        assertThat(bidCacheResultFuture.failed()).isTrue();
-        assertThat(bidCacheResultFuture.cause()).isInstanceOf(DecodeException.class);
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(DecodeException.class);
     }
 
     @Test
-    public void shouldFailIfCacheEntriesNumberDoesNotMatchBidsNumber() {
+    public void cacheBidsShouldFailIfCacheEntriesNumberDoesNotMatchBidsNumber() {
         // given
         givenHttpClientReturnsResponse(200, "{}");
 
         // when
-        final Future<?> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+        final Future<?> future = cacheService.cacheBids(singleBidList());
 
         // then
-        assertThat(bidCacheResultFuture.failed()).isTrue();
-        assertThat(bidCacheResultFuture.cause()).isInstanceOf(PreBidException.class)
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("Put response length didn't match");
     }
 
     @Test
-    public void shouldReturnCacheResult() throws JsonProcessingException {
+    public void cacheBidsShouldReturnCacheResult() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(BidCacheResponse.builder()
                 .responses(singletonList(CacheObject.builder().uuid("uuid1").build()))
                 .build()));
 
         // when
-        final Future<List<BidCacheResult>> bidCacheResultFuture = cacheService.saveBids(singleEmptyBid());
+        final Future<List<BidCacheResult>> future = cacheService.cacheBids(singleBidList());
 
         // then
-        final List<BidCacheResult> bidCacheResults = bidCacheResultFuture.result();
+        final List<BidCacheResult> bidCacheResults = future.result();
         assertThat(bidCacheResults).hasSize(1)
                 .containsOnly(BidCacheResult.builder()
                         .cacheId("uuid1")
@@ -272,18 +288,117 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldMakeHttpRequestUsingConfigurationParams() {
+    public void cacheBidsShouldMakeHttpRequestUsingConfigurationParams() {
         // given
         cacheService = new CacheService(httpClient, "https://cache-service-host:8888/cache",
                 "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
         // when
-        cacheService.saveBids(singleEmptyBid());
+        cacheService.cacheBids(singleBidList());
 
         // then
         verify(httpClient).postAbs(eq("https://cache-service-host:8888/cache"), any());
     }
 
-    private static List<Bid> singleEmptyBid() {
+    @Test
+    public void cacheBidsShouldReturnEmptyResultIfBidsAreEmpty() {
+        // when
+        final Future<?> future = cacheService.cacheBidsOpenrtb(emptyList());
+
+        // then
+        verifyZeroInteractions(httpClient);
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(emptyList());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldFailIfHttpRequestFails() {
+        // given
+        given(httpClientRequest.exceptionHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
+
+        // when
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(RuntimeException.class).hasMessage("Request exception");
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldFailIfReadingHttpResponseFails() {
+        // given
+        givenHttpClientProducesException(new RuntimeException("Response exception"));
+
+        // when
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(RuntimeException.class).hasMessage("Response exception");
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldFailIfResponseCodeIsNot200() {
+        // given
+        givenHttpClientReturnsResponse(503, "response");
+
+        // when
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("HTTP status code 503, body: response");
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldFailIfResponseBodyCouldNotBeParsed() {
+        // given
+        givenHttpClientReturnsResponse(200, "response");
+
+        // when
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(DecodeException.class);
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldReturnEmptyResultIfCacheEntriesNumberDoesNotMatchBidsNumber() {
+        // given
+        givenHttpClientReturnsResponse(200, "{}");
+
+        // when
+        final Future<?> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("Put response length didn't match");
+    }
+
+    @Test
+    public void cacheBidsOpenrtb() throws JsonProcessingException {
+        // given
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(BidCacheResponse.builder()
+                .responses(singletonList(CacheObject.builder().uuid("uuid1").build()))
+                .build()));
+
+        // when
+        final Future<List<String>> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb());
+
+        // then
+        final List<String> result = future.result();
+        assertThat(result).hasSize(1)
+                .containsOnly("uuid1");
+    }
+
+    private static List<com.iab.openrtb.response.Bid> singleBidListOpenrtb() {
+        return singletonList(com.iab.openrtb.response.Bid.builder().build());
+    }
+
+    private static List<Bid> singleBidList() {
         return singletonList(Bid.builder().build());
     }
 
@@ -292,7 +407,6 @@ public class CacheServiceTest extends VertxTest {
         given(httpClientResponse.bodyHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
     }
-
 
     private void givenHttpClientProducesException(Throwable throwable) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
@@ -324,21 +438,6 @@ public class CacheServiceTest extends VertxTest {
             ((Handler<T>) inv.getArgument(0)).handle(obj);
             return inv.getMock();
         };
-    }
-
-    @Test
-    public void shouldFailCachedAssetURLIfUUIDIsMissing() {
-        // then
-        assertThatNullPointerException().isThrownBy(() -> cacheService.getCachedAssetURL(null));
-    }
-
-    @Test
-    public void shouldReturnCachedAssetURLForUUID() {
-        // when
-        final String cachedAssetURL = cacheService.getCachedAssetURL("uuid1");
-
-        // then
-        assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=uuid1");
     }
 
     private BidCacheRequest captureBidCacheRequest() throws IOException {

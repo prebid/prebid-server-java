@@ -26,11 +26,13 @@ import org.rtb.vexing.bidder.Bidder;
 import org.rtb.vexing.bidder.HttpConnector;
 import org.rtb.vexing.bidder.model.BidderBid;
 import org.rtb.vexing.bidder.model.BidderSeatBid;
+import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebid;
+import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebidCache;
 import org.rtb.vexing.model.openrtb.ext.request.ExtRequestTargeting;
 import org.rtb.vexing.model.openrtb.ext.response.ExtBidPrebid;
 import org.rtb.vexing.model.openrtb.ext.response.ExtBidResponse;
@@ -63,6 +65,8 @@ public class ExchangeServiceTest extends VertxTest {
     private HttpConnector httpConnector;
     @Mock
     private BidderCatalog bidderCatalog;
+    @Mock
+    private CacheService cacheService;
 
     private ExchangeService exchangeService;
 
@@ -76,13 +80,14 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.byName(anyString())).willReturn(bidder);
         given(bidder.cookieFamilyName()).willReturn("cookieFamily");
 
-        exchangeService = new ExchangeService(httpConnector, bidderCatalog);
+        exchangeService = new ExchangeService(httpConnector, bidderCatalog, cacheService);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new ExchangeService(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new ExchangeService(httpConnector, null));
+        assertThatNullPointerException().isThrownBy(() -> new ExchangeService(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new ExchangeService(httpConnector, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new ExchangeService(httpConnector, bidderCatalog, null));
     }
 
     @Test
@@ -454,7 +459,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of(null, null), null)))));
+                        ExtRequestTargeting.of(null, null), null, null)))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie).result();
@@ -475,7 +480,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of("invalid", null), null)))));
+                        ExtRequestTargeting.of("invalid", null), null, null)))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie).result();
@@ -504,7 +509,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1")),
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of("low", 20), null)))));
+                        ExtRequestTargeting.of("low", 20), null, null)))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie).result();
@@ -519,6 +524,105 @@ public class ExchangeServiceTest extends VertxTest {
                         tuple("bidId2", "bidder1"),
                         tuple("bidId3", "bidder2"),
                         tuple("bidId4", null));
+    }
+
+    @Test
+    public void shouldPopulateCacheIdTargetingKeywords() {
+        // given
+        givenHttpConnector("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build()))));
+        givenHttpConnector("bidder2", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId2").impid("impId1").price(BigDecimal.valueOf(7.19)).build()))));
+
+        given(cacheService.cacheBidsOpenrtb(anyList()))
+                .willReturn(Future.succeededFuture(singletonList("cacheId2")));
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1")),
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        ExtRequestTargeting.of("low", 20), null,
+                        ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
+                .extracting(
+                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_bidder"),
+                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_cache_id_bidder2"),
+                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_cache_id"))
+                .containsOnly(
+                        tuple(null, null, null),
+                        tuple("bidder2", "cacheId2", "cacheId2"));
+    }
+
+    @Test
+    public void shouldNotPopulateCacheIdTargetingKeywordsIfCacheServiceReturnEmptyResult() {
+        // given
+        givenHttpConnector("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build()))));
+        givenHttpConnector("bidder2", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId2").impid("impId1").price(BigDecimal.valueOf(7.19)).build()))));
+
+        given(cacheService.cacheBidsOpenrtb(anyList()))
+                .willReturn(Future.succeededFuture(emptyList()));
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1")),
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        ExtRequestTargeting.of("low", 20), null,
+                        ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
+                .extracting(
+                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_bidder"),
+                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_cache_id_bidder2"),
+                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_cache_id"))
+                .containsOnly(
+                        tuple(null, null, null),
+                        tuple("bidder2", null, null));
+    }
+
+    @Test
+    public void shouldNotPopulateCacheIdTargetingKeywordsIfBidCpmIsZero() {
+        // given
+        givenHttpConnector("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.ZERO).build()))));
+        givenHttpConnector("bidder2", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(5.67)).build()))));
+
+        given(cacheService.cacheBidsOpenrtb(anyList()))
+                .willReturn(Future.succeededFuture(singletonList("cacheId2")));
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1")),
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        ExtRequestTargeting.of("low", 20), null,
+                        ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
+                .extracting(
+                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_bidder"),
+                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_cache_id_bidder2"),
+                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_cache_id"))
+                .containsOnly(
+                        tuple("bidder1", null, null),
+                        tuple("bidder2", "cacheId2", "cacheId2"));
     }
 
     @Test

@@ -48,19 +48,19 @@ class CpmBucket {
     }
 
     static String fromCpm(BigDecimal cpm, PriceGranularity priceGranularity) {
-        final String result;
+        final BigDecimal value = fromCpmAsNumber(cpm, priceGranularity);
+        return value != null ? format(value) : StringUtils.EMPTY;
+    }
 
+    static BigDecimal fromCpmAsNumber(BigDecimal cpm, PriceGranularity priceGranularity) {
         final BucketConfig bucketConfig = PRICE_BUCKET_CONFIGS.get(priceGranularity);
         if (cpm.compareTo(bucketConfig.bucketMax) > 0) {
-            result = format(bucketConfig.bucketMax);
-        } else {
-            result = bucketConfig.findBucketFor(cpm)
-                    .map(bucket -> bucket.increment)
-                    .map(increment -> format(cpm.divide(increment, 0, RoundingMode.FLOOR).multiply(increment)))
-                    .orElse(StringUtils.EMPTY);
+            return bucketConfig.bucketMax;
         }
-
-        return result;
+        return bucketConfig.findBucketFor(cpm)
+                .map(bucket -> bucket.increment)
+                .map(increment -> cpm.divide(increment, 0, RoundingMode.FLOOR).multiply(increment))
+                .orElse(null);
     }
 
     private static String format(BigDecimal value) {

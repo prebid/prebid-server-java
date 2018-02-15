@@ -1,0 +1,40 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "impid": "impId1",
+        "price": 8.43,
+        "adm": "adm1",
+        "crid": "crid1",
+        "dealid": "dealId1",
+        "w": 300,
+        "h": 250,
+        "ext": {
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "impid": "impId2",
+        "price": 4.26,
+        "adm": "adm2",
+        "crid": "crid2",
+        "dealid": "dealId2",
+        "w": 300,
+        "h": 600
+      }
+    }
+  ]
+}

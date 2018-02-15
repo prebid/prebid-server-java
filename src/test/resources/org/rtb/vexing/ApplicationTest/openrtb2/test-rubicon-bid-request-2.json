@@ -78,6 +78,9 @@
     "prebid": {
       "targeting": {
         "pricegranularity": "med"
+      },
+      "cache": {
+        "bids": []
       }
     }
   }

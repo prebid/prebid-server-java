@@ -24,4 +24,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.storedrequest
      */
     ExtStoredRequest storedrequest;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.cache
+     */
+    ExtRequestPrebidCache cache;
 }

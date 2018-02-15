@@ -67,11 +67,14 @@
     "prebid": {
       "targeting": {
         "pricegranularity": "med"
+      },
+      "cache": {
+        "bids": []
       }
     }
   },
-  "user" : {
-    "ext" : {
+  "user": {
+    "ext": {
       "digitrust": {
         "id": "id",
         "keyv": 123,

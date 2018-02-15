@@ -39,7 +39,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", 20)
-                .makeFor(bid, "bidder1", false);
+                .makeFor(bid, "bidder1", false, null);
 
         // then
         assertThat(keywords).containsOnly(
@@ -76,7 +76,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", 20)
-                .makeFor(bid, "veryververyverylongbidder1", false);
+                .makeFor(bid, "veryververyverylongbidder1", false, null);
 
         // then
         assertThat(keywords).containsOnly(
@@ -113,7 +113,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", null)
-                .makeFor(bid, "veryververyverylongbidder1", false);
+                .makeFor(bid, "veryververyverylongbidder1", false, null);
 
         // then
         assertThat(keywords).containsOnly(
@@ -156,7 +156,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", 20)
-                .makeFor(bid, "bidder1", true);
+                .makeFor(bid, "bidder1", true, "cacheId1");
 
         // then
         assertThat(keywords).containsOnly(
@@ -168,7 +168,9 @@ public class TargetingKeywordsCreatorTest {
                 entry("hb_bidder", "bidder1"),
                 entry("hb_size", "50x100"),
                 entry("hb_deal", "dealId1"),
-                entry("hb_creative_loadtype", "html"));
+                entry("hb_creative_loadtype", "html"),
+                entry("hb_cache_id", "cacheId1"),
+                entry("hb_cache_id_bidder1", "cacheId1"));
     }
 
     @Test
@@ -191,7 +193,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("invalid", 20)
-                .makeFor(bid, "", true);
+                .makeFor(bid, "", true, null);
 
         // then
         assertThat(keywords).contains(entry("hb_pb", "0.0"));
@@ -216,7 +218,8 @@ public class TargetingKeywordsCreatorTest {
                 .price(BigDecimal.valueOf(3.87)).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20).makeFor(bid, "", true);
+        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20)
+                .makeFor(bid, "", true, null);
 
         // then
         assertThat(keywords).contains(entry("hb_pb", "3.80"));
@@ -241,7 +244,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20)
-                .makeFor(bid, "audienceNetwork", true);
+                .makeFor(bid, "audienceNetwork", true, null);
 
         // then
         assertThat(keywords).contains(entry("hb_creative_loadtype", "demand_sdk"));
@@ -267,7 +270,7 @@ public class TargetingKeywordsCreatorTest {
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20)
-                .makeFor(bid, "bidder", true);
+                .makeFor(bid, "bidder", true, null);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_cache_id_bidder", "hb_deal_bidder", "hb_size_bidder",
@@ -282,5 +285,15 @@ public class TargetingKeywordsCreatorTest {
     @Test
     public void shouldTolerateInvalidPriceGranularity() {
         assertThat(TargetingKeywordsCreator.withSettings("invalid", 20).isPriceGranularityValid()).isFalse();
+    }
+
+    @Test
+    public void isNonZeroCpmShouldReturnFalse() {
+        assertThat(TargetingKeywordsCreator.withSettings("med", 20).isNonZeroCpm(BigDecimal.ZERO)).isFalse();
+    }
+
+    @Test
+    public void isNonZeroCpmShouldReturnTrue() {
+        assertThat(TargetingKeywordsCreator.withSettings("med", 20).isNonZeroCpm(BigDecimal.ONE)).isTrue();
     }
 }

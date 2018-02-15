@@ -1,6 +1,7 @@
 package org.rtb.vexing.validation;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.App.AppBuilder;
 import com.iab.openrtb.request.Audio;
@@ -119,8 +120,21 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
-
         assertThat(result.errors).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenExtIsInvalid() {
+        // given
+        final ObjectNode ext = defaultNamingMapper.createObjectNode();
+        ext.set("prebid", new TextNode("invalid-prebid"));
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        //then
+        assertThat(result.errors).hasSize(1).element(0).asString().startsWith("request.ext is invalid");
     }
 
     @Test
@@ -515,14 +529,12 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = overwritePmpFirstDealInFirstImp(validBidRequestBuilder().build(),
                 dealBuilder -> Deal.builder().id(null));
 
-
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         //then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].pmp.deals[0] missing required field: \"id\"");
-
     }
 
     @Test
@@ -530,6 +542,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = overwritePmpFirstDealInFirstImp(validBidRequestBuilder().build(),
                 dealBuilder -> Deal.builder().id(""));
+
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 

@@ -167,7 +167,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final List<Bid> bids = preBidResponse.bids;
         if (preBidRequest.cacheMarkup != null && preBidRequest.cacheMarkup == 1 && !bids.isEmpty()) {
-            result = cacheService.saveBids(bids)
+            result = cacheService.cacheBids(bids)
                     .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults));
         } else {
             result = Future.succeededFuture(preBidResponse);

@@ -90,8 +90,9 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    ExchangeService exchangeService(HttpConnector httpConnector, BidderCatalog bidderCatalog) {
-        return new ExchangeService(httpConnector, bidderCatalog);
+    ExchangeService exchangeService(HttpConnector httpConnector, BidderCatalog bidderCatalog,
+                                    CacheService cacheService) {
+        return new ExchangeService(httpConnector, bidderCatalog, cacheService);
     }
 
     @Bean
