@@ -262,7 +262,9 @@ public class FacebookAdapter extends OpenrtbAdapter {
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
                 .width(adUnitBid.sizes.get(0).getW())
-                .height(adUnitBid.sizes.get(0).getH());
+                .height(adUnitBid.sizes.get(0).getH())
+                // sets creative type, since FB doesn't return any from server. Only banner type is supported by FB.
+                .mediaType(MediaType.banner);
     }
 
     @AllArgsConstructor(staticName = "of")

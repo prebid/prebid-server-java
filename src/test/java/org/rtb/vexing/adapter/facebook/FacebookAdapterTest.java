@@ -418,6 +418,7 @@ public class FacebookAdapterTest extends VertxTest {
                         .height(250)
                         .bidder(ADAPTER)
                         .bidId("bidId")
+                        .mediaType(MediaType.banner)
                         .build());
     }
 

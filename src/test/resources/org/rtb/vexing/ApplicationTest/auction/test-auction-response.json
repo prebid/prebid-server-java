@@ -251,6 +251,7 @@
     {
       "bid_id": "bidId5",
       "code": "adUnitCode5",
+      "media_type":"banner",
       "bidder": "audienceNetwork",
       "price": 5.78,
       "width": 300,
