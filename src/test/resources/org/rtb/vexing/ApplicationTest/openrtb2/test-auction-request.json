@@ -50,6 +50,33 @@
           }
         }
       }
+    },
+    {
+      "id": "impId3",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ]
+      },
+      "ext": {
+        "appnexus": {
+          "member": "103",
+          "invCode": "abc",
+          "reserve": 1.0,
+          "position": "below",
+          "trafficSourceCode": "trafficSource",
+          "keywords": [
+            {"key": "foo", "value": ["bar","baz"]}
+          ]
+        }
+      }
     }
   ],
   "device": {

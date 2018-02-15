@@ -53,6 +53,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static java.math.BigDecimal.ONE;
+import static java.math.BigDecimal.ZERO;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -288,7 +290,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .build()))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
-                builder -> builder);
+                Function.identity());
         // when
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
@@ -524,42 +526,56 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfNoMatchingImp() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId1"));
+        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId1", ONE));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.errors).isEmpty();
-        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId1").build(), banner));
+        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId1").price(ONE).build(), banner));
     }
 
     @Test
     public void makeBidsShouldReturnBannerBidIfMatchingImpHasNoVideo() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId"));
+        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", ONE));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.errors).isEmpty();
-        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId").build(), banner));
+        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId").price(ONE).build(), banner));
     }
 
     @Test
-    public void makeBidsShouldReturnVideBidIfMatchingImpHasVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfMatchingImpHasVideo() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId").video(Video.builder().build()));
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId"));
+        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", ONE));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.errors).isEmpty();
-        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId").build(), video));
+        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId").price(ONE).build(), video));
+    }
+
+    @Test
+    public void makeBidsShouldNotReturnImpIfPriceLessOrEqualToZero() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId").video(Video.builder().build()));
+        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", ZERO));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.errors).isEmpty();
+        assertThat(result.value).isEmpty();
     }
 
     private static BidRequest givenBidRequest(Function<BidRequestBuilder, BidRequestBuilder> bidRequestCustomizer,
@@ -594,11 +610,12 @@ public class RubiconBidderTest extends VertxTest {
         return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
     }
 
-    private static String givenBidResponse(String impId) throws JsonProcessingException {
+    private static String givenBidResponse(String impId, BigDecimal price) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid(impId)
+                                .price(price)
                                 .build()))
                         .build()))
                 .build());

@@ -111,7 +111,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
-        if ((Objects.isNull(params.placementId) || Objects.equals(params.placementId, 0))
+        if (params.placementId == null || Objects.equals(params.placementId, 0)
                 && (StringUtils.isEmpty(params.invCode) || StringUtils.isEmpty(params.member))) {
             throw new PreBidException("No placement or member+invcode provided");
         }

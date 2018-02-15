@@ -34,8 +34,9 @@ public class BidderConfiguration {
     }
 
     @Bean
-    AppnexusBidder appnexusBidder() {
-        return new AppnexusBidder();
+    AppnexusBidder appnexusBidder(
+            @Value("${adapters.appnexus.endpoint}") String endpoint) {
+        return new AppnexusBidder(endpoint);
     }
 
     @Bean

@@ -1,7 +1,10 @@
 package org.rtb.vexing;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
@@ -31,6 +34,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -90,6 +94,11 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-rubicon-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-rubicon-bid-response-2.json"))));
 
+        // appnexus bid response for imp 3
+        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-appnexus-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-appnexus-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-cache-request.json")))
@@ -115,7 +124,7 @@ public class ApplicationTest extends VertxTest {
         final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
                 response, "ext.responsetimemillis.%s");
 
-        assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
+        assertThat(responseWithSortedSeats(response)).isEqualTo(expectedAuctionResponse);
     }
 
     @Test
@@ -400,6 +409,12 @@ public class ApplicationTest extends VertxTest {
         }
 
         return result;
+    }
+
+    private static String responseWithSortedSeats(Response response) throws JsonProcessingException {
+        final BidResponse bidResponse = response.as(BidResponse.class);
+        bidResponse.getSeatbid().sort(Comparator.comparing(SeatBid::getSeat));
+        return mapper.writeValueAsString(bidResponse);
     }
 
     private static Uids decodeUids(String value) {

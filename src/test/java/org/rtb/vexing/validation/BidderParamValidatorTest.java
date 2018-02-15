@@ -12,6 +12,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.model.openrtb.ext.request.appnexus.ExtImpAppnexus;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,13 +24,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
 
 public class BidderParamValidatorTest extends VertxTest {
 
     public static final String RUBICON = "rubicon";
+    public static final String APPNEXUS = "appnexus";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -41,7 +42,7 @@ public class BidderParamValidatorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(bidderCatalog.names()).willReturn(singleton(RUBICON));
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(RUBICON, APPNEXUS)));
 
         bidderParamValidator = BidderParamValidator.create(bidderCatalog, "/static/bidder-params");
     }
@@ -70,7 +71,7 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessagesWhenBidderExtIsOk() {
+    public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOk() {
 
         // given
         final RubiconExt ext = RubiconExt.builder().accountId(1).siteId(2).zoneId(3).build();
@@ -84,7 +85,7 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessagesWhenBidderExtNotValid() {
+    public void validateShouldReturnValidationMessagesWhenRubiconImpExtNotValid() {
 
         // given
         final RubiconExt ext = RubiconExt.builder().siteId(2).zoneId(3).build();
@@ -95,6 +96,36 @@ public class BidderParamValidatorTest extends VertxTest {
 
         //then
         assertThat(messages.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessagesWhenAppnexusImpExtNotValid() {
+
+        // given
+        final ExtImpAppnexus ext = ExtImpAppnexus.builder().member("memberId").build();
+
+        final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(APPNEXUS, node);
+
+        //then
+        assertThat(messages.size()).isEqualTo(2);
+    }
+
+    @Test
+    public void validateShouldNotReturnValidationMessagesWhenAppnexusImpExtExtIsOk() {
+
+        // given
+        final ExtImpAppnexus ext = ExtImpAppnexus.builder().placementId(1).build();
+
+        final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(APPNEXUS, node);
+
+        //then
+        assertThat(messages).isEmpty();
     }
 
     @Test

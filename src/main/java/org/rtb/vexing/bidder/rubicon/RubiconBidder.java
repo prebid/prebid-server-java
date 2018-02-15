@@ -13,7 +13,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -40,10 +39,10 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRP;
 import org.rtb.vexing.bidder.Bidder;
+import org.rtb.vexing.bidder.OpenRtbBidder;
 import org.rtb.vexing.bidder.model.BidderBid;
 import org.rtb.vexing.bidder.model.HttpCall;
 import org.rtb.vexing.bidder.model.HttpRequest;
-import org.rtb.vexing.bidder.model.HttpResponse;
 import org.rtb.vexing.bidder.model.Result;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
@@ -53,9 +52,7 @@ import org.rtb.vexing.model.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.rtb.vexing.model.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.rtb.vexing.model.openrtb.ext.response.BidType;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -71,7 +68,7 @@ import java.util.stream.Collectors;
  * <p>
  * Maintainer email: <a href="mailto:header-bidding@rubiconproject.com">header-bidding@rubiconproject.com</a>
  */
-public class RubiconBidder implements Bidder {
+public class RubiconBidder extends OpenRtbBidder {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
@@ -124,14 +121,6 @@ public class RubiconBidder implements Bidder {
     @Override
     public String cookieFamilyName() {
         return "rubicon";
-    }
-
-    private static String validateUrl(String url) {
-        try {
-            return new URL(url).toString();
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("URL supplied is not valid", e);
-        }
     }
 
     private static MultiMap headers(String xapiUsername, String xapiPassword) {
@@ -312,26 +301,6 @@ public class RubiconBidder implements Bidder {
                 .build();
     }
 
-    private static BidResponse parseResponse(HttpResponse httpResponse) {
-        final int statusCode = httpResponse.statusCode;
-
-        if (statusCode == 204) {
-            return null;
-        }
-
-        if (statusCode != 200) {
-            throw new PreBidException(
-                    String.format("Unexpected status code: %d. Run with request.test = 1 for more info", statusCode));
-        }
-
-        try {
-            return Json.mapper.readValue(httpResponse.body, BidResponse.class);
-        } catch (IOException e) {
-            logger.warn("Error occurred parsing bid response", e);
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
@@ -346,16 +315,9 @@ public class RubiconBidder implements Bidder {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
                 .map(bid -> BidderBid.of(bid, bidType(bid, impidToBidType)))
                 .collect(Collectors.toList());
     }
 
-    private static Map<String, BidType> impidToBidType(BidRequest bidRequest) {
-        return bidRequest.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, imp -> imp.getVideo() != null ? BidType.video : BidType.banner));
-    }
-
-    private static BidType bidType(Bid bid, Map<String, BidType> impidToBidType) {
-        return impidToBidType.getOrDefault(bid.getImpid(), BidType.banner);
-    }
 }

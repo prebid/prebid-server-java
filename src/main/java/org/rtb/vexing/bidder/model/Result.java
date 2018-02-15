@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -20,4 +21,8 @@ public class Result<T> {
     T value;
 
     List<String> errors;
+
+    public static Result<List<HttpRequest>> emptyHttpRequests() {
+        return Result.of(Collections.<HttpRequest>emptyList(), Collections.emptyList());
+    }
 }

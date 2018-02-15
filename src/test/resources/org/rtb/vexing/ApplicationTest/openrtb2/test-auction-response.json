@@ -4,6 +4,51 @@
     {
       "bid": [
         {
+          "id": "7706636740145184841",
+          "impid": "impId3",
+          "price": 5.5,
+          "adm": "some-test-ad",
+          "adid": "29681110",
+          "adomain": [
+            "appnexus.com"
+          ],
+          "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+          "cid": "958",
+          "crid": "29681110",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "targeting": {
+                "hb_pb": "5.50",
+                "hb_pb_appnexus": "5.50",
+                "hb_size": "300x250",
+                "hb_bidder_appnexus": "appnexus",
+                "hb_bidder": "appnexus",
+                "hb_cache_id": "e3c415a7-003e-4d90-927b-7be6b622cd6f",
+                "hb_creative_loadtype": "html",
+                "hb_size_appnexus": "300x250",
+                "hb_cache_id_appnexus": "e3c415a7-003e-4d90-927b-7be6b622cd6f"
+              },
+              "type": "banner"
+            },
+            "bidder": {
+              "appnexus": {
+                "brand_id": 1,
+                "auction_id": 8189378542222915032,
+                "bidder_id": 2,
+                "ranking_price": 0.0
+              }
+            }
+          }
+        }
+      ],
+      "seat": "appnexus",
+      "group": 0
+    },
+    {
+      "bid": [
+        {
           "impid": "impId1",
           "price": 8.43,
           "adm": "adm1",
@@ -77,6 +122,14 @@
   "ext": {
     "debug": {
       "httpcalls": {
+        "appnexus": [
+          {
+            "uri": "{{ appnexus.exchange_uri }}?member_id=103",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId3\",\"banner\":{\"format\":[{\"w\":300,\"h\":250},{\"w\":300,\"h\":600}],\"w\":300,\"h\":250,\"pos\":3},\"tagid\":\"abc\",\"bidfloor\":1.0,\"ext\":{\"appnexus\":{\"keywords\":\"foo=bar,foo=baz\",\"traffic_source_code\":\"trafficSource\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http:\/\/www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"buyeruid\":\"12345\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"prebid\":{\"targeting\":{\"pricegranularity\":\"med\"},\"cache\":{\"bids\":[]}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"seat\":\"958\",\"bid\":[{\"id\":\"7706636740145184841\",\"impid\":\"impId3\",\"price\":5.5,\"adid\":\"29681110\",\"adm\":\"some-test-ad\",\"adomain\":[\"appnexus.com\"],\"iurl\":\"http:\/\/nym1-ib.adnxs.com\/cr?id=29681110\",\"cid\":\"958\",\"crid\":\"29681110\",\"h\":250,\"w\":300,\"ext\":{\"appnexus\":{\"brand_id\":1,\"auction_id\":8189378542222915032,\"bidder_id\":2,\"ranking_price\":0.0}}}]}],\"bidid\":\"5778926625248726496\",\"cur\":\"USD\"}",
+            "status": 200
+          }
+        ],
         "rubicon": [
           {
             "uri": "{{ rubicon.exchange_uri }}",
@@ -94,9 +147,11 @@
       }
     },
     "errors": {
+      "appnexus": [],
       "rubicon": []
     },
     "responsetimemillis": {
+      "appnexus": "{{ appnexus.response_time_ms }}",
       "rubicon": "{{ rubicon.response_time_ms }}"
     }
   }
