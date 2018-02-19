@@ -26,7 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
-import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.auction.BidderRequesterCatalog;
 import org.rtb.vexing.model.openrtb.ext.request.ExtUserDigiTrust;
 
 import java.util.Arrays;
@@ -48,7 +48,7 @@ public class RequestValidatorTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private BidderCatalog bidderCatalog;
+    private BidderRequesterCatalog bidderRequesterCatalog;
     @Mock
     private BidderParamValidator bidderParamValidator;
 
@@ -57,9 +57,9 @@ public class RequestValidatorTest extends VertxTest {
     @Before
     public void setUp() {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
-        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(Boolean.TRUE);
+        given(bidderRequesterCatalog.isValidName(eq(RUBICON))).willReturn(Boolean.TRUE);
 
-        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator);
+        requestValidator = new RequestValidator(bidderRequesterCatalog, bidderParamValidator);
     }
 
     @Test
@@ -70,7 +70,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result).isNotNull();
         assertThat(result.errors).hasSize(1);
     }
@@ -83,7 +83,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0).isEqualTo("request missing required field: \"id\"");
     }
 
@@ -95,7 +95,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0).isEqualTo("request missing required field: \"id\"");
     }
 
@@ -107,7 +107,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0).isEqualTo("request.tmax must be nonnegative. Got -100");
     }
 
@@ -119,7 +119,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).isEmpty();
     }
 
@@ -145,7 +145,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0).isEqualTo("request.imp must contain at least one element.");
     }
 
@@ -159,7 +159,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0).isEqualTo("request.imp[0] missing required field: \"id\"");
     }
 
@@ -173,7 +173,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0).isEqualTo("request.imp[0] missing required field: \"id\"");
     }
 
@@ -190,7 +190,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].metric is not yet supported by prebid-server. " +
                         "Support may be added in the future.");
@@ -211,7 +211,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0] must contain at least one of \"banner\", \"video\", \"audio\", or " +
                         "\"native\"");
@@ -230,7 +230,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].video.mimes must contain at least one supported MIME type");
     }
@@ -248,7 +248,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].audio.mimes must contain at least one supported MIME type");
     }
@@ -265,7 +265,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].native.request must be a JSON encoded string conforming to the openrtb 1.2" +
                         " Native spec");
@@ -283,7 +283,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].native.request must be a JSON encoded string conforming to the openrtb 1.2" +
                         " Native spec");
@@ -298,7 +298,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, " +
                         "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
@@ -313,7 +313,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, " +
                         "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
@@ -329,7 +329,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, " +
                         "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
@@ -344,7 +344,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(0);
     }
 
@@ -357,7 +357,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(0);
     }
 
@@ -370,7 +370,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} (for static size " +
                         "requirements) *or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero.");
@@ -385,7 +385,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
@@ -399,7 +399,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
@@ -413,7 +413,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
@@ -427,7 +427,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
@@ -441,7 +441,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define " +
                         "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
@@ -456,7 +456,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define " +
                         "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
@@ -471,7 +471,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
                         " properties.");
@@ -487,7 +487,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
                         " properties.");
@@ -502,7 +502,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
                         " properties.");
@@ -517,7 +517,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
                         " properties.");
@@ -532,7 +532,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].pmp.deals[0] missing required field: \"id\"");
     }
@@ -546,7 +546,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].pmp.deals[0] missing required field: \"id\"");
     }
@@ -560,7 +560,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.site should include at least one of request.site.id or request.site.page.");
     }
@@ -574,7 +574,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.site should include at least one of request.site.id or request.site.page.");
     }
@@ -588,7 +588,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.hasErrors()).isFalse();
     }
 
@@ -601,7 +601,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.hasErrors()).isFalse();
     }
 
@@ -614,7 +614,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.site should include at least one of request.site.id or request.site.page.");
     }
@@ -630,7 +630,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.site or request.app must be defined, but not both.");
     }
@@ -646,7 +646,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.site or request.app must be defined, but not both.");
     }
@@ -659,7 +659,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).isEmpty();
     }
 
@@ -673,7 +673,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].ext must contain at least one bidder");
     }
@@ -682,12 +682,12 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessagesWhenImpExtBidderIsUnknown() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
-        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(Boolean.FALSE);
+        given(bidderRequesterCatalog.isValidName(eq(RUBICON))).willReturn(Boolean.FALSE);
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].ext contains unknown bidder: rubicon");
     }
@@ -702,7 +702,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).isEmpty();
     }
 
@@ -716,7 +716,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.errors).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].ext.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
     }

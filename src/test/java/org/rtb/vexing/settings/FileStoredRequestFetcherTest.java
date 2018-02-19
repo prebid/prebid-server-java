@@ -10,9 +10,9 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.settings.model.StoredRequestResult;
 
-import java.util.Collections;
-
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -49,14 +49,14 @@ public class FileStoredRequestFetcherTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResult = fileStoredRequestFetcher
-                .getStoredRequestsById(Collections.singleton("2"), null);
+                .getStoredRequestsById(singleton("2"), null);
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
         assertThat(storedRequestResult.succeeded()).isTrue();
         assertThat(storedRequestResult.result().errors).isNotNull().hasSize(1)
                 .isEqualTo(singletonList("No config found for id: 2"));
         assertThat(storedRequestResult.result().storedIdToJson).isNotNull().hasSize(1)
-                .isEqualTo(Collections.singletonMap("1", "value1"));
+                .isEqualTo(singletonMap("1", "value1"));
     }
 
     @Test
@@ -69,12 +69,12 @@ public class FileStoredRequestFetcherTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResult = fileStoredRequestFetcher
-                .getStoredRequestsById(Collections.singleton("1"), null);
+                .getStoredRequestsById(singleton("1"), null);
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
         assertThat(storedRequestResult.result().errors).isNotNull().isEmpty();
         assertThat(storedRequestResult.result().storedIdToJson).isNotNull().hasSize(1)
-                .isEqualTo(Collections.singletonMap("1", "value1"));
+                .isEqualTo(singletonMap("1", "value1"));
     }
 
     @Test

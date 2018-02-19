@@ -8,7 +8,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.ValidationMessage;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
-import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.auction.BidderRequesterCatalog;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -77,14 +77,15 @@ public class BidderParamValidator {
      * schema directory parameter that defines the root directory for files containing schemas. By convention the name
      * of each schema file same as corresponding bidder name.
      */
-    public static BidderParamValidator create(BidderCatalog bidderCatalog, String schemaDirectory) {
-        Objects.requireNonNull(bidderCatalog);
+    public static BidderParamValidator create(BidderRequesterCatalog bidderRequesterCatalog, String schemaDirectory) {
+        Objects.requireNonNull(bidderRequesterCatalog);
         Objects.requireNonNull(schemaDirectory);
 
         final Map<String, JsonNode> bidderRawSchemas = new LinkedHashMap<>();
 
-        bidderCatalog.names()
-                .forEach(bidder -> bidderRawSchemas.put(bidder, readFromClasspath(schemaDirectory, bidder)));
+        bidderRequesterCatalog.names()
+                .forEach(httpConnector -> bidderRawSchemas.put(httpConnector, readFromClasspath(schemaDirectory,
+                        httpConnector)));
 
         return new BidderParamValidator(toBidderSchemas(bidderRawSchemas), toSchemas(bidderRawSchemas));
     }

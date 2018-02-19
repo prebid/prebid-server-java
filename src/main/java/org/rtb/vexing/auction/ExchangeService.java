@@ -16,7 +16,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.auction.model.BidderRequest;
 import org.rtb.vexing.auction.model.BidderResponse;
-import org.rtb.vexing.bidder.HttpConnector;
 import org.rtb.vexing.bidder.model.BidderBid;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cookie.UidsCookie;
@@ -51,16 +50,13 @@ public class ExchangeService {
     private static final String PREBID_EXT = "prebid";
 
     private static final Clock CLOCK = Clock.systemDefaultZone();
-
-    private final HttpConnector httpConnector;
-    private final BidderCatalog bidderCatalog;
+    private final BidderRequesterCatalog bidderRequesterCatalog;
     private final CacheService cacheService;
     private long expectedCacheTime;
 
-    public ExchangeService(HttpConnector httpConnector, BidderCatalog bidderCatalog,
-                           CacheService cacheService, long expectedCacheTime) {
-        this.httpConnector = Objects.requireNonNull(httpConnector);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+    public ExchangeService(BidderRequesterCatalog bidderRequesterCatalog, CacheService cacheService,
+                           long expectedCacheTime) {
+        this.bidderRequesterCatalog = Objects.requireNonNull(bidderRequesterCatalog);
         this.cacheService = Objects.requireNonNull(cacheService);
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time could not be negative");
@@ -131,7 +127,7 @@ public class ExchangeService {
         final List<String> bidders = imps.stream()
                 .flatMap(imp -> asStream(imp.getExt().fieldNames())
                         .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
-                        .filter(bidderCatalog::isValidName))
+                        .filter(bidderRequesterCatalog::isValidName))
                 .distinct()
                 .collect(Collectors.toList());
 
@@ -159,7 +155,7 @@ public class ExchangeService {
     private User userWithBuyerid(String bidder, BidRequest bidRequest, UidsCookie uidsCookie) {
         final User result;
 
-        final String buyerid = uidsCookie.uidFrom(bidderCatalog.byName(bidder).cookieFamilyName());
+        final String buyerid = uidsCookie.uidFrom(bidderRequesterCatalog.byName(bidder).cookieFamilyName());
 
         final User user = bidRequest.getUser();
         if (StringUtils.isNotBlank(buyerid) && (user == null || StringUtils.isBlank(user.getBuyeruid()))) {
@@ -242,7 +238,7 @@ public class ExchangeService {
      * recorded response time.
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, GlobalTimeout timeout) {
-        return httpConnector.requestBids(bidderCatalog.byName(bidderRequest.bidder), bidderRequest.bidRequest, timeout)
+        return bidderRequesterCatalog.byName(bidderRequest.bidder).requestBids(bidderRequest.bidRequest, timeout)
                 .map(result -> BidderResponse.of(bidderRequest.bidder, result, responseTime(startTime)));
     }
 

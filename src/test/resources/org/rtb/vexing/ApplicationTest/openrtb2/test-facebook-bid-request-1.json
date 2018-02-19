@@ -1,0 +1,44 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId5",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
+        "w": 300,
+        "h": 600,
+        "topframe": 0
+      },
+      "tagid": "pub1_place1"
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "pub1"
+    }
+  },
+  "device": {
+    "pxratio": 4.2
+  },
+  "user": {
+    "buyeruid": "FB-UID"
+  },
+  "test": 0,
+  "at": 1,
+  "tmax": 1000,
+  "allimps": 0,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "ext": {
+    "platformid": 101
+  }
+}

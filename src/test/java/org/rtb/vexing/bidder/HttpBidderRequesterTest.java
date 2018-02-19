@@ -40,7 +40,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-public class HttpConnectorTest {
+public class HttpBidderRequesterTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -50,7 +50,7 @@ public class HttpConnectorTest {
     @Mock
     private HttpClientRequest httpClientRequest;
 
-    private HttpConnector httpConnector;
+    private HttpBidderRequester bidderHttpConnector;
 
     @Mock
     private Bidder bidder;
@@ -62,12 +62,13 @@ public class HttpConnectorTest {
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
         given(httpClientRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        httpConnector = new HttpConnector(httpClient);
+        bidderHttpConnector = new HttpBidderRequester(bidder, httpClient);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new HttpConnector(null));
+        assertThatNullPointerException().isThrownBy(() -> new HttpBidderRequester(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new HttpBidderRequester(bidder, null));
     }
 
     @Test
@@ -76,7 +77,7 @@ public class HttpConnectorTest {
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(emptyList(), emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid = httpConnector.requestBids(bidder, BidRequest.builder().build(), timeout())
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout())
                 .result();
 
         // then
@@ -92,7 +93,7 @@ public class HttpConnectorTest {
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(emptyList(), asList("error1", "error2")));
 
         // when
-        final BidderSeatBid bidderSeatBid = httpConnector.requestBids(bidder, BidRequest.builder().build(), timeout())
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout())
                 .result();
 
         // then
@@ -111,7 +112,7 @@ public class HttpConnectorTest {
         headers.add("header2", "value2");
 
         // when
-        httpConnector.requestBids(bidder, BidRequest.builder().build(), timeout());
+        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout());
 
         // then
         verify(httpClient).requestAbs(eq(HttpMethod.POST), eq("uri"), any());
@@ -134,7 +135,7 @@ public class HttpConnectorTest {
                 emptyList()));
 
         // when
-        httpConnector.requestBids(bidder, BidRequest.builder().build(), timeout());
+        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout());
 
         // then
         verify(httpClient, times(2)).requestAbs(any(), any(), any());
@@ -152,7 +153,7 @@ public class HttpConnectorTest {
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid = httpConnector.requestBids(bidder, BidRequest.builder().build(), timeout())
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout())
                 .result();
 
         // then
@@ -172,8 +173,8 @@ public class HttpConnectorTest {
         given(bidder.makeBids(any(), any())).willReturn(Result.of(emptyList(), emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid =
-                httpConnector.requestBids(bidder, BidRequest.builder().test(1).build(), timeout()).result();
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids( BidRequest.builder().test(1).build(), timeout())
+                .result();
 
         // then
         assertThat(bidderSeatBid.httpCalls).hasSize(2).containsOnly(
@@ -192,7 +193,7 @@ public class HttpConnectorTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpConnector.requestBids(bidder, BidRequest.builder().test(1).build(),
+                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(),
                         GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000))
                         .result();
 
@@ -211,8 +212,8 @@ public class HttpConnectorTest {
         givenHttpClientProducesException(new RuntimeException("Request exception"));
 
         // when
-        final BidderSeatBid bidderSeatBid =
-                httpConnector.requestBids(bidder, BidRequest.builder().test(1).build(), timeout()).result();
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids( BidRequest.builder().test(1).build(), timeout())
+                .result();
 
         // then
         assertThat(bidderSeatBid.httpCalls).hasSize(1).containsOnly(
@@ -229,8 +230,8 @@ public class HttpConnectorTest {
         givenHttpClientReturnsResponses(500, "responseBody1");
 
         // when
-        final BidderSeatBid bidderSeatBid =
-                httpConnector.requestBids(bidder, BidRequest.builder().test(1).build(), timeout()).result();
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids( BidRequest.builder().test(1).build(), timeout())
+                .result();
 
         // then
         assertThat(bidderSeatBid.httpCalls).hasSize(1).containsOnly(
@@ -248,7 +249,7 @@ public class HttpConnectorTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpConnector.requestBids(bidder, BidRequest.builder().build(),
+                bidderHttpConnector.requestBids(BidRequest.builder().build(),
                         GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000))
                         .result();
 
@@ -305,8 +306,8 @@ public class HttpConnectorTest {
                 Result.of(singletonList(BidderBid.of(null, null)), singletonList("makeBidsError")));
 
         // when
-        final BidderSeatBid bidderSeatBid =
-                httpConnector.requestBids(bidder, BidRequest.builder().test(1).build(), timeout()).result();
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids( BidRequest.builder().test(1).build(), timeout())
+                .result();
 
         // then
         // only one call is expected since other requests failed with errors

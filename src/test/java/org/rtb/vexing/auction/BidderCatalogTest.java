@@ -40,7 +40,7 @@ public class BidderCatalogTest {
         // given
         bidderCatalog = new BidderCatalog(emptyList());
 
-        // when and thenHa
+        // when and then
         assertThat(bidderCatalog.isValidName("unknown_bidder")).isFalse();
     }
 

@@ -11,7 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
-import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.auction.BidderRequesterCatalog;
 import org.rtb.vexing.model.openrtb.ext.request.appnexus.ExtImpAppnexus;
 
 import java.io.BufferedReader;
@@ -36,38 +36,38 @@ public class BidderParamValidatorTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private BidderCatalog bidderCatalog;
+    private BidderRequesterCatalog bidderRequesterCatalog;
 
     private BidderParamValidator bidderParamValidator;
 
     @Before
     public void setUp() {
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(RUBICON, APPNEXUS)));
+        given(bidderRequesterCatalog.names()).willReturn(new HashSet<>(asList(RUBICON, APPNEXUS)));
 
-        bidderParamValidator = BidderParamValidator.create(bidderCatalog, "/static/bidder-params");
+        bidderParamValidator = BidderParamValidator.create(bidderRequesterCatalog, "/static/bidder-params");
     }
 
     @Test
     public void createShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> BidderParamValidator.create(null, null));
-        assertThatNullPointerException().isThrownBy(() -> BidderParamValidator.create(bidderCatalog, null));
+        assertThatNullPointerException().isThrownBy(() -> BidderParamValidator.create(bidderRequesterCatalog, null));
     }
 
     @Test
     public void createShouldFailOnInvalidSchemaPath() {
-        assertThatIllegalArgumentException().isThrownBy(() -> BidderParamValidator.create(bidderCatalog, "/noschema"));
+        assertThatIllegalArgumentException().isThrownBy(() -> BidderParamValidator.create(bidderRequesterCatalog, "/noschema"));
     }
 
     @Test
     public void createShouldFailOnEmptySchemaFile() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> BidderParamValidator.create(bidderCatalog, "schema/empty"));
+                () -> BidderParamValidator.create(bidderRequesterCatalog, "schema/empty"));
     }
 
     @Test
     public void createShouldFailOnInvalidSchemaFile() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> BidderParamValidator.create(bidderCatalog, "schema/invalid"));
+                () -> BidderParamValidator.create(bidderRequesterCatalog, "schema/invalid"));
     }
 
     @Test
@@ -131,10 +131,10 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void schemaShouldReturnSchemasString() throws IOException {
 
-        // given
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("test-rubicon", "test-appnexus")));
+        //given
+        given(bidderRequesterCatalog.names()).willReturn(new HashSet<>(asList("test-rubicon", "test-appnexus")));
 
-        bidderParamValidator = BidderParamValidator.create(bidderCatalog, "schema/valid");
+        bidderParamValidator = BidderParamValidator.create(bidderRequesterCatalog, "schema/valid");
 
         // when
         final String result = bidderParamValidator.schemas();

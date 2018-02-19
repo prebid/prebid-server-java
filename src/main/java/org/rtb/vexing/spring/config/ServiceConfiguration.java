@@ -5,11 +5,10 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
-import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.auction.BidderRequesterCatalog;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.StoredRequestProcessor;
-import org.rtb.vexing.bidder.HttpConnector;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
@@ -92,9 +91,9 @@ public class ServiceConfiguration {
     @Bean
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
-            HttpConnector httpConnector, BidderCatalog bidderCatalog, CacheService cacheService) {
+            BidderRequesterCatalog bidderRequesterCatalog, CacheService cacheService) {
 
-        return new ExchangeService(httpConnector, bidderCatalog, cacheService, expectedCacheTimeMs);
+        return new ExchangeService(bidderRequesterCatalog, cacheService, expectedCacheTimeMs);
     }
 
     @Bean
@@ -107,24 +106,19 @@ public class ServiceConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    HttpConnector httpConnector(HttpClient httpClient) {
-        return new HttpConnector(httpClient);
-    }
-
-    @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     org.rtb.vexing.adapter.HttpConnector legacyHttpConnector(HttpClient httpClient) {
         return new org.rtb.vexing.adapter.HttpConnector(httpClient);
     }
 
     @Bean
-    RequestValidator requestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
-        return new RequestValidator(bidderCatalog, bidderParamValidator);
+    RequestValidator requestValidator(BidderRequesterCatalog bidderRequesterCatalog,
+                                      BidderParamValidator bidderParamValidator) {
+        return new RequestValidator(bidderRequesterCatalog, bidderParamValidator);
     }
 
     @Bean
-    BidderParamValidator bidderParamValidator(BidderCatalog bidderCatalog) {
-        return BidderParamValidator.create(bidderCatalog, "/static/bidder-params");
+    BidderParamValidator bidderParamValidator(BidderRequesterCatalog bidderRequesterCatalog) {
+        return BidderParamValidator.create(bidderRequesterCatalog, "/static/bidder-params");
     }
 
     @Bean

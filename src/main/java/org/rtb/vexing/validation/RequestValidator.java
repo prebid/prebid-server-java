@@ -15,7 +15,7 @@ import com.iab.openrtb.request.Video;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.rtb.vexing.auction.BidderCatalog;
+import org.rtb.vexing.auction.BidderRequesterCatalog;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtUser;
 
@@ -34,15 +34,15 @@ public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
 
-    private final BidderCatalog bidderCatalog;
+    private final BidderRequesterCatalog bidderRequesterCatalog;
     private final BidderParamValidator bidderParamValidator;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
      * properties of bidRequest
      */
-    public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+    public RequestValidator(BidderRequesterCatalog bidderRequesterCatalog, BidderParamValidator bidderParamValidator) {
+        this.bidderRequesterCatalog = Objects.requireNonNull(bidderRequesterCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
     }
 
@@ -154,7 +154,7 @@ public class RequestValidator {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
             final String bidderName = bidderExtension.getKey();
 
-            if (bidderCatalog.isValidName(bidderName)) {
+            if (bidderRequesterCatalog.isValidName(bidderName)) {
                 final Set<String> messages = bidderParamValidator.validate(bidderName, bidderExtension.getValue());
 
                 if (!messages.isEmpty()) {

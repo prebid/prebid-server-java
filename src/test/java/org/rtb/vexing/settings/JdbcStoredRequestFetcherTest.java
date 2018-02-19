@@ -20,14 +20,16 @@ import org.rtb.vexing.vertx.JdbcClient;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
@@ -116,7 +118,7 @@ public class JdbcStoredRequestFetcherTest {
         expectedResultMap.put("2", "value2");
         future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredRequestResult
-                    .of(expectedResultMap, Collections.emptyList()));
+                    .of(expectedResultMap, emptyList()));
             async.complete();
         }));
     }
@@ -139,7 +141,7 @@ public class JdbcStoredRequestFetcherTest {
             expectedResultMap.put("2", "value2");
             expectedResultMap.put("3", "value3");
             assertThat(storedRequestResult).isEqualTo(
-                    StoredRequestResult.of(expectedResultMap, Collections.emptyList()));
+                    StoredRequestResult.of(expectedResultMap, emptyList()));
             async.complete();
         }));
     }
@@ -153,8 +155,8 @@ public class JdbcStoredRequestFetcherTest {
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(Collections.singletonMap("1", "value1"),
-                    Collections.singletonList("No config found for id: 3")));
+            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(singletonMap("1", "value1"),
+                    singletonList("No config found for id: 3")));
             async.complete();
         }));
     }
@@ -173,7 +175,7 @@ public class JdbcStoredRequestFetcherTest {
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(emptyMap(),
-                    Collections.singletonList("Result set column number is less than expected")));
+                    singletonList("Result set column number is less than expected")));
             async.complete();
         }));
     }
@@ -188,7 +190,7 @@ public class JdbcStoredRequestFetcherTest {
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(emptyMap(),
-                    Collections.singletonList("Stored requests for ids [3, 4] was not found")));
+                    singletonList("Stored requests for ids [3, 4] was not found")));
             async.complete();
         }));
     }

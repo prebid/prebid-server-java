@@ -50,7 +50,7 @@ public class BidderConfiguration {
     }
 
     @Bean
-    IndexBidder indexBidderBidder() {
+    IndexBidder indexBidder() {
         return new IndexBidder();
     }
 

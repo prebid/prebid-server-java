@@ -36,20 +36,22 @@ import java.util.stream.Stream;
  * Any logic which can be done within a single Seat goes inside this class.
  * Any logic which requires responses from all Seats goes inside the {@link org.rtb.vexing.auction.ExchangeService}.
  */
-public class HttpConnector {
+public class HttpBidderRequester implements BidderRequester {
 
-    private static final Logger logger = LoggerFactory.getLogger(HttpConnector.class);
+    private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
+    private final Bidder bidder;
     private final HttpClient httpClient;
 
-    public HttpConnector(HttpClient httpClient) {
+    public HttpBidderRequester(Bidder bidder, HttpClient httpClient) {
+        this.bidder = Objects.requireNonNull(bidder);
         this.httpClient = Objects.requireNonNull(httpClient);
     }
 
     /**
      * Executes given request to a given bidder.
      */
-    public Future<BidderSeatBid> requestBids(Bidder bidder, BidRequest bidRequest, GlobalTimeout timeout) {
+    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, GlobalTimeout timeout) {
         final Result<List<HttpRequest>> httpRequests = bidder.makeHttpRequests(bidRequest);
 
         final Future<BidderSeatBid> result = Future.future();
@@ -125,7 +127,7 @@ public class HttpConnector {
                                           List<HttpCall> calls) {
         // If this is a test bid, capture debugging info from the requests
         final List<ExtHttpCall> httpCalls = bidRequest.getTest() == 1
-                ? calls.stream().map(HttpConnector::toExt).collect(Collectors.toList())
+                ? calls.stream().map(HttpBidderRequester::toExt).collect(Collectors.toList())
                 : Collections.emptyList();
 
         final List<Result<List<BidderBid>>> createdBids = calls.stream()
@@ -161,5 +163,21 @@ public class HttpConnector {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Returns bidder's cookie family name.
+     */
+    @Override
+    public String cookieFamilyName() {
+        return bidder.cookieFamilyName();
+    }
+
+    /**
+     * Returns bidder's name.
+     */
+    @Override
+    public String name() {
+        return bidder.name();
     }
 }

@@ -1,0 +1,37 @@
+{
+  "id" : "tid",
+  "imp" : [ {
+    "id" : "impId8",
+    "banner" : {
+      "format" : [ {
+        "w" : 300,
+        "h" : 600
+      } ],
+      "w" : 300,
+      "h" : 250,
+      "topframe" : 0
+    },
+    "tagid" : "456"
+  } ],
+  "site" : {
+    "domain" : "example.com",
+    "page" : "http://www.example.com",
+    "publisher" : {
+      "id" : "123"
+    }
+  },
+  "device" : {
+    "pxratio" : 4.2
+  },
+  "user" : {
+    "buyeruid" : "PP-UID"
+  },
+  "test" : 0,
+  "at" : 1,
+  "tmax" : 1000,
+  "allimps" : 0,
+  "source" : {
+    "fd" : 1,
+    "tid" : "tid"
+  }
+}

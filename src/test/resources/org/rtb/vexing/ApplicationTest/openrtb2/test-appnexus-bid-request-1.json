@@ -25,7 +25,10 @@
   }],
   "site": {
     "domain": "example.com",
-    "page": "http://www.example.com"
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    }
   },
   "device": {
     "ua": "userAgent",
