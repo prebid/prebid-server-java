@@ -8,6 +8,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
+import io.vertx.ext.web.handler.TimeoutHandler;
 import org.rtb.vexing.adapter.AdapterCatalog;
 import org.rtb.vexing.adapter.HttpConnector;
 import org.rtb.vexing.auction.ExchangeService;
@@ -24,9 +25,11 @@ import org.rtb.vexing.handler.NoCacheHandler;
 import org.rtb.vexing.handler.OptoutHandler;
 import org.rtb.vexing.handler.SetuidHandler;
 import org.rtb.vexing.handler.StatusHandler;
+import org.rtb.vexing.handler.openrtb2.AmpHandler;
 import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
 import org.rtb.vexing.settings.ApplicationSettings;
+import org.rtb.vexing.settings.StoredRequestFetcher;
 import org.rtb.vexing.validation.BidderParamValidator;
 import org.rtb.vexing.validation.RequestValidator;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +55,7 @@ public class WebConfiguration {
                   CorsHandler corsHandler,
                   AuctionHandler auctionHandler,
                   org.rtb.vexing.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
+                  AmpHandler openrtbAmpHandler,
                   StatusHandler statusHandler,
                   CookieSyncHandler cookieSyncHandler,
                   SetuidHandler setuidHandler,
@@ -63,12 +67,14 @@ public class WebConfiguration {
 
         final Router router = Router.router(vertx);
 
+        router.route().handler(TimeoutHandler.create(10000)); // kick off long processing requests
         router.route().handler(cookieHandler);
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
         router.post("/auction").handler(auctionHandler);
         router.post("/openrtb2/auction").handler(openrtbAuctionHandler);
+        router.get("/openrtb2/amp").handler(openrtbAmpHandler);
         router.get("/status").handler(statusHandler);
         router.post("/cookie_sync").handler(cookieSyncHandler);
         router.get("/setuid").handler(setuidHandler);
@@ -103,7 +109,7 @@ public class WebConfiguration {
         return CorsHandler.create(".*")
                 .allowCredentials(true)
                 .allowedHeaders(new HashSet<>(Arrays.asList(HttpHeaders.ORIGIN.toString(),
-                        HttpHeaders.ACCEPT.toString(), HttpHeaders.CONTENT_TYPE.toString())))
+                        HttpHeaders.ACCEPT.toString(), HttpHeaders.CONTENT_TYPE.toString(), "X-Requested-With")))
                 .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.HEAD,
                         HttpMethod.OPTIONS)));
     }
@@ -139,6 +145,21 @@ public class WebConfiguration {
     }
 
     @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    AmpHandler openrtbAmpHandler(
+            @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${auction.stored-requests-timeout-ms}") long defaultStoredRequestsTimeoutMs,
+            RequestValidator requestValidator,
+            ExchangeService exchangeService,
+            StoredRequestFetcher storedRequestFetcher,
+            PreBidRequestContextFactory preBidRequestContextFactory,
+            UidsCookieService uidsCookieService) {
+
+        return new AmpHandler(defaultTimeoutMs, defaultStoredRequestsTimeoutMs, storedRequestFetcher,
+                preBidRequestContextFactory, requestValidator, exchangeService, uidsCookieService);
+    }
+
+    @Bean
     StatusHandler statusHandler() {
         return new StatusHandler();
     }
@@ -169,6 +190,7 @@ public class WebConfiguration {
             @Value("${host-cookie.opt-in-url}") String optinUrl,
             GoogleRecaptchaVerifier googleRecaptchaVerifier,
             UidsCookieService uidsCookieService) {
+
         return new OptoutHandler(googleRecaptchaVerifier,
                 uidsCookieService,
                 OptoutHandler.getOptoutRedirectUrl(externalUrl),

@@ -66,4 +66,9 @@ public class FileStoredRequestFetcher implements StoredRequestFetcher {
         }
         return Future.succeededFuture(StoredRequestResult.of(storedRequests, errors));
     }
+
+    @Override
+    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, GlobalTimeout timeout) {
+        return getStoredRequestsById(ids, timeout);
+    }
 }

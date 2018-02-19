@@ -67,9 +67,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
         parseRequest(context)
                 .compose(storedRequestProcessor::processStoredRequests)
                 .map(bidRequest -> preBidRequestContextFactory.fromRequest(bidRequest, context))
-                .compose(this::validateRequest)
-                .compose(bidRequest -> exchangeService.holdAuction(
-                        bidRequest, uidsCookieService.parseFromRequest(context), timeout(bidRequest, startTime)))
+                .map(this::validateRequest)
+                .compose(bidRequest ->
+                        exchangeService.holdAuction(bidRequest, uidsCookieService.parseFromRequest(context),
+                                timeout(bidRequest, startTime)))
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
 
@@ -93,16 +94,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private Future<BidRequest> validateRequest(BidRequest bidRequest) {
-        final Future<BidRequest> result;
+    private BidRequest validateRequest(BidRequest bidRequest) {
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
         if (validationResult.hasErrors()) {
-            result = Future.failedFuture(new InvalidRequestException(validationResult.errors));
-        } else {
-            result = Future.succeededFuture(bidRequest);
+            throw new InvalidRequestException(validationResult.errors);
         }
-
-        return result;
+        return bidRequest;
     }
 
     private GlobalTimeout timeout(BidRequest bidRequest, long startTime) {

@@ -22,13 +22,15 @@ public class CachingStoredRequestFetcher implements StoredRequestFetcher {
 
     private final StoredRequestFetcher delegate;
     private final Map<String, String> storedRequestCache;
+    private final Map<String, String> storedAmpRequestCache;
 
     public CachingStoredRequestFetcher(StoredRequestFetcher delegate, int ttl, int size) {
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
         this.delegate = Objects.requireNonNull(delegate);
-        this.storedRequestCache = new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS, new LRUMap<>(size));
+        storedRequestCache = new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS, new LRUMap<>(size));
+        storedAmpRequestCache = new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS, new LRUMap<>(size));
     }
 
     /**
@@ -39,6 +41,13 @@ public class CachingStoredRequestFetcher implements StoredRequestFetcher {
         Objects.requireNonNull(ids);
         Objects.requireNonNull(timeout);
         return getFromCacheOrDelegate(storedRequestCache, ids, timeout, delegate::getStoredRequestsById);
+    }
+
+    @Override
+    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, GlobalTimeout timeout) {
+        Objects.requireNonNull(ids);
+        Objects.requireNonNull(timeout);
+        return getFromCacheOrDelegate(storedAmpRequestCache, ids, timeout, delegate::getStoredRequestsByAmpId);
     }
 
     /**

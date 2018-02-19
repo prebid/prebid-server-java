@@ -157,6 +157,35 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
+    public void ampShouldReturnTargeting() throws IOException {
+        // given
+        // rubicon exchange
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("amp/test-rubicon-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("amp/test-rubicon-bid-response.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("amp/test-cache-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("amp/test-cache-response.json"))));
+
+        // when and then
+        given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
+                .when()
+                .get("/openrtb2/amp?tag_id=test-amp-stored-request")
+                .then()
+                .assertThat()
+                .body(equalTo(jsonFrom("amp/test-amp-response.json")));
+    }
+
+    @Test
     public void auctionShouldRespondWithBidsFromDifferentExchanges() throws IOException {
         // given
         // rubicon bid response for ad unit 1
@@ -360,7 +389,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("origin.com");
         assertThat(response.header("Access-Control-Allow-Methods")).contains(asList("HEAD", "OPTIONS", "GET", "POST"));
-        assertThat(response.header("Access-Control-Allow-Headers")).isEqualTo("Origin,Accept,Content-Type");
+        assertThat(response.header("Access-Control-Allow-Headers"))
+                .isEqualTo("Origin,Accept,X-Requested-With,Content-Type");
     }
 
     @Test

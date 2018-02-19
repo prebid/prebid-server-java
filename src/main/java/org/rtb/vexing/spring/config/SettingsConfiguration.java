@@ -90,9 +90,10 @@ public class SettingsConfiguration {
     @ConditionalOnExpression("'${stored-requests.type}' == 'postgres' or '${stored-requests.type}' == 'mysql'")
     JdbcStoredRequestFetcher jdbcStoredRequestFetcher(
             @Value("${stored-requests.query}") String query,
+            @Value("${stored-requests.amp-query}") String ampQuery,
             JdbcClient jdbcClient) {
 
-        return new JdbcStoredRequestFetcher(jdbcClient, query);
+        return new JdbcStoredRequestFetcher(jdbcClient, query, ampQuery);
     }
 
     @Bean

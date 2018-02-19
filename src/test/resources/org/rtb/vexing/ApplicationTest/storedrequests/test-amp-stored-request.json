@@ -1,0 +1,41 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
+        "w": 300,
+        "h": 600
+      },
+      "ext": {
+        "rubicon": {
+          "accountId": 5001,
+          "siteId": 6001,
+          "zoneId": 7001
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com"
+  },
+  "test": 0,
+  "allimps": 0,
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "lengthmax": 100
+      },
+      "cache": {
+        "bids": []
+      }
+    }
+  }
+}

@@ -15,4 +15,9 @@ public interface StoredRequestFetcher {
      * Fetches stored requests by ids.
      */
     Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, GlobalTimeout timeout);
+
+    /**
+     * Fetches stored requests by amp ids.
+     */
+    Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, GlobalTimeout timeout);
 }

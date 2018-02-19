@@ -1,0 +1,71 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
+        "w": 300,
+        "h": 600,
+        "ext": {
+          "rp": {
+            "size_id": 10,
+            "mime": "text/html"
+          }
+        }
+      },
+      "ext": {
+        "rp": {
+          "zone_id": 7001,
+          "track": {
+            "mint": "",
+            "mint_version": ""
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "ext": {
+        "rp": {
+          "account_id": 5001
+        }
+      }
+    },
+    "ext": {
+      "rp": {
+        "site_id": 6001
+      }
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "192.168.244.1",
+    "ext": {
+      "rp": {}
+    }
+  },
+  "user": {
+    "buyeruid": "J5VLCWQP-26-CWFT"
+  },
+  "test": 0,
+  "allimps": 0,
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "lengthmax": 100
+      },
+      "cache": {
+        "bids": {}
+      }
+    }
+  }
+}
