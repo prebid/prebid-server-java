@@ -13,7 +13,6 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
-import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -391,38 +390,6 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Methods")).contains(asList("HEAD", "OPTIONS", "GET", "POST"));
         assertThat(response.header("Access-Control-Allow-Headers"))
                 .isEqualTo("Origin,Accept,X-Requested-With,Content-Type");
-    }
-
-    @Test
-    public void ipShouldReturnClientInfo() {
-        final Response response = given(spec)
-                .header("User-Agent", "Test-Agent")
-                .header("X-Forwarded-For", "203.0.113.195, 70.41.3.18, 150.172.238.178")
-                .header("X-Real-IP", "54.83.132.159")
-                .header("Content-Type", "application/json")
-                .header("Test-Header", "test-header-value")
-                .when().get("/ip");
-
-        assertThat(response.statusCode()).isEqualTo(200);
-
-        //removing port number info
-        final String responseAsString =
-                StringUtils.removePattern(response.asString(), "[\\n\\r][ \\t]*Port:\\s*([^\\n\\r]*)");
-
-        assertThat(responseAsString).isEqualTo("User Agent: Test-Agent\n" +
-                "IP: 127.0.0.1\n" +
-                "Forwarded IP: 203.0.113.195\n" +
-                "Real IP: 203.0.113.195\n" +
-                "Content-Type: application/json; charset=UTF-8\n" +
-                "Test-Header: test-header-value\n" +
-                "Accept: */*\n" +
-                "User-Agent: Test-Agent\n" +
-                "X-Forwarded-For: 203.0.113.195, 70.41.3.18, 150.172.238.178\n" +
-                "X-Real-IP: 54.83.132.159\n" +
-                "Content-Length: 0\n" +
-                "Host: localhost:8080\n" +
-                "Connection: Keep-Alive\n" +
-                "Accept-Encoding: gzip,deflate");
     }
 
     @Test

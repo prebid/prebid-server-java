@@ -20,7 +20,6 @@ import org.rtb.vexing.handler.AuctionHandler;
 import org.rtb.vexing.handler.BidderParamHandler;
 import org.rtb.vexing.handler.CookieSyncHandler;
 import org.rtb.vexing.handler.GetuidsHandler;
-import org.rtb.vexing.handler.IpHandler;
 import org.rtb.vexing.handler.NoCacheHandler;
 import org.rtb.vexing.handler.OptoutHandler;
 import org.rtb.vexing.handler.SetuidHandler;
@@ -61,7 +60,6 @@ public class WebConfiguration {
                   SetuidHandler setuidHandler,
                   GetuidsHandler getuidsHandler,
                   OptoutHandler optoutHandler,
-                  IpHandler ipHandler,
                   BidderParamHandler bidderParamHandler,
                   StaticHandler staticHandler) {
 
@@ -81,7 +79,6 @@ public class WebConfiguration {
         router.get("/getuids").handler(getuidsHandler);
         router.post("/optout").handler(optoutHandler);
         router.get("/optout").handler(optoutHandler);
-        router.get("/ip").handler(ipHandler);
         router.get("/bidders/params").handler(bidderParamHandler);
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves indexAdapter.html by default
@@ -197,11 +194,6 @@ public class WebConfiguration {
                 validateUrl(optoutUrl),
                 validateUrl(optinUrl)
         );
-    }
-
-    @Bean
-    IpHandler ipHandler() {
-        return new IpHandler();
     }
 
     @Bean
