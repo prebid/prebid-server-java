@@ -12,7 +12,6 @@ http-client:
   max-pool-size: 32768
   connect-timeout-ms: 2500
 external-url: http://localhost:8000
-admin-port: 6060
 default-timeout-ms: 250
 auction:
   default-timeout-ms: 5000
