@@ -475,7 +475,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of(null, null), null, null)))));
+                        ExtRequestTargeting.of(null), null, null)))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout()).result();
@@ -496,7 +496,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of("invalid", null), null, null)))));
+                        ExtRequestTargeting.of("invalid"), null, null)))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout()).result();
@@ -525,7 +525,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1")),
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of("low", 20), null, null)))));
+                        ExtRequestTargeting.of("low"), null, null)))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout()).result();
@@ -557,7 +557,7 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of("low", 20), null,
+                        ExtRequestTargeting.of("low"), null,
                         ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
@@ -590,7 +590,7 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of("low", 20), null,
+                        ExtRequestTargeting.of("low"), null,
                         ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
@@ -623,7 +623,7 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of("low", 20), null,
+                        ExtRequestTargeting.of("low"), null,
                         ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
@@ -744,7 +744,7 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        ExtRequestTargeting.of("low", 20), null,
+                        ExtRequestTargeting.of("low"), null,
                         ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         final GlobalTimeout timeout = GlobalTimeout.create(500);

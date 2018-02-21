@@ -197,7 +197,7 @@ public class ExchangeService {
      */
     private static TargetingKeywordsCreator buildKeywordsCreator(ExtRequestTargeting targeting) {
         return targeting != null
-                ? TargetingKeywordsCreator.withSettings(targeting.pricegranularity, targeting.lengthmax) : null;
+                ? TargetingKeywordsCreator.withPriceGranularity(targeting.getPricegranularity()) : null;
     }
 
     /**

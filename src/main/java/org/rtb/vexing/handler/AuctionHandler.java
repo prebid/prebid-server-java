@@ -208,7 +208,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         if (preBidRequest.sortBids != null && preBidRequest.sortBids == 1) {
             final TargetingKeywordsCreator keywordsCreator =
-                    TargetingKeywordsCreator.withSettings(account.priceGranularity, preBidRequest.maxKeyLength);
+                    TargetingKeywordsCreator.withPriceGranularity(account.priceGranularity);
 
             final List<Bid> bidsWithKeywords = preBidResponse.bids.stream()
                     .collect(Collectors.groupingBy(bid -> bid.code))

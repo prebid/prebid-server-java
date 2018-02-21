@@ -68,23 +68,17 @@ public class TargetingKeywordsCreator {
 
     private final String priceGranularityString;
     private final CpmBucket.PriceGranularity priceGranularity;
-    private final int maxKeyLength;
 
-    private TargetingKeywordsCreator(String priceGranularityString, CpmBucket.PriceGranularity priceGranularity,
-                                     int maxKeyLength) {
+    private TargetingKeywordsCreator(String priceGranularityString, CpmBucket.PriceGranularity priceGranularity) {
         this.priceGranularityString = priceGranularityString;
         this.priceGranularity = priceGranularity;
-        this.maxKeyLength = maxKeyLength;
     }
 
     /**
      * Creates {@link TargetingKeywordsCreator} for the given params.
      */
-    public static TargetingKeywordsCreator withSettings(String priceGranularity, Integer maxKeyLength) {
-        return new TargetingKeywordsCreator(
-                priceGranularity,
-                parsePriceGranularity(priceGranularity),
-                maxKeyLength != null && maxKeyLength != 0 ? maxKeyLength : Integer.MAX_VALUE);
+    public static TargetingKeywordsCreator withPriceGranularity(String priceGranularity) {
+        return new TargetingKeywordsCreator(priceGranularity, parsePriceGranularity(priceGranularity));
     }
 
     /**
@@ -212,7 +206,7 @@ public class TargetingKeywordsCreator {
 
         private List<String> createKeys(String prefix) {
             final List<String> keys = new ArrayList<>(2);
-            keys.add(StringUtils.truncate(String.format("%s_%s", prefix, bidder), maxKeyLength));
+            keys.add(String.format("%s_%s", prefix, bidder));
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid) {
                 keys.add(prefix);

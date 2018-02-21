@@ -61,7 +61,7 @@
   "ext": {
     "prebid": {
       "targeting": {
-        "lengthmax": 100
+        "pricegranularity": "dense"
       },
       "cache": {
         "bids": {}

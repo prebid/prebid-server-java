@@ -19,7 +19,7 @@ public class TargetingKeywordsCreatorTest {
                 .width(50).height(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", 20)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("low")
                 .makeFor(bid, false);
 
         // then
@@ -38,7 +38,7 @@ public class TargetingKeywordsCreatorTest {
                 .dealid("dealId1").w(50).h(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", 20)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("low")
                 .makeFor(bid, "bidder1", false, null);
 
         // then
@@ -50,50 +50,13 @@ public class TargetingKeywordsCreatorTest {
     }
 
     @Test
-    public void shouldReturnTargetingKeywordsWithTruncatedKeys() {
-        // given
-        final Bid bid = Bid.builder().bidder("veryververyverylongbidder1").price(BigDecimal.ONE).dealId("dealId1")
-                .cacheId("cacheId1").width(50).height(100).build();
-
-        // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", 20)
-                .makeFor(bid, false);
-
-        // then
-        assertThat(keywords).containsOnly(
-                entry("hb_pb_veryververyver", "1.00"),
-                entry("hb_bidder_veryverver", "veryververyverylongbidder1"),
-                entry("hb_cache_id_veryverv", "cacheId1"),
-                entry("hb_size_veryververyv", "50x100"),
-                entry("hb_deal_veryververyv", "dealId1"));
-    }
-
-    @Test
-    public void shouldReturnTargetingKeywordsWithTruncatedKeysOpenrtb() {
-        // given
-        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE)
-                .dealid("dealId1").w(50).h(100).build();
-
-        // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", 20)
-                .makeFor(bid, "veryververyverylongbidder1", false, null);
-
-        // then
-        assertThat(keywords).containsOnly(
-                entry("hb_pb_veryververyver", "1.00"),
-                entry("hb_bidder_veryverver", "veryververyverylongbidder1"),
-                entry("hb_size_veryververyv", "50x100"),
-                entry("hb_deal_veryververyv", "dealId1"));
-    }
-
-    @Test
     public void shouldReturnTargetingKeywordsWithEntireKeys() {
         // given
         final Bid bid = Bid.builder().bidder("veryververyverylongbidder1").price(BigDecimal.ONE).dealId("dealId1")
                 .cacheId("cacheId1").width(50).height(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", null)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("low")
                 .makeFor(bid, false);
 
         // then
@@ -112,7 +75,7 @@ public class TargetingKeywordsCreatorTest {
                 .dealid("dealId1").w(50).h(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", null)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("low")
                 .makeFor(bid, "veryververyverylongbidder1", false, null);
 
         // then
@@ -130,7 +93,7 @@ public class TargetingKeywordsCreatorTest {
                 .width(50).height(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", 20)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("low")
                 .makeFor(bid, true);
 
         // then
@@ -155,7 +118,7 @@ public class TargetingKeywordsCreatorTest {
                 .dealid("dealId1").w(50).h(100).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("low", 20)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("low")
                 .makeFor(bid, "bidder1", true, "cacheId1");
 
         // then
@@ -179,7 +142,7 @@ public class TargetingKeywordsCreatorTest {
         final Bid bid = Bid.builder().bidder("").price(BigDecimal.valueOf(3.87)).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("invalid", 20).makeFor(bid, true);
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("invalid").makeFor(bid, true);
 
         // then
         assertThat(keywords).contains(entry("hb_pb", StringUtils.EMPTY));
@@ -192,7 +155,7 @@ public class TargetingKeywordsCreatorTest {
                 .price(BigDecimal.valueOf(3.87)).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings("invalid", 20)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("invalid")
                 .makeFor(bid, "", true, null);
 
         // then
@@ -205,7 +168,7 @@ public class TargetingKeywordsCreatorTest {
         final Bid bid = Bid.builder().bidder("").price(BigDecimal.valueOf(3.87)).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20).makeFor(bid, true);
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity(null).makeFor(bid, true);
 
         // then
         assertThat(keywords).contains(entry("hb_pb", "3.80"));
@@ -218,7 +181,7 @@ public class TargetingKeywordsCreatorTest {
                 .price(BigDecimal.valueOf(3.87)).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity(null)
                 .makeFor(bid, "", true, null);
 
         // then
@@ -231,7 +194,7 @@ public class TargetingKeywordsCreatorTest {
         final Bid bid = Bid.builder().bidder("audienceNetwork").price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20).makeFor(bid, true);
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity(null).makeFor(bid, true);
 
         // then
         assertThat(keywords).contains(entry("hb_creative_loadtype", "demand_sdk"));
@@ -243,7 +206,7 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity(null)
                 .makeFor(bid, "audienceNetwork", true, null);
 
         // then
@@ -256,7 +219,7 @@ public class TargetingKeywordsCreatorTest {
         final Bid bid = Bid.builder().bidder("bidder").price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20).makeFor(bid, true);
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity(null).makeFor(bid, true);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_cache_id_bidder", "hb_deal_bidder", "hb_size_bidder",
@@ -269,7 +232,7 @@ public class TargetingKeywordsCreatorTest {
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withSettings(null, 20)
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity(null)
                 .makeFor(bid, "bidder", true, null);
 
         // then
@@ -279,21 +242,21 @@ public class TargetingKeywordsCreatorTest {
 
     @Test
     public void shouldParseValidPriceGranularity() {
-        assertThat(TargetingKeywordsCreator.withSettings("med", 20).isPriceGranularityValid()).isTrue();
+        assertThat(TargetingKeywordsCreator.withPriceGranularity("med").isPriceGranularityValid()).isTrue();
     }
 
     @Test
     public void shouldTolerateInvalidPriceGranularity() {
-        assertThat(TargetingKeywordsCreator.withSettings("invalid", 20).isPriceGranularityValid()).isFalse();
+        assertThat(TargetingKeywordsCreator.withPriceGranularity("invalid").isPriceGranularityValid()).isFalse();
     }
 
     @Test
     public void isNonZeroCpmShouldReturnFalse() {
-        assertThat(TargetingKeywordsCreator.withSettings("med", 20).isNonZeroCpm(BigDecimal.ZERO)).isFalse();
+        assertThat(TargetingKeywordsCreator.withPriceGranularity("med").isNonZeroCpm(BigDecimal.ZERO)).isFalse();
     }
 
     @Test
     public void isNonZeroCpmShouldReturnTrue() {
-        assertThat(TargetingKeywordsCreator.withSettings("med", 20).isNonZeroCpm(BigDecimal.ONE)).isTrue();
+        assertThat(TargetingKeywordsCreator.withPriceGranularity("med").isNonZeroCpm(BigDecimal.ONE)).isTrue();
     }
 }

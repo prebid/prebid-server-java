@@ -341,7 +341,7 @@ public class AmpHandlerTest extends VertxTest {
                 .imp(singletonList(Imp.builder().build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(
                         ExtRequestPrebid.of(
-                                ExtRequestTargeting.of(null, 0),
+                                ExtRequestTargeting.of(null),
                                 null,
                                 ExtRequestPrebidCache.of(mapper.createObjectNode())))));
 
