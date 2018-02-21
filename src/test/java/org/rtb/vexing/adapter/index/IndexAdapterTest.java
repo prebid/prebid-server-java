@@ -140,7 +140,7 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
-        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        final ObjectNode params = mapper.createObjectNode();
         params.set("siteID", new TextNode("non-integer"));
         bidder = givenBidder(builder -> builder.params(params));
 
@@ -207,7 +207,7 @@ public class IndexAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                        .params(defaultNamingMapper.valueToTree(IndexParams.of(486))));
+                        .params(mapper.valueToTree(IndexParams.of(486))));
 
         preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
@@ -404,7 +404,7 @@ public class IndexAdapterTest extends VertxTest {
     private static AdUnitBid givenAdUnitBid(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(defaultNamingMapper.valueToTree(IndexParams.of(42)))
+                .params(mapper.valueToTree(IndexParams.of(42)))
                 .mediaTypes(singleton(MediaType.banner));
 
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer

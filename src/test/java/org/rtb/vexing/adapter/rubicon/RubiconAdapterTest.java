@@ -151,7 +151,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
-        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        final ObjectNode params = mapper.createObjectNode();
         params.set("accountId", new TextNode("non-integer"));
         bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
 
@@ -714,7 +714,7 @@ public class RubiconAdapterTest extends VertxTest {
         bidder = givenBidderCustomizable(builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
-        final ObjectNode ext = defaultNamingMapper.createObjectNode();
+        final ObjectNode ext = mapper.createObjectNode();
         ext.set("rp", new TextNode("non-object"));
 
         exchangeCall = givenExchangeCallCustomizable(
@@ -822,7 +822,7 @@ public class RubiconAdapterTest extends VertxTest {
         // ad unit bid
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(defaultNamingMapper.valueToTree(rubiconParams))
+                .params(mapper.valueToTree(rubiconParams))
                 .mediaTypes(singleton(MediaType.banner));
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer.apply(adUnitBidBuilderMinimal);
 

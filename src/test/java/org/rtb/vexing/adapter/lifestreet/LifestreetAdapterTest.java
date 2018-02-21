@@ -130,7 +130,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamSlotTagIsMissing() {
         // given
-        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        final ObjectNode params = mapper.createObjectNode();
         params.set("slot_tag", null);
         bidder = givenBidder(builder -> builder.params(params));
 
@@ -143,7 +143,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamSlotTagIsInvalid() {
         // given
-        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        final ObjectNode params = mapper.createObjectNode();
         params.set("slot_tag", new TextNode("invalid"));
         bidder = givenBidder(builder -> builder.params(params));
 

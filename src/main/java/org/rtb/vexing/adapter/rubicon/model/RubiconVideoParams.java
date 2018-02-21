@@ -10,11 +10,12 @@ public final class RubiconVideoParams {
 
     String language;
 
+    @JsonProperty("playerHeight")
     Integer playerHeight;
 
+    @JsonProperty("playerWidth")
     Integer playerWidth;
 
-    @JsonProperty("size_id")
     Integer sizeId;
 
     Integer skip;

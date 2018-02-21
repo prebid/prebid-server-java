@@ -2,7 +2,6 @@ package org.rtb.vexing.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
@@ -38,7 +37,6 @@ import java.util.function.Function;
 public class StoredRequestProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(StoredRequestProcessor.class);
-    private static final ObjectMapper MAPPER = Json.mapper;
 
     private final StoredRequestFetcher storedRequestFetcher;
     private final long defaultTimeout;
@@ -132,10 +130,10 @@ public class StoredRequestProcessor {
      */
     private <T> T merge(T originalObject, String storedRequestId, StoredRequestResult storedRequestResult,
                         Class<T> classToCast) {
-        final JsonNode originJsonNode = MAPPER.valueToTree(originalObject);
+        final JsonNode originJsonNode = Json.mapper.valueToTree(originalObject);
         final JsonNode storedRequestJsonNode;
         try {
-            storedRequestJsonNode = MAPPER.readTree(storedRequestResult.getStoredIdToJson().get(storedRequestId));
+            storedRequestJsonNode = Json.mapper.readTree(storedRequestResult.getStoredIdToJson().get(storedRequestId));
         } catch (IOException e) {
             throw new InvalidRequestException(
                     String.format("Can't parse Json for stored request with id %s", storedRequestId));
@@ -143,7 +141,7 @@ public class StoredRequestProcessor {
         try {
             // Http request fields have higher priority and will override fields from stored requests
             // in case they have different values
-            return MAPPER.treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
+            return Json.mapper.treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
                     classToCast);
         } catch (JsonPatchException e) {
             final String errorMessage = String.format(
@@ -190,7 +188,7 @@ public class StoredRequestProcessor {
     private static ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
         if (bidRequest.getExt() != null) {
             try {
-                final ExtBidRequest extBidRequest = MAPPER.treeToValue(bidRequest.getExt(), ExtBidRequest.class);
+                final ExtBidRequest extBidRequest = Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class);
                 final ExtRequestPrebid prebid = extBidRequest.getPrebid();
                 if (prebid != null) {
                     return prebid.getStoredrequest();
@@ -211,7 +209,7 @@ public class StoredRequestProcessor {
     private static ExtStoredRequest getStoredRequestFromImp(Imp imp) {
         if (imp.getExt() != null) {
             try {
-                final ExtImp extImp = MAPPER.treeToValue(imp.getExt(), ExtImp.class);
+                final ExtImp extImp = Json.mapper.treeToValue(imp.getExt(), ExtImp.class);
                 final ExtImpPrebid prebid = extImp.getPrebid();
                 if (prebid != null) {
                     return prebid.getStoredrequest();

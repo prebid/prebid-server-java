@@ -127,17 +127,16 @@ public class PubmaticAdapterTest extends VertxTest {
         // given
         bidder = Bidder.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(identity()),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of(null, null)))),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of("publisherID", null)))),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of("publisherID", "slot42")))),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of("publisherID", "slot42@200")))),
-                givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
-                        .valueToTree(PubmaticParams.of("publisherID", "slot42@200xNonNumber"))))
-        ));
+                givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
+                        PubmaticParams.of(null, null)))),
+                givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
+                        PubmaticParams.of("publisherID", null)))),
+                givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
+                        PubmaticParams.of("publisherID", "slot42")))),
+                givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
+                        PubmaticParams.of("publisherID", "slot42@200")))),
+                givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
+                        PubmaticParams.of("publisherID", "slot42@200xNonNumber"))))));
 
         given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
 
@@ -169,8 +168,7 @@ public class PubmaticAdapterTest extends VertxTest {
         // given
         bidder = givenBidderCustomizable(
                 builder -> builder
-                        .params(defaultNamingMapper
-                                .valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
+                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
 
         given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
 
@@ -224,8 +222,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                        .params(defaultNamingMapper
-                                .valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
+                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(
                 builder -> builder
@@ -462,7 +459,7 @@ public class PubmaticAdapterTest extends VertxTest {
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(480).h(320).build()))
-                .params(defaultNamingMapper.valueToTree(PubmaticParams.of("publisherId1", "slot1@300x250:zzz")))
+                .params(mapper.valueToTree(PubmaticParams.of("publisherId1", "slot1@300x250:zzz")))
                 .mediaTypes(singleton(MediaType.banner));
 
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer

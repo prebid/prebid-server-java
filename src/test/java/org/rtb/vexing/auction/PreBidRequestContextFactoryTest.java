@@ -818,7 +818,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     }
 
     private static ObjectNode rubiconParams(Integer accountId, Integer siteId, Integer zoneId) {
-        return defaultNamingMapper.valueToTree(RubiconParams.builder()
+        return mapper.valueToTree(RubiconParams.builder()
                 .accountId(accountId)
                 .siteId(siteId)
                 .zoneId(zoneId)

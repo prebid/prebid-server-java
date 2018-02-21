@@ -1,7 +1,5 @@
 package org.rtb.vexing.adapter;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
@@ -40,10 +38,6 @@ public abstract class OpenrtbAdapter implements Adapter {
 
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
-
-    // Params fields can be not in snake-case
-    protected static final ObjectMapper DEFAULT_NAMING_MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     protected static String validateUrl(String url) {
         Objects.requireNonNull(url);

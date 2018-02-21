@@ -158,7 +158,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
         final RubiconParams rubiconParams;
         try {
-            rubiconParams = DEFAULT_NAMING_MAPPER.convertValue(params, RubiconParams.class);
+            rubiconParams = Json.mapper.convertValue(params, RubiconParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());

@@ -107,7 +107,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
 
         final AppnexusParams params;
         try {
-            params = DEFAULT_NAMING_MAPPER.convertValue(paramsNode, AppnexusParams.class);
+            params = Json.mapper.convertValue(paramsNode, AppnexusParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());

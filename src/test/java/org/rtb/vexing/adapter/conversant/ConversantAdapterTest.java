@@ -147,7 +147,7 @@ public class ConversantAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
-        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        final ObjectNode params = mapper.createObjectNode();
         params.set("secure", new TextNode("non-integer"));
         bidder = givenBidder(builder -> builder.params(params), identity());
 

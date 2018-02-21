@@ -132,7 +132,7 @@ public class PulsepointAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
-        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        final ObjectNode params = mapper.createObjectNode();
         params.set("cp", new TextNode("non-integer"));
         bidder = givenBidder(builder -> builder.params(params));
 
@@ -271,7 +271,7 @@ public class PulsepointAdapterTest extends VertxTest {
                         .adUnitCode("adUnitCode1")
                         .instl(1)
                         .topframe(1)
-                        .params(defaultNamingMapper.valueToTree(PulsepointParams.of(101, 102, "800x600")))
+                        .params(mapper.valueToTree(PulsepointParams.of(101, 102, "800x600")))
                         .sizes(singletonList(Format.builder().w(300).h(250).build())));
 
         preBidRequestContext = givenPreBidRequestContext(
@@ -512,7 +512,7 @@ public class PulsepointAdapterTest extends VertxTest {
         // ad unit bid
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(defaultNamingMapper.valueToTree(PulsepointParams.of(42, 100500, "100X200")))
+                .params(mapper.valueToTree(PulsepointParams.of(42, 100500, "100X200")))
                 .mediaTypes(singleton(MediaType.banner));
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer.apply(adUnitBidBuilderMinimal);
 

@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
@@ -147,7 +148,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
 
         final PubmaticParams pubmaticParams;
         try {
-            pubmaticParams = DEFAULT_NAMING_MAPPER.convertValue(params, PubmaticParams.class);
+            pubmaticParams = Json.mapper.convertValue(params, PubmaticParams.class);
         } catch (IllegalArgumentException e) {
             logWrongParams(requestId, null, adUnitBid, "Ignored bid: invalid JSON  [%s] err [%s]", params, e);
             return null;

@@ -143,7 +143,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
-        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        final ObjectNode params = mapper.createObjectNode();
         params.set("placementId", new TextNode("non-integer"));
         bidder = givenBidder(builder -> builder.params(params), identity());
 
@@ -485,7 +485,7 @@ public class AppnexusAdapterTest extends VertxTest {
         // ad unit bid
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(defaultNamingMapper.valueToTree(params))
+                .params(mapper.valueToTree(params))
                 .mediaTypes(singleton(MediaType.banner));
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer.apply(
                 adUnitBidBuilderMinimal);

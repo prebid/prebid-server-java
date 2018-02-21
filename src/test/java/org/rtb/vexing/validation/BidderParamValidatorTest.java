@@ -1,8 +1,6 @@
 package org.rtb.vexing.validation;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -12,6 +10,7 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.auction.BidderRequesterCatalog;
 import org.rtb.vexing.model.openrtb.ext.request.appnexus.ExtImpAppnexus;
+import org.rtb.vexing.model.openrtb.ext.request.rubicon.ExtImpRubicon;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -74,8 +73,8 @@ public class BidderParamValidatorTest extends VertxTest {
     public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOk() {
 
         // given
-        final RubiconExt ext = RubiconExt.of(1, 2, 3);
-        final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
+        final ExtImpRubicon ext = ExtImpRubicon.builder().accountId(1).siteId(2).zoneId(3).build();
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
         final Set<String> messages = bidderParamValidator.validate(RUBICON, node);
@@ -88,9 +87,9 @@ public class BidderParamValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessagesWhenRubiconImpExtNotValid() {
 
         // given
-        final RubiconExt ext = RubiconExt.of(null, 2, 3);
+        final ExtImpRubicon ext = ExtImpRubicon.builder().siteId(2).zoneId(3).build();
 
-        final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         final Set<String> messages = bidderParamValidator.validate(RUBICON, node);
 
@@ -104,7 +103,7 @@ public class BidderParamValidatorTest extends VertxTest {
         // given
         final ExtImpAppnexus ext = ExtImpAppnexus.builder().member("memberId").build();
 
-        final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
         final Set<String> messages = bidderParamValidator.validate(APPNEXUS, node);
@@ -119,7 +118,7 @@ public class BidderParamValidatorTest extends VertxTest {
         // given
         final ExtImpAppnexus ext = ExtImpAppnexus.builder().placementId(1).build();
 
-        final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
         final Set<String> messages = bidderParamValidator.validate(APPNEXUS, node);
@@ -154,16 +153,5 @@ public class BidderParamValidatorTest extends VertxTest {
             }
         }
         return content;
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static class RubiconExt {
-
-        Integer accountId;
-
-        Integer siteId;
-
-        Integer zoneId;
     }
 }

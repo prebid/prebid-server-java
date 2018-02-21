@@ -126,7 +126,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenExtIsInvalid() {
         // given
-        final ObjectNode ext = defaultNamingMapper.createObjectNode();
+        final ObjectNode ext = mapper.createObjectNode();
         ext.set("prebid", new TextNode("invalid-prebid"));
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 

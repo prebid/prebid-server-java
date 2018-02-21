@@ -1,5 +1,6 @@
 package org.rtb.vexing.adapter.pubmatic.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -7,7 +8,9 @@ import lombok.Value;
 @Value
 public final class PubmaticParams {
 
+    @JsonProperty("publisherId")
     String publisherId;
 
+    @JsonProperty("adSlot")
     String adSlot;
 }

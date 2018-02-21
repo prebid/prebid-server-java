@@ -134,7 +134,7 @@ public class FacebookAdapter extends OpenrtbAdapter {
 
         final FacebookParams params;
         try {
-            params = DEFAULT_NAMING_MAPPER.convertValue(paramsNode, FacebookParams.class);
+            params = Json.mapper.convertValue(paramsNode, FacebookParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());

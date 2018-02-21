@@ -161,7 +161,7 @@ public class FacebookAdapterTest extends VertxTest {
     @Test
     public void requestBidsShouldFailIfPlacementIdParamIsMissing() {
         // given
-        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        final ObjectNode params = mapper.createObjectNode();
         params.set("placementId", null);
         bidder = givenBidder(builder -> builder.params(params));
 
@@ -174,7 +174,7 @@ public class FacebookAdapterTest extends VertxTest {
     @Test
     public void requestBidsShouldFailIfPlacementIdParamHasInvalidFormat() {
         // given
-        final ObjectNode params = defaultNamingMapper.createObjectNode();
+        final ObjectNode params = mapper.createObjectNode();
         params.set("placementId", new TextNode("invalid-placement-id"));
         bidder = givenBidder(builder -> builder.params(params));
 
@@ -228,7 +228,7 @@ public class FacebookAdapterTest extends VertxTest {
                         .adUnitCode("adUnitCode")
                         .instl(1)
                         .topframe(1)
-                        .params(defaultNamingMapper.valueToTree(FacebookParams.of("pub1_place1")))
+                        .params(mapper.valueToTree(FacebookParams.of("pub1_place1")))
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
         );
 
@@ -465,7 +465,7 @@ public class FacebookAdapterTest extends VertxTest {
         // ad unit bid
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(defaultNamingMapper.valueToTree(FacebookParams.of("pubId1_placement1")))
+                .params(mapper.valueToTree(FacebookParams.of("pubId1_placement1")))
                 .mediaTypes(singleton(MediaType.banner));
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer.apply(
                 adUnitBidBuilderMinimal);
