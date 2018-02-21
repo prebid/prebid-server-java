@@ -9,12 +9,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.*;
 
 public class NoCacheHandlerTest {
 
@@ -27,16 +25,16 @@ public class NoCacheHandlerTest {
     @Mock
     private HttpServerResponse httpResponse;
 
-    private NoCacheHandler noCacheHandler;
-
     @Test
     public void testNoCacheHeadersShouldBeInResponse() {
-        //given
-        noCacheHandler = new NoCacheHandler();
+        // given
+        final NoCacheHandler noCacheHandler = new NoCacheHandler();
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), anyString())).willReturn(httpResponse);
+
         // when
         noCacheHandler.handle(routingContext);
+
         // then
         verify(httpResponse, times(3)).putHeader(any(CharSequence.class), anyString());
         verify(httpResponse).putHeader(eq(HttpHeaders.CACHE_CONTROL), eq("no-cache, no-store, must-revalidate"));

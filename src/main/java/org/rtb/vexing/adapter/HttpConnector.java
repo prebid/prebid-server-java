@@ -1,10 +1,12 @@
 package org.rtb.vexing.adapter;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -12,9 +14,8 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
@@ -72,7 +73,7 @@ public class HttpConnector {
         }
 
         return CompositeFuture.join(httpRequests.stream()
-                .map(httpRequest -> doRequest(httpRequest, preBidRequestContext.timeout))
+                .map(httpRequest -> doRequest(httpRequest, preBidRequestContext.getTimeout()))
                 .collect(Collectors.toList()))
                 .map(compositeFuture -> toBidderResult(adapter, bidder, preBidRequestContext, bidderStarted,
                         compositeFuture.list()));
@@ -82,8 +83,11 @@ public class HttpConnector {
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
     private Future<ExchangeCall> doRequest(HttpRequest httpRequest, GlobalTimeout timeout) {
-        final String body = Json.encode(httpRequest.bidRequest);
-        final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(httpRequest.uri, body);
+        final BidRequest bidRequest = httpRequest.getBidRequest();
+        final String uri = httpRequest.getUri();
+
+        final String body = Json.encode(bidRequest);
+        final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(uri, body);
         final Future<ExchangeCall> future = Future.future();
 
         final long remainingTimeout = timeout.remaining();
@@ -92,13 +96,14 @@ public class HttpConnector {
             return future;
         }
 
-        final HttpClientRequest httpClientRequest = httpClient.postAbs(httpRequest.uri,
-                response -> handleResponse(bidderDebugBuilder, response, future, httpRequest.bidRequest))
+        final HttpClientRequest httpClientRequest = httpClient.postAbs(uri,
+                response -> handleResponse(bidderDebugBuilder, response, future, bidRequest))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future))
                 .setTimeout(remainingTimeout);
 
-        if (httpRequest.headers != null && !httpRequest.headers.isEmpty()) {
-            httpClientRequest.headers().addAll(httpRequest.headers);
+        final MultiMap headers = httpRequest.getHeaders();
+        if (headers != null && !headers.isEmpty()) {
+            httpClientRequest.headers().addAll(headers);
         }
 
         httpClientRequest.end(body);
@@ -180,16 +185,16 @@ public class HttpConnector {
         final Integer responseTime = responseTime(bidderStarted);
 
         final BidderStatus.BidderStatusBuilder bidderStatusBuilder = BidderStatus.builder()
-                .bidder(bidder.bidderCode)
+                .bidder(bidder.getBidderCode())
                 .responseTimeMs(responseTime);
 
-        if (preBidRequestContext.isDebug) {
+        if (preBidRequestContext.isDebug()) {
             bidderStatusBuilder
-                    .debug(exchangeCalls.stream().map(br -> br.bidderDebug).collect(Collectors.toList()));
+                    .debug(exchangeCalls.stream().map(ExchangeCall::getBidderDebug).collect(Collectors.toList()));
         }
 
-        if (preBidRequestContext.preBidRequest.app == null
-                && preBidRequestContext.uidsCookie.uidFrom(adapter.cookieFamily()) == null) {
+        if (preBidRequestContext.getPreBidRequest().getApp() == null
+                && preBidRequestContext.getUidsCookie().uidFrom(adapter.cookieFamily()) == null) {
             bidderStatusBuilder
                     .noCookie(true)
                     .usersync(adapter.usersyncInfo());
@@ -201,28 +206,24 @@ public class HttpConnector {
 
         final BidsWithError failedBidsWithError = failedBidsWithError(bidsWithErrors);
         final List<Bid> bids = bidsWithErrors.stream()
-                .flatMap(bidsWithError -> bidsWithError.bids.stream())
+                .flatMap(bidsWithError -> bidsWithError.getBids().stream())
                 .collect(Collectors.toList());
 
-        final BidderResult.BidderResultBuilder bidderResultBuilder = BidderResult.builder();
+        boolean timedOut = false;
+        List<Bid> bidsToReturn = Collections.emptyList();
 
         if (failedBidsWithError != null
                 && (!adapter.tolerateErrors() || (adapter.tolerateErrors() && bids.isEmpty()))) {
-            bidderStatusBuilder.error(failedBidsWithError.error);
-            bidderResultBuilder.timedOut(failedBidsWithError.timedOut);
-            bidderResultBuilder.bids(Collections.emptyList());
+            bidderStatusBuilder.error(failedBidsWithError.getError());
+            timedOut = failedBidsWithError.isTimedOut();
         } else if (bids.isEmpty()) {
             bidderStatusBuilder.noBid(true);
-            bidderResultBuilder.bids(Collections.emptyList());
         } else {
-            final List<Bid> validBids = dropBidsWithNotValidSize(bids, bidder.adUnitBids);
-            bidderStatusBuilder.numBids(validBids.size());
-            bidderResultBuilder.bids(validBids);
+            bidsToReturn = dropBidsWithNotValidSize(bids, bidder.getAdUnitBids());
+            bidderStatusBuilder.numBids(bidsToReturn.size());
         }
 
-        return bidderResultBuilder
-                .bidderStatus(bidderStatusBuilder.build())
-                .build();
+        return BidderResult.of(bidderStatusBuilder.build(), bidsToReturn, timedOut);
     }
 
     private static int responseTime(long bidderStarted) {
@@ -234,8 +235,9 @@ public class HttpConnector {
      */
     private static BidsWithError bidsWithError(Adapter adapter, Bidder bidder, ExchangeCall exchangeCall,
                                                Integer responseTime) {
-        if (StringUtils.isNotBlank(exchangeCall.error)) {
-            return BidsWithError.of(Collections.emptyList(), exchangeCall.error, exchangeCall.timedOut);
+        final String error = exchangeCall.getError();
+        if (StringUtils.isNotBlank(error)) {
+            return BidsWithError.of(Collections.emptyList(), error, exchangeCall.isTimedOut());
         }
         try {
             final List<Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
@@ -255,7 +257,7 @@ public class HttpConnector {
         final ListIterator<BidsWithError> iterator = bidsWithErrors.listIterator(bidsWithErrors.size());
         while (iterator.hasPrevious()) {
             final BidsWithError current = iterator.previous();
-            if (StringUtils.isNotBlank(current.error)) {
+            if (StringUtils.isNotBlank(current.getError())) {
                 return current;
             }
         }
@@ -268,8 +270,9 @@ public class HttpConnector {
      */
     private static List<Bid> dropBidsWithNotValidSize(List<Bid> bids, List<AdUnitBid> adUnitBids) {
         final List<Bid> notValidBids = bids.stream()
-                .filter(bid -> bid.mediaType == MediaType.banner
-                        && (bid.height == null || bid.height == 0 || bid.width == null || bid.width == 0))
+                .filter(bid -> bid.getMediaType() == MediaType.banner
+                        && (bid.getHeight() == null || bid.getHeight() == 0
+                        || bid.getWidth() == null || bid.getWidth() == 0))
                 .collect(Collectors.toList());
 
         if (notValidBids.isEmpty()) {
@@ -282,17 +285,18 @@ public class HttpConnector {
 
         for (final Bid bid : notValidBids) {
             final Optional<AdUnitBid> matchingAdUnit = adUnitBids.stream()
-                    .filter(adUnitBid -> adUnitBid.adUnitCode.equals(bid.code) && adUnitBid.bidId.equals(bid.bidId)
-                            && adUnitBid.sizes.size() == 1)
+                    .filter(adUnitBid -> adUnitBid.getAdUnitCode().equals(bid.getCode())
+                            && adUnitBid.getBidId().equals(bid.getBidId()) && adUnitBid.getSizes().size() == 1)
                     .findAny();
             if (matchingAdUnit.isPresent()) {
+                final Format format = matchingAdUnit.get().getSizes().get(0);
                 final Bid validBid = bid.toBuilder()
-                        .width(matchingAdUnit.get().sizes.get(0).getW())
-                        .height(matchingAdUnit.get().sizes.get(0).getH())
+                        .width(format.getW())
+                        .height(format.getH())
                         .build();
                 validBids.add(validBid);
             } else {
-                logger.warn("Bid was rejected for bidder {0} because no size was defined", bid.bidder);
+                logger.warn("Bid was rejected for bidder {0} because no size was defined", bid.getBidder());
             }
         }
 
@@ -301,18 +305,15 @@ public class HttpConnector {
 
     private static BidderResult errorBidderResult(Exception exception, long bidderStarted) {
         logger.warn("Error occurred while constructing bid requests", exception);
-        return BidderResult.builder()
-                .bidderStatus(BidderStatus.builder()
-                        .error(exception.getMessage())
-                        .responseTimeMs(responseTime(bidderStarted))
-                        .build())
-                .bids(Collections.emptyList())
-                .build();
+        return BidderResult.of(BidderStatus.builder()
+                .error(exception.getMessage())
+                .responseTimeMs(responseTime(bidderStarted))
+                .build(), Collections.emptyList(), false);
     }
 
     @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class BidsWithError {
+    @Value
+    private static final class BidsWithError {
 
         List<Bid> bids;
 

@@ -37,7 +37,7 @@ public abstract class OpenRtbBidder implements Bidder {
     }
 
     protected static BidResponse parseResponse(HttpResponse httpResponse) {
-        final int statusCode = httpResponse.statusCode;
+        final int statusCode = httpResponse.getStatusCode();
 
         if (statusCode == 204) {
             return null;
@@ -49,7 +49,7 @@ public abstract class OpenRtbBidder implements Bidder {
         }
 
         try {
-            return Json.mapper.readValue(httpResponse.body, BidResponse.class);
+            return Json.mapper.readValue(httpResponse.getBody(), BidResponse.class);
         } catch (IOException e) {
             logger.warn("Error occurred parsing bid response", e);
             throw new PreBidException(e.getMessage());

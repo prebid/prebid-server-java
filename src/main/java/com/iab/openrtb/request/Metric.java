@@ -14,7 +14,7 @@ import lombok.Value;
  */
 @Builder
 @Value
-public class Metric {
+public final class Metric {
 
     /**
      * Type of metric being presented using exchange curated string names which

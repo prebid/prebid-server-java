@@ -13,34 +13,28 @@ import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.openrtb.ext.response.BidType;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.*;
 
 public class OpenRtbBidderTest extends VertxTest {
 
     @Test
     public void bidTypeShouldReturnBannerBidTypeByDefaultWhenImpIdToBidTypeEmpty() {
-        // given
-        final Bid bid = Bid.builder().impid("abc").build();
-
         // when
-        final BidType result = OpenRtbBidder.bidType(bid, new HashMap<>());
+        final BidType result = OpenRtbBidder.bidType(Bid.builder().impid("abc").build(), emptyMap());
 
-       // then
+        // then
         assertThat(result).isEqualTo(BidType.banner);
     }
 
     @Test
     public void bidTypeShouldReturnBidTypeWhenImpIdToBidTypeContainsBidType() {
-        // given
-        final Bid bid = Bid.builder().impid("abc").build();
-        final Map<String, BidType> impidToBidType = new HashMap();
-        impidToBidType.put("abc", BidType.video);
-
         // when
-        final BidType result = OpenRtbBidder.bidType(bid, impidToBidType);
+        final BidType result = OpenRtbBidder.bidType(Bid.builder().impid("abc").build(),
+                singletonMap("abc", BidType.video));
 
         // then
         assertThat(result).isEqualTo(BidType.video);
@@ -48,15 +42,12 @@ public class OpenRtbBidderTest extends VertxTest {
 
     @Test
     public void impidToBidTypeShouldReturnImpIdsMappedToVideoOrBannerBidTypes() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder().imp(
+        // when
+        final Map<String, BidType> result = OpenRtbBidder.impidToBidType(BidRequest.builder().imp(
                 Arrays.asList(
                         Imp.builder().id("123").video(Video.builder().build()).build(),
                         Imp.builder().id("456").build()))
-                .build();
-
-        // when
-        final Map<String, BidType> result = OpenRtbBidder.impidToBidType(bidRequest);
+                .build());
 
         // then
         assertThat(result)

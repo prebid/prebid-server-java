@@ -304,9 +304,9 @@ public class ApplicationTest extends VertxTest {
 
         // this uids cookie value stands for {"uids":{},"optout":true}
         final Uids uids = decodeUids(cookie.getValue());
-        assertThat(uids.uids).isEmpty();
-        assertThat(uids.uidsLegacy).isEmpty();
-        assertThat(uids.optout).isTrue();
+        assertThat(uids.getUids()).isEmpty();
+        assertThat(uids.getUidsLegacy()).isEmpty();
+        assertThat(uids.getOptout()).isTrue();
     }
 
     @Test
@@ -322,7 +322,7 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void cookieSyncShouldReturnBidderStatusWithRubiconUsersyncInfo() {
         final CookieSyncResponse cookieSyncResponse = given(spec)
-                .body(CookieSyncRequest.builder().uuid("uuid").bidders(singletonList(RUBICON)).build())
+                .body(CookieSyncRequest.of("uuid", singletonList(RUBICON)))
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -330,19 +330,12 @@ public class ApplicationTest extends VertxTest {
                 .extract()
                 .as(CookieSyncResponse.class);
 
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
-                .uuid("uuid")
-                .status("no_cookie")
-                .bidderStatus(singletonList(BidderStatus.builder()
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("uuid", "no_cookie",
+                singletonList(BidderStatus.builder()
                         .bidder(RUBICON)
                         .noCookie(true)
-                        .usersync(UsersyncInfo.builder()
-                                .url("http://localhost:" + WIREMOCK_PORT + "/cookie")
-                                .type("redirect")
-                                .supportCORS(false)
-                                .build())
-                        .build()))
-                .build());
+                        .usersync(UsersyncInfo.of("http://localhost:" + WIREMOCK_PORT + "/cookie", "redirect", false))
+                        .build())));
     }
 
     @Test
@@ -367,13 +360,13 @@ public class ApplicationTest extends VertxTest {
                 .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
 
         final Uids uids = decodeUids(uidsCookie.getValue());
-        assertThat(uids.bday).isEqualTo("2017-08-15T19:47:59.523908376Z"); // should be unchanged
-        assertThat(uids.uidsLegacy).isEmpty();
-        assertThat(uids.uids.get(RUBICON).uid).isEqualTo("updatedUid");
-        assertThat(uids.uids.get(RUBICON).expires.toInstant())
+        assertThat(uids.getBday()).isEqualTo("2017-08-15T19:47:59.523908376Z"); // should be unchanged
+        assertThat(uids.getUidsLegacy()).isEmpty();
+        assertThat(uids.getUids().get(RUBICON).getUid()).isEqualTo("updatedUid");
+        assertThat(uids.getUids().get(RUBICON).getExpires().toInstant())
                 .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
-        assertThat(uids.uids.get("adnxs").uid).isEqualTo("12345");
-        assertThat(uids.uids.get("adnxs").expires.toInstant())
+        assertThat(uids.getUids().get("adnxs").getUid()).isEqualTo("12345");
+        assertThat(uids.getUids().get("adnxs").getExpires().toInstant())
                 .isCloseTo(Instant.now().minus(5, ChronoUnit.MINUTES), within(10, ChronoUnit.SECONDS));
     }
 

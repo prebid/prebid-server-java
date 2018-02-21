@@ -12,7 +12,7 @@ import lombok.Value;
  * exchange <em>a priori</em> to its bidders.
  */
 @Value
-public class Segment {
+public final class Segment {
 
     /** ID of the data segment specific to the data provider. */
     String id;

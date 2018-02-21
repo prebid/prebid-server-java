@@ -47,26 +47,17 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.assertj.core.api.Assertions.entry;
-import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyList;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.*;
 import static org.rtb.vexing.model.openrtb.ext.response.BidType.banner;
 
 public class ExchangeServiceTest extends VertxTest {
@@ -262,7 +253,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .bid(singletonList(Bid.builder()
                         .id("bidId")
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), singletonMap("bidExt", 1))))
+                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null), singletonMap("bidExt", 1))))
                         .build()))
                 .ext(mapper.valueToTree(ExtPrebid.of(null, singletonMap("seatBidExt", 2))))
                 .build());
@@ -284,7 +275,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .group(0)
                 .bid(singletonList(Bid.builder()
                         .id("bidId")
-                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().type(banner).build(), null)))
+                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null, null), null)))
                         .build()))
                 .build());
     }
@@ -326,8 +317,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.responsetimemillis).hasSize(2).containsOnlyKeys("bidder1", "bidder2");
-        assertThat(ext.errors).hasSize(2).containsOnly(
+        assertThat(ext.getResponsetimemillis()).hasSize(2).containsOnlyKeys("bidder1", "bidder2");
+        assertThat(ext.getErrors()).hasSize(2).containsOnly(
                 entry("bidder1", singletonList("bidder1_error1")),
                 entry("bidder2", asList("bidder2_error1", "bidder2_error2")));
     }
@@ -370,8 +361,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.debug).isNotNull();
-        assertThat(ext.debug.httpcalls).hasSize(2).containsOnly(
+        assertThat(ext.getDebug()).isNotNull();
+        assertThat(ext.getDebug().getHttpcalls()).hasSize(2).containsOnly(
                 entry("bidder1", singletonList(ExtHttpCall.builder()
                         .uri("bidder1_uri1")
                         .requestbody("bidder1_requestBody1")
@@ -413,7 +404,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.debug).isNull();
+        assertThat(ext.getDebug()).isNull();
     }
 
     @Test
@@ -445,7 +436,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
-                .extracting(bid -> toExtPrebid(bid.getExt()).prebid.targeting)
+                .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .allSatisfy(map -> assertThat(map).isNull());
     }
 
@@ -463,7 +454,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
-                .extracting(bid -> toExtPrebid(bid.getExt()).prebid.targeting)
+                .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .allSatisfy(map -> assertThat(map).isNull());
     }
 
@@ -482,9 +473,9 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
-                .extracting(bid -> toExtPrebid(bid.getExt()).prebid.targeting)
+                .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .allSatisfy(map -> assertThat(map).isNotEmpty());
-        assertThat(mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class).errors)
+        assertThat(mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class).getErrors())
                 .containsOnly(entry("someBidder", emptyList()));
     }
 
@@ -503,9 +494,9 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
-                .extracting(bid -> toExtPrebid(bid.getExt()).prebid.targeting)
+                .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .allSatisfy(map -> assertThat(map).isNotEmpty());
-        assertThat(mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class).errors).containsOnly(entry(
+        assertThat(mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class).getErrors()).containsOnly(entry(
                 "someBidder",
                 singletonList("Price bucket granularity error: 'invalid' is not a recognized granularity")));
     }
@@ -534,7 +525,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
                 .extracting(
                         Bid::getId,
-                        bid -> toExtPrebid(bid.getExt()).prebid.targeting.get("hb_bidder"))
+                        bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting().get("hb_bidder"))
                 .containsOnly(
                         tuple("bidId1", null),
                         tuple("bidId2", "bidder1"),
@@ -565,7 +556,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
-                .extracting(bid -> toExtPrebid(bid.getExt()).prebid.targeting)
+                .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .extracting(
                         targeting -> targeting.get("hb_bidder"),
                         targeting -> targeting.get("hb_cache_id_bidder2"),
@@ -598,7 +589,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
-                .extracting(bid -> toExtPrebid(bid.getExt()).prebid.targeting)
+                .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .extracting(
                         targeting -> targeting.get("hb_bidder"),
                         targeting -> targeting.get("hb_cache_id_bidder2"),
@@ -631,7 +622,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
-                .extracting(bid -> toExtPrebid(bid.getExt()).prebid.targeting)
+                .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .extracting(
                         targeting -> targeting.get("hb_bidder"),
                         targeting -> targeting.get("hb_cache_id_bidder2"),

@@ -1,19 +1,14 @@
 package org.rtb.vexing.model.openrtb.ext.request;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 /**
  * Defines the contract for bidrequest.ext
  */
-@ToString
-@EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ExtBidRequest {
+@Value
+public final class ExtBidRequest {
 
     /**
      * Defines the contract for bidrequest.ext.prebid

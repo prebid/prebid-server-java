@@ -68,8 +68,8 @@ public class HttpAdapterRequester implements BidderRequester {
             return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), null, Collections.emptyList(),
                     exception.getMessages()));
         }
-        return httpConnector.call(adapter, bidderWithErrors.value, preBidRequestContext)
-                .map(bidderResult -> toBidderSeatBid(bidderResult, bidderWithErrors.errors));
+        return httpConnector.call(adapter, bidderWithErrors.getValue(), preBidRequestContext)
+                .map(bidderResult -> toBidderSeatBid(bidderResult, bidderWithErrors.getErrors()));
     }
 
     /**
@@ -178,16 +178,17 @@ public class HttpAdapterRequester implements BidderRequester {
                     adapter.code()));
         }
         final Result<List<AdUnitBid>> adUnitBidsResult = toAdUnitBids(bidRequest.getImp());
-        if (adUnitBidsResult.value.size() > 0) {
-            return Result.of(org.rtb.vexing.model.Bidder.from(adapter.code(), adUnitBidsResult.value),
-                    adUnitBidsResult.errors);
+        final List<AdUnitBid> adUnitBids = adUnitBidsResult.getValue();
+        final List<String> errors = adUnitBidsResult.getErrors();
+        if (adUnitBids.size() > 0) {
+            return Result.of(org.rtb.vexing.model.Bidder.of(adapter.code(), adUnitBids), errors);
         }
-        throw new InvalidRequestException(adUnitBidsResult.errors);
+        throw new InvalidRequestException(errors);
     }
 
     /**
-     * Converts {@link List<Imp>} to {@link Result<List<AdUnitBid>>}. In case error occurred during {@link AdUnitBid}
-     * initialization, list with error will be returned in result.
+     * Converts {@link List}&lt;{@link Imp}&gt; to {@link Result}&lt;{@link List}&lt;{@link AdUnitBid}&gt;&gt;.
+     * In case error occurred during {@link AdUnitBid} initialization, list with error will be returned in result.
      */
     private Result<List<AdUnitBid>> toAdUnitBids(List<Imp> imps) {
         final List<AdUnitBid> adUnitBids = new ArrayList<>();
@@ -281,24 +282,25 @@ public class HttpAdapterRequester implements BidderRequester {
      */
     private BidderSeatBid toBidderSeatBid(BidderResult bidderResult, List<String> errors) {
         final Result<List<BidderBid>> bidderBidsResult = toBidderBids(bidderResult);
-        errors.addAll(bidderBidsResult.errors);
-        return BidderSeatBid.of(bidderBidsResult.value, null, bidderResult.bidderStatus.debug != null
-                ? toExtHttpCalls(bidderResult.bidderStatus.debug)
-                : null, errors);
+        errors.addAll(bidderBidsResult.getErrors());
+        final List<BidderDebug> debug = bidderResult.getBidderStatus().getDebug();
+        return BidderSeatBid.of(bidderBidsResult.getValue(), null, debug != null ? toExtHttpCalls(debug) : null,
+                errors);
     }
 
     /**
-     * Converts {@link BidderResult} to {@link Result<List<BidderBid>>}.
+     * Converts {@link BidderResult} to {@link Result}&lt;{@link List}&lt;{@link BidderBid}&gt;&gt;.
      */
     private Result<List<BidderBid>> toBidderBids(BidderResult bidderResult) {
         final List<BidderBid> bidderBids = new ArrayList<>();
         final List<String> errors = new ArrayList<>();
-        for (org.rtb.vexing.model.response.Bid bid : bidderResult.bids) {
+        for (org.rtb.vexing.model.response.Bid bid : bidderResult.getBids()) {
             final Result<BidType> bidTypeResult = toBidType(bid);
-            if (bidTypeResult.errors.isEmpty()) {
-                bidderBids.add(BidderBid.of(toOrtbBid(bid), bidTypeResult.value));
+            final List<String> bidTypeErrors = bidTypeResult.getErrors();
+            if (bidTypeErrors.isEmpty()) {
+                bidderBids.add(BidderBid.of(toOrtbBid(bid), bidTypeResult.getValue()));
             } else {
-                errors.addAll(bidTypeResult.errors);
+                errors.addAll(bidTypeErrors);
             }
         }
         return Result.of(bidderBids, errors);
@@ -310,10 +312,11 @@ public class HttpAdapterRequester implements BidderRequester {
      * error list ad null value will be returned.
      */
     private Result<BidType> toBidType(org.rtb.vexing.model.response.Bid bid) {
-        if (bid.mediaType == null) {
+        final MediaType mediaType = bid.getMediaType();
+        if (mediaType == null) {
             return Result.of(null, Collections.singletonList("Media Type is not defined for Bid"));
         }
-        switch (bid.mediaType) {
+        switch (mediaType) {
             case video:
                 return Result.of(BidType.video, Collections.emptyList());
             case banner:
@@ -328,15 +331,15 @@ public class HttpAdapterRequester implements BidderRequester {
      * Converts {@link org.rtb.vexing.model.response.Bid} to {@link Bid}.
      */
     private Bid toOrtbBid(org.rtb.vexing.model.response.Bid bid) {
-        return Bid.builder().id(bid.bidId)
-                .impid(bid.code)
-                .crid(bid.creativeId)
-                .price(bid.price)
-                .nurl(bid.nurl)
-                .adm(bid.adm)
-                .w(bid.width)
-                .h(bid.height)
-                .dealid(bid.dealId)
+        return Bid.builder().id(bid.getBidId())
+                .impid(bid.getCode())
+                .crid(bid.getCreativeId())
+                .price(bid.getPrice())
+                .nurl(bid.getNurl())
+                .adm(bid.getAdm())
+                .w(bid.getWidth())
+                .h(bid.getHeight())
+                .dealid(bid.getDealId())
                 .build();
     }
 
@@ -352,10 +355,10 @@ public class HttpAdapterRequester implements BidderRequester {
      */
     private ExtHttpCall toExtHttpCall(BidderDebug bidderDebug) {
         return ExtHttpCall.builder()
-                .uri(bidderDebug.requestUri)
-                .requestbody(bidderDebug.requestBody)
-                .responsebody(bidderDebug.responseBody)
-                .status(bidderDebug.statusCode)
+                .uri(bidderDebug.getRequestUri())
+                .requestbody(bidderDebug.getRequestBody())
+                .responsebody(bidderDebug.getResponseBody())
+                .status(bidderDebug.getStatusCode())
                 .build();
     }
 

@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public class Imp {
+public final class Imp {
 
     /**
      * A unique identifier for this impression within the context of the bid

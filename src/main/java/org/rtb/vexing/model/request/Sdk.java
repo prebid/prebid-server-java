@@ -1,18 +1,11 @@
 package org.rtb.vexing.model.request;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
-@Builder
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class Sdk {
+@AllArgsConstructor(staticName = "of")
+@Value
+public final class Sdk {
 
     String version;
 

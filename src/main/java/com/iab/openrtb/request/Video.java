@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public class Video {
+public final class Video {
 
     /**
      * Content MIME types supported (e.g., “video/x-ms-wmv”, “video/mp4”).

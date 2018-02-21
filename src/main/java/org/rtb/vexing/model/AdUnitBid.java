@@ -2,22 +2,15 @@ package org.rtb.vexing.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Format;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.rtb.vexing.model.request.Video;
 
 import java.util.List;
 import java.util.Set;
 
 @Builder
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
+@Value
 public final class AdUnitBid {
 
     /* Unique code for an adapter to call. */

@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -25,13 +27,15 @@ import org.rtb.vexing.bidder.model.HttpResponse;
 import org.rtb.vexing.bidder.model.Result;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.appnexus.ExtImpAppnexus;
+import org.rtb.vexing.model.openrtb.ext.request.appnexus.ExtImpAppnexus.ExtImpAppnexusBuilder;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,7 +55,8 @@ public class AppnexusBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnNullIfBidequesImpsIsNull() {
-        assertThat(appnexusBidder.makeHttpRequests(BidRequest.builder().build())).isEqualTo(Result.emptyHttpRequests());
+        assertThat(appnexusBidder.makeHttpRequests(BidRequest.builder().build()))
+                .isEqualTo(Result.of(emptyList(), emptyList()));
     }
 
     @Test
@@ -66,11 +71,11 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
-                .extracting(BidRequest::getImp)
-                .containsOnly(Collections.EMPTY_LIST);
-        assertThat(result.errors).hasSize(1)
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
                 .containsExactly("Appnexus doesn't support audio or native Imps. Ignoring Imp ID=23");
     }
 
@@ -88,9 +93,9 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).hasSize(1);
-        assertThat(result.errors.get(0)).startsWith("Cannot deserialize instance");
-        assertThat(result.value).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0)).startsWith("Cannot deserialize instance");
+        assertThat(result.getValue()).hasSize(1);
     }
 
     @Test
@@ -100,12 +105,13 @@ public class AppnexusBidderTest extends VertxTest {
                 Function.identity(),
                 builder -> builder.video(Video.builder().build()),
                 builder -> builder.placementId(null).member(null).invCode("invCode"));
+
         // when
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1);
-        assertThat(result.errors).hasSize(1)
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1)
                 .containsExactly("No placement or member+invcode provided");
     }
 
@@ -114,18 +120,18 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(impBuilder ->
                 impBuilder.ext(givenExt(extBuilder -> extBuilder.placementId(12).member("member1")))
-                    .video(Video.builder().build()));
+                        .video(Video.builder().build()));
         final Imp imp2 = givenImp(impBuilder ->
                 impBuilder.ext(givenExt(builder -> builder.placementId(12).member("member2")))
-                     .banner(Banner.builder().build()));
-        final BidRequest bidRequest = BidRequest.builder().imp(Arrays.asList(imp1, imp2)).build();
+                        .banner(Banner.builder().build()));
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
 
         // when
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1);
-        assertThat(result.errors).hasSize(1)
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1)
                 .containsExactly("All request.imp[i].ext.appnexus.member params must match. "
                         + "Request contained: member2, member1");
     }
@@ -142,9 +148,9 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value)
+        assertThat(result.getValue())
                 .hasSize(1)
-                .element(0).returns("http://appnexus.com/openrtb2d?member_id=member_param", httpRequest -> httpRequest.uri);
+                .element(0).returns("http://appnexus.com/openrtb2d?member_id=member_param", HttpRequest::getUri);
     }
 
     @Test
@@ -159,9 +165,9 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value)
+        assertThat(result.getValue())
                 .hasSize(1)
-                .element(0).returns("http://appnexus.com/openrtb2d", httpRequest -> httpRequest.uri);
+                .element(0).returns("http://appnexus.com/openrtb2d", HttpRequest::getUri);
     }
 
     @Test
@@ -171,12 +177,13 @@ public class AppnexusBidderTest extends VertxTest {
                 Function.identity(),
                 builder -> builder.video(Video.builder().build()),
                 builder -> builder.placementId(null).member("member").invCode(null));
+
         // when
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1);
-        assertThat(result.errors).hasSize(1)
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1)
                 .containsExactly("No placement or member+invcode provided");
     }
 
@@ -187,27 +194,23 @@ public class AppnexusBidderTest extends VertxTest {
                 Function.identity(),
                 Function.identity(),
                 builder -> builder.placementId(null).member(null).invCode(null));
+
         // when
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         //then
-        assertThat(result.value).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
-                .extracting(BidRequest::getImp)
-                .containsOnly(Collections.EMPTY_LIST);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .isEmpty();
 
-        assertThat(result.errors).hasSize(1)
+        assertThat(result.getErrors()).hasSize(1)
                 .containsExactly("No placement or member+invcode provided");
     }
 
     @Test
     public void makeHttpRequestsShouldSetImpTagidAndImpBidFloorIfExtImpAppnexusHasInvCodeAndReserve() {
         // given
-        final Imp expectedImp = givenExpectedImp(
-                builder ->
-                        builder.bidfloor(10f).tagid("tagid"),
-                appnexusImpExtAppnexusBuilder ->
-                        AppnexusImpExtAppnexus.builder().placementId(20));
         final BidRequest bidRequest = givenBidRequest(
                 Function.identity(),
                 Function.identity(),
@@ -217,21 +220,22 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1)
-                .extracting(res -> mapper.readValue(res.body, BidRequest.class))
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(res -> mapper.readValue(res.getBody(), BidRequest.class))
                 .element(0).extracting(BidRequest::getImp).hasSize(1)
-                .containsOnly(singletonList(expectedImp));
+                .containsOnly(singletonList(Imp.builder()
+                        .bidfloor(10f)
+                        .tagid("tagid")
+                        .ext(mapper.valueToTree(AppnexusImpExt.of(AppnexusImpExtAppnexus.of(20, null, null))))
+                        .build()));
     }
 
     @Test
     public void makeHttpRequestsShouldSetBannerSizesFromExistingFirstFormatElement() {
         // given
-        final Format format = Format.builder().w(100).h(200).build();
-        final Banner expectedBanner = Banner.builder().w(100).h(200).format(singletonList(format)).build();
-
         final BidRequest bidRequest = givenBidRequest(
                 Function.identity(),
-                builder -> builder.banner(Banner.builder().format(singletonList(format))
+                builder -> builder.banner(Banner.builder().format(singletonList(Format.builder().w(100).h(200).build()))
                         .build()),
                 builder -> builder.placementId(20).invCode("tagid").reserve(BigDecimal.TEN));
 
@@ -239,17 +243,17 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getImp).hasSize(1)
-                .extracting(imps -> imps.iterator().next().getBanner()).containsOnly(expectedBanner);
+                .extracting(imps -> imps.iterator().next().getBanner())
+                .containsOnly(Banner.builder().w(100).h(200)
+                        .format(singletonList(Format.builder().w(100).h(200).build())).build());
     }
 
     @Test
     public void makeHttpRequestsShouldSetBannerPosAbove() {
-        // given;
-        final Banner expectedBanner = Banner.builder().pos(1).build();
-
+        // given
         final BidRequest bidRequest = givenBidRequest(
                 Function.identity(),
                 builder -> builder.banner(Banner.builder().build()),
@@ -259,17 +263,15 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getImp).hasSize(1)
-                .extracting(imps -> imps.iterator().next().getBanner()).containsOnly(expectedBanner);
+                .extracting(imps -> imps.iterator().next().getBanner()).containsOnly(Banner.builder().pos(1).build());
     }
 
     @Test
     public void makeHttpRequestsShouldSetBannerPosBelow() {
-        // given;
-        final Banner expectedBanner = Banner.builder().pos(3).build();
-
+        // given
         final BidRequest bidRequest = givenBidRequest(
                 Function.identity(),
                 builder -> builder.banner(Banner.builder().build()),
@@ -279,39 +281,36 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getImp).hasSize(1)
-                .extracting(imps -> imps.iterator().next().getBanner()).containsOnly(expectedBanner);
+                .extracting(imps -> imps.iterator().next().getBanner()).containsOnly(Banner.builder().pos(3).build());
     }
 
     @Test
-    public void makeHttpRequestsShouldSetPlacementIdAndTrafficSourceCodeIfPresent() throws JsonProcessingException {
-        // given;
+    public void makeHttpRequestsShouldSetPlacementIdAndTrafficSourceCodeIfPresent() {
+        // given
         final BidRequest bidRequest = givenBidRequest(
                 Function.identity(),
                 builder -> builder.banner(Banner.builder().build()),
-                builder -> builder.placementId(20).trafficSourceCode("tsc")
-                            .keywords(
-                                    Arrays.asList(
-                                            AppnexusKeyVal.builder().key("key1")
-                                                    .values(Arrays.asList("abc", "def")).build(),
-                                            AppnexusKeyVal.builder().key("key2")
-                                                    .values(Arrays.asList("123", "456")).build())));
+                builder -> builder.placementId(20).trafficSourceCode("tsc").keywords(asList(
+                        AppnexusKeyVal.of("key1", asList("abc", "def")),
+                        AppnexusKeyVal.of("key2", asList("123", "456")))));
 
         // when
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getImp)
                 .extracting(imps -> imps.get(0).getExt())
-                    .extracting(jsonNodes -> mapper.treeToValue(jsonNodes, AppnexusImpExt.class))
-                    .extracting(
-                            appnexusImpExtAppnexus -> appnexusImpExtAppnexus.appnexus.placementId,
-                            appnexusImpExtAppnexus -> appnexusImpExtAppnexus.appnexus.trafficSourceCode,
-                            appnexusImpExtAppnexus -> appnexusImpExtAppnexus.appnexus.keywords)
+                .extracting(jsonNodes -> mapper.treeToValue(jsonNodes, AppnexusImpExt.class))
+                .extracting(AppnexusImpExt::getAppnexus)
+                .extracting(
+                        AppnexusImpExtAppnexus::getPlacementId,
+                        AppnexusImpExtAppnexus::getTrafficSourceCode,
+                        AppnexusImpExtAppnexus::getKeywords)
                 .containsOnly(Tuple.tuple(20, "tsc", "key1=abc,key1=def,key2=123,key2=456"));
     }
 
@@ -325,8 +324,8 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -339,8 +338,9 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
-        assertThat(result.value).isEmpty();
+        assertThat(result.getErrors())
+                .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -353,9 +353,9 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).hasSize(1);
-        assertThat(result.errors.get(0)).startsWith("Unrecognized token");
-        assertThat(result.value).isEmpty();
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0)).startsWith("Unrecognized token");
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -368,8 +368,8 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId1").build(), banner));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("impId1").build(), banner));
     }
 
     @Test
@@ -382,8 +382,8 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId").build(), banner));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("impId").build(), banner));
     }
 
     @Test
@@ -396,51 +396,35 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId").build(), video));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("impId").build(), video));
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder,
-                                                BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpAppnexus.ExtImpAppnexusBuilder,
-                                                      ExtImpAppnexus.ExtImpAppnexusBuilder> extCustomizer) {
+    private static BidRequest givenBidRequest(Function<BidRequestBuilder, BidRequestBuilder> bidRequestCustomizer,
+                                              Function<ImpBuilder, ImpBuilder> impCustomizer,
+                                              Function<ExtImpAppnexusBuilder, ExtImpAppnexusBuilder> extCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(Function<ImpBuilder, ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer, identity());
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                Function<ExtImpAppnexus.ExtImpAppnexusBuilder,
-                                        ExtImpAppnexus.ExtImpAppnexusBuilder> extCustomizer) {
+    private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impCustomizer,
+                                Function<ExtImpAppnexusBuilder, ExtImpAppnexusBuilder> extCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .ext(givenExt(extCustomizer)))
                 .build();
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impCustomizer) {
         return givenImp(impCustomizer, identity());
     }
 
-    private static ObjectNode givenExt(Function<ExtImpAppnexus.ExtImpAppnexusBuilder,
-            ExtImpAppnexus.ExtImpAppnexusBuilder> extCustomizer) {
+    private static ObjectNode givenExt(Function<ExtImpAppnexusBuilder, ExtImpAppnexusBuilder> extCustomizer) {
         return mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpAppnexus.builder()).build()));
-    }
-
-    private static Imp givenExpectedImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                        Function<AppnexusImpExtAppnexus.AppnexusImpExtAppnexusBuilder,
-                                                AppnexusImpExtAppnexus.AppnexusImpExtAppnexusBuilder> extCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(
-                        AppnexusImpExt.builder()
-                                .appnexus(extCustomizer.apply(
-                                    AppnexusImpExtAppnexus.builder()).build())
-                                .build())))
-                .build();
     }
 
     private static HttpCall givenHttpCall(int statusCode, String body) {

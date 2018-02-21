@@ -1,20 +1,13 @@
 package org.rtb.vexing.adapter.conversant.model;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.util.List;
 
 @Builder
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ConversantParams {
+@Value
+public final class ConversantParams {
 
     String siteId;
 

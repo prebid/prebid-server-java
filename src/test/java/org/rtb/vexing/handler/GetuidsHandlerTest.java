@@ -83,7 +83,8 @@ public class GetuidsHandlerTest extends VertxTest {
 
         assertThat(responseBody).isNotNull()
                 .isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\"," +
-                        "\"expires\":\"2017-12-30T12:30:40.000000000Z\"}},\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
+                        "\"expires\":\"2017-12-30T12:30:40.000000000Z\"}}," +
+                        "\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
         assertThat(cookie.getName()).isNotNull().isEqualTo("uids");
         // this uids cookie stands for {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT",
         // "expires":"2017-12-30T12:30:40.000000000Z"}},"bday":"2017-08-15T19:47:59.523908376Z"}

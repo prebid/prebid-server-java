@@ -1,20 +1,13 @@
 package org.rtb.vexing.settings.model;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.util.List;
 
-@Builder
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class SettingsFile {
+@AllArgsConstructor(staticName = "of")
+@Value
+public final class SettingsFile {
 
     List<String> accounts;
 

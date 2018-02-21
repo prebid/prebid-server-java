@@ -97,7 +97,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private BidRequest validateRequest(BidRequest bidRequest) {
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
         if (validationResult.hasErrors()) {
-            throw new InvalidRequestException(validationResult.errors);
+            throw new InvalidRequestException(validationResult.getErrors());
         }
         return bidRequest;
     }

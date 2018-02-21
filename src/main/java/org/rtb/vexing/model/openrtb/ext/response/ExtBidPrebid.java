@@ -1,27 +1,20 @@
 package org.rtb.vexing.model.openrtb.ext.response;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.util.Map;
 
 /**
  * Defines the contract for bidresponse.seatbid.bid[i].ext.prebid
  */
-@Builder
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ExtBidPrebid {
+@AllArgsConstructor(staticName = "of")
+@Value
+public final class ExtBidPrebid {
 
-    ExtResponseCache cache;
+    BidType type;
 
     Map<String, String> targeting;
 
-    BidType type;
+    ExtResponseCache cache;
 }

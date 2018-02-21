@@ -17,12 +17,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.auction.model.BidderRequest;
 import org.rtb.vexing.auction.model.BidderResponse;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.bidder.model.BidderSeatBid;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
+import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebid;
+import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebidCache;
 import org.rtb.vexing.model.openrtb.ext.request.ExtRequestTargeting;
 import org.rtb.vexing.model.openrtb.ext.response.ExtBidPrebid;
 import org.rtb.vexing.model.openrtb.ext.response.ExtBidResponse;
@@ -185,7 +188,8 @@ public class ExchangeService {
      * Extracts {@link ExtRequestTargeting} from {@link ExtBidRequest} model.
      */
     private static ExtRequestTargeting targeting(ExtBidRequest requestExt) {
-        return requestExt != null && requestExt.prebid != null ? requestExt.prebid.targeting : null;
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        return prebid != null ? prebid.getTargeting() : null;
     }
 
     /**
@@ -204,9 +208,9 @@ public class ExchangeService {
      * Determines is prebid cache needed.
      */
     private static boolean shouldCacheBids(ExtRequestTargeting targeting, ExtBidRequest requestExt) {
-        return targeting != null
-                && requestExt.prebid.cache != null
-                && !requestExt.prebid.cache.bids.isNull();
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
+        return targeting != null && cache != null && !cache.getBids().isNull();
     }
 
     /**
@@ -238,8 +242,9 @@ public class ExchangeService {
      * recorded response time.
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, GlobalTimeout timeout) {
-        return bidderRequesterCatalog.byName(bidderRequest.bidder).requestBids(bidderRequest.bidRequest, timeout)
-                .map(result -> BidderResponse.of(bidderRequest.bidder, result, responseTime(startTime)));
+        final String bidder = bidderRequest.getBidder();
+        return bidderRequesterCatalog.byName(bidder).requestBids(bidderRequest.getBidRequest(), timeout)
+                .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
     }
 
     /**
@@ -264,7 +269,7 @@ public class ExchangeService {
                                                   List<BidderResponse> bidderResponses) {
         // determine winning bids only if targeting keywords are requested
         return keywordsCreator == null ? Collections.emptyList() : bidderResponses.stream()
-                .flatMap(bidderResponse -> bidderResponse.seatBid.bids.stream().map(bidderBid -> bidderBid.bid))
+                .flatMap(bidderResponse -> bidderResponse.getSeatBid().getBids().stream().map(BidderBid::getBid))
                 // group bids by impId (ad unit code)
                 .collect(Collectors.groupingBy(Bid::getImpid))
                 .values().stream()
@@ -341,7 +346,7 @@ public class ExchangeService {
                                                           TargetingKeywordsCreator keywordsCreator,
                                                           Map<Bid, String> winningBidsWithCacheIds) {
         final List<SeatBid> seatBids = bidderResponses.stream()
-                .filter(bidderResponse -> !bidderResponse.seatBid.bids.isEmpty())
+                .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse -> toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds))
                 .collect(Collectors.toList());
 
@@ -362,17 +367,21 @@ public class ExchangeService {
      */
     private static SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
                                      Map<Bid, String> winningBidsWithCacheIds) {
+        final String bidder = bidderResponse.getBidder();
+        final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
+
         final SeatBid.SeatBidBuilder seatBidBuilder = SeatBid.builder()
-                .seat(bidderResponse.bidder)
+                .seat(bidder)
                 // prebid cannot support roadblocking
                 .group(0)
-                .bid(bidderResponse.seatBid.bids.stream()
+                .bid(bidderSeatBid.getBids().stream()
                         .map(bidderBid ->
-                                toBid(bidderBid, bidderResponse.bidder, keywordsCreator, winningBidsWithCacheIds))
+                                toBid(bidderBid, bidder, keywordsCreator, winningBidsWithCacheIds))
                         .collect(Collectors.toList()));
 
-        if (bidderResponse.seatBid.ext != null) {
-            seatBidBuilder.ext(Json.mapper.valueToTree(ExtPrebid.of(null, bidderResponse.seatBid.ext)));
+        final ObjectNode seatBidExt = bidderSeatBid.getExt();
+        if (seatBidExt != null) {
+            seatBidBuilder.ext(Json.mapper.valueToTree(ExtPrebid.of(null, seatBidExt)));
         }
 
         return seatBidBuilder.build();
@@ -383,16 +392,15 @@ public class ExchangeService {
      */
     private static Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
                              Map<Bid, String> winningBidsWithCacheIds) {
-        final Bid bid = bidderBid.bid;
+        final Bid bid = bidderBid.getBid();
         final Map<String, String> targetingKeywords = keywordsCreator != null
                 ? keywordsCreator.makeFor(bid, bidder, winningBidsWithCacheIds.containsKey(bid),
                 winningBidsWithCacheIds.get(bid))
                 : null;
 
-        final ExtBidPrebid prebidExt = ExtBidPrebid.builder()
-                .type(bidderBid.type)
-                .targeting(targetingKeywords)
-                .build();
+        // TODO: by now cache is not filled (same behavior is observed in open-source version), either fill it or
+        // delete from extension
+        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords, null);
 
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
 
@@ -406,10 +414,10 @@ public class ExchangeService {
     private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
                                                    TargetingKeywordsCreator keywordsCreator) {
         final Map<String, Integer> responseTimeMillis = results.stream()
-                .collect(Collectors.toMap(r -> r.bidder, r -> r.responseTime));
+                .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
         final Map<String, List<String>> errors = results.stream()
-                .collect(Collectors.toMap(r -> r.bidder, r -> r.seatBid.errors));
+                .collect(Collectors.toMap(BidderResponse::getBidder, r -> r.getSeatBid().getErrors()));
         // if price granularity in request is not valid - add corresponding error message for each bidder
         if (keywordsCreator != null && !keywordsCreator.isPriceGranularityValid()) {
             final String priceGranularityError = String.format(
@@ -420,14 +428,11 @@ public class ExchangeService {
 
         final Map<String, List<ExtHttpCall>> httpCalls = bidRequest.getTest() == 1
                 ? results.stream()
-                .collect(Collectors.toMap(r -> r.bidder, r -> r.seatBid.httpCalls))
+                .collect(Collectors.toMap(BidderResponse::getBidder, r -> r.getSeatBid().getHttpCalls()))
                 : null;
 
-        return ExtBidResponse.builder()
-                .responsetimemillis(responseTimeMillis)
-                .errors(errors)
-                .debug(httpCalls != null ? ExtResponseDebug.of(httpCalls) : null)
-                .build();
+        return ExtBidResponse.of(httpCalls != null ? ExtResponseDebug.of(httpCalls) : null,
+                errors, responseTimeMillis, null);
     }
 
     private static <T> List<T> append(List<T> originalList, T value) {

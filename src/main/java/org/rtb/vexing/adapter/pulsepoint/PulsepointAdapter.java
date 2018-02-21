@@ -1,5 +1,6 @@
 package org.rtb.vexing.adapter.pulsepoint;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -7,12 +8,11 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.json.Json;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.OpenrtbAdapter;
+import org.rtb.vexing.adapter.model.AdUnitBidWithParams;
 import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
 import org.rtb.vexing.adapter.pulsepoint.model.PulsepointParams;
@@ -21,6 +21,7 @@ import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
@@ -50,11 +51,7 @@ public class PulsepointAdapter extends OpenrtbAdapter {
         final String redirectUri = encodeUrl("%s/setuid?bidder=pulsepoint&uid=%s", externalUrl,
                 "%%VGUID%%");
 
-        return UsersyncInfo.builder()
-                .url(String.format("%s%s", usersyncUrl, redirectUri))
-                .type("redirect")
-                .supportCORS(false)
-                .build();
+        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), "redirect", false);
     }
 
     @Override
@@ -80,18 +77,21 @@ public class PulsepointAdapter extends OpenrtbAdapter {
     }
 
     private BidRequest createBidRequest(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        validateAdUnitBidsMediaTypes(bidder.adUnitBids);
+        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
 
-        final List<AdUnitBidWithParams> adUnitBidsWithParams = createAdUnitBidsWithParams(bidder.adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids);
+
+        final List<AdUnitBidWithParams<Params>> adUnitBidsWithParams = createAdUnitBidsWithParams(adUnitBids);
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
 
         final Publisher publisher = makePublisher(adUnitBidsWithParams);
 
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return BidRequest.builder()
-                .id(preBidRequestContext.preBidRequest.tid)
+                .id(preBidRequest.getTid())
                 .at(1)
-                .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
+                .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
                 .app(makeApp(preBidRequestContext, publisher))
                 .site(makeSite(preBidRequestContext, publisher))
@@ -101,38 +101,42 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static List<AdUnitBidWithParams> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private static List<AdUnitBidWithParams<Params>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
     private static Params parseAndValidateParams(AdUnitBid adUnitBid) {
-        if (adUnitBid.params == null) {
+        final ObjectNode paramsNode = adUnitBid.getParams();
+        if (paramsNode == null) {
             throw new PreBidException("Pulsepoint params section is missing");
         }
 
         final PulsepointParams params;
         try {
-            params = Json.mapper.convertValue(adUnitBid.params, PulsepointParams.class);
+            params = Json.mapper.convertValue(paramsNode, PulsepointParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
-        if (params.publisherId == null || params.publisherId == 0) {
+        final Integer publisherId = params.getPublisherId();
+        if (publisherId == null || publisherId == 0) {
             throw new PreBidException("Missing PublisherId param cp");
         }
-        if (params.tagId == null || params.tagId == 0) {
+        final Integer tagId = params.getTagId();
+        if (tagId == null || tagId == 0) {
             throw new PreBidException("Missing TagId param ct");
         }
-        if (StringUtils.isEmpty(params.adSize)) {
+        final String adSize = params.getAdSize();
+        if (StringUtils.isEmpty(adSize)) {
             throw new PreBidException("Missing AdSize param cf");
         }
 
-        final String[] sizes = params.adSize.toLowerCase().split("x");
+        final String[] sizes = adSize.toLowerCase().split("x");
         if (sizes.length != 2) {
-            throw new PreBidException(String.format("Invalid AdSize param %s", params.adSize));
+            throw new PreBidException(String.format("Invalid AdSize param %s", adSize));
         }
         final int width;
         try {
@@ -148,32 +152,27 @@ public class PulsepointAdapter extends OpenrtbAdapter {
             throw new PreBidException(String.format("Invalid Height param %s", sizes[1]));
         }
 
-        return Params.builder()
-                .publisherId(String.valueOf(params.publisherId))
-                .tagId(String.valueOf(params.tagId))
-                .adSizeWidth(width)
-                .adSizeHeight(height)
-                .build();
+        return Params.of(String.valueOf(publisherId), String.valueOf(tagId), width, height);
     }
 
-    private static List<Imp> makeImps(List<AdUnitBidWithParams> adUnitBidsWithParams,
+    private static List<Imp> makeImps(List<AdUnitBidWithParams<Params>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
                 .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams adUnitBidWithParams,
+    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<Params> adUnitBidWithParams,
                                                     PreBidRequestContext preBidRequestContext) {
-        final AdUnitBid adUnitBid = adUnitBidWithParams.adUnitBid;
-        final Params params = adUnitBidWithParams.params;
+        final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
+        final Params params = adUnitBidWithParams.getParams();
 
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
-                        .id(adUnitBid.adUnitCode)
-                        .instl(adUnitBid.instl)
-                        .secure(preBidRequestContext.secure)
-                        .tagid(params.tagId)
+                        .id(adUnitBid.getAdUnitCode())
+                        .instl(adUnitBid.getInstl())
+                        .secure(preBidRequestContext.getSecure())
+                        .tagid(params.getTagId())
                         .build());
     }
 
@@ -185,7 +184,7 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                 impBuilder.video(videoBuilder(adUnitBid).build());
                 break;
             case banner:
-                impBuilder.banner(makeBanner(adUnitBid, params.adSizeWidth, params.adSizeHeight));
+                impBuilder.banner(makeBanner(adUnitBid, params.getAdSizeWidth(), params.getAdSizeHeight()));
                 break;
             default:
                 // unknown media type, just skip it
@@ -200,15 +199,15 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private Publisher makePublisher(List<AdUnitBidWithParams> adUnitBidsWithParams) {
+    private Publisher makePublisher(List<AdUnitBidWithParams<Params>> adUnitBidsWithParams) {
         final String publisherId = adUnitBidsWithParams.stream()
-                .map(adUnitBidWithParams -> adUnitBidWithParams.params.publisherId)
+                .map(adUnitBidWithParams -> adUnitBidWithParams.getParams().getPublisherId())
                 .reduce((first, second) -> second).orElse(null);
         return Publisher.builder().id(publisherId).build();
     }
 
     private static App makeApp(PreBidRequestContext preBidRequestContext, Publisher publisher) {
-        final App app = preBidRequestContext.preBidRequest.app;
+        final App app = preBidRequestContext.getPreBidRequest().getApp();
         return app == null ? null : app.toBuilder()
                 .publisher(publisher)
                 .build();
@@ -223,16 +222,16 @@ public class PulsepointAdapter extends OpenrtbAdapter {
 
     @Override
     public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.bidResponse)
+        return responseBidStream(exchangeCall.getBidResponse())
                 .map(bid -> toBidBuilder(bid, bidder))
                 .collect(Collectors.toList());
     }
 
     private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.adUnitBids, bid.getImpid());
+        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
-                .bidder(adUnitBid.bidderCode)
-                .bidId(adUnitBid.bidId)
+                .bidder(adUnitBid.getBidderCode())
+                .bidId(adUnitBid.getBidId())
                 .code(bid.getImpid())
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
@@ -242,16 +241,7 @@ public class PulsepointAdapter extends OpenrtbAdapter {
     }
 
     @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class AdUnitBidWithParams {
-
-        AdUnitBid adUnitBid;
-
-        Params params;
-    }
-
-    @Builder
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @Value
     private static class Params {
 
         String publisherId;

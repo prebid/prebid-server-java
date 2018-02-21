@@ -133,8 +133,8 @@ public class SetuidHandlerTest extends VertxTest {
         verify(httpResponse).end();
         // this uids cookie value stands for {"uids":{"adnxs":"12345"}}
         final Uids decodedUids = decodeUids(uidsCookie.getValue());
-        assertThat(decodedUids.uids).hasSize(1);
-        assertThat(decodedUids.uids.get(ADNXS).uid).isEqualTo("12345");
+        assertThat(decodedUids.getUids()).hasSize(1);
+        assertThat(decodedUids.getUids().get(ADNXS).getUid()).isEqualTo("12345");
     }
 
     @Test
@@ -158,8 +158,8 @@ public class SetuidHandlerTest extends VertxTest {
         verify(httpResponse).end();
         // this uids cookie value stands for {"uids":{"audienceNetwork":"facebookUid"}}
         final Uids decodedUids = decodeUids(uidsCookie.getValue());
-        assertThat(decodedUids.uids).hasSize(1);
-        assertThat(decodedUids.uids.get("audienceNetwork").uid).isEqualTo("facebookUid");
+        assertThat(decodedUids.getUids()).hasSize(1);
+        assertThat(decodedUids.getUids().get("audienceNetwork").getUid()).isEqualTo("facebookUid");
     }
 
     @Test
@@ -183,9 +183,9 @@ public class SetuidHandlerTest extends VertxTest {
         verify(bidderCookieSyncMetrics).incCounter(eq(MetricName.sets));
         // this uids cookie value stands for {"uids":{"adnxs":"12345","rubicon":"updatedUid"}}
         final Uids decodedUids = decodeUids(uidsCookie.getValue());
-        assertThat(decodedUids.uids).hasSize(2);
-        assertThat(decodedUids.uids.get(RUBICON).uid).isEqualTo("updatedUid");
-        assertThat(decodedUids.uids.get(ADNXS).uid).isEqualTo("12345");
+        assertThat(decodedUids.getUids()).hasSize(2);
+        assertThat(decodedUids.getUids().get(RUBICON).getUid()).isEqualTo("updatedUid");
+        assertThat(decodedUids.getUids().get(ADNXS).getUid()).isEqualTo("12345");
     }
 
     @Test

@@ -77,9 +77,11 @@ public class CachingStoredRequestFetcher implements StoredRequestFetcher {
 
         // delegate call to original source for missed ids and update cache with it
         return retriever.apply(missedIds, timeout).compose(storedRequestResult -> {
-            storedRequestsFromCache.putAll(storedRequestResult.storedIdToJson);
-            cache.putAll(storedRequestResult.storedIdToJson);
-            return Future.succeededFuture(StoredRequestResult.of(storedRequestsFromCache, storedRequestResult.errors));
+            final Map<String, String> storedIdToJson = storedRequestResult.getStoredIdToJson();
+            storedRequestsFromCache.putAll(storedIdToJson);
+            cache.putAll(storedIdToJson);
+            return Future.succeededFuture(
+                    StoredRequestResult.of(storedRequestsFromCache, storedRequestResult.getErrors()));
         });
     }
 }

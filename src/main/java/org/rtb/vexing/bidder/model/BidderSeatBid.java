@@ -1,11 +1,8 @@
 package org.rtb.vexing.bidder.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.rtb.vexing.bidder.Bidder;
 import org.rtb.vexing.model.openrtb.ext.response.ExtHttpCall;
 
@@ -17,11 +14,9 @@ import java.util.List;
  * This is distinct from the {@link com.iab.openrtb.response.SeatBid} so that the prebid-server ext can be passed
  * back with type safety.
  */
-@ToString
-@EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class BidderSeatBid {
+@Value
+public final class BidderSeatBid {
 
     /**
      * List of bids which bidder wishes to make.

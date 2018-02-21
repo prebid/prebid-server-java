@@ -2,18 +2,13 @@ package org.rtb.vexing.adapter.model;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.rtb.vexing.model.response.BidderDebug;
 
-@ToString
-@EqualsAndHashCode
 @AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ExchangeCall {
+@Value
+public final class ExchangeCall {
 
     BidRequest bidRequest;
 

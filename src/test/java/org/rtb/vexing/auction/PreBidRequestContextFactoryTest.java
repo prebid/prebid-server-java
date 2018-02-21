@@ -125,7 +125,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
                 .sizes(Collections.singletonList(Format.builder().w(100).h(100).build()))
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .bids(singletonList(givenBid(RUBICON)))
                 .build();
 
         given(routingContext.getBodyAsJson()).willReturn(
@@ -135,16 +135,16 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders).hasSize(1);
-        assertThat(preBidRequestContext.preBidRequest).isNotNull();
-        assertThat(preBidRequestContext.ip).isEqualTo("192.168.244.1");
-        assertThat(preBidRequestContext.secure).isNull();
-        assertThat(preBidRequestContext.isDebug).isFalse();
-        assertThat(preBidRequestContext.uidsCookie).isNotNull();
-        assertThat(preBidRequestContext.noLiveUids).isTrue();
-        assertThat(preBidRequestContext.ua).isEqualTo("userAgent");
-        assertThat(preBidRequestContext.referer).isEqualTo("http://www.example.com");
-        assertThat(preBidRequestContext.domain).isEqualTo("example.com");
+        assertThat(preBidRequestContext.getBidders()).hasSize(1);
+        assertThat(preBidRequestContext.getPreBidRequest()).isNotNull();
+        assertThat(preBidRequestContext.getIp()).isEqualTo("192.168.244.1");
+        assertThat(preBidRequestContext.getSecure()).isNull();
+        assertThat(preBidRequestContext.isDebug()).isFalse();
+        assertThat(preBidRequestContext.getUidsCookie()).isNotNull();
+        assertThat(preBidRequestContext.isNoLiveUids()).isTrue();
+        assertThat(preBidRequestContext.getUa()).isEqualTo("userAgent");
+        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://www.example.com");
+        assertThat(preBidRequestContext.getDomain()).isEqualTo("example.com");
     }
 
     @Test
@@ -186,11 +186,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .topframe(1)
                 .instl(1)
                 .code("adUnitCode")
-                .bids(singletonList(Bid.builder()
-                        .bidder(RUBICON)
-                        .bidId("bidId")
-                        .params(rubiconParams(1001, 2001, 3001))
-                        .build()))
+                .bids(singletonList(Bid.of("bidId", RUBICON, rubiconParams(1001, 2001, 3001))))
                 .build();
         given(routingContext.getBodyAsJson()).willReturn(
                 givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
@@ -199,7 +195,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders).containsOnly(Bidder.from(RUBICON, singletonList(AdUnitBid.builder()
+        assertThat(preBidRequestContext.getBidders()).containsOnly(Bidder.of(RUBICON, singletonList(AdUnitBid.builder()
                 .bidderCode(RUBICON)
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .topframe(1)
@@ -217,7 +213,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .bids(singletonList(givenBid(RUBICON)))
                 .build();
 
         given(routingContext.getBodyAsJson()).willReturn(
@@ -227,8 +223,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
-                .returns(Collections.singleton(MediaType.banner), adUnitBid -> adUnitBid.mediaTypes);
+        assertThat(preBidRequestContext.getBidders().get(0).getAdUnitBids()).hasSize(1).element(0)
+                .returns(Collections.singleton(MediaType.banner), AdUnitBid::getMediaTypes);
     }
 
     @Test
@@ -237,7 +233,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .bids(singletonList(givenBid(RUBICON)))
                 .mediaTypes(Collections.singletonList("RandomMediaType"))
                 .build();
 
@@ -248,8 +244,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
-                .returns(Collections.singleton(MediaType.banner), adUnitBid -> adUnitBid.mediaTypes);
+        assertThat(preBidRequestContext.getBidders().get(0).getAdUnitBids()).hasSize(1).element(0)
+                .returns(Collections.singleton(MediaType.banner), AdUnitBid::getMediaTypes);
     }
 
     @Test
@@ -258,7 +254,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .bids(singletonList(givenBid(RUBICON)))
                 .mediaTypes(asList("banner", "video"))
                 .build();
 
@@ -269,19 +265,19 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
-                .returns(EnumSet.of(MediaType.banner, MediaType.video), adUnitBid -> adUnitBid.mediaTypes);
+        assertThat(preBidRequestContext.getBidders().get(0).getAdUnitBids()).hasSize(1).element(0)
+                .returns(EnumSet.of(MediaType.banner, MediaType.video), AdUnitBid::getMediaTypes);
     }
 
     @Test
     public void shouldNotReturnAdUnitsWithNullSizes() {
         // given
         final AdUnit adUnit = AdUnit.builder()
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .bids(singletonList(givenBid(RUBICON)))
                 .code("AdUnitCode1")
                 .build();
         final AdUnit adUnit2 = AdUnit.builder()
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .bids(singletonList(givenBid(RUBICON)))
                 .code("AdUnitCode2")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .build();
@@ -293,19 +289,19 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
-                .returns("AdUnitCode2", adUnitBid -> adUnitBid.adUnitCode);
+        assertThat(preBidRequestContext.getBidders().get(0).getAdUnitBids()).hasSize(1).element(0)
+                .returns("AdUnitCode2", AdUnitBid::getAdUnitCode);
     }
 
     @Test
     public void shouldNotReturnAdUnitsWithNullAdUnitCode() {
         // given
         final AdUnit adUnit = AdUnit.builder()
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .bids(singletonList(givenBid(RUBICON)))
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .build();
         final AdUnit adUnit2 = AdUnit.builder()
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .bids(singletonList(givenBid(RUBICON)))
                 .code("AdUnitCode2")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .build();
@@ -317,8 +313,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders.get(0).adUnitBids).hasSize(1).element(0)
-                .returns("AdUnitCode2", adUnitBid -> adUnitBid.adUnitCode);
+        assertThat(preBidRequestContext.getBidders().get(0).getAdUnitBids()).hasSize(1).element(0)
+                .returns("AdUnitCode2", AdUnitBid::getAdUnitCode);
     }
 
     @Test
@@ -327,7 +323,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
                 .sizes(Collections.singletonList(Format.builder().h(100).w(200).build()))
-                .bids(asList(Bid.builder().bidder(RUBICON).build(), Bid.builder().bidder(APPNEXUS).build()))
+                .bids(asList(givenBid(RUBICON), givenBid(APPNEXUS)))
                 .build();
         given(routingContext.getBodyAsJson()).willReturn(
                 givenPreBidRequest(builder -> builder.adUnits(asList(adUnit, adUnit))));
@@ -336,8 +332,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders).hasSize(2)
-                .flatExtracting(bidder -> bidder.adUnitBids).hasSize(4);
+        assertThat(preBidRequestContext.getBidders()).hasSize(2)
+                .flatExtracting(Bidder::getAdUnitBids).hasSize(4);
     }
 
     @Test
@@ -353,18 +349,14 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         given(applicationSettings.getAdUnitConfigById(anyString(), any()))
                 .willReturn(Future.succeededFuture(mapper.writeValueAsString(singletonList(
-                        Bid.builder()
-                                .bidder(RUBICON)
-                                .bidId("bidId")
-                                .params(rubiconParams(4001, 5001, 6001))
-                                .build()))));
+                        Bid.of("bidId", RUBICON, rubiconParams(4001, 5001, 6001))))));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        verify(applicationSettings).getAdUnitConfigById(anyString(), same(preBidRequestContext.timeout));
-        assertThat(preBidRequestContext.bidders).containsOnly(Bidder.from(RUBICON, singletonList(AdUnitBid.builder()
+        verify(applicationSettings).getAdUnitConfigById(anyString(), same(preBidRequestContext.getTimeout()));
+        assertThat(preBidRequestContext.getBidders()).containsOnly(Bidder.of(RUBICON, singletonList(AdUnitBid.builder()
                 .bidderCode(RUBICON)
                 .bidId("bidId")
                 .adUnitCode("adUnitCode1")
@@ -388,7 +380,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders).isEmpty();
+        assertThat(preBidRequestContext.getBidders()).isEmpty();
     }
 
     @Test
@@ -405,7 +397,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders).isEmpty();
+        assertThat(preBidRequestContext.getBidders()).isEmpty();
     }
 
     @Test
@@ -416,7 +408,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
                 .sizes(Collections.singletonList(Format.builder().w(100).h(100).build()))
-                .bids(singletonList(Bid.builder().bidder(RUBICON).build()))
+                .bids(singletonList(givenBid(RUBICON)))
                 .build();
 
         given(routingContext.getBodyAsJson()).willReturn(
@@ -425,9 +417,9 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.bidders)
-                .flatExtracting(bidder -> bidder.adUnitBids)
-                .extracting(adUnitBid -> adUnitBid.bidId)
+        assertThat(preBidRequestContext.getBidders())
+                .flatExtracting(Bidder::getAdUnitBids)
+                .extracting(AdUnitBid::getBidId)
                 .element(0)
                 .matches(id -> isDigits(id) && toLong(id) >= 0);
     }
@@ -442,7 +434,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.timeout.remaining()).isCloseTo(1000L, offset(20L));
+        assertThat(preBidRequestContext.getTimeout().remaining()).isCloseTo(1000L, offset(20L));
     }
 
     @Test
@@ -455,7 +447,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.timeout.remaining()).isCloseTo(HTTP_REQUEST_TIMEOUT, offset(20L));
+        assertThat(preBidRequestContext.getTimeout().remaining()).isCloseTo(HTTP_REQUEST_TIMEOUT, offset(20L));
     }
 
     @Test
@@ -468,7 +460,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.timeout.remaining()).isCloseTo(HTTP_REQUEST_TIMEOUT, offset(20L));
+        assertThat(preBidRequestContext.getTimeout().remaining()).isCloseTo(HTTP_REQUEST_TIMEOUT, offset(20L));
     }
 
     @Test
@@ -480,7 +472,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.secure).isEqualTo(1);
+        assertThat(preBidRequestContext.getSecure()).isEqualTo(1);
     }
 
 
@@ -493,7 +485,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.secure).isEqualTo(1);
+        assertThat(preBidRequestContext.getSecure()).isEqualTo(1);
     }
 
     @Test
@@ -502,7 +494,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.secure).isNull();
+        assertThat(preBidRequestContext.getSecure()).isNull();
     }
 
     @Test
@@ -514,7 +506,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.ip).isEqualTo("192.168.144.1");
+        assertThat(preBidRequestContext.getIp()).isEqualTo("192.168.144.1");
     }
 
     @Test
@@ -526,7 +518,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.ip).isEqualTo("192.168.44.1");
+        assertThat(preBidRequestContext.getIp()).isEqualTo("192.168.44.1");
     }
 
     @Test
@@ -538,7 +530,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.ip).isEqualTo("192.168.44.1");
+        assertThat(preBidRequestContext.getIp()).isEqualTo("192.168.44.1");
     }
 
     @Test
@@ -551,7 +543,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.isDebug).isTrue();
+        assertThat(preBidRequestContext.isDebug()).isTrue();
     }
 
     @Test
@@ -565,7 +557,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.isDebug).isTrue();
+        assertThat(preBidRequestContext.isDebug()).isTrue();
     }
 
     @Test
@@ -577,7 +569,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.isDebug).isFalse();
+        assertThat(preBidRequestContext.isDebug()).isFalse();
     }
 
     @Test
@@ -590,11 +582,11 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.uidsCookie).isNull();
-        assertThat(preBidRequestContext.noLiveUids).isFalse();
-        assertThat(preBidRequestContext.ua).isNull();
-        assertThat(preBidRequestContext.referer).isNull();
-        assertThat(preBidRequestContext.domain).isNull();
+        assertThat(preBidRequestContext.getUidsCookie()).isNull();
+        assertThat(preBidRequestContext.isNoLiveUids()).isFalse();
+        assertThat(preBidRequestContext.getUa()).isNull();
+        assertThat(preBidRequestContext.getReferer()).isNull();
+        assertThat(preBidRequestContext.getDomain()).isNull();
     }
 
     @Test
@@ -652,8 +644,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.referer).isEqualTo("http://exampleoverrride.com");
-        assertThat(preBidRequestContext.domain).isEqualTo("exampleoverrride.com");
+        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://exampleoverrride.com");
+        assertThat(preBidRequestContext.getDomain()).isEqualTo("exampleoverrride.com");
     }
 
     @Test
@@ -665,8 +657,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.referer).isEqualTo("http://example.com");
-        assertThat(preBidRequestContext.domain).isEqualTo("example.com");
+        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://example.com");
+        assertThat(preBidRequestContext.getDomain()).isEqualTo("example.com");
     }
 
     @Test
@@ -678,8 +670,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.referer).isEqualTo("http://example.com");
-        assertThat(preBidRequestContext.domain).isEqualTo("example.com");
+        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://example.com");
+        assertThat(preBidRequestContext.getDomain()).isEqualTo("example.com");
     }
 
     @Test
@@ -691,8 +683,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.referer).isEqualTo("http://example.com");
-        assertThat(preBidRequestContext.domain).isEqualTo("example.com");
+        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://example.com");
+        assertThat(preBidRequestContext.getDomain()).isEqualTo("example.com");
     }
 
     @Test
@@ -812,13 +804,15 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         assertThat(result.getUser()).isNull();
     }
 
+    private static Bid givenBid(String bidder) {
+        return Bid.of(null, bidder, null);
+    }
+
     private JsonObject givenPreBidRequest(Function<PreBidRequestBuilder, PreBidRequestBuilder> builderCustomizer) {
         return JsonObject.mapFrom(builderCustomizer.apply(
                 PreBidRequest.builder()
                         .adUnits(singletonList(AdUnit.builder()
-                                .bids(singletonList(Bid.builder()
-                                        .bidder(RUBICON)
-                                        .build()))
+                                .bids(singletonList(givenBid(RUBICON)))
                                 .build())))
                 .build());
     }

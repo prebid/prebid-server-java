@@ -41,6 +41,7 @@ import org.rtb.vexing.model.PreBidRequestContext;
 import org.rtb.vexing.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.request.PreBidRequest.PreBidRequestBuilder;
+import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.BidderStatus;
 import org.rtb.vexing.model.response.BidderStatus.BidderStatusBuilder;
 import org.rtb.vexing.model.response.PreBidResponse;
@@ -166,7 +167,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.status).isEqualTo("Error parsing request: Could not create");
+        assertThat(preBidResponse.getStatus()).isEqualTo("Error parsing request: Could not create");
     }
 
     @Test
@@ -182,7 +183,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.status).isEqualTo("Unknown account id: Unknown account");
+        assertThat(preBidResponse.getStatus()).isEqualTo("Unknown account id: Unknown account");
     }
 
     @Test
@@ -209,7 +210,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.status).isEqualTo("no_cookie");
+        assertThat(preBidResponse.getStatus()).isEqualTo("no_cookie");
     }
 
     @Test
@@ -224,7 +225,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.status).isEqualTo("Unexpected server error");
+        assertThat(preBidResponse.getStatus()).isEqualTo("Unexpected server error");
     }
 
     @Test
@@ -235,15 +236,12 @@ public class AuctionHandlerTest extends VertxTest {
                 builder -> builder.cacheMarkup(1),
                 builder -> builder
                         .timeout(timeout)
-                        .bidders(singletonList(Bidder.from(RUBICON, singletonList(null)))));
+                        .bidders(singletonList(Bidder.of(RUBICON, singletonList(null)))));
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
-        given(cacheService.cacheBids(anyList(), any())).willReturn(Future.succeededFuture(singletonList(BidCacheResult
-                .builder()
-                .cacheId("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315")
-                .cacheUrl("cached_asset_url")
-                .build())));
+        given(cacheService.cacheBids(anyList(), any())).willReturn(Future.succeededFuture(singletonList(
+                BidCacheResult.of("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315", "cached_asset_url"))));
         given(cacheService.getCachedAssetURL(anyString())).willReturn("cached_asset_url");
 
         // when
@@ -253,10 +251,11 @@ public class AuctionHandlerTest extends VertxTest {
         verify(cacheService).cacheBids(anyList(), same(timeout));
 
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.bids).extracting(b -> b.adm).containsNull();
-        assertThat(preBidResponse.bids).extracting(b -> b.nurl).containsNull();
-        assertThat(preBidResponse.bids).extracting(b -> b.cacheId).containsOnly("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315");
-        assertThat(preBidResponse.bids).extracting(b -> b.cacheUrl).containsOnly("cached_asset_url");
+        assertThat(preBidResponse.getBids()).extracting(Bid::getAdm).containsNull();
+        assertThat(preBidResponse.getBids()).extracting(Bid::getNurl).containsNull();
+        assertThat(preBidResponse.getBids()).extracting(Bid::getCacheId)
+                .containsOnly("0b4f60d1-fb99-4d95-ba6f-30ac90f9a315");
+        assertThat(preBidResponse.getBids()).extracting(Bid::getCacheUrl).containsOnly("cached_asset_url");
     }
 
     @Test
@@ -273,8 +272,8 @@ public class AuctionHandlerTest extends VertxTest {
         verifyZeroInteractions(cacheService);
 
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.bids).extracting(b -> b.cacheId).containsNull();
-        assertThat(preBidResponse.bids).extracting(b -> b.cacheUrl).containsNull();
+        assertThat(preBidResponse.getBids()).extracting(Bid::getCacheId).containsNull();
+        assertThat(preBidResponse.getBids()).extracting(Bid::getCacheUrl).containsNull();
     }
 
     @Test
@@ -305,7 +304,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.status).isEqualTo("Prebid cache failed: http exception");
+        assertThat(preBidResponse.getStatus()).isEqualTo("Prebid cache failed: http exception");
     }
 
     @Test
@@ -315,52 +314,48 @@ public class AuctionHandlerTest extends VertxTest {
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(builder -> builder.noLiveUids(false));
 
         given(httpConnector.call(any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.builder()
-                        .bidderStatus(BidderStatus.builder()
-                                .bidder(RUBICON)
-                                .responseTimeMs(100)
-                                .build())
-                        .bids(Arrays.stream(new String[]{"bidId1", "bidId2"})
+                .willReturn(Future.succeededFuture(BidderResult.of(
+                        BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build(),
+                        Arrays.stream(new String[]{"bidId1", "bidId2"})
                                 .map(id -> org.rtb.vexing.model.response.Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
                                         .build())
-                                .collect(Collectors.toList()))
-                        .build()))
-                .willReturn(Future.succeededFuture(BidderResult.builder()
-                        .bidderStatus(BidderStatus.builder()
-                                .bidder(APPNEXUS)
-                                .responseTimeMs(100)
-                                .build())
-                        .bids(Arrays.stream(new String[]{"bidId3", "bidId4"})
+                                .collect(Collectors.toList()),
+                        false)))
+                .willReturn(Future.succeededFuture(BidderResult.of(
+                        BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
+                        Arrays.stream(new String[]{"bidId3", "bidId4"})
                                 .map(id -> org.rtb.vexing.model.response.Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
                                         .build())
-                                .collect(Collectors.toList()))
-                        .build()));
+                                .collect(Collectors.toList()),
+                        false)));
         // when
         auctionHandler.handle(routingContext);
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.status).isEqualTo("OK");
-        assertThat(preBidResponse.tid).isEqualTo("tid");
-        assertThat(preBidResponse.bidderStatus).extracting(b -> b.bidder).containsOnly(RUBICON, APPNEXUS);
-        assertThat(preBidResponse.bids).extracting(b -> b.bidId).containsOnly("bidId1", "bidId2", "bidId3", "bidId4");
+        assertThat(preBidResponse.getStatus()).isEqualTo("OK");
+        assertThat(preBidResponse.getTid()).isEqualTo("tid");
+        assertThat(preBidResponse.getBidderStatus()).extracting(BidderStatus::getBidder)
+                .containsOnly(RUBICON, APPNEXUS);
+        assertThat(preBidResponse.getBids()).extracting(Bid::getBidId)
+                .containsOnly("bidId1", "bidId2", "bidId3", "bidId4");
     }
 
     @Test
     public void shouldRespondWithBidsWithTargetingKeywordsWhenSortBidsFlagIsSetInPreBidRequest() throws IOException {
         // given
         final List<AdUnitBid> adUnitBids = asList(null, null);
-        final List<Bidder> bidders = asList(Bidder.from(RUBICON, adUnitBids), Bidder.from(APPNEXUS, adUnitBids));
+        final List<Bidder> bidders = asList(Bidder.of(RUBICON, adUnitBids), Bidder.of(APPNEXUS, adUnitBids));
         givenPreBidRequestContext(builder -> builder.sortBids(1), builder -> builder.bidders(bidders));
 
         given(httpConnector.call(any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.builder()
-                        .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build())
-                        .bids(asList(
+                .willReturn(Future.succeededFuture(BidderResult.of(
+                        BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build(),
+                        asList(
                                 org.rtb.vexing.model.response.Bid.builder()
                                         .bidder(RUBICON).code("adUnitCode1").bidId("bidId1")
                                         .price(new BigDecimal("5.67"))
@@ -369,11 +364,11 @@ public class AuctionHandlerTest extends VertxTest {
                                 org.rtb.vexing.model.response.Bid.builder()
                                         .bidder(RUBICON).code("adUnitCode2").bidId("bidId2")
                                         .price(new BigDecimal("6.35"))
-                                        .responseTimeMs(80).build()))
-                        .build()))
-                .willReturn(Future.succeededFuture(BidderResult.builder()
-                        .bidderStatus(BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build())
-                        .bids(asList(
+                                        .responseTimeMs(80).build()),
+                        false)))
+                .willReturn(Future.succeededFuture(BidderResult.of(
+                        BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
+                        asList(
                                 org.rtb.vexing.model.response.Bid.builder()
                                         .bidder(APPNEXUS).code("adUnitCode1").bidId("bidId3")
                                         .price(new BigDecimal("5.67"))
@@ -381,21 +376,21 @@ public class AuctionHandlerTest extends VertxTest {
                                 org.rtb.vexing.model.response.Bid.builder()
                                         .bidder(APPNEXUS).code("adUnitCode2").bidId("bidId4")
                                         .price(new BigDecimal("7.15"))
-                                        .responseTimeMs(100).build()))
-                        .build()));
+                                        .responseTimeMs(100).build()),
+                        false)));
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.bids).extracting(b -> b.adServerTargeting).doesNotContainNull();
+        assertThat(preBidResponse.getBids()).extracting(Bid::getAdServerTargeting).doesNotContainNull();
         // verify that ad server targeting has been preserved
-        assertThat(preBidResponse.bids).extracting(b -> b.bidId, b -> b.adServerTargeting.get("rpfl_1001"))
+        assertThat(preBidResponse.getBids()).extracting(Bid::getBidId, b -> b.getAdServerTargeting().get("rpfl_1001"))
                 .contains(tuple("bidId1", "2_tier0100"));
         // weird way to verify that sorting has happened before bids grouped by ad unit code are enriched with targeting
         // keywords
-        assertThat(preBidResponse.bids).extracting(b -> b.bidId, b -> b.adServerTargeting.get("hb_bidder"))
+        assertThat(preBidResponse.getBids()).extracting(Bid::getBidId, b -> b.getAdServerTargeting().get("hb_bidder"))
                 .containsOnly(
                         tuple("bidId1", null),
                         tuple("bidId2", null),
@@ -411,57 +406,57 @@ public class AuctionHandlerTest extends VertxTest {
                 .bidId("bidId1")
                 .sizes(Collections.singletonList(Format.builder().w(100).h(200).build()))
                 .build());
-        final List<Bidder> bidders = singletonList(Bidder.from(RUBICON, adUnitBids));
+        final List<Bidder> bidders = singletonList(Bidder.of(RUBICON, adUnitBids));
 
         givenPreBidRequestContext(identity(), builder -> builder.bidders(bidders));
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
-                .bids(singletonList(
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build(),
+                singletonList(
                         org.rtb.vexing.model.response.Bid.builder().mediaType(MediaType.banner)
                                 .bidder(RUBICON).code("adUnitCode1").bidId("bidId1").price(new BigDecimal("5.67"))
-                                .build()))
-                .build()));
+                                .build()),
+                false)));
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.bids).hasSize(1);
-        assertThat(preBidResponse.bidderStatus.get(0).numBids).isEqualTo(1);
+        assertThat(preBidResponse.getBids()).hasSize(1);
+        assertThat(preBidResponse.getBidderStatus().get(0).getNumBids()).isEqualTo(1);
     }
 
     @Test
     public void shouldRespondWithValidVideoBidEvenIfSizeIsMissed() throws IOException {
         // given
         final List<AdUnitBid> adUnitBids = singletonList(null);
-        final List<Bidder> bidders = singletonList(Bidder.from(RUBICON, adUnitBids));
+        final List<Bidder> bidders = singletonList(Bidder.of(RUBICON, adUnitBids));
 
         givenPreBidRequestContext(identity(), builder -> builder.bidders(bidders));
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bidderStatus(BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build())
-                .bids(singletonList(
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build(),
+                singletonList(
                         org.rtb.vexing.model.response.Bid.builder().mediaType(MediaType.video).bidId("bidId1")
-                                .price(new BigDecimal("5.67")).build()))
-                .build()));
+                                .price(new BigDecimal("5.67")).build()),
+                false)));
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.bids).hasSize(1);
-        assertThat(preBidResponse.bidderStatus.get(0).numBids).isEqualTo(1);
+        assertThat(preBidResponse.getBids()).hasSize(1);
+        assertThat(preBidResponse.getBidderStatus().get(0).getNumBids()).isEqualTo(1);
     }
 
     @Test
     public void shouldTolerateUnsupportedBidderInPreBidRequest() throws IOException {
         // given
         final List<Bidder> bidders = asList(
-                Bidder.from("unsupported", singletonList(null)),
-                Bidder.from(RUBICON, singletonList(null)));
+                Bidder.of("unsupported", singletonList(null)),
+                Bidder.of(RUBICON, singletonList(null)));
         givenPreBidRequestContext(identity(), builder -> builder.bidders(bidders));
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
@@ -471,10 +466,11 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.bidderStatus).extracting(b -> b.bidder, b -> b.error).containsOnly(
+        assertThat(preBidResponse.getBidderStatus())
+                .extracting(BidderStatus::getBidder, BidderStatus::getError).containsOnly(
                 tuple("unsupported", "Unsupported bidder"),
                 tuple(RUBICON, null));
-        assertThat(preBidResponse.bids).hasSize(1);
+        assertThat(preBidResponse.getBids()).hasSize(1);
     }
 
     @Test
@@ -483,37 +479,27 @@ public class AuctionHandlerTest extends VertxTest {
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
         given(httpConnector.call(any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.builder()
-                        .timedOut(false)
-                        .bids(Collections.emptyList())
-                        .bidderStatus(BidderStatus.builder()
-                                .bidder(RUBICON)
-                                .responseTimeMs(500)
-                                .error("rubicon error")
-                                .build())
-                        .build()))
-                .willReturn(Future.succeededFuture(BidderResult.builder()
-                        .bidderStatus(BidderStatus.builder()
-                                .bidder(APPNEXUS)
-                                .responseTimeMs(100)
-                                .build())
-                        .bids(Arrays.stream(new String[]{"bidId1"})
-                                .map(id -> org.rtb.vexing.model.response.Bid.builder()
-                                        .bidId(id)
-                                        .price(new BigDecimal("5.67"))
-                                        .build())
-                                .collect(Collectors.toList()))
-                        .build()));
+                .willReturn(Future.succeededFuture(BidderResult.of(
+                        BidderStatus.builder().bidder(RUBICON).responseTimeMs(500).error("rubicon error").build(),
+                        emptyList(), false)))
+                .willReturn(Future.succeededFuture(BidderResult.of(
+                        BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
+                        singletonList(org.rtb.vexing.model.response.Bid.builder()
+                                .bidId("bidId1")
+                                .price(new BigDecimal("5.67"))
+                                .build()),
+                        false)));
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
         final PreBidResponse preBidResponse = capturePreBidResponse();
-        assertThat(preBidResponse.bidderStatus).extracting(b -> b.bidder, b -> b.error).containsOnly(
-                tuple(RUBICON, "rubicon error"),
-                tuple(APPNEXUS, null));
-        assertThat(preBidResponse.bids).hasSize(1);
+        assertThat(preBidResponse.getBidderStatus()).extracting(BidderStatus::getBidder, BidderStatus::getError)
+                .containsOnly(
+                        tuple(RUBICON, "rubicon error"),
+                        tuple(APPNEXUS, null));
+        assertThat(preBidResponse.getBids()).hasSize(1);
     }
 
     @SuppressWarnings("unchecked")
@@ -667,7 +653,7 @@ public class AuctionHandlerTest extends VertxTest {
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
-        final List<Bidder> bidders = singletonList(Bidder.from(RUBICON, singletonList(null)));
+        final List<Bidder> bidders = singletonList(Bidder.of(RUBICON, singletonList(null)));
         givenPreBidRequestContext(preBidRequestBuilderCustomizer, builder -> builder.bidders(bidders));
     }
 
@@ -675,8 +661,8 @@ public class AuctionHandlerTest extends VertxTest {
             Function<PreBidRequestContextBuilder, PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer) {
         final List<AdUnitBid> adUnitBids = asList(null, null);
         final List<Bidder> bidders = asList(
-                Bidder.from(RUBICON, adUnitBids),
-                Bidder.from(APPNEXUS, adUnitBids));
+                Bidder.of(RUBICON, adUnitBids),
+                Bidder.of(APPNEXUS, adUnitBids));
         givenPreBidRequestContext(identity(),
                 preBidRequestContextBuilderCustomizer.compose(builder -> builder.bidders(bidders)));
     }
@@ -702,31 +688,25 @@ public class AuctionHandlerTest extends VertxTest {
     private void givenBidderRespondingWithBids(String bidder, Function<BidderStatusBuilder, BidderStatusBuilder>
             bidderStatusBuilderCustomizer, String... bidIds) {
         given(httpConnector.call(any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.builder()
-                        .bidderStatus(bidderStatusBuilderCustomizer.apply(BidderStatus.builder()
+                .willReturn(Future.succeededFuture(BidderResult.of(
+                        bidderStatusBuilderCustomizer.apply(BidderStatus.builder()
                                 .bidder(bidder)
                                 .responseTimeMs(100))
-                                .build())
-                        .bids(Arrays.stream(bidIds)
+                                .build(),
+                        Arrays.stream(bidIds)
                                 .map(id -> org.rtb.vexing.model.response.Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
                                         .build())
-                                .collect(Collectors.toList()))
-                        .build()));
+                                .collect(Collectors.toList()),
+                        false)));
     }
 
     private void givenBidderRespondingWithError(String bidder, String error, boolean timedOut) {
         given(httpConnector.call(any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.builder()
-                        .timedOut(timedOut)
-                        .bids(Collections.emptyList())
-                        .bidderStatus(BidderStatus.builder()
-                                .bidder(bidder)
-                                .responseTimeMs(500)
-                                .error(error)
-                                .build())
-                        .build()));
+                .willReturn(Future.succeededFuture(BidderResult.of(
+                        BidderStatus.builder().bidder(bidder).responseTimeMs(500).error(error).build(),
+                        emptyList(), timedOut)));
     }
 
     private PreBidResponse capturePreBidResponse() throws IOException {

@@ -6,9 +6,9 @@ import lombok.Value;
 /**
  * Defines the contract for bidrequest.ext.prebid.targeting
  */
-@Value
 @AllArgsConstructor(staticName = "of")
-public class ExtRequestTargeting {
+@Value
+public final class ExtRequestTargeting {
 
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting.pricegranularity

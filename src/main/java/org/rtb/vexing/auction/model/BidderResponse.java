@@ -1,20 +1,15 @@
 package org.rtb.vexing.auction.model;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.rtb.vexing.bidder.model.BidderSeatBid;
 
 /**
  * Structure to pass {@link BidderSeatBid} along with bidder name and extra tracking data generated during bidding
  */
-@ToString
-@EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class BidderResponse {
+@Value
+public final class BidderResponse {
 
     String bidder;
 

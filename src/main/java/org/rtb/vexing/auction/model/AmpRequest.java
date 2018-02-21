@@ -1,11 +1,11 @@
-package org.rtb.vexing.adapter.rubicon.model;
+package org.rtb.vexing.auction.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class RubiconPubExtRp {
+public final class AmpRequest {
 
-    Integer accountId;
+    String tagId;
 }

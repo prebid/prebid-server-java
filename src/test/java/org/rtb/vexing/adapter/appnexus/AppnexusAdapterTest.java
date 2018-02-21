@@ -72,8 +72,8 @@ public class AppnexusAdapterTest extends VertxTest {
 
     @Before
     public void setUp() {
-        bidder = givenBidderCustomizable(identity(), identity());
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+        bidder = givenBidder(identity(), identity());
+        preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         adapter = new AppnexusAdapter(ENDPOINT_URL, USERSYNC_URL, EXTERNAL_URL);
     }
 
@@ -96,11 +96,9 @@ public class AppnexusAdapterTest extends VertxTest {
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.builder()
-                .url("//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dadnxs%26uid%3D%24UID")
-                .type("redirect")
-                .supportCORS(false)
-                .build());
+        assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of(
+                "//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dadnxs%26uid%3D%24UID",
+                "redirect", false));
     }
 
     @Test
@@ -109,7 +107,7 @@ public class AppnexusAdapterTest extends VertxTest {
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
-        assertThat(httpRequests).flatExtracting(r -> r.headers.entries())
+        assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"));
@@ -118,23 +116,23 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedEndpointUrl() {
         // given
-        bidder = Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(identity(), params -> params.invCode("invCode1").member("member1"))));
+        bidder = Bidder.of(ADAPTER, singletonList(
+                givenAdUnitBid(identity(), params -> params.invCode("invCode1").member("member1"))));
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.uri).containsOnly("http://endpoint.org/?member_id=member1");
+                .extracting(HttpRequest::getUri).containsOnly("http://endpoint.org/?member_id=member1");
     }
 
     @Test
     public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(identity(), identity()),
-                givenAdUnitBidCustomizable(builder -> builder.params(null), identity())));
+        bidder = Bidder.of(ADAPTER, asList(
+                givenAdUnitBid(identity(), identity()),
+                givenAdUnitBid(builder -> builder.params(null), identity())));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
@@ -147,7 +145,7 @@ public class AppnexusAdapterTest extends VertxTest {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("placementId", new TextNode("non-integer"));
-        bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
+        bidder = givenBidder(builder -> builder.params(params), identity());
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
@@ -158,7 +156,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfPlacementOrMemberWithInvcodeMissingInAdUnitBidParams() {
         // given
-        bidder = givenBidderCustomizable(identity(), builder -> builder.placementId(null));
+        bidder = givenBidder(identity(), builder -> builder.placementId(null));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
@@ -169,14 +167,14 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(builder -> builder
+        bidder = Bidder.of(ADAPTER, singletonList(
+                givenAdUnitBid(builder -> builder
                                 .adUnitCode("adUnitCode1")
                                 .mediaTypes(emptySet()),
                         identity()
                 )));
 
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+        preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
@@ -187,8 +185,8 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(builder -> builder
+        bidder = Bidder.of(ADAPTER, singletonList(
+                givenAdUnitBid(builder -> builder
                                 .adUnitCode("adUnitCode1")
                                 .mediaTypes(singleton(MediaType.video))
                                 .video(Video.builder()
@@ -205,7 +203,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedFields() {
         // given
-        bidder = givenBidderCustomizable(
+        bidder = givenBidder(
                 builder -> builder
                         .bidderCode(ADAPTER)
                         .adUnitCode("adUnitCode1")
@@ -213,10 +211,10 @@ public class AppnexusAdapterTest extends VertxTest {
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build())),
                 appnexusParamsBuilder -> appnexusParamsBuilder
-                        .keywords(singletonList(AppnexusKeyVal.builder().key("k1").values(singletonList("v1")).build()))
+                        .keywords(singletonList(AppnexusKeyVal.of("k1", singletonList("v1"))))
                         .trafficSourceCode("<src-code/>"));
 
-        preBidRequestContext = givenPreBidRequestContextCustomizable(
+        preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
                         .referer("http://www.example.com")
                         .domain("example.com")
@@ -237,7 +235,7 @@ public class AppnexusAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest)
+                .extracting(HttpRequest::getBidRequest)
                 .containsOnly(BidRequest.builder()
                         .id("tid1")
                         .at(1)
@@ -255,13 +253,8 @@ public class AppnexusAdapterTest extends VertxTest {
                                                 .h(250)
                                                 .build()))
                                         .build())
-                                .ext(mapper.valueToTree(AppnexusImpExt.builder()
-                                        .appnexus(AppnexusImpExtAppnexus.builder()
-                                                .placementId(9848285)
-                                                .keywords("k1=v1")
-                                                .trafficSourceCode("<src-code/>")
-                                                .build())
-                                        .build()))
+                                .ext(mapper.valueToTree(AppnexusImpExt.of(
+                                        AppnexusImpExtAppnexus.of(9848285, "k1=v1", "<src-code/>"))))
                                 .build()))
                         .site(Site.builder()
                                 .domain("example.com")
@@ -286,7 +279,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithAppFromPreBidRequest() {
         // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
+        preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder
                 .app(App.builder().id("appId").build()).user(User.builder().build()));
 
         // when
@@ -294,14 +287,14 @@ public class AppnexusAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest.getApp().getId())
+                .extracting(r -> r.getBidRequest().getApp().getId())
                 .containsOnly("appId");
     }
 
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithUserFromPreBidRequestIfAppPresent() {
         // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
+        preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder
                 .app(App.builder().build())
                 .user(User.builder().buyeruid("buyerUid").build()));
 
@@ -312,15 +305,15 @@ public class AppnexusAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest.getUser())
+                .extracting(r -> r.getBidRequest().getUser())
                 .containsOnly(User.builder().buyeruid("buyerUid").build());
     }
 
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(builder -> builder
+        bidder = Bidder.of(ADAPTER, singletonList(
+                givenAdUnitBid(builder -> builder
                                 .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                                 .video(Video.builder()
                                         .mimes(singletonList("Mime"))
@@ -329,34 +322,28 @@ public class AppnexusAdapterTest extends VertxTest {
                         identity()
                 )));
 
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+        preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.bidRequest.getImp())
+                .flatExtracting(r -> r.getBidRequest().getImp())
                 .containsOnly(
                         Imp.builder()
                                 .video(com.iab.openrtb.request.Video.builder().w(300).h(250).mimes(
                                         singletonList("Mime")).playbackmethod(singletonList(1)).build())
                                 .tagid("30011")
-                                .ext(mapper.valueToTree(AppnexusImpExt.builder()
-                                        .appnexus(AppnexusImpExtAppnexus.builder()
-                                                .placementId(9848285)
-                                                .build())
-                                        .build()))
+                                .ext(mapper.valueToTree(AppnexusImpExt.of(
+                                        AppnexusImpExtAppnexus.of(9848285, null, null))))
                                 .build(),
                         Imp.builder()
                                 .banner(Banner.builder().w(300).h(250).format(
                                         singletonList(Format.builder().w(300).h(250).build())).build())
                                 .tagid("30011")
-                                .ext(mapper.valueToTree(AppnexusImpExt.builder()
-                                        .appnexus(AppnexusImpExtAppnexus.builder()
-                                                .placementId(9848285)
-                                                .build())
-                                        .build()))
+                                .ext(mapper.valueToTree(AppnexusImpExt.of(
+                                        AppnexusImpExtAppnexus.of(9848285, null, null))))
                                 .build()
                 );
     }
@@ -364,25 +351,25 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfMultipleAdUnitsInPreBidRequest() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"), identity())));
+        bidder = Bidder.of(ADAPTER, asList(
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1"), identity()),
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(2)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
     }
 
     @Test
     public void extractBidsShouldFailIfBidImpIdDoesNotMatchAdUnitCode() {
         // given
-        bidder = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"), identity());
+        bidder = givenBidder(builder -> builder.adUnitCode("adUnitCode"), identity());
 
-        exchangeCall = givenExchangeCallCustomizable(identity(),
+        exchangeCall = givenExchangeCall(identity(),
                 bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder().impid("anotherAdUnitCode").build()))
                         .build())));
@@ -396,11 +383,11 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnBidBuildersWithExpectedFields() {
         // given
-        bidder = givenBidderCustomizable(
+        bidder = givenBidder(
                 builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
-        exchangeCall = givenExchangeCallCustomizable(
+        exchangeCall = givenExchangeCall(
                 bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
                 bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
                         .seatbid(singletonList(SeatBid.builder()
@@ -439,9 +426,9 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnEmptyBidsIfEmptyOrNullBidResponse() {
         // given
-        bidder = givenBidderCustomizable(identity(), identity());
+        bidder = givenBidder(identity(), identity());
 
-        exchangeCall = givenExchangeCallCustomizable(identity(), br -> br.seatbid(null));
+        exchangeCall = givenExchangeCall(identity(), br -> br.seatbid(null));
 
         // when and then
         assertThat(adapter.extractBids(bidder, exchangeCall)).isEmpty();
@@ -451,11 +438,11 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnMultipleBidBuildersIfMultipleAdUnitsInPreBidRequestAndBidsInResponse() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"), identity())));
+        bidder = Bidder.of(ADAPTER, asList(
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1"), identity()),
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
-        exchangeCall = givenExchangeCallCustomizable(identity(),
+        exchangeCall = givenExchangeCall(identity(),
                 bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
                         .seatbid(singletonList(SeatBid.builder()
                                 .seat("seatId")
@@ -469,20 +456,20 @@ public class AppnexusAdapterTest extends VertxTest {
 
         // then
         assertThat(bids).hasSize(2)
-                .extracting(bid -> bid.code)
+                .extracting(org.rtb.vexing.model.response.Bid::getCode)
                 .containsOnly("adUnitCode1", "adUnitCode2");
     }
 
-    private static Bidder givenBidderCustomizable(
+    private static Bidder givenBidder(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
             Function<AppnexusParams.AppnexusParamsBuilder, AppnexusParams.AppnexusParamsBuilder>
                     paramsBuilderCustomizer) {
 
-        return Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer, paramsBuilderCustomizer)));
+        return Bidder.of(ADAPTER, singletonList(
+                givenAdUnitBid(adUnitBidBuilderCustomizer, paramsBuilderCustomizer)));
     }
 
-    private static AdUnitBid givenAdUnitBidCustomizable(
+    private static AdUnitBid givenAdUnitBid(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer,
             Function<AppnexusParams.AppnexusParamsBuilder, AppnexusParams.AppnexusParamsBuilder>
                     paramsBuilderCustomizer) {
@@ -506,7 +493,7 @@ public class AppnexusAdapterTest extends VertxTest {
         return adUnitBidBuilderCustomized.build();
     }
 
-    private PreBidRequestContext givenPreBidRequestContextCustomizable(
+    private PreBidRequestContext givenPreBidRequestContext(
             Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext
                     .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
             Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
@@ -523,7 +510,7 @@ public class AppnexusAdapterTest extends VertxTest {
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 
-    private static ExchangeCall givenExchangeCallCustomizable(
+    private static ExchangeCall givenExchangeCall(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
             Function<BidResponse.BidResponseBuilder, BidResponse.BidResponseBuilder> bidResponseBuilderCustomizer) {
 

@@ -92,11 +92,8 @@ public class PubmaticAdapterTest extends VertxTest {
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.builder()
-                .url("//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dpubmatic%26uid%3D")
-                .type("iframe")
-                .supportCORS(false)
-                .build());
+        assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of(
+                "//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dpubmatic%26uid%3D", "iframe", false));
     }
 
     @Test
@@ -105,7 +102,7 @@ public class PubmaticAdapterTest extends VertxTest {
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
-        assertThat(httpRequests).flatExtracting(r -> r.headers.entries())
+        assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
@@ -115,7 +112,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfNoAtLeastOneValidAdunitBidParams() {
         // given
-        bidder = Bidder.from(ADAPTER, singletonList(
+        bidder = Bidder.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder.params(null))));
 
         // when and then
@@ -128,7 +125,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @SuppressWarnings("unchecked")
     public void requestBidsShouldSendBidRequestWithNotModifiedImpIfInvalidParams() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
+        bidder = Bidder.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(identity()),
                 givenAdUnitBidCustomizable(builder -> builder.params(defaultNamingMapper
                         .valueToTree(PubmaticParams.of(null, null)))),
@@ -148,21 +145,21 @@ public class PubmaticAdapterTest extends VertxTest {
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp()).hasSize(6);
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp())
+        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp()).hasSize(6);
+        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp())
                 .extracting(Imp::getTagid)
                 .containsOnly("slot1", null, null, null, null, null);
 
         final List formats = singletonList(Format.builder().w(480).h(320).build());
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp())
+        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getFormat)
                 .containsOnly(null, formats, formats, formats, formats, formats);
 
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp())
+        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getW)
                 .containsOnly(300, 480, 480, 480, 480, 480);
 
-        assertThat(httpRequests).flatExtracting(r -> r.bidRequest.getImp())
+        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getH)
                 .containsOnly(250, 320, 320, 320, 320, 320);
     }
@@ -187,7 +184,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
+        bidder = Bidder.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(emptySet()))));
@@ -203,7 +200,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
+        bidder = Bidder.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(singleton(MediaType.video))
@@ -248,7 +245,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest)
+                .extracting(HttpRequest::getBidRequest)
                 .containsOnly(BidRequest.builder()
                         .id("tid")
                         .at(1)
@@ -293,7 +290,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest.getApp().getId())
+                .extracting(r -> r.getBidRequest().getApp().getId())
                 .containsOnly("appId");
     }
 
@@ -311,14 +308,14 @@ public class PubmaticAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest.getUser())
+                .extracting(r -> r.getBidRequest().getUser())
                 .containsOnly(User.builder().buyeruid("buyerUid").build());
     }
 
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
+        bidder = Bidder.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                         .video(Video.builder()
@@ -333,7 +330,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.bidRequest.getImp())
+                .flatExtracting(r -> r.getBidRequest().getImp())
                 .containsOnly(
                         Imp.builder()
                                 .video(com.iab.openrtb.request.Video.builder().w(480).h(320)
@@ -349,7 +346,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfMultipleAdUnitsInPreBidRequest() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
+        bidder = Bidder.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
 
@@ -358,7 +355,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(2)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
     }
 
@@ -434,7 +431,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnMultipleBidBuildersIfMultipleAdUnitsInPreBidRequestAndBidsInResponse() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
+        bidder = Bidder.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
 
@@ -452,13 +449,13 @@ public class PubmaticAdapterTest extends VertxTest {
 
         // then
         assertThat(bids).hasSize(2)
-                .extracting(bid -> bid.code)
+                .extracting(org.rtb.vexing.model.response.Bid::getCode)
                 .containsOnly("adUnitCode1", "adUnitCode2");
     }
 
     private static Bidder givenBidderCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
-        return Bidder.from(ADAPTER, singletonList(givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer)));
+        return Bidder.of(ADAPTER, singletonList(givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer)));
     }
 
     private static AdUnitBid givenAdUnitBidCustomizable(

@@ -1,20 +1,15 @@
 package org.rtb.vexing.model.openrtb.ext.request;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 
 /**
  * Defines the contract for bidrequest.user.ext.digitrust
  * More info on DigiTrust can be found here: https://github.com/digi-trust/dt-cdn/wiki/Integration-Guide
  */
-@Builder
-@ToString
-@EqualsAndHashCode
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ExtUserDigiTrust {
+@AllArgsConstructor(staticName = "of")
+@Value
+public final class ExtUserDigiTrust {
 
     /**
      * Unique device identifier

@@ -1,5 +1,6 @@
 package org.rtb.vexing.adapter.index;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -41,11 +42,7 @@ public class IndexAdapter extends OpenrtbAdapter {
     }
 
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl) {
-        return UsersyncInfo.builder()
-                .url(usersyncUrl)
-                .type("redirect")
-                .supportCORS(false)
-                .build();
+        return UsersyncInfo.of(usersyncUrl, "redirect", false);
     }
 
     @Override
@@ -65,7 +62,7 @@ public class IndexAdapter extends OpenrtbAdapter {
 
     @Override
     public List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        validatePreBidRequest(preBidRequestContext.preBidRequest);
+        validatePreBidRequest(preBidRequestContext.getPreBidRequest());
 
         final BidRequest bidRequest = createBidRequest(bidder, preBidRequestContext);
         final HttpRequest httpRequest = HttpRequest.of(endpointUrl, headers(), bidRequest);
@@ -73,26 +70,29 @@ public class IndexAdapter extends OpenrtbAdapter {
     }
 
     private static void validatePreBidRequest(PreBidRequest preBidRequest) {
-        if (preBidRequest.app != null) {
+        if (preBidRequest.getApp() != null) {
             throw new PreBidException("Index doesn't support apps");
         }
     }
 
     private BidRequest createBidRequest(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        validateAdUnitBidsMediaTypes(bidder.adUnitBids);
+        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
 
-        final List<Imp> imps = makeImps(bidder.adUnitBids, preBidRequestContext);
+        validateAdUnitBidsMediaTypes(adUnitBids);
+
+        final List<Imp> imps = makeImps(adUnitBids, preBidRequestContext);
         validateImps(imps);
 
-        final Integer siteId = bidder.adUnitBids.stream()
+        final Integer siteId = adUnitBids.stream()
                 .map(IndexAdapter::parseAndValidateParams)
-                .map(params -> params.siteId)
+                .map(IndexParams::getSiteId)
                 .reduce((first, second) -> second).orElse(null);
 
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return BidRequest.builder()
-                .id(preBidRequestContext.preBidRequest.tid)
+                .id(preBidRequest.getTid())
                 .at(1)
-                .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
+                .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
                 .site(makeSite(preBidRequestContext, siteId))
                 .device(deviceBuilder(preBidRequestContext).build())
@@ -102,20 +102,22 @@ public class IndexAdapter extends OpenrtbAdapter {
     }
 
     private static IndexParams parseAndValidateParams(AdUnitBid adUnitBid) {
-        if (adUnitBid.params == null) {
+        final ObjectNode paramsNode = adUnitBid.getParams();
+        if (paramsNode == null) {
             throw new PreBidException("IndexExchange params section is missing");
         }
 
         final IndexParams params;
         try {
-            params = Json.mapper.convertValue(adUnitBid.params, IndexParams.class);
+            params = Json.mapper.convertValue(paramsNode, IndexParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
-            throw new PreBidException(String.format("unmarshal params '%s' failed: %s", adUnitBid.params,
+            throw new PreBidException(String.format("unmarshal params '%s' failed: %s", paramsNode,
                     e.getMessage()), e.getCause());
         }
 
-        if (params.siteId == null || params.siteId == 0) {
+        final Integer siteId = params.getSiteId();
+        if (siteId == null || siteId == 0) {
             throw new PreBidException("Missing siteID param");
         }
 
@@ -129,12 +131,13 @@ public class IndexAdapter extends OpenrtbAdapter {
     }
 
     private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
+        final String adUnitCode = adUnitBid.getAdUnitCode();
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
-                        .id(adUnitBid.adUnitCode)
-                        .instl(adUnitBid.instl)
-                        .secure(preBidRequestContext.secure)
-                        .tagid(adUnitBid.adUnitCode)
+                        .id(adUnitCode)
+                        .instl(adUnitBid.getInstl())
+                        .secure(preBidRequestContext.getSecure())
+                        .tagid(adUnitCode)
                         .build());
     }
 
@@ -163,16 +166,16 @@ public class IndexAdapter extends OpenrtbAdapter {
 
     @Override
     public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.bidResponse)
+        return responseBidStream(exchangeCall.getBidResponse())
                 .map(bid -> toBidBuilder(bid, bidder))
                 .collect(Collectors.toList());
     }
 
     private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.adUnitBids, bid.getImpid());
+        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
-                .bidder(adUnitBid.bidderCode)
-                .bidId(adUnitBid.bidId)
+                .bidder(adUnitBid.getBidderCode())
+                .bidId(adUnitBid.getBidId())
                 .code(bid.getImpid())
                 .price(bid.getPrice())
                 .adm(bid.getAdm())

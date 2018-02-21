@@ -15,7 +15,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public class Bid {
+public final class Bid {
 
     /** Bidder generated bid ID to assist with logging/tracking. (required) */
     String id;

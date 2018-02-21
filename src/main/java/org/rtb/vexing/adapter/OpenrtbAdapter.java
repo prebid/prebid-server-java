@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
@@ -14,10 +15,12 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import org.apache.commons.collections4.CollectionUtils;
+import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.PreBidRequest;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -64,29 +67,32 @@ public abstract class OpenrtbAdapter implements Adapter {
     }
 
     protected static Banner.BannerBuilder bannerBuilder(AdUnitBid adUnitBid) {
+        final List<Format> sizes = adUnitBid.getSizes();
         return Banner.builder()
-                .w(adUnitBid.sizes.get(0).getW())
-                .h(adUnitBid.sizes.get(0).getH())
-                .format(adUnitBid.sizes)
-                .topframe(adUnitBid.topframe);
+                .w(sizes.get(0).getW())
+                .h(sizes.get(0).getH())
+                .format(sizes)
+                .topframe(adUnitBid.getTopframe());
     }
 
     protected static Video.VideoBuilder videoBuilder(AdUnitBid adUnitBid) {
+        final org.rtb.vexing.model.request.Video video = adUnitBid.getVideo();
+        final Format format = adUnitBid.getSizes().get(0);
         return Video.builder()
-                .mimes(adUnitBid.video.mimes)
-                .minduration(adUnitBid.video.minduration)
-                .maxduration(adUnitBid.video.maxduration)
-                .w(adUnitBid.sizes.get(0).getW())
-                .h(adUnitBid.sizes.get(0).getH())
-                .startdelay(adUnitBid.video.startdelay)
-                .playbackmethod(Collections.singletonList(adUnitBid.video.playbackMethod))
-                .protocols(adUnitBid.video.protocols);
+                .mimes(video.getMimes())
+                .minduration(video.getMinduration())
+                .maxduration(video.getMaxduration())
+                .w(format.getW())
+                .h(format.getH())
+                .startdelay(video.getStartdelay())
+                .playbackmethod(Collections.singletonList(video.getPlaybackMethod()))
+                .protocols(video.getProtocols());
     }
 
     protected static Site.SiteBuilder siteBuilder(PreBidRequestContext preBidRequestContext) {
-        return preBidRequestContext.preBidRequest.app != null ? null : Site.builder()
-                .domain(preBidRequestContext.domain)
-                .page(preBidRequestContext.referer);
+        return preBidRequestContext.getPreBidRequest().getApp() != null ? null : Site.builder()
+                .domain(preBidRequestContext.getDomain())
+                .page(preBidRequestContext.getReferer());
     }
 
     protected static Site makeSite(PreBidRequestContext preBidRequestContext) {
@@ -95,35 +101,38 @@ public abstract class OpenrtbAdapter implements Adapter {
     }
 
     protected static Device.DeviceBuilder deviceBuilder(PreBidRequestContext preBidRequestContext) {
-        final Device device = preBidRequestContext.preBidRequest.device;
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        final Device device = preBidRequest.getDevice();
 
         // create a copy since device might be shared with other adapters
         final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
 
-        if (preBidRequestContext.preBidRequest.app == null) {
-            deviceBuilder.ua(preBidRequestContext.ua);
+        if (preBidRequest.getApp() == null) {
+            deviceBuilder.ua(preBidRequestContext.getUa());
         }
 
         return deviceBuilder
-                .ip(preBidRequestContext.ip);
+                .ip(preBidRequestContext.getIp());
     }
 
     protected User.UserBuilder userBuilder(PreBidRequestContext preBidRequestContext) {
-        return preBidRequestContext.preBidRequest.app != null ? null : User.builder()
-                .buyeruid(preBidRequestContext.uidsCookie.uidFrom(cookieFamily()))
+        final UidsCookie uidsCookie = preBidRequestContext.getUidsCookie();
+        return preBidRequestContext.getPreBidRequest().getApp() != null ? null : User.builder()
+                .buyeruid(uidsCookie.uidFrom(cookieFamily()))
                 // id is a UID for "adnxs" (see logic in open-source implementation)
-                .id(preBidRequestContext.uidsCookie.uidFrom("adnxs"));
+                .id(uidsCookie.uidFrom("adnxs"));
     }
 
     protected User makeUser(PreBidRequestContext preBidRequestContext) {
         final User.UserBuilder userBuilder = userBuilder(preBidRequestContext);
-        return userBuilder == null ? preBidRequestContext.preBidRequest.user : userBuilder.build();
+        return userBuilder == null ? preBidRequestContext.getPreBidRequest().getUser() : userBuilder.build();
     }
 
     protected static Source makeSource(PreBidRequestContext preBidRequestContext) {
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return Source.builder()
-                .tid(preBidRequestContext.preBidRequest.tid)
-                .fd(preBidRequestContext.preBidRequest.app == null ? 1 : null) // upstream, aka header
+                .tid(preBidRequest.getTid())
+                .fd(preBidRequest.getApp() == null ? 1 : null) // upstream, aka header
                 .build();
     }
 
@@ -131,15 +140,16 @@ public abstract class OpenrtbAdapter implements Adapter {
         Objects.requireNonNull(adUnitBids);
 
         if (!adUnitBids.stream()
-                .allMatch(adUnitBid -> adUnitBid.mediaTypes.stream()
+                .allMatch(adUnitBid -> adUnitBid.getMediaTypes().stream()
                         .allMatch(mediaType -> isValidAdUnitBidVideoMediaType(mediaType, adUnitBid)))) {
             throw new PreBidException("Invalid AdUnit: VIDEO media type with no video data");
         }
     }
 
     private static boolean isValidAdUnitBidVideoMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
+        final org.rtb.vexing.model.request.Video video = adUnitBid.getVideo();
         return !(MediaType.video.equals(mediaType)
-                && (adUnitBid.video == null || CollectionUtils.isEmpty(adUnitBid.video.mimes)));
+                && (video == null || CollectionUtils.isEmpty(video.getMimes())));
     }
 
     protected static Set<MediaType> allowedMediaTypes(AdUnitBid adUnitBid, Set<MediaType> adapterAllowedMediaTypes) {
@@ -147,7 +157,7 @@ public abstract class OpenrtbAdapter implements Adapter {
         Objects.requireNonNull(adapterAllowedMediaTypes);
 
         final Set<MediaType> allowedMediaTypes = new HashSet<>(adapterAllowedMediaTypes);
-        allowedMediaTypes.retainAll(adUnitBid.mediaTypes);
+        allowedMediaTypes.retainAll(adUnitBid.getMediaTypes());
         return allowedMediaTypes;
     }
 
@@ -167,7 +177,7 @@ public abstract class OpenrtbAdapter implements Adapter {
         Objects.requireNonNull(adUnitBids);
 
         for (AdUnitBid adUnitBid : adUnitBids) {
-            if (Objects.equals(adUnitBid.adUnitCode, adUnitCode)) {
+            if (Objects.equals(adUnitBid.getAdUnitCode(), adUnitCode)) {
                 return adUnitBid;
             }
         }

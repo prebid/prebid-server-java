@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.auction.BidderRequesterCatalog;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtUser;
+import org.rtb.vexing.model.openrtb.ext.request.ExtUserDigiTrust;
 
 import java.util.Iterator;
 import java.util.List;
@@ -104,7 +105,8 @@ public class RequestValidator {
         if (user != null && user.getExt() != null) {
             try {
                 final ExtUser extUser = Json.mapper.treeToValue(user.getExt(), ExtUser.class);
-                if (extUser.digitrust == null || extUser.digitrust.pref != 0) {
+                final ExtUserDigiTrust digitrust = extUser.getDigitrust();
+                if (digitrust == null || digitrust.getPref() != 0) {
                     throw new ValidationException("request.user contains a digitrust object that is not valid.");
                 }
             } catch (JsonProcessingException e) {

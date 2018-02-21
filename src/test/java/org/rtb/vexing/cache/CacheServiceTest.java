@@ -180,39 +180,36 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
 
-        assertThat(bidCacheRequest.puts).isNotNull();
-        assertThat(bidCacheRequest.puts).isNotEmpty();
-        assertThat(bidCacheRequest.puts.size()).isEqualTo(4);
+        assertThat(bidCacheRequest.getPuts()).hasSize(4);
 
-        final PutObject putObject1 = bidCacheRequest.puts.get(0);
-        final BannerValue putValue1 = mapper.treeToValue(putObject1.value, BannerValue.class);
+        final PutObject putObject1 = bidCacheRequest.getPuts().get(0);
+        final BannerValue putValue1 = mapper.treeToValue(putObject1.getValue(), BannerValue.class);
         assertThat(putObject1).isNotNull();
 
-        assertThat(putValue1.adm).isEqualTo("adm1");
-        assertThat(putValue1.nurl).isEqualTo("nurl1");
-        assertThat(putValue1.height).isEqualTo(100);
-        assertThat(putValue1.width).isEqualTo(200);
-        assertThat(putValue1.width).isEqualTo(200);
-        assertThat(putObject1.type).isEqualTo("json");
+        assertThat(putValue1.getAdm()).isEqualTo("adm1");
+        assertThat(putValue1.getNurl()).isEqualTo("nurl1");
+        assertThat(putValue1.getHeight()).isEqualTo(100);
+        assertThat(putValue1.getWidth()).isEqualTo(200);
+        assertThat(putObject1.getType()).isEqualTo("json");
 
-        final PutObject putObject2 = bidCacheRequest.puts.get(1);
-        final BannerValue putValue2 = mapper.treeToValue(putObject2.value, BannerValue.class);
+        final PutObject putObject2 = bidCacheRequest.getPuts().get(1);
+        final BannerValue putValue2 = mapper.treeToValue(putObject2.getValue(), BannerValue.class);
         assertThat(putValue2).isNotNull();
-        assertThat(putValue2.adm).isEqualTo("adm2");
-        assertThat(putValue2.nurl).isEqualTo("nurl2");
-        assertThat(putValue2.height).isEqualTo(300);
-        assertThat(putValue2.width).isEqualTo(400);
-        assertThat(putObject2.type).isEqualTo("json");
+        assertThat(putValue2.getAdm()).isEqualTo("adm2");
+        assertThat(putValue2.getNurl()).isEqualTo("nurl2");
+        assertThat(putValue2.getHeight()).isEqualTo(300);
+        assertThat(putValue2.getWidth()).isEqualTo(400);
+        assertThat(putObject2.getType()).isEqualTo("json");
 
-        final PutObject putObject3 = bidCacheRequest.puts.get(2);
+        final PutObject putObject3 = bidCacheRequest.getPuts().get(2);
         assertThat(putObject3).isNotNull();
-        assertThat(putObject3.value.asText()).isEqualTo(adm3);
-        assertThat(putObject3.type).isEqualTo("xml");
+        assertThat(putObject3.getValue().asText()).isEqualTo(adm3);
+        assertThat(putObject3.getType()).isEqualTo("xml");
 
-        final PutObject putObject4 = bidCacheRequest.puts.get(3);
+        final PutObject putObject4 = bidCacheRequest.getPuts().get(3);
         assertThat(putObject4).isNotNull();
-        assertThat(putObject4.value.asText()).isEqualTo(adm4);
-        assertThat(putObject4.type).isEqualTo("xml");
+        assertThat(putObject4.getValue().asText()).isEqualTo(adm4);
+        assertThat(putObject4.getType()).isEqualTo("xml");
     }
 
     @Test
@@ -298,9 +295,8 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldReturnCacheResult() throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(BidCacheResponse.builder()
-                .responses(singletonList(CacheObject.builder().uuid("uuid1").build()))
-                .build()));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
+                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
 
         // when
         final Future<List<BidCacheResult>> future = cacheService.cacheBids(singleBidList(), timeout());
@@ -308,10 +304,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final List<BidCacheResult> bidCacheResults = future.result();
         assertThat(bidCacheResults).hasSize(1)
-                .containsOnly(BidCacheResult.builder()
-                        .cacheId("uuid1")
-                        .cacheUrl("http://cache-service-host/cache?uuid=uuid1")
-                        .build());
+                .containsOnly(BidCacheResult.of("uuid1", "http://cache-service-host/cache?uuid=uuid1"));
     }
 
     @Test
@@ -434,9 +427,8 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldReturnCacheResult() throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(BidCacheResponse.builder()
-                .responses(singletonList(CacheObject.builder().uuid("uuid1").build()))
-                .build()));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
+                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
 
         // when
         final Future<List<String>> future = cacheService.cacheBidsOpenrtb(singleBidListOpenrtb(), timeout());

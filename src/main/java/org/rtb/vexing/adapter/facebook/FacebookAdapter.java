@@ -4,17 +4,18 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.json.Json;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.OpenrtbAdapter;
 import org.rtb.vexing.adapter.facebook.model.FacebookExt;
 import org.rtb.vexing.adapter.facebook.model.FacebookParams;
+import org.rtb.vexing.adapter.model.AdUnitBidWithParams;
 import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
 import org.rtb.vexing.exception.PreBidException;
@@ -22,6 +23,7 @@ import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
@@ -63,11 +65,7 @@ public class FacebookAdapter extends OpenrtbAdapter {
     }
 
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl) {
-        return UsersyncInfo.builder()
-                .url(usersyncUrl)
-                .type("redirect")
-                .supportCORS(false)
-                .build();
+        return UsersyncInfo.of(usersyncUrl, "redirect", false);
     }
 
     private static ObjectNode createPlatformJson(String platformId) {
@@ -77,7 +75,7 @@ public class FacebookAdapter extends OpenrtbAdapter {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(String.format("Platform ID is not valid number: '%s'", platformId), e);
         }
-        return Json.mapper.valueToTree(FacebookExt.builder().platformid(platformIdAsInt).build());
+        return Json.mapper.valueToTree(FacebookExt.of(platformIdAsInt));
     }
 
     @Override
@@ -97,10 +95,12 @@ public class FacebookAdapter extends OpenrtbAdapter {
 
     @Override
     public List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        validateAdUnitBidsMediaTypes(bidder.adUnitBids);
-        validateAdUnitBidsBannerMediaType(bidder.adUnitBids);
+        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
 
-        return createAdUnitBidsWithParams(bidder.adUnitBids).stream()
+        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsBannerMediaType(adUnitBids);
+
+        return createAdUnitBidsWithParams(adUnitBids).stream()
                 .flatMap(adUnitBidWithParams -> createBidRequests(adUnitBidWithParams, preBidRequestContext))
                 .map(bidRequest -> HttpRequest.of(endpointUrl(), headers(), bidRequest))
                 .collect(Collectors.toList());
@@ -108,62 +108,65 @@ public class FacebookAdapter extends OpenrtbAdapter {
 
     private static void validateAdUnitBidsBannerMediaType(List<AdUnitBid> adUnitBids) {
         adUnitBids.stream()
-                .filter(adUnitBid -> adUnitBid.mediaTypes.contains(MediaType.banner))
+                .filter(adUnitBid -> adUnitBid.getMediaTypes().contains(MediaType.banner))
                 .forEach(FacebookAdapter::validateBannerMediaType);
     }
 
     private static void validateBannerMediaType(AdUnitBid adUnitBid) {
         // if instl = 0 and type is banner, do not send non supported size
-        if (Objects.equals(adUnitBid.instl, 0)
-                && !ALLOWED_BANNER_HEIGHTS.contains(adUnitBid.sizes.get(0).getH())) {
+        if (Objects.equals(adUnitBid.getInstl(), 0)
+                && !ALLOWED_BANNER_HEIGHTS.contains(adUnitBid.getSizes().get(0).getH())) {
             throw new PreBidException("Facebook do not support banner height other than 50, 90 and 250");
         }
     }
 
-    private static List<AdUnitBidWithParams> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private static List<AdUnitBidWithParams<Params>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
     private static Params parseAndValidateParams(AdUnitBid adUnitBid) {
-        if (adUnitBid.params == null) {
+        final ObjectNode paramsNode = adUnitBid.getParams();
+        if (paramsNode == null) {
             throw new PreBidException("Facebook params section is missing");
         }
 
         final FacebookParams params;
         try {
-            params = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, FacebookParams.class);
+            params = DEFAULT_NAMING_MAPPER.convertValue(paramsNode, FacebookParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
-        if (StringUtils.isEmpty(params.placementId)) {
+        final String placementId = params.getPlacementId();
+        if (StringUtils.isEmpty(placementId)) {
             throw new PreBidException("Missing placementId param");
         }
 
-        final String[] splitted = params.placementId.split("_");
-        if (splitted.length != 2) {
-            throw new PreBidException(String.format("Invalid placementId param '%s'", params.placementId));
+        final String[] placementIdSplit = placementId.split("_");
+        if (placementIdSplit.length != 2) {
+            throw new PreBidException(String.format("Invalid placementId param '%s'", placementId));
         }
 
-        return Params.of(params.placementId, splitted[0]);
+        return Params.of(placementId, placementIdSplit[0]);
     }
 
-    private Stream<BidRequest> createBidRequests(AdUnitBidWithParams adUnitBidWithParams,
+    private Stream<BidRequest> createBidRequests(AdUnitBidWithParams<Params> adUnitBidWithParams,
                                                  PreBidRequestContext preBidRequestContext) {
         final List<Imp> imps = makeImps(adUnitBidWithParams, preBidRequestContext);
         validateImps(imps);
 
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return imps.stream()
                 .map(imp -> BidRequest.builder()
-                        .id(preBidRequestContext.preBidRequest.tid)
+                        .id(preBidRequest.getTid())
                         .at(1)
-                        .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
+                        .tmax(preBidRequest.getTimeoutMillis())
                         .imp(Collections.singletonList(imp))
-                        .app(makeApp(preBidRequestContext, adUnitBidWithParams.params))
-                        .site(makeSite(preBidRequestContext, adUnitBidWithParams.params))
+                        .app(makeApp(preBidRequestContext, adUnitBidWithParams.getParams()))
+                        .site(makeSite(preBidRequestContext, adUnitBidWithParams.getParams()))
                         .device(deviceBuilder(preBidRequestContext).build())
                         .user(makeUser(preBidRequestContext))
                         .source(makeSource(preBidRequestContext))
@@ -171,16 +174,16 @@ public class FacebookAdapter extends OpenrtbAdapter {
                         .build());
     }
 
-    private static List<Imp> makeImps(AdUnitBidWithParams adUnitBidWithParams,
+    private static List<Imp> makeImps(AdUnitBidWithParams<Params> adUnitBidWithParams,
                                       PreBidRequestContext preBidRequestContext) {
-        final AdUnitBid adUnitBid = adUnitBidWithParams.adUnitBid;
+        final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
 
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
-                        .id(adUnitBid.adUnitCode)
-                        .instl(adUnitBid.instl)
-                        .secure(preBidRequestContext.secure)
-                        .tagid(adUnitBidWithParams.params.placementId)
+                        .id(adUnitBid.getAdUnitCode())
+                        .instl(adUnitBid.getInstl())
+                        .secure(preBidRequestContext.getSecure())
+                        .tagid(adUnitBidWithParams.getParams().getPlacementId())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -202,12 +205,13 @@ public class FacebookAdapter extends OpenrtbAdapter {
     }
 
     private static Banner makeBanner(AdUnitBid adUnitBid) {
-        final Integer w = adUnitBid.sizes.get(0).getW();
-        final Integer h = adUnitBid.sizes.get(0).getH();
+        final Format format = adUnitBid.getSizes().get(0);
+        final Integer w = format.getW();
+        final Integer h = format.getH();
 
         final Integer width;
         final Integer height;
-        if (Objects.equals(adUnitBid.instl, 1)) {
+        if (Objects.equals(adUnitBid.getInstl(), 1)) {
             // if instl = 1 sent in, pass size (0,0) to facebook
             width = 0;
             height = 0;
@@ -227,16 +231,16 @@ public class FacebookAdapter extends OpenrtbAdapter {
     }
 
     private static App makeApp(PreBidRequestContext preBidRequestContext, Params params) {
-        final App app = preBidRequestContext.preBidRequest.app;
+        final App app = preBidRequestContext.getPreBidRequest().getApp();
         return app == null ? null : app.toBuilder()
-                .publisher(Publisher.builder().id(params.pubId).build())
+                .publisher(Publisher.builder().id(params.getPubId()).build())
                 .build();
     }
 
     private static Site makeSite(PreBidRequestContext preBidRequestContext, Params params) {
         final Site.SiteBuilder siteBuilder = siteBuilder(preBidRequestContext);
         return siteBuilder == null ? null : siteBuilder
-                .publisher(Publisher.builder().id(params.pubId).build())
+                .publisher(Publisher.builder().id(params.getPubId()).build())
                 .build();
     }
 
@@ -247,41 +251,33 @@ public class FacebookAdapter extends OpenrtbAdapter {
 
     @Override
     public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.bidResponse)
+        return responseBidStream(exchangeCall.getBidResponse())
                 .map(bid -> toBidBuilder(bid, bidder))
                 .limit(1) // one bid per request/response
                 .collect(Collectors.toList());
     }
 
     private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.adUnitBids, bid.getImpid());
+        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
+        final Format format = adUnitBid.getSizes().get(0);
         return Bid.builder()
-                .bidder(adUnitBid.bidderCode)
-                .bidId(adUnitBid.bidId)
+                .bidder(adUnitBid.getBidderCode())
+                .bidId(adUnitBid.getBidId())
                 .code(bid.getImpid())
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
-                .width(adUnitBid.sizes.get(0).getW())
-                .height(adUnitBid.sizes.get(0).getH())
+                .width(format.getW())
+                .height(format.getH())
                 // sets creative type, since FB doesn't return any from server. Only banner type is supported by FB.
                 .mediaType(MediaType.banner);
     }
 
     @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class Params {
+    @Value
+    private static final class Params {
 
         String placementId;
 
         String pubId;
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class AdUnitBidWithParams {
-
-        AdUnitBid adUnitBid;
-
-        Params params;
     }
 }

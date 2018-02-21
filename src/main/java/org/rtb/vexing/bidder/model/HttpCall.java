@@ -2,18 +2,14 @@ package org.rtb.vexing.bidder.model;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 /**
  * Packages together the fields needed to make an http request.
  */
-@ToString
-@EqualsAndHashCode
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class HttpCall {
+@Value
+public final class HttpCall {
 
     HttpRequest request;
 

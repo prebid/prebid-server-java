@@ -1,5 +1,7 @@
 package org.rtb.vexing.adapter.rubicon;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -33,17 +35,20 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconPubExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconPubExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
+import org.rtb.vexing.adapter.rubicon.model.RubiconTargeting;
 import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconTargetingExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExt;
-import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRP;
+import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoParams;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.request.Sdk;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.UsersyncInfo;
@@ -82,11 +87,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl) {
-        return UsersyncInfo.builder()
-                .url(usersyncUrl)
-                .type("redirect")
-                .supportCORS(false)
-                .build();
+        return UsersyncInfo.of(usersyncUrl, "redirect", false);
     }
 
     @Override
@@ -110,15 +111,17 @@ public class RubiconAdapter extends OpenrtbAdapter {
                 .add(HttpHeaders.AUTHORIZATION, authHeader)
                 .add(HttpHeaders.USER_AGENT, PREBID_SERVER_USER_AGENT);
 
-        validateAdUnitBidsMediaTypes(bidder.adUnitBids);
+        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
 
-        final List<HttpRequest> httpRequests = bidder.adUnitBids.stream()
+        validateAdUnitBidsMediaTypes(adUnitBids);
+
+        final List<HttpRequest> httpRequests = adUnitBids.stream()
                 .flatMap(adUnitBid -> createBidRequests(adUnitBid, preBidRequestContext))
                 .map(bidRequest -> HttpRequest.of(endpointUrl, headers, bidRequest))
                 .collect(Collectors.toList());
 
         validateBidRequests(httpRequests.stream()
-                .map(httpRequest -> httpRequest.bidRequest)
+                .map(HttpRequest::getBidRequest)
                 .collect(Collectors.toList()));
 
         return httpRequests;
@@ -132,12 +135,13 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private Stream<BidRequest> createBidRequests(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
         final RubiconParams rubiconParams = parseAndValidateRubiconParams(adUnitBid);
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return makeImps(adUnitBid, rubiconParams, preBidRequestContext)
                 .map(imp -> BidRequest.builder()
-                        .id(preBidRequestContext.preBidRequest.tid)
+                        .id(preBidRequest.getTid())
                         .app(makeApp(rubiconParams, preBidRequestContext))
                         .at(1)
-                        .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
+                        .tmax(preBidRequest.getTimeoutMillis())
                         .imp(Collections.singletonList(imp))
                         .site(makeSite(rubiconParams, preBidRequestContext))
                         .device(makeDevice(preBidRequestContext))
@@ -147,23 +151,27 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private RubiconParams parseAndValidateRubiconParams(AdUnitBid adUnitBid) {
-        if (adUnitBid.params == null) {
+        final ObjectNode params = adUnitBid.getParams();
+        if (params == null) {
             throw new PreBidException("Rubicon params section is missing");
         }
 
         final RubiconParams rubiconParams;
         try {
-            rubiconParams = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, RubiconParams.class);
+            rubiconParams = DEFAULT_NAMING_MAPPER.convertValue(params, RubiconParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
-        if (rubiconParams.accountId == null || rubiconParams.accountId == 0) {
+        final Integer accountId = rubiconParams.getAccountId();
+        final Integer siteId = rubiconParams.getSiteId();
+        final Integer zoneId = rubiconParams.getZoneId();
+        if (accountId == null || accountId == 0) {
             throw new PreBidException("Missing accountId param");
-        } else if (rubiconParams.siteId == null || rubiconParams.siteId == 0) {
+        } else if (siteId == null || siteId == 0) {
             throw new PreBidException("Missing siteId param");
-        } else if (rubiconParams.zoneId == null || rubiconParams.zoneId == 0) {
+        } else if (zoneId == null || zoneId == 0) {
             throw new PreBidException("Missing zoneId param");
         }
 
@@ -171,7 +179,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static App makeApp(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
-        final App app = preBidRequestContext.preBidRequest.app;
+        final App app = preBidRequestContext.getPreBidRequest().getApp();
         return app == null ? null : app.toBuilder()
                 .publisher(makePublisher(rubiconParams))
                 .ext(Json.mapper.valueToTree(makeSiteExt(rubiconParams)))
@@ -184,9 +192,9 @@ public class RubiconAdapter extends OpenrtbAdapter {
                 .filter(mediaType -> isValidAdUnitBidMediaType(mediaType, adUnitBid))
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, rubiconParams))
                 .map(impBuilder -> impBuilder
-                        .id(adUnitBid.adUnitCode)
-                        .secure(preBidRequestContext.secure)
-                        .instl(adUnitBid.instl)
+                        .id(adUnitBid.getAdUnitCode())
+                        .secure(preBidRequestContext.getSecure())
+                        .instl(adUnitBid.getInstl())
                         .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)))
                         .build());
     }
@@ -194,9 +202,10 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
         switch (mediaType) {
             case video:
-                return adUnitBid.video != null && !CollectionUtils.isEmpty(adUnitBid.video.mimes);
+                final org.rtb.vexing.model.request.Video video = adUnitBid.getVideo();
+                return video != null && !CollectionUtils.isEmpty(video.getMimes());
             case banner:
-                return adUnitBid.sizes.stream().map(RubiconSize::toId).anyMatch(id -> id > 0);
+                return adUnitBid.getSizes().stream().map(RubiconSize::toId).anyMatch(id -> id > 0);
             default:
                 return false;
         }
@@ -207,7 +216,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final Imp.ImpBuilder builder = Imp.builder();
         switch (mediaType) {
             case video:
-                builder.video(makeVideo(adUnitBid, rubiconParams.video));
+                builder.video(makeVideo(adUnitBid, rubiconParams.getVideo()));
                 break;
             case banner:
                 builder.banner(makeBanner(adUnitBid));
@@ -219,34 +228,31 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static RubiconImpExt makeImpExt(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
-        return RubiconImpExt.builder()
-                .rp(RubiconImpExtRp.builder()
-                        .zoneId(rubiconParams.zoneId)
-                        .target(!rubiconParams.inventory.isNull() ? rubiconParams.inventory : null)
-                        .track(makeImpExtRpTrack(preBidRequestContext))
-                        .build())
-                .build();
+        return RubiconImpExt.of(RubiconImpExtRp.of(rubiconParams.getZoneId(), makeInventory(rubiconParams),
+                makeImpExtRpTrack(preBidRequestContext)));
+    }
+
+    private static JsonNode makeInventory(RubiconParams rubiconParams) {
+        final JsonNode inventory = rubiconParams.getInventory();
+        return !inventory.isNull() ? inventory : null;
     }
 
     private static RubiconImpExtRpTrack makeImpExtRpTrack(PreBidRequestContext preBidRequestContext) {
-        final Sdk sdk = preBidRequestContext.preBidRequest.sdk;
+        final Sdk sdk = preBidRequestContext.getPreBidRequest().getSdk();
         final String mintVersion;
         if (sdk != null) {
-            mintVersion = String.format("%s_%s_%s", StringUtils.defaultString(sdk.source),
-                    StringUtils.defaultString(sdk.platform), StringUtils.defaultString(sdk.version));
+            mintVersion = String.format("%s_%s_%s", StringUtils.defaultString(sdk.getSource()),
+                    StringUtils.defaultString(sdk.getPlatform()), StringUtils.defaultString(sdk.getVersion()));
         } else {
             mintVersion = "__";
         }
 
-        return RubiconImpExtRpTrack.builder()
-                .mint("prebid")
-                .mintVersion(mintVersion)
-                .build();
+        return RubiconImpExtRpTrack.of("prebid", mintVersion);
     }
 
     private static Banner makeBanner(AdUnitBid adUnitBid) {
         return bannerBuilder(adUnitBid)
-                .ext(Json.mapper.valueToTree(makeBannerExt(adUnitBid.sizes)))
+                .ext(Json.mapper.valueToTree(makeBannerExt(adUnitBid.getSizes())))
                 .build();
     }
 
@@ -257,13 +263,8 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static RubiconVideoExt makeVideoExt(RubiconVideoParams rubiconVideoParams) {
-        return RubiconVideoExt.builder()
-                .skip(rubiconVideoParams.skip)
-                .skipdelay(rubiconVideoParams.skipdelay)
-                .rp(RubiconVideoExtRP.builder()
-                        .sizeId(rubiconVideoParams.sizeId)
-                        .build())
-                .build();
+        return RubiconVideoExt.of(rubiconVideoParams.getSkip(), rubiconVideoParams.getSkipdelay(),
+                RubiconVideoExtRp.of(rubiconVideoParams.getSizeId()));
     }
 
     private static RubiconBannerExt makeBannerExt(List<Format> sizes) {
@@ -272,14 +273,10 @@ public class RubiconAdapter extends OpenrtbAdapter {
                 .filter(id -> id > 0)
                 .collect(Collectors.toList());
 
-        return RubiconBannerExt.builder()
-                .rp(RubiconBannerExtRp.builder()
-                        .sizeId(validRubiconSizeIds.get(0))
-                        .altSizeIds(validRubiconSizeIds.size() > 1
-                                ? validRubiconSizeIds.subList(1, validRubiconSizeIds.size()) : null)
-                        .mime("text/html")
-                        .build())
-                .build();
+        return RubiconBannerExt.of(RubiconBannerExtRp.of(
+                validRubiconSizeIds.get(0),
+                validRubiconSizeIds.size() > 1 ? validRubiconSizeIds.subList(1, validRubiconSizeIds.size()) : null,
+                "text/html"));
     }
 
     private Site makeSite(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
@@ -288,8 +285,9 @@ public class RubiconAdapter extends OpenrtbAdapter {
             siteBuilder = Site.builder();
         }
 
-        if (preBidRequestContext.preBidRequest.app != null) {
-            final User user = preBidRequestContext.preBidRequest.user;
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        if (preBidRequest.getApp() != null) {
+            final User user = preBidRequest.getUser();
             final String language = user != null ? user.getLanguage() : null;
             siteBuilder
                     .content(Content.builder().language(language).build());
@@ -303,9 +301,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static RubiconSiteExt makeSiteExt(RubiconParams rubiconParams) {
-        return RubiconSiteExt.builder()
-                .rp(RubiconSiteExtRp.builder().siteId(rubiconParams.siteId).build())
-                .build();
+        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId()));
     }
 
     private static Publisher makePublisher(RubiconParams rubiconParams) {
@@ -315,9 +311,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static RubiconPubExt makePublisherExt(RubiconParams rubiconParams) {
-        return RubiconPubExt.builder()
-                .rp(RubiconPubExtRp.builder().accountId(rubiconParams.accountId).build())
-                .build();
+        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconParams.getAccountId()));
     }
 
     private static Device makeDevice(PreBidRequestContext preBidRequestContext) {
@@ -327,18 +321,16 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static RubiconDeviceExt makeDeviceExt(PreBidRequestContext preBidRequestContext) {
-        final Device device = preBidRequestContext.preBidRequest.device;
+        final Device device = preBidRequestContext.getPreBidRequest().getDevice();
         final BigDecimal pixelratio = device != null ? device.getPxratio() : null;
 
-        return RubiconDeviceExt.builder()
-                .rp(RubiconDeviceExtRp.builder().pixelratio(pixelratio).build())
-                .build();
+        return RubiconDeviceExt.of(RubiconDeviceExtRp.of(pixelratio));
     }
 
     private User makeUser(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
         User.UserBuilder userBuilder = userBuilder(preBidRequestContext);
         if (userBuilder == null) {
-            final User user = preBidRequestContext.preBidRequest.user;
+            final User user = preBidRequestContext.getPreBidRequest().getUser();
             userBuilder = user != null ? user.toBuilder() : User.builder();
         }
 
@@ -349,16 +341,15 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static RubiconUserExt makeUserExt(RubiconParams rubiconParams) {
-        return !rubiconParams.visitor.isNull()
-                ? RubiconUserExt.builder().rp(RubiconUserExtRp.builder().target(rubiconParams.visitor).build()).build()
-                : null;
+        final JsonNode visitor = rubiconParams.getVisitor();
+        return !visitor.isNull() ? RubiconUserExt.of(RubiconUserExtRp.of(visitor), null) : null;
     }
 
     @Override
     public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.bidResponse)
+        return responseBidStream(exchangeCall.getBidResponse())
                 .filter(bid -> bid.getPrice() != null && bid.getPrice().compareTo(BigDecimal.ZERO) != 0)
-                .map(bid -> toBidBuilder(bid, bidder, mediaTypeFor(exchangeCall.bidRequest)))
+                .map(bid -> toBidBuilder(bid, bidder, mediaTypeFor(exchangeCall.getBidRequest())))
                 .limit(1) // one bid per request/response
                 .collect(Collectors.toList());
     }
@@ -374,10 +365,10 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder, MediaType mediaType) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.adUnitBids, bid.getImpid());
+        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
-                .bidder(adUnitBid.bidderCode)
-                .bidId(adUnitBid.bidId)
+                .bidder(adUnitBid.getBidderCode())
+                .bidId(adUnitBid.getBidId())
                 .code(bid.getImpid())
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
@@ -397,8 +388,10 @@ public class RubiconAdapter extends OpenrtbAdapter {
             logger.warn("Exception occurred while de-serializing rubicon targeting extension", e);
         }
 
-        return rubiconTargetingExt != null && rubiconTargetingExt.rp != null && rubiconTargetingExt.rp.targeting != null
-                ? rubiconTargetingExt.rp.targeting.stream().collect(Collectors.toMap(t -> t.key, t -> t.values.get(0)))
+        final RubiconTargetingExtRp rp = rubiconTargetingExt != null ? rubiconTargetingExt.getRp() : null;
+        final List<RubiconTargeting> targeting = rp != null ? rp.getTargeting() : null;
+        return targeting != null
+                ? targeting.stream().collect(Collectors.toMap(RubiconTargeting::getKey, t -> t.getValues().get(0)))
                 : null;
     }
 

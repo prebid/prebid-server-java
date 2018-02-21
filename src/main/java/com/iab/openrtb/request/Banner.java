@@ -2,7 +2,7 @@ package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
 import java.util.List;
 
@@ -22,8 +22,8 @@ import java.util.List;
  * conform to one of the offered types.
  */
 @Builder(toBuilder = true)
-@Data
-public class Banner {
+@Value
+public final class Banner {
 
     /**
      * Array of format objects (Section 3.2.10) representing the banner sizes

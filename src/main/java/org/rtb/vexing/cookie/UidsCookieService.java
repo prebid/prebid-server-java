@@ -64,14 +64,15 @@ public class UidsCookieService {
                     .build();
         }
 
-        if (uids.uids == null) {
+        if (uids.getUids() == null) {
             uids = uids.toBuilder()
                     .uids(Collections.emptyMap())
                     .build();
         }
 
-        if (uids.uids.isEmpty() && uids.uidsLegacy != null) {
-            final Map<String, UidWithExpiry> convertedUids = uids.uidsLegacy.entrySet().stream().collect(
+        final Map<String, String> uidsLegacy = uids.getUidsLegacy();
+        if (uids.getUids().isEmpty() && uidsLegacy != null) {
+            final Map<String, UidWithExpiry> convertedUids = uidsLegacy.entrySet().stream().collect(
                     Collectors.toMap(Map.Entry::getKey, value -> UidWithExpiry.expired(value.getValue())));
             uids = uids.toBuilder()
                     .uids(convertedUids)
@@ -82,8 +83,8 @@ public class UidsCookieService {
         final String hostCookie = parseHostCookie(context);
         final boolean isOptedOut = isOptedOut(context);
 
-        if (uids.uids.get(hostCookieFamily) == null && hostCookie != null && !isOptedOut) {
-            final Map<String, UidWithExpiry> uidsWithHostCookie = new HashMap<>(uids.uids);
+        if (uids.getUids().get(hostCookieFamily) == null && hostCookie != null && !isOptedOut) {
+            final Map<String, UidWithExpiry> uidsWithHostCookie = new HashMap<>(uids.getUids());
             uidsWithHostCookie.put(hostCookieFamily, UidWithExpiry.live(hostCookie));
             uids = uids.toBuilder().uids(uidsWithHostCookie).build();
         }
@@ -95,9 +96,9 @@ public class UidsCookieService {
                     .build();
         }
 
-        uids.uids.entrySet().removeIf(entry ->
-                UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().uid)
-                        || StringUtils.isEmpty(entry.getValue().uid));
+        uids.getUids().entrySet().removeIf(entry ->
+                UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().getUid())
+                        || StringUtils.isEmpty(entry.getValue().getUid()));
 
         return new UidsCookie(uids);
     }

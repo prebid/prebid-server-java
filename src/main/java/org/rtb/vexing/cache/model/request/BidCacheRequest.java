@@ -1,20 +1,13 @@
 package org.rtb.vexing.cache.model.request;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.util.List;
 
-@Builder
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class BidCacheRequest {
+@AllArgsConstructor(staticName = "of")
+@Value
+public final class BidCacheRequest {
 
     List<PutObject> puts;
 }

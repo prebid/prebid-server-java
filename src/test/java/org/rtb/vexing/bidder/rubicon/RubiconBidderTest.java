@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExt;
+import org.rtb.vexing.adapter.rubicon.model.RubiconBannerExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconImpExtRpTrack;
@@ -35,7 +36,7 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExt;
-import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRP;
+import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRp;
 import org.rtb.vexing.bidder.model.BidderBid;
 import org.rtb.vexing.bidder.model.HttpCall;
 import org.rtb.vexing.bidder.model.HttpRequest;
@@ -97,10 +98,10 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.value).hasSize(1).element(0).isNotNull()
-                .returns(HttpMethod.POST, request -> request.method)
-                .returns(ENDPOINT_URL, request -> request.uri);
-        assertThat(result.value.get(0).headers).isNotNull()
+        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
+                .returns(HttpMethod.POST, HttpRequest::getMethod)
+                .returns(ENDPOINT_URL, HttpRequest::getUri);
+        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple(HttpHeaders.AUTHORIZATION.toString(), "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
@@ -122,20 +123,15 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
-                .containsOnly(RubiconImpExt.builder()
-                        .rp(RubiconImpExtRp.builder()
-                                .zoneId(4001)
-                                .target(mapper.valueToTree(
-                                        Inventory.of(singletonList("5-star"), singletonList("tech"))))
-                                .track(RubiconImpExtRpTrack.builder().mint("").mintVersion("").build())
-                                .build())
-                        .build());
+                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
+                        mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
+                        RubiconImpExtRpTrack.of("", ""))));
     }
 
     @Test
@@ -152,15 +148,16 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBanner).doesNotContainNull()
                 .extracting(Banner::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconBannerExt.class))
-                .extracting(ext -> ext.rp).doesNotContainNull()
-                .extracting(rp -> rp.sizeId, rp -> rp.altSizeIds).containsOnly(tuple(15, asList(32, 10)));
+                .extracting(RubiconBannerExt::getRp).doesNotContainNull()
+                .extracting(RubiconBannerExtRp::getSizeId, RubiconBannerExtRp::getAltSizeIds)
+                .containsOnly(tuple(15, asList(32, 10)));
     }
 
     @Test
@@ -177,15 +174,15 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBanner).doesNotContainNull()
                 .extracting(Banner::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconBannerExt.class))
-                .extracting(ext -> ext.rp).doesNotContainNull()
-                .extracting(rp -> rp.sizeId)
+                .extracting(RubiconBannerExt::getRp).doesNotContainNull()
+                .extracting(RubiconBannerExtRp::getSizeId)
                 .containsOnly(15);
     }
 
@@ -200,18 +197,14 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
-                .containsOnly(RubiconVideoExt.builder()
-                        .skip(5)
-                        .skipdelay(10)
-                        .rp(RubiconVideoExtRP.builder().sizeId(14).build())
-                        .build());
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14)));
     }
 
     @Test
@@ -228,25 +221,18 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .containsOnly(Imp.builder()
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(250).build())).build())
                         .video(Video.builder()
-                                .ext(mapper.valueToTree(RubiconVideoExt.builder()
-                                        .skip(5)
-                                        .skipdelay(10)
-                                        .rp(RubiconVideoExtRP.builder().sizeId(14).build())
-                                        .build()))
+                                .ext(mapper.valueToTree(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14))))
                                 .build())
-                        .ext(mapper.valueToTree(RubiconImpExt.builder()
-                                .rp(RubiconImpExtRp.builder()
-                                        .track(RubiconImpExtRpTrack.builder().mint("").mintVersion("").build())
-                                        .build())
-                                .build()))
+                        .ext(mapper.valueToTree(RubiconImpExt.of(
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))))
                         .build());
     }
 
@@ -263,31 +249,22 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
-                        .ext(mapper.valueToTree(
-                                RubiconUserExt.builder()
-                                        .rp(RubiconUserExtRp.builder()
-                                                .target(mapper.valueToTree(
-                                                        Visitor.of(singletonList("new"), singletonList("iphone"))))
-                                                .build())
-                                        .build()))
+                        .ext(mapper.valueToTree(RubiconUserExt.of(RubiconUserExtRp.of(mapper.valueToTree(
+                                Visitor.of(singletonList("new"), singletonList("iphone")))), null)))
                         .build());
     }
 
     @Test
-    public void makeHttpRequestsShouldFillUserExtIfUserAndDigigtrustPresent() {
+    public void makeHttpRequestsShouldFillUserExtIfUserAndDigiTrustPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(
-                        mapper.valueToTree(ExtUser.builder()
-                            .digitrust(ExtUserDigiTrust.builder()
-                                    .id("id").keyv(123).pref(0)
-                                    .build())
-                                .build()))
+                        mapper.valueToTree(ExtUser.of(ExtUserDigiTrust.of("id", 123, 0))))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 Function.identity());
@@ -295,17 +272,13 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
                         .ext(mapper.valueToTree(
-                                RubiconUserExt.builder()
-                                        .digitrust(ExtUserDigiTrust.builder()
-                                        .id("id").keyv(123).pref(0)
-                                        .build())
-                                .build()))
+                                RubiconUserExt.of(null, ExtUserDigiTrust.of("id", 123, 0))))
                         .build());
     }
 
@@ -321,9 +294,9 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder().build());
     }
@@ -346,9 +319,9 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode rp = mapper.createObjectNode();
         rp.set("rp", mapper.createObjectNode().put("pixelratio", new Double("4.2")));
 
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getDevice).doesNotContainNull()
                 .containsOnly(Device.builder()
                         .pxratio(BigDecimal.valueOf(4.2))
@@ -368,19 +341,15 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite).doesNotContainNull()
                 .containsOnly(Site.builder()
                         .publisher(Publisher.builder()
-                                .ext(mapper.valueToTree(RubiconPubExt.builder()
-                                        .rp(RubiconPubExtRp.builder().accountId(2001).build())
-                                        .build()))
+                                .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
-                        .ext(mapper.valueToTree(RubiconSiteExt.builder()
-                                .rp(RubiconSiteExtRp.builder().siteId(3001).build())
-                                .build()))
+                        .ext(mapper.valueToTree(RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
                         .build());
     }
 
@@ -396,19 +365,15 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp).doesNotContainNull()
                 .containsOnly(App.builder()
                         .publisher(Publisher.builder()
-                                .ext(mapper.valueToTree(RubiconPubExt.builder()
-                                        .rp(RubiconPubExtRp.builder().accountId(2001).build())
-                                        .build()))
+                                .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                 .build())
-                        .ext(mapper.valueToTree(RubiconSiteExt.builder()
-                                .rp(RubiconSiteExtRp.builder().siteId(3001).build())
-                                .build()))
+                        .ext(mapper.valueToTree(RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
                         .build());
     }
 
@@ -425,17 +390,14 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest expectedBidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(RubiconImpExt.builder()
-                                .rp(RubiconImpExtRp.builder()
-                                        .track(RubiconImpExtRpTrack.builder().mint("").mintVersion("").build())
-                                        .build())
-                                .build()))
+                        .ext(mapper.valueToTree(RubiconImpExt.of(
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))))
                         .build()))
                 .build();
 
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).hasSize(2).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.body, BidRequest.class))
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsOnly(expectedBidRequest, expectedBidRequest);
     }
 
@@ -454,9 +416,9 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).hasSize(1);
-        assertThat(result.errors.get(0)).startsWith("Cannot deserialize instance");
-        assertThat(result.value).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0)).startsWith("Cannot deserialize instance");
+        assertThat(result.getValue()).hasSize(1);
     }
 
     @Test
@@ -474,9 +436,9 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.errors).hasSize(1);
-        assertThat(result.errors.get(0)).startsWith("No valid sizes");
-        assertThat(result.value).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0)).startsWith("No valid sizes");
+        assertThat(result.getValue()).hasSize(1);
     }
 
     @Test
@@ -489,8 +451,8 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -503,8 +465,9 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
-        assertThat(result.value).isEmpty();
+        assertThat(result.getErrors())
+                .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -517,9 +480,9 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).hasSize(1);
-        assertThat(result.errors.get(0)).startsWith("Unrecognized token");
-        assertThat(result.value).isEmpty();
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0)).startsWith("Unrecognized token");
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -532,8 +495,9 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId1").price(ONE).build(), banner));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("impId1").price(ONE).build(), banner));
     }
 
     @Test
@@ -546,8 +510,9 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId").price(ONE).build(), banner));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("impId").price(ONE).build(), banner));
     }
 
     @Test
@@ -560,8 +525,9 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).containsOnly(BidderBid.of(Bid.builder().impid("impId").price(ONE).build(), video));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("impId").price(ONE).build(), video));
     }
 
     @Test
@@ -574,8 +540,8 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.errors).isEmpty();
-        assertThat(result.value).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(Function<BidRequestBuilder, BidRequestBuilder> bidRequestCustomizer,
@@ -621,19 +587,21 @@ public class RubiconBidderTest extends VertxTest {
                 .build());
     }
 
-    @Value
     @AllArgsConstructor(staticName = "of")
-    private static class Inventory {
+    @Value
+    private static final class Inventory {
 
-        private final List<String> rating;
-        private final List<String> prodtype;
+        List<String> rating;
+
+        List<String> prodtype;
     }
 
-    @Value
     @AllArgsConstructor(staticName = "of")
-    private static class Visitor {
+    @Value
+    private static final class Visitor {
 
-        private final List<String> ucat;
-        private final List<String> search;
+        List<String> ucat;
+
+        List<String> search;
     }
 }

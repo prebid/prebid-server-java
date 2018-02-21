@@ -1,14 +1,13 @@
 package org.rtb.vexing.validation;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.util.Collections;
 import java.util.List;
 
 @AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
+@Value
 public class ValidationResult {
 
     List<String> errors;

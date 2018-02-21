@@ -80,7 +80,8 @@ public class PreBidRequestContextFactory {
 
         final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
 
-        if (preBidRequest.adUnits == null || preBidRequest.adUnits.isEmpty()) {
+        final List<AdUnit> adUnits = preBidRequest.getAdUnits();
+        if (adUnits == null || adUnits.isEmpty()) {
             return Future.failedFuture(new PreBidException("No ad units specified"));
         }
 
@@ -209,7 +210,7 @@ public class PreBidRequestContextFactory {
                 .isDebug(isDebug(preBidRequest, httpRequest))
                 .noLiveUids(false);
 
-        if (preBidRequest.app == null) {
+        if (preBidRequest.getApp() == null) {
             final String referer = referer(httpRequest);
             final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
@@ -226,7 +227,7 @@ public class PreBidRequestContextFactory {
 
     private Future<List<Bidder>> extractBidders(PreBidRequest preBidRequest, GlobalTimeout timeout) {
         // this is a List<Future<Stream<AdUnitBid>>> actually
-        final List<Future> adUnitBidFutures = preBidRequest.adUnits.stream()
+        final List<Future> adUnitBidFutures = preBidRequest.getAdUnits().stream()
                 .filter(PreBidRequestContextFactory::isValidAdUnit)
                 .map(unit -> resolveUnitBids(unit, timeout)
                         .map(bids -> bids.stream().map(bid -> toAdUnitBid(unit, bid))))
@@ -235,29 +236,30 @@ public class PreBidRequestContextFactory {
         return CompositeFuture.join(adUnitBidFutures)
                 .map(future -> future.<Stream<AdUnitBid>>list().stream()
                         .flatMap(Function.identity())
-                        .collect(Collectors.groupingBy(a -> a.bidderCode))
+                        .collect(Collectors.groupingBy(AdUnitBid::getBidderCode))
                         .entrySet().stream()
-                        .map(e -> Bidder.from(e.getKey(), e.getValue()))
+                        .map(e -> Bidder.of(e.getKey(), e.getValue()))
                         .collect(Collectors.toList()));
     }
 
     private static boolean isValidAdUnit(AdUnit adUnit) {
-        return Objects.nonNull(adUnit.code) && CollectionUtils.isNotEmpty(adUnit.sizes);
+        return Objects.nonNull(adUnit.getCode()) && CollectionUtils.isNotEmpty(adUnit.getSizes());
     }
 
     private Future<List<Bid>> resolveUnitBids(AdUnit unit, GlobalTimeout timeout) {
         final Future<List<Bid>> result;
 
-        if (StringUtils.isNotBlank(unit.configId)) {
-            result = applicationSettings.getAdUnitConfigById(unit.configId, timeout)
+        final String configId = unit.getConfigId();
+        if (StringUtils.isNotBlank(configId)) {
+            result = applicationSettings.getAdUnitConfigById(configId, timeout)
                     .map(config -> Json.decodeValue(config, new TypeReference<List<Bid>>() {
                     }))
                     .otherwise(exception -> {
-                        logger.warn("Failed to load config ''{0}'' from cache", exception, unit.configId);
+                        logger.warn("Failed to load config ''{0}'' from cache", exception, configId);
                         return Collections.emptyList();
                     });
         } else {
-            result = Future.succeededFuture(unit.bids);
+            result = Future.succeededFuture(unit.getBids());
         }
 
         return result;
@@ -265,15 +267,15 @@ public class PreBidRequestContextFactory {
 
     private AdUnitBid toAdUnitBid(AdUnit unit, Bid bid) {
         return AdUnitBid.builder()
-                .bidderCode(bid.bidder)
-                .sizes(unit.sizes)
-                .topframe(unit.topframe)
-                .instl(unit.instl)
-                .adUnitCode(unit.code)
-                .bidId(StringUtils.defaultIfBlank(bid.bidId, Long.toUnsignedString(rand.nextLong())))
-                .params(bid.params)
-                .video(unit.video)
-                .mediaTypes(makeBidMediaTypes(unit.mediaTypes))
+                .bidderCode(bid.getBidder())
+                .sizes(unit.getSizes())
+                .topframe(unit.getTopframe())
+                .instl(unit.getInstl())
+                .adUnitCode(unit.getCode())
+                .bidId(StringUtils.defaultIfBlank(bid.getBidId(), Long.toUnsignedString(rand.nextLong())))
+                .params(bid.getParams())
+                .video(unit.getVideo())
+                .mediaTypes(makeBidMediaTypes(unit.getMediaTypes()))
                 .build();
     }
 
@@ -298,7 +300,7 @@ public class PreBidRequestContextFactory {
     }
 
     private GlobalTimeout timeoutOrDefault(PreBidRequest preBidRequest) {
-        Long value = preBidRequest.timeoutMillis;
+        Long value = preBidRequest.getTimeoutMillis();
         if (value == null || value <= 0 || value > 2000L) {
             value = defaultHttpRequestTimeout;
         }
@@ -340,7 +342,7 @@ public class PreBidRequestContextFactory {
      * result is not blank and missing 'http://' prefix appends it.
      *
      * @param request incoming http request
-     * @return a refere value
+     * @return a referer value
      */
     private static String referer(HttpServerRequest request) {
         final String urlOverride = request.getParam("url_override");
@@ -379,7 +381,7 @@ public class PreBidRequestContextFactory {
     }
 
     private static boolean isDebug(PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
-        return Objects.equals(preBidRequest.isDebug, Boolean.TRUE)
+        return Objects.equals(preBidRequest.getIsDebug(), Boolean.TRUE)
                 || Objects.equals(httpRequest.getParam("debug"), "1");
     }
 }

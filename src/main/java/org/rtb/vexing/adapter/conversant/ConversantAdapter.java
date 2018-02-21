@@ -1,17 +1,16 @@
 package org.rtb.vexing.adapter.conversant;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.json.Json;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.OpenrtbAdapter;
 import org.rtb.vexing.adapter.conversant.model.ConversantParams;
+import org.rtb.vexing.adapter.model.AdUnitBidWithParams;
 import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
 import org.rtb.vexing.exception.PreBidException;
@@ -19,6 +18,7 @@ import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
@@ -59,11 +59,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
         final String redirectUri = encodeUrl("%s/setuid?bidder=conversant&uid=", externalUrl);
 
-        return UsersyncInfo.builder()
-                .url(String.format("%s%s", usersyncUrl, redirectUri))
-                .type("redirect")
-                .supportCORS(false)
-                .build();
+        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), "redirect", false);
     }
 
     @Override
@@ -83,8 +79,8 @@ public class ConversantAdapter extends OpenrtbAdapter {
 
     @Override
     public List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        if (preBidRequestContext.preBidRequest.app == null
-                && preBidRequestContext.uidsCookie.uidFrom(cookieFamily()) == null) {
+        if (preBidRequestContext.getPreBidRequest().getApp() == null
+                && preBidRequestContext.getUidsCookie().uidFrom(cookieFamily()) == null) {
             return Collections.emptyList();
         }
 
@@ -94,18 +90,21 @@ public class ConversantAdapter extends OpenrtbAdapter {
     }
 
     private BidRequest createBidRequest(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        validateAdUnitBidsMediaTypes(bidder.adUnitBids);
+        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
 
-        final List<AdUnitBidWithParams> adUnitBidsWithParams = createAdUnitBidsWithParams(bidder.adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids);
+
+        final List<AdUnitBidWithParams<ConversantParams>> adUnitBidsWithParams = createAdUnitBidsWithParams(adUnitBids);
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
 
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return BidRequest.builder()
-                .id(preBidRequestContext.preBidRequest.tid)
+                .id(preBidRequest.getTid())
                 .at(1)
-                .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
+                .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
-                .app(preBidRequestContext.preBidRequest.app)
+                .app(preBidRequest.getApp())
                 .site(makeSite(preBidRequestContext, adUnitBidsWithParams))
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
@@ -113,59 +112,62 @@ public class ConversantAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static List<AdUnitBidWithParams> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private static List<AdUnitBidWithParams<ConversantParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
     private static ConversantParams parseAndValidateParams(AdUnitBid adUnitBid) {
-        if (adUnitBid.params == null) {
+        final ObjectNode paramsNode = adUnitBid.getParams();
+        if (paramsNode == null) {
             throw new PreBidException("Conversant params section is missing");
         }
 
         final ConversantParams params;
         try {
-            params = Json.mapper.convertValue(adUnitBid.params, ConversantParams.class);
+            params = Json.mapper.convertValue(paramsNode, ConversantParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
-        if (StringUtils.isEmpty(params.siteId)) {
+        if (StringUtils.isEmpty(params.getSiteId())) {
             throw new PreBidException("Missing site id");
         }
 
         return params;
     }
 
-    private static List<Imp> makeImps(List<AdUnitBidWithParams> adUnitBidsWithParams,
+    private static List<Imp> makeImps(List<AdUnitBidWithParams<ConversantParams>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
                 .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams adUnitBidWithParams,
+    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<ConversantParams> adUnitBidWithParams,
                                                     PreBidRequestContext preBidRequestContext) {
-        final AdUnitBid adUnitBid = adUnitBidWithParams.adUnitBid;
-        final ConversantParams params = adUnitBidWithParams.params;
+        final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
+        final ConversantParams params = adUnitBidWithParams.getParams();
 
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
-                        .id(adUnitBid.adUnitCode)
-                        .instl(adUnitBid.instl)
+                        .id(adUnitBid.getAdUnitCode())
+                        .instl(adUnitBid.getInstl())
                         .secure(makeSecure(preBidRequestContext, params))
                         .displaymanager("prebid-s2s")
-                        .bidfloor(params.bidfloor)
-                        .tagid(params.tagId)
+                        .bidfloor(params.getBidfloor())
+                        .tagid(params.getTagId())
                         .build());
     }
 
     private static Integer makeSecure(PreBidRequestContext preBidRequestContext, ConversantParams params) {
         // Take care not to override the global secure flag
-        final boolean validSecure = preBidRequestContext.secure != null && preBidRequestContext.secure != 0;
-        return !validSecure && params.secure != null ? params.secure : preBidRequestContext.secure;
+        final Integer secure = preBidRequestContext.getSecure();
+        final boolean validSecure = secure != null && secure != 0;
+        final Integer secureInParams = params.getSecure();
+        return !validSecure && secureInParams != null ? secureInParams : secure;
     }
 
     private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
@@ -186,12 +188,16 @@ public class ConversantAdapter extends OpenrtbAdapter {
     }
 
     private static Video makeVideo(AdUnitBid adUnitBid, ConversantParams params) {
+        final org.rtb.vexing.model.request.Video video = adUnitBid.getVideo();
+        final List<String> mimes = params.getMimes();
+        final Integer maxduration = params.getMaxduration();
+        final Integer position = params.getPosition();
         return videoBuilder(adUnitBid)
-                .mimes(params.mimes != null ? params.mimes : adUnitBid.video.mimes)
-                .maxduration(params.maxduration != null ? params.maxduration : adUnitBid.video.maxduration)
-                .protocols(makeProtocols(params.protocols, adUnitBid.video.protocols))
-                .pos(AD_POSITIONS.contains(params.position) ? params.position : null)
-                .api(makeApi(params.api))
+                .mimes(mimes != null ? mimes : video.getMimes())
+                .maxduration(maxduration != null ? maxduration : video.getMaxduration())
+                .protocols(makeProtocols(params.getProtocols(), video.getProtocols()))
+                .pos(AD_POSITIONS.contains(position) ? position : null)
+                .api(makeApi(params.getApi()))
                 .build();
     }
 
@@ -206,28 +212,28 @@ public class ConversantAdapter extends OpenrtbAdapter {
 
     private static Banner makeBanner(AdUnitBid adUnitBid, ConversantParams params) {
         return bannerBuilder(adUnitBid)
-                .pos(params.position)
+                .pos(params.getPosition())
                 .build();
     }
 
     private static Site makeSite(PreBidRequestContext preBidRequestContext,
-                                 List<AdUnitBidWithParams> adUnitBidsWithParams) {
+                                 List<AdUnitBidWithParams<ConversantParams>> adUnitBidsWithParams) {
         final Site.SiteBuilder siteBuilder = siteBuilder(preBidRequestContext);
         if (siteBuilder == null) {
             return null;
         }
 
         final String siteId = adUnitBidsWithParams.stream()
-                .map(adUnitBidWithParams -> adUnitBidWithParams.params)
-                .filter(params -> params != null && StringUtils.isNotEmpty(params.siteId))
-                .map(params -> params.siteId)
+                .map(AdUnitBidWithParams::getParams)
+                .filter(params -> params != null && StringUtils.isNotEmpty(params.getSiteId()))
+                .map(ConversantParams::getSiteId)
                 .reduce((first, second) -> second)
                 .orElse(null);
 
         final Integer mobile = adUnitBidsWithParams.stream()
-                .map(adUnitBidWithParams -> adUnitBidWithParams.params)
-                .filter(params -> params != null && params.mobile != null)
-                .map(params -> params.mobile)
+                .map(AdUnitBidWithParams::getParams)
+                .filter(params -> params != null && params.getMobile() != null)
+                .map(ConversantParams::getMobile)
                 .reduce((first, second) -> second)
                 .orElse(null);
 
@@ -239,9 +245,9 @@ public class ConversantAdapter extends OpenrtbAdapter {
 
     @Override
     public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
-        final Map<String, Imp> impsMap = impsWithIds(exchangeCall.bidRequest);
+        final Map<String, Imp> impsMap = impsWithIds(exchangeCall.getBidRequest());
 
-        return responseBidStream(exchangeCall.bidResponse)
+        return responseBidStream(exchangeCall.getBidResponse())
                 .map(bid -> toBidBuilder(bid, bidder, impsMap.get(bid.getImpid())))
                 .collect(Collectors.toList());
     }
@@ -252,10 +258,10 @@ public class ConversantAdapter extends OpenrtbAdapter {
     }
 
     private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder, Imp imp) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.adUnitBids, bid.getImpid());
+        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
         final Bid.BidBuilder builder = Bid.builder()
-                .bidder(bidder.bidderCode)
-                .bidId(adUnitBid.bidId)
+                .bidder(bidder.getBidderCode())
+                .bidId(adUnitBid.getBidId())
                 .code(bid.getImpid())
                 .price(bid.getPrice())
                 .creativeId(bid.getCrid());
@@ -278,14 +284,5 @@ public class ConversantAdapter extends OpenrtbAdapter {
         }
 
         return builder;
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class AdUnitBidWithParams {
-
-        AdUnitBid adUnitBid;
-
-        ConversantParams params;
     }
 }

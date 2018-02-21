@@ -14,7 +14,7 @@ import java.util.List;
  */
 @Builder
 @Value
-public class Deal {
+public final class Deal {
 
     /** A unique identifier for the direct deal. (required) */
     String id;

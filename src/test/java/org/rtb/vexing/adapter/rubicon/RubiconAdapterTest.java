@@ -118,11 +118,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.builder()
-                .url("//usersync.org/")
-                .type("redirect")
-                .supportCORS(false)
-                .build());
+        assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of("//usersync.org/", "redirect", false));
     }
 
     @Test
@@ -131,7 +127,7 @@ public class RubiconAdapterTest extends VertxTest {
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
-        assertThat(httpRequests).flatExtracting(r -> r.headers.entries())
+        assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
@@ -142,7 +138,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
+        bidder = Bidder.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(identity(), identity()),
                 givenAdUnitBidCustomizable(builder -> builder.params(null), identity())));
 
@@ -210,7 +206,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
+        bidder = Bidder.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .adUnitCode("adUnitCode1")
                                 .mediaTypes(singleton(MediaType.video))
@@ -228,7 +224,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfNoValidAdUnits() {
         // given
-        bidder = Bidder.from(ADAPTER, emptyList());
+        bidder = Bidder.of(ADAPTER, emptyList());
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
@@ -262,13 +258,13 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests)
-                .extracting(r -> r.bidRequest)
+                .extracting(HttpRequest::getBidRequest)
                 .flatExtracting(BidRequest::getImp).hasSize(1)
                 .extracting(Imp::getBanner).isNotNull()
                 .extracting(Banner::getExt).isNotNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconBannerExt.class)).isNotNull()
-                .extracting(ext -> ext.rp).isNotNull()
-                .extracting(rp -> rp.sizeId).containsOnly(15);
+                .extracting(RubiconBannerExt::getRp).isNotNull()
+                .extracting(RubiconBannerExtRp::getSizeId).containsOnly(15);
     }
 
     @Test
@@ -292,11 +288,10 @@ public class RubiconAdapterTest extends VertxTest {
                 builder -> builder
                         .timeoutMillis(1500L)
                         .tid("tid")
-                        .sdk(Sdk.builder().source("source1").platform("platform1").version("version1").build())
+                        .sdk(Sdk.of("version1", "source1", "platform1"))
                         .device(Device.builder()
                                 .pxratio(new BigDecimal("4.2"))
-                                .build())
-        );
+                                .build()));
 
         given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
 
@@ -305,7 +300,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest)
+                .extracting(HttpRequest::getBidRequest)
                 .containsOnly(BidRequest.builder()
                         .id("tid")
                         .at(1)
@@ -321,46 +316,26 @@ public class RubiconAdapterTest extends VertxTest {
                                                 .w(300)
                                                 .h(250)
                                                 .build()))
-                                        .ext(mapper.valueToTree(RubiconBannerExt.builder()
-                                                .rp(RubiconBannerExtRp.builder()
-                                                        .sizeId(15)
-                                                        .mime("text/html")
-                                                        .build())
-                                                .build()))
+                                        .ext(mapper.valueToTree(RubiconBannerExt.of(
+                                                RubiconBannerExtRp.of(15, null, "text/html"))))
                                         .build())
-                                .ext(mapper.valueToTree(RubiconImpExt.builder()
-                                        .rp(RubiconImpExtRp.builder()
-                                                .zoneId(4001)
-                                                .track(RubiconImpExtRpTrack.builder()
-                                                        .mint("prebid")
-                                                        .mintVersion("source1_platform1_version1")
-                                                        .build())
-                                                .build())
-                                        .build()))
+                                .ext(mapper.valueToTree(RubiconImpExt.of(RubiconImpExtRp.of(4001, null,
+                                        RubiconImpExtRpTrack.of("prebid", "source1_platform1_version1")))))
                                 .build()))
                         .site(Site.builder()
                                 .domain("example.com")
                                 .page("http://www.example.com")
                                 .publisher(Publisher.builder()
-                                        .ext(mapper.valueToTree(RubiconPubExt.builder()
-                                                .rp(RubiconPubExtRp.builder()
-                                                        .accountId(2001)
-                                                        .build())
-                                                .build()))
+                                        .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                         .build())
-                                .ext(mapper.valueToTree(RubiconSiteExt.builder()
-                                        .rp(RubiconSiteExtRp.builder()
-                                                .siteId(3001)
-                                                .build())
-                                        .build()))
+                                .ext(mapper.valueToTree(RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
                                 .build())
                         .device(Device.builder()
                                 .ua("userAgent")
                                 .ip("192.168.144.1")
                                 .pxratio(new BigDecimal("4.2"))
-                                .ext(mapper.valueToTree(RubiconDeviceExt.builder().
-                                        rp(RubiconDeviceExtRp.builder().pixelratio(new BigDecimal("4.2")).build())
-                                        .build()))
+                                .ext(mapper.valueToTree(RubiconDeviceExt.of(
+                                        RubiconDeviceExtRp.of(new BigDecimal("4.2")))))
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid")
@@ -383,7 +358,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getApp().getId())
+                .extracting(r -> r.getBidRequest().getApp().getId())
                 .containsOnly("appId");
     }
 
@@ -401,7 +376,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getUser())
+                .extracting(r -> r.getBidRequest().getUser())
                 .containsOnly(User.builder().buyeruid("buyerUid").build());
     }
 
@@ -410,7 +385,7 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
                 .app(App.builder().id("appId").build())
-                .sdk(Sdk.builder().source("source1").platform("platform1").version("version1").build())
+                .sdk(Sdk.of("version1", "source1", "platform1"))
                 .device(Device.builder().pxratio(new BigDecimal("4.2")).build())
                 .user(User.builder().language("language1").build()));
 
@@ -419,23 +394,23 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(1)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(1)
                 .extracting(Imp::getExt).isNotNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class)).isNotNull()
-                .extracting(ext -> ext.rp).isNotNull()
-                .extracting(rp -> rp.track).containsOnly(RubiconImpExtRpTrack.builder()
-                .mint("prebid").mintVersion("source1_platform1_version1").build());
+                .extracting(RubiconImpExt::getRp).isNotNull()
+                .extracting(RubiconImpExtRp::getTrack)
+                .containsOnly(RubiconImpExtRpTrack.of("prebid", "source1_platform1_version1"));
 
         assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getDevice()).isNotNull()
+                .extracting(r -> r.getBidRequest().getDevice()).isNotNull()
                 .extracting(Device::getExt).isNotNull()
                 .extracting(objectNode -> mapper.treeToValue(objectNode, RubiconDeviceExt.class))
-                .extracting(rubiconDeviceExt -> rubiconDeviceExt.rp).isNotNull()
-                .extracting(rubiconDeviceExtRp -> rubiconDeviceExtRp.pixelratio)
+                .extracting(RubiconDeviceExt::getRp).isNotNull()
+                .extracting(RubiconDeviceExtRp::getPixelratio)
                 .containsOnly(new BigDecimal("4.2"));
 
         assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getSite()).isNotNull()
+                .extracting(r -> r.getBidRequest().getSite()).isNotNull()
                 .extracting(Site::getContent)
                 .containsOnly(Content.builder().language("language1").build());
     }
@@ -447,23 +422,22 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(1)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(1)
                 .extracting(Imp::getExt).isNotNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class)).isNotNull()
-                .extracting(ext -> ext.rp).isNotNull()
-                .extracting(rp -> rp.track).containsOnly(RubiconImpExtRpTrack.builder()
-                .mint("prebid").mintVersion("__").build());
+                .extracting(RubiconImpExt::getRp).isNotNull()
+                .extracting(RubiconImpExtRp::getTrack).containsOnly(RubiconImpExtRpTrack.of("prebid", "__"));
 
         assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getDevice()).isNotNull()
+                .extracting(r -> r.getBidRequest().getDevice()).isNotNull()
                 .extracting(Device::getExt).isNotNull()
                 .extracting(objectNode -> mapper.treeToValue(objectNode, RubiconDeviceExt.class))
-                .extracting(rubiconDeviceExt -> rubiconDeviceExt.rp).isNotNull()
-                .extracting(rubiconDeviceExtRp -> rubiconDeviceExtRp.pixelratio)
+                .extracting(RubiconDeviceExt::getRp).isNotNull()
+                .extracting(RubiconDeviceExtRp::getPixelratio)
                 .containsNull();
 
         assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getSite()).isNotNull()
+                .extracting(r -> r.getBidRequest().getSite()).isNotNull()
                 .extracting(Site::getContent)
                 .containsNull();
     }
@@ -484,12 +458,13 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(1)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(1)
                 .extracting(Imp::getBanner).isNotNull()
                 .extracting(Banner::getExt).isNotNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconBannerExt.class)).isNotNull()
-                .extracting(ext -> ext.rp).isNotNull()
-                .extracting(rp -> rp.sizeId, rp -> rp.altSizeIds).containsOnly(tuple(15, asList(32, 10)));
+                .extracting(RubiconBannerExt::getRp).isNotNull()
+                .extracting(RubiconBannerExtRp::getSizeId, RubiconBannerExtRp::getAltSizeIds)
+                .containsOnly(tuple(15, asList(32, 10)));
     }
 
     @Test
@@ -499,11 +474,11 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(1)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(1)
                 .extracting(imp -> imp.getExt().at("/rp/target")).containsOnly(MissingNode.getInstance());
 
         assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getUser()).isNotNull()
+                .extracting(r -> r.getBidRequest().getUser()).isNotNull()
                 .extracting(User::getExt).containsNull();
     }
 
@@ -521,7 +496,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(1)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(1)
                 .extracting(imp -> imp.getExt().at("/rp/target")).containsOnly(inventory);
     }
 
@@ -540,14 +515,14 @@ public class RubiconAdapterTest extends VertxTest {
         // then
 
         assertThat(httpRequests)
-                .extracting(r -> r.bidRequest.getUser()).isNotNull()
+                .extracting(r -> r.getBidRequest().getUser()).isNotNull()
                 .extracting(user -> user.getExt().at("/rp/target")).containsOnly(visitor);
     }
 
     @Test
     public void makeHttpRequestsShouldReturnTwoRequestsIfAdUnitContainsBannerAndVideoMediaTypes() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
+        bidder = Bidder.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                                 .video(Video.builder()
@@ -563,7 +538,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(2)
-                .flatExtracting(r -> r.bidRequest.getImp())
+                .flatExtracting(r -> r.getBidRequest().getImp())
                 .extracting(imp -> imp.getVideo() == null, imp -> imp.getBanner() == null)
                 .containsOnly(tuple(true, false), tuple(false, true));
     }
@@ -571,7 +546,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithMultipleRequestsIfMultipleAdUnitsInPreBidRequest() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
+        bidder = Bidder.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
@@ -580,7 +555,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(2)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(2)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
     }
 
@@ -588,15 +563,14 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestsShouldReturnBidRequestsWithoutVideoExtWhenMediaTypeIsVideoAndRubiconParamsVideoIsNull
             () {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
+        bidder = Bidder.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .mediaTypes(Collections.singleton(MediaType.video))
                                 .video(Video.builder()
                                         .mimes(Collections.singletonList("Mime"))
                                         .playbackMethod(1)
                                         .build()),
-                        identity()
-                )));
+                        identity())));
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
 
@@ -605,7 +579,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.bidRequest.getImp())
+                .flatExtracting(r -> r.getBidRequest().getImp())
                 .extracting(Imp::getVideo)
                 .extracting(com.iab.openrtb.request.Video::getExt).containsNull();
     }
@@ -646,14 +620,8 @@ public class RubiconAdapterTest extends VertxTest {
                                         .w(300)
                                         .h(250)
                                         .dealid("dealId")
-                                        .ext(mapper.valueToTree(RubiconTargetingExt.builder()
-                                                .rp(RubiconTargetingExtRp.builder()
-                                                        .targeting(singletonList(RubiconTargeting.builder()
-                                                                .key("key")
-                                                                .values(singletonList("value"))
-                                                                .build()))
-                                                        .build())
-                                                .build()))
+                                        .ext(mapper.valueToTree(RubiconTargetingExt.of(RubiconTargetingExtRp.of(
+                                                singletonList(RubiconTargeting.of("key", singletonList("value")))))))
                                         .build()))
                                 .build())));
 
@@ -693,7 +661,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnOnlyFirstBidBuilderFromMultipleBidsInResponse() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
+        bidder = Bidder.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
@@ -711,7 +679,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(bids).hasSize(1)
-                .extracting(bid -> bid.code)
+                .extracting(org.rtb.vexing.model.response.Bid::getCode)
                 .containsOnly("adUnitCode1");
     }
 
@@ -767,7 +735,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(bids).hasSize(1)
-                .extracting(bid -> bid.adServerTargeting).containsNull();
+                .extracting(org.rtb.vexing.model.response.Bid::getAdServerTargeting).containsNull();
     }
 
     @Test
@@ -794,7 +762,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(bids).hasSize(1)
-                .extracting(bid -> bid.adServerTargeting).containsNull();
+                .extracting(org.rtb.vexing.model.response.Bid::getAdServerTargeting).containsNull();
     }
 
     @Test
@@ -811,18 +779,9 @@ public class RubiconAdapterTest extends VertxTest {
                                 .bid(singletonList(Bid.builder()
                                         .impid("adUnitCode")
                                         .price(new BigDecimal("10"))
-                                        .ext(mapper.valueToTree(RubiconTargetingExt.builder()
-                                                .rp(RubiconTargetingExtRp.builder()
-                                                        .targeting(asList(RubiconTargeting.builder()
-                                                                        .key("key1")
-                                                                        .values(singletonList("value1"))
-                                                                        .build(),
-                                                                RubiconTargeting.builder()
-                                                                        .key("key2")
-                                                                        .values(singletonList("value2"))
-                                                                        .build()))
-                                                        .build())
-                                                .build()))
+                                        .ext(mapper.valueToTree(RubiconTargetingExt.of(RubiconTargetingExtRp.of(asList(
+                                                RubiconTargeting.of("key1", singletonList("value1")),
+                                                RubiconTargeting.of("key2", singletonList("value2")))))))
                                         .build()))
                                 .build())));
 
@@ -832,7 +791,7 @@ public class RubiconAdapterTest extends VertxTest {
 
         // then
         assertThat(bids).hasSize(1);
-        assertThat(bids).flatExtracting(bid -> bid.adServerTargeting.entrySet())
+        assertThat(bids).flatExtracting(bid -> bid.getAdServerTargeting().entrySet())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("key1", "value1"),
@@ -843,7 +802,7 @@ public class RubiconAdapterTest extends VertxTest {
             Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer,
             Function<RubiconParamsBuilder, RubiconParamsBuilder> rubiconParamsBuilderCustomizer) {
 
-        return Bidder.from(ADAPTER, singletonList(
+        return Bidder.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer, rubiconParamsBuilderCustomizer)));
     }
 

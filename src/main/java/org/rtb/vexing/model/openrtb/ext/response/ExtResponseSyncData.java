@@ -1,21 +1,14 @@
 package org.rtb.vexing.model.openrtb.ext.response;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.util.List;
 
 /**
  * Defines the contract for bidresponse.ext.usersync.{bidder}
  */
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor(staticName = "of")
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ExtResponseSyncData {
+@Value
+final class ExtResponseSyncData {
 
     CookieStatus status;
 

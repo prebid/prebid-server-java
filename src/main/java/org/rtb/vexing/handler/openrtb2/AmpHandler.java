@@ -22,14 +22,16 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
-import org.rtb.vexing.auction.amp.AmpRequest;
-import org.rtb.vexing.auction.amp.AmpResponse;
+import org.rtb.vexing.auction.model.AmpRequest;
+import org.rtb.vexing.auction.model.AmpResponse;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.exception.InvalidRequestException;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
+import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebid;
+import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebidCache;
 import org.rtb.vexing.model.openrtb.ext.response.ExtBidPrebid;
 import org.rtb.vexing.settings.StoredRequestFetcher;
 import org.rtb.vexing.validation.RequestValidator;
@@ -103,22 +105,22 @@ public class AmpHandler implements Handler<RoutingContext> {
     private Future<BidRequest> parseAndValidateBidRequest(AmpRequest ampRequest, RoutingContext context,
                                                           long startTime) {
         return toStoredBidRequest(ampRequest, startTime)
-                .map(bidRequest -> validateStoredBidRequest(ampRequest.tagId, bidRequest))
+                .map(bidRequest -> validateStoredBidRequest(ampRequest.getTagId(), bidRequest))
                 .map(bidRequest -> preBidRequestContextFactory.fromRequest(bidRequest, context))
                 .map(this::validateBidRequest);
     }
 
     private Future<BidRequest> toStoredBidRequest(AmpRequest ampRequest, long startTime) {
-        final String storedRequestId = ampRequest.tagId;
+        final String storedRequestId = ampRequest.getTagId();
 
         return storedRequestFetcher.getStoredRequestsByAmpId(Collections.singleton(storedRequestId),
                 storedRequestFetcherTimeout(startTime))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed with exception: %s", exception))))
-                .compose(storedRequestResult -> storedRequestResult.errors.size() > 0
-                        ? Future.failedFuture(new InvalidRequestException(storedRequestResult.errors))
+                .compose(storedRequestResult -> storedRequestResult.getErrors().size() > 0
+                        ? Future.failedFuture(new InvalidRequestException(storedRequestResult.getErrors()))
                         : Future.succeededFuture(storedRequestResult))
-                .map(storedRequestResult -> toBidRequest(storedRequestResult.storedIdToJson.get(storedRequestId)));
+                .map(storedRequestResult -> toBidRequest(storedRequestResult.getStoredIdToJson().get(storedRequestId)));
     }
 
     private static BidRequest toBidRequest(String bidRequestJson) {
@@ -152,8 +154,9 @@ public class AmpHandler implements Handler<RoutingContext> {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
         }
 
-        if (requestExt == null || requestExt.prebid == null || requestExt.prebid.targeting == null
-                || requestExt.prebid.cache == null || requestExt.prebid.cache.bids.isNull()) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
+        if (prebid == null || prebid.getTargeting() == null || cache == null || cache.getBids().isNull()) {
             throw new InvalidRequestException("AMP requests require Targeting and Caching to be set");
         }
 
@@ -163,7 +166,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private BidRequest validateBidRequest(BidRequest bidRequest) {
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
         if (validationResult.hasErrors()) {
-            throw new InvalidRequestException(validationResult.errors);
+            throw new InvalidRequestException(validationResult.getErrors());
         }
         return bidRequest;
     }
@@ -195,14 +198,14 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
 
         if (extBid != null) {
-            final ExtBidPrebid extBidPrebid = extBid.prebid;
+            final ExtBidPrebid extBidPrebid = extBid.getPrebid();
 
             // Need to extract the targeting parameters from the response, as those are all that
             // go in the AMP response
-            if (extBidPrebid != null && extBidPrebid.targeting != null
-                    && extBidPrebid.targeting.keySet().stream()
+            final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
+            if (targeting != null && targeting.keySet().stream()
                     .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
-                return extBidPrebid.targeting;
+                return targeting;
             }
         }
 

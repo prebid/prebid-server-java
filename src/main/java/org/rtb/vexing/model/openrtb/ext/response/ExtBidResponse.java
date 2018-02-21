@@ -1,11 +1,7 @@
 package org.rtb.vexing.model.openrtb.ext.response;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.util.List;
 import java.util.Map;
@@ -13,12 +9,9 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.ext
  */
-@Builder
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ExtBidResponse {
+@AllArgsConstructor(staticName = "of")
+@Value
+public final class ExtBidResponse {
 
     ExtResponseDebug debug;
 

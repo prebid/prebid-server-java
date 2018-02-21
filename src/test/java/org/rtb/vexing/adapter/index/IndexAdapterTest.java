@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
@@ -14,6 +15,7 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.BidResponse.BidResponseBuilder;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Rule;
@@ -28,10 +30,13 @@ import org.rtb.vexing.adapter.model.HttpRequest;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.AdUnitBid;
+import org.rtb.vexing.model.AdUnitBid.AdUnitBidBuilder;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.rtb.vexing.model.request.PreBidRequest;
+import org.rtb.vexing.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.rtb.vexing.model.request.Video;
 import org.rtb.vexing.model.response.BidderDebug;
 import org.rtb.vexing.model.response.UsersyncInfo;
@@ -69,9 +74,9 @@ public class IndexAdapterTest extends VertxTest {
 
     @Before
     public void setUp() {
-        bidder = givenBidderCustomizable(identity());
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        exchangeCall = givenExchangeCallCustomizable(identity(), identity());
+        bidder = givenBidder(identity());
+        preBidRequestContext = givenPreBidRequestContext(identity(), identity());
+        exchangeCall = givenExchangeCall(identity(), identity());
         adapter = new IndexAdapter(ENDPOINT_URL, USERSYNC_URL);
     }
 
@@ -92,11 +97,7 @@ public class IndexAdapterTest extends VertxTest {
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.builder()
-                .url("//usersync.org/")
-                .type("redirect")
-                .supportCORS(false)
-                .build());
+        assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of("//usersync.org/", "redirect", false));
     }
 
     @Test
@@ -105,7 +106,7 @@ public class IndexAdapterTest extends VertxTest {
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
-        assertThat(httpRequests).flatExtracting(r -> r.headers.entries())
+        assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"));
@@ -114,7 +115,7 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAppIsPresentInPreBidRequest() {
         // given
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
+        preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder
                 .app(App.builder().build()));
 
         // when and then
@@ -126,9 +127,9 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(identity()),
-                givenAdUnitBidCustomizable(builder -> builder.params(null))));
+        bidder = Bidder.of(ADAPTER, asList(
+                givenAdUnitBid(identity()),
+                givenAdUnitBid(builder -> builder.params(null))));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
@@ -141,7 +142,7 @@ public class IndexAdapterTest extends VertxTest {
         // given
         final ObjectNode params = defaultNamingMapper.createObjectNode();
         params.set("siteID", new TextNode("non-integer"));
-        bidder = givenBidderCustomizable(builder -> builder.params(params));
+        bidder = givenBidder(builder -> builder.params(params));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
@@ -155,7 +156,7 @@ public class IndexAdapterTest extends VertxTest {
         // given
         final ObjectNode params = mapper.createObjectNode();
         params.set("siteID", null);
-        bidder = givenBidderCustomizable(builder -> builder.params(params));
+        bidder = givenBidder(builder -> builder.params(params));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
@@ -166,12 +167,12 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(builder -> builder
+        bidder = Bidder.of(ADAPTER, singletonList(
+                givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(emptySet()))));
 
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+        preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
@@ -182,8 +183,8 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(builder -> builder
+        bidder = Bidder.of(ADAPTER, singletonList(
+                givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(singleton(MediaType.video))
                         .video(Video.builder()
@@ -199,7 +200,7 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedFields() {
         // given
-        bidder = givenBidderCustomizable(
+        bidder = givenBidder(
                 builder -> builder
                         .bidderCode(ADAPTER)
                         .adUnitCode("adUnitCode1")
@@ -208,7 +209,7 @@ public class IndexAdapterTest extends VertxTest {
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
                         .params(defaultNamingMapper.valueToTree(IndexParams.of(486))));
 
-        preBidRequestContext = givenPreBidRequestContextCustomizable(
+        preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
                         .referer("http://www.example.com")
                         .domain("example.com")
@@ -216,8 +217,7 @@ public class IndexAdapterTest extends VertxTest {
                         .ua("userAgent1"),
                 builder -> builder
                         .timeoutMillis(1500L)
-                        .tid("tid1")
-        );
+                        .tid("tid1"));
 
         given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid1");
 
@@ -226,7 +226,7 @@ public class IndexAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.bidRequest)
+                .extracting(HttpRequest::getBidRequest)
                 .containsOnly(BidRequest.builder()
                         .id("tid1")
                         .at(1)
@@ -267,25 +267,25 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfMultipleAdUnitsInPreBidRequest() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
+        bidder = Bidder.of(ADAPTER, asList(
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1")),
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(2)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
     }
 
     @Test
     public void extractBidsShouldFailIfBidImpIdDoesNotMatchAdUnitCode() {
         // given
-        bidder = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"));
+        bidder = givenBidder(builder -> builder.adUnitCode("adUnitCode"));
 
-        exchangeCall = givenExchangeCallCustomizable(identity(),
+        exchangeCall = givenExchangeCall(identity(),
                 bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder().impid("anotherAdUnitCode").build()))
                         .build())));
@@ -299,22 +299,22 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
         //given
-        bidder = Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(builder -> builder
+        bidder = Bidder.of(ADAPTER, singletonList(
+                givenAdUnitBid(builder -> builder
                         .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                         .video(Video.builder()
                                 .mimes(singletonList("Mime1"))
                                 .playbackMethod(1)
                                 .build()))));
 
-        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
+        preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         // when
         final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.bidRequest.getImp()).hasSize(2)
+                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
                 .extracting(imp -> imp.getVideo() == null, imp -> imp.getBanner() == null)
                 .containsOnly(tuple(true, false), tuple(false, true));
     }
@@ -322,11 +322,11 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnMultipleBidBuildersIfMultipleAdUnitsInPreBidRequestAndBidsInResponse() {
         // given
-        bidder = Bidder.from(ADAPTER, asList(
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
-                givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
+        bidder = Bidder.of(ADAPTER, asList(
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1")),
+                givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
-        exchangeCall = givenExchangeCallCustomizable(identity(),
+        exchangeCall = givenExchangeCall(identity(),
                 bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
                         .seatbid(singletonList(SeatBid.builder()
                                 .seat("seatId")
@@ -340,17 +340,17 @@ public class IndexAdapterTest extends VertxTest {
 
         // then
         assertThat(bids).hasSize(2)
-                .extracting(bid -> bid.code)
+                .extracting(org.rtb.vexing.model.response.Bid::getCode)
                 .containsOnly("adUnitCode1", "adUnitCode2");
     }
 
     @Test
     public void extractBidsShouldReturnBidBuildersWithExpectedFields() {
         // given
-        bidder = givenBidderCustomizable(
+        bidder = givenBidder(
                 builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"));
 
-        exchangeCall = givenExchangeCallCustomizable(
+        exchangeCall = givenExchangeCall(
                 bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
                 bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
                         .seatbid(singletonList(SeatBid.builder()
@@ -388,59 +388,54 @@ public class IndexAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnEmptyBidsIfEmptyOrNullBidResponse() {
         // given
-        bidder = givenBidderCustomizable(identity());
+        bidder = givenBidder(identity());
 
-        exchangeCall = givenExchangeCallCustomizable(identity(), br -> br.seatbid(null));
+        exchangeCall = givenExchangeCall(identity(), br -> br.seatbid(null));
 
         // when and then
         assertThat(adapter.extractBids(bidder, exchangeCall)).isEmpty();
         assertThat(adapter.extractBids(bidder, ExchangeCall.empty(null))).isEmpty();
     }
 
-    private static Bidder givenBidderCustomizable(
-            Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
-        return Bidder.from(ADAPTER, singletonList(
-                givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer)));
+    private static Bidder givenBidder(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
+        return Bidder.of(ADAPTER, singletonList(givenAdUnitBid(adUnitBidBuilderCustomizer)));
     }
 
-    private static AdUnitBid givenAdUnitBidCustomizable(
-            Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
-        final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
+    private static AdUnitBid givenAdUnitBid(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
+        final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .params(defaultNamingMapper.valueToTree(IndexParams.of(42)))
                 .mediaTypes(singleton(MediaType.banner));
 
-        final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer
+        final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer
                 .apply(adUnitBidBuilderMinimal);
 
         return adUnitBidBuilderCustomized.build();
     }
 
-    private PreBidRequestContext givenPreBidRequestContextCustomizable(
-            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext
-                    .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
-            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
-                    preBidRequestBuilderCustomizer) {
+    private PreBidRequestContext givenPreBidRequestContext(
+            Function<PreBidRequestContextBuilder, PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
+            Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
-        final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
+        final PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
                 .accountId("accountId");
         final PreBidRequest preBidRequest = preBidRequestBuilderCustomizer.apply(preBidRequestBuilderMinimal).build();
 
-        final PreBidRequestContext.PreBidRequestContextBuilder preBidRequestContextBuilderMinimal =
+        final PreBidRequestContextBuilder preBidRequestContextBuilderMinimal =
                 PreBidRequestContext.builder()
                         .preBidRequest(preBidRequest)
                         .uidsCookie(uidsCookie);
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 
-    private static ExchangeCall givenExchangeCallCustomizable(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
-            Function<BidResponse.BidResponseBuilder, BidResponse.BidResponseBuilder> bidResponseBuilderCustomizer) {
+    private static ExchangeCall givenExchangeCall(
+            Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer,
+            Function<BidResponseBuilder, BidResponseBuilder> bidResponseBuilderCustomizer) {
 
-        final BidRequest.BidRequestBuilder bidRequestBuilderMinimal = BidRequest.builder();
+        final BidRequestBuilder bidRequestBuilderMinimal = BidRequest.builder();
         final BidRequest bidRequest = bidRequestBuilderCustomizer.apply(bidRequestBuilderMinimal).build();
 
-        final BidResponse.BidResponseBuilder bidResponseBuilderMinimal = BidResponse.builder();
+        final BidResponseBuilder bidResponseBuilderMinimal = BidResponse.builder();
         final BidResponse bidResponse = bidResponseBuilderCustomizer.apply(bidResponseBuilderMinimal).build();
 
         return ExchangeCall.success(bidRequest, bidResponse, BidderDebug.builder().build());

@@ -1,15 +1,14 @@
 package org.rtb.vexing.adapter.lifestreet;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.json.Json;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.OpenrtbAdapter;
 import org.rtb.vexing.adapter.lifestreet.model.LifestreetParams;
+import org.rtb.vexing.adapter.model.AdUnitBidWithParams;
 import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
 import org.rtb.vexing.exception.PreBidException;
@@ -17,6 +16,7 @@ import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
@@ -46,11 +46,7 @@ public class LifestreetAdapter extends OpenrtbAdapter {
         final String redirectUri = encodeUrl("%s/setuid?bidder=lifestreet&uid=$$visitor_cookie$$",
                 externalUrl);
 
-        return UsersyncInfo.builder()
-                .url(String.format("%s%s", usersyncUrl, redirectUri))
-                .type("redirect")
-                .supportCORS(false)
-                .build();
+        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), "redirect", false);
     }
 
     @Override
@@ -70,55 +66,60 @@ public class LifestreetAdapter extends OpenrtbAdapter {
 
     @Override
     public List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        validateAdUnitBidsMediaTypes(bidder.adUnitBids);
+        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
 
-        return createAdUnitBidsWithParams(bidder.adUnitBids).stream()
+        validateAdUnitBidsMediaTypes(adUnitBids);
+
+        return createAdUnitBidsWithParams(adUnitBids).stream()
                 .flatMap(adUnitBidWithParams -> createBidRequests(adUnitBidWithParams, preBidRequestContext))
                 .map(bidRequest -> HttpRequest.of(endpointUrl, headers(), bidRequest))
                 .collect(Collectors.toList());
     }
 
-    private static List<AdUnitBidWithParams> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private static List<AdUnitBidWithParams<LifestreetParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
     private static LifestreetParams parseAndValidateParams(AdUnitBid adUnitBid) {
-        if (adUnitBid.params == null) {
+        final ObjectNode paramsNode = adUnitBid.getParams();
+        if (paramsNode == null) {
             throw new PreBidException("Lifestreet params section is missing");
         }
 
         final LifestreetParams params;
         try {
-            params = Json.mapper.convertValue(adUnitBid.params, LifestreetParams.class);
+            params = Json.mapper.convertValue(paramsNode, LifestreetParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
-        if (StringUtils.isEmpty(params.slotTag)) {
+        final String slotTag = params.getSlotTag();
+        if (StringUtils.isEmpty(slotTag)) {
             throw new PreBidException("Missing slot_tag param");
         }
-        if (params.slotTag.split("\\.").length != 2) {
-            throw new PreBidException(String.format("Invalid slot_tag param '%s'", params.slotTag));
+        if (slotTag.split("\\.").length != 2) {
+            throw new PreBidException(String.format("Invalid slot_tag param '%s'", slotTag));
         }
 
         return params;
     }
 
-    private Stream<BidRequest> createBidRequests(AdUnitBidWithParams adUnitBidWithParams,
+    private Stream<BidRequest> createBidRequests(AdUnitBidWithParams<LifestreetParams> adUnitBidWithParams,
                                                  PreBidRequestContext preBidRequestContext) {
         final List<Imp> imps = makeImps(adUnitBidWithParams, preBidRequestContext);
         validateImps(imps);
 
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return imps.stream()
                 .map(imp -> BidRequest.builder()
-                        .id(preBidRequestContext.preBidRequest.tid)
+                        .id(preBidRequest.getTid())
                         .at(1)
-                        .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
+                        .tmax(preBidRequest.getTimeoutMillis())
                         .imp(Collections.singletonList(imp))
-                        .app(preBidRequestContext.preBidRequest.app)
+                        .app(preBidRequest.getApp())
                         .site(makeSite(preBidRequestContext))
                         .device(deviceBuilder(preBidRequestContext).build())
                         .user(makeUser(preBidRequestContext))
@@ -126,17 +127,17 @@ public class LifestreetAdapter extends OpenrtbAdapter {
                         .build());
     }
 
-    private static List<Imp> makeImps(AdUnitBidWithParams adUnitBidWithParams,
+    private static List<Imp> makeImps(AdUnitBidWithParams<LifestreetParams> adUnitBidWithParams,
                                       PreBidRequestContext preBidRequestContext) {
-        final AdUnitBid adUnitBid = adUnitBidWithParams.adUnitBid;
-        final LifestreetParams params = adUnitBidWithParams.params;
+        final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
+        final LifestreetParams params = adUnitBidWithParams.getParams();
 
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
-                        .id(adUnitBid.adUnitCode)
-                        .instl(adUnitBid.instl)
-                        .secure(preBidRequestContext.secure)
-                        .tagid(params.slotTag)
+                        .id(adUnitBid.getAdUnitCode())
+                        .instl(adUnitBid.getInstl())
+                        .secure(preBidRequestContext.getSecure())
+                        .tagid(params.getSlotTag())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -165,17 +166,17 @@ public class LifestreetAdapter extends OpenrtbAdapter {
 
     @Override
     public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.bidResponse)
+        return responseBidStream(exchangeCall.getBidResponse())
                 .map(bid -> toBidBuilder(bid, bidder))
                 .limit(1) // one bid per request/response
                 .collect(Collectors.toList());
     }
 
     private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.adUnitBids, bid.getImpid());
+        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
-                .bidder(adUnitBid.bidderCode)
-                .bidId(adUnitBid.bidId)
+                .bidder(adUnitBid.getBidderCode())
+                .bidId(adUnitBid.getBidId())
                 .code(bid.getImpid())
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
@@ -184,14 +185,5 @@ public class LifestreetAdapter extends OpenrtbAdapter {
                 .height(bid.getH())
                 .dealId(bid.getDealid())
                 .nurl(bid.getNurl());
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class AdUnitBidWithParams {
-
-        AdUnitBid adUnitBid;
-
-        LifestreetParams params;
     }
 }

@@ -20,7 +20,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public class BidRequest {
+public final class BidRequest {
 
     /**
      * Unique ID of the bid request, provided by the exchange.

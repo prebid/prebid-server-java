@@ -15,7 +15,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public class User {
+public final class User {
 
     /**
      * Exchange-specific ID for the user. At least one of id or buyeruid is

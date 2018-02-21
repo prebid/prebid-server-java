@@ -108,7 +108,7 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // then
         final Uids uids = Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(uidsCookieBase64)), Uids.class);
-        assertThat(uids.bday).isCloseTo(ZonedDateTime.now(Clock.systemUTC()), within(10, ChronoUnit.SECONDS));
+        assertThat(uids.getBday()).isCloseTo(ZonedDateTime.now(Clock.systemUTC()), within(10, ChronoUnit.SECONDS));
     }
 
     @Test
@@ -256,15 +256,15 @@ public class UidsCookieServiceTest extends VertxTest {
         final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
 
         // then
-        final Map<String, UidWithExpiry> uids = decodeUids(cookie.getValue()).uids;
+        final Map<String, UidWithExpiry> uids = decodeUids(cookie.getValue()).getUids();
 
         assertThat(uids).hasSize(2);
-        assertThat(uids.get(RUBICON).uid).isEqualTo("rubiconUid");
-        assertThat(uids.get(RUBICON).expires.toInstant())
+        assertThat(uids.get(RUBICON).getUid()).isEqualTo("rubiconUid");
+        assertThat(uids.get(RUBICON).getExpires().toInstant())
                 .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
 
-        assertThat(uids.get(ADNXS).uid).isEqualTo("adnxsUid");
-        assertThat(uids.get(ADNXS).expires.toInstant())
+        assertThat(uids.get(ADNXS).getUid()).isEqualTo("adnxsUid");
+        assertThat(uids.get(ADNXS).getExpires().toInstant())
                 .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 

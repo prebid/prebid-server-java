@@ -1,22 +1,15 @@
 package org.rtb.vexing.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.time.ZonedDateTime;
 import java.util.Map;
 
 @Builder(toBuilder = true)
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class Uids {
+@Value
+public final class Uids {
 
     @JsonProperty("uids")
     Map<String, String> uidsLegacy;

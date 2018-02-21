@@ -1,12 +1,12 @@
 package org.rtb.vexing.adapter.appnexus;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.json.Json;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.OpenrtbAdapter;
@@ -14,6 +14,7 @@ import org.rtb.vexing.adapter.appnexus.model.AppnexusImpExt;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusImpExtAppnexus;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusKeyVal;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusParams;
+import org.rtb.vexing.adapter.model.AdUnitBidWithParams;
 import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
 import org.rtb.vexing.exception.PreBidException;
@@ -21,6 +22,7 @@ import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
@@ -54,35 +56,34 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
         final String redirectUri = encodeUrl("%s/setuid?bidder=adnxs&uid=$UID", externalUrl);
 
-        return UsersyncInfo.builder()
-                .url(String.format("%s%s", usersyncUrl, redirectUri))
-                .type("redirect")
-                .supportCORS(false)
-                .build();
+        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), "redirect", false);
     }
 
     @Override
     public List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) {
         final BidRequestWithUrl bidRequestWithUrl = createBidRequest(endpointUrl, bidder, preBidRequestContext);
-        final HttpRequest httpRequest = HttpRequest.of(bidRequestWithUrl.endpointUrl, headers(),
-                bidRequestWithUrl.bidRequest);
+        final HttpRequest httpRequest = HttpRequest.of(bidRequestWithUrl.getEndpointUrl(), headers(),
+                bidRequestWithUrl.getBidRequest());
         return Collections.singletonList(httpRequest);
     }
 
     private BidRequestWithUrl createBidRequest(String endpointUrl, Bidder bidder,
                                                PreBidRequestContext preBidRequestContext) {
-        validateAdUnitBidsMediaTypes(bidder.adUnitBids);
+        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
 
-        final List<AdUnitBidWithParams> adUnitBidsWithParams = createAdUnitBidsWithParams(bidder.adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids);
+
+        final List<AdUnitBidWithParams<AppnexusParams>> adUnitBidsWithParams = createAdUnitBidsWithParams(adUnitBids);
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
 
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         final BidRequest bidRequest = BidRequest.builder()
-                .id(preBidRequestContext.preBidRequest.tid)
+                .id(preBidRequest.getTid())
                 .at(1)
-                .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
+                .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
-                .app(preBidRequestContext.preBidRequest.app)
+                .app(preBidRequest.getApp())
                 .site(makeSite(preBidRequestContext))
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
@@ -92,50 +93,52 @@ public class AppnexusAdapter extends OpenrtbAdapter {
         return BidRequestWithUrl.of(bidRequest, endpointUrl(endpointUrl, adUnitBidsWithParams));
     }
 
-    private static List<AdUnitBidWithParams> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private static List<AdUnitBidWithParams<AppnexusParams>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
     private static AppnexusParams parseAndValidateParams(AdUnitBid adUnitBid) {
-        if (adUnitBid.params == null) {
+        final ObjectNode paramsNode = adUnitBid.getParams();
+        if (paramsNode == null) {
             throw new PreBidException("Appnexus params section is missing");
         }
 
         final AppnexusParams params;
         try {
-            params = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, AppnexusParams.class);
+            params = DEFAULT_NAMING_MAPPER.convertValue(paramsNode, AppnexusParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
-        if (params.placementId == null || Objects.equals(params.placementId, 0)
-                && (StringUtils.isEmpty(params.invCode) || StringUtils.isEmpty(params.member))) {
+        final Integer placementId = params.getPlacementId();
+        if (placementId == null || Objects.equals(placementId, 0)
+                && (StringUtils.isEmpty(params.getInvCode()) || StringUtils.isEmpty(params.getMember()))) {
             throw new PreBidException("No placement or member+invcode provided");
         }
         return params;
     }
 
-    private static List<Imp> makeImps(List<AdUnitBidWithParams> adUnitBidsWithParams,
+    private static List<Imp> makeImps(List<AdUnitBidWithParams<AppnexusParams>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
                 .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams adUnitBidWithParams,
+    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<AppnexusParams> adUnitBidWithParams,
                                                     PreBidRequestContext preBidRequestContext) {
-        final AdUnitBid adUnitBid = adUnitBidWithParams.adUnitBid;
-        final AppnexusParams params = adUnitBidWithParams.params;
+        final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
+        final AppnexusParams params = adUnitBidWithParams.getParams();
 
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
-                        .id(adUnitBid.adUnitCode)
-                        .instl(adUnitBid.instl)
-                        .secure(preBidRequestContext.secure)
-                        .tagid(StringUtils.stripToNull(params.invCode))
+                        .id(adUnitBid.getAdUnitCode())
+                        .instl(adUnitBid.getInstl())
+                        .secure(preBidRequestContext.getSecure())
+                        .tagid(StringUtils.stripToNull(params.getInvCode()))
                         .bidfloor(bidfloor(params))
                         .ext(Json.mapper.valueToTree(makeImpExt(params)))
                         .build());
@@ -149,7 +152,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
                 impBuilder.video(videoBuilder(adUnitBid).build());
                 break;
             case banner:
-                impBuilder.banner(makeBanner(adUnitBid, params.position));
+                impBuilder.banner(makeBanner(adUnitBid, params.getPosition()));
                 break;
             default:
                 // unknown media type, just skip it
@@ -170,44 +173,48 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     }
 
     private static Float bidfloor(AppnexusParams params) {
-        return params.reserve != null && params.reserve.compareTo(BigDecimal.ZERO) > 0
-                ? params.reserve.floatValue() // TODO: we need to factor in currency here if non-USD
+        final BigDecimal reserve = params.getReserve();
+        return reserve != null && reserve.compareTo(BigDecimal.ZERO) > 0
+                ? reserve.floatValue() // TODO: we need to factor in currency here if non-USD
                 : null;
     }
 
     private static AppnexusImpExt makeImpExt(AppnexusParams params) {
-        return AppnexusImpExt.builder()
-                .appnexus(AppnexusImpExtAppnexus.builder()
-                        .placementId(params.placementId)
-                        .keywords(makeKeywords(params))
-                        .trafficSourceCode(params.trafficSourceCode)
-                        .build())
-                .build();
+        return AppnexusImpExt.of(
+                AppnexusImpExtAppnexus.of(
+                        params.getPlacementId(), makeKeywords(params), params.getTrafficSourceCode()));
     }
 
     private static String makeKeywords(AppnexusParams params) {
-        if (CollectionUtils.isEmpty(params.keywords)) {
+        final List<AppnexusKeyVal> keywords = params.getKeywords();
+        if (CollectionUtils.isEmpty(keywords)) {
             return null;
         }
+
         final List<String> kvs = new ArrayList<>();
-        for (AppnexusKeyVal keyVal : params.keywords) {
-            if (keyVal.values == null || keyVal.values.isEmpty()) {
-                kvs.add(keyVal.key);
+        for (AppnexusKeyVal keyVal : keywords) {
+            final String key = keyVal.getKey();
+            final List<String> values = keyVal.getValue();
+            if (values == null || values.isEmpty()) {
+                kvs.add(key);
             } else {
-                for (String value : keyVal.values) {
-                    kvs.add(String.format("%s=%s", keyVal.key, value));
+                for (String value : values) {
+                    kvs.add(String.format("%s=%s", key, value));
                 }
             }
         }
+
         return kvs.stream().collect(Collectors.joining(","));
     }
 
-    private static String endpointUrl(String endpointUrl, List<AdUnitBidWithParams> adUnitBidsWithParams) {
+    private static String endpointUrl(String endpointUrl,
+                                      List<AdUnitBidWithParams<AppnexusParams>> adUnitBidsWithParams) {
         return adUnitBidsWithParams.stream()
-                .map(adUnitBidWithParams -> adUnitBidWithParams.params)
-                .filter(params -> StringUtils.isNotEmpty(params.invCode) && StringUtils.isNotBlank(params.member))
+                .map(AdUnitBidWithParams::getParams)
+                .filter(params -> StringUtils.isNotEmpty(params.getInvCode())
+                        && StringUtils.isNotBlank(params.getMember()))
                 .reduce((first, second) -> second)
-                .map(params -> String.format("%s%s", endpointUrl, String.format("?member_id=%s", params.member)))
+                .map(params -> String.format("%s%s", endpointUrl, String.format("?member_id=%s", params.getMember())))
                 .orElse(endpointUrl);
     }
 
@@ -228,16 +235,16 @@ public class AppnexusAdapter extends OpenrtbAdapter {
 
     @Override
     public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.bidResponse)
-                .map(bid -> toBidBuilder(bid, bidder, exchangeCall.bidRequest))
+        return responseBidStream(exchangeCall.getBidResponse())
+                .map(bid -> toBidBuilder(bid, bidder, exchangeCall.getBidRequest()))
                 .collect(Collectors.toList());
     }
 
     private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder, BidRequest bidRequest) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.adUnitBids, bid.getImpid());
+        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
-                .bidder(adUnitBid.bidderCode)
-                .bidId(adUnitBid.bidId)
+                .bidder(adUnitBid.getBidderCode())
+                .bidId(adUnitBid.getBidId())
                 .code(bid.getImpid())
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
@@ -265,17 +272,8 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     }
 
     @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class AdUnitBidWithParams {
-
-        AdUnitBid adUnitBid;
-
-        AppnexusParams params;
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class BidRequestWithUrl {
+    @Value
+    private static final class BidRequestWithUrl {
 
         BidRequest bidRequest;
 

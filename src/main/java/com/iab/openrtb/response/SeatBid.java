@@ -1,10 +1,8 @@
 package com.iab.openrtb.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Value;
-import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
@@ -18,8 +16,7 @@ import java.util.List;
  */
 @Builder
 @Value
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class SeatBid {
+public final class SeatBid {
 
     /**
      * Array of 1+ Bid objects (Section 4.2.3) each related to an impression.

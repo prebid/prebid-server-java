@@ -1,8 +1,10 @@
 package org.rtb.vexing.adapter.pubmatic;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -11,12 +13,12 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.OpenrtbAdapter;
+import org.rtb.vexing.adapter.model.AdUnitBidWithParams;
 import org.rtb.vexing.adapter.model.ExchangeCall;
 import org.rtb.vexing.adapter.model.HttpRequest;
 import org.rtb.vexing.adapter.pubmatic.model.PubmaticParams;
@@ -25,6 +27,7 @@ import org.rtb.vexing.model.AdUnitBid;
 import org.rtb.vexing.model.Bidder;
 import org.rtb.vexing.model.MediaType;
 import org.rtb.vexing.model.PreBidRequestContext;
+import org.rtb.vexing.model.request.PreBidRequest;
 import org.rtb.vexing.model.response.Bid;
 import org.rtb.vexing.model.response.UsersyncInfo;
 
@@ -55,11 +58,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
         final String redirectUri = encodeUrl("%s/setuid?bidder=pubmatic&uid=", externalUrl);
 
-        return UsersyncInfo.builder()
-                .url(String.format("%s%s", usersyncUrl, redirectUri))
-                .type("iframe")
-                .supportCORS(false)
-                .build();
+        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), "iframe", false);
     }
 
     @Override
@@ -88,19 +87,22 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     }
 
     private BidRequest createBidRequest(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        validateAdUnitBidsMediaTypes(bidder.adUnitBids);
+        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
 
-        final List<AdUnitBidWithParams> adUnitBidsWithParams = createAdUnitBidsWithParams(bidder.adUnitBids,
-                preBidRequestContext.preBidRequest.tid);
+        validateAdUnitBidsMediaTypes(adUnitBids);
+
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        final List<AdUnitBidWithParams<Params>> adUnitBidsWithParams = createAdUnitBidsWithParams(adUnitBids,
+                preBidRequest.getTid());
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
 
         final Publisher publisher = makePublisher(preBidRequestContext, adUnitBidsWithParams);
 
         return BidRequest.builder()
-                .id(preBidRequestContext.preBidRequest.tid)
+                .id(preBidRequest.getTid())
                 .at(1)
-                .tmax(preBidRequestContext.preBidRequest.timeoutMillis)
+                .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
                 .app(makeApp(preBidRequestContext, publisher))
                 .site(makeSite(preBidRequestContext, publisher))
@@ -110,8 +112,9 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static List<AdUnitBidWithParams> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids, String requestId) {
-        final List<AdUnitBidWithParams> adUnitBidWithParams = adUnitBids.stream()
+    private static List<AdUnitBidWithParams<Params>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids,
+                                                                                String requestId) {
+        final List<AdUnitBidWithParams<Params>> adUnitBidWithParams = adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid, requestId)))
                 .collect(Collectors.toList());
 
@@ -123,19 +126,20 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         return adUnitBidWithParams;
     }
 
-    private static boolean isValidParams(AdUnitBidWithParams adUnitBidWithParams) {
-        final Params params = adUnitBidWithParams.params;
+    private static boolean isValidParams(AdUnitBidWithParams<Params> adUnitBidWithParams) {
+        final Params params = adUnitBidWithParams.getParams();
         if (params == null) {
             return false;
         }
 
         // if adUnitBid has banner type, params should contains tagId, width and height fields
-        return !adUnitBidWithParams.adUnitBid.mediaTypes.contains(MediaType.banner)
-                || ObjectUtils.allNotNull(params.tagId, params.width, params.height);
+        return !adUnitBidWithParams.getAdUnitBid().getMediaTypes().contains(MediaType.banner)
+                || ObjectUtils.allNotNull(params.getTagId(), params.getWidth(), params.getHeight());
     }
 
     private static Params parseAndValidateParams(AdUnitBid adUnitBid, String requestId) {
-        if (adUnitBid.params == null) {
+        final ObjectNode params = adUnitBid.getParams();
+        if (params == null) {
             logWrongParams(requestId, null, adUnitBid, "Ignored bid: invalid JSON  [%s] err [%s]", null,
                     "params section is missing");
             return null;
@@ -143,19 +147,19 @@ public class PubmaticAdapter extends OpenrtbAdapter {
 
         final PubmaticParams pubmaticParams;
         try {
-            pubmaticParams = DEFAULT_NAMING_MAPPER.convertValue(adUnitBid.params, PubmaticParams.class);
+            pubmaticParams = DEFAULT_NAMING_MAPPER.convertValue(params, PubmaticParams.class);
         } catch (IllegalArgumentException e) {
-            logWrongParams(requestId, null, adUnitBid, "Ignored bid: invalid JSON  [%s] err [%s]", adUnitBid.params, e);
+            logWrongParams(requestId, null, adUnitBid, "Ignored bid: invalid JSON  [%s] err [%s]", params, e);
             return null;
         }
 
-        final String publisherId = pubmaticParams.publisherId;
+        final String publisherId = pubmaticParams.getPublisherId();
         if (StringUtils.isEmpty(publisherId)) {
             logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: Publisher Id missing");
             return null;
         }
 
-        final String adSlot = StringUtils.trimToNull(pubmaticParams.adSlot);
+        final String adSlot = StringUtils.trimToNull(pubmaticParams.getAdSlot());
         if (StringUtils.isEmpty(adSlot)) {
             logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: adSlot missing");
             return null;
@@ -196,27 +200,27 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     private static void logWrongParams(String requestId, String publisherId, AdUnitBid adUnitBid, String errorMessage,
                                        Object... args) {
         logger.warn("[PUBMATIC] ReqID [{0}] PubID [{1}] AdUnit [{2}] BidID [{3}] {4}", requestId, publisherId,
-                adUnitBid.adUnitCode, adUnitBid.bidId, String.format(errorMessage, args));
+                adUnitBid.getAdUnitCode(), adUnitBid.getBidId(), String.format(errorMessage, args));
     }
 
-    private static List<Imp> makeImps(List<AdUnitBidWithParams> adUnitBidsWithParams,
+    private static List<Imp> makeImps(List<AdUnitBidWithParams<Params>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
                 .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams adUnitBidWithParams,
+    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<Params> adUnitBidWithParams,
                                                     PreBidRequestContext preBidRequestContext) {
-        final AdUnitBid adUnitBid = adUnitBidWithParams.adUnitBid;
-        final Params params = adUnitBidWithParams.params;
+        final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
+        final Params params = adUnitBidWithParams.getParams();
 
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
-                        .id(adUnitBid.adUnitCode)
-                        .instl(adUnitBid.instl)
-                        .secure(preBidRequestContext.secure)
-                        .tagid(mediaType == MediaType.banner && params != null ? params.tagId : null)
+                        .id(adUnitBid.getAdUnitCode())
+                        .instl(adUnitBid.getInstl())
+                        .secure(preBidRequestContext.getSecure())
+                        .tagid(mediaType == MediaType.banner && params != null ? params.getTagId() : null)
                         .build());
     }
 
@@ -237,28 +241,32 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     }
 
     private static Banner makeBanner(AdUnitBid adUnitBid, Params params) {
+        final List<Format> sizes = adUnitBid.getSizes();
+        final Format format = sizes.get(0);
         return Banner.builder()
-                .w(params != null ? params.width : adUnitBid.sizes.get(0).getW())
-                .h(params != null ? params.height : adUnitBid.sizes.get(0).getH())
-                .format(params != null ? null : adUnitBid.sizes) // pubmatic doesn't support
-                .topframe(adUnitBid.topframe)
+                .w(params != null ? params.getWidth() : format.getW())
+                .h(params != null ? params.getHeight() : format.getH())
+                .format(params != null ? null : sizes) // pubmatic doesn't support
+                .topframe(adUnitBid.getTopframe())
                 .build();
     }
 
     private static Publisher makePublisher(PreBidRequestContext preBidRequestContext,
-                                           List<AdUnitBidWithParams> adUnitBidsWithParams) {
+                                           List<AdUnitBidWithParams<Params>> adUnitBidsWithParams) {
         return adUnitBidsWithParams.stream()
-                .filter(adUnitBidWithParams -> adUnitBidWithParams.params != null
-                        && adUnitBidWithParams.params.publisherId != null
-                        && adUnitBidWithParams.params.adSlot != null)
-                .map(adUnitBidWithParams -> adUnitBidWithParams.params.publisherId)
+                .map(AdUnitBidWithParams::getParams)
+                .filter(params -> params != null && params.getPublisherId() != null && params.getAdSlot() != null)
+                .map(Params::getPublisherId)
                 .reduce((first, second) -> second)
-                .map(publisherId -> Publisher.builder().id(publisherId).domain(preBidRequestContext.domain).build())
+                .map(publisherId -> Publisher.builder()
+                        .id(publisherId)
+                        .domain(preBidRequestContext.getDomain())
+                        .build())
                 .orElse(null);
     }
 
     private static App makeApp(PreBidRequestContext preBidRequestContext, Publisher publisher) {
-        final App app = preBidRequestContext.preBidRequest.app;
+        final App app = preBidRequestContext.getPreBidRequest().getApp();
         return app == null ? null : app.toBuilder()
                 .publisher(publisher)
                 .build();
@@ -272,22 +280,22 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     }
 
     private String makeUserCookie(PreBidRequestContext preBidRequestContext) {
-        final String cookieValue = preBidRequestContext.uidsCookie.uidFrom(cookieFamily());
+        final String cookieValue = preBidRequestContext.getUidsCookie().uidFrom(cookieFamily());
         return Cookie.cookie("KADUSERCOOKIE", ObjectUtils.firstNonNull(cookieValue, "")).encode();
     }
 
     @Override
     public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.bidResponse)
+        return responseBidStream(exchangeCall.getBidResponse())
                 .map(bid -> toBidBuilder(bid, bidder))
                 .collect(Collectors.toList());
     }
 
     private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.adUnitBids, bid.getImpid());
+        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
-                .bidder(adUnitBid.bidderCode)
-                .bidId(adUnitBid.bidId)
+                .bidder(adUnitBid.getBidderCode())
+                .bidId(adUnitBid.getBidId())
                 .code(bid.getImpid())
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
@@ -298,8 +306,8 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     }
 
     @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class Params {
+    @Value
+    private static final class Params {
 
         String publisherId;
 
@@ -310,14 +318,5 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         Integer width;
 
         Integer height;
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class AdUnitBidWithParams {
-
-        AdUnitBid adUnitBid;
-
-        Params params;
     }
 }

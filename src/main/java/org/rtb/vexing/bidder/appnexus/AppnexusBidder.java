@@ -10,9 +10,8 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusImpExt;
@@ -65,7 +64,7 @@ public class AppnexusBidder extends OpenRtbBidder {
     @Override
     public Result<List<HttpRequest>> makeHttpRequests(BidRequest bidRequest) {
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
-            return Result.emptyHttpRequests();
+            return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
         final List<String> errors = new ArrayList<>();
@@ -74,8 +73,8 @@ public class AppnexusBidder extends OpenRtbBidder {
         for (final Imp imp : bidRequest.getImp()) {
             try {
                 final ImpWithMemberId impWithMemberId = makeImpWithMemberId(imp);
-                processedImps.add(impWithMemberId.imp);
-                memberIds.add(impWithMemberId.memberId);
+                processedImps.add(impWithMemberId.getImp());
+                memberIds.add(impWithMemberId.getMemberId());
             } catch (PreBidException e) {
                 errors.add(e.getMessage());
             }
@@ -107,12 +106,12 @@ public class AppnexusBidder extends OpenRtbBidder {
     /**
      * The Appnexus API requires a Member ID in the URL if it present in the request. This means the request may fail
      * if different impressions have different member IDs.
-     * */
+     */
     private static void validateMemberId(Set<String> uniqueIds) {
         if (uniqueIds.size() > 1) {
             throw new PreBidException(
                     String.format("All request.imp[i].ext.appnexus.member params must match. Request contained: %s",
-                        String.join(", ", uniqueIds)));
+                            String.join(", ", uniqueIds)));
         }
     }
 
@@ -125,8 +124,11 @@ public class AppnexusBidder extends OpenRtbBidder {
 
         final ExtImpAppnexus appnexusExt = parseAppnexusExt(imp);
 
-        if ((appnexusExt.placementId == null || Objects.equals(appnexusExt.placementId, 0))
-                && (StringUtils.isBlank(appnexusExt.invCode) || StringUtils.isBlank(appnexusExt.member))) {
+        final Integer placementId = appnexusExt.getPlacementId();
+        final String invCode = appnexusExt.getInvCode();
+        final String member = appnexusExt.getMember();
+        if ((placementId == null || Objects.equals(placementId, 0))
+                && (StringUtils.isBlank(invCode) || StringUtils.isBlank(member))) {
             throw new PreBidException("No placement or member+invcode provided");
         }
 
@@ -134,31 +136,29 @@ public class AppnexusBidder extends OpenRtbBidder {
                 .banner(makeBanner(imp.getBanner(), appnexusExt))
                 .ext(Json.mapper.valueToTree(makeAppnexusImpExt(appnexusExt)));
 
-        if (StringUtils.isNotBlank(appnexusExt.invCode)) {
-            impBuilder.tagid(appnexusExt.invCode);
+        if (StringUtils.isNotBlank(invCode)) {
+            impBuilder.tagid(invCode);
         }
 
-        if (appnexusExt.reserve != null && appnexusExt.reserve.compareTo(BigDecimal.ZERO) > 0) {
-            impBuilder.bidfloor(appnexusExt.reserve.floatValue()); // This will be broken for non-USD currency.
+        final BigDecimal reserve = appnexusExt.getReserve();
+        if (reserve != null && reserve.compareTo(BigDecimal.ZERO) > 0) {
+            impBuilder.bidfloor(reserve.floatValue()); // This will be broken for non-USD currency.
         }
-        return ImpWithMemberId.of(impBuilder.build(), appnexusExt.member);
+        return ImpWithMemberId.of(impBuilder.build(), member);
     }
 
     private static AppnexusImpExt makeAppnexusImpExt(ExtImpAppnexus appnexusExt) {
-        return AppnexusImpExt.builder()
-                .appnexus(AppnexusImpExtAppnexus.builder()
-                    .placementId(appnexusExt.placementId)
-                    .trafficSourceCode(appnexusExt.trafficSourceCode)
-                    .keywords(makeKeywords(appnexusExt.keywords))
-                    .build())
-                .build();
+        return AppnexusImpExt.of(
+                AppnexusImpExtAppnexus.of(appnexusExt.getPlacementId(), makeKeywords(appnexusExt.getKeywords()),
+                        appnexusExt.getTrafficSourceCode()));
     }
 
     private static Banner makeBanner(Banner banner, ExtImpAppnexus appnexusExt) {
         Banner result = null;
         if (banner != null) {
-            final Integer posAbove = Objects.equals(appnexusExt.position, "above") ? AD_POSITION_ABOVE_THE_FOLD : null;
-            final Integer posBelow = Objects.equals(appnexusExt.position, "below") ? AD_POSITION_BELOW_THE_FOLD : null;
+            final String position = appnexusExt.getPosition();
+            final Integer posAbove = Objects.equals(position, "above") ? AD_POSITION_ABOVE_THE_FOLD : null;
+            final Integer posBelow = Objects.equals(position, "below") ? AD_POSITION_BELOW_THE_FOLD : null;
             final Integer pos = posAbove != null ? posAbove : posBelow;
 
             final boolean isFormatsPresent = CollectionUtils.isNotEmpty(banner.getFormat());
@@ -183,23 +183,27 @@ public class AppnexusBidder extends OpenRtbBidder {
         if (CollectionUtils.isEmpty(keywords)) {
             return null;
         }
+
         final List<String> kvs = new ArrayList<>();
         for (AppnexusKeyVal keyVal : keywords) {
-            if (keyVal.values == null || keyVal.values.isEmpty()) {
-                kvs.add(keyVal.key);
+            final String key = keyVal.getKey();
+            final List<String> values = keyVal.getValue();
+            if (values == null || values.isEmpty()) {
+                kvs.add(key);
             } else {
-                for (String value : keyVal.values) {
-                    kvs.add(String.format("%s=%s", keyVal.key, value));
+                for (String value : values) {
+                    kvs.add(String.format("%s=%s", key, value));
                 }
             }
         }
+
         return kvs.stream().collect(Collectors.joining(","));
     }
 
     private static ExtImpAppnexus parseAppnexusExt(Imp imp) {
         try {
             return Json.mapper.<ExtPrebid<?, ExtImpAppnexus>>convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE)
-                    .bidder;
+                    .getBidder();
         } catch (IllegalArgumentException e) {
             logger.warn("Error occurred parsing appnexus parameters", e);
             throw new PreBidException(e.getMessage(), e);
@@ -209,7 +213,7 @@ public class AppnexusBidder extends OpenRtbBidder {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(bidRequest, parseResponse(httpCall.response)), Collections.emptyList());
+            return Result.of(extractBids(bidRequest, parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(e.getMessage()));
         }
@@ -244,9 +248,11 @@ public class AppnexusBidder extends OpenRtbBidder {
     }
 
     @AllArgsConstructor(staticName = "of")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    private static class ImpWithMemberId {
+    @Value
+    private static final class ImpWithMemberId {
+
         Imp imp;
+
         String memberId;
     }
 }

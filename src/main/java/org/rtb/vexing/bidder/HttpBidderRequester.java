@@ -55,11 +55,11 @@ public class HttpBidderRequester implements BidderRequester {
         final Result<List<HttpRequest>> httpRequests = bidder.makeHttpRequests(bidRequest);
 
         final Future<BidderSeatBid> result = Future.future();
-        CompositeFuture.join(httpRequests.value.stream()
+        CompositeFuture.join(httpRequests.getValue().stream()
                 .map(httpRequest -> doRequest(httpRequest, timeout))
                 .collect(Collectors.toList()))
                 .setHandler(httpRequestsResult ->
-                        result.complete(toBidderSeatBid(bidder, bidRequest, httpRequests.errors,
+                        result.complete(toBidderSeatBid(bidder, bidRequest, httpRequests.getErrors(),
                                 httpRequestsResult.result().list())));
 
         return result;
@@ -78,12 +78,12 @@ public class HttpBidderRequester implements BidderRequester {
         }
 
         final HttpClientRequest httpClientRequest =
-                httpClient.requestAbs(httpRequest.method, httpRequest.uri,
+                httpClient.requestAbs(httpRequest.getMethod(), httpRequest.getUri(),
                         response -> handleResponse(response, result, httpRequest))
                         .exceptionHandler(exception -> handleException(exception, result, httpRequest));
-        httpClientRequest.headers().addAll(httpRequest.headers);
+        httpClientRequest.headers().addAll(httpRequest.getHeaders());
         httpClientRequest.setTimeout(remainingTimeout);
-        httpClientRequest.end(httpRequest.body);
+        httpClientRequest.end(httpRequest.getBody());
 
         return result;
     }
@@ -131,18 +131,18 @@ public class HttpBidderRequester implements BidderRequester {
                 : Collections.emptyList();
 
         final List<Result<List<BidderBid>>> createdBids = calls.stream()
-                .filter(httpCall -> StringUtils.isBlank(httpCall.error))
+                .filter(httpCall -> StringUtils.isBlank(httpCall.getError()))
                 .map(httpCall -> bidder.makeBids(httpCall, bidRequest))
                 .collect(Collectors.toList());
 
         final List<BidderBid> bids = createdBids.stream()
-                .flatMap(bid -> bid.value.stream())
+                .flatMap(bid -> bid.getValue().stream())
                 .collect(Collectors.toList());
 
         final List<String> errors = new ArrayList<>(previousErrors);
         errors.addAll(Stream.concat(
-                calls.stream().map(httpCall -> httpCall.error).filter(StringUtils::isNotBlank),
-                createdBids.stream().flatMap(bidResult -> bidResult.errors.stream()))
+                calls.stream().map(HttpCall::getError).filter(StringUtils::isNotBlank),
+                createdBids.stream().flatMap(bidResult -> bidResult.getErrors().stream()))
                 .collect(Collectors.toList()));
 
         // TODO: by now ext is not filled (same behavior is observed in open-source version), either fill it or
@@ -154,12 +154,15 @@ public class HttpBidderRequester implements BidderRequester {
      * Constructs {@link ExtHttpCall} filled with HTTP call information.
      */
     private static ExtHttpCall toExt(HttpCall httpCall) {
+        final HttpRequest request = httpCall.getRequest();
         final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
-                .uri(httpCall.request.uri)
-                .requestbody(httpCall.request.body);
-        if (httpCall.response != null) {
-            builder.responsebody(httpCall.response.body);
-            builder.status(httpCall.response.statusCode);
+                .uri(request.getUri())
+                .requestbody(request.getBody());
+
+        final HttpResponse response = httpCall.getResponse();
+        if (response != null) {
+            builder.responsebody(response.getBody());
+            builder.status(response.getStatusCode());
         }
 
         return builder.build();

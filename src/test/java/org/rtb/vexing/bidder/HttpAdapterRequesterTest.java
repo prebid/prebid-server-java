@@ -237,10 +237,10 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bids(singletonList(Bid.builder().mediaType(MediaType.banner).build()))
-                .bidderStatus(BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build())
-                .build()));
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
+                singletonList(Bid.builder().mediaType(MediaType.banner).build()),
+                false)));
 
         // when
         final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
@@ -267,10 +267,10 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bids(singletonList(Bid.builder().build()))
-                .bidderStatus(BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build())
-                .build()));
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
+                singletonList(Bid.builder().build()),
+                false)));
 
         // when
         final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest,
@@ -297,10 +297,10 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bids(singletonList(Bid.builder().build()))
-                .bidderStatus(BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build())
-                .build()));
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
+                singletonList(Bid.builder().build()),
+                false)));
 
         // when
         final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest,
@@ -327,17 +327,17 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bids(singletonList(Bid.builder().mediaType(MediaType.banner).build()))
-                .bidderStatus(BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build())
-                .build()));
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
+                singletonList(Bid.builder().mediaType(MediaType.banner).build()),
+                false)));
 
         // when
         adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
-        assertThat(preBidRequestContext.uidsCookie.uidFrom("adnxs")).isEqualTo("someId");
+        assertThat(preBidRequestContext.getUidsCookie().uidFrom("adnxs")).isEqualTo("someId");
     }
 
     @Test
@@ -353,17 +353,17 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bids(singletonList(Bid.builder().mediaType(MediaType.banner).build()))
-                .bidderStatus(BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build())
-                .build()));
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
+                singletonList(Bid.builder().mediaType(MediaType.banner).build()),
+                false)));
 
         // when
         adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
-        assertThat(preBidRequestContext.preBidRequest.accountId).isEqualTo("sitePublisherId");
+        assertThat(preBidRequestContext.getPreBidRequest().getAccountId()).isEqualTo("sitePublisherId");
     }
 
     @Test
@@ -379,17 +379,17 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bids(singletonList(Bid.builder().mediaType(MediaType.banner).build()))
-                .bidderStatus(BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build())
-                .build()));
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
+                singletonList(Bid.builder().mediaType(MediaType.banner).build()),
+                false)));
 
         // when
         adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
-        assertThat(preBidRequestContext.preBidRequest.accountId).isEqualTo("appPublisherId");
+        assertThat(preBidRequestContext.getPreBidRequest().getAccountId()).isEqualTo("appPublisherId");
     }
 
     @Test
@@ -425,10 +425,10 @@ public class HttpAdapterRequesterTest {
         given(adapter.cookieFamily()).willReturn("someCookieFamily");
         given(adapter.code()).willReturn("someCode");
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bids(singletonList(Bid.builder().mediaType(MediaType.banner).build()))
-                .bidderStatus(BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build())
-                .build()));
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
+                singletonList(Bid.builder().mediaType(MediaType.banner).build()),
+                false)));
         GlobalTimeout globalTimeout = GlobalTimeout.create(500);
 
         // when
@@ -437,7 +437,7 @@ public class HttpAdapterRequesterTest {
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
         final org.rtb.vexing.model.Bidder bidder = captureBidder();
-        assertThat(preBidRequestContext.preBidRequest).isEqualTo(
+        assertThat(preBidRequestContext.getPreBidRequest()).isEqualTo(
                 PreBidRequest.builder()
                         .accountId("publisherId")
                         .tid("TransactionId")
@@ -448,12 +448,12 @@ public class HttpAdapterRequesterTest {
                         .build());
 
         // compare fields separately because uidCookie's expiration time is different in expected and actual objects
-        assertThat(preBidRequestContext.referer).isEqualTo("page");
-        assertThat(preBidRequestContext.domain).isEqualTo("domain");
-        assertThat(preBidRequestContext.timeout).isSameAs(globalTimeout);
-        assertThat(preBidRequestContext.uidsCookie.uidFrom("someCookieFamily")).isEqualTo("buyeruid");
+        assertThat(preBidRequestContext.getReferer()).isEqualTo("page");
+        assertThat(preBidRequestContext.getDomain()).isEqualTo("domain");
+        assertThat(preBidRequestContext.getTimeout()).isSameAs(globalTimeout);
+        assertThat(preBidRequestContext.getUidsCookie().uidFrom("someCookieFamily")).isEqualTo("buyeruid");
 
-        assertThat(bidder).isEqualTo(Bidder.from("someCode", singletonList(AdUnitBid.builder()
+        assertThat(bidder).isEqualTo(Bidder.of("someCode", singletonList(AdUnitBid.builder()
                 .bidderCode("someCode")
                 .bidId("impId")
                 .sizes(singletonList(Format.builder().w(200).h(100).build()))
@@ -487,19 +487,18 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.builder()
-                .bids(singletonList(Bid.builder().mediaType(MediaType.banner).code("code").creativeId("creativeId")
-                        .price(BigDecimal.ONE).nurl("nurl").adm("adm").width(100).height(200).dealId("dealId")
-                        .build()))
-                .bidderStatus(BidderStatus.builder().debug(singletonList(BidderDebug.builder()
+        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder()
                         .requestBody("requestBody")
                         .requestUri("requestUri")
                         .responseBody("responseBody")
                         .statusCode(2)
                         .build()))
-                        .build())
-
-                .build()));
+                        .build(),
+                singletonList(Bid.builder().mediaType(MediaType.banner).code("code").creativeId("creativeId")
+                        .price(BigDecimal.ONE).nurl("nurl").adm("adm").width(100).height(200).dealId("dealId")
+                        .build()),
+                false)));
 
         // when
         final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest,

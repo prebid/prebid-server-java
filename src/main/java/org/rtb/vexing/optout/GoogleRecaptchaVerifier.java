@@ -10,12 +10,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.rtb.vexing.exception.PreBidException;
 
 import java.io.UnsupportedEncodingException;
@@ -96,11 +91,7 @@ public class GoogleRecaptchaVerifier {
         }
     }
 
-    @Builder
-    @ToString
-    @EqualsAndHashCode
-    @AllArgsConstructor
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @Value
     private static class RecaptchaResponse {
 
         Boolean success;

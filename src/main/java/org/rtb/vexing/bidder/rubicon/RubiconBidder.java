@@ -2,6 +2,7 @@ package org.rtb.vexing.bidder.rubicon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -37,7 +38,7 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconSiteExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExt;
-import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRP;
+import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRp;
 import org.rtb.vexing.bidder.Bidder;
 import org.rtb.vexing.bidder.OpenRtbBidder;
 import org.rtb.vexing.bidder.model.BidderBid;
@@ -107,7 +108,7 @@ public class RubiconBidder extends OpenRtbBidder {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(bidRequest, parseResponse(httpCall.response)), Collections.emptyList());
+            return Result.of(extractBids(bidRequest, parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(e.getMessage()));
         }
@@ -150,7 +151,7 @@ public class RubiconBidder extends OpenRtbBidder {
     private static ExtImpRubicon parseRubiconExt(Imp imp) {
         try {
             return Json.mapper.<ExtPrebid<?, ExtImpRubicon>>convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE)
-                    .bidder;
+                    .getBidder();
         } catch (IllegalArgumentException e) {
             logger.warn("Error occurred parsing rubicon parameters", e);
             throw new PreBidException(e.getMessage(), e);
@@ -163,7 +164,7 @@ public class RubiconBidder extends OpenRtbBidder {
 
         final Video video = imp.getVideo();
         if (video != null) {
-            builder.video(makeVideo(video, rubiconImpExt.video));
+            builder.video(makeVideo(video, rubiconImpExt.getVideo()));
         } else {
             builder.banner(makeBanner(imp.getBanner()));
         }
@@ -172,24 +173,20 @@ public class RubiconBidder extends OpenRtbBidder {
     }
 
     private static RubiconImpExt makeImpExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconImpExt.builder()
-                .rp(RubiconImpExtRp.builder()
-                        .zoneId(rubiconImpExt.zoneId)
-                        .target(rubiconImpExt.inventory.isNull() ? null : rubiconImpExt.inventory)
-                        .track(RubiconImpExtRpTrack.builder().mint("").mintVersion("").build())
-                        .build())
-                .build();
+        return RubiconImpExt.of(RubiconImpExtRp.of(rubiconImpExt.getZoneId(), makeInventory(rubiconImpExt),
+                RubiconImpExtRpTrack.of("", "")));
+    }
+
+    private static JsonNode makeInventory(ExtImpRubicon rubiconImpExt) {
+        final JsonNode inventory = rubiconImpExt.getInventory();
+        return inventory.isNull() ? null : inventory;
     }
 
     private static Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams) {
-        return rubiconVideoParams == null ? video : video.toBuilder().ext(Json.mapper.valueToTree(
-                RubiconVideoExt.builder()
-                        .skip(rubiconVideoParams.skip)
-                        .skipdelay(rubiconVideoParams.skipdelay)
-                        .rp(RubiconVideoExtRP.builder()
-                                .sizeId(rubiconVideoParams.sizeId)
-                                .build())
-                        .build()))
+        return rubiconVideoParams == null ? video : video.toBuilder()
+                .ext(Json.mapper.valueToTree(
+                        RubiconVideoExt.of(rubiconVideoParams.getSkip(), rubiconVideoParams.getSkipdelay(),
+                                RubiconVideoExtRp.of(rubiconVideoParams.getSizeId()))))
                 .build();
     }
 
@@ -206,13 +203,7 @@ public class RubiconBidder extends OpenRtbBidder {
                 ? rubiconSizeIds.subList(1, rubiconSizeIds.size())
                 : null;
 
-        return RubiconBannerExt.builder()
-                .rp(RubiconBannerExtRp.builder()
-                        .sizeId(primarySizeId)
-                        .altSizeIds(altSizeIds)
-                        .mime("text/html")
-                        .build())
-                .build();
+        return RubiconBannerExt.of(RubiconBannerExtRp.of(primarySizeId, altSizeIds, "text/html"));
     }
 
     private static List<Integer> mapToRubiconSizeIds(List<Format> sizes) {
@@ -230,8 +221,10 @@ public class RubiconBidder extends OpenRtbBidder {
     private static User makeUser(User user, ExtImpRubicon rubiconImpExt) {
         User result = user;
 
-        final RubiconUserExtRp userExtRp = user != null && !rubiconImpExt.visitor.isNull() ? RubiconUserExtRp.builder()
-                .target(rubiconImpExt.visitor).build() : null;
+        final JsonNode visitor = rubiconImpExt.getVisitor();
+        final RubiconUserExtRp userExtRp = user != null && !visitor.isNull()
+                ? RubiconUserExtRp.of(visitor)
+                : null;
 
         final ExtUserDigiTrust userExtDt = user != null && user.getExt() != null
                 ? getExtUserDigiTrustFromUserExt(user.getExt())
@@ -239,10 +232,7 @@ public class RubiconBidder extends OpenRtbBidder {
 
         if (userExtRp != null || userExtDt != null) {
             result = user.toBuilder()
-                    .ext(Json.mapper.valueToTree(RubiconUserExt.builder()
-                            .rp(userExtRp)
-                            .digitrust(userExtDt)
-                            .build()))
+                    .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, userExtDt)))
                     .build();
         }
 
@@ -252,7 +242,7 @@ public class RubiconBidder extends OpenRtbBidder {
     private static ExtUserDigiTrust getExtUserDigiTrustFromUserExt(ObjectNode extNode) {
         try {
             final ExtUser extUser = Json.mapper.treeToValue(extNode, ExtUser.class);
-            return extUser != null ? extUser.digitrust : null;
+            return extUser != null ? extUser.getDigitrust() : null;
         } catch (JsonProcessingException e) {
             logger.warn("Error occurred while parsing bidrequest.user.ext", e);
             throw new PreBidException(e.getMessage());
@@ -261,11 +251,7 @@ public class RubiconBidder extends OpenRtbBidder {
 
     private static Device makeDevice(Device device) {
         return device == null ? null : device.toBuilder()
-                .ext(Json.mapper.valueToTree(RubiconDeviceExt.builder()
-                        .rp(RubiconDeviceExtRp.builder()
-                                .pixelratio(device.getPxratio())
-                                .build())
-                        .build()))
+                .ext(Json.mapper.valueToTree(RubiconDeviceExt.of(RubiconDeviceExtRp.of(device.getPxratio()))))
                 .build();
     }
 
@@ -277,9 +263,7 @@ public class RubiconBidder extends OpenRtbBidder {
     }
 
     private static RubiconSiteExt makeSiteExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconSiteExt.builder()
-                .rp(RubiconSiteExtRp.builder().siteId(rubiconImpExt.siteId).build())
-                .build();
+        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()));
     }
 
     private static Publisher makePublisher(ExtImpRubicon rubiconImpExt) {
@@ -289,9 +273,7 @@ public class RubiconBidder extends OpenRtbBidder {
     }
 
     private static RubiconPubExt makePublisherExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconPubExt.builder()
-                .rp(RubiconPubExtRp.builder().accountId(rubiconImpExt.accountId).build())
-                .build();
+        return RubiconPubExt.of(RubiconPubExtRp.of(rubiconImpExt.getAccountId()));
     }
 
     private static App makeApp(App app, ExtImpRubicon rubiconImpExt) {

@@ -63,7 +63,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final CookieSyncRequest cookieSyncRequest = body.mapTo(CookieSyncRequest.class);
 
-        final List<BidderStatus> bidderStatuses = cookieSyncRequest.bidders.stream()
+        final List<BidderStatus> bidderStatuses = cookieSyncRequest.getBidders().stream()
                 .filter(adapterCatalog::isValidCode)
                 .map(adapterCatalog::getByCode)
                 .filter(adapter -> !uidsCookie.hasLiveUidFrom(adapter.cookieFamily()))
@@ -74,11 +74,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                         .build())
                 .collect(Collectors.toList());
 
-        final CookieSyncResponse response = CookieSyncResponse.builder()
-                .uuid(cookieSyncRequest.uuid)
-                .status(uidsCookie.hasLiveUids() ? "ok" : "no_cookie")
-                .bidderStatus(bidderStatuses)
-                .build();
+        final CookieSyncResponse response = CookieSyncResponse.of(cookieSyncRequest.getUuid(),
+                uidsCookie.hasLiveUids() ? "ok" : "no_cookie", bidderStatuses);
 
         context.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)

@@ -1,11 +1,7 @@
 package org.rtb.vexing.model.response;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.rtb.vexing.model.MediaType;
 
 import java.math.BigDecimal;
@@ -18,10 +14,7 @@ import java.util.Map;
  * All changes *must* be backwards compatible, since clients cannot be forced to update their code.
  */
 @Builder(toBuilder = true)
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
+@Value
 public final class Bid {
 
     // Identifies the Bid Request within the Ad Unit which this Bid targets. It should match one of

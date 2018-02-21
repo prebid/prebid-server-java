@@ -131,8 +131,8 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(
-                eq("Invalid request format: Stored request fetching failed with exception: java.lang.RuntimeException"));
+        verify(httpResponse).end(eq(
+                "Invalid request format: Stored request fetching failed with exception: java.lang.RuntimeException"));
     }
 
     @Test
@@ -314,9 +314,7 @@ public class AmpHandlerTest extends VertxTest {
         targeting.put("key1", "value1");
         targeting.put("hb_cache_id_bidder1", "value2");
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
-                givenBidResponseFuture(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder()
-                        .targeting(targeting)
-                        .build(), null))));
+                givenBidResponseFuture(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, targeting, null), null))));
 
         // when
         ampHandler.handle(routingContext);

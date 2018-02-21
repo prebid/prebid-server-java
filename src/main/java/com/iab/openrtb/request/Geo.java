@@ -15,7 +15,7 @@ import lombok.Value;
  * the centroid of a geographic region such as postal code should not be passed.
  */
 @Value
-public class Geo {
+public final class Geo {
 
     /** Latitude from -90.0 to +90.0, where negative is south. */
     Float lat;

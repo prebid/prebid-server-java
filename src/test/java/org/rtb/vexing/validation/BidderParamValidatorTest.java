@@ -1,9 +1,8 @@
 package org.rtb.vexing.validation;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.experimental.FieldDefaults;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,8 +28,8 @@ import static org.mockito.BDDMockito.given;
 
 public class BidderParamValidatorTest extends VertxTest {
 
-    public static final String RUBICON = "rubicon";
-    public static final String APPNEXUS = "appnexus";
+    private static final String RUBICON = "rubicon";
+    private static final String APPNEXUS = "appnexus";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -55,7 +54,8 @@ public class BidderParamValidatorTest extends VertxTest {
 
     @Test
     public void createShouldFailOnInvalidSchemaPath() {
-        assertThatIllegalArgumentException().isThrownBy(() -> BidderParamValidator.create(bidderRequesterCatalog, "/noschema"));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> BidderParamValidator.create(bidderRequesterCatalog, "/noschema"));
     }
 
     @Test
@@ -74,7 +74,7 @@ public class BidderParamValidatorTest extends VertxTest {
     public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOk() {
 
         // given
-        final RubiconExt ext = RubiconExt.builder().accountId(1).siteId(2).zoneId(3).build();
+        final RubiconExt ext = RubiconExt.of(1, 2, 3);
         final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
 
         // when
@@ -88,7 +88,7 @@ public class BidderParamValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessagesWhenRubiconImpExtNotValid() {
 
         // given
-        final RubiconExt ext = RubiconExt.builder().siteId(2).zoneId(3).build();
+        final RubiconExt ext = RubiconExt.of(null, 2, 3);
 
         final JsonNode node = defaultNamingMapper.convertValue(ext, JsonNode.class);
 
@@ -143,14 +143,6 @@ public class BidderParamValidatorTest extends VertxTest {
         assertThat(result).isEqualTo(readFromClasspath("schema/valid/test-schemas.json"));
     }
 
-    @Builder(toBuilder = true)
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-    private static class RubiconExt {
-        Integer accountId;
-        Integer siteId;
-        Integer zoneId;
-    }
-
     private static String readFromClasspath(String path) throws IOException {
         String content = null;
 
@@ -162,5 +154,16 @@ public class BidderParamValidatorTest extends VertxTest {
             }
         }
         return content;
+    }
+
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    private static class RubiconExt {
+
+        Integer accountId;
+
+        Integer siteId;
+
+        Integer zoneId;
     }
 }

@@ -5,7 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class RubiconPubExtRp {
+public final class RubiconVideoExtRp {
 
-    Integer accountId;
+    Integer sizeId;
 }

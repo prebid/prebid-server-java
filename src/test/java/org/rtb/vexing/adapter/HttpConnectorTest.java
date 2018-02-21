@@ -96,7 +96,7 @@ public class HttpConnectorTest extends VertxTest {
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
-        bidder = Bidder.from(null, null);
+        bidder = Bidder.of(null, null);
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         httpConnector = new HttpConnector(httpClient);
     }
@@ -179,7 +179,7 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isEqualTo("Make http requests exception");
+        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Make http requests exception");
     }
 
     @Test
@@ -194,9 +194,9 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.timedOut).isTrue();
-        assertThat(bidderResult.bidderStatus).isNotNull();
-        assertThat(bidderResult.bidderStatus.error).isEqualTo("Timed out");
+        assertThat(bidderResult.isTimedOut()).isTrue();
+        assertThat(bidderResult.getBidderStatus()).isNotNull();
+        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Timed out");
         verifyZeroInteractions(httpClient);
     }
 
@@ -211,9 +211,9 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.timedOut).isTrue();
-        assertThat(bidderResult.bidderStatus).isNotNull();
-        assertThat(bidderResult.bidderStatus.error).isEqualTo("Timed out");
+        assertThat(bidderResult.isTimedOut()).isTrue();
+        assertThat(bidderResult.getBidderStatus()).isNotNull();
+        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Timed out");
     }
 
     @Test
@@ -227,9 +227,9 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.timedOut).isTrue();
-        assertThat(bidderResult.bidderStatus).isNotNull();
-        assertThat(bidderResult.bidderStatus.error).isEqualTo("Timed out");
+        assertThat(bidderResult.isTimedOut()).isTrue();
+        assertThat(bidderResult.getBidderStatus()).isNotNull();
+        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Timed out");
     }
 
     @Test
@@ -243,7 +243,7 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isEqualTo("Request exception");
+        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Request exception");
     }
 
     @Test
@@ -256,7 +256,7 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isEqualTo("Response exception");
+        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Response exception");
     }
 
     @Test
@@ -269,8 +269,8 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNull();
-        assertThat(bidderResult.bids).isEmpty();
+        assertThat(bidderResult.getBidderStatus().getError()).isNull();
+        assertThat(bidderResult.getBids()).isEmpty();
     }
 
     @Test
@@ -283,7 +283,7 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isEqualTo("HTTP status 503; body: response");
+        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("HTTP status 503; body: response");
     }
 
     @Test
@@ -296,14 +296,14 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).startsWith("Failed to decode");
+        assertThat(bidderResult.getBidderStatus().getError()).startsWith("Failed to decode");
     }
 
     @Test
     public void callShouldReturnBidderResultWithoutErrorIfBidsArePresent() throws JsonProcessingException {
         // given
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
+        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()));
@@ -319,8 +319,8 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNull();
-        assertThat(bidderResult.bids).hasSize(1);
+        assertThat(bidderResult.getBidderStatus().getError()).isNull();
+        assertThat(bidderResult.getBids()).hasSize(1);
     }
 
     @Test
@@ -333,7 +333,7 @@ public class HttpConnectorTest extends VertxTest {
                         givenHttpRequest(null, identity())));
 
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
+        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()))
@@ -361,7 +361,7 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNotNull()
+        assertThat(bidderResult.getBidderStatus().getError()).isNotNull()
                 .startsWith("HTTP status 503; body:");
     }
 
@@ -377,7 +377,7 @@ public class HttpConnectorTest extends VertxTest {
         given(adapter.tolerateErrors()).willReturn(true);
 
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
+        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()))
@@ -405,8 +405,8 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNull();
-        assertThat(bidderResult.bids).hasSize(1);
+        assertThat(bidderResult.getBidderStatus().getError()).isNull();
+        assertThat(bidderResult.getBids()).hasSize(1);
     }
 
     @Test
@@ -419,7 +419,7 @@ public class HttpConnectorTest extends VertxTest {
                         givenHttpRequest(null, identity())));
 
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
+        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()))
@@ -433,7 +433,7 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNotNull()
+        assertThat(bidderResult.getBidderStatus().getError()).isNotNull()
                 .isEqualTo("adapter extractBids exception");
     }
 
@@ -449,7 +449,7 @@ public class HttpConnectorTest extends VertxTest {
         given(adapter.tolerateErrors()).willReturn(true);
 
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.from("bidderCode1", asList(adUnitBid, adUnitBid));
+        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
         given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
                 .willReturn(singletonList(org.rtb.vexing.model.response.Bid.builder()))
@@ -463,15 +463,15 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.error).isNull();
-        assertThat(bidderResult.bids).hasSize(1);
+        assertThat(bidderResult.getBidderStatus().getError()).isNull();
+        assertThat(bidderResult.getBids()).hasSize(1);
     }
 
     @Test
     public void callShouldReturnBidderResultWithEmptyBidsIfAdUnitBidIsBannerAndSizesLengthMoreThanOne()
             throws JsonProcessingException {
         // given
-        bidder = Bidder.from("bidderCode1", singletonList(
+        bidder = Bidder.of("bidderCode1", singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .sizes(asList(Format.builder().w(100).h(200).build(), Format.builder().w(100).h(200).build()))
@@ -491,8 +491,8 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bids).isEmpty();
-        assertThat(bidderResult.bidderStatus.numBids).isEqualTo(0);
+        assertThat(bidderResult.getBids()).isEmpty();
+        assertThat(bidderResult.getBidderStatus().getNumBids()).isEqualTo(0);
     }
 
     @Test
@@ -502,16 +502,16 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
-        given(adapter.usersyncInfo()).willReturn(UsersyncInfo.builder().url("url1").build());
+        given(adapter.usersyncInfo()).willReturn(UsersyncInfo.of("url1", null, false));
 
         // when
         final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.noCookie).isTrue();
-        assertThat(bidderResult.bidderStatus.usersync).isNotNull();
-        assertThat(bidderResult.bidderStatus.usersync).isEqualTo(UsersyncInfo.builder().url("url1").build());
+        assertThat(bidderResult.getBidderStatus().getNoCookie()).isTrue();
+        assertThat(bidderResult.getBidderStatus().getUsersync()).isNotNull();
+        assertThat(bidderResult.getBidderStatus().getUsersync()).isEqualTo(UsersyncInfo.of("url1", null, false));
     }
 
     @Test
@@ -529,8 +529,8 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.noCookie).isNull();
-        assertThat(bidderResult.bidderStatus.usersync).isNull();
+        assertThat(bidderResult.getBidderStatus().getNoCookie()).isNull();
+        assertThat(bidderResult.getBidderStatus().getUsersync()).isNull();
     }
 
     @Test
@@ -538,7 +538,7 @@ public class HttpConnectorTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 
-        bidder = Bidder.from("bidderCode1", asList(
+        bidder = Bidder.of("bidderCode1", asList(
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
@@ -557,7 +557,7 @@ public class HttpConnectorTest extends VertxTest {
         verify(httpClientRequest).end(bidRequestCaptor.capture());
         final List<String> bidRequests = bidRequestCaptor.getAllValues();
 
-        assertThat(bidderResult.bidderStatus.debug).hasSize(1).containsOnly(
+        assertThat(bidderResult.getBidderStatus().getDebug()).hasSize(1).containsOnly(
                 BidderDebug.builder()
                         .requestUri("uri")
                         .requestBody(bidRequests.get(0))
@@ -578,7 +578,7 @@ public class HttpConnectorTest extends VertxTest {
         final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
 
         // then
-        assertThat(bidderResultFuture.result().bidderStatus.debug).isNull();
+        assertThat(bidderResultFuture.result().getBidderStatus().getDebug()).isNull();
     }
 
     @Test
@@ -595,11 +595,11 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.debug).hasSize(1);
+        assertThat(bidderResult.getBidderStatus().getDebug()).hasSize(1);
 
-        final BidderDebug bidderDebug = bidderResult.bidderStatus.debug.get(0);
-        assertThat(bidderDebug.requestUri).isNotBlank();
-        assertThat(bidderDebug.requestBody).isNotBlank();
+        final BidderDebug bidderDebug = bidderResult.getBidderStatus().getDebug().get(0);
+        assertThat(bidderDebug.getRequestUri()).isNotBlank();
+        assertThat(bidderDebug.getRequestBody()).isNotBlank();
     }
 
     @Test
@@ -615,11 +615,11 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.debug).hasSize(1);
+        assertThat(bidderResult.getBidderStatus().getDebug()).hasSize(1);
 
-        final BidderDebug bidderDebug = bidderResult.bidderStatus.debug.get(0);
-        assertThat(bidderDebug.requestUri).isNotBlank();
-        assertThat(bidderDebug.requestBody).isNotBlank();
+        final BidderDebug bidderDebug = bidderResult.getBidderStatus().getDebug().get(0);
+        assertThat(bidderDebug.getRequestUri()).isNotBlank();
+        assertThat(bidderDebug.getRequestBody()).isNotBlank();
     }
 
     @Test
@@ -634,13 +634,13 @@ public class HttpConnectorTest extends VertxTest {
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.bidderStatus.debug).hasSize(1);
+        assertThat(bidderResult.getBidderStatus().getDebug()).hasSize(1);
 
-        final BidderDebug bidderDebug = bidderResult.bidderStatus.debug.get(0);
-        assertThat(bidderDebug.requestUri).isNotBlank();
-        assertThat(bidderDebug.requestBody).isNotBlank();
-        assertThat(bidderDebug.responseBody).isNotBlank();
-        assertThat(bidderDebug.statusCode).isPositive();
+        final BidderDebug bidderDebug = bidderResult.getBidderStatus().getDebug().get(0);
+        assertThat(bidderDebug.getRequestUri()).isNotBlank();
+        assertThat(bidderDebug.getRequestBody()).isNotBlank();
+        assertThat(bidderDebug.getResponseBody()).isNotBlank();
+        assertThat(bidderDebug.getStatusCode()).isPositive();
     }
 
     private BidRequest captureBidRequest() throws IOException {

@@ -7,6 +7,7 @@ import io.vertx.core.file.FileSystem;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.settings.model.Account;
+import org.rtb.vexing.settings.model.AdUnitConfig;
 import org.rtb.vexing.settings.model.SettingsFile;
 
 import java.io.IOException;
@@ -23,12 +24,12 @@ public class FileApplicationSettings implements ApplicationSettings {
     private final Map<String, String> configs;
 
     private FileApplicationSettings(SettingsFile settingsFile) {
-        this.accounts = toMap(settingsFile.accounts,
+        this.accounts = toMap(settingsFile.getAccounts(),
                 Function.identity(),
                 account -> Account.of(account, null));
-        this.configs = toMap(settingsFile.configs,
-                config -> config.id,
-                config -> config.config != null ? config.config : "");
+        this.configs = toMap(settingsFile.getConfigs(),
+                AdUnitConfig::getId,
+                config -> config.getConfig() != null ? config.getConfig() : "");
     }
 
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {

@@ -16,7 +16,7 @@ public class UidsCookie {
 
     public UidsCookie(Uids uids) {
         this.uids = Objects.requireNonNull(uids);
-        Objects.requireNonNull(uids.uids); // without uids doesn't make sense
+        Objects.requireNonNull(uids.getUids()); // without uids doesn't make sense
     }
 
     public static boolean isFacebookSentinel(String familyName, String uid) {
@@ -29,29 +29,29 @@ public class UidsCookie {
     public String uidFrom(String familyName) {
         Objects.requireNonNull(familyName);
 
-        final UidWithExpiry uid = uids.uids.get(familyName);
-        return uid != null ? uid.uid : null;
+        final UidWithExpiry uid = uids.getUids().get(familyName);
+        return uid != null ? uid.getUid() : null;
     }
 
     public boolean allowsSync() {
-        return !Objects.equals(uids.optout, Boolean.TRUE);
+        return !Objects.equals(uids.getOptout(), Boolean.TRUE);
     }
 
     public boolean hasLiveUids() {
-        return uids.uids.values().stream().anyMatch(UidsCookie::isLive);
+        return uids.getUids().values().stream().anyMatch(UidsCookie::isLive);
     }
 
     public boolean hasLiveUidFrom(String familyName) {
         Objects.requireNonNull(familyName);
 
-        final UidWithExpiry uid = uids.uids.get(familyName);
-        return uid != null && uid.uid != null && isLive(uid);
+        final UidWithExpiry uid = uids.getUids().get(familyName);
+        return uid != null && uid.getUid() != null && isLive(uid);
     }
 
     public UidsCookie deleteUid(String familyName) {
         Objects.requireNonNull(familyName);
 
-        final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.uids);
+        final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.getUids());
         uidsMap.remove(familyName);
         return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
     }
@@ -60,7 +60,7 @@ public class UidsCookie {
         Objects.requireNonNull(familyName);
         Objects.requireNonNull(uid);
 
-        final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.uids);
+        final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.getUids());
         uidsMap.put(familyName, UidWithExpiry.live(uid));
         return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
     }
@@ -79,6 +79,7 @@ public class UidsCookie {
     }
 
     private static boolean isLive(UidWithExpiry uid) {
-        return uid.expires != null && uid.expires.isAfter(ZonedDateTime.now());
+        final ZonedDateTime expires = uid.getExpires();
+        return expires != null && expires.isAfter(ZonedDateTime.now());
     }
 }

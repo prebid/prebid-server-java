@@ -15,6 +15,8 @@ import org.rtb.vexing.exception.InvalidRequestException;
 import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtImp;
+import org.rtb.vexing.model.openrtb.ext.request.ExtImpPrebid;
+import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.ExtStoredRequest;
 import org.rtb.vexing.settings.StoredRequestFetcher;
 import org.rtb.vexing.settings.model.StoredRequestResult;
@@ -73,8 +75,8 @@ public class StoredRequestProcessor {
         return storedRequestFetcher.getStoredRequestsById(storedRequestIds, timeout(bidRequest))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed with exception: %s", exception))))
-                .compose(storedRequestResult -> storedRequestResult.errors.size() > 0
-                        ? Future.failedFuture(new InvalidRequestException(storedRequestResult.errors))
+                .compose(storedRequestResult -> storedRequestResult.getErrors().size() > 0
+                        ? Future.failedFuture(new InvalidRequestException(storedRequestResult.getErrors()))
                         : Future.succeededFuture(storedRequestResult))
                 .map(storedRequestResult -> mergeBidRequestAndImps(bidRequest, bidRequestToStoredRequestId
                         .get(bidRequest), impsToStoredRequestId, storedRequestResult));
@@ -133,7 +135,7 @@ public class StoredRequestProcessor {
         final JsonNode originJsonNode = MAPPER.valueToTree(originalObject);
         final JsonNode storedRequestJsonNode;
         try {
-            storedRequestJsonNode = MAPPER.readTree(storedRequestResult.storedIdToJson.get(storedRequestId));
+            storedRequestJsonNode = MAPPER.readTree(storedRequestResult.getStoredIdToJson().get(storedRequestId));
         } catch (IOException e) {
             throw new InvalidRequestException(
                     String.format("Can't parse Json for stored request with id %s", storedRequestId));
@@ -167,7 +169,7 @@ public class StoredRequestProcessor {
         for (K storedRequestHolder : storedRequestHolders) {
             final ExtStoredRequest extStoredRequest = storedRequestExtractor.apply(storedRequestHolder);
             if (extStoredRequest != null) {
-                final String storedRequestId = extStoredRequest.id;
+                final String storedRequestId = extStoredRequest.getId();
                 if (storedRequestId != null) {
                     holderToPreBidRequest.put(storedRequestHolder, storedRequestId);
                 } else {
@@ -189,8 +191,9 @@ public class StoredRequestProcessor {
         if (bidRequest.getExt() != null) {
             try {
                 final ExtBidRequest extBidRequest = MAPPER.treeToValue(bidRequest.getExt(), ExtBidRequest.class);
-                if (extBidRequest.prebid != null) {
-                    return extBidRequest.prebid.storedrequest;
+                final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+                if (prebid != null) {
+                    return prebid.getStoredrequest();
                 }
             } catch (JsonProcessingException e) {
                 throw new InvalidRequestException(
@@ -209,8 +212,9 @@ public class StoredRequestProcessor {
         if (imp.getExt() != null) {
             try {
                 final ExtImp extImp = MAPPER.treeToValue(imp.getExt(), ExtImp.class);
-                if (extImp.prebid != null) {
-                    return extImp.prebid.storedrequest;
+                final ExtImpPrebid prebid = extImp.getPrebid();
+                if (prebid != null) {
+                    return prebid.getStoredrequest();
                 }
             } catch (JsonProcessingException e) {
                 throw new InvalidRequestException(

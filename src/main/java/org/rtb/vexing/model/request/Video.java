@@ -1,21 +1,13 @@
 package org.rtb.vexing.model.request;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.util.List;
 
 @Builder
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-
-public class Video {
+@Value
+public final class Video {
 
     /*
      * Content MIME types supported. Popular MIME types may include “video/x-ms-wmv”

@@ -15,6 +15,7 @@ import org.rtb.vexing.cache.model.request.BannerValue;
 import org.rtb.vexing.cache.model.request.BidCacheRequest;
 import org.rtb.vexing.cache.model.request.PutObject;
 import org.rtb.vexing.cache.model.response.BidCacheResponse;
+import org.rtb.vexing.cache.model.response.CacheObject;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.execution.GlobalTimeout;
 import org.rtb.vexing.model.MediaType;
@@ -93,26 +94,19 @@ public class CacheService {
                 .map(CacheService::toPutObject)
                 .collect(Collectors.toList());
 
-        return BidCacheRequest.builder()
-                .puts(putObjects)
-                .build();
+        return BidCacheRequest.of(putObjects);
     }
 
     /**
      * Makes put object from {@link Bid}. Used for legacy auction request.
      */
     private static PutObject toPutObject(Bid bid) {
-        final PutObject.PutObjectBuilder builder = PutObject.builder();
-        if (MediaType.video.equals(bid.mediaType)) {
-            builder.type("xml");
-            builder.value(new TextNode(bid.adm));
+        if (MediaType.video.equals(bid.getMediaType())) {
+            return PutObject.of("xml", new TextNode(bid.getAdm()));
         } else {
-            builder.type("json");
-            builder.value(Json.mapper.valueToTree(
-                    BannerValue.builder().adm(bid.adm).nurl(bid.nurl).width(bid.width).height(bid.height)
-                            .build()));
+            return PutObject.of("json", Json.mapper.valueToTree(
+                    BannerValue.of(bid.getAdm(), bid.getNurl(), bid.getWidth(), bid.getHeight())));
         }
-        return builder.build();
     }
 
     /**
@@ -120,15 +114,10 @@ public class CacheService {
      */
     private static BidCacheRequest toRequestOpenrtb(List<com.iab.openrtb.response.Bid> bids) {
         final List<PutObject> putObjects = bids.stream()
-                .map(bid -> PutObject.builder()
-                        .type("json")
-                        .value(Json.mapper.valueToTree(bid))
-                        .build())
+                .map(bid -> PutObject.of("json", Json.mapper.valueToTree(bid)))
                 .collect(Collectors.toList());
 
-        return BidCacheRequest.builder()
-                .puts(putObjects)
-                .build();
+        return BidCacheRequest.of(putObjects);
     }
 
     /**
@@ -183,7 +172,8 @@ public class CacheService {
             return;
         }
 
-        if (bidCacheResponse.responses == null || bidCacheResponse.responses.size() != bidCount) {
+        final List<CacheObject> responses = bidCacheResponse.getResponses();
+        if (responses == null || responses.size() != bidCount) {
             future.fail(new PreBidException("Put response length didn't match"));
             return;
         }
@@ -203,11 +193,8 @@ public class CacheService {
      * Creates prebid cache service response for legacy auction request.
      */
     private List<BidCacheResult> toResponse(BidCacheResponse bidCacheResponse) {
-        return bidCacheResponse.responses.stream()
-                .map(cacheObject -> BidCacheResult.builder()
-                        .cacheId(cacheObject.uuid)
-                        .cacheUrl(getCachedAssetURL(cacheObject.uuid))
-                        .build())
+        return bidCacheResponse.getResponses().stream()
+                .map(cacheObject -> BidCacheResult.of(cacheObject.getUuid(), getCachedAssetURL(cacheObject.getUuid())))
                 .collect(Collectors.toList());
     }
 
@@ -215,8 +202,8 @@ public class CacheService {
      * Creates prebid cache service response for OpenRTB auction request.
      */
     private List<String> toResponseOpenrtb(BidCacheResponse bidCacheResponse) {
-        return bidCacheResponse.responses.stream()
-                .map(cacheObject -> cacheObject.uuid)
+        return bidCacheResponse.getResponses().stream()
+                .map(CacheObject::getUuid)
                 .collect(Collectors.toList());
     }
 

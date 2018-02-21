@@ -128,8 +128,8 @@ public class TargetingKeywordsCreator {
      * Creates map of keywords for the given {@link org.rtb.vexing.model.response.Bid}.
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
-        return makeFor(bid.bidder, winningBid, bid.price, StringUtils.EMPTY, bid.width, bid.height, bid.cacheId,
-                bid.dealId);
+        return makeFor(bid.getBidder(), winningBid, bid.getPrice(), StringUtils.EMPTY, bid.getWidth(), bid.getHeight(),
+                bid.getCacheId(), bid.getDealId());
     }
 
     /**

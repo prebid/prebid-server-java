@@ -1,21 +1,16 @@
 package org.rtb.vexing.model;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
-@ToString
-@EqualsAndHashCode
 @AllArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class UidWithExpiry {
+@Value
+public final class UidWithExpiry {
 
     private static final long LIVE_TTL_MS = Duration.ofDays(14).toMillis();
     private static final long EXPIRED_TTL_MS = Duration.ofMinutes(5).toMillis();

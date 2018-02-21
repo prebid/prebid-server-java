@@ -1,19 +1,14 @@
 package org.rtb.vexing.model.openrtb.ext.request;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 
 /**
  * Defines the contract for bidrequest.user.ext
  */
-@Builder(toBuilder = true)
-@ToString
-@EqualsAndHashCode
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class ExtUser {
+@AllArgsConstructor(staticName = "of")
+@Value
+public final class ExtUser {
 
     ExtUserDigiTrust digitrust;
 }

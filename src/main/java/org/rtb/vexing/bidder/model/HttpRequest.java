@@ -2,20 +2,15 @@ package org.rtb.vexing.bidder.model;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 
 /**
  * Packages together the fields needed to make an http request.
  */
-@ToString
-@EqualsAndHashCode
 @AllArgsConstructor(staticName = "of")
-@FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
-public class HttpRequest {
+@Value
+public final class HttpRequest {
 
     HttpMethod method;
 

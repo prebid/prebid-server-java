@@ -10,9 +10,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.settings.model.StoredRequestResult;
 
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -53,9 +51,9 @@ public class FileStoredRequestFetcherTest {
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
         assertThat(storedRequestResult.succeeded()).isTrue();
-        assertThat(storedRequestResult.result().errors).isNotNull().hasSize(1)
+        assertThat(storedRequestResult.result().getErrors()).isNotNull().hasSize(1)
                 .isEqualTo(singletonList("No config found for id: 2"));
-        assertThat(storedRequestResult.result().storedIdToJson).isNotNull().hasSize(1)
+        assertThat(storedRequestResult.result().getStoredIdToJson()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 
@@ -72,8 +70,8 @@ public class FileStoredRequestFetcherTest {
                 .getStoredRequestsById(singleton("1"), null);
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
-        assertThat(storedRequestResult.result().errors).isNotNull().isEmpty();
-        assertThat(storedRequestResult.result().storedIdToJson).isNotNull().hasSize(1)
+        assertThat(storedRequestResult.result().getErrors()).isNotNull().isEmpty();
+        assertThat(storedRequestResult.result().getStoredIdToJson()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 

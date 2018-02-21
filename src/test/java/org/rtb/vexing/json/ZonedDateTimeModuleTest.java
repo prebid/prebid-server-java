@@ -2,11 +2,7 @@ package org.rtb.vexing.json;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import lombok.experimental.FieldDefaults;
+import lombok.Value;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -55,7 +51,7 @@ public class ZonedDateTimeModuleTest {
     }
 
     @Test
-    public void shouldThrowExceptionWhenTryingToDecode() throws IOException {
+    public void shouldThrowExceptionWhenTryingToDecode() {
         // given
         final String modelAsString = "{\"value\":\"invalid_date\"}";
 
@@ -64,10 +60,7 @@ public class ZonedDateTimeModuleTest {
                 .isThrownBy(() -> MAPPER.readValue(modelAsString, Model.class));
     }
 
-    @ToString
-    @EqualsAndHashCode
-    @AllArgsConstructor
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
+    @Value
     private static class Model {
 
         ZonedDateTime value;

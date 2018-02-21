@@ -143,7 +143,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithExpectedHeaders() {
         // given
         given(routingContext.getBodyAsJson())
-                .willReturn(JsonObject.mapFrom(CookieSyncRequest.builder().bidders(emptyList()).build()));
+                .willReturn(JsonObject.mapFrom(CookieSyncRequest.of(null, emptyList())));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -161,15 +161,11 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.builder().uuid("uuid").bidders(asList(RUBICON, APPNEXUS)).build()));
+                CookieSyncRequest.of("uuid", asList(RUBICON, APPNEXUS))));
 
         givenAdaptersReturningFamilyName();
 
-        final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.builder()
-                .url("http://adnxsexample.com")
-                .type("redirect")
-                .supportCORS(false)
-                .build();
+        final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.of("http://adnxsexample.com", "redirect", false);
         given(appnexusAdapter.usersyncInfo()).willReturn(appnexusUsersyncInfo);
 
         // when
@@ -177,15 +173,12 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
-                .uuid("uuid")
-                .status("ok")
-                .bidderStatus(singletonList(BidderStatus.builder()
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("uuid", "ok",
+                singletonList(BidderStatus.builder()
                         .bidder(APPNEXUS)
                         .noCookie(true)
                         .usersync(appnexusUsersyncInfo)
-                        .build()))
-                .build());
+                        .build())));
     }
 
     @Test
@@ -197,7 +190,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.builder().uuid("uuid").bidders(asList(RUBICON, APPNEXUS)).build()));
+                CookieSyncRequest.of("uuid", asList(RUBICON, APPNEXUS))));
 
         givenAdaptersReturningFamilyName();
 
@@ -206,11 +199,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
-                .uuid("uuid")
-                .status("ok")
-                .bidderStatus(emptyList())
-                .build());
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("uuid", "ok", emptyList()));
     }
 
     @Test
@@ -222,7 +211,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.builder().uuid("uuid").bidders(asList(RUBICON, "unsupported")).build()));
+                CookieSyncRequest.of("uuid", asList(RUBICON, "unsupported"))));
 
         givenAdaptersReturningFamilyName();
 
@@ -233,11 +222,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
-                .uuid("uuid")
-                .status("ok")
-                .bidderStatus(emptyList())
-                .build());
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("uuid", "ok", emptyList()));
     }
 
     @Test
@@ -248,15 +233,11 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.builder().uuid("uuid").bidders(singletonList(APPNEXUS)).build()));
+                CookieSyncRequest.of("uuid", singletonList(APPNEXUS))));
 
         givenAdaptersReturningFamilyName();
 
-        final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.builder()
-                .url("http://adnxsexample.com")
-                .type("redirect")
-                .supportCORS(false)
-                .build();
+        final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.of("http://adnxsexample.com", "redirect", false);
         given(appnexusAdapter.usersyncInfo()).willReturn(appnexusUsersyncInfo);
 
         // when
@@ -264,22 +245,19 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.builder()
-                .uuid("uuid")
-                .status("no_cookie")
-                .bidderStatus(singletonList(BidderStatus.builder()
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("uuid", "no_cookie",
+                singletonList(BidderStatus.builder()
                         .bidder(APPNEXUS)
                         .noCookie(true)
                         .usersync(appnexusUsersyncInfo)
-                        .build()))
-                .build());
+                        .build())));
     }
 
     @Test
     public void shouldIncrementMetrics() {
         // given
         given(routingContext.getBodyAsJson())
-                .willReturn(JsonObject.mapFrom(CookieSyncRequest.builder().bidders(emptyList()).build()));
+                .willReturn(JsonObject.mapFrom(CookieSyncRequest.of(null, emptyList())));
 
         // when
         cookieSyncHandler.handle(routingContext);
