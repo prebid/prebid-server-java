@@ -13,11 +13,9 @@ import org.rtb.vexing.adapter.pubmatic.PubmaticAdapter;
 import org.rtb.vexing.adapter.pulsepoint.PulsepointAdapter;
 import org.rtb.vexing.adapter.rubicon.RubiconAdapter;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,7 +27,6 @@ public class AdapterConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(AdapterConfiguration.class);
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AdapterCatalog adapterCatalog(List<Adapter> adapters) {
 
         // There are no default values for some adapter properties. We don't want to force their presence in external
@@ -45,7 +42,6 @@ public class AdapterConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     RubiconAdapter rubiconAdapter(
             @Value("${adapters.rubicon.endpoint}") String endpoint,
             @Value("${adapters.rubicon.usersync-url}") String usersyncUrl,
@@ -56,7 +52,6 @@ public class AdapterConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AppnexusAdapter appnexusAdapter(
             @Value("${adapters.appnexus.endpoint}") String endpoint,
             @Value("${adapters.appnexus.usersync-url}") String usersyncUrl,
@@ -66,7 +61,6 @@ public class AdapterConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     PulsepointAdapter pulsepointAdapter(
             @Value("${adapters.pulsepoint.endpoint}") String endpoint,
             @Value("${adapters.pulsepoint.usersync-url}") String usersyncUrl,
@@ -76,7 +70,6 @@ public class AdapterConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     @ConditionalOnProperty(name = {"adapters.facebook.usersync-url", "adapters.facebook.platformId"})
     FacebookAdapter facebookAdapter(
             @Value("${adapters.facebook.endpoint}") String endpoint,
@@ -88,7 +81,6 @@ public class AdapterConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     @ConditionalOnProperty(name = "adapters.indexexchange.endpoint")
     IndexAdapter indexAdapter(
             @Value("${adapters.indexexchange.endpoint}") String endpoint,
@@ -98,7 +90,6 @@ public class AdapterConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     LifestreetAdapter lifestreetAdapter(
             @Value("${adapters.lifestreet.endpoint}") String endpoint,
             @Value("${adapters.lifestreet.usersync-url}") String usersyncUrl,
@@ -108,7 +99,6 @@ public class AdapterConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     PubmaticAdapter pubmaticAdapter(
             @Value("${adapters.pubmatic.endpoint}") String endpoint,
             @Value("${adapters.pubmatic.usersync-url}") String usersyncUrl,
@@ -118,7 +108,6 @@ public class AdapterConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     ConversantAdapter conversantAdapter(
             @Value("${adapters.conversant.endpoint}") String endpoint,
             @Value("${adapters.conversant.usersync-url}") String usersyncUrl,

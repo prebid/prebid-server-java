@@ -12,6 +12,7 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
+import org.rtb.vexing.adapter.HttpConnector;
 import org.rtb.vexing.bidder.model.BidderBid;
 import org.rtb.vexing.bidder.model.BidderSeatBid;
 import org.rtb.vexing.bidder.model.Result;
@@ -44,9 +45,9 @@ import java.util.stream.Collectors;
 public class HttpAdapterRequester implements BidderRequester {
 
     private final Adapter adapter;
-    private final org.rtb.vexing.adapter.HttpConnector httpConnector;
+    private final HttpConnector httpConnector;
 
-    public HttpAdapterRequester(Adapter adapter, org.rtb.vexing.adapter.HttpConnector httpConnector) {
+    public HttpAdapterRequester(Adapter adapter, HttpConnector httpConnector) {
         this.adapter = Objects.requireNonNull(adapter);
         this.httpConnector = Objects.requireNonNull(httpConnector);
     }

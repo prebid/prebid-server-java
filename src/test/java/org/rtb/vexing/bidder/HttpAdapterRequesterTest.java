@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.adapter.Adapter;
+import org.rtb.vexing.adapter.HttpConnector;
 import org.rtb.vexing.bidder.model.BidderBid;
 import org.rtb.vexing.bidder.model.BidderSeatBid;
 import org.rtb.vexing.execution.GlobalTimeout;
@@ -56,7 +57,7 @@ public class HttpAdapterRequesterTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private org.rtb.vexing.adapter.HttpConnector httpConnector;
+    private HttpConnector httpConnector;
 
     @Mock
     private Adapter adapter;

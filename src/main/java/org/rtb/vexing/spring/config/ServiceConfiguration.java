@@ -5,6 +5,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import org.rtb.vexing.adapter.HttpConnector;
 import org.rtb.vexing.auction.BidderRequesterCatalog;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
@@ -106,8 +107,8 @@ public class ServiceConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    org.rtb.vexing.adapter.HttpConnector legacyHttpConnector(HttpClient httpClient) {
-        return new org.rtb.vexing.adapter.HttpConnector(httpClient);
+    HttpConnector adaptersHttpConnector(HttpClient httpClient) {
+        return new HttpConnector(httpClient);
     }
 
     @Bean
