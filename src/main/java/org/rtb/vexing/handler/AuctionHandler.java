@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class AuctionHandler implements Handler<RoutingContext> {
@@ -185,19 +184,17 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private PreBidResponse mergeBidsWithCacheResults(PreBidResponse preBidResponse,
                                                      List<BidCacheResult> bidCacheResults) {
         final List<Bid> bids = preBidResponse.getBids();
-        final List<Bid> bidsWithCacheUUIDs = IntStream.range(0, bids.size())
-                .mapToObj(i -> {
-                    BidCacheResult result = bidCacheResults.get(i);
-                    return bids.get(i).toBuilder()
-                            .adm(null)
-                            .nurl(null)
-                            .cacheId(result.getCacheId())
-                            .cacheUrl(result.getCacheUrl())
-                            .build();
-                })
-                .collect(Collectors.toList());
+        for (int i = 0; i < bids.size(); i++) {
+            final BidCacheResult result = bidCacheResults.get(i);
+            // IMPORTANT: see javadoc in Bid class
+            bids.get(i)
+                    .setAdm(null)
+                    .setNurl(null)
+                    .setCacheId(result.getCacheId())
+                    .setCacheUrl(result.getCacheUrl());
+        }
 
-        return preBidResponse.toBuilder().bids(bidsWithCacheUUIDs).build();
+        return preBidResponse;
     }
 
     /**
@@ -207,28 +204,29 @@ public class AuctionHandler implements Handler<RoutingContext> {
      */
     private static PreBidResponse addTargetingKeywords(PreBidRequest preBidRequest, Account account,
                                                        PreBidResponse preBidResponse) {
-        PreBidResponse result = preBidResponse;
-
         final Integer sortBids = preBidRequest.getSortBids();
         if (sortBids != null && sortBids == 1) {
             final TargetingKeywordsCreator keywordsCreator =
                     TargetingKeywordsCreator.withPriceGranularity(account.getPriceGranularity());
 
-            final List<Bid> bidsWithKeywords = preBidResponse.getBids().stream()
-                    .collect(Collectors.groupingBy(Bid::getCode))
-                    .values().stream()
-                    .peek(bids -> bids.sort(Comparator.comparing(Bid::getPrice)
-                            .reversed()
-                            .thenComparing(Bid::getResponseTimeMs)))
-                    .flatMap(bids -> bids.stream().map(bid -> bid.toBuilder().adServerTargeting(joinMaps(
-                            keywordsCreator.makeFor(bid, bid == bids.get(0)), bid.getAdServerTargeting()))
-                            .build()))
-                    .collect(Collectors.toList());
+            final Map<String, List<Bid>> adUnitCodeToBids = preBidResponse.getBids().stream()
+                    .collect(Collectors.groupingBy(Bid::getCode));
 
-            result = preBidResponse.toBuilder().bids(bidsWithKeywords).build();
+            for (final List<Bid> bids : adUnitCodeToBids.values()) {
+                bids.sort(Comparator.comparing(Bid::getPrice)
+                        .reversed()
+                        .thenComparing(Bid::getResponseTimeMs));
+
+                for (final Bid bid : bids) {
+                    // IMPORTANT: see javadoc in Bid class
+                    bid.setAdServerTargeting(joinMaps(
+                            keywordsCreator.makeFor(bid, bid == bids.get(0)),
+                            bid.getAdServerTargeting()));
+                }
+            }
         }
 
-        return result;
+        return preBidResponse;
     }
 
     private static <K, V> Map<K, V> joinMaps(Map<K, V> left, Map<K, V> right) {

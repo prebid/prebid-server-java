@@ -1,7 +1,8 @@
 package org.rtb.vexing.model.response;
 
 import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
+import lombok.experimental.Accessors;
 import org.rtb.vexing.model.MediaType;
 
 import java.math.BigDecimal;
@@ -12,9 +13,16 @@ import java.util.Map;
  * <p>
  * This JSON format is a contract with both Prebid.js and Prebid-mobile.
  * All changes *must* be backwards compatible, since clients cannot be forced to update their code.
+ * <p>
+ * IMPORTANT: unlike other data classes this one is mutable (annotated with {@link Data} instead of
+ * {@link lombok.Value}). Motivation: during the course of processing bids could be altered several times (caching,
+ * targeting keywords). Creating new instance of the bid in each of these cases seems to cause unnecessary memory
+ * pressure. In order to avoid unnecessary allocations this class is made mutable (as an exception) i.e. this
+ * decision could be seen as a performance optimisation.
  */
-@Builder(toBuilder = true)
-@Value
+@Builder
+@Data
+@Accessors(chain = true)
 public final class Bid {
 
     // Identifies the Bid Request within the Ad Unit which this Bid targets. It should match one of

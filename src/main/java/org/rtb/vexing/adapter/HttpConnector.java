@@ -290,11 +290,9 @@ public class HttpConnector {
                     .findAny();
             if (matchingAdUnit.isPresent()) {
                 final Format format = matchingAdUnit.get().getSizes().get(0);
-                final Bid validBid = bid.toBuilder()
-                        .width(format.getW())
-                        .height(format.getH())
-                        .build();
-                validBids.add(validBid);
+                // IMPORTANT: see javadoc in Bid class
+                bid.setWidth(format.getW()).setHeight(format.getH());
+                validBids.add(bid);
             } else {
                 logger.warn("Bid was rejected for bidder {0} because no size was defined", bid.getBidder());
             }
