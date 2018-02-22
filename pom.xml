@@ -31,7 +31,10 @@
 
         <!-- dependencies versions -->
         <vertx.version>3.5.0</vertx.version>
-        <spring.boot.version>1.5.10.RELEASE</spring.boot.version>
+        <!-- FIXME: downgrading spring boot version to 1.5.9 because of this issue: -->
+        <!-- https://github.com/spring-projects/spring-boot/issues/11951 -->
+        <!-- It should be safe to switch to 1.5.11 once it is released -->
+        <spring.boot.version>1.5.9.RELEASE</spring.boot.version>
         <postgresql.version>42.1.4</postgresql.version>
         <jackson.version>2.9.4</jackson.version>
         <mysql.version>6.0.6</mysql.version>
