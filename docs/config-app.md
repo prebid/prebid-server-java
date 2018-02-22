@@ -37,16 +37,16 @@ There are two typical keys:
 But feel free to add additional specific bidder options.
 
 ## Metrics
-- `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter`, `counter` or `meter`.
+- `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.
 - `metrics.type` - define where metrics will be submitted. Available options: `graphite`, `influxdb`.
 
 For `graphite` backend type available next options:
-- `metrics.prefix` - the prefix of all metric names (may be skipped).
+- `metrics.prefix` - the prefix of all metric names.
 - `metrics.host` - host:port for sending statistics.
 - `metrics.interval` - interval in seconds between successive sending statistics.
 
 For `influxdb` backend type available next options:
-- `metrics.prefix` - the prefix of all metric names (may be skipped).
+- `metrics.prefix` - the prefix of all metric names.
 - `metrics.protocol` - external service destination protocol.
 - `metrics.host` - the influxDb `host:port` for sending metrics.
 - `metrics.database` - the influxDb database to write metrics.
@@ -57,8 +57,8 @@ For `influxdb` backend type available next options:
 
 ## Cache
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
-- `cache.host` - set the external Cache Service host.
-- `cache.query` - query string params appends to `/cache?` (Used for legacy Auction requests).
+- `cache.host` - set the external Cache Service destination in format `host:port`.
+- `cache.query` - appends to `/cache` as query string params (used for legacy Auction requests).
 
 ## Data Cache
 - `datacache.type` - where preconfigured application settings must be fetched from. Can be: `filesystem`, `mysql` or `postgres`.
@@ -72,20 +72,20 @@ For `mysql` or `postgres` type available next options:
 
 ## Stored Requests
 - `stored-requests.type` - where stored requests must be fetched from. Can be: `filesystem`, `mysql` or `postgres`.
-- `stored-requests.in-memory-cache.ttl-seconds` - set the maximum response time (if any of database type is used).
-- `stored-requests.in-memory-cache.cache-size` - set the size of LRU cache (if any of database type is used).
-- `stored-requests.query` - the SQL query to fetch stored requests if any of database type is used.
-- `stored-requests.amp-query` - the SQL query to fetch AMP stored requests (if any of database type is used).
 
 For `filesystem` type available next options:
 - `stored-requests.configpath` - location of file with saved stored requests.
 
 For `mysql` or `postgres` type available next options:
-- `stored-requests.host` - database host.
+- `stored-requests.host` - database destination in format `host:port`.
 - `stored-requests.dbname` - database name.
 - `stored-requests.user` - database user.
 - `stored-requests.password` - database password.
 - `stored-requests.pool-size` - set the initial/min/max pool size of database connections.
+- `stored-requests.in-memory-cache.ttl-seconds` - set the maximum response time.
+- `stored-requests.in-memory-cache.cache-size` - set the size of LRU cache.
+- `stored-requests.query` - the SQL query to fetch stored requests.
+- `stored-requests.amp-query` - the SQL query to fetch AMP stored requests.
 
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.

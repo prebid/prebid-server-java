@@ -32,9 +32,9 @@ public class ServiceConfiguration {
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     CacheService cacheService(
-            @Value("${cache.query}") String query,
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
+            @Value("${cache.query}") String query,
             HttpClient httpClient) {
 
         return new CacheService(

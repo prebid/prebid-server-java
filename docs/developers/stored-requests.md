@@ -194,8 +194,7 @@ For PostgreSQL:
 ```yaml
 stored-requests:
   type: postgres
-  host: localhost
-  port: 5432
+  host: localhost:5432
   user: db-username
   dbname: database-name
   query: SELECT id, requestData FROM stored_requests WHERE id IN %ID_LIST%;

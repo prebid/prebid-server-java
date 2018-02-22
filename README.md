@@ -1,26 +1,67 @@
 # Prebid Server
 
-Server-side Header Bidding solution.
+Prebid Server is an open source implementation of Server-Side Header Bidding.
+It is managed by [Prebid.org](http://prebid.org/overview/what-is-prebid-org.html),
+and upholds the principles from the [Prebid Code of Conduct](http://prebid.org/wrapper_code_of_conduct.html).
 
-The goal is to allow [Prebid](http://prebid.org/) to offload processing from the
-browser to improve performance and end-user responsiveness.
+For more information, see:
+
+- [What is Prebid?](http://prebid.org/overview/intro.html)
+- [Getting started with Prebid Server](http://prebid.org/dev-docs/get-started-with-prebid-server.html)
 
 ## Usage
 
 When running, the server responds to several HTTP endpoints.
 
 The server makes the following assumptions:
-- No ranking or decisioning is performed by this server. It just proxies
-requests.
-- No ad quality management (e.g., malware, viruses, deceptive creatives) is
-performed by this server.
+- No ranking or decisioning is performed by this server. It just proxies requests.
+- No ad quality management (e.g., malware, viruses, deceptive creatives) is performed by this server.
 - This server does no fraud scanning and does nothing to prevent bad traffic.
 - This server does no logging.
 - This server has not user profiling or user data collection capabilities.
 
 ## Development
 
-This project is built upon [Vert.x](http://vertx.io/) to achieve high request
-throughput. We use Maven and attempt to introduce minimal dependencies.
+This project is built upon [Vert.x](http://vertx.io) to achieve high request throughput. 
+We use [Maven](https://maven.apache.org) and attempt to introduce minimal dependencies.
+
+## Getting Started
+
+To start the Prebid Server you need to do the following steps:
+- Build all-in-one JAR file from sources as described [here](docs/build.md).
+- Create minimal needed configuration file `prebid-config.yaml`:
+```yaml
+adapters:
+  rubicon:
+    XAPI.Username: user1
+    XAPI.Password: password1
+metrics:
+  prefix: prebid
+cache:
+  scheme: http
+  host: localhost
+  query: uuid=%PBS_CACHE_UUID%
+datacache:
+  type: filesystem
+  filename: sample-app-settings.yml
+stored-requests:
+  type: filesystem
+  configpath: /tmp
+```
+
+Also, create the Data Cache settings file `sample-app-settings.yml` with content:
+```
+accounts:
+  - 1001
+```
+For more information how to configure the server follow [documentation](docs/config.md).
+
+- Run your server with the next command:
+```
+java -jar target/prebid-server.jar --spring.config.location=prebid-config.yaml
+```
+For more information how to start the server follow [documentation](docs/run.md).
+
+- To verify everything is OK go to `http://localhost:8080/status` and check response status is `200 OK`.
 
 ##### More detailed project documentation can be found [here](docs/TOC.md).
