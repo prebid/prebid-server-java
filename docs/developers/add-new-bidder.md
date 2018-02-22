@@ -4,7 +4,7 @@ This document describes how to add a new Bidder to Prebid Server.
 
 ## Choose a Bidder Name
 
-This name must be unique. Existing BidderNames can be found [here](../../src/main/java/org/rtb/vexing/bidder).
+This name must be unique. Existing BidderNames can be found [here](../../src/main/java/org/prebid/bidder).
 
 Throughout the rest of this document, substitute `{bidder}` with the name you've chosen.
 
@@ -22,10 +22,10 @@ your bidder will access them at `request.imp[i].ext.bidder`--regardless of what 
 Bidder implementations are scattered throughout several files:
 
 - `static/bidder-params/{bidder}.json`: A [draft-4 json-schema](https://spacetelescope.github.io/understanding-json-schema/) which [validates your Bidder's params](https://www.jsonschemavalidator.net/).
-- `src/main/java/org/rtb/vexing/bidder{bidder}/{bidder}.java`: contains an implementation of [the Bidder interface](../../src/main/java/org/rtb/vexing/bidder/Bidder.java).
-- `src/main/java/org/rtb/vexing/model/openrtb/ext/{bidder}`: contract classes for your Bidder's params.
-- `src/main/java/org/rtb/vexing/spring/config/BidderConfiguration.java`: contains Bidder integration.
-- `src/test/java/org/rtb/vexing/bidder/{bidder}Test.java`: unit tests for your Bidder implementation.
+- `src/main/java/org/prebid/bidder{bidder}/{bidder}.java`: contains an implementation of [the Bidder interface](../../src/main/java/org/prebid/bidder/Bidder.java).
+- `src/main/java/org/prebid/model/openrtb/ext/{bidder}`: contract classes for your Bidder's params.
+- `src/main/java/org/prebid/spring/config/BidderConfiguration.java`: contains Bidder integration.
+- `src/test/java/org/prebid/bidder/{bidder}Test.java`: unit tests for your Bidder implementation.
 
 Bidder implementations may assume that any params have already been validated against the defined json-schema.
 
@@ -37,7 +37,7 @@ Assume common rules to write unit tests from [here](unit-tests.md).
 
 Bidder tests live in two files:
 
-- `src/test/java/org/rtb/vexing/bidder/{bidder}Test.java`: contains unit tests for your Bidder implementation.
+- `src/test/java/org/prebid/bidder/{bidder}Test.java`: contains unit tests for your Bidder implementation.
 
 Commonly you should write tests for covering:
 - creation of your Bidder implementation.
@@ -46,7 +46,7 @@ Commonly you should write tests for covering:
 - specific cases for composing requests to exchange.
 - specific cases for processing responses from exchange.
 
-Do not forget to add your Bidder to `org.rtb.vexing.ApplicationTest.openrtb2AuctionShouldRespondWithBidsFromDifferentExchanges`.
+Do not forget to add your Bidder to `org.prebid.ApplicationTest.openrtb2AuctionShouldRespondWithBidsFromDifferentExchanges`.
 
 We expect to see at least 90% code coverage on each Bidder.
 

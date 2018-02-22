@@ -45,7 +45,7 @@ someService.perform(emptyList());
 
 Unit tests can use resources from "src/test/resources" folder.
 
-In case your business logic uses JSON manipulation, unit tests must be inherited from `org.rtb.vexing.VertxTest` class.
+In case your business logic uses JSON manipulation, unit tests must be inherited from `org.prebid.VertxTest` class.
 Thus, application preconfigured JSON mapper will be used. 
 
 To run the project unit tests execute:

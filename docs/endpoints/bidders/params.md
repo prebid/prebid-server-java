@@ -16,7 +16,7 @@ For example:
 }
 ```
 
-The exact contents of the json-schema values can be found [here](../../../src/rubicon/vexing/src/main/resources/static/bidder-params).
+The exact contents of the json-schema values can be found [here](../../../src/main/resources/static/bidder-params).
 
 ### See also
 
