@@ -42,6 +42,7 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRp;
 import org.rtb.vexing.bidder.Bidder;
 import org.rtb.vexing.bidder.OpenRtbBidder;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.bidder.model.BidderError;
 import org.rtb.vexing.bidder.model.HttpCall;
 import org.rtb.vexing.bidder.model.HttpRequest;
 import org.rtb.vexing.bidder.model.Result;
@@ -102,7 +103,7 @@ public class RubiconBidder extends OpenRtbBidder {
             }
         }
 
-        return Result.of(httpRequests, errors);
+        return Result.of(httpRequests, errors(errors));
     }
 
     @Override
@@ -110,7 +111,7 @@ public class RubiconBidder extends OpenRtbBidder {
         try {
             return Result.of(extractBids(bidRequest, parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(e.getMessage()));
+            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }
     }
 

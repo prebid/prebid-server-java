@@ -20,6 +20,7 @@ import org.rtb.vexing.adapter.appnexus.model.AppnexusKeyVal;
 import org.rtb.vexing.bidder.Bidder;
 import org.rtb.vexing.bidder.OpenRtbBidder;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.bidder.model.BidderError;
 import org.rtb.vexing.bidder.model.HttpCall;
 import org.rtb.vexing.bidder.model.HttpRequest;
 import org.rtb.vexing.bidder.model.Result;
@@ -96,7 +97,7 @@ public class AppnexusBidder extends OpenRtbBidder {
             url = endpointUrl;
         }
         return Result.of(Collections.singletonList(
-                HttpRequest.of(HttpMethod.POST, url, body(bidRequest, processedImps), headers())), errors);
+                HttpRequest.of(HttpMethod.POST, url, body(bidRequest, processedImps), headers())), errors(errors));
     }
 
     private static String body(BidRequest bidRequest, List<Imp> imps) {
@@ -215,7 +216,7 @@ public class AppnexusBidder extends OpenRtbBidder {
         try {
             return Result.of(extractBids(bidRequest, parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(e.getMessage()));
+            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }
     }
 

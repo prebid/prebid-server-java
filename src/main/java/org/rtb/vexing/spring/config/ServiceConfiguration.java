@@ -12,6 +12,7 @@ import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.StoredRequestProcessor;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cookie.UidsCookieService;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.optout.GoogleRecaptchaVerifier;
 import org.rtb.vexing.settings.ApplicationSettings;
 import org.rtb.vexing.settings.StoredRequestFetcher;
@@ -92,9 +93,9 @@ public class ServiceConfiguration {
     @Bean
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
-            BidderRequesterCatalog bidderRequesterCatalog, CacheService cacheService) {
+            BidderRequesterCatalog bidderRequesterCatalog, CacheService cacheService, Metrics metrics) {
 
-        return new ExchangeService(bidderRequesterCatalog, cacheService, expectedCacheTimeMs);
+        return new ExchangeService(bidderRequesterCatalog, cacheService, metrics, expectedCacheTimeMs);
     }
 
     @Bean

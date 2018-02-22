@@ -20,6 +20,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.bidder.model.BidderError;
 import org.rtb.vexing.bidder.model.BidderSeatBid;
 import org.rtb.vexing.bidder.model.HttpRequest;
 import org.rtb.vexing.bidder.model.Result;
@@ -90,7 +91,8 @@ public class HttpBidderRequesterTest {
     @Test
     public void shouldTolerateBidderReturningErrorsAndNoHttpRequests() {
         // given
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(emptyList(), asList("error1", "error2")));
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(emptyList(), asList(BidderError.create("error1"),
+                BidderError.create("error2"))));
 
         // when
         final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout())
@@ -99,7 +101,8 @@ public class HttpBidderRequesterTest {
         // then
         assertThat(bidderSeatBid.getBids()).hasSize(0);
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(0);
-        assertThat(bidderSeatBid.getErrors()).containsOnly("error1", "error2");
+        assertThat(bidderSeatBid.getErrors())
+                .extracting(BidderError::getMessage).containsOnly("error1", "error2");
     }
 
     @Test
@@ -237,7 +240,8 @@ public class HttpBidderRequesterTest {
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
                 ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").responsebody("responseBody1")
                         .status(500).build());
-        assertThat(bidderSeatBid.getErrors()).hasSize(1).containsOnly(
+        assertThat(bidderSeatBid.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage).containsOnly(
                 "Server responded with failure status: 500. Set request.test = 1 for debugging info.");
     }
 
@@ -254,7 +258,9 @@ public class HttpBidderRequesterTest {
                         .result();
 
         // then
-        assertThat(bidderSeatBid.getErrors()).hasSize(1).containsOnly("Timeout has been exceeded");
+        assertThat(bidderSeatBid.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .containsOnly("Timeout has been exceeded");
         verifyZeroInteractions(httpClient);
     }
 
@@ -270,7 +276,7 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders()),
                 // finally this request will succeed
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders())),
-                singletonList("makeHttpRequestsError")));
+                singletonList(BidderError.create("makeHttpRequestsError"))));
 
         given(httpClientRequest.exceptionHandler(any()))
                 // simulate request error for the first request
@@ -303,22 +309,24 @@ public class HttpBidderRequesterTest {
                 .willReturn(200);
 
         given(bidder.makeBids(any(), any())).willReturn(
-                Result.of(singletonList(BidderBid.of(null, null)), singletonList("makeBidsError")));
+                Result.of(singletonList(BidderBid.of(null, null)), singletonList(BidderError.create("makeBidsError"))));
 
         // when
-        final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout()).result();
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector
+                .requestBids(BidRequest.builder().test(1).build(), timeout())
+                .result();
 
         // then
         // only one call is expected since other requests failed with errors
         verify(bidder).makeBids(any(), any());
         assertThat(bidderSeatBid.getBids()).hasSize(1);
         assertThat(bidderSeatBid.getErrors()).hasSize(5).containsOnly(
-                "makeHttpRequestsError",
-                "Request exception",
-                "Response exception",
-                "Server responded with failure status: 500. Set request.test = 1 for debugging info.",
-                "makeBidsError");
+                BidderError.create("makeHttpRequestsError"),
+                BidderError.create("Request exception"),
+                BidderError.create("Response exception"),
+                BidderError.create(
+                        "Server responded with failure status: 500. Set request.test = 1 for debugging info."),
+                BidderError.create("makeBidsError"));
     }
 
     private static GlobalTimeout timeout() {

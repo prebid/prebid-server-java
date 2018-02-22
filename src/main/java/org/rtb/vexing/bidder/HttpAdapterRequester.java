@@ -10,10 +10,12 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.adapter.Adapter;
 import org.rtb.vexing.adapter.HttpConnector;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.bidder.model.BidderError;
 import org.rtb.vexing.bidder.model.BidderSeatBid;
 import org.rtb.vexing.bidder.model.Result;
 import org.rtb.vexing.cookie.UidsCookie;
@@ -66,7 +68,7 @@ public class HttpAdapterRequester implements BidderRequester {
             bidderWithErrors = toBidder(bidRequest);
         } catch (InvalidRequestException exception) {
             return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), null, Collections.emptyList(),
-                    exception.getMessages()));
+                    exception.getMessages().stream().map(BidderError::create).collect(Collectors.toList())));
         }
         return httpConnector.call(adapter, bidderWithErrors.getValue(), preBidRequestContext)
                 .map(bidderResult -> toBidderSeatBid(bidderResult, bidderWithErrors.getErrors()));
@@ -156,7 +158,7 @@ public class HttpAdapterRequester implements BidderRequester {
                 .filter(imp -> imp.getSecure() == 1 || imp.getSecure() == 0)
                 .map(Imp::getSecure)
                 .collect(Collectors.toList());
-        int sum = secureValues.stream().mapToInt(Integer::intValue).sum();
+        final int sum = secureValues.stream().mapToInt(Integer::intValue).sum();
         if (sum == 0) {
             return 0;
         }
@@ -179,11 +181,18 @@ public class HttpAdapterRequester implements BidderRequester {
         }
         final Result<List<AdUnitBid>> adUnitBidsResult = toAdUnitBids(bidRequest.getImp());
         final List<AdUnitBid> adUnitBids = adUnitBidsResult.getValue();
-        final List<String> errors = adUnitBidsResult.getErrors();
+        final List<BidderError> errors = adUnitBidsResult.getErrors();
         if (adUnitBids.size() > 0) {
             return Result.of(org.rtb.vexing.model.Bidder.of(adapter.code(), adUnitBids), errors);
         }
-        throw new InvalidRequestException(errors);
+        throw new InvalidRequestException(messages(errors));
+    }
+
+    /**
+     * Converts {@link List}&lt;{@link BidderError}&gt; to {@link List}&lt;{@link String}&gt; error messages
+     */
+    private static List<String> messages(List<BidderError> errors) {
+        return CollectionUtils.emptyIfNull(errors).stream().map(BidderError::getMessage).collect(Collectors.toList());
     }
 
     /**
@@ -192,12 +201,14 @@ public class HttpAdapterRequester implements BidderRequester {
      */
     private Result<List<AdUnitBid>> toAdUnitBids(List<Imp> imps) {
         final List<AdUnitBid> adUnitBids = new ArrayList<>();
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
         for (final Imp imp : imps) {
             try {
                 adUnitBids.add(toAdUnitBid(imp));
             } catch (InvalidRequestException exception) {
-                errors.addAll(exception.getMessages());
+                errors.addAll(exception.getMessages().stream()
+                        .map(BidderError::create)
+                        .collect(Collectors.toList()));
             }
         }
         return Result.of(adUnitBids, errors);
@@ -280,12 +291,14 @@ public class HttpAdapterRequester implements BidderRequester {
      * Converts {@link BidderResult} response from legacy adapters to {@link BidderSeatBid} objects for ORTB response
      * format.
      */
-    private BidderSeatBid toBidderSeatBid(BidderResult bidderResult, List<String> errors) {
+    private BidderSeatBid toBidderSeatBid(BidderResult bidderResult, List<BidderError> errors) {
         final Result<List<BidderBid>> bidderBidsResult = toBidderBids(bidderResult);
-        errors.addAll(bidderBidsResult.getErrors());
-        final List<BidderDebug> debug = bidderResult.getBidderStatus().getDebug();
-        return BidderSeatBid.of(bidderBidsResult.getValue(), null, debug != null ? toExtHttpCalls(debug) : null,
-                errors);
+        final List<BidderError> bidderErrors = new ArrayList<>(errors);
+        bidderErrors.addAll(bidderBidsResult.getErrors());
+
+        return BidderSeatBid.of(bidderBidsResult.getValue(), null, bidderResult.getBidderStatus().getDebug() != null
+                ? toExtHttpCalls(bidderResult.getBidderStatus().getDebug())
+                : null, bidderErrors);
     }
 
     /**
@@ -293,14 +306,13 @@ public class HttpAdapterRequester implements BidderRequester {
      */
     private Result<List<BidderBid>> toBidderBids(BidderResult bidderResult) {
         final List<BidderBid> bidderBids = new ArrayList<>();
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
         for (org.rtb.vexing.model.response.Bid bid : bidderResult.getBids()) {
             final Result<BidType> bidTypeResult = toBidType(bid);
-            final List<String> bidTypeErrors = bidTypeResult.getErrors();
-            if (bidTypeErrors.isEmpty()) {
+            if (bidTypeResult.getErrors().isEmpty()) {
                 bidderBids.add(BidderBid.of(toOrtbBid(bid), bidTypeResult.getValue()));
             } else {
-                errors.addAll(bidTypeErrors);
+                errors.addAll(bidTypeResult.getErrors());
             }
         }
         return Result.of(bidderBids, errors);
@@ -312,18 +324,17 @@ public class HttpAdapterRequester implements BidderRequester {
      * error list ad null value will be returned.
      */
     private Result<BidType> toBidType(org.rtb.vexing.model.response.Bid bid) {
-        final MediaType mediaType = bid.getMediaType();
-        if (mediaType == null) {
-            return Result.of(null, Collections.singletonList("Media Type is not defined for Bid"));
+        if (bid.getMediaType() == null) {
+            return Result.of(null, Collections.singletonList(BidderError.create("Media Type is not defined for Bid")));
         }
-        switch (mediaType) {
+        switch (bid.getMediaType()) {
             case video:
                 return Result.of(BidType.video, Collections.emptyList());
             case banner:
                 return Result.of(BidType.banner, Collections.emptyList());
             default:
-                return Result.of(null, Collections.singletonList(
-                        "legacy bidders can only bid on banner and video ad units"));
+                return Result.of(null, Collections.singletonList(BidderError.create(
+                        "legacy bidders can only bid on banner and video ad units")));
         }
     }
 

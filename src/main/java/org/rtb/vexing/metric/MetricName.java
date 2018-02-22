@@ -16,6 +16,11 @@ public enum MetricName {
     prices,
     bids_received,
 
+    open_rtb_requests,
+
+    amp_requests,
+    amp_no_cookie,
+
     // cookie sync
     opt_outs,
     bad_requests,

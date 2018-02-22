@@ -3,6 +3,7 @@ package org.rtb.vexing.handler.openrtb2;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -11,6 +12,8 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -24,7 +27,10 @@ import org.mockito.junit.MockitoRule;
 import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
+import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebid;
@@ -63,7 +69,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private ExchangeService exchangeService;
     @Mock
-    private UidsCookieService uidsCookieService;
+    private Metrics metrics;
 
     @Mock
     private RoutingContext routingContext;
@@ -73,6 +79,10 @@ public class AmpHandlerTest extends VertxTest {
     private HttpServerResponse httpResponse;
     @Mock
     private MultiMap httpRequestHeaders;
+    @Mock
+    private UidsCookieService uidsCookieService;
+    @Mock
+    private UidsCookie uidsCookie;
 
     private AmpHandler ampHandler;
 
@@ -89,21 +99,26 @@ public class AmpHandlerTest extends VertxTest {
         given(httpResponse.putHeader(anyString(), anyString())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
+
         ampHandler = new AmpHandler(5000, 50, storedRequestFetcher, preBidRequestContextFactory, requestValidator,
-                exchangeService, uidsCookieService);
+                exchangeService, uidsCookieService, metrics);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AmpHandler(1, 1, storedRequestFetcher, null, null, null, null));
+                () -> new AmpHandler(1, 1, storedRequestFetcher, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, storedRequestFetcher,
-                preBidRequestContextFactory, null, null, null));
+                preBidRequestContextFactory, null, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, storedRequestFetcher,
-                preBidRequestContextFactory, requestValidator, null, null));
+                preBidRequestContextFactory, requestValidator, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, storedRequestFetcher,
-                preBidRequestContextFactory, requestValidator, exchangeService, null));
+                preBidRequestContextFactory, requestValidator, exchangeService, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, storedRequestFetcher,
+                preBidRequestContextFactory, requestValidator, exchangeService, uidsCookieService, null));
     }
 
     @Test
@@ -331,6 +346,52 @@ public class AmpHandlerTest extends VertxTest {
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"hb_cache_id_bidder1\":\"value2\"}}"));
     }
 
+    @Test
+    public void shouldIncrementAmpRequestMetrics() throws JsonProcessingException {
+        // given
+        givenMocksForMetricSupport();
+        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder()
+                .app(App.builder().build()).build());
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.amp_requests));
+        verify(metrics).incCounter(eq(MetricName.app_requests));
+    }
+
+    @Test
+    public void shouldIncrementNoCookieMetrics() throws JsonProcessingException {
+        // given
+        givenMocksForMetricSupport();
+        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+        given(uidsCookie.hasLiveUids()).willReturn(true);
+
+        httpRequest.headers().add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
+                "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.safari_requests));
+        verify(metrics).incCounter(eq(MetricName.safari_no_cookie_requests));
+        verify(metrics).incCounter(eq(MetricName.amp_no_cookie));
+    }
+
+    @Test
+    public void shouldIncrementErrorRequestMetrics() {
+        // given
+        given(routingContext.getBody()).willReturn(Buffer.buffer("invalid"));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.error_requests));
+    }
+
     private static Future<StoredRequestResult> givenStoredRequestResultFuture(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer)
             throws JsonProcessingException {
@@ -358,5 +419,18 @@ public class AmpHandlerTest extends VertxTest {
                                 .build()))
                         .build()))
                 .build());
+    }
+
+    private void givenMocksForMetricSupport() throws JsonProcessingException {
+        given(storedRequestFetcher.getStoredRequestsByAmpId(eq(singleton("tagId1")), any()))
+                .willReturn(givenStoredRequestResultFuture(identity()));
+
+        given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
+
+        final Map<String, String> targeting = new HashMap<>();
+        targeting.put("key1", "value1");
+        targeting.put("hb_cache_id_bidder1", "value2");
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                givenBidResponseFuture(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, targeting, null), null))));
     }
 }

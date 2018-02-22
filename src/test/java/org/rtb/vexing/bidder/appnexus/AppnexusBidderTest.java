@@ -21,6 +21,7 @@ import org.rtb.vexing.adapter.appnexus.model.AppnexusImpExt;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusImpExtAppnexus;
 import org.rtb.vexing.adapter.appnexus.model.AppnexusKeyVal;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.bidder.model.BidderError;
 import org.rtb.vexing.bidder.model.HttpCall;
 import org.rtb.vexing.bidder.model.HttpRequest;
 import org.rtb.vexing.bidder.model.HttpResponse;
@@ -73,9 +74,10 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .isEmpty();
+                .extracting(BidRequest::getImp)
+                .containsOnly(Collections.EMPTY_LIST);
         assertThat(result.getErrors()).hasSize(1)
+                .element(0).extracting(BidderError::getMessage)
                 .containsExactly("Appnexus doesn't support audio or native Imps. Ignoring Imp ID=23");
     }
 
@@ -94,7 +96,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0)).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -112,6 +114,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
                 .containsExactly("No placement or member+invcode provided");
     }
 
@@ -120,10 +123,10 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(impBuilder ->
                 impBuilder.ext(givenExt(extBuilder -> extBuilder.placementId(12).member("member1")))
-                        .video(Video.builder().build()));
+                    .video(Video.builder().build()));
         final Imp imp2 = givenImp(impBuilder ->
                 impBuilder.ext(givenExt(builder -> builder.placementId(12).member("member2")))
-                        .banner(Banner.builder().build()));
+                     .banner(Banner.builder().build()));
         final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
 
         // when
@@ -132,6 +135,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
                 .containsExactly("All request.imp[i].ext.appnexus.member params must match. "
                         + "Request contained: member2, member1");
     }
@@ -184,6 +188,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
                 .containsExactly("No placement or member+invcode provided");
     }
 
@@ -205,6 +210,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .isEmpty();
 
         assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
                 .containsExactly("No placement or member+invcode provided");
     }
 
@@ -245,8 +251,8 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getImp).hasSize(1)
-                .extracting(imps -> imps.iterator().next().getBanner())
+                .flatExtracting(BidRequest::getImp)
+                .extracting(imp -> imp.getBanner())
                 .containsOnly(Banner.builder().w(100).h(200)
                         .format(singletonList(Format.builder().w(100).h(200).build())).build());
     }
@@ -339,6 +345,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
                 .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
         assertThat(result.getValue()).isEmpty();
     }
@@ -353,8 +360,9 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0)).startsWith("Unrecognized token");
+        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).containsOnly(
+                "Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
+                        " at [Source: (String)\"invalid\"; line: 1, column: 15]");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -426,6 +434,7 @@ public class AppnexusBidderTest extends VertxTest {
     private static ObjectNode givenExt(Function<ExtImpAppnexusBuilder, ExtImpAppnexusBuilder> extCustomizer) {
         return mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpAppnexus.builder()).build()));
     }
+
 
     private static HttpCall givenHttpCall(int statusCode, String body) {
         return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);

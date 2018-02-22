@@ -24,10 +24,13 @@ import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.model.AmpRequest;
 import org.rtb.vexing.auction.model.AmpResponse;
+import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.exception.InvalidRequestException;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.execution.GlobalTimeout;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebid;
@@ -63,12 +66,13 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final RequestValidator requestValidator;
     private final ExchangeService exchangeService;
     private final UidsCookieService uidsCookieService;
+    private final Metrics metrics;
 
     public AmpHandler(long defaultTimeout, long defaultStoredRequestsTimeoutMs,
                       StoredRequestFetcher storedRequestFetcher,
                       PreBidRequestContextFactory preBidRequestContextFactory,
                       RequestValidator requestValidator,
-                      ExchangeService exchangeService, UidsCookieService uidsCookieService) {
+                      ExchangeService exchangeService, UidsCookieService uidsCookieService, Metrics metrics) {
         this.defaultTimeout = defaultTimeout;
         this.defaultStoredRequestsTimeoutMs = defaultStoredRequestsTimeoutMs;
         this.storedRequestFetcher = Objects.requireNonNull(storedRequestFetcher);
@@ -76,6 +80,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     @Override
@@ -86,11 +91,21 @@ public class AmpHandler implements Handler<RoutingContext> {
         // more accurately if we note the real start time, and use it to compute the auction timeout.
         final long startTime = CLOCK.millis();
 
+        metrics.incCounter(MetricName.amp_requests);
+
+        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
+        final boolean isSafari = isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
+        if (isSafari) {
+            metrics.incCounter(MetricName.safari_requests);
+        }
+
         parseAndValidateAmpRequest(context)
                 .compose(ampRequest -> parseAndValidateBidRequest(ampRequest, context, startTime))
-                .compose(bidRequest ->
-                        exchangeService.holdAuction(bidRequest, uidsCookieService.parseFromRequest(context),
-                                timeout(bidRequest, startTime)))
+                .recover(this::updateErrorRequestsMetric)
+                .compose(bidRequest -> {
+                    updateAppAndNoCookieMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari);
+                    return exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime));
+                })
                 .map(AmpHandler::toAmpResponse)
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
@@ -259,5 +274,31 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .putHeader("AMP-Access-Control-Allow-Source-Origin", originHeader)
                 .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin")
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
+    }
+
+    private Future<BidRequest> updateErrorRequestsMetric(Throwable failed) {
+        metrics.incCounter(MetricName.error_requests);
+        return Future.failedFuture(failed);
+    }
+
+    private void updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
+        if (bidRequest.getApp() != null) {
+            metrics.incCounter(MetricName.app_requests);
+        } else if (isLifeSync) {
+            metrics.incCounter(MetricName.amp_no_cookie);
+            if (isSafari) {
+                metrics.incCounter(MetricName.safari_no_cookie_requests);
+            }
+        }
+    }
+
+    private static boolean isSafari(String userAgent) {
+        // this is a simple heuristic based on this article:
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
+        //
+        // there are libraries available doing different kinds of User-Agent analysis but they impose performance
+        // implications as well, example: https://github.com/nielsbasjes/yauaa
+        return StringUtils.isNotBlank(userAgent) && userAgent.contains("AppleWebKit") && userAgent.contains("Safari")
+                && !userAgent.contains("Chrome") && !userAgent.contains("Chromium");
     }
 }

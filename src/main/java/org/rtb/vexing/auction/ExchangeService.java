@@ -17,11 +17,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.auction.model.BidderRequest;
 import org.rtb.vexing.auction.model.BidderResponse;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.bidder.model.BidderError;
 import org.rtb.vexing.bidder.model.BidderSeatBid;
 import org.rtb.vexing.cache.CacheService;
 import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.execution.GlobalTimeout;
+import org.rtb.vexing.metric.AdapterMetrics;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.model.openrtb.ext.ExtPrebid;
 import org.rtb.vexing.model.openrtb.ext.request.ExtBidRequest;
 import org.rtb.vexing.model.openrtb.ext.request.ExtRequestPrebid;
@@ -32,6 +36,7 @@ import org.rtb.vexing.model.openrtb.ext.response.ExtBidResponse;
 import org.rtb.vexing.model.openrtb.ext.response.ExtHttpCall;
 import org.rtb.vexing.model.openrtb.ext.response.ExtResponseDebug;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,16 +56,19 @@ import java.util.stream.StreamSupport;
 public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
+    private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private static final Clock CLOCK = Clock.systemDefaultZone();
     private final BidderRequesterCatalog bidderRequesterCatalog;
     private final CacheService cacheService;
+    private final Metrics metrics;
     private long expectedCacheTime;
 
-    public ExchangeService(BidderRequesterCatalog bidderRequesterCatalog, CacheService cacheService,
+    public ExchangeService(BidderRequesterCatalog bidderRequesterCatalog, CacheService cacheService, Metrics metrics,
                            long expectedCacheTime) {
         this.bidderRequesterCatalog = Objects.requireNonNull(bidderRequesterCatalog);
         this.cacheService = Objects.requireNonNull(cacheService);
+        this.metrics = Objects.requireNonNull(metrics);
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time could not be negative");
         }
@@ -73,6 +81,8 @@ public class ExchangeService {
      */
     public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, GlobalTimeout globalTimeout) {
         final List<BidderRequest> bidderRequests = extractBidderRequests(bidRequest, uidsCookie);
+
+        updateRequestMetric(bidderRequests, uidsCookie);
 
         // extract ext from bid request
         final ExtBidRequest requestExt;
@@ -101,8 +111,66 @@ public class ExchangeService {
                 .collect(Collectors.toList()));
 
         // produce response from bidder results
-        return bidderResults.compose(result ->
-                toBidResponse(result.result().list(), bidRequest, keywordsCreator, shouldCacheBids, globalTimeout));
+        return bidderResults.compose(result -> {
+
+            final List<BidderResponse> bidderResponses = result.list();
+            updateMetricsFromResponses(bidderResponses);
+            return toBidResponse(
+                    bidderResponses, bidRequest, keywordsCreator, shouldCacheBids, globalTimeout);
+        });
+    }
+
+    /**
+     * Updates 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
+     */
+    private void updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie) {
+        bidderRequests.forEach(bidderRequest -> {
+            final String bidder = bidderRequest.getBidder();
+
+            metrics.forAdapter(bidder).incCounter(MetricName.requests);
+
+            final boolean noBuyerId = StringUtils.isBlank(uidsCookie.uidFrom(
+                    bidderRequesterCatalog.byName(bidder).cookieFamilyName()));
+
+            if (Objects.isNull(bidderRequest.getBidRequest().getApp()) && noBuyerId) {
+                metrics.forAdapter(bidder).incCounter(MetricName.no_cookie_requests);
+            }
+        });
+    }
+
+    /**
+     * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
+     * 'prices' metrics for each {@link BidderResponse}
+     */
+    private void updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
+        bidderResponses.forEach(bidderResponse -> {
+            final AdapterMetrics adapterMetrics = metrics.forAdapter(bidderResponse.getBidder());
+
+            adapterMetrics.updateTimer(MetricName.request_time, bidderResponse.getResponseTime());
+
+            final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
+            List<Bid> bids = null;
+            if (CollectionUtils.isNotEmpty(bidderBids)) {
+                bids = bidderBids.stream()
+                        .map(BidderBid::getBid).collect(Collectors.toList());
+            }
+
+            if (CollectionUtils.isEmpty(bids)) {
+                adapterMetrics.incCounter(MetricName.no_bid_requests);
+            } else {
+                bids.forEach(bid -> {
+                    final long price = !Objects.isNull(bid.getPrice())
+                            ? bid.getPrice().multiply(THOUSAND).longValue()
+                            : 0L;
+                    adapterMetrics.updateHistogram(MetricName.prices, price);
+                });
+            }
+            if (CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors())) {
+                bidderResponse.getSeatBid().getErrors().forEach(error -> adapterMetrics.incCounter(error.isTimedOut()
+                        ? MetricName.timeout_requests
+                            : MetricName.error_requests));
+            }
+        });
     }
 
     /**
@@ -269,7 +337,8 @@ public class ExchangeService {
                                                   List<BidderResponse> bidderResponses) {
         // determine winning bids only if targeting keywords are requested
         return keywordsCreator == null ? Collections.emptyList() : bidderResponses.stream()
-                .flatMap(bidderResponse -> bidderResponse.getSeatBid().getBids().stream().map(BidderBid::getBid))
+                .flatMap(bidderResponse -> bidderResponse.getSeatBid().getBids().stream()
+                        .map(BidderBid::getBid))
                 // group bids by impId (ad unit code)
                 .collect(Collectors.groupingBy(Bid::getImpid))
                 .values().stream()
@@ -417,7 +486,7 @@ public class ExchangeService {
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
         final Map<String, List<String>> errors = results.stream()
-                .collect(Collectors.toMap(BidderResponse::getBidder, r -> r.getSeatBid().getErrors()));
+                .collect(Collectors.toMap(BidderResponse::getBidder, r -> messages(r.getSeatBid().getErrors())));
         // if price granularity in request is not valid - add corresponding error message for each bidder
         if (keywordsCreator != null && !keywordsCreator.isPriceGranularityValid()) {
             final String priceGranularityError = String.format(
@@ -448,5 +517,9 @@ public class ExchangeService {
 
     private int responseTime(long startTime) {
         return Math.toIntExact(CLOCK.millis() - startTime);
+    }
+
+    private static List<String> messages(List<BidderError> errors) {
+        return CollectionUtils.emptyIfNull(errors).stream().map(BidderError::getMessage).collect(Collectors.toList());
     }
 }

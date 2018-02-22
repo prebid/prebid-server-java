@@ -11,6 +11,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.bidder.model.BidderError;
 import org.rtb.vexing.bidder.model.BidderSeatBid;
 import org.rtb.vexing.bidder.model.HttpCall;
 import org.rtb.vexing.bidder.model.HttpRequest;
@@ -101,7 +102,7 @@ public class HttpBidderRequester implements BidderRequester {
      */
     private static void handleException(Throwable exception, Future<HttpCall> result, HttpRequest httpRequest) {
         logger.warn("Error occurred while sending HTTP request to a bidder", exception);
-        result.complete(HttpCall.partial(httpRequest, exception.getMessage()));
+        result.complete(HttpCall.partial(httpRequest, exception.getMessage(), exception instanceof TimeoutException));
     }
 
     /**
@@ -123,7 +124,7 @@ public class HttpBidderRequester implements BidderRequester {
      * Transforms HTTP call results into single {@link BidderSeatBid} filled with debug information, bids and errors
      * happened along the way.
      */
-    private BidderSeatBid toBidderSeatBid(Bidder bidder, BidRequest bidRequest, List<String> previousErrors,
+    private BidderSeatBid toBidderSeatBid(Bidder bidder, BidRequest bidRequest, List<BidderError> previousErrors,
                                           List<HttpCall> calls) {
         // If this is a test bid, capture debugging info from the requests
         final List<ExtHttpCall> httpCalls = bidRequest.getTest() == 1
@@ -139,15 +140,28 @@ public class HttpBidderRequester implements BidderRequester {
                 .flatMap(bid -> bid.getValue().stream())
                 .collect(Collectors.toList());
 
-        final List<String> errors = new ArrayList<>(previousErrors);
-        errors.addAll(Stream.concat(
-                calls.stream().map(HttpCall::getError).filter(StringUtils::isNotBlank),
-                createdBids.stream().flatMap(bidResult -> bidResult.getErrors().stream()))
-                .collect(Collectors.toList()));
+        final List<BidderError> bidderErrors = errors(previousErrors, calls, createdBids);
 
         // TODO: by now ext is not filled (same behavior is observed in open-source version), either fill it or
         // delete from seat
-        return BidderSeatBid.of(bids, null, httpCalls, errors);
+        return BidderSeatBid.of(bids, null, httpCalls, bidderErrors);
+    }
+
+    /**
+     * Assembles all errors for {@link BidderSeatBid} into the list of {@link List}&lt;{@link BidderError}&gt;
+     */
+    private List<BidderError> errors(List<BidderError> previousErrors, List<HttpCall> calls,
+                                     List<Result<List<BidderBid>>> createdBids) {
+
+        final List<BidderError> bidderErrors = new ArrayList<>(previousErrors);
+        bidderErrors.addAll(
+                Stream.concat(
+                    createdBids.stream().flatMap(bidResult -> bidResult.getErrors().stream()),
+                    calls.stream().filter(call -> StringUtils.isNotBlank(call.getError()))
+                            .map(call -> BidderError.of(call.getError(), call.isTimedOut())))
+                .collect(Collectors.toList()));
+
+        return bidderErrors;
     }
 
     /**

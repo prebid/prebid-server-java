@@ -17,11 +17,13 @@ public final class HttpCall {
 
     String error;
 
+    boolean timedOut;
+
     public static HttpCall full(HttpRequest request, HttpResponse response, String error) {
-        return new HttpCall(request, response, error);
+        return new HttpCall(request, response, error, false);
     }
 
-    public static HttpCall partial(HttpRequest request, String error) {
-        return new HttpCall(request, null, error);
+    public static HttpCall partial(HttpRequest request, String error, boolean timedOut) {
+        return new HttpCall(request, null, error, timedOut);
     }
 }

@@ -1,10 +1,12 @@
 package org.rtb.vexing.handler.openrtb2;
 
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -20,8 +22,11 @@ import org.rtb.vexing.VertxTest;
 import org.rtb.vexing.auction.ExchangeService;
 import org.rtb.vexing.auction.PreBidRequestContextFactory;
 import org.rtb.vexing.auction.StoredRequestProcessor;
+import org.rtb.vexing.cookie.UidsCookie;
 import org.rtb.vexing.cookie.UidsCookieService;
 import org.rtb.vexing.execution.GlobalTimeout;
+import org.rtb.vexing.metric.MetricName;
+import org.rtb.vexing.metric.Metrics;
 import org.rtb.vexing.validation.RequestValidator;
 import org.rtb.vexing.validation.ValidationResult;
 
@@ -49,6 +54,8 @@ public class AuctionHandlerTest extends VertxTest {
     private PreBidRequestContextFactory preBidRequestContextFactory;
     @Mock
     private UidsCookieService uidsCookieService;
+    @Mock
+    private Metrics metrics;
 
     private AuctionHandler auctionHandler;
 
@@ -58,6 +65,8 @@ public class AuctionHandlerTest extends VertxTest {
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
+    @Mock
+    private UidsCookie uidsCookie;
 
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
@@ -68,23 +77,27 @@ public class AuctionHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
         auctionHandler = new AuctionHandler(Integer.MAX_VALUE, 5000, requestValidator, exchangeService,
-                storedRequestProcessor, preBidRequestContextFactory, uidsCookieService);
+                storedRequestProcessor, preBidRequestContextFactory, uidsCookieService, metrics);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, null, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator, null, null,
-                null, null));
+                null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
-                exchangeService, null, null, null));
+                exchangeService, null, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
-                exchangeService, storedRequestProcessor, null, null));
+                exchangeService, storedRequestProcessor, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
-                exchangeService, storedRequestProcessor, preBidRequestContextFactory, null));
+                exchangeService, storedRequestProcessor, preBidRequestContextFactory, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
+                exchangeService, storedRequestProcessor, preBidRequestContextFactory, uidsCookieService, null));
     }
 
     @Test
@@ -104,7 +117,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithBadRequestIfRequestBodyExceedsMaxRequestSize() {
         // given
         auctionHandler = new AuctionHandler(1, 1, requestValidator, exchangeService, storedRequestProcessor,
-                preBidRequestContextFactory, uidsCookieService);
+                preBidRequestContextFactory, uidsCookieService, metrics);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -263,6 +276,76 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         assertThat(captureTimeout().remaining()).isCloseTo(950L, offset(20L));
+    }
+
+    @Test
+    public void shouldIncrementRequestsAndOrtbRequestsMetrics() {
+        // given
+        givenMocksForMetricSupport();
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.requests));
+        verify(metrics).incCounter(eq(MetricName.open_rtb_requests));
+    }
+
+    @Test
+    public void shouldIncrementAppRequestMetrics() {
+        // given
+        givenMocksForMetricSupport();
+        given(preBidRequestContextFactory.fromRequest(any(), any()))
+                .willReturn(BidRequest.builder().app(App.builder().build()).build());
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.app_requests));
+    }
+
+    @Test
+    public void shouldIncrementNoCookieMetrics() {
+        // given
+        givenMocksForMetricSupport();
+        given(uidsCookie.hasLiveUids()).willReturn(true);
+
+        httpRequest.headers().add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
+                "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.safari_requests));
+        verify(metrics).incCounter(eq(MetricName.safari_no_cookie_requests));
+        verify(metrics).incCounter(eq(MetricName.no_cookie_requests));
+    }
+
+    @Test
+    public void shouldIncrementErrorRequestMetrics() {
+        // given
+        given(routingContext.getBody()).willReturn(Buffer.buffer("invalid"));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(metrics).incCounter(eq(MetricName.error_requests));
+    }
+
+    private void givenMocksForMetricSupport() {
+        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
+
+        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
+                .succeededFuture(BidRequest.builder().build()));
+
+        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+
+        given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
     }
 
     private GlobalTimeout captureTimeout() {

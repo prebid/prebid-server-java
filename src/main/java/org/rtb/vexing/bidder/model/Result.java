@@ -13,6 +13,6 @@ import java.util.List;
 public final class Result<T> {
 
     T value;
+    List<BidderError> errors;
 
-    List<String> errors;
 }

@@ -38,6 +38,7 @@ import org.rtb.vexing.adapter.rubicon.model.RubiconUserExtRp;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExt;
 import org.rtb.vexing.adapter.rubicon.model.RubiconVideoExtRp;
 import org.rtb.vexing.bidder.model.BidderBid;
+import org.rtb.vexing.bidder.model.BidderError;
 import org.rtb.vexing.bidder.model.HttpCall;
 import org.rtb.vexing.bidder.model.HttpRequest;
 import org.rtb.vexing.bidder.model.HttpResponse;
@@ -260,7 +261,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillUserExtIfUserAndDigiTrustPresent() {
+    public void makeHttpRequestsShouldFillUserExtIfUserAndDigigtrustPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(
@@ -417,7 +418,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0)).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -437,7 +438,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0)).startsWith("No valid sizes");
+        assertThat(result.getErrors()).extracting(BidderError::getMessage).containsOnly("No valid sizes");
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -465,7 +466,7 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors())
+        assertThat(result.getErrors()).extracting(BidderError::getMessage)
                 .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
         assertThat(result.getValue()).isEmpty();
     }
@@ -481,7 +482,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0)).startsWith("Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unrecognized token");
         assertThat(result.getValue()).isEmpty();
     }
 

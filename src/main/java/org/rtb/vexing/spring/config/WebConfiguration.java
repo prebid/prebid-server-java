@@ -135,10 +135,11 @@ public class WebConfiguration {
             ExchangeService exchangeService,
             StoredRequestProcessor storedRequestProcessor,
             PreBidRequestContextFactory preBidRequestContextFactory,
-            UidsCookieService uidsCookieService) {
+            UidsCookieService uidsCookieService,
+            Metrics metrics) {
 
         return new org.rtb.vexing.handler.openrtb2.AuctionHandler(maxRequestSize, defaultTimeoutMs, requestValidator,
-                exchangeService, storedRequestProcessor, preBidRequestContextFactory, uidsCookieService);
+                exchangeService, storedRequestProcessor, preBidRequestContextFactory, uidsCookieService, metrics);
     }
 
     @Bean
@@ -150,10 +151,11 @@ public class WebConfiguration {
             ExchangeService exchangeService,
             StoredRequestFetcher storedRequestFetcher,
             PreBidRequestContextFactory preBidRequestContextFactory,
-            UidsCookieService uidsCookieService) {
+            UidsCookieService uidsCookieService,
+            Metrics metrics) {
 
         return new AmpHandler(defaultTimeoutMs, defaultStoredRequestsTimeoutMs, storedRequestFetcher,
-                preBidRequestContextFactory, requestValidator, exchangeService, uidsCookieService);
+                preBidRequestContextFactory, requestValidator, exchangeService, uidsCookieService, metrics);
     }
 
     @Bean

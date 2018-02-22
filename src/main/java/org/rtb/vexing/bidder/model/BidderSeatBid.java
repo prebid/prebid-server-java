@@ -52,5 +52,5 @@ public final class BidderSeatBid {
      * Any errors will be user-facing in the API.
      * Error messages should help publishers understand what might account for "bad" bids.
      */
-    List<String> errors;
+    List<BidderError> errors;
 }

@@ -10,6 +10,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.rtb.vexing.bidder.model.BidderError;
 import org.rtb.vexing.bidder.model.HttpResponse;
 import org.rtb.vexing.exception.PreBidException;
 import org.rtb.vexing.model.openrtb.ext.response.BidType;
@@ -17,6 +18,7 @@ import org.rtb.vexing.model.openrtb.ext.response.BidType;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -60,6 +62,10 @@ public abstract class OpenRtbBidder implements Bidder {
         return MultiMap.caseInsensitiveMultiMap()
                 .add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+    }
+
+    protected static List<BidderError> errors(List<String> errors) {
+        return errors.stream().map(BidderError::create).collect(Collectors.toList());
     }
 
     protected static BidType bidType(Bid bid, Map<String, BidType> impidToBidType) {
