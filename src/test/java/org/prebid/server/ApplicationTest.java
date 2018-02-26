@@ -355,9 +355,9 @@ public class ApplicationTest extends VertxTest {
                 .detailedCookie("uids");
 
         assertThat(uidsCookie.getDomain()).isEqualTo("cookie-domain");
-        assertThat(uidsCookie.getMaxAge()).isEqualTo(15552000);
+        assertThat(uidsCookie.getMaxAge()).isEqualTo(7776000);
         assertThat(uidsCookie.getExpiryDate().toInstant())
-                .isCloseTo(Instant.now().plus(180, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
+                .isCloseTo(Instant.now().plus(90, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
 
         final Uids uids = decodeUids(uidsCookie.getValue());
         assertThat(uids.getBday()).isEqualTo("2017-08-15T19:47:59.523908376Z"); // should be unchanged

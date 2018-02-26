@@ -32,7 +32,10 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class SetuidHandlerTest extends VertxTest {
 
@@ -68,8 +71,6 @@ public class SetuidHandlerTest extends VertxTest {
 
         given(metrics.cookieSync()).willReturn(cookieSyncMetrics);
         given(cookieSyncMetrics.forBidder(anyString())).willReturn(bidderCookieSyncMetrics);
-
-        given(uidsCookieService.toCookie(any())).willCallRealMethod();
 
         setuidHandler = new SetuidHandler(uidsCookieService, metrics);
     }
@@ -124,6 +125,10 @@ public class SetuidHandlerTest extends VertxTest {
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
 
+        // this uids cookie stands for {"tempUIDs":{"adnxs":{"uid":"12345"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhZG54cyI6eyJ1aWQiOiIxMjM0NSJ9fX0="));
+
         // when
         setuidHandler.handle(routingContext);
 
@@ -149,6 +154,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("bidder")).willReturn("audienceNetwork");
         given(httpRequest.getParam("uid")).willReturn("0");
 
+        // this uids cookie value stands for {"tempUIDs":{"audienceNetwork":{"uid":"facebookUid"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhdWRpZW5jZU5ldHdvcmsiOnsidWlkIjoiZmFjZWJvb2tVaWQifX19"));
+
         // when
         setuidHandler.handle(routingContext);
 
@@ -171,6 +180,11 @@ public class SetuidHandlerTest extends VertxTest {
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
+
+        // {"tempUIDs":{"adnxs":{"uid":"12345"}, "rubicon":{"uid":"updatedUid"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJhZG54cyI6eyJ1aWQiOiIxMjM0NSJ9LCAicnViaWNvbiI6eyJ1aWQiOiJ1cGRhdGVkVW"
+                        + "lkIn19fQ=="));
 
         // when
         setuidHandler.handle(routingContext);

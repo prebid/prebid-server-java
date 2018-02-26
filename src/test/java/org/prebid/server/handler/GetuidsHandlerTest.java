@@ -52,8 +52,6 @@ public class GetuidsHandlerTest extends VertxTest {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
 
-        given(uidsCookieService.toCookie(any())).willCallRealMethod();
-
         getuidsHandler = new GetuidsHandler(uidsCookieService);
     }
 
@@ -73,6 +71,13 @@ public class GetuidsHandlerTest extends VertxTest {
                 .bday(ZonedDateTime.parse("2017-08-15T19:47:59.523908376Z"))
                 .build()));
         given(routingContext.addCookie(any())).willReturn(routingContext);
+
+        // this uids cookie stands for {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT",
+        // "expires":"2017-12-30T12:30:40.000000000Z"}},"bday":"2017-08-15T19:47:59.523908376Z"}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQiLCJleHBpcmVzIjoiMjAx"
+                        + "Ny0xMi0zMFQxMjozMDo0MC4wMDAwMDAwMDBaIn19LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZ"
+                        + "aIn0="));
 
         // when
         getuidsHandler.handle(routingContext);
@@ -101,6 +106,10 @@ public class GetuidsHandlerTest extends VertxTest {
                 .bday(ZonedDateTime.parse("2017-08-15T19:47:59.523908376Z"))
                 .build()));
         given(routingContext.addCookie(any())).willReturn(routingContext);
+
+        // this uids cookie stands for {"tempUIDs":{},"bday":"2017-08-15T19:47:59.523908376Z"}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6e30sImJkYXkiOiIyMDE3LTA4LTE1VDE5OjQ3OjU5LjUyMzkwODM3NloifQ=="));
 
         // when
         getuidsHandler.handle(routingContext);

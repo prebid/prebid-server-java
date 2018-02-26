@@ -84,10 +84,11 @@ public class ServiceConfiguration {
             @Value("${host-cookie.optout-cookie.value:#{null}}") String optOutCookieValue,
             @Value("${host-cookie.family:#{null}}") String hostCookieFamily,
             @Value("${host-cookie.cookie-name:#{null}}") String hostCookieName,
-            @Value("${host-cookie.domain:#{null}}") String hostCookieDomain) {
+            @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
+            @Value("${host-cookie.ttl-days}") Integer ttlDays) {
 
         return new UidsCookieService(optOutCookieName, optOutCookieValue, hostCookieFamily, hostCookieName,
-                hostCookieDomain);
+                hostCookieDomain, ttlDays);
     }
 
     @Bean

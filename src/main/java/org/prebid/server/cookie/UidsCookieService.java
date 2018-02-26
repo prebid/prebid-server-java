@@ -26,21 +26,22 @@ public class UidsCookieService {
     private static final Logger logger = LoggerFactory.getLogger(UidsCookie.class);
 
     private static final String COOKIE_NAME = "uids";
-    private static final long COOKIE_EXPIRATION = Duration.ofDays(180).getSeconds();
 
     private final String optOutCookieName;
     private final String optOutCookieValue;
     private final String hostCookieFamily;
     private final String hostCookieName;
     private final String hostCookieDomain;
+    private final Long ttlSeconds;
 
     public UidsCookieService(String optOutCookieName, String optOutCookieValue, String hostCookieFamily,
-                             String hostCookieName, String hostCookieDomain) {
+                             String hostCookieName, String hostCookieDomain, Integer ttlDays) {
         this.optOutCookieName = optOutCookieName;
         this.optOutCookieValue = optOutCookieValue;
         this.hostCookieFamily = hostCookieFamily;
         this.hostCookieName = hostCookieName;
         this.hostCookieDomain = hostCookieDomain;
+        this.ttlSeconds = Duration.ofDays(ttlDays).getSeconds();
     }
 
     public UidsCookie parseFromRequest(RoutingContext context) {
@@ -106,7 +107,7 @@ public class UidsCookieService {
     public Cookie toCookie(UidsCookie uidsCookie) {
         final Cookie cookie = Cookie
                 .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
-                .setMaxAge(COOKIE_EXPIRATION);
+                .setMaxAge(ttlSeconds);
 
         if (StringUtils.isNotBlank(hostCookieDomain)) {
             cookie.setDomain(hostCookieDomain);

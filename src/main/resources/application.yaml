@@ -57,3 +57,4 @@ recaptcha-secret: secret_value
 host-cookie:
   opt-out-url: http://prebid.org/optout
   opt-in-url: http://prebid.org/optin
+  ttl-days: 90

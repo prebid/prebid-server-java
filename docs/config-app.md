@@ -95,6 +95,7 @@ For `mysql` or `postgres` type available next options:
 - `host-cookie.family` - set the family name value for host cookie.
 - `host-cookie.cookie-name` - set the name value for host cookie.
 - `host-cookie.domain` - set the domain value for host cookie.
+- `host-cookie.ttl-days` - set the cookie ttl in days
 
 ## Google Recaptcha
 - `recaptcha-url` - the url for Google Recaptcha service to submit user verification.
