@@ -13,12 +13,12 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.request.PreBidRequest;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.usersyncer.Usersyncer;
 
 import java.util.Collections;
@@ -52,7 +52,7 @@ public abstract class OpenrtbAdapter implements Adapter {
     }
 
     protected static Video.VideoBuilder videoBuilder(AdUnitBid adUnitBid) {
-        final org.prebid.server.model.request.Video video = adUnitBid.getVideo();
+        final org.prebid.server.proto.request.Video video = adUnitBid.getVideo();
         final Format format = adUnitBid.getSizes().get(0);
         return Video.builder()
                 .mimes(video.getMimes())
@@ -123,7 +123,7 @@ public abstract class OpenrtbAdapter implements Adapter {
     }
 
     private static boolean isValidAdUnitBidVideoMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
-        final org.prebid.server.model.request.Video video = adUnitBid.getVideo();
+        final org.prebid.server.proto.request.Video video = adUnitBid.getVideo();
         return !(MediaType.video.equals(mediaType)
                 && (video == null || CollectionUtils.isEmpty(video.getMimes())));
     }

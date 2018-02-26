@@ -2,11 +2,10 @@ package org.prebid.server.adapter;
 
 import org.prebid.server.adapter.model.ExchangeCall;
 import org.prebid.server.adapter.model.HttpRequest;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.BidderResult;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.response.Bid;
+import org.prebid.server.proto.response.Bid;
 
 import java.util.List;
 
@@ -27,19 +26,23 @@ public interface Adapter {
      *
      * @throws PreBidException if error occurs while adUnitBids validation.
      */
-    List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) throws PreBidException;
+    List<HttpRequest> makeHttpRequests(AdapterRequest adapterRequest, PreBidRequestContext preBidRequestContext)
+            throws PreBidException;
 
     /**
      * Extracts bids from exchange response.
      *
      * @throws PreBidException if error occurs while bids validation.
      */
-    List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) throws PreBidException;
+    List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) throws PreBidException;
 
     /**
-     * If true - {@link BidderResult} will contain bids if at least one valid bid exists, otherwise will contain error.
+     * If true - {@link org.prebid.server.auction.model.AdapterResponse} will contain bids if at least one valid bid
+     * exists, otherwise will contain
+     * error.
      * <p>
-     * If false - {@link BidderResult} will contain error if at least one error occurs during processing.
+     * If false - {@link org.prebid.server.auction.model.AdapterResponse} will contain error if at least one error
+     * occurs during processing.
      */
     boolean tolerateErrors();
 }

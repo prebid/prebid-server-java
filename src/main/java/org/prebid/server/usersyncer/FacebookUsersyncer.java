@@ -1,7 +1,7 @@
 package org.prebid.server.usersyncer;
 
 import org.prebid.server.bidder.BidderName;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.proto.response.UsersyncInfo;
 
 import java.util.Objects;
 

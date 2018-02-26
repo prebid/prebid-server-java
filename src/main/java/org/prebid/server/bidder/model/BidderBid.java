@@ -4,7 +4,7 @@ import com.iab.openrtb.response.Bid;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.model.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 /**
  * Bid returned by a {@link Bidder}.

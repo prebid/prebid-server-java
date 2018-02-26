@@ -34,14 +34,14 @@ import org.prebid.server.execution.GlobalTimeout;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.model.openrtb.ext.ExtPrebid;
-import org.prebid.server.model.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.model.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.model.openrtb.ext.request.ExtRequestPrebidCache;
-import org.prebid.server.model.openrtb.ext.request.ExtRequestTargeting;
-import org.prebid.server.model.openrtb.ext.response.ExtBidPrebid;
-import org.prebid.server.model.openrtb.ext.response.ExtBidResponse;
-import org.prebid.server.model.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.usersyncer.Usersyncer;
 import org.prebid.server.usersyncer.UsersyncerCatalog;
 
@@ -67,7 +67,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.*;
-import static org.prebid.server.model.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class ExchangeServiceTest extends VertxTest {
 

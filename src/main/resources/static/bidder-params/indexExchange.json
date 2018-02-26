@@ -9,5 +9,7 @@
       "description": "An ID which identifies the site selling the impression"
     }
   },
-  "required": ["siteID"]
+  "required": [
+    "siteID"
+  ]
 }

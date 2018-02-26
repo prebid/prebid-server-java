@@ -10,7 +10,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.Arrays;
 import java.util.Map;

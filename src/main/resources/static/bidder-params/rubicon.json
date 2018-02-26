@@ -64,5 +64,9 @@
       }
     }
   },
-  "required": ["accountId", "siteId", "zoneId"]
+  "required": [
+    "accountId",
+    "siteId",
+    "zoneId"
+  ]
 }

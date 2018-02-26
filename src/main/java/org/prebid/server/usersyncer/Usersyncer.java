@@ -3,7 +3,7 @@ package org.prebid.server.usersyncer;
 import org.prebid.server.adapter.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.proto.response.UsersyncInfo;
 
 /**
  * Describes the behavior for {@link Usersyncer} implementations.

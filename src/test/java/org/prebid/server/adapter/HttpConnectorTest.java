@@ -32,20 +32,20 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.adapter.model.ExchangeCall;
 import org.prebid.server.adapter.model.HttpRequest;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.AdapterResponse;
+import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.GlobalTimeout;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.AdUnitBid.AdUnitBidBuilder;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.BidderResult;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.PreBidRequestContext.PreBidRequestContextBuilder;
-import org.prebid.server.model.request.PreBidRequest;
-import org.prebid.server.model.request.PreBidRequest.PreBidRequestBuilder;
-import org.prebid.server.model.response.BidderDebug;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
+import org.prebid.server.proto.response.BidderDebug;
+import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.usersyncer.Usersyncer;
 
 import java.io.IOException;
@@ -84,13 +84,13 @@ public class HttpConnectorTest extends VertxTest {
     @Mock
     private UidsCookie uidsCookie;
 
-    private Bidder bidder;
+    private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
     private HttpConnector httpConnector;
 
     @Before
     public void setUp() {
-        given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
+        given(adapter.makeHttpRequests(any(AdapterRequest.class), any(PreBidRequestContext.class)))
                 .willReturn(singletonList(givenHttpRequest(null, identity())));
 
         given(httpClient.postAbs(anyString(), any())).willReturn(httpClientRequest);
@@ -99,7 +99,7 @@ public class HttpConnectorTest extends VertxTest {
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
-        bidder = Bidder.of(null, null);
+        adapterRequest = AdapterRequest.of(null, null);
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         httpConnector = new HttpConnector(httpClient);
     }
@@ -113,7 +113,8 @@ public class HttpConnectorTest extends VertxTest {
     public void callShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> httpConnector.call(null, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> httpConnector.call(adapter, usersyncer, null, null));
-        assertThatNullPointerException().isThrownBy(() -> httpConnector.call(adapter, usersyncer, bidder, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> httpConnector.call(adapter, usersyncer, adapterRequest, null));
     }
 
     @Test
@@ -121,11 +122,11 @@ public class HttpConnectorTest extends VertxTest {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add("key1", "value1");
-        given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
+        given(adapter.makeHttpRequests(any(AdapterRequest.class), any(PreBidRequestContext.class)))
                 .willReturn(singletonList(givenHttpRequest(headers, identity())));
 
         // when
-        httpConnector.call(adapter, usersyncer, bidder, preBidRequestContext);
+        httpConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpClientRequest.headers()).extracting(Map.Entry::getKey).containsOnly("key1");
@@ -135,7 +136,7 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldPerformHttpRequestsWithExpectedTimeout() {
         // when
-        httpConnector.call(adapter, usersyncer, bidder, preBidRequestContext);
+        httpConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
@@ -146,11 +147,11 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldPerformHttpRequestsWithExpectedBody() throws IOException {
         // given
-        given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
+        given(adapter.makeHttpRequests(any(AdapterRequest.class), any(PreBidRequestContext.class)))
                 .willReturn(singletonList(givenHttpRequest(null, b -> b.id("bidRequest1"))));
 
         // when
-        httpConnector.call(adapter, usersyncer, bidder, preBidRequestContext);
+        httpConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         final BidRequest bidRequest = captureBidRequest();
@@ -161,11 +162,11 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldNotPerformHttpRequestsIfAdapterReturnsEmptyHttpRequests() {
         // given
-        given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
+        given(adapter.makeHttpRequests(any(AdapterRequest.class), any(PreBidRequestContext.class)))
                 .willReturn(emptyList());
 
         // when
-        httpConnector.call(adapter, usersyncer, bidder, preBidRequestContext);
+        httpConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -174,16 +175,16 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldSubmitErrorToAdapterIfMakeHttpRequestsFails() {
         // given
-        given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
+        given(adapter.makeHttpRequests(any(AdapterRequest.class), any(PreBidRequestContext.class)))
                 .willThrow(new PreBidException("Make http requests exception"));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Make http requests exception");
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Make http requests exception");
     }
 
     @Test
@@ -194,14 +195,14 @@ public class HttpConnectorTest extends VertxTest {
                 identity());
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.isTimedOut()).isTrue();
-        assertThat(bidderResult.getBidderStatus()).isNotNull();
-        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Timed out");
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.isTimedOut()).isTrue();
+        assertThat(adapterResponse.getBidderStatus()).isNotNull();
+        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Timed out");
         verifyZeroInteractions(httpClient);
     }
 
@@ -212,14 +213,14 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new ConnectTimeoutException()));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.isTimedOut()).isTrue();
-        assertThat(bidderResult.getBidderStatus()).isNotNull();
-        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Timed out");
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.isTimedOut()).isTrue();
+        assertThat(adapterResponse.getBidderStatus()).isNotNull();
+        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Timed out");
     }
 
     @Test
@@ -229,14 +230,14 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException()));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.isTimedOut()).isTrue();
-        assertThat(bidderResult.getBidderStatus()).isNotNull();
-        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Timed out");
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.isTimedOut()).isTrue();
+        assertThat(adapterResponse.getBidderStatus()).isNotNull();
+        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Timed out");
     }
 
     @Test
@@ -246,12 +247,12 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Request exception");
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Request exception");
     }
 
     @Test
@@ -260,12 +261,12 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("Response exception");
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Response exception");
     }
 
     @Test
@@ -274,13 +275,13 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(204, "response");
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isNull();
-        assertThat(bidderResult.getBids()).isEmpty();
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isNull();
+        assertThat(adapterResponse.getBids()).isEmpty();
     }
 
     @Test
@@ -289,12 +290,12 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(503, "response");
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isEqualTo("HTTP status 503; body: response");
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("HTTP status 503; body: response");
     }
 
     @Test
@@ -303,22 +304,22 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, "response");
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).startsWith("Failed to decode");
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).startsWith("Failed to decode");
     }
 
     @Test
     public void callShouldReturnBidderResultWithoutErrorIfBidsArePresent() throws JsonProcessingException {
         // given
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
+        adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
-        given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
-                .willReturn(singletonList(org.prebid.server.model.response.Bid.builder()));
+        given(adapter.extractBids(any(AdapterRequest.class), any(ExchangeCall.class)))
+                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()));
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
@@ -327,30 +328,30 @@ public class HttpConnectorTest extends VertxTest {
                 .willReturn(httpClientResponse);
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isNull();
-        assertThat(bidderResult.getBids()).hasSize(1);
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isNull();
+        assertThat(adapterResponse.getBids()).hasSize(1);
     }
 
     @Test
     public void
-    callShouldReturnBidderResultWithErrorIfAtLeastOneErrorOccursWhileHttpRequestForNotToleratedErrorsAdapter()
+    callShouldReturnAdapterResponseWithErrorIfAtLeastOneErrorOccursWhileHttpRequestForNotToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
-        given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
+        given(adapter.makeHttpRequests(any(AdapterRequest.class), any(PreBidRequestContext.class)))
                 .willReturn(asList(givenHttpRequest(null, identity()),
                         givenHttpRequest(null, identity())));
 
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
+        adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
-        given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
-                .willReturn(singletonList(org.prebid.server.model.response.Bid.builder()))
-                .willReturn(singletonList(org.prebid.server.model.response.Bid.builder()));
+        given(adapter.extractBids(any(AdapterRequest.class), any(ExchangeCall.class)))
+                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()))
+                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()));
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
@@ -370,31 +371,31 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isNotNull()
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isNotNull()
                 .startsWith("HTTP status 503; body:");
     }
 
     @Test
     public void
-    callShouldReturnBidderResultWithoutErrorIfAtLeastOneBidIsPresentWhileHttpRequestForToleratedErrorsAdapter()
+    callShouldReturnAdapterResponseWithoutErrorIfAtLeastOneBidIsPresentWhileHttpRequestForToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
-        given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
+        given(adapter.makeHttpRequests(any(AdapterRequest.class), any(PreBidRequestContext.class)))
                 .willReturn(asList(givenHttpRequest(null, identity()),
                         givenHttpRequest(null, identity())));
 
         given(adapter.tolerateErrors()).willReturn(true);
 
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
+        adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
-        given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
-                .willReturn(singletonList(org.prebid.server.model.response.Bid.builder()))
+        given(adapter.extractBids(any(AdapterRequest.class), any(ExchangeCall.class)))
+                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()))
                 .willReturn(null);
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
@@ -415,87 +416,87 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isNull();
-        assertThat(bidderResult.getBids()).hasSize(1);
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isNull();
+        assertThat(adapterResponse.getBids()).hasSize(1);
     }
 
     @Test
     public void
-    callShouldReturnBidderResultWithErrorIfAtLeastOneErrorOccursWhileExtractingForNotToleratedErrorsAdapter()
+    callShouldReturnAdapterResponseWithErrorIfAtLeastOneErrorOccursWhileExtractingForNotToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
-        given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
+        given(adapter.makeHttpRequests(any(AdapterRequest.class), any(PreBidRequestContext.class)))
                 .willReturn(asList(givenHttpRequest(null, identity()),
                         givenHttpRequest(null, identity())));
 
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
+        adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
-        given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
-                .willReturn(singletonList(org.prebid.server.model.response.Bid.builder()))
+        given(adapter.extractBids(any(AdapterRequest.class), any(ExchangeCall.class)))
+                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()))
                 .willThrow(new PreBidException("adapter extractBids exception"));
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isNotNull()
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isNotNull()
                 .isEqualTo("adapter extractBids exception");
     }
 
     @Test
     public void
-    callShouldReturnBidderResultWithoutErrorIfAtLeastOneBidIsPresentWhileExtractingForToleratedErrorsAdapter()
+    callShouldReturnAdapterResponseWithoutErrorIfAtLeastOneBidIsPresentWhileExtractingForToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
-        given(adapter.makeHttpRequests(any(Bidder.class), any(PreBidRequestContext.class)))
+        given(adapter.makeHttpRequests(any(AdapterRequest.class), any(PreBidRequestContext.class)))
                 .willReturn(asList(givenHttpRequest(null, identity()),
                         givenHttpRequest(null, identity())));
 
         given(adapter.tolerateErrors()).willReturn(true);
 
         final AdUnitBid adUnitBid = givenAdUnitBid(identity());
-        bidder = Bidder.of("bidderCode1", asList(adUnitBid, adUnitBid));
+        adapterRequest = AdapterRequest.of("bidderCode1", asList(adUnitBid, adUnitBid));
 
-        given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
-                .willReturn(singletonList(org.prebid.server.model.response.Bid.builder()))
+        given(adapter.extractBids(any(AdapterRequest.class), any(ExchangeCall.class)))
+                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()))
                 .willThrow(new PreBidException("adapter extractBids exception"));
 
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getError()).isNull();
-        assertThat(bidderResult.getBids()).hasSize(1);
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getError()).isNull();
+        assertThat(adapterResponse.getBids()).hasSize(1);
     }
 
     @Test
-    public void callShouldReturnBidderResultWithEmptyBidsIfAdUnitBidIsBannerAndSizesLengthMoreThanOne()
+    public void callShouldReturnAdapterResponseWithEmptyBidsIfAdUnitBidIsBannerAndSizesLengthMoreThanOne()
             throws JsonProcessingException {
         // given
-        bidder = Bidder.of("bidderCode1", singletonList(
+        adapterRequest = AdapterRequest.of("bidderCode1", singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .sizes(asList(Format.builder().w(100).h(200).build(), Format.builder().w(100).h(200).build()))
                         .bidId("bidId1"))));
 
-        given(adapter.extractBids(any(Bidder.class), any(ExchangeCall.class)))
-                .willReturn(singletonList(org.prebid.server.model.response.Bid.builder()
+        given(adapter.extractBids(any(AdapterRequest.class), any(ExchangeCall.class)))
+                .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()
                         .code("adUnitCode1")
                         .bidId("bidId1")
                         .mediaType(MediaType.banner)));
@@ -504,17 +505,17 @@ public class HttpConnectorTest extends VertxTest {
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBids()).isEmpty();
-        assertThat(bidderResult.getBidderStatus().getNumBids()).isEqualTo(0);
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBids()).isEmpty();
+        assertThat(adapterResponse.getBidderStatus().getNumBids()).isEqualTo(0);
     }
 
     @Test
-    public void callShouldReturnBidderResultWithNoCookieIfNoAdapterUidInCookieAndNoAppInPreBidRequest()
+    public void callShouldReturnAdapterResponseWithNoCookieIfNoAdapterUidInCookieAndNoAppInPreBidRequest()
             throws IOException {
         // given
         givenHttpClientReturnsResponses(200,
@@ -523,18 +524,18 @@ public class HttpConnectorTest extends VertxTest {
         given(usersyncer.usersyncInfo()).willReturn(UsersyncInfo.of("url1", null, false));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getNoCookie()).isTrue();
-        assertThat(bidderResult.getBidderStatus().getUsersync()).isNotNull();
-        assertThat(bidderResult.getBidderStatus().getUsersync()).isEqualTo(UsersyncInfo.of("url1", null, false));
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getNoCookie()).isTrue();
+        assertThat(adapterResponse.getBidderStatus().getUsersync()).isNotNull();
+        assertThat(adapterResponse.getBidderStatus().getUsersync()).isEqualTo(UsersyncInfo.of("url1", null, false));
     }
 
     @Test
-    public void callShouldReturnBidderResultWithoutNoCookieIfNoAdapterUidInCookieAndAppPresentInPreBidRequest()
+    public void callShouldReturnAdapterResponseWithoutNoCookieIfNoAdapterUidInCookieAndAppPresentInPreBidRequest()
             throws IOException {
         // given
         preBidRequestContext = givenPreBidRequestContext(identity(),
@@ -544,21 +545,21 @@ public class HttpConnectorTest extends VertxTest {
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getNoCookie()).isNull();
-        assertThat(bidderResult.getBidderStatus().getUsersync()).isNull();
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getNoCookie()).isNull();
+        assertThat(adapterResponse.getBidderStatus().getUsersync()).isNull();
     }
 
     @Test
-    public void callShouldReturnBidderResultWithDebugIfFlagIsTrue() throws JsonProcessingException {
+    public void callShouldReturnAdapterResponseWithDebugIfFlagIsTrue() throws JsonProcessingException {
         // given
         preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 
-        bidder = Bidder.of("bidderCode1", asList(
+        adapterRequest = AdapterRequest.of("bidderCode1", asList(
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
@@ -568,17 +569,17 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, bidResponse);
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
 
         final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
         verify(httpClientRequest).end(bidRequestCaptor.capture());
         final List<String> bidRequests = bidRequestCaptor.getAllValues();
 
-        assertThat(bidderResult.getBidderStatus().getDebug()).hasSize(1).containsOnly(
+        assertThat(adapterResponse.getBidderStatus().getDebug()).hasSize(1).containsOnly(
                 BidderDebug.builder()
                         .requestUri("uri")
                         .requestBody(bidRequests.get(0))
@@ -588,7 +589,7 @@ public class HttpConnectorTest extends VertxTest {
     }
 
     @Test
-    public void callShouldReturnBidderResultWithoutDebugIfFlagIsFalse() throws JsonProcessingException {
+    public void callShouldReturnAdapterResponseWithoutDebugIfFlagIsFalse() throws JsonProcessingException {
         // given
         preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(false), identity());
 
@@ -596,15 +597,15 @@ public class HttpConnectorTest extends VertxTest {
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        assertThat(bidderResultFuture.result().getBidderStatus().getDebug()).isNull();
+        assertThat(adapterResponseFuture.result().getBidderStatus().getDebug()).isNull();
     }
 
     @Test
-    public void callShouldReturnBidderResultWithDebugIfFlagIsTrueAndGlobalTimeoutAlreadyExpired() {
+    public void callShouldReturnAdapterResponseWithDebugIfFlagIsTrueAndGlobalTimeoutAlreadyExpired() {
         // given
         preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
@@ -613,20 +614,20 @@ public class HttpConnectorTest extends VertxTest {
                 identity());
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getDebug()).hasSize(1);
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getDebug()).hasSize(1);
 
-        final BidderDebug bidderDebug = bidderResult.getBidderStatus().getDebug().get(0);
+        final BidderDebug bidderDebug = adapterResponse.getBidderStatus().getDebug().get(0);
         assertThat(bidderDebug.getRequestUri()).isNotBlank();
         assertThat(bidderDebug.getRequestBody()).isNotBlank();
     }
 
     @Test
-    public void callShouldReturnBidderResultWithDebugIfFlagIsTrueAndHttpRequestFails() {
+    public void callShouldReturnAdapterResponseWithDebugIfFlagIsTrueAndHttpRequestFails() {
         // given
         preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 
@@ -634,34 +635,34 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getDebug()).hasSize(1);
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getDebug()).hasSize(1);
 
-        final BidderDebug bidderDebug = bidderResult.getBidderStatus().getDebug().get(0);
+        final BidderDebug bidderDebug = adapterResponse.getBidderStatus().getDebug().get(0);
         assertThat(bidderDebug.getRequestUri()).isNotBlank();
         assertThat(bidderDebug.getRequestBody()).isNotBlank();
     }
 
     @Test
-    public void callShouldReturnBidderResultWithDebugIfFlagIsTrueAndResponseIsNotSuccessful() {
+    public void callShouldReturnAdapterResponseWithDebugIfFlagIsTrueAndResponseIsNotSuccessful() {
         // given
         preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 
         givenHttpClientReturnsResponses(503, "response");
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
                 preBidRequestContext);
 
         // then
-        final BidderResult bidderResult = bidderResultFuture.result();
-        assertThat(bidderResult.getBidderStatus().getDebug()).hasSize(1);
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getDebug()).hasSize(1);
 
-        final BidderDebug bidderDebug = bidderResult.getBidderStatus().getDebug().get(0);
+        final BidderDebug bidderDebug = adapterResponse.getBidderStatus().getDebug().get(0);
         assertThat(bidderDebug.getRequestUri()).isNotBlank();
         assertThat(bidderDebug.getRequestBody()).isNotBlank();
         assertThat(bidderDebug.getResponseBody()).isNotBlank();

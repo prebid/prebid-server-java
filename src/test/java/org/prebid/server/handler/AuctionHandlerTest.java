@@ -25,26 +25,26 @@ import org.prebid.server.adapter.Adapter;
 import org.prebid.server.adapter.AdapterCatalog;
 import org.prebid.server.adapter.HttpConnector;
 import org.prebid.server.auction.PreBidRequestContextFactory;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.AdapterResponse;
+import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.prebid.server.cache.CacheService;
-import org.prebid.server.cache.model.BidCacheResult;
+import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.GlobalTimeout;
 import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.BidderResult;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.PreBidRequestContext.PreBidRequestContextBuilder;
-import org.prebid.server.model.request.PreBidRequest;
-import org.prebid.server.model.request.PreBidRequest.PreBidRequestBuilder;
-import org.prebid.server.model.response.Bid;
-import org.prebid.server.model.response.BidderStatus;
-import org.prebid.server.model.response.BidderStatus.BidderStatusBuilder;
-import org.prebid.server.model.response.PreBidResponse;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
+import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.BidderStatus;
+import org.prebid.server.proto.response.BidderStatus.BidderStatusBuilder;
+import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.usersyncer.UsersyncerCatalog;
@@ -241,7 +241,7 @@ public class AuctionHandlerTest extends VertxTest {
                 builder -> builder.cacheMarkup(1),
                 builder -> builder
                         .timeout(timeout)
-                        .bidders(singletonList(Bidder.of(RUBICON, singletonList(null)))));
+                        .adapterRequests(singletonList(AdapterRequest.of(RUBICON, singletonList(null)))));
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
@@ -319,19 +319,19 @@ public class AuctionHandlerTest extends VertxTest {
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(builder -> builder.noLiveUids(false));
 
         given(httpConnector.call(any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.of(
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build(),
                         Arrays.stream(new String[]{"bidId1", "bidId2"})
-                                .map(id -> org.prebid.server.model.response.Bid.builder()
+                                .map(id -> org.prebid.server.proto.response.Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
                                         .build())
                                 .collect(Collectors.toList()),
                         false)))
-                .willReturn(Future.succeededFuture(BidderResult.of(
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
                         Arrays.stream(new String[]{"bidId3", "bidId4"})
-                                .map(id -> org.prebid.server.model.response.Bid.builder()
+                                .map(id -> org.prebid.server.proto.response.Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
                                         .build())
@@ -354,31 +354,32 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithBidsWithTargetingKeywordsWhenSortBidsFlagIsSetInPreBidRequest() throws IOException {
         // given
         final List<AdUnitBid> adUnitBids = asList(null, null);
-        final List<Bidder> bidders = asList(Bidder.of(RUBICON, adUnitBids), Bidder.of(APPNEXUS, adUnitBids));
-        givenPreBidRequestContext(builder -> builder.sortBids(1), builder -> builder.bidders(bidders));
+        final List<AdapterRequest> adapterRequests = asList(AdapterRequest.of(RUBICON, adUnitBids),
+                AdapterRequest.of(APPNEXUS, adUnitBids));
+        givenPreBidRequestContext(builder -> builder.sortBids(1), builder -> builder.adapterRequests(adapterRequests));
 
         given(httpConnector.call(any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.of(
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build(),
                         asList(
-                                org.prebid.server.model.response.Bid.builder()
+                                org.prebid.server.proto.response.Bid.builder()
                                         .bidder(RUBICON).code("adUnitCode1").bidId("bidId1")
                                         .price(new BigDecimal("5.67"))
                                         .responseTimeMs(60).adServerTargeting(
                                         singletonMap("rpfl_1001", "2_tier0100")).build(),
-                                org.prebid.server.model.response.Bid.builder()
+                                org.prebid.server.proto.response.Bid.builder()
                                         .bidder(RUBICON).code("adUnitCode2").bidId("bidId2")
                                         .price(new BigDecimal("6.35"))
                                         .responseTimeMs(80).build()),
                         false)))
-                .willReturn(Future.succeededFuture(BidderResult.of(
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
                         asList(
-                                org.prebid.server.model.response.Bid.builder()
+                                org.prebid.server.proto.response.Bid.builder()
                                         .bidder(APPNEXUS).code("adUnitCode1").bidId("bidId3")
                                         .price(new BigDecimal("5.67"))
                                         .responseTimeMs(50).build(),
-                                org.prebid.server.model.response.Bid.builder()
+                                org.prebid.server.proto.response.Bid.builder()
                                         .bidder(APPNEXUS).code("adUnitCode2").bidId("bidId4")
                                         .price(new BigDecimal("7.15"))
                                         .responseTimeMs(100).build()),
@@ -411,14 +412,14 @@ public class AuctionHandlerTest extends VertxTest {
                 .bidId("bidId1")
                 .sizes(Collections.singletonList(Format.builder().w(100).h(200).build()))
                 .build());
-        final List<Bidder> bidders = singletonList(Bidder.of(RUBICON, adUnitBids));
+        final List<AdapterRequest> adapterRequests = singletonList(AdapterRequest.of(RUBICON, adUnitBids));
 
-        givenPreBidRequestContext(identity(), builder -> builder.bidders(bidders));
+        givenPreBidRequestContext(identity(), builder -> builder.adapterRequests(adapterRequests));
 
-        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(AdapterResponse.of(
                 BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build(),
                 singletonList(
-                        org.prebid.server.model.response.Bid.builder().mediaType(MediaType.banner)
+                        org.prebid.server.proto.response.Bid.builder().mediaType(MediaType.banner)
                                 .bidder(RUBICON).code("adUnitCode1").bidId("bidId1").price(new BigDecimal("5.67"))
                                 .build()),
                 false)));
@@ -436,14 +437,14 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithValidVideoBidEvenIfSizeIsMissed() throws IOException {
         // given
         final List<AdUnitBid> adUnitBids = singletonList(null);
-        final List<Bidder> bidders = singletonList(Bidder.of(RUBICON, adUnitBids));
+        final List<AdapterRequest> adapterRequests = singletonList(AdapterRequest.of(RUBICON, adUnitBids));
 
-        givenPreBidRequestContext(identity(), builder -> builder.bidders(bidders));
+        givenPreBidRequestContext(identity(), builder -> builder.adapterRequests(adapterRequests));
 
-        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(AdapterResponse.of(
                 BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build(),
                 singletonList(
-                        org.prebid.server.model.response.Bid.builder().mediaType(MediaType.video).bidId("bidId1")
+                        org.prebid.server.proto.response.Bid.builder().mediaType(MediaType.video).bidId("bidId1")
                                 .price(new BigDecimal("5.67")).build()),
                 false)));
 
@@ -459,10 +460,10 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateUnsupportedBidderInPreBidRequest() throws IOException {
         // given
-        final List<Bidder> bidders = asList(
-                Bidder.of("unsupported", singletonList(null)),
-                Bidder.of(RUBICON, singletonList(null)));
-        givenPreBidRequestContext(identity(), builder -> builder.bidders(bidders));
+        final List<AdapterRequest> adapterRequests = asList(
+                AdapterRequest.of("unsupported", singletonList(null)),
+                AdapterRequest.of(RUBICON, singletonList(null)));
+        givenPreBidRequestContext(identity(), builder -> builder.adapterRequests(adapterRequests));
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
 
@@ -484,12 +485,12 @@ public class AuctionHandlerTest extends VertxTest {
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
         given(httpConnector.call(any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.of(
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(500).error("rubicon error").build(),
                         emptyList(), false)))
-                .willReturn(Future.succeededFuture(BidderResult.of(
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
-                        singletonList(org.prebid.server.model.response.Bid.builder()
+                        singletonList(org.prebid.server.proto.response.Bid.builder()
                                 .bidId("bidId1")
                                 .price(new BigDecimal("5.67"))
                                 .build()),
@@ -658,18 +659,18 @@ public class AuctionHandlerTest extends VertxTest {
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
-        final List<Bidder> bidders = singletonList(Bidder.of(RUBICON, singletonList(null)));
-        givenPreBidRequestContext(preBidRequestBuilderCustomizer, builder -> builder.bidders(bidders));
+        final List<AdapterRequest> adapterRequests = singletonList(AdapterRequest.of(RUBICON, singletonList(null)));
+        givenPreBidRequestContext(preBidRequestBuilderCustomizer, builder -> builder.adapterRequests(adapterRequests));
     }
 
     private void givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(
             Function<PreBidRequestContextBuilder, PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer) {
         final List<AdUnitBid> adUnitBids = asList(null, null);
-        final List<Bidder> bidders = asList(
-                Bidder.of(RUBICON, adUnitBids),
-                Bidder.of(APPNEXUS, adUnitBids));
+        final List<AdapterRequest> adapterRequests = asList(
+                AdapterRequest.of(RUBICON, adUnitBids),
+                AdapterRequest.of(APPNEXUS, adUnitBids));
         givenPreBidRequestContext(identity(),
-                preBidRequestContextBuilderCustomizer.compose(builder -> builder.bidders(bidders)));
+                preBidRequestContextBuilderCustomizer.compose(builder -> builder.adapterRequests(adapterRequests)));
     }
 
     private void givenPreBidRequestContext(
@@ -684,7 +685,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .build();
         final PreBidRequestContext preBidRequestContext = preBidRequestContextBuilderCustomizer.apply(
                 PreBidRequestContext.builder()
-                        .bidders(emptyList())
+                        .adapterRequests(emptyList())
                         .preBidRequest(preBidRequest))
                 .build();
         given(preBidRequestContextFactory.fromRequest(any())).willReturn(Future.succeededFuture(preBidRequestContext));
@@ -693,13 +694,13 @@ public class AuctionHandlerTest extends VertxTest {
     private void givenBidderRespondingWithBids(String bidder, Function<BidderStatusBuilder, BidderStatusBuilder>
             bidderStatusBuilderCustomizer, String... bidIds) {
         given(httpConnector.call(any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.of(
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
                         bidderStatusBuilderCustomizer.apply(BidderStatus.builder()
                                 .bidder(bidder)
                                 .responseTimeMs(100))
                                 .build(),
                         Arrays.stream(bidIds)
-                                .map(id -> org.prebid.server.model.response.Bid.builder()
+                                .map(id -> org.prebid.server.proto.response.Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
                                         .build())
@@ -709,7 +710,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     private void givenBidderRespondingWithError(String bidder, String error, boolean timedOut) {
         given(httpConnector.call(any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(BidderResult.of(
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(bidder).responseTimeMs(500).error(error).build(),
                         emptyList(), timedOut)));
     }

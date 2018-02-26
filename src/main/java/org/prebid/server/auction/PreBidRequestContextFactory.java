@@ -19,17 +19,17 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.GlobalTimeout;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.request.AdUnit;
-import org.prebid.server.model.request.Bid;
-import org.prebid.server.model.request.PreBidRequest;
+import org.prebid.server.proto.request.AdUnit;
+import org.prebid.server.proto.request.Bid;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.settings.ApplicationSettings;
 
 import java.net.MalformedURLException;
@@ -92,7 +92,7 @@ public class PreBidRequestContextFactory {
         final GlobalTimeout timeout = timeoutOrDefault(preBidRequest);
 
         return extractBidders(preBidRequest, timeout)
-                .map(bidders -> PreBidRequestContext.builder().bidders(bidders))
+                .map(bidders -> PreBidRequestContext.builder().adapterRequests(bidders))
                 .map(builder -> populatePreBidRequestContextBuilder(context, preBidRequest, context.request(), builder))
                 .map(builder -> builder.timeout(timeout))
                 .map(PreBidRequestContext.PreBidRequestContextBuilder::build);
@@ -229,7 +229,7 @@ public class PreBidRequestContextFactory {
         return builder;
     }
 
-    private Future<List<Bidder>> extractBidders(PreBidRequest preBidRequest, GlobalTimeout timeout) {
+    private Future<List<AdapterRequest>> extractBidders(PreBidRequest preBidRequest, GlobalTimeout timeout) {
         // this is a List<Future<Stream<AdUnitBid>>> actually
         final List<Future> adUnitBidFutures = preBidRequest.getAdUnits().stream()
                 .filter(PreBidRequestContextFactory::isValidAdUnit)
@@ -242,7 +242,7 @@ public class PreBidRequestContextFactory {
                         .flatMap(Function.identity())
                         .collect(Collectors.groupingBy(AdUnitBid::getBidderCode))
                         .entrySet().stream()
-                        .map(e -> Bidder.of(e.getKey(), e.getValue()))
+                        .map(e -> AdapterRequest.of(e.getKey(), e.getValue()))
                         .collect(Collectors.toList()));
     }
 

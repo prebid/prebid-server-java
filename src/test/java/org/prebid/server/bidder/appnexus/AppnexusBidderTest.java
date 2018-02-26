@@ -27,10 +27,10 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.model.openrtb.ext.ExtPrebid;
-import org.prebid.server.model.openrtb.ext.request.appnexus.ExtImpAppnexus;
-import org.prebid.server.model.openrtb.ext.request.appnexus.ExtImpAppnexus.ExtImpAppnexusBuilder;
-import org.prebid.server.model.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
+import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus.ExtImpAppnexusBuilder;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.util.Collections;

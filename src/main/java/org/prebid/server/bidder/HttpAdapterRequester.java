@@ -14,24 +14,24 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.adapter.Adapter;
 import org.prebid.server.adapter.HttpConnector;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.AdapterResponse;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.GlobalTimeout;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.BidderResult;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.Uids;
-import org.prebid.server.model.openrtb.ext.response.BidType;
-import org.prebid.server.model.openrtb.ext.response.ExtHttpCall;
-import org.prebid.server.model.request.PreBidRequest;
-import org.prebid.server.model.request.Video;
-import org.prebid.server.model.response.BidderDebug;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.request.Video;
+import org.prebid.server.proto.response.BidderDebug;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.usersyncer.Usersyncer;
 
 import java.util.ArrayList;
@@ -60,13 +60,13 @@ public class HttpAdapterRequester implements BidderRequester {
 
     /**
      * Transform ORTB {@link BidRequest} to corresponding {@link PreBidRequestContext} and
-     * {@link Bidder} to make call to legacy adapters. After response was returned it converts it to
+     * {@link AdapterRequest} to make call to legacy adapters. After response was returned it converts it to
      * {@link BidderSeatBid} format.
      */
     @Override
     public Future<BidderSeatBid> requestBids(BidRequest bidRequest, GlobalTimeout timeout) {
         final PreBidRequestContext preBidRequestContext;
-        final Result<org.prebid.server.model.Bidder> bidderWithErrors;
+        final Result<AdapterRequest> bidderWithErrors;
         try {
             preBidRequestContext = toPreBidRequestContext(bidRequest, timeout);
             bidderWithErrors = toBidder(bidRequest);
@@ -174,11 +174,11 @@ public class HttpAdapterRequester implements BidderRequester {
     }
 
     /**
-     * Creates {@link Result<Bidder>} from {@link BidRequest}. In case {@link BidRequest} has
+     * Creates {@link Result<AdapterRequest>} from {@link BidRequest}. In case {@link BidRequest} has
      * empty {@link List<Imp>} or neither of was converted to {@link AdUnitBid}, {@link InvalidRequestException} will
      * be thrown.
      */
-    private Result<Bidder> toBidder(BidRequest bidRequest) {
+    private Result<AdapterRequest> toBidder(BidRequest bidRequest) {
         if (bidRequest.getImp().size() == 0) {
             throw new InvalidRequestException(String.format("There no imps in bidRequest for bidder %s",
                     adapter.name()));
@@ -187,7 +187,7 @@ public class HttpAdapterRequester implements BidderRequester {
         final List<AdUnitBid> adUnitBids = adUnitBidsResult.getValue();
         final List<BidderError> errors = adUnitBidsResult.getErrors();
         if (adUnitBids.size() > 0) {
-            return Result.of(org.prebid.server.model.Bidder.of(adapter.name(), adUnitBids), errors);
+            return Result.of(AdapterRequest.of(adapter.name(), adUnitBids), errors);
         }
         throw new InvalidRequestException(messages(errors));
     }
@@ -292,26 +292,26 @@ public class HttpAdapterRequester implements BidderRequester {
     }
 
     /**
-     * Converts {@link BidderResult} response from legacy adapters to {@link BidderSeatBid} objects for ORTB response
+     * Converts {@link AdapterResponse} response from legacy adapters to {@link BidderSeatBid} objects for ORTB response
      * format.
      */
-    private BidderSeatBid toBidderSeatBid(BidderResult bidderResult, List<BidderError> errors) {
-        final Result<List<BidderBid>> bidderBidsResult = toBidderBids(bidderResult);
+    private BidderSeatBid toBidderSeatBid(AdapterResponse adapterResponse, List<BidderError> errors) {
+        final Result<List<BidderBid>> bidderBidsResult = toBidderBids(adapterResponse);
         final List<BidderError> bidderErrors = new ArrayList<>(errors);
         bidderErrors.addAll(bidderBidsResult.getErrors());
 
-        return BidderSeatBid.of(bidderBidsResult.getValue(), null, bidderResult.getBidderStatus().getDebug() != null
-                ? toExtHttpCalls(bidderResult.getBidderStatus().getDebug())
+        return BidderSeatBid.of(bidderBidsResult.getValue(), null, adapterResponse.getBidderStatus().getDebug() != null
+                ? toExtHttpCalls(adapterResponse.getBidderStatus().getDebug())
                 : null, bidderErrors);
     }
 
     /**
-     * Converts {@link BidderResult} to {@link Result}&lt;{@link List}&lt;{@link BidderBid}&gt;&gt;.
+     * Converts {@link AdapterResponse} to {@link Result}&lt;{@link List}&lt;{@link BidderBid}&gt;&gt;.
      */
-    private Result<List<BidderBid>> toBidderBids(BidderResult bidderResult) {
+    private Result<List<BidderBid>> toBidderBids(AdapterResponse adapterResponse) {
         final List<BidderBid> bidderBids = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
-        for (org.prebid.server.model.response.Bid bid : bidderResult.getBids()) {
+        for (org.prebid.server.proto.response.Bid bid : adapterResponse.getBids()) {
             final Result<BidType> bidTypeResult = toBidType(bid);
             final List<BidderError> bidderErrors = bidTypeResult.getErrors();
             if (bidderErrors.isEmpty()) {
@@ -324,11 +324,11 @@ public class HttpAdapterRequester implements BidderRequester {
     }
 
     /**
-     * Converts {@link org.prebid.server.model.response.Bid} to {@link Result<BidType>}. In case {@link MediaType} is
-     * not defined in {@link org.prebid.server.model.response.Bid} or incorrect {@link MediaType} value,
+     * Converts {@link org.prebid.server.proto.response.Bid} to {@link Result<BidType>}. In case {@link MediaType} is
+     * not defined in {@link org.prebid.server.proto.response.Bid} or incorrect {@link MediaType} value,
      * {@link Result} with error list ad null value will be returned.
      */
-    private Result<BidType> toBidType(org.prebid.server.model.response.Bid bid) {
+    private Result<BidType> toBidType(org.prebid.server.proto.response.Bid bid) {
         final MediaType mediaType = bid.getMediaType();
         if (mediaType == null) {
             return Result.of(null, Collections.singletonList(BidderError.create("Media Type is not defined for Bid")));
@@ -345,9 +345,9 @@ public class HttpAdapterRequester implements BidderRequester {
     }
 
     /**
-     * Converts {@link org.prebid.server.model.response.Bid} to {@link Bid}.
+     * Converts {@link org.prebid.server.proto.response.Bid} to {@link Bid}.
      */
-    private Bid toOrtbBid(org.prebid.server.model.response.Bid bid) {
+    private Bid toOrtbBid(org.prebid.server.proto.response.Bid bid) {
         return Bid.builder().id(bid.getBidId())
                 .impid(bid.getCode())
                 .crid(bid.getCreativeId())

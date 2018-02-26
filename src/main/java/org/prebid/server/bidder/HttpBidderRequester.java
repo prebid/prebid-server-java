@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.GlobalTimeout;
-import org.prebid.server.model.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 
 import java.util.ArrayList;
 import java.util.Collections;

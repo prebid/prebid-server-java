@@ -9,5 +9,7 @@
       "description": "A tag which identifies the ad slot"
     }
   },
-  "required": ["slot_tag"]
+  "required": [
+    "slot_tag"
+  ]
 }

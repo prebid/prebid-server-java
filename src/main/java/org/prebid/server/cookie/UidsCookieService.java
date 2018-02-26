@@ -8,8 +8,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.model.UidWithExpiry;
-import org.prebid.server.model.Uids;
+import org.prebid.server.cookie.model.UidWithExpiry;
+import org.prebid.server.cookie.proto.Uids;
 
 import java.time.Clock;
 import java.time.Duration;

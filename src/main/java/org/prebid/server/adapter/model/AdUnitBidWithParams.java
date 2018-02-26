@@ -2,7 +2,7 @@ package org.prebid.server.adapter.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.prebid.server.model.AdUnitBid;
+import org.prebid.server.auction.model.AdUnitBid;
 
 @AllArgsConstructor(staticName = "of")
 @Value

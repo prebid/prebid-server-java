@@ -1,8 +1,8 @@
 package org.prebid.server.cookie;
 
 import io.vertx.core.json.Json;
-import org.prebid.server.model.UidWithExpiry;
-import org.prebid.server.model.Uids;
+import org.prebid.server.cookie.model.UidWithExpiry;
+import org.prebid.server.cookie.proto.Uids;
 
 import java.time.ZonedDateTime;
 import java.util.Collections;

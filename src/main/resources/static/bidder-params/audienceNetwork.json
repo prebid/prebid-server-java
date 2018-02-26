@@ -9,5 +9,7 @@
       "description": "An ID which identifies the placement selling the impression"
     }
   },
-  "required": ["placementId"]
+  "required": [
+    "placementId"
+  ]
 }

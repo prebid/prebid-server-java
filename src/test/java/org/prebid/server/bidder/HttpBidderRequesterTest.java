@@ -26,7 +26,7 @@ import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.GlobalTimeout;
-import org.prebid.server.model.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 
 import java.time.Clock;
 import java.util.List;

@@ -28,7 +28,7 @@ import org.prebid.server.execution.GlobalTimeout;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.validation.RequestValidator;
-import org.prebid.server.validation.ValidationResult;
+import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.concurrent.TimeUnit;
 

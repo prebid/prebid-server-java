@@ -19,11 +19,11 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.GlobalTimeout;
-import org.prebid.server.model.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.model.openrtb.ext.request.ExtImp;
-import org.prebid.server.model.openrtb.ext.request.ExtImpPrebid;
-import org.prebid.server.model.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.model.openrtb.ext.request.ExtStoredRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.StoredRequestFetcher;
 import org.prebid.server.settings.model.StoredRequestResult;
 

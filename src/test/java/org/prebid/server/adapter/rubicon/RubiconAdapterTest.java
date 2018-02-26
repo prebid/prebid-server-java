@@ -18,7 +18,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,17 +43,17 @@ import org.prebid.server.adapter.rubicon.model.RubiconSiteExtRp;
 import org.prebid.server.adapter.rubicon.model.RubiconTargeting;
 import org.prebid.server.adapter.rubicon.model.RubiconTargetingExt;
 import org.prebid.server.adapter.rubicon.model.RubiconTargetingExtRp;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.AdUnitBid.AdUnitBidBuilder;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.request.PreBidRequest;
-import org.prebid.server.model.request.Sdk;
-import org.prebid.server.model.request.Video;
-import org.prebid.server.model.response.BidderDebug;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.request.Sdk;
+import org.prebid.server.proto.request.Video;
+import org.prebid.server.proto.response.BidderDebug;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.usersyncer.RubiconUsersyncer;
 
 import java.math.BigDecimal;
@@ -86,7 +85,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Mock
     private UidsCookie uidsCookie;
 
-    private Bidder bidder;
+    private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
     private RubiconAdapter adapter;
@@ -94,7 +93,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Before
     public void setUp() {
-        bidder = givenBidderCustomizable(identity(), identity());
+        adapterRequest = givenBidderCustomizable(identity(), identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
         usersyncer = new RubiconUsersyncer(USERSYNC_URL);
         adapter = new RubiconAdapter(usersyncer, ENDPOINT_URL, USER, PASSWORD);
@@ -118,7 +117,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedHeaders() {
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
@@ -132,12 +131,12 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
-        bidder = Bidder.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(identity(), identity()),
                 givenAdUnitBidCustomizable(builder -> builder.params(null), identity())));
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Rubicon params section is missing");
     }
@@ -147,10 +146,10 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         final ObjectNode params = mapper.createObjectNode();
         params.set("accountId", new TextNode("non-integer"));
-        bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
+        adapterRequest = givenBidderCustomizable(builder -> builder.params(params), identity());
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessageStartingWith("Cannot deserialize value of type");
     }
@@ -160,10 +159,10 @@ public class RubiconAdapterTest extends VertxTest {
         // given
         final ObjectNode params = mapper.createObjectNode();
         params.set("accountId", null);
-        bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
+        adapterRequest = givenBidderCustomizable(builder -> builder.params(params), identity());
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Missing accountId param");
     }
@@ -174,10 +173,10 @@ public class RubiconAdapterTest extends VertxTest {
         final ObjectNode params = mapper.createObjectNode();
         params.set("accountId", new IntNode(1));
         params.set("siteId", null);
-        bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
+        adapterRequest = givenBidderCustomizable(builder -> builder.params(params), identity());
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Missing siteId param");
     }
@@ -189,10 +188,10 @@ public class RubiconAdapterTest extends VertxTest {
         params.set("accountId", new IntNode(1));
         params.set("siteId", new IntNode(1));
         params.set("zoneId", null);
-        bidder = givenBidderCustomizable(builder -> builder.params(params), identity());
+        adapterRequest = givenBidderCustomizable(builder -> builder.params(params), identity());
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Missing zoneId param");
     }
@@ -200,7 +199,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
-        bidder = Bidder.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .adUnitCode("adUnitCode1")
                                 .mediaTypes(singleton(MediaType.video))
@@ -210,7 +209,7 @@ public class RubiconAdapterTest extends VertxTest {
                         identity())));
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Invalid AdUnit: VIDEO media type with no video data");
     }
@@ -218,10 +217,10 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfNoValidAdUnits() {
         // given
-        bidder = Bidder.of(ADAPTER, emptyList());
+        adapterRequest = AdapterRequest.of(ADAPTER, emptyList());
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Invalid ad unit/imp");
     }
@@ -229,12 +228,12 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfBannerWithoutValidSizes() {
         // given
-        bidder = givenBidderCustomizable(
+        adapterRequest = givenBidderCustomizable(
                 builder -> builder.sizes(singletonList(Format.builder().w(302).h(252).build())),
                 identity());
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Invalid ad unit/imp");
     }
@@ -242,13 +241,13 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsForBannerWithFilteredValidSizes() {
         // given
-        bidder = givenBidderCustomizable(
+        adapterRequest = givenBidderCustomizable(
                 builder -> builder.sizes(asList(Format.builder().w(302).h(252).build(),
                         Format.builder().w(300).h(250).build())),
                 identity());
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -264,7 +263,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnBidRequestsWithExpectedFields() {
         // given
-        bidder = givenBidderCustomizable(
+        adapterRequest = givenBidderCustomizable(
                 builder -> builder
                         .bidderCode(ADAPTER)
                         .adUnitCode("adUnitCode")
@@ -290,7 +289,7 @@ public class RubiconAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
@@ -348,7 +347,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .app(App.builder().id("appId").build()));
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -366,7 +365,7 @@ public class RubiconAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUidFromCookie");
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -384,7 +383,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .user(User.builder().language("language1").build()));
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -412,7 +411,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnBidRequestsWithDefaultMobileSpecificFeatures() {
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -439,7 +438,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnBidRequestsWithAltSizeIdsIfMoreThanOneSize() {
         // given
-        bidder = givenBidderCustomizable(
+        adapterRequest = givenBidderCustomizable(
                 builder -> builder
                         .sizes(asList(
                                 Format.builder().w(300).h(250).build(),
@@ -448,7 +447,7 @@ public class RubiconAdapterTest extends VertxTest {
                 identity());
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -464,7 +463,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnBidRequestsWithoutInventoryAndVisitorDataIfAbsentInPreBidRequest() {
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -483,10 +482,10 @@ public class RubiconAdapterTest extends VertxTest {
         inventory.set("rating", mapper.createArrayNode().add(new TextNode("5-star")));
         inventory.set("prodtype", mapper.createArrayNode().add((new TextNode("tech"))));
 
-        bidder = givenBidderCustomizable(identity(), builder -> builder.inventory(inventory));
+        adapterRequest = givenBidderCustomizable(identity(), builder -> builder.inventory(inventory));
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -501,10 +500,10 @@ public class RubiconAdapterTest extends VertxTest {
         visitor.set("ucat", mapper.createArrayNode().add(new TextNode("new")));
         visitor.set("search", mapper.createArrayNode().add((new TextNode("iphone"))));
 
-        bidder = givenBidderCustomizable(identity(), builder -> builder.visitor(visitor));
+        adapterRequest = givenBidderCustomizable(identity(), builder -> builder.visitor(visitor));
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
 
@@ -516,7 +515,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnTwoRequestsIfAdUnitContainsBannerAndVideoMediaTypes() {
         //given
-        bidder = Bidder.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                                 .video(Video.builder()
@@ -528,7 +527,7 @@ public class RubiconAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(2)
@@ -540,12 +539,12 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithMultipleRequestsIfMultipleAdUnitsInPreBidRequest() {
         // given
-        bidder = Bidder.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(2)
@@ -557,7 +556,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void makeHttpRequestsShouldReturnBidRequestsWithoutVideoExtWhenMediaTypeIsVideoAndRubiconParamsVideoIsNull
             () {
         //given
-        bidder = Bidder.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .mediaTypes(Collections.singleton(MediaType.video))
                                 .video(Video.builder()
@@ -569,7 +568,7 @@ public class RubiconAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
@@ -581,7 +580,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldFailIfBidImpIdDoesNotMatchAdUnitCode() {
         // given
-        bidder = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"), identity());
+        adapterRequest = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"), identity());
 
         exchangeCall = givenExchangeCallCustomizable(identity(),
                 bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
@@ -590,7 +589,7 @@ public class RubiconAdapterTest extends VertxTest {
                         .build())));
 
         // when and then
-        assertThatThrownBy(() -> adapter.extractBids(bidder, exchangeCall))
+        assertThatThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Unknown ad unit code 'anotherAdUnitCode'");
     }
@@ -598,7 +597,8 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnBidBuildersWithExpectedFields() {
         // given
-        bidder = givenBidderCustomizable(builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+        adapterRequest = givenBidderCustomizable(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCallCustomizable(
@@ -620,12 +620,13 @@ public class RubiconAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
-                .map(org.prebid.server.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids)
-                .containsExactly(org.prebid.server.model.response.Bid.builder()
+                .containsExactly(org.prebid.server.proto.response.Bid.builder()
                         .code("adUnitCode")
                         .price(new BigDecimal("8.43"))
                         .adm("adm")
@@ -643,19 +644,19 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnEmptyBidsIfEmptyOrNullBidResponse() {
         // given
-        bidder = givenBidderCustomizable(identity(), identity());
+        adapterRequest = givenBidderCustomizable(identity(), identity());
 
         exchangeCall = givenExchangeCallCustomizable(identity(), br -> br.seatbid(null));
 
         // when and then
-        Assertions.assertThat(adapter.extractBids(bidder, exchangeCall)).isEmpty();
-        Assertions.assertThat(adapter.extractBids(bidder, ExchangeCall.empty(null))).isEmpty();
+        assertThat(adapter.extractBids(adapterRequest, exchangeCall)).isEmpty();
+        assertThat(adapter.extractBids(adapterRequest, ExchangeCall.empty(null))).isEmpty();
     }
 
     @Test
     public void extractBidsShouldReturnOnlyFirstBidBuilderFromMultipleBidsInResponse() {
         // given
-        bidder = Bidder.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(ADAPTER, asList(
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1"), identity()),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
@@ -668,19 +669,21 @@ public class RubiconAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
-                .map(org.prebid.server.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1)
-                .extracting(org.prebid.server.model.response.Bid::getCode)
+                .extracting(org.prebid.server.proto.response.Bid::getCode)
                 .containsOnly("adUnitCode1");
     }
 
     @Test
     public void extractBidsShouldReturnBidBuildersWithZeroPriceBidsFilteredOut() {
         // given
-        bidder = givenBidderCustomizable(builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+        adapterRequest = givenBidderCustomizable(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCallCustomizable(
@@ -695,8 +698,9 @@ public class RubiconAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
-                .map(org.prebid.server.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).isEmpty();
@@ -705,7 +709,8 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnBidBuildersWithEmptyAdTargetingIfRubiconTargetingCouldNotBeParsed() {
         // given
-        bidder = givenBidderCustomizable(builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+        adapterRequest = givenBidderCustomizable(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         final ObjectNode ext = mapper.createObjectNode();
@@ -724,18 +729,20 @@ public class RubiconAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
-                .map(org.prebid.server.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1)
-                .extracting(org.prebid.server.model.response.Bid::getAdServerTargeting).containsNull();
+                .extracting(org.prebid.server.proto.response.Bid::getAdServerTargeting).containsNull();
     }
 
     @Test
     public void extractBidsShouldReturnBidBuildersWithEmptyAdTargetingIfNoRubiconTargetingInBidResponse() {
         // given
-        bidder = givenBidderCustomizable(builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+        adapterRequest = givenBidderCustomizable(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCallCustomizable(
@@ -751,18 +758,20 @@ public class RubiconAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
-                .map(org.prebid.server.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1)
-                .extracting(org.prebid.server.model.response.Bid::getAdServerTargeting).containsNull();
+                .extracting(org.prebid.server.proto.response.Bid::getAdServerTargeting).containsNull();
     }
 
     @Test
     public void extractBidsShouldReturnBidBuildersWithNotEmptyAdTargetingIfRubiconTargetingPresentInBidResponse() {
         // given
-        bidder = givenBidderCustomizable(builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+        adapterRequest = givenBidderCustomizable(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCallCustomizable(
@@ -780,8 +789,9 @@ public class RubiconAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
-                .map(org.prebid.server.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1);
@@ -792,11 +802,11 @@ public class RubiconAdapterTest extends VertxTest {
                         tuple("key2", "value2"));
     }
 
-    private static Bidder givenBidderCustomizable(
+    private static AdapterRequest givenBidderCustomizable(
             Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer,
             Function<RubiconParamsBuilder, RubiconParamsBuilder> rubiconParamsBuilderCustomizer) {
 
-        return Bidder.of(ADAPTER, singletonList(
+        return AdapterRequest.of(ADAPTER, singletonList(
                 givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer, rubiconParamsBuilderCustomizer)));
     }
 

@@ -13,9 +13,9 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.model.request.CookieSyncRequest;
-import org.prebid.server.model.response.BidderStatus;
-import org.prebid.server.model.response.CookieSyncResponse;
+import org.prebid.server.proto.request.CookieSyncRequest;
+import org.prebid.server.proto.response.BidderStatus;
+import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.usersyncer.UsersyncerCatalog;
 
 import java.util.List;

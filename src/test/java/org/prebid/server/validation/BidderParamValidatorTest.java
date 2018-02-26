@@ -9,9 +9,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderRequesterCatalog;
-import org.prebid.server.bidder.BidderName;
-import org.prebid.server.model.openrtb.ext.request.appnexus.ExtImpAppnexus;
-import org.prebid.server.model.openrtb.ext.request.rubicon.ExtImpRubicon;
+import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 
 import java.io.BufferedReader;
 import java.io.IOException;

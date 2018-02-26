@@ -48,12 +48,12 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.openrtb.ext.ExtPrebid;
-import org.prebid.server.model.openrtb.ext.request.ExtUser;
-import org.prebid.server.model.openrtb.ext.request.ExtUserDigiTrust;
-import org.prebid.server.model.openrtb.ext.request.rubicon.ExtImpRubicon;
-import org.prebid.server.model.openrtb.ext.request.rubicon.RubiconVideoParams;
-import org.prebid.server.model.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;

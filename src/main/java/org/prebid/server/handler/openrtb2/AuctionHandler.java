@@ -26,7 +26,7 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
-import org.prebid.server.validation.ValidationResult;
+import org.prebid.server.validation.model.ValidationResult;
 
 import java.time.Clock;
 import java.util.List;

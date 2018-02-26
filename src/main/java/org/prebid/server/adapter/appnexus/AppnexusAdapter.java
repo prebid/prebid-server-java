@@ -17,14 +17,14 @@ import org.prebid.server.adapter.appnexus.model.AppnexusParams;
 import org.prebid.server.adapter.model.AdUnitBidWithParams;
 import org.prebid.server.adapter.model.ExchangeCall;
 import org.prebid.server.adapter.model.HttpRequest;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderName;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.request.PreBidRequest;
-import org.prebid.server.model.response.Bid;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.usersyncer.Usersyncer;
 import org.prebid.server.util.HttpUtil;
 
@@ -66,16 +66,17 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        final BidRequestWithUrl bidRequestWithUrl = createBidRequest(endpointUrl, bidder, preBidRequestContext);
+    public List<HttpRequest> makeHttpRequests(AdapterRequest adapterRequest,
+                                              PreBidRequestContext preBidRequestContext) {
+        final BidRequestWithUrl bidRequestWithUrl = createBidRequest(endpointUrl, adapterRequest, preBidRequestContext);
         final HttpRequest httpRequest = HttpRequest.of(bidRequestWithUrl.getEndpointUrl(), headers(),
                 bidRequestWithUrl.getBidRequest());
         return Collections.singletonList(httpRequest);
     }
 
-    private BidRequestWithUrl createBidRequest(String endpointUrl, Bidder bidder,
+    private BidRequestWithUrl createBidRequest(String endpointUrl, AdapterRequest adapterRequest,
                                                PreBidRequestContext preBidRequestContext) {
-        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
+        final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
         validateAdUnitBidsMediaTypes(adUnitBids);
 
@@ -225,14 +226,15 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
         return responseBidStream(exchangeCall.getBidResponse())
-                .map(bid -> toBidBuilder(bid, bidder, exchangeCall.getBidRequest()))
+                .map(bid -> toBidBuilder(bid, adapterRequest, exchangeCall.getBidRequest()))
                 .collect(Collectors.toList());
     }
 
-    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder, BidRequest bidRequest) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
+    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest,
+                                               BidRequest bidRequest) {
+        final AdUnitBid adUnitBid = lookupBid(adapterRequest.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
                 .bidder(adUnitBid.getBidderCode())
                 .bidId(adUnitBid.getBidId())

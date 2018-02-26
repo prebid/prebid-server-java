@@ -13,14 +13,11 @@ import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**

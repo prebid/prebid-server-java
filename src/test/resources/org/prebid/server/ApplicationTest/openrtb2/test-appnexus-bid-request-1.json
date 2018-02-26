@@ -1,28 +1,33 @@
 {
   "id": "tid",
-  "imp": [{
-    "id": "impId3",
-    "banner": {
-      "format": [{
+  "imp": [
+    {
+      "id": "impId3",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
         "w": 300,
-        "h": 250
-      }, {
-        "w": 300,
-        "h": 600
-      }],
-      "w": 300,
-      "h": 250,
-      "pos": 3
-    },
-    "tagid": "abc",
-    "bidfloor": 1.0,
-    "ext": {
-      "appnexus": {
-        "keywords": "foo=bar,foo=baz",
-        "traffic_source_code": "trafficSource"
+        "h": 250,
+        "pos": 3
+      },
+      "tagid": "abc",
+      "bidfloor": 1.0,
+      "ext": {
+        "appnexus": {
+          "keywords": "foo=bar,foo=baz",
+          "traffic_source_code": "trafficSource"
+        }
       }
     }
-  }],
+  ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",

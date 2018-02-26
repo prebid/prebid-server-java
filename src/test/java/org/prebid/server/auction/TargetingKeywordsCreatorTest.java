@@ -2,7 +2,7 @@ package org.prebid.server.auction;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
-import org.prebid.server.model.response.Bid;
+import org.prebid.server.proto.response.Bid;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -142,7 +142,8 @@ public class TargetingKeywordsCreatorTest {
         final Bid bid = Bid.builder().bidder("").price(BigDecimal.valueOf(3.87)).build();
 
         // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("invalid").makeFor(bid, true);
+        final Map<String, String> keywords = TargetingKeywordsCreator.withPriceGranularity("invalid")
+                .makeFor(bid, true);
 
         // then
         assertThat(keywords).contains(entry("hb_pb", StringUtils.EMPTY));

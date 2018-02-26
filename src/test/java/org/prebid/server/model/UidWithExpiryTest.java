@@ -1,6 +1,7 @@
 package org.prebid.server.model;
 
 import org.junit.Test;
+import org.prebid.server.cookie.model.UidWithExpiry;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

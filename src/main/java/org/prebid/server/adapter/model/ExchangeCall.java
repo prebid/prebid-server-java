@@ -4,7 +4,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.prebid.server.model.response.BidderDebug;
+import org.prebid.server.proto.response.BidderDebug;
 
 @AllArgsConstructor
 @Value

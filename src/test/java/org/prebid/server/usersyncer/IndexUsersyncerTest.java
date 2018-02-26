@@ -2,7 +2,7 @@ package org.prebid.server.usersyncer;
 
 
 import org.junit.Test;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.proto.response.UsersyncInfo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;

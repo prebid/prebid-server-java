@@ -43,15 +43,15 @@ import org.prebid.server.adapter.rubicon.model.RubiconUserExtRp;
 import org.prebid.server.adapter.rubicon.model.RubiconVideoExt;
 import org.prebid.server.adapter.rubicon.model.RubiconVideoExtRp;
 import org.prebid.server.adapter.rubicon.model.RubiconVideoParams;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderName;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.request.PreBidRequest;
-import org.prebid.server.model.request.Sdk;
-import org.prebid.server.model.response.Bid;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.request.Sdk;
+import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.usersyncer.Usersyncer;
 import org.prebid.server.util.HttpUtil;
 
@@ -98,12 +98,13 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) {
+    public List<HttpRequest> makeHttpRequests(AdapterRequest adapterRequest,
+                                              PreBidRequestContext preBidRequestContext) {
         final MultiMap headers = headers()
                 .add(HttpHeaders.AUTHORIZATION, authHeader)
                 .add(HttpHeaders.USER_AGENT, PREBID_SERVER_USER_AGENT);
 
-        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
+        final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
         validateAdUnitBidsMediaTypes(adUnitBids);
 
@@ -194,7 +195,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
         switch (mediaType) {
             case video:
-                final org.prebid.server.model.request.Video video = adUnitBid.getVideo();
+                final org.prebid.server.proto.request.Video video = adUnitBid.getVideo();
                 return video != null && !CollectionUtils.isEmpty(video.getMimes());
             case banner:
                 return adUnitBid.getSizes().stream().map(RubiconSize::toId).anyMatch(id -> id > 0);
@@ -338,10 +339,10 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
         return responseBidStream(exchangeCall.getBidResponse())
                 .filter(bid -> bid.getPrice() != null && bid.getPrice().compareTo(BigDecimal.ZERO) != 0)
-                .map(bid -> toBidBuilder(bid, bidder, mediaTypeFor(exchangeCall.getBidRequest())))
+                .map(bid -> toBidBuilder(bid, adapterRequest, mediaTypeFor(exchangeCall.getBidRequest())))
                 .limit(1) // one bid per request/response
                 .collect(Collectors.toList());
     }
@@ -356,8 +357,9 @@ public class RubiconAdapter extends OpenrtbAdapter {
         return mediaType;
     }
 
-    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder, MediaType mediaType) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
+    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest,
+                                               MediaType mediaType) {
+        final AdUnitBid adUnitBid = lookupBid(adapterRequest.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
                 .bidder(adUnitBid.getBidderCode())
                 .bidId(adUnitBid.getBidId())

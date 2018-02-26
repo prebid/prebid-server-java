@@ -16,10 +16,11 @@ import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderRequesterCatalog;
-import org.prebid.server.model.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.model.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.model.openrtb.ext.request.ExtUser;
-import org.prebid.server.model.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -92,7 +93,7 @@ public class RequestValidator {
         return ValidationResult.success();
     }
 
-    public ExtBidRequest parseAndValidateExtBidRequest(BidRequest bidRequest) throws ValidationException {
+    private ExtBidRequest parseAndValidateExtBidRequest(BidRequest bidRequest) throws ValidationException {
         ExtBidRequest extBidRequest = null;
         if (bidRequest.getExt() != null) {
             try {

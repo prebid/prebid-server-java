@@ -15,7 +15,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.model.Uids;
+import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 
 import static java.util.Collections.emptyMap;

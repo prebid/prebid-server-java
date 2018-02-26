@@ -3,7 +3,7 @@ package org.prebid.server.auction;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.model.response.Bid;
+import org.prebid.server.proto.response.Bid;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

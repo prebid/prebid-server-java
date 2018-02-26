@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Appnexus Adapter Params",
   "description": "A schema which validates params accepted by the AppNexus adapter",
-
   "type": "object",
   "properties": {
     "placementId": {
@@ -35,7 +34,10 @@
             }
           }
         },
-        "required": ["key", "value"]
+        "required": [
+          "key",
+          "value"
+        ]
       }
     },
     "trafficSourceCode": {
@@ -48,18 +50,31 @@
     },
     "position": {
       "type": "string",
-      "enum": ["above", "below"],
+      "enum": [
+        "above",
+        "below"
+      ],
       "description": "Specifies the ad unit as above or below the fold"
     }
   },
-
-  "oneOf": [{
-    "required": ["placementId"]
-  }, {
-    "required": ["invCode", "member"]
-  }],
-
+  "oneOf": [
+    {
+      "required": [
+        "placementId"
+      ]
+    },
+    {
+      "required": [
+        "invCode",
+        "member"
+      ]
+    }
+  ],
   "not": {
-    "required": ["placementId", "invCode", "member"]
+    "required": [
+      "placementId",
+      "invCode",
+      "member"
+    ]
   }
 }

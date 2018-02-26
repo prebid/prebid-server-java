@@ -13,5 +13,8 @@
       "description": "An ID which identifies the ad slot"
     }
   },
-  "required": ["publisherId", "adSlot"]
+  "required": [
+    "publisherId",
+    "adSlot"
+  ]
 }

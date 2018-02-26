@@ -44,12 +44,12 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.model.openrtb.ext.ExtPrebid;
-import org.prebid.server.model.openrtb.ext.request.ExtUser;
-import org.prebid.server.model.openrtb.ext.request.ExtUserDigiTrust;
-import org.prebid.server.model.openrtb.ext.request.rubicon.ExtImpRubicon;
-import org.prebid.server.model.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
-import org.prebid.server.model.openrtb.ext.request.rubicon.RubiconVideoParams;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -62,8 +62,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.*;
-import static org.prebid.server.model.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.model.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class RubiconBidderTest extends VertxTest {
 

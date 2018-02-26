@@ -13,14 +13,14 @@ import org.prebid.server.adapter.conversant.model.ConversantParams;
 import org.prebid.server.adapter.model.AdUnitBidWithParams;
 import org.prebid.server.adapter.model.ExchangeCall;
 import org.prebid.server.adapter.model.HttpRequest;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderName;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.request.PreBidRequest;
-import org.prebid.server.model.response.Bid;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.usersyncer.Usersyncer;
 import org.prebid.server.util.HttpUtil;
 
@@ -69,19 +69,20 @@ public class ConversantAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) {
+    public List<HttpRequest> makeHttpRequests(AdapterRequest adapterRequest,
+                                              PreBidRequestContext preBidRequestContext) {
         if (preBidRequestContext.getPreBidRequest().getApp() == null
                 && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()) == null) {
             return Collections.emptyList();
         }
 
-        final BidRequest bidRequest = createBidRequest(bidder, preBidRequestContext);
+        final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
         final HttpRequest httpRequest = HttpRequest.of(endpointUrl, headers(), bidRequest);
         return Collections.singletonList(httpRequest);
     }
 
-    private BidRequest createBidRequest(Bidder bidder, PreBidRequestContext preBidRequestContext) {
-        final List<AdUnitBid> adUnitBids = bidder.getAdUnitBids();
+    private BidRequest createBidRequest(AdapterRequest adapterRequest, PreBidRequestContext preBidRequestContext) {
+        final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
         validateAdUnitBidsMediaTypes(adUnitBids);
 
@@ -179,7 +180,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
     }
 
     private static Video makeVideo(AdUnitBid adUnitBid, ConversantParams params) {
-        final org.prebid.server.model.request.Video video = adUnitBid.getVideo();
+        final org.prebid.server.proto.request.Video video = adUnitBid.getVideo();
         final List<String> mimes = params.getMimes();
         final Integer maxduration = params.getMaxduration();
         final Integer position = params.getPosition();
@@ -235,11 +236,11 @@ public class ConversantAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) {
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
         final Map<String, Imp> impsMap = impsWithIds(exchangeCall.getBidRequest());
 
         return responseBidStream(exchangeCall.getBidResponse())
-                .map(bid -> toBidBuilder(bid, bidder, impsMap.get(bid.getImpid())))
+                .map(bid -> toBidBuilder(bid, adapterRequest, impsMap.get(bid.getImpid())))
                 .collect(Collectors.toList());
     }
 
@@ -248,10 +249,11 @@ public class ConversantAdapter extends OpenrtbAdapter {
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
     }
 
-    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, Bidder bidder, Imp imp) {
-        final AdUnitBid adUnitBid = lookupBid(bidder.getAdUnitBids(), bid.getImpid());
+    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest,
+                                               Imp imp) {
+        final AdUnitBid adUnitBid = lookupBid(adapterRequest.getAdUnitBids(), bid.getImpid());
         final Bid.BidBuilder builder = Bid.builder()
-                .bidder(bidder.getBidderCode())
+                .bidder(adapterRequest.getBidderCode())
                 .bidId(adUnitBid.getBidId())
                 .code(bid.getImpid())
                 .price(bid.getPrice())

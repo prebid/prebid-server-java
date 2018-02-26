@@ -27,18 +27,18 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.adapter.lifestreet.model.LifestreetParams;
 import org.prebid.server.adapter.model.ExchangeCall;
 import org.prebid.server.adapter.model.HttpRequest;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.AdUnitBid.AdUnitBidBuilder;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.PreBidRequestContext.PreBidRequestContextBuilder;
-import org.prebid.server.model.request.PreBidRequest;
-import org.prebid.server.model.request.PreBidRequest.PreBidRequestBuilder;
-import org.prebid.server.model.request.Video;
-import org.prebid.server.model.response.BidderDebug;
+import org.prebid.server.proto.request.PreBidRequest;
+import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
+import org.prebid.server.proto.request.Video;
+import org.prebid.server.proto.response.BidderDebug;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.usersyncer.LifestreetUsersyncer;
 
 import java.math.BigDecimal;
@@ -68,7 +68,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Mock
     private UidsCookie uidsCookie;
 
-    private Bidder bidder;
+    private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
     private LifestreetAdapter adapter;
@@ -76,7 +76,7 @@ public class LifestreetAdapterTest extends VertxTest {
 
     @Before
     public void setUp() {
-        bidder = givenBidder(identity());
+        adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         usersyncer = new LifestreetUsersyncer(USERSYNC_URL, EXTERNAL_URL);
         adapter = new LifestreetAdapter(usersyncer, ENDPOINT_URL);
@@ -98,7 +98,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedHeaders() {
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
@@ -110,12 +110,12 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
-        bidder = Bidder.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(ADAPTER, asList(
                 givenAdUnitBid(identity()),
                 givenAdUnitBid(builder -> builder.params(null))));
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Lifestreet params section is missing");
     }
@@ -125,10 +125,10 @@ public class LifestreetAdapterTest extends VertxTest {
         // given
         final ObjectNode params = mapper.createObjectNode();
         params.set("slot_tag", null);
-        bidder = givenBidder(builder -> builder.params(params));
+        adapterRequest = givenBidder(builder -> builder.params(params));
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Missing slot_tag param");
     }
@@ -138,10 +138,10 @@ public class LifestreetAdapterTest extends VertxTest {
         // given
         final ObjectNode params = mapper.createObjectNode();
         params.set("slot_tag", new TextNode("invalid"));
-        bidder = givenBidder(builder -> builder.params(params));
+        adapterRequest = givenBidder(builder -> builder.params(params));
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Invalid slot_tag param 'invalid'");
     }
@@ -149,7 +149,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
-        bidder = Bidder.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(singleton(MediaType.video))
@@ -158,7 +158,7 @@ public class LifestreetAdapterTest extends VertxTest {
                                 .build()))));
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Invalid AdUnit: VIDEO media type with no video data");
     }
@@ -166,7 +166,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
         //given
-        bidder = Bidder.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(emptySet()))));
@@ -174,7 +174,7 @@ public class LifestreetAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(bidder, preBidRequestContext))
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("openRTB bids need at least one Imp");
     }
@@ -182,7 +182,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnBidRequestsWithExpectedFields() {
         // given
-        bidder = givenBidder(
+        adapterRequest = givenBidder(
                 builder -> builder
                         .bidderCode(ADAPTER)
                         .adUnitCode("adUnitCode")
@@ -205,7 +205,7 @@ public class LifestreetAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
@@ -249,7 +249,7 @@ public class LifestreetAdapterTest extends VertxTest {
                 .app(App.builder().id("appId").build()));
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -267,7 +267,7 @@ public class LifestreetAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUidFromCookie");
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests)
@@ -278,7 +278,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnTwoRequestsIfAdUnitContainsBannerAndVideoMediaTypes() {
         //given
-        bidder = Bidder.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                         .video(Video.builder()
@@ -289,7 +289,7 @@ public class LifestreetAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(2)
@@ -301,12 +301,12 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithMultipleRequestsIfMultipleAdUnitsInPreBidRequest() {
         // given
-        bidder = Bidder.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(ADAPTER, asList(
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
         // when
-        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+        final List<HttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(2)
@@ -317,7 +317,7 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnBidBuildersWithExpectedFields() {
         // given
-        bidder = givenBidder(
+        adapterRequest = givenBidder(
                 builder -> builder.bidderCode(ADAPTER).bidId("bidId1").adUnitCode("adUnitCode1"));
 
         exchangeCall = givenExchangeCall(
@@ -338,12 +338,13 @@ public class LifestreetAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
-                .map(org.prebid.server.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids)
-                .containsExactly(org.prebid.server.model.response.Bid.builder()
+                .containsExactly(org.prebid.server.proto.response.Bid.builder()
                         .code("adUnitCode1")
                         .price(new BigDecimal("8.43"))
                         .adm("adm1")
@@ -360,19 +361,19 @@ public class LifestreetAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnEmptyBidsIfEmptyOrNullBidResponse() {
         // given
-        bidder = givenBidder(identity());
+        adapterRequest = givenBidder(identity());
 
         exchangeCall = givenExchangeCall(identity(), br -> br.seatbid(null));
 
         // when and then
-        Assertions.assertThat(adapter.extractBids(bidder, exchangeCall)).isEmpty();
-        Assertions.assertThat(adapter.extractBids(bidder, ExchangeCall.empty(null))).isEmpty();
+        Assertions.assertThat(adapter.extractBids(adapterRequest, exchangeCall)).isEmpty();
+        Assertions.assertThat(adapter.extractBids(adapterRequest, ExchangeCall.empty(null))).isEmpty();
     }
 
     @Test
     public void extractBidsShouldReturnOnlyFirstBidBuilderFromMultipleBidsInResponse() {
         // given
-        bidder = Bidder.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(ADAPTER, asList(
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
@@ -385,17 +386,18 @@ public class LifestreetAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.model.response.Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
-                .map(org.prebid.server.model.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).hasSize(1)
-                .extracting(org.prebid.server.model.response.Bid::getCode)
+                .extracting(org.prebid.server.proto.response.Bid::getCode)
                 .containsOnly("adUnitCode1");
     }
 
-    private static Bidder givenBidder(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
-        return Bidder.of(ADAPTER, singletonList(givenAdUnitBid(adUnitBidBuilderCustomizer)));
+    private static AdapterRequest givenBidder(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
+        return AdapterRequest.of(ADAPTER, singletonList(givenAdUnitBid(adUnitBidBuilderCustomizer)));
     }
 
     private static AdUnitBid givenAdUnitBid(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {

@@ -27,9 +27,10 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderRequesterCatalog;
-import org.prebid.server.model.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.model.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.model.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -786,7 +787,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenAliasPointOnNotValidBidderName(){
+    public void validateShouldReturnValidationMessageWhenAliasPointOnNotValidBidderName() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                 singletonMap("alias", "fake"), null, null, null)));
@@ -801,7 +802,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithoutErrorMessageWhenAliasesWasUsed(){
+    public void validateShouldReturnValidationResultWithoutErrorMessageWhenAliasesWasUsed() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                 singletonMap("alias", "rubicon"), null, null, null)));

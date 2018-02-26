@@ -12,10 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.model.UidWithExpiry;
-import org.prebid.server.model.Uids;
+import org.prebid.server.cookie.proto.Uids;
 
 import java.time.ZonedDateTime;
 import java.util.Collections;

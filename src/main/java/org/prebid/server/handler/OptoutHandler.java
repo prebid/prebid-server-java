@@ -29,7 +29,7 @@ public class OptoutHandler implements Handler<RoutingContext> {
     private final String optinUrl;
 
     public OptoutHandler(GoogleRecaptchaVerifier googleRecaptchaVerifier, UidsCookieService uidsCookieService,
-                          String optoutRedirectUrl, String optoutUrl, String optinUrl) {
+                         String optoutRedirectUrl, String optoutUrl, String optinUrl) {
         this.googleRecaptchaVerifier = Objects.requireNonNull(googleRecaptchaVerifier);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.optoutRedirectUrl = Objects.requireNonNull(optoutRedirectUrl);

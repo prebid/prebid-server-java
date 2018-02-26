@@ -19,16 +19,16 @@ import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.adapter.model.ExchangeCall;
 import org.prebid.server.adapter.model.HttpRequest;
+import org.prebid.server.auction.model.AdUnitBid;
+import org.prebid.server.auction.model.AdapterRequest;
+import org.prebid.server.auction.model.AdapterResponse;
+import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.GlobalTimeout;
-import org.prebid.server.model.AdUnitBid;
-import org.prebid.server.model.Bidder;
-import org.prebid.server.model.BidderResult;
-import org.prebid.server.model.MediaType;
-import org.prebid.server.model.PreBidRequestContext;
-import org.prebid.server.model.response.Bid;
-import org.prebid.server.model.response.BidderDebug;
-import org.prebid.server.model.response.BidderStatus;
+import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.BidderDebug;
+import org.prebid.server.proto.response.BidderStatus;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.usersyncer.Usersyncer;
 
 import java.time.Clock;
@@ -60,20 +60,20 @@ public class HttpConnector {
     }
 
     /**
-     * Executes HTTP requests for particular {@link Adapter} and returns {@link BidderResult}
+     * Executes HTTP requests for particular {@link Adapter} and returns {@link AdapterResponse}
      */
-    public Future<BidderResult> call(Adapter adapter, Usersyncer usersyncer, Bidder bidder,
-                                     PreBidRequestContext preBidRequestContext) {
+    public Future<AdapterResponse> call(Adapter adapter, Usersyncer usersyncer, AdapterRequest adapterRequest,
+                                        PreBidRequestContext preBidRequestContext) {
         Objects.requireNonNull(adapter);
         Objects.requireNonNull(usersyncer);
-        Objects.requireNonNull(bidder);
+        Objects.requireNonNull(adapterRequest);
         Objects.requireNonNull(preBidRequestContext);
 
         final long bidderStarted = CLOCK.millis();
 
         final List<HttpRequest> httpRequests;
         try {
-            httpRequests = adapter.makeHttpRequests(bidder, preBidRequestContext);
+            httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
         } catch (PreBidException e) {
             return Future.succeededFuture(errorBidderResult(e, bidderStarted));
         }
@@ -81,8 +81,8 @@ public class HttpConnector {
         return CompositeFuture.join(httpRequests.stream()
                 .map(httpRequest -> doRequest(httpRequest, preBidRequestContext.getTimeout()))
                 .collect(Collectors.toList()))
-                .map(compositeFuture -> toBidderResult(adapter, usersyncer, bidder, preBidRequestContext, bidderStarted,
-                        compositeFuture.list()));
+                .map(compositeFuture -> toBidderResult(adapter, usersyncer, adapterRequest, preBidRequestContext,
+                        bidderStarted, compositeFuture.list()));
     }
 
     /**
@@ -182,16 +182,16 @@ public class HttpConnector {
     }
 
     /**
-     * Transforms {@link ExchangeCall} into single {@link BidderResult} filled with debug information,
+     * Transforms {@link ExchangeCall} into single {@link AdapterResponse} filled with debug information,
      * list of {@link Bid}, {@link BidderStatus}, etc.
      */
-    private static BidderResult toBidderResult(Adapter adapter, Usersyncer usersyncer, Bidder bidder,
-                                               PreBidRequestContext preBidRequestContext,
-                                               long bidderStarted, List<ExchangeCall> exchangeCalls) {
+    private static AdapterResponse toBidderResult(Adapter adapter, Usersyncer usersyncer, AdapterRequest adapterRequest,
+                                                  PreBidRequestContext preBidRequestContext,
+                                                  long bidderStarted, List<ExchangeCall> exchangeCalls) {
         final Integer responseTime = responseTime(bidderStarted);
 
         final BidderStatus.BidderStatusBuilder bidderStatusBuilder = BidderStatus.builder()
-                .bidder(bidder.getBidderCode())
+                .bidder(adapterRequest.getBidderCode())
                 .responseTimeMs(responseTime);
 
         if (preBidRequestContext.isDebug()) {
@@ -207,7 +207,7 @@ public class HttpConnector {
         }
 
         final List<BidsWithError> bidsWithErrors = exchangeCalls.stream()
-                .map(exchangeCall -> bidsWithError(adapter, bidder, exchangeCall, responseTime))
+                .map(exchangeCall -> bidsWithError(adapter, adapterRequest, exchangeCall, responseTime))
                 .collect(Collectors.toList());
 
         final BidsWithError failedBidsWithError = failedBidsWithError(bidsWithErrors);
@@ -225,11 +225,11 @@ public class HttpConnector {
         } else if (bids.isEmpty()) {
             bidderStatusBuilder.noBid(true);
         } else {
-            bidsToReturn = dropBidsWithNotValidSize(bids, bidder.getAdUnitBids());
+            bidsToReturn = dropBidsWithNotValidSize(bids, adapterRequest.getAdUnitBids());
             bidderStatusBuilder.numBids(bidsToReturn.size());
         }
 
-        return BidderResult.of(bidderStatusBuilder.build(), bidsToReturn, timedOut);
+        return AdapterResponse.of(bidderStatusBuilder.build(), bidsToReturn, timedOut);
     }
 
     private static int responseTime(long bidderStarted) {
@@ -239,14 +239,14 @@ public class HttpConnector {
     /**
      * Transforms {@link ExchangeCall} into {@link BidsWithError} object with list of bids or error.
      */
-    private static BidsWithError bidsWithError(Adapter adapter, Bidder bidder, ExchangeCall exchangeCall,
-                                               Integer responseTime) {
+    private static BidsWithError bidsWithError(Adapter adapter, AdapterRequest adapterRequest,
+                                               ExchangeCall exchangeCall, Integer responseTime) {
         final String error = exchangeCall.getError();
         if (StringUtils.isNotBlank(error)) {
             return BidsWithError.of(Collections.emptyList(), error, exchangeCall.isTimedOut());
         }
         try {
-            final List<Bid> bids = adapter.extractBids(bidder, exchangeCall).stream()
+            final List<Bid> bids = adapter.extractBids(adapterRequest, exchangeCall).stream()
                     .map(bidBuilder -> bidBuilder.responseTimeMs(responseTime))
                     .map(Bid.BidBuilder::build)
                     .collect(Collectors.toList());
@@ -271,8 +271,7 @@ public class HttpConnector {
     }
 
     /**
-     * Removes from Bidder result bids with zero width or height if it is not possible to find these values
-     * in correspond AdUnitBid
+     * Removes bids with zero width or height if it is not possible to find these values in correspond AdUnitBid
      */
     private static List<Bid> dropBidsWithNotValidSize(List<Bid> bids, List<AdUnitBid> adUnitBids) {
         final List<Bid> notValidBids = bids.stream()
@@ -307,9 +306,9 @@ public class HttpConnector {
         return validBids;
     }
 
-    private static BidderResult errorBidderResult(Exception exception, long bidderStarted) {
+    private static AdapterResponse errorBidderResult(Exception exception, long bidderStarted) {
         logger.warn("Error occurred while constructing bid requests", exception);
-        return BidderResult.of(BidderStatus.builder()
+        return AdapterResponse.of(BidderStatus.builder()
                 .error(exception.getMessage())
                 .responseTimeMs(responseTime(bidderStarted))
                 .build(), Collections.emptyList(), false);
