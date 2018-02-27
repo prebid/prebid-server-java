@@ -39,7 +39,6 @@ public final class BidResponse {
     String bidid;
 
     /** Bid currency using ISO-4217 alpha codes. */
-    // FIXME Default "USD"
     String cur;
 
     /**

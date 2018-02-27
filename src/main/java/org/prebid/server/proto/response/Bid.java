@@ -45,7 +45,6 @@ public final class Bid {
     String bidder;
 
     // Cpm, in US Dollars, which the bidder is willing to pay if this bid is chosen.
-    // TODO: Add support for other currencies someday.
     BigDecimal price;
 
     // URL which returns ad markup, and should be called if the bid wins.

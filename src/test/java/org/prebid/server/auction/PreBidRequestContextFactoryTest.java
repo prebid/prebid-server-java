@@ -72,7 +72,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;
-    private PublicSuffixList psl = new PublicSuffixListFactory().build();
+    private final PublicSuffixList psl = new PublicSuffixListFactory().build();
     @Mock
     private ApplicationSettings applicationSettings;
     @Mock

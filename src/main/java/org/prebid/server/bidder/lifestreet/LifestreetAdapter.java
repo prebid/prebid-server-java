@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Lifestreet {@link org.prebid.server.adapter.Adapter} implementation.
+ * Lifestreet {@link org.prebid.server.bidder.Adapter} implementation.
  * <p>
  * Maintainer email: <a href="mailto:mobile.tech@lifestreet.com">mobile.tech@lifestreet.com</a>
  */

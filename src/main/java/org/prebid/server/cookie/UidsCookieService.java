@@ -49,7 +49,6 @@ public class UidsCookieService {
 
     /**
      * Retrieves UIDs cookie (base64 encoded) value from http request and transforms it into {@link UidsCookie}.
-     *
      * <p>
      * Uids cookie value from http request may be represented in accordance with one of two formats:
      * <ul>
@@ -58,10 +57,10 @@ public class UidsCookieService {
      * </ul>
      * If request contains 'legacy' UIDs cookie format then it will be interpreted as already expired and forced
      * to re-sync
-     *
+     * <p>
      * This method also sets 'hostCookieFamily' if 'hostCookie' is present in the request and feature is not opted-out.
      * If feature is opted-out uids attribute will be blank.
-     *
+     * <p>
      * Note: UIDs will be excluded from resulting {@link UidsCookie} if their value are 'null'
      */
     public UidsCookie parseFromRequest(RoutingContext context) {

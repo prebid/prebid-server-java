@@ -46,8 +46,8 @@ import org.prebid.server.bidder.rubicon.model.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.model.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.model.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.model.RubiconVideoExtRp;
-import org.prebid.server.bidder.rubicon.model.RubiconVideoParams;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Sdk;
 import org.prebid.server.proto.response.Bid;
@@ -67,7 +67,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * <a href="https://rubiconproject.com">Rubicon Project</a> {@link org.prebid.server.adapter.Adapter} implementation.
+ * <a href="https://rubiconproject.com">Rubicon Project</a> {@link org.prebid.server.bidder.Adapter} implementation.
  * <p>
  * Maintainer email: <a href="mailto:header-bidding@rubiconproject.com">header-bidding@rubiconproject.com</a>
  */

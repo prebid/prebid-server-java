@@ -36,7 +36,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * Conversant {@link org.prebid.server.adapter.Adapter} implementation.
+ * Conversant {@link org.prebid.server.bidder.Adapter} implementation.
  * <p>
  * Maintainer email: <a href="mailto:mediapsr@conversantmedia.com">mediapsr@conversantmedia.com</a>
  */

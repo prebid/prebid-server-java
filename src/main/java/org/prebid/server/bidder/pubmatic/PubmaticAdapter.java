@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Pubmatic {@link org.prebid.server.adapter.Adapter} implementation.
+ * Pubmatic {@link org.prebid.server.bidder.Adapter} implementation.
  * <p>
  * Maintainer email: <a href="mailto:header-bidding@pubmatic.com">header-bidding@pubmatic.com</a>
  */

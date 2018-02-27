@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 
 @Builder
 @Value

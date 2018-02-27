@@ -118,7 +118,7 @@ public final class Video {
 
     /**
      * Indicates if letter-boxing of 4:3 content into a 16:9 window is allowed,
-     * where 0 = no, 1 = yes.; FIXME default 1
+     * where 0 = no, 1 = yes.;
      */
     Integer boxingallowed;
 

@@ -68,7 +68,6 @@ public final class BidRequest {
     /**
      * Auction type, where 1 = First Price, 2 = Second Price Plus. Exchange-specific
      * auction types can be defined using values greater than 500.
-     * FIXME default 2
      */
     Integer at;
 

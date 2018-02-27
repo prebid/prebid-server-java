@@ -95,7 +95,6 @@ public final class Imp {
     /**
      * Currency specified using ISO-4217 alpha codes. This may be different from
      * bid currency returned by bidder if this is allowed by the exchange.
-     * FIXME default “USD”
      */
     String bidfloorcur;
 

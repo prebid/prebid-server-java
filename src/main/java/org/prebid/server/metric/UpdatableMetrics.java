@@ -11,7 +11,7 @@ import java.util.function.Function;
 class UpdatableMetrics {
 
     private final MetricRegistry metricRegistry;
-    private Function<MetricName, String> nameCreator;
+    private final Function<MetricName, String> nameCreator;
     private final MetricIncrementer incrementer;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be

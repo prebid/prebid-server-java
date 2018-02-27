@@ -35,7 +35,8 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
     }
 
     /**
-     * Runs a process to get StoredRequest by ids from database and returns {@link Future< StoredRequestResult >}
+     * Runs a process to get StoredRequest by ids from database and returns
+     * {@link Future&lt;{@link StoredRequestResult}&gt;}
      */
     @Override
     public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, GlobalTimeout timeout) {

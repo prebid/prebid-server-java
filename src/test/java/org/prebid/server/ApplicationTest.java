@@ -65,7 +65,7 @@ public class ApplicationTest extends VertxTest {
     private static final int WIREMOCK_PORT = 8090;
 
     @ClassRule
-    public static WireMockClassRule wireMockRule = new WireMockClassRule(WIREMOCK_PORT);
+    public static final WireMockClassRule wireMockRule = new WireMockClassRule(WIREMOCK_PORT);
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
 

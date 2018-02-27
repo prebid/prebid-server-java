@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Index {@link org.prebid.server.adapter.Adapter} implementation.
+ * Index {@link org.prebid.server.bidder.Adapter} implementation.
  * <p>
  * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
  */

@@ -125,7 +125,7 @@ public class TargetingKeywordsCreator {
     }
 
     /**
-     * Creates map of keywords for the given {@link org.prebid.model.response.Bid}.
+     * Creates map of keywords for the given {@link Bid}.
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
         return makeFor(bid.getBidder(), winningBid, bid.getPrice(), StringUtils.EMPTY, bid.getWidth(), bid.getHeight(),

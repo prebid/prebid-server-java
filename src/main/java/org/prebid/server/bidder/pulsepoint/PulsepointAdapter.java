@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Pulsepoint {@link org.prebid.server.adapter.Adapter} implementation.
+ * Pulsepoint {@link org.prebid.server.bidder.Adapter} implementation.
  * <p>
  * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
  */
