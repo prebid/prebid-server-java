@@ -41,7 +41,7 @@ import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.model.request.Video;
 import org.prebid.server.model.response.BidderDebug;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.FacebookUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -77,12 +77,14 @@ public class FacebookAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
     private FacebookAdapter adapter;
+    private FacebookUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         bidder = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new FacebookAdapter(ENDPOINT_URL, NONSECURE_ENDPOINT_URL, USERSYNC_URL, PLATFORM_ID);
+        usersyncer = new FacebookUsersyncer(USERSYNC_URL);
+        adapter = new FacebookAdapter(usersyncer, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, PLATFORM_ID);
     }
 
     @Test
@@ -90,34 +92,27 @@ public class FacebookAdapterTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(
                 () -> new FacebookAdapter(null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(ENDPOINT_URL, null, null, null));
+                () -> new FacebookAdapter(usersyncer, ENDPOINT_URL, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(ENDPOINT_URL, NONSECURE_ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new FacebookAdapter(ENDPOINT_URL, NONSECURE_ENDPOINT_URL, USERSYNC_URL, null));
+                () -> new FacebookAdapter(usersyncer, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter("invalid_url", NONSECURE_ENDPOINT_URL, USERSYNC_URL, PLATFORM_ID))
+                .isThrownBy(() -> new FacebookAdapter(usersyncer, "invalid_url", NONSECURE_ENDPOINT_URL, PLATFORM_ID))
                 .withMessage("URL supplied is not valid: invalid_url");
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter(ENDPOINT_URL, "invalid_url", USERSYNC_URL, PLATFORM_ID))
+                .isThrownBy(() -> new FacebookAdapter(usersyncer, ENDPOINT_URL, "invalid_url", PLATFORM_ID))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailOnInvalidPlatformId() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookAdapter(ENDPOINT_URL, NONSECURE_ENDPOINT_URL, USERSYNC_URL, "non-number"))
+                .isThrownBy(() -> new FacebookAdapter(usersyncer, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, "non-number"))
                 .withMessage("Platform ID is not valid number: 'non-number'");
-    }
-
-    @Test
-    public void creationShouldInitExpectedUsercyncInfo() {
-        Assertions.assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of("//usersync.org/", "redirect", false));
     }
 
     @Test
@@ -293,7 +288,7 @@ public class FacebookAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestWithRandomEndpoint() {
         // given
-        adapter = new FacebookAdapter("https://secure-endpoint.org", "http://non-secure-endpoint.org", USERSYNC_URL,
+        adapter = new FacebookAdapter(usersyncer, "https://secure-endpoint.org", "http://non-secure-endpoint.org",
                 PLATFORM_ID);
         preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
 

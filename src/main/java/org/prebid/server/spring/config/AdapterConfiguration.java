@@ -12,6 +12,14 @@ import org.prebid.server.adapter.lifestreet.LifestreetAdapter;
 import org.prebid.server.adapter.pubmatic.PubmaticAdapter;
 import org.prebid.server.adapter.pulsepoint.PulsepointAdapter;
 import org.prebid.server.adapter.rubicon.RubiconAdapter;
+import org.prebid.server.usersyncer.AppnexusUsersyncer;
+import org.prebid.server.usersyncer.ConversantUsersyncer;
+import org.prebid.server.usersyncer.FacebookUsersyncer;
+import org.prebid.server.usersyncer.IndexUsersyncer;
+import org.prebid.server.usersyncer.LifestreetUsersyncer;
+import org.prebid.server.usersyncer.PubmaticUsersyncer;
+import org.prebid.server.usersyncer.PulsepointUsersyncer;
+import org.prebid.server.usersyncer.RubiconUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -42,77 +50,72 @@ public class AdapterConfiguration {
     }
 
     @Bean
-    RubiconAdapter rubiconAdapter(
-            @Value("${adapters.rubicon.endpoint}") String endpoint,
-            @Value("${adapters.rubicon.usersync-url}") String usersyncUrl,
-            @Value("${adapters.rubicon.XAPI.Username}") String username,
-            @Value("${adapters.rubicon.XAPI.Password}") String password) {
-
-        return new RubiconAdapter(endpoint, usersyncUrl, username, password);
-    }
-
-    @Bean
     AppnexusAdapter appnexusAdapter(
-            @Value("${adapters.appnexus.endpoint}") String endpoint,
-            @Value("${adapters.appnexus.usersync-url}") String usersyncUrl,
-            @Value("${external-url}") String externalUrl) {
+            AppnexusUsersyncer appnexusUsersyncer,
+            @Value("${adapters.appnexus.endpoint}") String endpoint) {
 
-        return new AppnexusAdapter(endpoint, usersyncUrl, externalUrl);
+        return new AppnexusAdapter(appnexusUsersyncer, endpoint);
     }
 
     @Bean
-    PulsepointAdapter pulsepointAdapter(
-            @Value("${adapters.pulsepoint.endpoint}") String endpoint,
-            @Value("${adapters.pulsepoint.usersync-url}") String usersyncUrl,
-            @Value("${external-url}") String externalUrl) {
+    ConversantAdapter conversantAdapter(
+            ConversantUsersyncer conversantUsersyncer,
+            @Value("${adapters.conversant.endpoint}") String endpoint) {
 
-        return new PulsepointAdapter(endpoint, usersyncUrl, externalUrl);
+        return new ConversantAdapter(conversantUsersyncer, endpoint);
     }
 
     @Bean
     @ConditionalOnProperty(name = {"adapters.facebook.usersync-url", "adapters.facebook.platformId"})
     FacebookAdapter facebookAdapter(
+            FacebookUsersyncer facebookUsersyncer,
             @Value("${adapters.facebook.endpoint}") String endpoint,
             @Value("${adapters.facebook.nonSecureEndpoint}") String nonSecureEndpoint,
-            @Value("${adapters.facebook.usersync-url}") String usersyncUrl,
             @Value("${adapters.facebook.platformId}") String platformId) {
 
-        return new FacebookAdapter(endpoint, nonSecureEndpoint, usersyncUrl, platformId);
+        return new FacebookAdapter(facebookUsersyncer, endpoint, nonSecureEndpoint, platformId);
     }
 
     @Bean
     @ConditionalOnProperty(name = "adapters.indexexchange.endpoint")
     IndexAdapter indexAdapter(
-            @Value("${adapters.indexexchange.endpoint}") String endpoint,
-            @Value("${adapters.indexexchange.usersync-url}") String usersyncUrl) {
+            IndexUsersyncer indexUsersyncer,
+            @Value("${adapters.indexexchange.endpoint}") String endpoint) {
 
-        return new IndexAdapter(endpoint, usersyncUrl);
+        return new IndexAdapter(indexUsersyncer, endpoint);
     }
 
     @Bean
     LifestreetAdapter lifestreetAdapter(
-            @Value("${adapters.lifestreet.endpoint}") String endpoint,
-            @Value("${adapters.lifestreet.usersync-url}") String usersyncUrl,
-            @Value("${external-url}") String externalUrl) {
+            LifestreetUsersyncer lifestreetUsersyncer,
+            @Value("${adapters.lifestreet.endpoint}") String endpoint) {
 
-        return new LifestreetAdapter(endpoint, usersyncUrl, externalUrl);
+        return new LifestreetAdapter(lifestreetUsersyncer, endpoint);
     }
 
     @Bean
     PubmaticAdapter pubmaticAdapter(
-            @Value("${adapters.pubmatic.endpoint}") String endpoint,
-            @Value("${adapters.pubmatic.usersync-url}") String usersyncUrl,
-            @Value("${external-url}") String externalUrl) {
+            PubmaticUsersyncer pubmaticUsersyncer,
+            @Value("${adapters.pubmatic.endpoint}") String endpoint) {
 
-        return new PubmaticAdapter(endpoint, usersyncUrl, externalUrl);
+        return new PubmaticAdapter(pubmaticUsersyncer, endpoint);
     }
 
     @Bean
-    ConversantAdapter conversantAdapter(
-            @Value("${adapters.conversant.endpoint}") String endpoint,
-            @Value("${adapters.conversant.usersync-url}") String usersyncUrl,
-            @Value("${external-url}") String externalUrl) {
+    PulsepointAdapter pulsepointAdapter(
+            PulsepointUsersyncer pulsepointUsersyncer,
+            @Value("${adapters.pulsepoint.endpoint}") String endpoint) {
 
-        return new ConversantAdapter(endpoint, usersyncUrl, externalUrl);
+        return new PulsepointAdapter(pulsepointUsersyncer, endpoint);
+    }
+
+    @Bean
+    RubiconAdapter rubiconAdapter(
+            RubiconUsersyncer rubiconUsersyncer,
+            @Value("${adapters.rubicon.endpoint}") String endpoint,
+            @Value("${adapters.rubicon.XAPI.Username}") String username,
+            @Value("${adapters.rubicon.XAPI.Password}") String password) {
+
+        return new RubiconAdapter(rubiconUsersyncer, endpoint, username, password);
     }
 }

@@ -84,8 +84,8 @@ public class BidderParamValidator {
         final Map<String, JsonNode> bidderRawSchemas = new LinkedHashMap<>();
 
         bidderRequesterCatalog.names()
-                .forEach(httpConnector -> bidderRawSchemas.put(httpConnector, readFromClasspath(schemaDirectory,
-                        httpConnector)));
+                .forEach(bidderRequester -> bidderRawSchemas.put(bidderRequester,
+                        readFromClasspath(schemaDirectory, bidderRequester)));
 
         return new BidderParamValidator(toBidderSchemas(bidderRawSchemas), toSchemas(bidderRawSchemas));
     }

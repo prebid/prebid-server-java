@@ -9,7 +9,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.prebid.server.adapter.AdapterCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.metric.MetricName;
@@ -17,6 +16,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.request.CookieSyncRequest;
 import org.prebid.server.model.response.BidderStatus;
 import org.prebid.server.model.response.CookieSyncResponse;
+import org.prebid.server.usersyncer.UsersyncerCatalog;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,12 +27,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(CookieSyncHandler.class);
 
     private final UidsCookieService uidsCookieService;
-    private final AdapterCatalog adapterCatalog;
+    private final UsersyncerCatalog usersyncerCatalog;
     private final Metrics metrics;
 
-    public CookieSyncHandler(UidsCookieService uidsCookieService, AdapterCatalog adapterCatalog, Metrics metrics) {
+    public CookieSyncHandler(UidsCookieService uidsCookieService, UsersyncerCatalog usersyncerCatalog,
+                             Metrics metrics) {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.adapterCatalog = Objects.requireNonNull(adapterCatalog);
+        this.usersyncerCatalog = Objects.requireNonNull(usersyncerCatalog);
         this.metrics = Objects.requireNonNull(metrics);
     }
 
@@ -64,13 +65,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final CookieSyncRequest cookieSyncRequest = body.mapTo(CookieSyncRequest.class);
 
         final List<BidderStatus> bidderStatuses = cookieSyncRequest.getBidders().stream()
-                .filter(adapterCatalog::isValidCode)
-                .map(adapterCatalog::getByCode)
-                .filter(adapter -> !uidsCookie.hasLiveUidFrom(adapter.cookieFamily()))
-                .map(adapter -> BidderStatus.builder()
-                        .bidder(adapter.code())
+                .filter(usersyncerCatalog::isValidName)
+                .map(usersyncerCatalog::byName)
+                .filter(usersyncer -> !uidsCookie.hasLiveUidFrom(usersyncer.cookieFamilyName()))
+                .map(usersyncer -> BidderStatus.builder()
                         .noCookie(true)
-                        .usersync(adapter.usersyncInfo())
+                        .bidder(usersyncer.name())
+                        .usersync(usersyncer.usersyncInfo())
                         .build())
                 .collect(Collectors.toList());
 

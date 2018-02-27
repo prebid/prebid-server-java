@@ -7,29 +7,29 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Provides simple access to all adapters registered so far.
+ * Provides simple access to all {@link Adapter}s registered so far.
  */
 public class AdapterCatalog {
 
     private final Map<String, Adapter> adapters;
 
-    public AdapterCatalog(List<Adapter> adapterList) {
-        this.adapters = Objects.requireNonNull(adapterList).stream()
-                .collect(Collectors.toMap(Adapter::code, Function.identity()));
+    public AdapterCatalog(List<Adapter> adapters) {
+        this.adapters = Objects.requireNonNull(adapters).stream()
+                .collect(Collectors.toMap(Adapter::name, Function.identity()));
     }
 
     /**
-     * Returns {@link Adapter} by code. If adapter with given code is not exist then null will be returned.
-     * For null-safety {@link #isValidCode(String)} can be used.
+     * Returns {@link Adapter} by name. If adapter with given code is not exist then null will be returned.
+     * For null-safety {@link #isValidName(String)} can be used.
      */
-    public Adapter getByCode(String code) {
-        return adapters.get(code);
+    public Adapter byName(String name) {
+        return adapters.get(name);
     }
 
     /**
      * Returns true if adapter with given code exists otherwise false.
      */
-    public boolean isValidCode(String code) {
-        return adapters.containsKey(code);
+    public boolean isValidName(String name) {
+        return adapters.containsKey(name);
     }
 }

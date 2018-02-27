@@ -42,6 +42,8 @@ import org.prebid.server.model.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.model.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.model.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.model.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.usersyncer.Usersyncer;
+import org.prebid.server.usersyncer.UsersyncerCatalog;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -75,6 +77,10 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private BidderRequesterCatalog bidderRequesterCatalog;
     @Mock
+    private UsersyncerCatalog usersyncerCatalog;
+    @Mock
+    private Usersyncer usersyncer;
+    @Mock
     private CacheService cacheService;
     @Mock
     private Metrics metrics;
@@ -91,26 +97,29 @@ public class ExchangeServiceTest extends VertxTest {
     @Before
     public void setUp() {
         given(bidderRequesterCatalog.byName(anyString())).willReturn(bidderRequester);
-        given(bidderRequester.cookieFamilyName()).willReturn("cookieFamily");
+        given(usersyncerCatalog.byName(anyString())).willReturn(usersyncer);
+        given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
 
-        exchangeService = new ExchangeService(bidderRequesterCatalog, cacheService, metrics, 0);
+        exchangeService = new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, metrics, 0);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new ExchangeService(null, cacheService, metrics, 0));
+                () -> new ExchangeService(null, null, null, null, 0));
         assertThatNullPointerException().isThrownBy(
-                () -> new ExchangeService(bidderRequesterCatalog, null, metrics, 0));
+                () -> new ExchangeService(bidderRequesterCatalog, null, null, null, 0));
         assertThatNullPointerException().isThrownBy(
-                () -> new ExchangeService(bidderRequesterCatalog, cacheService, null, 0));
+                () -> new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, null, null, 0));
+        assertThatNullPointerException().isThrownBy(
+                () -> new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, null, 0));
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new ExchangeService(bidderRequesterCatalog, cacheService, metrics, -1));
+                () -> new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, metrics, -1));
     }
 
     @Test
@@ -817,7 +826,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
-        exchangeService = new ExchangeService(bidderRequesterCatalog, cacheService, metrics, 100);
+        exchangeService = new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, metrics, 100);
 
         givenHttpConnector(givenSeatBid(singletonList(
                 givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build()))));

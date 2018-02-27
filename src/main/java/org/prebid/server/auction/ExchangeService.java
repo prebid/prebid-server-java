@@ -35,6 +35,7 @@ import org.prebid.server.model.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.model.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.model.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.model.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.usersyncer.UsersyncerCatalog;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -60,13 +61,15 @@ public class ExchangeService {
 
     private static final Clock CLOCK = Clock.systemDefaultZone();
     private final BidderRequesterCatalog bidderRequesterCatalog;
+    private final UsersyncerCatalog usersyncerCatalog;
     private final CacheService cacheService;
     private final Metrics metrics;
     private long expectedCacheTime;
 
-    public ExchangeService(BidderRequesterCatalog bidderRequesterCatalog, CacheService cacheService, Metrics metrics,
-                           long expectedCacheTime) {
+    public ExchangeService(BidderRequesterCatalog bidderRequesterCatalog, UsersyncerCatalog usersyncerCatalog,
+                           CacheService cacheService, Metrics metrics, long expectedCacheTime) {
         this.bidderRequesterCatalog = Objects.requireNonNull(bidderRequesterCatalog);
+        this.usersyncerCatalog = Objects.requireNonNull(usersyncerCatalog);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
         if (expectedCacheTime < 0) {
@@ -133,7 +136,7 @@ public class ExchangeService {
             metrics.forAdapter(bidder).incCounter(MetricName.requests);
 
             final boolean noBuyerId = StringUtils.isBlank(uidsCookie.uidFrom(
-                    bidderRequesterCatalog.byName(bidder).cookieFamilyName()));
+                    usersyncerCatalog.byName(bidder).cookieFamilyName()));
 
             if (bidderRequest.getBidRequest().getApp() == null && noBuyerId) {
                 metrics.forAdapter(bidder).incCounter(MetricName.no_cookie_requests);
@@ -271,7 +274,7 @@ public class ExchangeService {
     private User userWithBuyerid(String bidder, BidRequest bidRequest, UidsCookie uidsCookie) {
         final User result;
 
-        final String buyerid = uidsCookie.uidFrom(bidderRequesterCatalog.byName(bidder).cookieFamilyName());
+        final String buyerid = uidsCookie.uidFrom(usersyncerCatalog.byName(bidder).cookieFamilyName());
 
         final User user = bidRequest.getUser();
         if (StringUtils.isNotBlank(buyerid) && (user == null || StringUtils.isBlank(user.getBuyeruid()))) {

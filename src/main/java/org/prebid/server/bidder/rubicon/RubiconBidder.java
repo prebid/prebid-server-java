@@ -40,6 +40,7 @@ import org.prebid.server.adapter.rubicon.model.RubiconUserExtRp;
 import org.prebid.server.adapter.rubicon.model.RubiconVideoExt;
 import org.prebid.server.adapter.rubicon.model.RubiconVideoExtRp;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenRtbBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -53,6 +54,7 @@ import org.prebid.server.model.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.model.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.model.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.model.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -74,9 +76,13 @@ public class RubiconBidder extends OpenRtbBidder {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
+    private static final String NAME = BidderName.rubicon.name();
+
     private static final String APPLICATION_JSON_UTF_8 = HttpHeaderValues.APPLICATION_JSON.toString() + ";"
             + HttpHeaderValues.CHARSET.toString() + "=" + StandardCharsets.UTF_8.toString().toLowerCase();
+
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
+
     private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpRubicon>>() {
             };
@@ -85,8 +91,13 @@ public class RubiconBidder extends OpenRtbBidder {
     private final MultiMap headers;
 
     public RubiconBidder(String endpoint, String xapiUsername, String xapiPassword) {
-        endpointUrl = validateUrl(Objects.requireNonNull(endpoint));
+        endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
+    }
+
+    @Override
+    public String name() {
+        return NAME;
     }
 
     @Override
@@ -113,16 +124,6 @@ public class RubiconBidder extends OpenRtbBidder {
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }
-    }
-
-    @Override
-    public String name() {
-        return "rubicon";
-    }
-
-    @Override
-    public String cookieFamilyName() {
-        return "rubicon";
     }
 
     private static MultiMap headers(String xapiUsername, String xapiPassword) {
@@ -302,5 +303,4 @@ public class RubiconBidder extends OpenRtbBidder {
                 .map(bid -> BidderBid.of(bid, bidType(bid, impidToBidType)))
                 .collect(Collectors.toList());
     }
-
 }

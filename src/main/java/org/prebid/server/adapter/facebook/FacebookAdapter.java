@@ -18,6 +18,7 @@ import org.prebid.server.adapter.facebook.model.FacebookParams;
 import org.prebid.server.adapter.model.AdUnitBidWithParams;
 import org.prebid.server.adapter.model.ExchangeCall;
 import org.prebid.server.adapter.model.HttpRequest;
+import org.prebid.server.bidder.BidderName;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.AdUnitBid;
 import org.prebid.server.model.Bidder;
@@ -25,7 +26,8 @@ import org.prebid.server.model.MediaType;
 import org.prebid.server.model.PreBidRequestContext;
 import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.response.Bid;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.Usersyncer;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,6 +47,8 @@ import java.util.stream.Stream;
  */
 public class FacebookAdapter extends OpenrtbAdapter {
 
+    private static final String NAME = BidderName.audienceNetwork.name();
+
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
             Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
 
@@ -58,19 +62,13 @@ public class FacebookAdapter extends OpenrtbAdapter {
 
     private final String endpointUrl;
     private final String nonSecureEndpointUrl;
-    private final UsersyncInfo usersyncInfo;
     private final ObjectNode platformJson;
 
-    public FacebookAdapter(String endpointUrl, String nonSecureEndpointUrl, String usersyncUrl, String platformId) {
-        this.endpointUrl = validateUrl(Objects.requireNonNull(endpointUrl));
-        this.nonSecureEndpointUrl = validateUrl(Objects.requireNonNull(nonSecureEndpointUrl));
-
-        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl));
+    public FacebookAdapter(Usersyncer usersyncer, String endpointUrl, String nonSecureEndpointUrl, String platformId) {
+        super(usersyncer);
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.nonSecureEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(nonSecureEndpointUrl));
         platformJson = createPlatformJson(Objects.requireNonNull(platformId));
-    }
-
-    private static UsersyncInfo createUsersyncInfo(String usersyncUrl) {
-        return UsersyncInfo.of(usersyncUrl, "redirect", false);
     }
 
     private static ObjectNode createPlatformJson(String platformId) {
@@ -84,18 +82,8 @@ public class FacebookAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public String code() {
-        return "audienceNetwork";
-    }
-
-    @Override
-    public String cookieFamily() {
-        return "audienceNetwork";
-    }
-
-    @Override
-    public UsersyncInfo usersyncInfo() {
-        return usersyncInfo;
+    public String name() {
+        return NAME;
     }
 
     @Override

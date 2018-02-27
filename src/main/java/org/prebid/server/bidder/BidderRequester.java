@@ -11,17 +11,12 @@ import org.prebid.server.execution.GlobalTimeout;
 public interface BidderRequester {
 
     /**
-     * Executes given request to a bidder.
-     */
-    Future<BidderSeatBid> requestBids(BidRequest bidRequest, GlobalTimeout timeout);
-
-    /**
-     * Returns bidder's cookie family name.
-     */
-    String cookieFamilyName();
-
-    /**
      * Returns bidder's name.
      */
     String name();
+
+    /**
+     * Executes given request to a bidder.
+     */
+    Future<BidderSeatBid> requestBids(BidRequest bidRequest, GlobalTimeout timeout);
 }

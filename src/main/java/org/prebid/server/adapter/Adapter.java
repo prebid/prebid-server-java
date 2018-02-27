@@ -7,43 +7,32 @@ import org.prebid.server.model.Bidder;
 import org.prebid.server.model.BidderResult;
 import org.prebid.server.model.PreBidRequestContext;
 import org.prebid.server.model.response.Bid;
-import org.prebid.server.model.response.UsersyncInfo;
 
 import java.util.List;
 
 /**
- * Describes behavior for {@link Adapter} implementations.
+ * Describes the behavior for {@link Adapter} implementations.
  * <p>
  * Used by {@link HttpConnector} while performing requests to exchanges and compose results.
  */
 public interface Adapter {
 
     /**
-     * Returns adapter code
+     * Returns adapter's name.
      */
-    String code();
+    String name();
 
     /**
-     * Adapter name in UID cookie
-     */
-    String cookieFamily();
-
-    /**
-     * Returns user sync info for given adapter
-     */
-    UsersyncInfo usersyncInfo();
-
-    /**
-     * Composes list of http request to submit to exchange
+     * Composes list of http request to submit to exchange.
      *
-     * @throws PreBidException if error occurs while adUnitBids validation
+     * @throws PreBidException if error occurs while adUnitBids validation.
      */
     List<HttpRequest> makeHttpRequests(Bidder bidder, PreBidRequestContext preBidRequestContext) throws PreBidException;
 
     /**
-     * Extracts bids from exchange response
+     * Extracts bids from exchange response.
      *
-     * @throws PreBidException if error occurs while bids validation
+     * @throws PreBidException if error occurs while bids validation.
      */
     List<Bid.BidBuilder> extractBids(Bidder bidder, ExchangeCall exchangeCall) throws PreBidException;
 

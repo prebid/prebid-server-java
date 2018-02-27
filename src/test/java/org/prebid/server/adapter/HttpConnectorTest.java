@@ -46,6 +46,7 @@ import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.model.response.BidderDebug;
 import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.Usersyncer;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -74,6 +75,8 @@ public class HttpConnectorTest extends VertxTest {
 
     @Mock
     private Adapter adapter;
+    @Mock
+    private Usersyncer usersyncer;
     @Mock
     private HttpClient httpClient;
     @Mock
@@ -108,9 +111,9 @@ public class HttpConnectorTest extends VertxTest {
 
     @Test
     public void callShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> httpConnector.call(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> httpConnector.call(adapter, null, null));
-        assertThatNullPointerException().isThrownBy(() -> httpConnector.call(adapter, bidder, null));
+        assertThatNullPointerException().isThrownBy(() -> httpConnector.call(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> httpConnector.call(adapter, usersyncer, null, null));
+        assertThatNullPointerException().isThrownBy(() -> httpConnector.call(adapter, usersyncer, bidder, null));
     }
 
     @Test
@@ -122,7 +125,7 @@ public class HttpConnectorTest extends VertxTest {
                 .willReturn(singletonList(givenHttpRequest(headers, identity())));
 
         // when
-        httpConnector.call(adapter, bidder, preBidRequestContext);
+        httpConnector.call(adapter, usersyncer, bidder, preBidRequestContext);
 
         // then
         assertThat(httpClientRequest.headers()).extracting(Map.Entry::getKey).containsOnly("key1");
@@ -132,7 +135,7 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldPerformHttpRequestsWithExpectedTimeout() {
         // when
-        httpConnector.call(adapter, bidder, preBidRequestContext);
+        httpConnector.call(adapter, usersyncer, bidder, preBidRequestContext);
 
         // then
         final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
@@ -147,7 +150,7 @@ public class HttpConnectorTest extends VertxTest {
                 .willReturn(singletonList(givenHttpRequest(null, b -> b.id("bidRequest1"))));
 
         // when
-        httpConnector.call(adapter, bidder, preBidRequestContext);
+        httpConnector.call(adapter, usersyncer, bidder, preBidRequestContext);
 
         // then
         final BidRequest bidRequest = captureBidRequest();
@@ -162,7 +165,7 @@ public class HttpConnectorTest extends VertxTest {
                 .willReturn(emptyList());
 
         // when
-        httpConnector.call(adapter, bidder, preBidRequestContext);
+        httpConnector.call(adapter, usersyncer, bidder, preBidRequestContext);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -175,7 +178,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willThrow(new PreBidException("Make http requests exception"));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -190,7 +194,8 @@ public class HttpConnectorTest extends VertxTest {
                 identity());
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -207,7 +212,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new ConnectTimeoutException()));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -223,7 +229,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException()));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -239,7 +246,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -252,7 +260,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -265,7 +274,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(204, "response");
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -279,7 +289,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(503, "response");
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -292,7 +303,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, "response");
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -315,7 +327,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willReturn(httpClientResponse);
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -357,7 +370,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -401,7 +415,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -429,7 +444,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -459,7 +475,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -487,7 +504,8 @@ public class HttpConnectorTest extends VertxTest {
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -502,10 +520,11 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
-        given(adapter.usersyncInfo()).willReturn(UsersyncInfo.of("url1", null, false));
+        given(usersyncer.usersyncInfo()).willReturn(UsersyncInfo.of("url1", null, false));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -525,7 +544,8 @@ public class HttpConnectorTest extends VertxTest {
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -548,7 +568,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, bidResponse);
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -575,7 +596,8 @@ public class HttpConnectorTest extends VertxTest {
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         assertThat(bidderResultFuture.result().getBidderStatus().getDebug()).isNull();
@@ -591,7 +613,8 @@ public class HttpConnectorTest extends VertxTest {
                 identity());
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -611,7 +634,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();
@@ -630,7 +654,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(503, "response");
 
         // when
-        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, bidder, preBidRequestContext);
+        final Future<BidderResult> bidderResultFuture = httpConnector.call(adapter, usersyncer, bidder,
+                preBidRequestContext);
 
         // then
         final BidderResult bidderResult = bidderResultFuture.result();

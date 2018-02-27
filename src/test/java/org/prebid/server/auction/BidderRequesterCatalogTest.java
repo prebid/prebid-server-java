@@ -14,6 +14,8 @@ import static org.mockito.BDDMockito.given;
 
 public class BidderRequesterCatalogTest {
 
+    private static final String BIDDER_REQUESTER = "rubicon";
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -24,35 +26,32 @@ public class BidderRequesterCatalogTest {
 
     @Before
     public void setUp() {
-        given(bidderRequester.name()).willReturn("BidderName");
+        given(bidderRequester.name()).willReturn(BIDDER_REQUESTER);
+
         bidderRequesterCatalog = new BidderRequesterCatalog(singletonList(bidderRequester));
     }
 
     @Test
     public void isValidNameShouldReturnTrueForKnownHttpConnector() {
-        assertThat(bidderRequesterCatalog.isValidName("BidderName")).isTrue();
+        // when and then
+        assertThat(bidderRequesterCatalog.isValidName(BIDDER_REQUESTER)).isTrue();
     }
 
     @Test
     public void isValidNameShouldReturnFalseForUnknownHttpConnector() {
+        // when and then
         assertThat(bidderRequesterCatalog.isValidName("unknown_bidder")).isFalse();
     }
 
     @Test
     public void byNameShouldReturnHttpConnector() {
-        // when
-        final BidderRequester bidderRequesterFromCatalog = bidderRequesterCatalog.byName("BidderName");
-
-        // then
-        assertThat(bidderRequesterFromCatalog).isSameAs(bidderRequester);
+        // when and then
+        assertThat(bidderRequesterCatalog.byName(BIDDER_REQUESTER)).isSameAs(bidderRequester);
     }
 
     @Test
     public void byNameShouldReturnNullForUnknownHttpConnector() {
-        // when
-        final BidderRequester bidderRequesterFromCatalog = bidderRequesterCatalog.byName("unknown_bidder");
-
-        // then
-        assertThat(bidderRequesterFromCatalog).isNull();
+        // when and then
+        assertThat(bidderRequesterCatalog.byName("unknown_bidderRequester")).isNull();
     }
 }

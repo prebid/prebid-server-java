@@ -29,6 +29,8 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.StoredRequestFetcher;
+import org.prebid.server.usersyncer.UsersyncerCatalog;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,8 +39,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -116,13 +116,14 @@ public class WebConfiguration {
     AuctionHandler auctionHandler(
             ApplicationSettings applicationSettings,
             AdapterCatalog adapterCatalog,
+            UsersyncerCatalog usersyncerCatalog,
             PreBidRequestContextFactory preBidRequestContextFactory,
             CacheService cacheService,
             Vertx vertx,
             Metrics metrics,
             HttpConnector httpConnector) {
 
-        return new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory,
+        return new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog, preBidRequestContextFactory,
                 cacheService, vertx, metrics, httpConnector);
     }
 
@@ -166,10 +167,10 @@ public class WebConfiguration {
     @Bean
     CookieSyncHandler cookieSyncHandler(
             UidsCookieService uidsCookieService,
-            AdapterCatalog adapterCatalog,
+            UsersyncerCatalog usersyncerCatalog,
             Metrics metrics) {
 
-        return new CookieSyncHandler(uidsCookieService, adapterCatalog, metrics);
+        return new CookieSyncHandler(uidsCookieService, usersyncerCatalog, metrics);
     }
 
     @Bean
@@ -193,8 +194,8 @@ public class WebConfiguration {
         return new OptoutHandler(googleRecaptchaVerifier,
                 uidsCookieService,
                 OptoutHandler.getOptoutRedirectUrl(externalUrl),
-                validateUrl(optoutUrl),
-                validateUrl(optinUrl)
+                HttpUtil.validateUrl(optoutUrl),
+                HttpUtil.validateUrl(optinUrl)
         );
     }
 
@@ -206,13 +207,5 @@ public class WebConfiguration {
     @Bean
     StaticHandler staticHandler() {
         return StaticHandler.create("static").setCachingEnabled(false);
-    }
-
-    private static String validateUrl(String url) {
-        try {
-            return new URL(url).toString();
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(String.format("Could not get url from string: %s", url), e);
-        }
     }
 }

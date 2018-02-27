@@ -36,7 +36,7 @@ import org.prebid.server.model.PreBidRequestContext;
 import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.Video;
 import org.prebid.server.model.response.BidderDebug;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.AppnexusUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -69,36 +69,27 @@ public class AppnexusAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
     private AppnexusAdapter adapter;
+    private AppnexusUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         bidder = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new AppnexusAdapter(ENDPOINT_URL, USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new AppnexusUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        adapter = new AppnexusAdapter(usersyncer, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new AppnexusAdapter(null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new AppnexusAdapter(ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new AppnexusAdapter(ENDPOINT_URL, USERSYNC_URL, null));
+        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(usersyncer, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new AppnexusAdapter("invalid_url", USERSYNC_URL, EXTERNAL_URL))
+                .isThrownBy(() -> new AppnexusAdapter(usersyncer, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of(
-                "//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dadnxs%26uid%3D%24UID",
-                "redirect", false));
     }
 
     @Test

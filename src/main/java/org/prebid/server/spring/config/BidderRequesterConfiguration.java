@@ -14,6 +14,12 @@ import org.prebid.server.bidder.HttpAdapterRequester;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.appnexus.AppnexusBidder;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
+import org.prebid.server.usersyncer.ConversantUsersyncer;
+import org.prebid.server.usersyncer.FacebookUsersyncer;
+import org.prebid.server.usersyncer.IndexUsersyncer;
+import org.prebid.server.usersyncer.LifestreetUsersyncer;
+import org.prebid.server.usersyncer.PubmaticUsersyncer;
+import org.prebid.server.usersyncer.PulsepointUsersyncer;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -33,51 +39,57 @@ public class BidderRequesterConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderRequester rubiconHttpConnector(RubiconBidder rubiconBidder, HttpClient httpClient) {
-        return new HttpBidderRequester(rubiconBidder, httpClient);
-    }
-
-    @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderRequester appnexusHttpConnector(AppnexusBidder appnexusBidder, HttpClient httpClient) {
         return new HttpBidderRequester(appnexusBidder, httpClient);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderRequester pulsepointHttpConnector(PulsepointAdapter pulsepointAdapter, HttpConnector httpConnector) {
-        return new HttpAdapterRequester(pulsepointAdapter, httpConnector);
+    BidderRequester conversantHttpConnector(ConversantAdapter conversantAdapter,
+                                            ConversantUsersyncer conversantUsersyncer, HttpConnector httpConnector) {
+        return new HttpAdapterRequester(conversantAdapter, conversantUsersyncer, httpConnector);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     @ConditionalOnProperty(name = {"adapters.facebook.usersync-url", "adapters.facebook.platformId"})
-    BidderRequester facebookHttpConnector(FacebookAdapter facebookAdapter, HttpConnector httpConnector) {
-        return new HttpAdapterRequester(facebookAdapter, httpConnector);
+    BidderRequester facebookHttpConnector(FacebookAdapter facebookAdapter, FacebookUsersyncer facebookUsersyncer,
+                                          HttpConnector httpConnector) {
+        return new HttpAdapterRequester(facebookAdapter, facebookUsersyncer, httpConnector);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     @ConditionalOnProperty(name = "adapters.indexexchange.endpoint")
-    BidderRequester indexHttpConnector(IndexAdapter indexAdapter, HttpConnector httpConnector) {
-        return new HttpAdapterRequester(indexAdapter, httpConnector);
+    BidderRequester indexHttpConnector(IndexAdapter indexAdapter, IndexUsersyncer indexUsersyncer,
+                                       HttpConnector httpConnector) {
+        return new HttpAdapterRequester(indexAdapter, indexUsersyncer, httpConnector);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderRequester lifestreetHttpConnector(LifestreetAdapter lifestreetAdapter, HttpConnector httpConnector) {
-        return new HttpAdapterRequester(lifestreetAdapter, httpConnector);
+    BidderRequester lifestreetHttpConnector(LifestreetAdapter lifestreetAdapter,
+                                            LifestreetUsersyncer lifestreetUsersyncer, HttpConnector httpConnector) {
+        return new HttpAdapterRequester(lifestreetAdapter, lifestreetUsersyncer, httpConnector);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderRequester pubmaticHttpConnector(PubmaticAdapter pubmaticAdapter, HttpConnector httpConnector) {
-        return new HttpAdapterRequester(pubmaticAdapter, httpConnector);
+    BidderRequester pubmaticHttpConnector(PubmaticAdapter pubmaticAdapter, PubmaticUsersyncer pubmaticUsersyncer,
+                                          HttpConnector httpConnector) {
+        return new HttpAdapterRequester(pubmaticAdapter, pubmaticUsersyncer, httpConnector);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderRequester conversantHttpConnector(ConversantAdapter conversantAdapter, HttpConnector httpConnector) {
-        return new HttpAdapterRequester(conversantAdapter, httpConnector);
+    BidderRequester pulsepointHttpConnector(PulsepointAdapter pulsepointAdapter,
+                                            PulsepointUsersyncer pulsepointUsersyncer, HttpConnector httpConnector) {
+        return new HttpAdapterRequester(pulsepointAdapter, pulsepointUsersyncer, httpConnector);
+    }
+
+    @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    BidderRequester rubiconHttpConnector(RubiconBidder rubiconBidder, HttpClient httpClient) {
+        return new HttpBidderRequester(rubiconBidder, httpClient);
     }
 }

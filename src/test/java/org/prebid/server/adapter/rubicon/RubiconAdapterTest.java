@@ -55,7 +55,7 @@ import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.Sdk;
 import org.prebid.server.model.request.Video;
 import org.prebid.server.model.response.BidderDebug;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.RubiconUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -90,36 +90,29 @@ public class RubiconAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
     private RubiconAdapter adapter;
+    private RubiconUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         bidder = givenBidderCustomizable(identity(), identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        adapter = new RubiconAdapter(ENDPOINT_URL, USERSYNC_URL, USER, PASSWORD);
+        usersyncer = new RubiconUsersyncer(USERSYNC_URL);
+        adapter = new RubiconAdapter(usersyncer, ENDPOINT_URL, USER, PASSWORD);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(ENDPOINT_URL, null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(ENDPOINT_URL, USERSYNC_URL, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new RubiconAdapter(ENDPOINT_URL, USERSYNC_URL, USER, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(usersyncer, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(usersyncer, ENDPOINT_URL, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconAdapter(usersyncer, ENDPOINT_URL, USER, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new RubiconAdapter("invalid_url", USERSYNC_URL, USER, PASSWORD))
+                .isThrownBy(() -> new RubiconAdapter(usersyncer, "invalid_url", USER, PASSWORD))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void creationShouldInitExpectedUsercyncInfo() {
-        Assertions.assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of("//usersync.org/", "redirect", false));
     }
 
     @Test

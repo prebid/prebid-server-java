@@ -124,7 +124,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(bidRequest);
 
-        //then
+        // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
                 .id("test-request-id")
@@ -287,7 +287,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         // when
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(bidRequest);
 
-        //then
+        // then
         verifyZeroInteractions(storedRequestFetcher);
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result().getImp().get(0)).isSameAs(imp);

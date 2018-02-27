@@ -71,13 +71,4 @@ public abstract class OpenRtbBidder implements Bidder {
     protected static BidType bidType(Bid bid, Map<String, BidType> impidToBidType) {
         return impidToBidType.getOrDefault(bid.getImpid(), BidType.banner);
     }
-
-    protected static String validateUrl(String url) {
-        Objects.requireNonNull(url);
-        try {
-            return new URL(url).toString();
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(String.format("URL supplied is not valid: %s", url), e);
-        }
-    }
 }

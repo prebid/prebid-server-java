@@ -18,6 +18,7 @@ import org.prebid.server.adapter.appnexus.model.AppnexusImpExt;
 import org.prebid.server.adapter.appnexus.model.AppnexusImpExtAppnexus;
 import org.prebid.server.adapter.appnexus.model.AppnexusKeyVal;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenRtbBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -28,6 +29,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.openrtb.ext.ExtPrebid;
 import org.prebid.server.model.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.model.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -49,6 +51,8 @@ public class AppnexusBidder extends OpenRtbBidder {
 
     private static final Logger logger = LoggerFactory.getLogger(AppnexusBidder.class);
 
+    private static final String NAME = BidderName.appnexus.name();
+
     private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
 
@@ -59,7 +63,12 @@ public class AppnexusBidder extends OpenRtbBidder {
     private final String endpointUrl;
 
     public AppnexusBidder(String endpointUrl) {
-        this.endpointUrl = validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+    }
+
+    @Override
+    public String name() {
+        return NAME;
     }
 
     @Override
@@ -236,16 +245,6 @@ public class AppnexusBidder extends OpenRtbBidder {
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, bidType(bid, impidToBidType)))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public String name() {
-        return "appnexus";
-    }
-
-    @Override
-    public String cookieFamilyName() {
-        return "adnxs";
     }
 
     @AllArgsConstructor(staticName = "of")

@@ -19,11 +19,8 @@ import org.prebid.server.model.AdUnitBid;
 import org.prebid.server.model.MediaType;
 import org.prebid.server.model.PreBidRequestContext;
 import org.prebid.server.model.request.PreBidRequest;
+import org.prebid.server.usersyncer.Usersyncer;
 
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -39,25 +36,10 @@ public abstract class OpenrtbAdapter implements Adapter {
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
-    protected static String validateUrl(String url) {
-        Objects.requireNonNull(url);
+    protected final Usersyncer usersyncer;
 
-        try {
-            return new URL(url).toString();
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(String.format("URL supplied is not valid: %s", url), e);
-        }
-    }
-
-    protected static String encodeUrl(String format, Object... args) {
-        Objects.requireNonNull(format);
-
-        final String uri = String.format(format, args);
-        try {
-            return URLEncoder.encode(uri, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new PreBidException(String.format("Cannot encode uri: %s", uri));
-        }
+    protected OpenrtbAdapter(Usersyncer usersyncer) {
+        this.usersyncer = Objects.requireNonNull(usersyncer);
     }
 
     protected static Banner.BannerBuilder bannerBuilder(AdUnitBid adUnitBid) {
@@ -112,7 +94,7 @@ public abstract class OpenrtbAdapter implements Adapter {
     protected User.UserBuilder userBuilder(PreBidRequestContext preBidRequestContext) {
         final UidsCookie uidsCookie = preBidRequestContext.getUidsCookie();
         return preBidRequestContext.getPreBidRequest().getApp() != null ? null : User.builder()
-                .buyeruid(uidsCookie.uidFrom(cookieFamily()))
+                .buyeruid(uidsCookie.uidFrom(usersyncer.cookieFamilyName()))
                 // id is a UID for "adnxs" (see logic in open-source implementation)
                 .id(uidsCookie.uidFrom("adnxs"));
     }

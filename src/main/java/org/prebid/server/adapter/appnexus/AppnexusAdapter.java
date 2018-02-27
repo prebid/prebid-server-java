@@ -17,6 +17,7 @@ import org.prebid.server.adapter.appnexus.model.AppnexusParams;
 import org.prebid.server.adapter.model.AdUnitBidWithParams;
 import org.prebid.server.adapter.model.ExchangeCall;
 import org.prebid.server.adapter.model.HttpRequest;
+import org.prebid.server.bidder.BidderName;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.AdUnitBid;
 import org.prebid.server.model.Bidder;
@@ -24,7 +25,8 @@ import org.prebid.server.model.MediaType;
 import org.prebid.server.model.PreBidRequestContext;
 import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.response.Bid;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.Usersyncer;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -43,6 +45,8 @@ import java.util.stream.Stream;
  */
 public class AppnexusAdapter extends OpenrtbAdapter {
 
+    private static final String NAME = BidderName.appnexus.name();
+
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(
             EnumSet.of(MediaType.banner, MediaType.video));
 
@@ -50,18 +54,15 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
 
     private final String endpointUrl;
-    private final UsersyncInfo usersyncInfo;
 
-    public AppnexusAdapter(String endpointUrl, String usersyncUrl, String externalUrl) {
-        this.endpointUrl = validateUrl(Objects.requireNonNull(endpointUrl));
-
-        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
+    public AppnexusAdapter(Usersyncer usersyncer, String endpointUrl) {
+        super(usersyncer);
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
-    private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
-        final String redirectUri = encodeUrl("%s/setuid?bidder=adnxs&uid=$UID", externalUrl);
-
-        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), "redirect", false);
+    @Override
+    public String name() {
+        return NAME;
     }
 
     @Override
@@ -221,21 +222,6 @@ public class AppnexusAdapter extends OpenrtbAdapter {
                 .reduce((first, second) -> second)
                 .map(params -> String.format("%s%s", endpointUrl, String.format("?member_id=%s", params.getMember())))
                 .orElse(endpointUrl);
-    }
-
-    @Override
-    public String code() {
-        return "appnexus";
-    }
-
-    @Override
-    public String cookieFamily() {
-        return "adnxs";
-    }
-
-    @Override
-    public UsersyncInfo usersyncInfo() {
-        return usersyncInfo;
     }
 
     @Override

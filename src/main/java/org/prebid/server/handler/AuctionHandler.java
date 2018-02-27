@@ -33,6 +33,7 @@ import org.prebid.server.model.response.BidderStatus;
 import org.prebid.server.model.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.usersyncer.UsersyncerCatalog;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -53,7 +54,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final ApplicationSettings applicationSettings;
-    private final AdapterCatalog adapters;
+    private final AdapterCatalog adapterCatalog;
+    private final UsersyncerCatalog usersyncerCatalog;
     private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final CacheService cacheService;
     private final Metrics metrics;
@@ -62,11 +64,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private String date;
     private final Clock clock = Clock.systemDefaultZone();
 
-    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapters,
-                          PreBidRequestContextFactory preBidRequestContextFactory, CacheService cacheService,
-                          Vertx vertx, Metrics metrics, HttpConnector httpConnector) {
+    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapterCatalog,
+                          UsersyncerCatalog usersyncerCatalog, PreBidRequestContextFactory preBidRequestContextFactory,
+                          CacheService cacheService, Vertx vertx, Metrics metrics, HttpConnector httpConnector) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.adapters = Objects.requireNonNull(adapters);
+        this.adapterCatalog = Objects.requireNonNull(adapterCatalog);
+        this.usersyncerCatalog = Objects.requireNonNull(usersyncerCatalog);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
@@ -132,10 +135,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext, String accountId) {
         return preBidRequestContext.getBidders().stream()
-                .filter(bidder -> adapters.isValidCode(bidder.getBidderCode()))
+                .filter(bidder -> adapterCatalog.isValidName(bidder.getBidderCode()))
                 .peek(bidder -> updateAdapterRequestMetrics(bidder.getBidderCode(), accountId))
-                .map(bidder -> httpConnector.call(adapters.getByCode(bidder.getBidderCode()), bidder,
-                        preBidRequestContext))
+                .map(bidder -> httpConnector.call(adapterCatalog.byName(bidder.getBidderCode()),
+                        usersyncerCatalog.byName(bidder.getBidderCode()), bidder, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
@@ -263,7 +266,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private Stream<BidderStatus> invalidBidderStatuses(PreBidRequestContext preBidRequestContext) {
         return preBidRequestContext.getBidders().stream()
-                .filter(b -> !adapters.isValidCode(b.getBidderCode()))
+                .filter(b -> !adapterCatalog.isValidName(b.getBidderCode()))
                 .map(b -> BidderStatus.builder().bidder(b.getBidderCode()).error("Unsupported bidder").build());
     }
 

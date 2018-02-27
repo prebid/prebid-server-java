@@ -1,6 +1,5 @@
 package org.prebid.server.auction;
 
-import org.assertj.core.api.Assertions;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
@@ -15,7 +14,7 @@ import static org.mockito.Mockito.mock;
 
 public class BidderCatalogTest {
 
-    private static final String RUBICON = "rubicon";
+    private static final String BIDDER = "rubicon";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -26,12 +25,12 @@ public class BidderCatalogTest {
     public void isValidNameShouldReturnTrueForKnownBidders() {
         // given
         final Bidder bidder = mock(Bidder.class);
-        given(bidder.name()).willReturn(RUBICON);
+        given(bidder.name()).willReturn(BIDDER);
 
         bidderCatalog = new BidderCatalog(singletonList(bidder));
 
         // when and then
-        assertThat(bidderCatalog.isValidName(RUBICON)).isTrue();
+        assertThat(bidderCatalog.isValidName(BIDDER)).isTrue();
     }
 
     @Test
@@ -47,12 +46,12 @@ public class BidderCatalogTest {
     public void byNameShouldReturnBidderNameForKnownBidder() {
         // given
         final Bidder bidder = mock(Bidder.class);
-        given(bidder.name()).willReturn(RUBICON);
+        given(bidder.name()).willReturn(BIDDER);
 
         bidderCatalog = new BidderCatalog(singletonList(bidder));
 
         // when and then
-        Assertions.assertThat(bidderCatalog.byName(RUBICON)).isEqualTo(bidder);
+        assertThat(bidderCatalog.byName(BIDDER)).isEqualTo(bidder);
     }
 
     @Test
@@ -61,6 +60,6 @@ public class BidderCatalogTest {
         bidderCatalog = new BidderCatalog(emptyList());
 
         // when and then
-        Assertions.assertThat(bidderCatalog.byName("unknown_bidder")).isNull();
+        assertThat(bidderCatalog.byName("unknown_bidder")).isNull();
     }
 }

@@ -43,6 +43,7 @@ import org.prebid.server.adapter.rubicon.model.RubiconUserExtRp;
 import org.prebid.server.adapter.rubicon.model.RubiconVideoExt;
 import org.prebid.server.adapter.rubicon.model.RubiconVideoExtRp;
 import org.prebid.server.adapter.rubicon.model.RubiconVideoParams;
+import org.prebid.server.bidder.BidderName;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.AdUnitBid;
 import org.prebid.server.model.Bidder;
@@ -51,7 +52,8 @@ import org.prebid.server.model.PreBidRequestContext;
 import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.Sdk;
 import org.prebid.server.model.response.Bid;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.Usersyncer;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.Base64;
@@ -73,41 +75,26 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconAdapter.class);
 
-    private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(
-            EnumSet.of(MediaType.banner, MediaType.video));
+    private static final String NAME = BidderName.rubicon.name();
+
+    private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
+            Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
 
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
     private final String endpointUrl;
-    private final UsersyncInfo usersyncInfo;
     private final String authHeader;
 
-    public RubiconAdapter(String endpointUrl, String usersyncUrl, String xapiUsername, String xapiPassword) {
-        this.endpointUrl = validateUrl(Objects.requireNonNull(endpointUrl));
-
-        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl));
-
+    public RubiconAdapter(Usersyncer usersyncer, String endpointUrl, String xapiUsername, String xapiPassword) {
+        super(usersyncer);
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         authHeader = "Basic " + Base64.getEncoder().encodeToString((Objects.requireNonNull(xapiUsername)
                 + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
     }
 
-    private static UsersyncInfo createUsersyncInfo(String usersyncUrl) {
-        return UsersyncInfo.of(usersyncUrl, "redirect", false);
-    }
-
     @Override
-    public String code() {
-        return "rubicon";
-    }
-
-    @Override
-    public String cookieFamily() {
-        return "rubicon";
-    }
-
-    @Override
-    public UsersyncInfo usersyncInfo() {
-        return usersyncInfo;
+    public String name() {
+        return NAME;
     }
 
     @Override

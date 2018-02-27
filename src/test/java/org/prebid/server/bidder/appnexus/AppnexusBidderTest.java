@@ -123,10 +123,10 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(impBuilder ->
                 impBuilder.ext(givenExt(extBuilder -> extBuilder.placementId(12).member("member1")))
-                    .video(Video.builder().build()));
+                        .video(Video.builder().build()));
         final Imp imp2 = givenImp(impBuilder ->
                 impBuilder.ext(givenExt(builder -> builder.placementId(12).member("member2")))
-                     .banner(Banner.builder().build()));
+                        .banner(Banner.builder().build()));
         final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
 
         // when
@@ -203,7 +203,7 @@ public class AppnexusBidderTest extends VertxTest {
         // when
         final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
-        //then
+        // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)

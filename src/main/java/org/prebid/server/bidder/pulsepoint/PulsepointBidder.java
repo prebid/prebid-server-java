@@ -2,6 +2,7 @@ package org.prebid.server.bidder.pulsepoint;
 
 import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
@@ -16,7 +17,14 @@ import java.util.List;
  */
 public class PulsepointBidder implements Bidder {
 
+    private static final String NAME = BidderName.pulsepoint.name();
+
     public PulsepointBidder() {
+    }
+
+    @Override
+    public String name() {
+        return NAME;
     }
 
     @Override
@@ -27,15 +35,5 @@ public class PulsepointBidder implements Bidder {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String name() {
-        return "pulsepoint";
-    }
-
-    @Override
-    public String cookieFamilyName() {
-        return "pulsepoint";
     }
 }

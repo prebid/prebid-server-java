@@ -10,6 +10,7 @@ import org.prebid.server.adapter.OpenrtbAdapter;
 import org.prebid.server.adapter.index.model.IndexParams;
 import org.prebid.server.adapter.model.ExchangeCall;
 import org.prebid.server.adapter.model.HttpRequest;
+import org.prebid.server.bidder.BidderName;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.model.AdUnitBid;
 import org.prebid.server.model.Bidder;
@@ -17,7 +18,8 @@ import org.prebid.server.model.MediaType;
 import org.prebid.server.model.PreBidRequestContext;
 import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.response.Bid;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.Usersyncer;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -34,35 +36,21 @@ import java.util.stream.Stream;
  */
 public class IndexAdapter extends OpenrtbAdapter {
 
-    private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(
-            EnumSet.of(MediaType.banner, MediaType.video));
+    private static final String NAME = BidderName.indexExchange.name();
+
+    private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
+            Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
 
     private final String endpointUrl;
-    private final UsersyncInfo usersyncInfo;
 
-    public IndexAdapter(String endpointUrl, String usersyncUrl) {
-        this.endpointUrl = validateUrl(Objects.requireNonNull(endpointUrl));
-
-        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl));
-    }
-
-    private static UsersyncInfo createUsersyncInfo(String usersyncUrl) {
-        return UsersyncInfo.of(usersyncUrl, "redirect", false);
+    public IndexAdapter(Usersyncer usersyncer, String endpointUrl) {
+        super(usersyncer);
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
     @Override
-    public String code() {
-        return "indexExchange";
-    }
-
-    @Override
-    public String cookieFamily() {
-        return "indexExchange";
-    }
-
-    @Override
-    public UsersyncInfo usersyncInfo() {
-        return usersyncInfo;
+    public String name() {
+        return NAME;
     }
 
     @Override

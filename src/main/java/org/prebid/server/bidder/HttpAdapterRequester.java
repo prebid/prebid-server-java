@@ -32,6 +32,7 @@ import org.prebid.server.model.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.Video;
 import org.prebid.server.model.response.BidderDebug;
+import org.prebid.server.usersyncer.Usersyncer;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,10 +49,12 @@ import java.util.stream.Collectors;
 public class HttpAdapterRequester implements BidderRequester {
 
     private final Adapter adapter;
+    private final Usersyncer usersyncer;
     private final HttpConnector httpConnector;
 
-    public HttpAdapterRequester(Adapter adapter, HttpConnector httpConnector) {
+    public HttpAdapterRequester(Adapter adapter, Usersyncer usersyncer, HttpConnector httpConnector) {
         this.adapter = Objects.requireNonNull(adapter);
+        this.usersyncer = Objects.requireNonNull(usersyncer);
         this.httpConnector = Objects.requireNonNull(httpConnector);
     }
 
@@ -71,7 +74,7 @@ public class HttpAdapterRequester implements BidderRequester {
             return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), null, Collections.emptyList(),
                     exception.getMessages().stream().map(BidderError::create).collect(Collectors.toList())));
         }
-        return httpConnector.call(adapter, bidderWithErrors.getValue(), preBidRequestContext)
+        return httpConnector.call(adapter, usersyncer, bidderWithErrors.getValue(), preBidRequestContext)
                 .map(bidderResult -> toBidderSeatBid(bidderResult, bidderWithErrors.getErrors()));
     }
 
@@ -109,7 +112,7 @@ public class HttpAdapterRequester implements BidderRequester {
             final String buyeruid = user.getBuyeruid();
             final String id = user.getId();
             if (StringUtils.isNotEmpty(buyeruid)) {
-                uidsCookie = uidsCookie.updateUid(adapter.cookieFamily(), buyeruid);
+                uidsCookie = uidsCookie.updateUid(usersyncer.cookieFamilyName(), buyeruid);
             }
             // This shouldn't be appnexus-specific... but this line does correctly invert the
             // logic from org.prebid.adapter.OpenRtbAdapter.userBuilder(...) method
@@ -178,13 +181,13 @@ public class HttpAdapterRequester implements BidderRequester {
     private Result<Bidder> toBidder(BidRequest bidRequest) {
         if (bidRequest.getImp().size() == 0) {
             throw new InvalidRequestException(String.format("There no imps in bidRequest for bidder %s",
-                    adapter.code()));
+                    adapter.name()));
         }
         final Result<List<AdUnitBid>> adUnitBidsResult = toAdUnitBids(bidRequest.getImp());
         final List<AdUnitBid> adUnitBids = adUnitBidsResult.getValue();
         final List<BidderError> errors = adUnitBidsResult.getErrors();
         if (adUnitBids.size() > 0) {
-            return Result.of(org.prebid.server.model.Bidder.of(adapter.code(), adUnitBids), errors);
+            return Result.of(org.prebid.server.model.Bidder.of(adapter.name(), adUnitBids), errors);
         }
         throw new InvalidRequestException(messages(errors));
     }
@@ -226,7 +229,7 @@ public class HttpAdapterRequester implements BidderRequester {
                 .sizes(toAdUnitBidSizes(imp))
                 .topframe(imp.getBanner() != null && imp.getBanner().getTopframe() != null
                         ? imp.getBanner().getTopframe() : 0)
-                .bidderCode(adapter.code())
+                .bidderCode(adapter.name())
                 .bidId(imp.getId())
                 .params((ObjectNode) imp.getExt().at("/bidder"))
                 .instl(imp.getInstl())
@@ -377,18 +380,10 @@ public class HttpAdapterRequester implements BidderRequester {
     }
 
     /**
-     * Returns cookieFamilyName by adapters cookieFamily
-     */
-    @Override
-    public String cookieFamilyName() {
-        return adapter.cookieFamily();
-    }
-
-    /**
-     * Returns bidders name
+     * Returns adapter's name
      */
     @Override
     public String name() {
-        return adapter.code();
+        return adapter.name();
     }
 }

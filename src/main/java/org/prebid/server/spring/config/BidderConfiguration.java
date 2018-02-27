@@ -25,23 +25,14 @@ public class BidderConfiguration {
     }
 
     @Bean
-    RubiconBidder rubiconBidder(
-            @Value("${adapters.rubicon.endpoint}") String endpoint,
-            @Value("${adapters.rubicon.XAPI.Username}") String username,
-            @Value("${adapters.rubicon.XAPI.Password}") String password) {
-
-        return new RubiconBidder(endpoint, username, password);
-    }
-
-    @Bean
     AppnexusBidder appnexusBidder(
             @Value("${adapters.appnexus.endpoint}") String endpoint) {
         return new AppnexusBidder(endpoint);
     }
 
     @Bean
-    PulsepointBidder pulsepointBidder() {
-        return new PulsepointBidder();
+    ConversantBidder conversantBidder() {
+        return new ConversantBidder();
     }
 
     @Bean
@@ -65,7 +56,16 @@ public class BidderConfiguration {
     }
 
     @Bean
-    ConversantBidder conversantBidder() {
-        return new ConversantBidder();
+    PulsepointBidder pulsepointBidder() {
+        return new PulsepointBidder();
+    }
+
+    @Bean
+    RubiconBidder rubiconBidder(
+            @Value("${adapters.rubicon.endpoint}") String endpoint,
+            @Value("${adapters.rubicon.XAPI.Username}") String username,
+            @Value("${adapters.rubicon.XAPI.Password}") String password) {
+
+        return new RubiconBidder(endpoint, username, password);
     }
 }

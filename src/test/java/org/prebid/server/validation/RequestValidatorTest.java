@@ -135,7 +135,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.getErrors()).hasSize(1).element(0).asString().startsWith("request.ext is invalid");
     }
 
@@ -324,7 +324,6 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatRatiosAndOneOfSizesPresent() {
-
         // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).wmin(3).wratio(4).hratio(5));
@@ -734,7 +733,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.getErrors()).hasSize(1).element(0)
                 .isEqualTo("request.user contains a digitrust object that is not valid.");
     }
@@ -749,7 +748,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.getErrors()).hasSize(1).element(0)
                 .isEqualTo("request.user contains a digitrust object that is not valid.");
     }
@@ -765,7 +764,7 @@ public class RequestValidatorTest extends VertxTest {
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
-        //then
+        // then
         assertThat(result.getErrors()).hasSize(1).element(0)
                 .isEqualTo("request.user.ext object is not valid.");
     }

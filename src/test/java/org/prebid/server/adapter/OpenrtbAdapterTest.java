@@ -18,44 +18,6 @@ import static org.assertj.core.api.Assertions.*;
 public class OpenrtbAdapterTest {
 
     @Test
-    public void validateUrlShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> OpenrtbAdapter.validateUrl(null));
-    }
-
-    @Test
-    public void validateUrlShouldFailOnInvalidUrl() {
-        // when and then
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> OpenrtbAdapter.validateUrl("invalid_url"))
-                .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void validateUrlShouldReturnExpectedUrl() {
-        // when
-        final String url = OpenrtbAdapter.validateUrl("http://domain.org/query-string?a=1");
-
-        // then
-        assertThat(url).isNotNull();
-        assertThat(url).isEqualTo("http://domain.org/query-string?a=1");
-    }
-
-    @Test
-    public void encodeUrlShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> OpenrtbAdapter.encodeUrl(null));
-    }
-
-    @Test
-    public void encodeUrlShouldReturnExpectedValue() {
-        // when
-        final String url = OpenrtbAdapter.encodeUrl("//domain.org/%s", "query-string?a=1");
-
-        // then
-        assertThat(url).isNotNull();
-        assertThat(url).isEqualTo("%2F%2Fdomain.org%2Fquery-string%3Fa%3D1");
-    }
-
-    @Test
     public void validateAdUnitBidsMediaTypesShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> OpenrtbAdapter.validateAdUnitBidsMediaTypes(null));
     }

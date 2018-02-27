@@ -88,27 +88,4 @@ public class OpenRtbBidderTest extends VertxTest {
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo("test");
     }
-
-    @Test
-    public void validateUrlShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> OpenRtbBidder.validateUrl(null));
-    }
-
-    @Test
-    public void validateUrlShouldFailOnInvalidUrl() {
-        // when and then
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> OpenRtbBidder.validateUrl("invalid_url"))
-                .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void validateUrlShouldReturnExpectedUrl() {
-        // when
-        final String url = OpenRtbBidder.validateUrl("http://domain.org/query-string?a=1");
-
-        // then
-        assertThat(url).isNotNull();
-        assertThat(url).isEqualTo("http://domain.org/query-string?a=1");
-    }
 }

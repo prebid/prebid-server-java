@@ -40,7 +40,7 @@ import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.model.request.Video;
 import org.prebid.server.model.response.BidderDebug;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.IndexUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -72,13 +72,15 @@ public class IndexAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
     private IndexAdapter adapter;
+    private IndexUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         bidder = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         exchangeCall = givenExchangeCall(identity(), identity());
-        adapter = new IndexAdapter(ENDPOINT_URL, USERSYNC_URL);
+        usersyncer = new IndexUsersyncer(USERSYNC_URL);
+        adapter = new IndexAdapter(usersyncer, ENDPOINT_URL);
     }
 
     @Test
@@ -86,19 +88,14 @@ public class IndexAdapterTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(
                 () -> new IndexAdapter(null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new IndexAdapter(ENDPOINT_URL, null));
+                () -> new IndexAdapter(usersyncer, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new IndexAdapter("invalid_url", USERSYNC_URL))
+                .isThrownBy(() -> new IndexAdapter(usersyncer, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void creationShouldInitExpectedUsercyncInfo() {
-        Assertions.assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of("//usersync.org/", "redirect", false));
     }
 
     @Test

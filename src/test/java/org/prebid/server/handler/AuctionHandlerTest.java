@@ -47,6 +47,7 @@ import org.prebid.server.model.response.BidderStatus.BidderStatusBuilder;
 import org.prebid.server.model.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.usersyncer.UsersyncerCatalog;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -77,6 +78,8 @@ public class AuctionHandlerTest extends VertxTest {
     private ApplicationSettings applicationSettings;
     @Mock
     private AdapterCatalog adapterCatalog;
+    @Mock
+    private UsersyncerCatalog usersyncerCatalog;
     @Mock
     private Adapter rubiconAdapter;
     @Mock
@@ -111,10 +114,10 @@ public class AuctionHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.of(null, null)));
 
-        given(adapterCatalog.getByCode(eq(RUBICON))).willReturn(rubiconAdapter);
-        given(adapterCatalog.isValidCode(eq(RUBICON))).willReturn(true);
-        given(adapterCatalog.getByCode(eq(APPNEXUS))).willReturn(appnexusAdapter);
-        given(adapterCatalog.isValidCode(eq(APPNEXUS))).willReturn(true);
+        given(adapterCatalog.byName(eq(RUBICON))).willReturn(rubiconAdapter);
+        given(adapterCatalog.isValidName(eq(RUBICON))).willReturn(true);
+        given(adapterCatalog.byName(eq(APPNEXUS))).willReturn(appnexusAdapter);
+        given(adapterCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
 
         given(vertx.setPeriodic(anyLong(), any()))
                 .willAnswer(AdditionalAnswers.<Long, Handler<Long>>answerVoid((p, h) -> h.handle(0L)));
@@ -130,30 +133,32 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
-        auctionHandler = new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory,
+        auctionHandler = new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
+                preBidRequestContextFactory,
                 cacheService, vertx, metrics, httpConnector);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(null, null, null, null, null, null, null));
+                () -> new AuctionHandler(null, null, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, null, null, null, null, null, null));
+                () -> new AuctionHandler(applicationSettings, null, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, null, null, null, null, null));
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog, null, null, null, null,
+                        null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory, null,
-                        null, null, null));
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
+                        preBidRequestContextFactory, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory,
-                        cacheService, null, null, null));
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
+                        preBidRequestContextFactory, cacheService, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory,
-                        cacheService, vertx, null, null));
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
+                        preBidRequestContextFactory, cacheService, vertx, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, preBidRequestContextFactory,
-                        cacheService, vertx, metrics, null));
+                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
+                        preBidRequestContextFactory, cacheService, vertx, metrics, null));
     }
 
     @Test
@@ -218,7 +223,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.failedFuture(new RuntimeException()));
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.failedFuture(new RuntimeException()));
 
         // when
         auctionHandler.handle(routingContext);
@@ -313,7 +318,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(builder -> builder.noLiveUids(false));
 
-        given(httpConnector.call(any(), any(), any()))
+        given(httpConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidderResult.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build(),
                         Arrays.stream(new String[]{"bidId1", "bidId2"})
@@ -352,7 +357,7 @@ public class AuctionHandlerTest extends VertxTest {
         final List<Bidder> bidders = asList(Bidder.of(RUBICON, adUnitBids), Bidder.of(APPNEXUS, adUnitBids));
         givenPreBidRequestContext(builder -> builder.sortBids(1), builder -> builder.bidders(bidders));
 
-        given(httpConnector.call(any(), any(), any()))
+        given(httpConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidderResult.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).build(),
                         asList(
@@ -410,7 +415,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenPreBidRequestContext(identity(), builder -> builder.bidders(bidders));
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build(),
                 singletonList(
                         org.prebid.server.model.response.Bid.builder().mediaType(MediaType.banner)
@@ -435,7 +440,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         givenPreBidRequestContext(identity(), builder -> builder.bidders(bidders));
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().bidder(RUBICON).responseTimeMs(100).numBids(1).build(),
                 singletonList(
                         org.prebid.server.model.response.Bid.builder().mediaType(MediaType.video).bidId("bidId1")
@@ -478,7 +483,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
-        given(httpConnector.call(any(), any(), any()))
+        given(httpConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidderResult.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(500).error("rubicon error").build(),
                         emptyList(), false)))
@@ -687,7 +692,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     private void givenBidderRespondingWithBids(String bidder, Function<BidderStatusBuilder, BidderStatusBuilder>
             bidderStatusBuilderCustomizer, String... bidIds) {
-        given(httpConnector.call(any(), any(), any()))
+        given(httpConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidderResult.of(
                         bidderStatusBuilderCustomizer.apply(BidderStatus.builder()
                                 .bidder(bidder)
@@ -703,7 +708,7 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     private void givenBidderRespondingWithError(String bidder, String error, boolean timedOut) {
-        given(httpConnector.call(any(), any(), any()))
+        given(httpConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidderResult.of(
                         BidderStatus.builder().bidder(bidder).responseTimeMs(500).error(error).build(),
                         emptyList(), timedOut)));

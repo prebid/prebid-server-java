@@ -40,7 +40,7 @@ import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.model.request.Video;
 import org.prebid.server.model.response.BidderDebug;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.ConversantUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -73,6 +73,7 @@ public class ConversantAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
     private ConversantAdapter adapter;
+    private ConversantUsersyncer usersyncer;
 
     @Before
     public void setUp() {
@@ -80,31 +81,21 @@ public class ConversantAdapterTest extends VertxTest {
 
         bidder = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new ConversantAdapter(ENDPOINT_URL, USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new ConversantUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        adapter = new ConversantAdapter(usersyncer, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new ConversantAdapter(null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new ConversantAdapter(ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new ConversantAdapter(ENDPOINT_URL, USERSYNC_URL, null));
+        assertThatNullPointerException().isThrownBy(() -> new ConversantAdapter(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new ConversantAdapter(usersyncer, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ConversantAdapter("invalid_url", USERSYNC_URL, EXTERNAL_URL))
+                .isThrownBy(() -> new ConversantAdapter(usersyncer, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void creationShouldInitExpectedUsercyncInfo() {
-        Assertions.assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of(
-                "//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dconversant%26uid%3D", "redirect",
-                false));
     }
 
     @Test

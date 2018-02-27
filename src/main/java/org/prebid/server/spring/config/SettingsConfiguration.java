@@ -60,6 +60,7 @@ public class SettingsConfiguration {
     @ConditionalOnExpression("('${datacache.type}' == 'postgres' or '${datacache.type}' == 'mysql')"
             + " and '${datacache.type}' == '${stored-requests.type}'")
     JdbcApplicationSettings jdbcApplicationSettings(JdbcClient jdbcClient) {
+
         return new JdbcApplicationSettings(jdbcClient);
     }
 

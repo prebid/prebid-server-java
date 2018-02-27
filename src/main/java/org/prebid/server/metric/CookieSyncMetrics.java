@@ -34,6 +34,7 @@ public class CookieSyncMetrics extends UpdatableMetrics {
     }
 
     public static class BidderCookieSyncMetrics extends UpdatableMetrics {
+
         BidderCookieSyncMetrics(MetricRegistry metricRegistry, CounterType counterType, String bidder) {
             super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType), nameCreator(bidder));
         }

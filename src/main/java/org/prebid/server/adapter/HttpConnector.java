@@ -29,6 +29,7 @@ import org.prebid.server.model.PreBidRequestContext;
 import org.prebid.server.model.response.Bid;
 import org.prebid.server.model.response.BidderDebug;
 import org.prebid.server.model.response.BidderStatus;
+import org.prebid.server.usersyncer.Usersyncer;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -61,8 +62,10 @@ public class HttpConnector {
     /**
      * Executes HTTP requests for particular {@link Adapter} and returns {@link BidderResult}
      */
-    public Future<BidderResult> call(Adapter adapter, Bidder bidder, PreBidRequestContext preBidRequestContext) {
+    public Future<BidderResult> call(Adapter adapter, Usersyncer usersyncer, Bidder bidder,
+                                     PreBidRequestContext preBidRequestContext) {
         Objects.requireNonNull(adapter);
+        Objects.requireNonNull(usersyncer);
         Objects.requireNonNull(bidder);
         Objects.requireNonNull(preBidRequestContext);
 
@@ -78,7 +81,7 @@ public class HttpConnector {
         return CompositeFuture.join(httpRequests.stream()
                 .map(httpRequest -> doRequest(httpRequest, preBidRequestContext.getTimeout()))
                 .collect(Collectors.toList()))
-                .map(compositeFuture -> toBidderResult(adapter, bidder, preBidRequestContext, bidderStarted,
+                .map(compositeFuture -> toBidderResult(adapter, usersyncer, bidder, preBidRequestContext, bidderStarted,
                         compositeFuture.list()));
     }
 
@@ -182,7 +185,7 @@ public class HttpConnector {
      * Transforms {@link ExchangeCall} into single {@link BidderResult} filled with debug information,
      * list of {@link Bid}, {@link BidderStatus}, etc.
      */
-    private static BidderResult toBidderResult(Adapter adapter, Bidder bidder,
+    private static BidderResult toBidderResult(Adapter adapter, Usersyncer usersyncer, Bidder bidder,
                                                PreBidRequestContext preBidRequestContext,
                                                long bidderStarted, List<ExchangeCall> exchangeCalls) {
         final Integer responseTime = responseTime(bidderStarted);
@@ -197,10 +200,10 @@ public class HttpConnector {
         }
 
         if (preBidRequestContext.getPreBidRequest().getApp() == null
-                && preBidRequestContext.getUidsCookie().uidFrom(adapter.cookieFamily()) == null) {
+                && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()) == null) {
             bidderStatusBuilder
                     .noCookie(true)
-                    .usersync(adapter.usersyncInfo());
+                    .usersync(usersyncer.usersyncInfo());
         }
 
         final List<BidsWithError> bidsWithErrors = exchangeCalls.stream()

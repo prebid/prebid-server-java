@@ -11,6 +11,8 @@ import static org.mockito.Mockito.mock;
 
 public class AdapterCatalogTest {
 
+    private static final String ADAPTER = "rubicon";
+
     @Test
     public void constructorShouldFailONullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new AdapterCatalog(null));
@@ -20,15 +22,15 @@ public class AdapterCatalogTest {
     public void getByCodeShouldReturnAdapterWhenAdapterExist() {
         // given
         final Adapter adapter = mock(Adapter.class);
-        given(adapter.code()).willReturn("test");
+        given(adapter.name()).willReturn(ADAPTER);
 
         final AdapterCatalog catalog = new AdapterCatalog(singletonList(adapter));
 
         // when
-        final Adapter result = catalog.getByCode("test");
+        final Adapter result = catalog.byName(ADAPTER);
 
-        //then
-        assertThat(result.code()).isEqualTo("test");
+        // then
+        assertThat(result.name()).isEqualTo(ADAPTER);
     }
 
     @Test
@@ -37,9 +39,9 @@ public class AdapterCatalogTest {
         final AdapterCatalog catalog = new AdapterCatalog(emptyList());
 
         // when
-        final Adapter result = catalog.getByCode("test");
+        final Adapter result = catalog.byName(ADAPTER);
 
-        //then
+        // then
         assertThat(result).isNull();
     }
 
@@ -49,9 +51,9 @@ public class AdapterCatalogTest {
         final AdapterCatalog catalog = new AdapterCatalog(emptyList());
 
         // when
-        final Boolean result = catalog.isValidCode("test");
+        final Boolean result = catalog.isValidName(ADAPTER);
 
-        //then
+        // then
         assertThat(result).isFalse();
     }
 
@@ -59,14 +61,14 @@ public class AdapterCatalogTest {
     public void isValidCodeShouldReturnTrueWhenAdapterExist() {
         // given
         final Adapter adapter = mock(Adapter.class);
-        given(adapter.code()).willReturn("test");
+        given(adapter.name()).willReturn(ADAPTER);
 
         final AdapterCatalog catalog = new AdapterCatalog(singletonList(adapter));
 
         // when
-        final Boolean result = catalog.isValidCode("test");
+        final Boolean result = catalog.isValidName(ADAPTER);
 
-        //then
+        // then
         assertThat(result).isTrue();
     }
 }

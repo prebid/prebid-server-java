@@ -92,7 +92,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final String result = CacheService.getCacheEndpointUrl("http", "example.com");
 
-        //then
+        // then
         assertThat(result).isEqualTo("http://example.com/cache");
     }
 
@@ -111,7 +111,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final String result = CacheService.getCachedAssetUrlTemplate("qs", "http", "example.com");
 
-        //then
+        // then
         assertThat(result).isEqualTo("http://example.com/cache?qs");
     }
 

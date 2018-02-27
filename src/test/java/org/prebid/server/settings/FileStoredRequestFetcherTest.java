@@ -84,7 +84,7 @@ public class FileStoredRequestFetcherTest {
         // when
         fileStoredRequestFetcher = FileStoredRequestFetcher.create(REQUEST_CONFIG_PATH, fileSystem);
 
-        //then
+        // then
         verify(fileSystem, never()).readFileBlocking("2.txt");
     }
 }

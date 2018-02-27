@@ -41,7 +41,7 @@ import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.model.request.Video;
 import org.prebid.server.model.response.BidderDebug;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.PulsepointUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -74,35 +74,29 @@ public class PulsepointAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
     private PulsepointAdapter adapter;
+    private PulsepointUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         bidder = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new PulsepointAdapter(ENDPOINT_URL, USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new PulsepointUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        adapter = new PulsepointAdapter(usersyncer, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new PulsepointAdapter(null, null, null));
+                () -> new PulsepointAdapter(null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new PulsepointAdapter(ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new PulsepointAdapter(ENDPOINT_URL, USERSYNC_URL, null));
+                () -> new PulsepointAdapter(usersyncer, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new PulsepointAdapter("invalid_url", USERSYNC_URL, EXTERNAL_URL))
+                .isThrownBy(() -> new PulsepointAdapter(usersyncer, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void creationShouldInitExpectedUsercyncInfo() {
-        Assertions.assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of("//usersync.org/http%3A%2F%2Fexternal" +
-                ".org%2F%2Fsetuid%3Fbidder%3Dpulsepoint%26uid%3D%25%25VGUID%25%25", "redirect", false));
     }
 
     @Test

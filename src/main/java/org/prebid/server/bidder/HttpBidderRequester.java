@@ -160,10 +160,10 @@ public class HttpBidderRequester implements BidderRequester {
         final List<BidderError> bidderErrors = new ArrayList<>(previousErrors);
         bidderErrors.addAll(
                 Stream.concat(
-                    createdBids.stream().flatMap(bidResult -> bidResult.getErrors().stream()),
-                    calls.stream().filter(call -> StringUtils.isNotBlank(call.getError()))
-                            .map(call -> BidderError.of(call.getError(), call.isTimedOut())))
-                .collect(Collectors.toList()));
+                        createdBids.stream().flatMap(bidResult -> bidResult.getErrors().stream()),
+                        calls.stream().filter(call -> StringUtils.isNotBlank(call.getError()))
+                                .map(call -> BidderError.of(call.getError(), call.isTimedOut())))
+                        .collect(Collectors.toList()));
 
         return bidderErrors;
     }
@@ -184,14 +184,6 @@ public class HttpBidderRequester implements BidderRequester {
         }
 
         return builder.build();
-    }
-
-    /**
-     * Returns bidder's cookie family name.
-     */
-    @Override
-    public String cookieFamilyName() {
-        return bidder.cookieFamilyName();
     }
 
     /**

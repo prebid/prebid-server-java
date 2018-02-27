@@ -16,6 +16,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.StoredRequestFetcher;
+import org.prebid.server.usersyncer.UsersyncerCatalog;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.springframework.beans.factory.annotation.Value;
@@ -94,9 +95,11 @@ public class ServiceConfiguration {
     @Bean
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
-            BidderRequesterCatalog bidderRequesterCatalog, CacheService cacheService, Metrics metrics) {
+            BidderRequesterCatalog bidderRequesterCatalog, UsersyncerCatalog usersyncerCatalog,
+            CacheService cacheService, Metrics metrics) {
 
-        return new ExchangeService(bidderRequesterCatalog, cacheService, metrics, expectedCacheTimeMs);
+        return new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, metrics,
+                expectedCacheTimeMs);
     }
 
     @Bean

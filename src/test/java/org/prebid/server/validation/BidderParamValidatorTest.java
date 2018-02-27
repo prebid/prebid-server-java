@@ -9,6 +9,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderRequesterCatalog;
+import org.prebid.server.bidder.BidderName;
 import org.prebid.server.model.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.model.openrtb.ext.request.rubicon.ExtImpRubicon;
 
@@ -71,7 +72,6 @@ public class BidderParamValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOk() {
-
         // given
         final ExtImpRubicon ext = ExtImpRubicon.builder().accountId(1).siteId(2).zoneId(3).build();
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
@@ -79,13 +79,12 @@ public class BidderParamValidatorTest extends VertxTest {
         // when
         final Set<String> messages = bidderParamValidator.validate(RUBICON, node);
 
-        //then
+        // then
         assertThat(messages).isEmpty();
     }
 
     @Test
     public void validateShouldReturnValidationMessagesWhenRubiconImpExtNotValid() {
-
         // given
         final ExtImpRubicon ext = ExtImpRubicon.builder().siteId(2).zoneId(3).build();
 
@@ -93,13 +92,12 @@ public class BidderParamValidatorTest extends VertxTest {
 
         final Set<String> messages = bidderParamValidator.validate(RUBICON, node);
 
-        //then
+        // then
         assertThat(messages.size()).isEqualTo(1);
     }
 
     @Test
     public void validateShouldReturnValidationMessagesWhenAppnexusImpExtNotValid() {
-
         // given
         final ExtImpAppnexus ext = ExtImpAppnexus.builder().member("memberId").build();
 
@@ -108,13 +106,12 @@ public class BidderParamValidatorTest extends VertxTest {
         // when
         final Set<String> messages = bidderParamValidator.validate(APPNEXUS, node);
 
-        //then
+        // then
         assertThat(messages.size()).isEqualTo(2);
     }
 
     @Test
     public void validateShouldNotReturnValidationMessagesWhenAppnexusImpExtExtIsOk() {
-
         // given
         final ExtImpAppnexus ext = ExtImpAppnexus.builder().placementId(1).build();
 
@@ -123,13 +120,12 @@ public class BidderParamValidatorTest extends VertxTest {
         // when
         final Set<String> messages = bidderParamValidator.validate(APPNEXUS, node);
 
-        //then
+        // then
         assertThat(messages).isEmpty();
     }
 
     @Test
     public void schemaShouldReturnSchemasString() throws IOException {
-
         //given
         given(bidderRequesterCatalog.names()).willReturn(new HashSet<>(asList("test-rubicon", "test-appnexus")));
 
@@ -138,7 +134,7 @@ public class BidderParamValidatorTest extends VertxTest {
         // when
         final String result = bidderParamValidator.schemas();
 
-        //then
+        // then
         assertThat(result).isEqualTo(readFromClasspath("schema/valid/test-schemas.json"));
     }
 

@@ -38,6 +38,7 @@ import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.response.Bid;
 import org.prebid.server.model.response.BidderDebug;
 import org.prebid.server.model.response.BidderStatus;
+import org.prebid.server.usersyncer.Usersyncer;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -54,28 +55,32 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class HttpAdapterRequesterTest {
+
+    private static final String ADAPTER = "rubicon";
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private HttpConnector httpConnector;
-
     @Mock
     private Adapter adapter;
+    @Mock
+    private Usersyncer usersyncer;
 
     private HttpAdapterRequester adapterHttpConnector;
 
     @Before
     public void setUp() {
         // given
-        given(adapter.code()).willReturn("someBidderName");
-        adapterHttpConnector = new HttpAdapterRequester(adapter, httpConnector);
+        given(adapter.name()).willReturn(ADAPTER);
+        adapterHttpConnector = new HttpAdapterRequester(adapter, usersyncer, httpConnector);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(adapter, null));
+        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(adapter, usersyncer, null));
     }
 
     @Test
@@ -184,7 +189,7 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), null, emptyList(), singletonList(
-                BidderError.create("There no imps in bidRequest for bidder someBidderName"))));
+                BidderError.create("There no imps in bidRequest for bidder rubicon"))));
     }
 
     @Test
@@ -242,7 +247,7 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
                 singletonList(Bid.builder().mediaType(MediaType.banner).build()),
                 false)));
@@ -272,7 +277,7 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
                 singletonList(Bid.builder().build()),
                 false)));
@@ -302,7 +307,7 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
                 singletonList(Bid.builder().build()),
                 false)));
@@ -315,7 +320,7 @@ public class HttpAdapterRequesterTest {
         assertThat(futureResult.succeeded()).isTrue();
         assertThat(futureResult.result()).isEqualTo(BidderSeatBid.of(emptyList(), null, singletonList(ExtHttpCall
                 .builder().build()), asList(
-                        BidderError.create("legacy bidders can only bid on banner and video ad units"),
+                BidderError.create("legacy bidders can only bid on banner and video ad units"),
                 BidderError.create("Media Type is not defined for Bid"))));
     }
 
@@ -333,7 +338,7 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
                 singletonList(Bid.builder().mediaType(MediaType.banner).build()),
                 false)));
@@ -359,7 +364,7 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
                 singletonList(Bid.builder().mediaType(MediaType.banner).build()),
                 false)));
@@ -385,7 +390,7 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
                 singletonList(Bid.builder().mediaType(MediaType.banner).build()),
                 false)));
@@ -428,10 +433,10 @@ public class HttpAdapterRequesterTest {
                 .user(User.builder().buyeruid("buyeruid").build())
                 .build();
 
-        given(adapter.cookieFamily()).willReturn("someCookieFamily");
-        given(adapter.code()).willReturn("someCode");
+        given(usersyncer.cookieFamilyName()).willReturn("someCookieFamily");
+        given(adapter.name()).willReturn(ADAPTER);
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
                 singletonList(Bid.builder().mediaType(MediaType.banner).build()),
                 false)));
@@ -459,8 +464,8 @@ public class HttpAdapterRequesterTest {
         assertThat(preBidRequestContext.getTimeout()).isSameAs(globalTimeout);
         assertThat(preBidRequestContext.getUidsCookie().uidFrom("someCookieFamily")).isEqualTo("buyeruid");
 
-        assertThat(bidder).isEqualTo(org.prebid.server.model.Bidder.of("someCode", singletonList(AdUnitBid.builder()
-                .bidderCode("someCode")
+        assertThat(bidder).isEqualTo(org.prebid.server.model.Bidder.of(ADAPTER, singletonList(AdUnitBid.builder()
+                .bidderCode(ADAPTER)
                 .bidId("impId")
                 .sizes(singletonList(Format.builder().w(200).h(100).build()))
                 .topframe(1)
@@ -493,7 +498,7 @@ public class HttpAdapterRequesterTest {
                 .tmax(1000L)
                 .build();
 
-        given(httpConnector.call(any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(BidderResult.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder()
                         .requestBody("requestBody")
                         .requestUri("requestUri")
@@ -522,14 +527,14 @@ public class HttpAdapterRequesterTest {
     private PreBidRequestContext capturePreBidRequestContext() {
         final ArgumentCaptor<PreBidRequestContext> preBidRequestContextArgumentCaptor = ArgumentCaptor
                 .forClass(PreBidRequestContext.class);
-        verify(httpConnector).call(eq(adapter), any(), preBidRequestContextArgumentCaptor.capture());
+        verify(httpConnector).call(eq(adapter), eq(usersyncer), any(), preBidRequestContextArgumentCaptor.capture());
         return preBidRequestContextArgumentCaptor.getValue();
     }
 
     private Bidder captureBidder() {
         final ArgumentCaptor<Bidder> bidderArgumentCaptor =
                 ArgumentCaptor.forClass(Bidder.class);
-        verify(httpConnector).call(eq(adapter), bidderArgumentCaptor.capture(), any());
+        verify(httpConnector).call(eq(adapter), eq(usersyncer), bidderArgumentCaptor.capture(), any());
         return bidderArgumentCaptor.getValue();
     }
 }

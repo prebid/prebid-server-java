@@ -39,7 +39,7 @@ import org.prebid.server.model.request.PreBidRequest;
 import org.prebid.server.model.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.model.request.Video;
 import org.prebid.server.model.response.BidderDebug;
-import org.prebid.server.model.response.UsersyncInfo;
+import org.prebid.server.usersyncer.LifestreetUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -72,35 +72,27 @@ public class LifestreetAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall exchangeCall;
     private LifestreetAdapter adapter;
+    private LifestreetUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         bidder = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        adapter = new LifestreetAdapter(ENDPOINT_URL, USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new LifestreetUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        adapter = new LifestreetAdapter(usersyncer, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new LifestreetAdapter(null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new LifestreetAdapter(ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new LifestreetAdapter(ENDPOINT_URL, USERSYNC_URL, null));
+        assertThatNullPointerException().isThrownBy(() -> new LifestreetAdapter(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new LifestreetAdapter(usersyncer, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new LifestreetAdapter("invalid_url", USERSYNC_URL, EXTERNAL_URL))
+                .isThrownBy(() -> new LifestreetAdapter(usersyncer, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void creationShouldInitExpectedUsercyncInfo() {
-        Assertions.assertThat(adapter.usersyncInfo()).isEqualTo(UsersyncInfo.of("//usersync.org/http%3A%2F%2Fexternal" +
-                ".org%2F%2Fsetuid%3Fbidder%3Dlifestreet%26uid%3D%24%24visitor_cookie%24%24", "redirect", false));
     }
 
     @Test
