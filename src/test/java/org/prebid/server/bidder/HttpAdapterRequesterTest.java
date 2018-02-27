@@ -21,8 +21,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.adapter.Adapter;
-import org.prebid.server.adapter.HttpConnector;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.AdapterResponse;

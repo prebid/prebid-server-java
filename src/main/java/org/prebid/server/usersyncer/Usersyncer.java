@@ -1,6 +1,5 @@
 package org.prebid.server.usersyncer;
 
-import org.prebid.server.adapter.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.proto.response.UsersyncInfo;
@@ -11,13 +10,14 @@ import org.prebid.server.proto.response.UsersyncInfo;
 public interface Usersyncer {
 
     /**
-     * Returns usersyncer's name that will be used to determine a corresponding {@link Adapter}/{@link Bidder}.
+     * Returns usersyncer's name that will be used to determine a corresponding
+     * {@link org.prebid.server.bidder.Adapter}/{@link Bidder}.
      */
     String name();
 
     /**
-     * Provides a family name by which user ids within {@link Adapter}/{@link Bidder}'s realm are stored in
-     * {@link UidsCookie}.
+     * Provides a family name by which user ids within {@link org.prebid.server.bidder.Adapter}/{@link Bidder}'s
+     * realm are stored in     * {@link UidsCookie}.
      */
     String cookieFamilyName();
 

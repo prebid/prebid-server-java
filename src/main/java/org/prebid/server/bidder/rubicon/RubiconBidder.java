@@ -23,30 +23,29 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.prebid.server.adapter.rubicon.RubiconSize;
-import org.prebid.server.adapter.rubicon.model.RubiconBannerExt;
-import org.prebid.server.adapter.rubicon.model.RubiconBannerExtRp;
-import org.prebid.server.adapter.rubicon.model.RubiconDeviceExt;
-import org.prebid.server.adapter.rubicon.model.RubiconDeviceExtRp;
-import org.prebid.server.adapter.rubicon.model.RubiconImpExt;
-import org.prebid.server.adapter.rubicon.model.RubiconImpExtRp;
-import org.prebid.server.adapter.rubicon.model.RubiconImpExtRpTrack;
-import org.prebid.server.adapter.rubicon.model.RubiconPubExt;
-import org.prebid.server.adapter.rubicon.model.RubiconPubExtRp;
-import org.prebid.server.adapter.rubicon.model.RubiconSiteExt;
-import org.prebid.server.adapter.rubicon.model.RubiconSiteExtRp;
-import org.prebid.server.adapter.rubicon.model.RubiconUserExt;
-import org.prebid.server.adapter.rubicon.model.RubiconUserExtRp;
-import org.prebid.server.adapter.rubicon.model.RubiconVideoExt;
-import org.prebid.server.adapter.rubicon.model.RubiconVideoExtRp;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderName;
-import org.prebid.server.bidder.OpenRtbBidder;
+import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.rubicon.model.RubiconBannerExt;
+import org.prebid.server.bidder.rubicon.model.RubiconBannerExtRp;
+import org.prebid.server.bidder.rubicon.model.RubiconDeviceExt;
+import org.prebid.server.bidder.rubicon.model.RubiconDeviceExtRp;
+import org.prebid.server.bidder.rubicon.model.RubiconImpExt;
+import org.prebid.server.bidder.rubicon.model.RubiconImpExtRp;
+import org.prebid.server.bidder.rubicon.model.RubiconImpExtRpTrack;
+import org.prebid.server.bidder.rubicon.model.RubiconPubExt;
+import org.prebid.server.bidder.rubicon.model.RubiconPubExtRp;
+import org.prebid.server.bidder.rubicon.model.RubiconSiteExt;
+import org.prebid.server.bidder.rubicon.model.RubiconSiteExtRp;
+import org.prebid.server.bidder.rubicon.model.RubiconUserExt;
+import org.prebid.server.bidder.rubicon.model.RubiconUserExtRp;
+import org.prebid.server.bidder.rubicon.model.RubiconVideoExt;
+import org.prebid.server.bidder.rubicon.model.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -72,7 +71,7 @@ import java.util.stream.Collectors;
  * <p>
  * Maintainer email: <a href="mailto:header-bidding@rubiconproject.com">header-bidding@rubiconproject.com</a>
  */
-public class RubiconBidder extends OpenRtbBidder {
+public class RubiconBidder extends OpenrtbBidder {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 

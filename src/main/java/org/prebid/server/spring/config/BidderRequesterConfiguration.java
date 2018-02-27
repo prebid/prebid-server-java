@@ -1,18 +1,18 @@
 package org.prebid.server.spring.config;
 
 import io.vertx.core.http.HttpClient;
-import org.prebid.server.adapter.HttpConnector;
-import org.prebid.server.adapter.conversant.ConversantAdapter;
-import org.prebid.server.adapter.facebook.FacebookAdapter;
-import org.prebid.server.adapter.index.IndexAdapter;
-import org.prebid.server.adapter.lifestreet.LifestreetAdapter;
-import org.prebid.server.adapter.pubmatic.PubmaticAdapter;
-import org.prebid.server.adapter.pulsepoint.PulsepointAdapter;
 import org.prebid.server.auction.BidderRequesterCatalog;
 import org.prebid.server.bidder.BidderRequester;
 import org.prebid.server.bidder.HttpAdapterRequester;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.HttpConnector;
 import org.prebid.server.bidder.appnexus.AppnexusBidder;
+import org.prebid.server.bidder.conversant.ConversantAdapter;
+import org.prebid.server.bidder.facebook.FacebookAdapter;
+import org.prebid.server.bidder.index.IndexAdapter;
+import org.prebid.server.bidder.lifestreet.LifestreetAdapter;
+import org.prebid.server.bidder.pubmatic.PubmaticAdapter;
+import org.prebid.server.bidder.pulsepoint.PulsepointAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
 import org.prebid.server.usersyncer.ConversantUsersyncer;
 import org.prebid.server.usersyncer.FacebookUsersyncer;

@@ -14,12 +14,12 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.adapter.appnexus.model.AppnexusImpExt;
-import org.prebid.server.adapter.appnexus.model.AppnexusImpExtAppnexus;
-import org.prebid.server.adapter.appnexus.model.AppnexusKeyVal;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderName;
-import org.prebid.server.bidder.OpenRtbBidder;
+import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.appnexus.model.AppnexusImpExt;
+import org.prebid.server.bidder.appnexus.model.AppnexusImpExtAppnexus;
+import org.prebid.server.bidder.appnexus.model.AppnexusKeyVal;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
  * <p>
  * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
  */
-public class AppnexusBidder extends OpenRtbBidder {
+public class AppnexusBidder extends OpenrtbBidder {
 
     private static final Logger logger = LoggerFactory.getLogger(AppnexusBidder.class);
 
