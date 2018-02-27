@@ -80,10 +80,6 @@ public class ExchangeService {
      * response containing returned bids and additional information in extensions.
      */
     public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, GlobalTimeout globalTimeout) {
-        final List<BidderRequest> bidderRequests = extractBidderRequests(bidRequest, uidsCookie);
-
-        updateRequestMetric(bidderRequests, uidsCookie);
-
         // extract ext from bid request
         final ExtBidRequest requestExt;
         try {
@@ -91,6 +87,12 @@ public class ExchangeService {
         } catch (PreBidException e) {
             return Future.failedFuture(e);
         }
+
+        final Map<String, String> aliases = getAliases(requestExt);
+
+        final List<BidderRequest> bidderRequests = extractBidderRequests(bidRequest, uidsCookie, aliases);
+
+        updateRequestMetric(bidderRequests, uidsCookie, aliases);
 
         final ExtRequestTargeting targeting = targeting(requestExt);
 
@@ -107,7 +109,7 @@ public class ExchangeService {
         // send all the requests to the bidders and gathers results
         final CompositeFuture bidderResults = CompositeFuture.join(bidderRequests.stream()
                 .map(bidderRequest -> requestBids(bidderRequest, startTime,
-                        auctionTimeout(globalTimeout, shouldCacheBids)))
+                        auctionTimeout(globalTimeout, shouldCacheBids), aliases))
                 .collect(Collectors.toList()));
 
         // produce response from bidder results
@@ -123,9 +125,10 @@ public class ExchangeService {
     /**
      * Updates 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
      */
-    private void updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie) {
+    private void updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
+                                     Map<String, String> aliases) {
         bidderRequests.forEach(bidderRequest -> {
-            final String bidder = bidderRequest.getBidder();
+            final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
 
             metrics.forAdapter(bidder).incCounter(MetricName.requests);
 
@@ -168,7 +171,7 @@ public class ExchangeService {
             if (CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors())) {
                 bidderResponse.getSeatBid().getErrors().forEach(error -> adapterMetrics.incCounter(error.isTimedOut()
                         ? MetricName.timeout_requests
-                            : MetricName.error_requests));
+                        : MetricName.error_requests));
             }
         });
     }
@@ -179,38 +182,54 @@ public class ExchangeService {
      * This will copy the {@link BidRequest} into a list of requests, where the {@link BidRequest}.imp[].ext field
      * will only consist of the "prebid" field and the field for the appropriate bidder parameters. We will drop all
      * extended fields beyond this context, so this will not be compatible with any other uses of the extension area
-     * i.e. the bidders will not see any other extension fields.
+     * i.e. the bidders will not see any other extension fields. If Imp extension name is alias, which is also defined
+     * in BidRequest.ext.prebid.aliases and valid, separate {@link BidRequest} will be created for this alias and sent
+     * to appropriate bidder.
+     * For example suppose {@link BidRequest} has two {@link Imp}s. First one with imp.ext[].rubicon and
+     * imp.ext[].rubiconAlias and second with imp.ext[].appnexus and imp.ext[].rubicon. Three {@link BidRequest}s will
+     * be created:
+     * 1. {@link BidRequest} with one {@link Imp}, where bidder extension points to rubiconAlias extension and will be
+     * sent to Rubicon bidder.
+     * 2. {@link BidRequest} with two {@link Imp}s, where bidder extension points to appropriate rubicon extension from
+     * original {@link BidRequest} and will be sent to Rubicon bidder.
+     * 3. {@link BidRequest} with one {@link Imp}, where bidder extension points to appnexus extension and will be sent
+     * to Appnexus bidder.
      * <p>
      * Each of the created {@link BidRequest}s will have bidrequest.user.buyerid field populated with the value from
      * {@link UidsCookie} corresponding to bidder's family name unless buyerid is already in the original OpenRTB
      * request (in this case it will not be overridden).
      * <p>
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
-     * {@link Imp}, and are known to {@link BidderCatalog}.
+     * {@link Imp}, and are known to {@link BidderCatalog} or aliases from {@link BidRequest}.ext.prebid.aliases.
      */
-    private List<BidderRequest> extractBidderRequests(BidRequest bidRequest, UidsCookie uidsCookie) {
+    private List<BidderRequest> extractBidderRequests(BidRequest bidRequest, UidsCookie uidsCookie,
+                                                      Map<String, String> aliases) {
         // sanity check: discard imps without extension
         final List<Imp> imps = bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
                 .collect(Collectors.toList());
 
-        // identify valid bidders out of imps
+        // identify valid bidders and aliases out of imps
         final List<String> bidders = imps.stream()
                 .flatMap(imp -> asStream(imp.getExt().fieldNames())
                         .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
-                        .filter(bidderRequesterCatalog::isValidName))
+                        .filter(bidder -> isValidBidder(bidder, aliases)))
                 .distinct()
                 .collect(Collectors.toList());
 
+        // Splits the input request into requests which are sanitized for each bidder. Intended behavior is:
+        // - bidrequest.imp[].ext will only contain the "prebid" field and a "bidder" field which has the params for
+        // the intended Bidder.
+        // - bidrequest.user.buyeruid will be set to that Bidder's ID.
         return bidders.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid and imp
                 // extensions
                 .map(bidder -> BidderRequest.of(bidder, bidRequest.toBuilder()
-                        .user(userWithBuyerid(bidder, bidRequest, uidsCookie))
+                        .user(userWithBuyerid(resolveBidder(bidder, aliases), bidRequest, uidsCookie))
                         .imp(imps.stream()
                                 .filter(imp -> imp.getExt().hasNonNull(bidder))
-                                // for each imp create a new imp with extension crafted to contain only
-                                // bidder-specific data
+                                // for each imp create a new imp with extension crafted to contain only "prebid" and
+                                // bidder-specific extensions
                                 .map(imp -> imp.toBuilder()
                                         .ext(Json.mapper.valueToTree(extractBidderExt(bidder, imp.getExt())))
                                         .build())
@@ -220,8 +239,34 @@ public class ExchangeService {
     }
 
     /**
+     * Checks if bidder name is valid in case when bidder can also be alias name.
+     */
+    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
+        return bidderRequesterCatalog.isValidName(bidder) || aliases.containsKey(bidder);
+    }
+
+    /**
+     * Returns the known BidderName associated with bidder, if bidder is an alias.
+     * If it's not an alias, the bidder is returned.
+     */
+    private String resolveBidder(String bidder, Map<String, String> aliases) {
+        return aliases.getOrDefault(bidder, bidder);
+    }
+
+    /**
+     * Extracts aliases from {@link ExtBidRequest}.
+     */
+    private Map<String, String> getAliases(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
+        return aliases != null ? aliases : Collections.emptyMap();
+    }
+
+    /**
      * Returns either original {@link User} (if there is no user id for the bidder in uids cookie or buyerid is
      * already there) or new {@link User} with buyerid filled with user id from uids cookie.
+     * <p>
+     * This function expects bidder to be a "known" bidder name. It will not work on aliases.
      */
     private User userWithBuyerid(String bidder, BidRequest bidRequest, UidsCookie uidsCookie) {
         final User result;
@@ -309,9 +354,11 @@ public class ExchangeService {
      * Passes the request to a corresponding bidder and wraps response in {@link BidderResponse} which also holds
      * recorded response time.
      */
-    private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, GlobalTimeout timeout) {
+    private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, GlobalTimeout timeout,
+                                               Map<String, String> aliases) {
         final String bidder = bidderRequest.getBidder();
-        return bidderRequesterCatalog.byName(bidder).requestBids(bidderRequest.getBidRequest(), timeout)
+        return bidderRequesterCatalog.byName(resolveBidder(bidder, aliases))
+                .requestBids(bidderRequest.getBidRequest(), timeout)
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
     }
 

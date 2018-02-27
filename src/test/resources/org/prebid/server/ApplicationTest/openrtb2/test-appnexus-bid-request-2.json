@@ -12,14 +12,14 @@
       }],
       "w": 300,
       "h": 250,
-      "pos": 3
+      "pos": 1
     },
     "tagid": "abc",
     "bidfloor": 1.0,
     "ext": {
       "appnexus": {
-        "keywords": "foo=bar,foo=baz",
-        "traffic_source_code": "trafficSource"
+        "keywords": "foo=barAlias,foo=bazAlias",
+        "traffic_source_code": "trafficSourceAlias"
       }
     }
   }],

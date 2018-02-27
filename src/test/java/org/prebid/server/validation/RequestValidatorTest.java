@@ -27,6 +27,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderRequesterCatalog;
+import org.prebid.server.model.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.model.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.model.openrtb.ext.request.ExtUserDigiTrust;
 
 import java.util.Arrays;
@@ -219,7 +221,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenVideAttributeIsPresentButVideaMimesMissed() {
+    public void validateShouldReturnValidationMessageWhenVideoAttributeIsPresentButVideaMimesMissed() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
@@ -766,6 +768,51 @@ public class RequestValidatorTest extends VertxTest {
         //then
         assertThat(result.getErrors()).hasSize(1).element(0)
                 .isEqualTo("request.user.ext object is not valid.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAliasNameEqualsToBidderItPointsOn() {
+        // given
+        final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                singletonMap("rubicon", "rubicon"), null, null, null)));
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo(
+                "request.ext.prebid.aliases.rubicon defines a no-op alias."
+                        + " Choose a different alias, or remove this entry.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAliasPointOnNotValidBidderName(){
+        // given
+        final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                singletonMap("alias", "fake"), null, null, null)));
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo(
+                "request.ext.prebid.aliases.alias refers to unknown bidder: fake");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithoutErrorMessageWhenAliasesWasUsed(){
+        // given
+        final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                singletonMap("alias", "rubicon"), null, null, null)));
+        final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
     }
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {

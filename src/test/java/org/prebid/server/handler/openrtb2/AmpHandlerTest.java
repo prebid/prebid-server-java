@@ -246,7 +246,7 @@ public class AmpHandlerTest extends VertxTest {
         // given
         given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(builder -> builder
-                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(null, null, null))))));
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(null, null, null, null))))));
 
         // when
         ampHandler.handle(routingContext);
@@ -400,6 +400,7 @@ public class AmpHandlerTest extends VertxTest {
                 .imp(singletonList(Imp.builder().build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(
                         ExtRequestPrebid.of(
+                                null,
                                 ExtRequestTargeting.of(null),
                                 null,
                                 ExtRequestPrebidCache.of(mapper.createObjectNode())))));

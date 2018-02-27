@@ -57,6 +57,9 @@
       "ext": {
         "conversant": {
           "site_id": "siteId"
+        },
+        "conversantAlias": {
+          "site_id": "siteId2"
         }
       }
     },
@@ -186,7 +189,29 @@
           "position": "below",
           "trafficSourceCode": "trafficSource",
           "keywords": [
-            {"key": "foo", "value": ["bar","baz"]}
+            {
+              "key": "foo",
+              "value": [
+                "bar",
+                "baz"
+              ]
+            }
+          ]
+        },
+        "appnexusAlias": {
+          "member": "104",
+          "invCode": "abc",
+          "reserve": 1.0,
+          "position": "above",
+          "trafficSourceCode": "trafficSourceAlias",
+          "keywords": [
+            {
+              "key": "foo",
+              "value": [
+                "barAlias",
+                "bazAlias"
+              ]
+            }
           ]
         }
       }
@@ -210,6 +235,10 @@
   },
   "ext": {
     "prebid": {
+      "aliases": {
+        "appnexusAlias": "appnexus",
+        "conversantAlias": "conversant"
+      },
       "targeting": {
         "pricegranularity": "med"
       },

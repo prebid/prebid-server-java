@@ -1,0 +1,35 @@
+{
+  "id" : "tid",
+  "imp" : [ {
+    "id" : "impId4",
+    "banner" : {
+      "format" : [ {
+        "w" : 300,
+        "h" : 600
+      } ],
+      "w" : 300,
+      "h" : 600,
+      "topframe" : 0
+    },
+    "displaymanager" : "prebid-s2s"
+  } ],
+  "site" : {
+    "id" : "siteId2",
+    "domain" : "example.com",
+    "page" : "http://www.example.com"
+  },
+  "device" : {
+    "pxratio" : 4.2
+  },
+  "user" : {
+    "buyeruid" : "CV-UID"
+  },
+  "test" : 0,
+  "at" : 1,
+  "tmax" : 1000,
+  "allimps" : 0,
+  "source" : {
+    "fd" : 1,
+    "tid" : "tid"
+  }
+}

@@ -17,9 +17,11 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderRequesterCatalog;
 import org.prebid.server.model.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.model.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.model.openrtb.ext.request.ExtUser;
 import org.prebid.server.model.openrtb.ext.request.ExtUserDigiTrust;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -61,16 +63,20 @@ public class RequestValidator {
                 throw new ValidationException("request.tmax must be nonnegative. Got %s", bidRequest.getTmax());
             }
 
-            if (bidRequest.getExt() != null) {
-                validateExt(bidRequest.getExt());
-            }
+            final ExtBidRequest extBidRequest = parseAndValidateExtBidRequest(bidRequest);
+
+            final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+            Map<String, String> aliases = extRequestPrebid != null ? extRequestPrebid.getAliases() : null;
+            aliases = aliases != null ? aliases : Collections.emptyMap();
+
+            validateAliases(aliases);
 
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
                 throw new ValidationException("request.imp must contain at least one element.");
             }
 
             for (int index = 0; index < bidRequest.getImp().size(); index++) {
-                validateImp(bidRequest.getImp().get(index), index);
+                validateImp(bidRequest.getImp().get(index), aliases, index);
             }
 
             if ((bidRequest.getSite() == null && bidRequest.getApp() == null)
@@ -86,11 +92,34 @@ public class RequestValidator {
         return ValidationResult.success();
     }
 
-    private void validateExt(ObjectNode ext) throws ValidationException {
-        try {
-            Json.mapper.treeToValue(ext, ExtBidRequest.class);
-        } catch (JsonProcessingException e) {
-            throw new ValidationException("request.ext is invalid: %s", e.getMessage());
+    public ExtBidRequest parseAndValidateExtBidRequest(BidRequest bidRequest) throws ValidationException {
+        ExtBidRequest extBidRequest = null;
+        if (bidRequest.getExt() != null) {
+            try {
+                extBidRequest = Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class);
+            } catch (JsonProcessingException e) {
+                throw new ValidationException("request.ext is invalid: %s", e.getMessage());
+            }
+        }
+        return extBidRequest;
+    }
+
+    /**
+     * Validates aliases. Throws {@link ValidationException} in cases when alias points to invalid bidder or when alias
+     * is equals to itself.
+     */
+    private void validateAliases(Map<String, String> aliases) throws ValidationException {
+        for (final Map.Entry<String, String> aliasToBidder : aliases.entrySet()) {
+            final String alias = aliasToBidder.getKey();
+            final String coreBidder = aliasToBidder.getValue();
+            if (!bidderRequesterCatalog.isValidName(coreBidder)) {
+                throw new ValidationException(String.format(
+                        "request.ext.prebid.aliases.%s refers to unknown bidder: %s", alias, coreBidder));
+            }
+            if (alias.equals(coreBidder)) {
+                throw new ValidationException(String.format("request.ext.prebid.aliases.%s defines a no-op alias. "
+                        + "Choose a different alias, or remove this entry.", alias));
+            }
         }
     }
 
@@ -115,7 +144,7 @@ public class RequestValidator {
         }
     }
 
-    private void validateImp(Imp imp, int index) throws ValidationException {
+    private void validateImp(Imp imp, Map<String, String> aliases, int index) throws ValidationException {
         if (StringUtils.isBlank(imp.getId())) {
             throw new ValidationException("request.imp[%d] missing required field: \"id\"", index);
         }
@@ -139,14 +168,13 @@ public class RequestValidator {
                 throw new ValidationException("request.imp[%d].native.request must be a JSON "
                         + "encoded string conforming to the openrtb 1.2 Native spec", index);
             }
-
         }
 
         validatePmp(imp.getPmp(), index);
-        validateImpExt(imp.getExt(), index);
+        validateImpExt(imp.getExt(), aliases, index);
     }
 
-    private void validateImpExt(ObjectNode ext, int impIndex) throws ValidationException {
+    private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex) throws ValidationException {
         if (ext == null || ext.size() < 1) {
             throw new ValidationException("request.imp[%s].ext must contain at least one bidder", impIndex);
         }
@@ -154,21 +182,26 @@ public class RequestValidator {
         final Iterator<Map.Entry<String, JsonNode>> bidderExtensions = ext.fields();
         while (bidderExtensions.hasNext()) {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
-            final String bidderName = bidderExtension.getKey();
-
-            if (bidderRequesterCatalog.isValidName(bidderName)) {
-                final Set<String> messages = bidderParamValidator.validate(bidderName, bidderExtension.getValue());
-
-                if (!messages.isEmpty()) {
-                    throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex, bidderName,
-                            messages.stream().collect(Collectors.joining("\n")));
-                }
-            } else if (!PREBID_EXT.equals(bidderName)) {
-                throw new ValidationException("request.imp[%d].ext contains unknown bidder: %s", impIndex, bidderName);
+            String bidderName = bidderExtension.getKey();
+            if (!PREBID_EXT.equals(bidderName)) {
+                bidderName = aliases.getOrDefault(bidderName, bidderName);
+                validateImpBidderExtName(impIndex, bidderExtension, bidderName);
             }
-
         }
+    }
 
+    private void validateImpBidderExtName(int impIndex, Map.Entry<String, JsonNode> bidderExtension, String bidderName)
+            throws ValidationException {
+        if (bidderRequesterCatalog.isValidName(bidderName)) {
+            final Set<String> messages = bidderParamValidator.validate(bidderName, bidderExtension.getValue());
+            if (!messages.isEmpty()) {
+                throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex,
+                        bidderName, messages.stream().collect(Collectors.joining("\n")));
+            }
+        } else {
+            throw new ValidationException(
+                    "request.imp[%d].ext contains unknown bidder: %s", impIndex, bidderName);
+        }
     }
 
     private void validatePmp(Pmp pmp, int impIndex) throws ValidationException {

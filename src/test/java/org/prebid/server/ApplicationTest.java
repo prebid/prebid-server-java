@@ -58,6 +58,8 @@ public class ApplicationTest extends VertxTest {
     private static final String LIFESTREET = "lifestreet";
     private static final String PUBMATIC = "pubmatic";
     private static final String CONVERSANT = "conversant";
+    private static final String APPNEXUS_ALIAS = "appnexusAlias";
+    private static final String CONVERSANT_ALIAS = "conversantAlias";
 
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
@@ -97,10 +99,20 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-appnexus-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-appnexus-bid-response-1.json"))));
 
+        // appnexus bid response for imp 3 with alias parameters
+        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-appnexus-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-appnexus-bid-response-2.json"))));
+
         // conversant bid response for imp 4
         wireMockRule.stubFor(post(urlPathEqualTo("/conversant-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-conversant-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-conversant-bid-response-1.json"))));
+
+        // conversant bid response for imp 4 with alias parameters
+        wireMockRule.stubFor(post(urlPathEqualTo("/conversant-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-conversant-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-conversant-bid-response-2.json"))));
 
         // facebook bid response for imp 5
         wireMockRule.stubFor(post(urlPathEqualTo("/facebook-exchange"))
@@ -148,11 +160,23 @@ public class ApplicationTest extends VertxTest {
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
+
         // then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
+        String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
                 response, "ext.responsetimemillis.%s");
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    private static String setResponseTime(Response response, String expectedResponseJson, String exchange,
+                                          String responseTimePath) {
+        final Object val = response.path(format(responseTimePath, exchange));
+        final Integer responseTime = val instanceof Integer ? (Integer) val : null;
+        if (responseTime != null) {
+            expectedResponseJson = expectedResponseJson.replaceAll("\"\\{\\{ " + exchange + "\\.response_time_ms }}\"",
+                    responseTime.toString());
+        }
+        return expectedResponseJson;
     }
 
     @Test
@@ -412,19 +436,17 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange");
         exchanges.put(CONVERSANT, "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange");
 
+        // inputs for aliases
+        exchanges.put(APPNEXUS_ALIAS, null);
+        exchanges.put(CONVERSANT_ALIAS, null);
+
         String result = template.replaceAll("\\{\\{ cache_resource_url }}",
                 "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=");
 
         for (final Map.Entry<String, String> exchangeEntry : exchanges.entrySet()) {
             final String exchange = exchangeEntry.getKey();
             result = result.replaceAll("\\{\\{ " + exchange + "\\.exchange_uri }}", exchangeEntry.getValue());
-            final Object val = response.path(format(responseTimePath, exchange));
-            final Integer responseTime = val instanceof Integer ? (Integer) val : null;
-            if (responseTime != null) {
-                result = result.replaceAll("\"\\{\\{ " + exchange + "\\.response_time_ms }}\"",
-                        responseTime.toString());
-
-            }
+            result = setResponseTime(response, result, exchange, responseTimePath);
         }
 
         return result;
