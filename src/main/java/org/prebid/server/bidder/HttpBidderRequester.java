@@ -1,6 +1,7 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
+import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -103,7 +104,9 @@ public class HttpBidderRequester implements BidderRequester {
      */
     private static void handleException(Throwable exception, Future<HttpCall> result, HttpRequest httpRequest) {
         logger.warn("Error occurred while sending HTTP request to a bidder", exception);
-        result.complete(HttpCall.partial(httpRequest, exception.getMessage(), exception instanceof TimeoutException));
+        final boolean isTimedOut = exception instanceof TimeoutException
+                || exception instanceof ConnectTimeoutException;
+        result.complete(HttpCall.partial(httpRequest, exception.getMessage(), isTimedOut));
     }
 
     /**

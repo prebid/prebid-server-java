@@ -33,6 +33,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/**
+ * Conversant {@link org.prebid.server.adapter.Adapter} implementation.
+ * <p>
+ * Maintainer email: <a href="mailto:mediapsr@conversantmedia.com">mediapsr@conversantmedia.com</a>
+ */
 public class ConversantAdapter extends OpenrtbAdapter {
 
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(

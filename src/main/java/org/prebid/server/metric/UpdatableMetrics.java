@@ -40,20 +40,32 @@ class UpdatableMetrics {
         }
     }
 
+    /**
+     * Increments metric's counter.
+     */
     public void incCounter(MetricName metricName) {
         incCounter(metricName, 1);
     }
 
+    /**
+     * Increments metric's counter on a given value.
+     */
     public void incCounter(MetricName metricName, long value) {
         Objects.requireNonNull(metricName);
         incrementer.accept(metricRegistry, name(metricName), value);
     }
 
+    /**
+     * Updates metric's timer with a given value.
+     */
     public void updateTimer(MetricName metricName, long millis) {
         Objects.requireNonNull(metricName);
         metricRegistry.timer(name(metricName)).update(millis, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * Updates metric's histogram with a given value.
+     */
     public void updateHistogram(MetricName metricName, long value) {
         Objects.requireNonNull(metricName);
         // by default histograms with exponentially decaying reservoir (size=1028, alpha=0.015) are created

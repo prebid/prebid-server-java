@@ -38,6 +38,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Facebook {@link org.prebid.server.adapter.Adapter} implementation.
+ * <p>
+ * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
+ */
 public class FacebookAdapter extends OpenrtbAdapter {
 
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES =

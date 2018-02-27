@@ -33,6 +33,7 @@ import org.prebid.server.model.response.BidderStatus;
 import org.prebid.server.model.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -86,7 +87,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext context) {
         metrics.incCounter(MetricName.requests);
 
-        final boolean isSafari = isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
+        final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
         if (isSafari) {
             metrics.incCounter(MetricName.safari_requests);
         }
@@ -264,16 +265,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return preBidRequestContext.getBidders().stream()
                 .filter(b -> !adapters.isValidCode(b.getBidderCode()))
                 .map(b -> BidderStatus.builder().bidder(b.getBidderCode()).error("Unsupported bidder").build());
-    }
-
-    private static boolean isSafari(String userAgent) {
-        // this is a simple heuristic based on this article:
-        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
-        //
-        // there are libraries available doing different kinds of User-Agent analysis but they impose performance
-        // implications as well, example: https://github.com/nielsbasjes/yauaa
-        return StringUtils.isNotBlank(userAgent) && userAgent.contains("AppleWebKit") && userAgent.contains("Safari")
-                && !userAgent.contains("Chrome") && !userAgent.contains("Chromium");
     }
 
     private void updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext, boolean isSafari) {

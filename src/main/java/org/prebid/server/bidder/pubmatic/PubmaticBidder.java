@@ -10,7 +10,7 @@ import org.prebid.server.bidder.model.Result;
 import java.util.List;
 
 /**
- * Pubmatic implementation.
+ * Pubmatic {@link Bidder} implementation.
  * <p>
  * Maintainer email: <a href="mailto:header-bidding@pubmatic.com">header-bidding@pubmatic.com</a>
  */

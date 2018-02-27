@@ -18,6 +18,9 @@ import java.net.URLEncoder;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Implements the connection to the re-captcha validation endpoint
+ */
 public class GoogleRecaptchaVerifier {
 
     private static final Logger logger = LoggerFactory.getLogger(GoogleRecaptchaVerifier.class);
@@ -32,6 +35,9 @@ public class GoogleRecaptchaVerifier {
         this.recaptchaSecret = Objects.requireNonNull(recaptchaSecret);
     }
 
+    /**
+     * Validates reCAPTCHA token by sending it to the re-captcha verfier endpoint url
+     */
     public Future<Void> verify(String recaptcha) {
         Objects.requireNonNull(recaptcha);
 

@@ -58,6 +58,9 @@ public class HttpConnector {
         this.httpClient = Objects.requireNonNull(httpClient);
     }
 
+    /**
+     * Executes HTTP requests for particular {@link Adapter} and returns {@link BidderResult}
+     */
     public Future<BidderResult> call(Adapter adapter, Bidder bidder, PreBidRequestContext preBidRequestContext) {
         Objects.requireNonNull(adapter);
         Objects.requireNonNull(bidder);

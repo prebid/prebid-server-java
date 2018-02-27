@@ -33,6 +33,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Pulsepoint {@link org.prebid.server.adapter.Adapter} implementation.
+ * <p>
+ * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
+ */
 public class PulsepointAdapter extends OpenrtbAdapter {
 
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(

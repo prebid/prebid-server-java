@@ -64,6 +64,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * <a href="https://rubiconproject.com">Rubicon Project</a> {@link org.prebid.server.adapter.Adapter} implementation.
+ * <p>
+ * Maintainer email: <a href="mailto:header-bidding@rubiconproject.com">header-bidding@rubiconproject.com</a>
+ */
 public class RubiconAdapter extends OpenrtbAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconAdapter.class);

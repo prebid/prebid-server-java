@@ -37,6 +37,7 @@ import org.prebid.server.model.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.model.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.model.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.settings.StoredRequestFetcher;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ValidationResult;
 
@@ -94,7 +95,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         metrics.incCounter(MetricName.amp_requests);
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
-        final boolean isSafari = isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
+        final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
         if (isSafari) {
             metrics.incCounter(MetricName.safari_requests);
         }
@@ -290,15 +291,5 @@ public class AmpHandler implements Handler<RoutingContext> {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);
             }
         }
-    }
-
-    private static boolean isSafari(String userAgent) {
-        // this is a simple heuristic based on this article:
-        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
-        //
-        // there are libraries available doing different kinds of User-Agent analysis but they impose performance
-        // implications as well, example: https://github.com/nielsbasjes/yauaa
-        return StringUtils.isNotBlank(userAgent) && userAgent.contains("AppleWebKit") && userAgent.contains("Safari")
-                && !userAgent.contains("Chrome") && !userAgent.contains("Chromium");
     }
 }

@@ -262,7 +262,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillUserExtIfUserAndDigigtrustPresent() {
+    public void makeHttpRequestsShouldFillUserExtIfUserAndDigiTrustPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(

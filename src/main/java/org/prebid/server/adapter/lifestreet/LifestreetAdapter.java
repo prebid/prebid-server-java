@@ -28,6 +28,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Lifestreet {@link org.prebid.server.adapter.Adapter} implementation.
+ * <p>
+ * Maintainer email: <a href="mailto:mobile.tech@lifestreet.com">mobile.tech@lifestreet.com</a>
+ */
 public class LifestreetAdapter extends OpenrtbAdapter {
 
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(

@@ -132,7 +132,7 @@ public class ExchangeService {
             final boolean noBuyerId = StringUtils.isBlank(uidsCookie.uidFrom(
                     bidderRequesterCatalog.byName(bidder).cookieFamilyName()));
 
-            if (Objects.isNull(bidderRequest.getBidRequest().getApp()) && noBuyerId) {
+            if (bidderRequest.getBidRequest().getApp() == null && noBuyerId) {
                 metrics.forAdapter(bidder).incCounter(MetricName.no_cookie_requests);
             }
         });
@@ -159,10 +159,10 @@ public class ExchangeService {
                 adapterMetrics.incCounter(MetricName.no_bid_requests);
             } else {
                 bids.forEach(bid -> {
-                    final long price = !Objects.isNull(bid.getPrice())
+                    final long cpmPrice = bid.getPrice() != null
                             ? bid.getPrice().multiply(THOUSAND).longValue()
                             : 0L;
-                    adapterMetrics.updateHistogram(MetricName.prices, price);
+                    adapterMetrics.updateHistogram(MetricName.prices, cpmPrice);
                 });
             }
             if (CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getErrors())) {

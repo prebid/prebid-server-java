@@ -64,6 +64,10 @@ public class PreBidRequestContextFactory {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
     }
 
+    /**
+     * Creates a new instances of {@link PreBidRequestContext} wrapped into {@link Future} which
+     * can be be eventually completed with success or error result.
+     */
     public Future<PreBidRequestContext> fromRequest(RoutingContext context) {
         Objects.requireNonNull(context);
 

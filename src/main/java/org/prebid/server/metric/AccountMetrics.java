@@ -7,6 +7,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
+/**
+ * Registry of {@link AdapterMetrics} for account metrics support.
+ */
 public class AccountMetrics extends UpdatableMetrics {
 
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
@@ -26,6 +29,9 @@ public class AccountMetrics extends UpdatableMetrics {
         return metricName -> String.format("account.%s.%s", account, metricName.name());
     }
 
+    /**
+     * Returns existing or creates a new {@link AdapterMetrics}.
+     */
     public AdapterMetrics forAdapter(String adapterType) {
         Objects.requireNonNull(adapterType);
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);

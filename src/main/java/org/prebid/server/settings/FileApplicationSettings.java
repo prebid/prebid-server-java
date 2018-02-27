@@ -18,6 +18,11 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of {@link ApplicationSettings}.
+ * <p>
+ * Reads an application settings from YAML file on file system, stores and serves them in and from the memory.
+ */
 public class FileApplicationSettings implements ApplicationSettings {
 
     private final Map<String, Account> accounts;
@@ -36,6 +41,9 @@ public class FileApplicationSettings implements ApplicationSettings {
         return list != null ? list.stream().collect(Collectors.toMap(keyMapper, valueMapper)) : Collections.emptyMap();
     }
 
+    /**
+     * Instantiate {@link FileApplicationSettings} by reading YAML setting file.
+     */
     public static FileApplicationSettings create(FileSystem fileSystem, String fileName) {
         Objects.requireNonNull(fileSystem);
         Objects.requireNonNull(fileName);

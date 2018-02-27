@@ -11,6 +11,9 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
+/**
+ * Adds caching functionality for {@link ApplicationSettings} implementation
+ */
 public class CachingApplicationSettings implements ApplicationSettings {
 
     private final ApplicationSettings delegate;

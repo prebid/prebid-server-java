@@ -8,6 +8,9 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Bundles the UID with an Expiration date. After the expiration, the UID is no longer valid.
+ */
 @AllArgsConstructor
 @Value
 public final class UidWithExpiry {

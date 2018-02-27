@@ -12,6 +12,12 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Function;
 
+/**
+ * Implementation of {@link ApplicationSettings}.
+ * <p>
+ * Reads an application settings from the database source. In order to enable caching and reduce latency
+ * for read operations {@link JdbcApplicationSettings} can be decorated by {@link CachingApplicationSettings}.
+ */
 public class JdbcApplicationSettings implements ApplicationSettings {
 
     private final JdbcClient jdbcClient;

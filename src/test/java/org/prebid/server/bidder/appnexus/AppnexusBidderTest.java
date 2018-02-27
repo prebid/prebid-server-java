@@ -74,8 +74,8 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getImp)
-                .containsOnly(Collections.EMPTY_LIST);
+                .flatExtracting(BidRequest::getImp)
+                .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .element(0).extracting(BidderError::getMessage)
                 .containsExactly("Appnexus doesn't support audio or native Imps. Ignoring Imp ID=23");

@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Contains logic for obtaining UIDs from the request and actualizing them.
+ */
 public class UidsCookieService {
 
     private static final Logger logger = LoggerFactory.getLogger(UidsCookie.class);
@@ -44,6 +47,23 @@ public class UidsCookieService {
         this.ttlSeconds = Duration.ofDays(ttlDays).getSeconds();
     }
 
+    /**
+     * Retrieves UIDs cookie (base64 encoded) value from http request and transforms it into {@link UidsCookie}.
+     *
+     * <p>
+     * Uids cookie value from http request may be represented in accordance with one of two formats:
+     * <ul>
+     * <li>Legacy cookies - had UIDs without expiration dates</li>
+     * <li>Current cookies - always include UIDs with expiration dates</li>
+     * </ul>
+     * If request contains 'legacy' UIDs cookie format then it will be interpreted as already expired and forced
+     * to re-sync
+     *
+     * This method also sets 'hostCookieFamily' if 'hostCookie' is present in the request and feature is not opted-out.
+     * If feature is opted-out uids attribute will be blank.
+     *
+     * Note: UIDs will be excluded from resulting {@link UidsCookie} if their value are 'null'
+     */
     public UidsCookie parseFromRequest(RoutingContext context) {
         Objects.requireNonNull(context);
 
@@ -104,6 +124,10 @@ public class UidsCookieService {
         return new UidsCookie(uids);
     }
 
+    /**
+     * Creates a {@link Cookie} with 'uids' as a name and encoded JSON string representing supplied {@link UidsCookie}
+     * as a value.
+     */
     public Cookie toCookie(UidsCookie uidsCookie) {
         final Cookie cookie = Cookie
                 .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
@@ -116,11 +140,18 @@ public class UidsCookieService {
         return cookie;
     }
 
+    /**
+     * Lookup host cookie value from request by configured host cookie name
+     */
     public String parseHostCookie(RoutingContext context) {
         final Cookie cookie = hostCookieName != null ? context.getCookie(hostCookieName) : null;
         return cookie != null ? cookie.getValue() : null;
     }
 
+    /**
+     * Checks incoming request if it matches pre-configured opted-out cookie name, value and de-activates
+     * UIDs cookie sync
+     */
     private boolean isOptedOut(RoutingContext context) {
         if (StringUtils.isNotBlank(optOutCookieName) && StringUtils.isNotBlank(optOutCookieValue)) {
             final Cookie cookie = context.getCookie(optOutCookieName);

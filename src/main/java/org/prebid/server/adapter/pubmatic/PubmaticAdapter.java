@@ -40,6 +40,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Pubmatic {@link org.prebid.server.adapter.Adapter} implementation.
+ * <p>
+ * Maintainer email: <a href="mailto:header-bidding@pubmatic.com">header-bidding@pubmatic.com</a>
+ */
 public class PubmaticAdapter extends OpenrtbAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(PubmaticAdapter.class);

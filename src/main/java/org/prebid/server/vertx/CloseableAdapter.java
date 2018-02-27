@@ -8,6 +8,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Objects;
 
+/**
+ * {@link CloseableAdapter} implementation used for auto-closing instances of
+ * {@link com.codahale.metrics.ScheduledReporter}.
+ */
 public class CloseableAdapter implements io.vertx.core.Closeable {
 
     private final Closeable adaptee;

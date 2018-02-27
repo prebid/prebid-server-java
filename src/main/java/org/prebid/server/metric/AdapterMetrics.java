@@ -5,6 +5,9 @@ import com.codahale.metrics.MetricRegistry;
 import java.util.Objects;
 import java.util.function.Function;
 
+/**
+ * Registry of metrics for an account metrics support.
+ */
 public class AdapterMetrics extends UpdatableMetrics {
 
     AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String adapterType) {

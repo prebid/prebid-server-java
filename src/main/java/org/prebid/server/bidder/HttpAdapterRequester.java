@@ -310,10 +310,11 @@ public class HttpAdapterRequester implements BidderRequester {
         final List<BidderError> errors = new ArrayList<>();
         for (org.prebid.server.model.response.Bid bid : bidderResult.getBids()) {
             final Result<BidType> bidTypeResult = toBidType(bid);
-            if (bidTypeResult.getErrors().isEmpty()) {
+            final List<BidderError> bidderErrors = bidTypeResult.getErrors();
+            if (bidderErrors.isEmpty()) {
                 bidderBids.add(BidderBid.of(toOrtbBid(bid), bidTypeResult.getValue()));
             } else {
-                errors.addAll(bidTypeResult.getErrors());
+                errors.addAll(bidderErrors);
             }
         }
         return Result.of(bidderBids, errors);
@@ -325,10 +326,11 @@ public class HttpAdapterRequester implements BidderRequester {
      * {@link Result} with error list ad null value will be returned.
      */
     private Result<BidType> toBidType(org.prebid.server.model.response.Bid bid) {
-        if (bid.getMediaType() == null) {
+        final MediaType mediaType = bid.getMediaType();
+        if (mediaType == null) {
             return Result.of(null, Collections.singletonList(BidderError.create("Media Type is not defined for Bid")));
         }
-        switch (bid.getMediaType()) {
+        switch (mediaType) {
             case video:
                 return Result.of(BidType.video, Collections.emptyList());
             case banner:
