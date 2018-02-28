@@ -241,6 +241,12 @@ public class HttpAdapterRequester implements BidderRequester {
      */
     private List<Format> toAdUnitBidSizes(Imp imp) {
         final List<Format> sizes = new ArrayList<>();
+        final com.iab.openrtb.request.Video video = imp.getVideo();
+        final Integer videoHeight = video != null ? video.getH() : null;
+        final Integer videoWidth = video != null ? video.getW() : null;
+        if (videoWidth != null && videoWidth != 0 && videoHeight != null && videoHeight != 0) {
+            sizes.add(Format.builder().w(videoWidth).h(videoHeight).build());
+        }
         if (imp.getBanner() != null && imp.getBanner().getFormat() != null) {
             sizes.addAll(imp.getBanner().getFormat());
         }

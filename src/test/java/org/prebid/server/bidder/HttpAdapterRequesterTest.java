@@ -231,6 +231,104 @@ public class HttpAdapterRequesterTest {
     }
 
     @Test
+    public void shouldNotSendRequestWithVideoIfVideoSizesAreNull() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().publisher(Publisher.builder().id("publisherId").build()).build())
+                .source(Source.builder().tid("TransactionId").build())
+                .imp(singletonList(Imp.builder().secure(0).video(Video.builder().build()).build()))
+                .tmax(1000L)
+                .build();
+
+        // when
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+
+        // then
+        verifyZeroInteractions(httpConnector);
+        assertThat(result.succeeded()).isTrue();
+        assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), null, emptyList(), singletonList(
+                BidderError.create("legacy bidders should have at least one defined size Format"))));
+    }
+
+    @Test
+    public void shouldCreateAdUnitIfOnlyVideoMediaTypeWasDefined() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().publisher(Publisher.builder().id("publisherId").build()).build())
+                .source(Source.builder().tid("TransactionId").build())
+                .imp(singletonList(Imp.builder().secure(0).video(Video.builder().w(400).h(200).build())
+                        .ext((ObjectNode) Json.mapper.createObjectNode().set("bidder", Json.mapper.createObjectNode()))
+                        .build()))
+                .tmax(1000L)
+                .build();
+
+        given(usersyncer.cookieFamilyName()).willReturn("someCookieFamily");
+        given(adapter.name()).willReturn(ADAPTER);
+
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(AdapterResponse.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
+                singletonList(Bid.builder().mediaType(MediaType.video).build()),
+                false)));
+
+        // when
+        adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+
+        // then
+        final ArgumentCaptor<AdapterRequest> bidderArgumentCaptor = ArgumentCaptor.forClass(AdapterRequest.class);
+        verify(httpConnector).call(eq(adapter), any(), bidderArgumentCaptor.capture(), any());
+        final AdapterRequest adapterRequest = bidderArgumentCaptor.getValue();
+
+        assertThat(adapterRequest.getAdUnitBids().get(0)).isEqualTo(AdUnitBid.builder()
+                .bidderCode("rubicon")
+                .sizes(singletonList(Format.builder().w(400).h(200).build()))
+                .topframe(0)
+                .video(org.prebid.server.proto.request.Video.builder().build())
+                .mediaTypes(new HashSet<>(singletonList(MediaType.video)))
+                .params(Json.mapper.createObjectNode())
+                .build());
+    }
+
+    @Test
+    public void shouldCreateAdUnitWithAllSizesFromVideoAndBannerIfBothAreDefined() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().publisher(Publisher.builder().id("publisherId").build()).build())
+                .source(Source.builder().tid("TransactionId").build())
+                .imp(singletonList(Imp.builder().secure(0)
+                        .video(Video.builder().w(400).h(200).build())
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(150).build())).build())
+                        .ext((ObjectNode) Json.mapper.createObjectNode().set("bidder", Json.mapper.createObjectNode()))
+                        .build()))
+                .tmax(1000L)
+                .build();
+
+        given(usersyncer.cookieFamilyName()).willReturn("someCookieFamily");
+        given(adapter.name()).willReturn(ADAPTER);
+
+        given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(AdapterResponse.of(
+                BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
+                singletonList(Bid.builder().mediaType(MediaType.video).build()),
+                false)));
+
+        // when
+        adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+
+        // then
+        final ArgumentCaptor<AdapterRequest> bidderArgumentCaptor = ArgumentCaptor.forClass(AdapterRequest.class);
+        verify(httpConnector).call(eq(adapter), any(), bidderArgumentCaptor.capture(), any());
+        final AdapterRequest adapterRequest = bidderArgumentCaptor.getValue();
+        assertThat(adapterRequest.getAdUnitBids().get(0)).isEqualTo(AdUnitBid.builder()
+                .bidderCode("rubicon")
+                .sizes(asList(Format.builder().w(400).h(200).build(), Format.builder().w(300).h(150).build()))
+                .topframe(0)
+                .video(org.prebid.server.proto.request.Video.builder().build())
+                .mediaTypes(new HashSet<>(asList(MediaType.video, MediaType.banner)))
+                .params(Json.mapper.createObjectNode())
+                .build());
+
+    }
+
+    @Test
     public void shouldRespondWithBidAndErrorMessageIfFirstImpIsValidAndSecondIsNot() {
         // given
         final BidRequest bidRequest = BidRequest.builder()

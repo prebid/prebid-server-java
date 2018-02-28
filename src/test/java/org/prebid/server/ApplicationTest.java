@@ -129,6 +129,11 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-lifestreet-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-lifestreet-bid-response-1.json"))));
 
+        // lifestreet bid response for imp 71
+        wireMockRule.stubFor(post(urlPathEqualTo("/lifestreet-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-lifestreet-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-lifestreet-bid-response-2.json"))));
+
         // pulsepoint bid response for imp 8
         wireMockRule.stubFor(post(urlPathEqualTo("/pulsepoint-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-pulsepoint-bid-request-1.json")))

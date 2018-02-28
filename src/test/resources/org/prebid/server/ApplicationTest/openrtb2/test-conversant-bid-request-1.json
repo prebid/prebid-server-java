@@ -15,6 +15,22 @@
         "topframe": 0
       },
       "displaymanager": "prebid-s2s"
+    },
+    {
+      "id": "impId41",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "w": 300,
+        "h": 600,
+        "skipmin": 0,
+        "skipafter": 0,
+        "playbackmethod": [
+          null
+        ]
+      },
+      "displaymanager": "prebid-s2s"
     }
   ],
   "site": {
@@ -22,18 +38,18 @@
     "domain": "example.com",
     "page": "http://www.example.com"
   },
-  "device": {
-    "pxratio": 4.2
+  "device" : {
+    "pxratio" : 4.2
   },
-  "user": {
-    "buyeruid": "CV-UID"
+  "user" : {
+    "buyeruid" : "CV-UID"
   },
-  "test": 0,
-  "at": 1,
-  "tmax": 1000,
-  "allimps": 0,
-  "source": {
-    "fd": 1,
-    "tid": "tid"
+  "test" : 0,
+  "at" : 1,
+  "tmax" : 1000,
+  "allimps" : 0,
+  "source" : {
+    "fd" : 1,
+    "tid" : "tid"
   }
 }
