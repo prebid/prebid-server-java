@@ -9,7 +9,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtUserDigiTrust {
+public class ExtUserDigiTrust {
 
     /**
      * Unique device identifier

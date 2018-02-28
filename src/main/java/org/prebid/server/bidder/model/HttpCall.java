@@ -9,7 +9,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Value
-public final class HttpCall {
+public class HttpCall {
 
     HttpRequest request;
 

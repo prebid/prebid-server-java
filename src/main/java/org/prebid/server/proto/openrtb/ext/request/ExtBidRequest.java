@@ -8,7 +8,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtBidRequest {
+public class ExtBidRequest {
 
     /**
      * Defines the contract for bidrequest.ext.prebid

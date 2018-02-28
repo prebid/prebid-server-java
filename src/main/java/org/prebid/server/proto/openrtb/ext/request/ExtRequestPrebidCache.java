@@ -9,7 +9,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtRequestPrebidCache {
+public class ExtRequestPrebidCache {
 
     /**
      * Defines the contract for bidrequest.ext.prebid.cache.bids

@@ -6,7 +6,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class UsersyncInfo {
+public class UsersyncInfo {
 
     String url;
 

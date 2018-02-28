@@ -5,7 +5,7 @@ import lombok.Value;
 
 @Builder
 @Value
-public final class BidderDebug {
+public class BidderDebug {
 
     String requestUri;
 

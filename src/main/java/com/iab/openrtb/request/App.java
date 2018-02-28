@@ -14,7 +14,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public final class App {
+public class App {
 
     /** Exchange-specific app ID. (recommended) */
     String id;

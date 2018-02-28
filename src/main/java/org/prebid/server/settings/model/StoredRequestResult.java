@@ -8,7 +8,7 @@ import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class StoredRequestResult {
+public class StoredRequestResult {
 
     Map<String, String> storedIdToJson;
 

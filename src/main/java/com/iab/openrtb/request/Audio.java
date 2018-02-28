@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Builder
 @Value
-public final class Audio {
+public class Audio {
 
     /** Content MIME types supported (e.g., “audio/mp4”). (required) */
     List<String> mimes;

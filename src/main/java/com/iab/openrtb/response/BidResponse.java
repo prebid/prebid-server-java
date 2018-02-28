@@ -24,7 +24,7 @@ import static java.util.Objects.isNull;
  */
 @Builder
 @Value
-public final class BidResponse {
+public class BidResponse {
 
     /**
      * ID of the bid request to which this is a response.

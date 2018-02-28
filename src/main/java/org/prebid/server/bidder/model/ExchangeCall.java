@@ -8,7 +8,7 @@ import org.prebid.server.proto.response.BidderDebug;
 
 @AllArgsConstructor
 @Value
-public final class ExchangeCall {
+public class ExchangeCall {
 
     BidRequest bidRequest;
 

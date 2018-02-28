@@ -7,7 +7,7 @@ import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class SettingsFile {
+public class SettingsFile {
 
     List<String> accounts;
 

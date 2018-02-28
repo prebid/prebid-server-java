@@ -10,7 +10,7 @@ import java.util.Map;
 
 @Builder(toBuilder = true)
 @Value
-public final class Uids {
+public class Uids {
 
     @JsonProperty("uids")
     Map<String, String> uidsLegacy;

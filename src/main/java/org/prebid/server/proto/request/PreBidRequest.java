@@ -10,7 +10,7 @@ import java.util.List;
 
 @Builder
 @Value
-public final class PreBidRequest {
+public class PreBidRequest {
 
     String accountId;
 

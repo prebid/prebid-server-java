@@ -10,7 +10,7 @@ import java.util.List;
 
 @Builder
 @Value
-public final class PreBidRequestContext {
+public class PreBidRequestContext {
 
     List<AdapterRequest> adapterRequests;
 

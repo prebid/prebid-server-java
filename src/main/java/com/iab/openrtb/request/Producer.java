@@ -12,7 +12,7 @@ import java.util.List;
  * publisher are not necessarily the same entity.
  */
 @Value
-public final class Producer {
+public class Producer {
 
     /**
      * Content producer or originator ID. Useful if content is syndicated and

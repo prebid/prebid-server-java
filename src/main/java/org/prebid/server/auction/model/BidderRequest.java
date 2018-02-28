@@ -9,7 +9,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class BidderRequest {
+public class BidderRequest {
 
     String bidder;
 

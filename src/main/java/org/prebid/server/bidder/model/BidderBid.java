@@ -11,7 +11,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class BidderBid {
+public class BidderBid {
 
     /**
      * bid.ext will become "response.seatbid[i].bid.ext.bidder" in the final OpenRTB response

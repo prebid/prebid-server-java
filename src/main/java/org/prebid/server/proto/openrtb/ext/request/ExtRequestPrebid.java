@@ -10,7 +10,7 @@ import java.util.Map;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtRequestPrebid {
+public class ExtRequestPrebid {
 
     /**
      * Defines the contract for bidrequest.ext.prebid.aliases

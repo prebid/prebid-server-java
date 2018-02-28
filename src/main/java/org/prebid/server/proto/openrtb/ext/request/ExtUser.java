@@ -8,7 +8,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtUser {
+public class ExtUser {
 
     ExtUserDigiTrust digitrust;
 }

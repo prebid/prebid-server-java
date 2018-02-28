@@ -8,7 +8,7 @@ import lombok.Value;
  */
 @Builder
 @Value
-public final class ExtHttpCall {
+public class ExtHttpCall {
 
     String uri;
 

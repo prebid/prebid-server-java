@@ -7,7 +7,7 @@ import java.util.List;
 
 @Builder
 @Value
-public final class BidderStatus {
+public class BidderStatus {
 
     String bidder;
 

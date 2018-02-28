@@ -16,7 +16,7 @@ import java.util.List;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class BidderSeatBid {
+public class BidderSeatBid {
 
     /**
      * List of bids which bidder wishes to make.

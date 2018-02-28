@@ -10,7 +10,7 @@ import lombok.Value;
  * for the United States Children’s Online Privacy Protection Act (“COPPA”).
  */
 @Value
-public final class Regs {
+public class Regs {
 
     /**
      * Flag indicating if this request is subject to the COPPA regulations

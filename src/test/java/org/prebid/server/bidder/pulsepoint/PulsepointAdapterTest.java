@@ -33,7 +33,7 @@ import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
-import org.prebid.server.bidder.pulsepoint.model.PulsepointParams;
+import org.prebid.server.bidder.pulsepoint.proto.PulsepointParams;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;

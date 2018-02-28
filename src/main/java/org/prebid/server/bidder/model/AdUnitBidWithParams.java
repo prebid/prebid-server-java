@@ -6,7 +6,7 @@ import org.prebid.server.auction.model.AdUnitBid;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class AdUnitBidWithParams<T> {
+public class AdUnitBidWithParams<T> {
 
     AdUnitBid adUnitBid;
 

@@ -11,7 +11,7 @@ import java.util.Map;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtResponseDebug {
+public class ExtResponseDebug {
 
     /**
      * Defines the contract for bidresponse.ext.debug.httpcalls

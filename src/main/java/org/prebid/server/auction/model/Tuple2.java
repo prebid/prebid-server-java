@@ -5,7 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class Tuple2<L, R> {
+public class Tuple2<L, R> {
 
     L left;
 

@@ -9,7 +9,7 @@ import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class AdapterResponse {
+public class AdapterResponse {
 
     BidderStatus bidderStatus;
 

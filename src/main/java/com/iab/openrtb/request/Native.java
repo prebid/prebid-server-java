@@ -27,7 +27,7 @@ import java.util.List;
  */
 @Builder
 @Value
-public final class Native {
+public class Native {
 
     /** Request payload complying with the Native Ad Specification. (required) */
     String request;

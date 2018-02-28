@@ -13,7 +13,7 @@ import java.time.temporal.ChronoUnit;
  */
 @AllArgsConstructor
 @Value
-public final class UidWithExpiry {
+public class UidWithExpiry {
 
     private static final long LIVE_TTL_MS = Duration.ofDays(14).toMillis();
     private static final long EXPIRED_TTL_MS = Duration.ofMinutes(5).toMillis();

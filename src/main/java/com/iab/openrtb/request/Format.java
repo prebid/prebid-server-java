@@ -13,7 +13,7 @@ import lombok.Value;
  */
 @Builder
 @Value
-public final class Format {
+public class Format {
 
     /** Width in device independent pixels (DIPS). */
     Integer w;

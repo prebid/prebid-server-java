@@ -10,7 +10,7 @@ import lombok.Value;
  */
 @Builder
 @Value
-public final class ExtImpRubicon {
+public class ExtImpRubicon {
 
     @JsonProperty("accountId")
     Integer accountId;

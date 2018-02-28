@@ -14,7 +14,7 @@ import java.util.List;
  * <em>a priori</em> to its bidders.
  */
 @Value
-public final class Data {
+public class Data {
 
     /** Exchange-specific ID for the data provider. */
     String id;

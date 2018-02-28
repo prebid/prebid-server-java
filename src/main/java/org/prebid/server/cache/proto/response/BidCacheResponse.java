@@ -7,7 +7,7 @@ import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class BidCacheResponse {
+public class BidCacheResponse {
 
     List<CacheObject> responses;
 }

@@ -16,7 +16,7 @@ import java.util.List;
  */
 @Builder
 @Value
-public final class SeatBid {
+public class SeatBid {
 
     /**
      * Array of 1+ Bid objects (Section 4.2.3) each related to an impression.

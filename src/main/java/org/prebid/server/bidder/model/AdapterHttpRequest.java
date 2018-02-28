@@ -10,7 +10,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class AdapterHttpRequest {
+public class AdapterHttpRequest {
 
     String uri;
 

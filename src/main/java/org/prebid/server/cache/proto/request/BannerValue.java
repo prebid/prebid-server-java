@@ -5,7 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class BannerValue {
+public class BannerValue {
 
     String adm;
 

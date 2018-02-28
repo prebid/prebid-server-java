@@ -29,7 +29,7 @@ import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
-import org.prebid.server.bidder.lifestreet.model.LifestreetParams;
+import org.prebid.server.bidder.lifestreet.proto.LifestreetParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.cookie.UidsCookie;

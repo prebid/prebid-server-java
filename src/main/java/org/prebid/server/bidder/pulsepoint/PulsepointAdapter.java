@@ -19,7 +19,7 @@ import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
-import org.prebid.server.bidder.pulsepoint.model.PulsepointParams;
+import org.prebid.server.bidder.pulsepoint.proto.PulsepointParams;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;

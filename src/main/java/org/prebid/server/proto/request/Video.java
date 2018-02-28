@@ -7,7 +7,7 @@ import java.util.List;
 
 @Builder
 @Value
-public final class Video {
+public class Video {
 
     /*
      * Content MIME types supported. Popular MIME types may include “video/x-ms-wmv”

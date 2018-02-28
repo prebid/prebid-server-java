@@ -8,7 +8,7 @@ import java.util.List;
 
 @Builder
 @Value
-public final class AdUnit {
+public class AdUnit {
 
     /* Unique code of the ad unit on the page. */
     String code;

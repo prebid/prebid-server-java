@@ -12,7 +12,7 @@ import java.util.Set;
 
 @Builder
 @Value
-public final class AdUnitBid {
+public class AdUnitBid {
 
     /* Unique code for an adapter to call. */
     String bidderCode;

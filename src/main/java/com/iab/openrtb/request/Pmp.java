@@ -14,7 +14,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public final class Pmp {
+public class Pmp {
 
     /**
      * Indicator of auction eligibility to seats named in the Direct Deals

@@ -17,7 +17,7 @@ import java.util.List;
  */
 @Builder
 @Value
-public final class Content {
+public class Content {
 
     /** ID uniquely identifying the content. */
     String id;

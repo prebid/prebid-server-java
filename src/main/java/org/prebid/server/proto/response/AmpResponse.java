@@ -7,7 +7,7 @@ import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class AmpResponse {
+public class AmpResponse {
 
     Map<String, String> targeting;
 }

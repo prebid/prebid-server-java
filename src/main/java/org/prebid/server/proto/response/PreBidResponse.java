@@ -7,7 +7,7 @@ import java.util.List;
 
 @Builder
 @Value
-public final class PreBidResponse {
+public class PreBidResponse {
 
     String tid;
 

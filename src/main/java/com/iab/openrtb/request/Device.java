@@ -26,7 +26,7 @@ import java.math.BigDecimal;
  */
 @Builder(toBuilder = true)
 @Value
-public final class Device {
+public class Device {
 
     /** Browser user agent string. (recommended) */
     String ua;

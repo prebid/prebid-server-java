@@ -10,7 +10,7 @@ import java.util.Map;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtBidPrebid {
+public class ExtBidPrebid {
 
     BidType type;
 

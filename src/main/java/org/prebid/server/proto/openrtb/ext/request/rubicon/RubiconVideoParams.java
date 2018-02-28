@@ -6,7 +6,7 @@ import lombok.Value;
 
 @Builder
 @Value
-public final class RubiconVideoParams {
+public class RubiconVideoParams {
 
     String language;
 

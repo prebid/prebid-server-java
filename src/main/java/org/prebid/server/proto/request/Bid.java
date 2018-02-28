@@ -6,7 +6,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class Bid {
+public class Bid {
 
     /* Unique bid ID for this bidder for this slot. */
     String bidId;

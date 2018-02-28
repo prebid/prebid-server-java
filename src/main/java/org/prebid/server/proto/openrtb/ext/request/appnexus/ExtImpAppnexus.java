@@ -3,14 +3,14 @@ package org.prebid.server.proto.openrtb.ext.request.appnexus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.bidder.appnexus.model.AppnexusKeyVal;
+import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Builder
 @Value
-public final class ExtImpAppnexus {
+public class ExtImpAppnexus {
 
     @JsonProperty("placementId")
     Integer placementId;

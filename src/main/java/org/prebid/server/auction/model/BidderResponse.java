@@ -9,7 +9,7 @@ import org.prebid.server.bidder.model.BidderSeatBid;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class BidderResponse {
+public class BidderResponse {
 
     String bidder;
 

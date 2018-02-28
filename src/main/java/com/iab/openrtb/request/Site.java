@@ -14,7 +14,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public final class Site {
+public class Site {
 
     /** Exchange-specific site ID. (recommended) */
     String id;

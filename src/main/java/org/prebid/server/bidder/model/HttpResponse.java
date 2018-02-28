@@ -9,7 +9,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class HttpResponse {
+public class HttpResponse {
 
     int statusCode;
 

@@ -15,7 +15,7 @@ import lombok.Value;
  */
 @Builder
 @Value
-public final class Source {
+public class Source {
 
     /**
      * Entity responsible for the final impression sale decision,

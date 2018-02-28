@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public final class Banner {
+public class Banner {
 
     /**
      * Array of format objects (Section 3.2.10) representing the banner sizes

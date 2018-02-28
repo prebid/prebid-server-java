@@ -11,7 +11,7 @@ import java.util.Map;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtBidResponse {
+public class ExtBidResponse {
 
     ExtResponseDebug debug;
 

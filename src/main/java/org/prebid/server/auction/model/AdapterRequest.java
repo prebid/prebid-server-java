@@ -7,7 +7,7 @@ import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class AdapterRequest {
+public class AdapterRequest {
 
     String bidderCode;
 

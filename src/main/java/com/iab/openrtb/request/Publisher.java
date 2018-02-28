@@ -12,7 +12,7 @@ import java.util.List;
  */
 @Builder
 @Value
-public final class Publisher {
+public class Publisher {
 
     /** Exchange-specific publisher ID. */
     String id;

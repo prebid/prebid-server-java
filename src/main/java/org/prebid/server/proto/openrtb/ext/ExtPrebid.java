@@ -11,7 +11,7 @@ import org.prebid.server.bidder.Bidder;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtPrebid<P, B> {
+public class ExtPrebid<P, B> {
 
     P prebid;
 

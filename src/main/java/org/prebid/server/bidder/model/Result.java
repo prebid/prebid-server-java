@@ -10,7 +10,7 @@ import java.util.List;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class Result<T> {
+public class Result<T> {
 
     T value;
     List<BidderError> errors;
