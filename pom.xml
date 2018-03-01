@@ -42,12 +42,19 @@
         <metrics.version>3.2.3</metrics.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
 
+        <!-- test dependencies versions -->
         <junit.version>4.12</junit.version>
         <mockito.version>2.10.0</mockito.version>
         <assertj.version>3.8.0</assertj.version>
         <wiremock.version>2.11.0</wiremock.version>
         <restassured.version>3.0.6</restassured.version>
         <h2.version>1.4.196</h2.version>
+
+        <!-- plugin versions -->
+        <checkstyle-plugin.version>2.17</checkstyle-plugin.version>
+        <checkstyle.version>7.6</checkstyle.version>
+        <download-plugin.version>1.2.0</download-plugin.version>
+        <jacoco-plugin.version>0.8.0</jacoco-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -259,7 +266,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>2.17</version>
+                    <version>${checkstyle-plugin.version}</version>
                     <configuration>
                         <!-- Project rooted path to CheckStyle configuration file. -->
                         <configLocation>checkstyle.xml</configLocation>
@@ -273,7 +280,7 @@
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>7.6</version>
+                            <version>${checkstyle.version}</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -291,7 +298,6 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>validate</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>checkstyle</goal>
@@ -302,10 +308,9 @@
             <plugin>
                 <groupId>com.googlecode.maven-download-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>
-                <version>1.2.0</version>
+                <version>${download-plugin.version}</version>
                 <executions>
                     <execution>
-                        <id>package-psl</id>
                         <phase>generate-resources</phase>
                         <goals>
                             <goal>wget</goal>
@@ -314,6 +319,53 @@
                             <url>https://publicsuffix.org/list/effective_tld_names.dat</url>
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                             <outputFileName>effective_tld_names.dat</outputFileName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-plugin.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>com/iab/openrtb/**</exclude>
+                        <exclude>**/proto/**</exclude>
+                        <exclude>**/model/**</exclude>
+                        <exclude>org/prebid/server/spring/config/**</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>90%</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
                         </configuration>
                     </execution>
                 </executions>
@@ -344,6 +396,17 @@
                     <reportSet>
                         <reports>
                             <report>checkstyle</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>report</report>
                         </reports>
                     </reportSet>
                 </reportSets>
