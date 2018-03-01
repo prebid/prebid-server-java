@@ -1,8 +1,7 @@
 package org.prebid.server.settings;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
-import org.apache.commons.collections4.map.LRUMap;
-import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.prebid.server.execution.GlobalTimeout;
 import org.prebid.server.settings.model.Account;
 
@@ -26,8 +25,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
         }
         this.delegate = Objects.requireNonNull(delegate);
         // another option is to use caffeine
-        this.accountCache = new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS, new LRUMap<>(size));
-        this.adUnitConfigCache = new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS, new LRUMap<>(size));
+        this.accountCache = createCache(ttl, size);
+        this.adUnitConfigCache = createCache(ttl, size);
     }
 
     @Override
@@ -38,6 +37,14 @@ public class CachingApplicationSettings implements ApplicationSettings {
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId, GlobalTimeout timeout) {
         return getFromCacheOrDelegate(adUnitConfigCache, adUnitConfigId, timeout, delegate::getAdUnitConfigById);
+    }
+
+    private static <T> Map<String, T> createCache(int ttl, int size) {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(ttl, TimeUnit.SECONDS)
+                .maximumSize(size)
+                .<String, T>build()
+                .asMap();
     }
 
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key, GlobalTimeout timeout,

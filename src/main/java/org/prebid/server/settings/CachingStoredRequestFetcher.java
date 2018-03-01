@@ -1,8 +1,7 @@
 package org.prebid.server.settings;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
-import org.apache.commons.collections4.map.LRUMap;
-import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.prebid.server.execution.GlobalTimeout;
 import org.prebid.server.settings.model.StoredRequestResult;
 
@@ -29,8 +28,8 @@ public class CachingStoredRequestFetcher implements StoredRequestFetcher {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
         this.delegate = Objects.requireNonNull(delegate);
-        storedRequestCache = new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS, new LRUMap<>(size));
-        storedAmpRequestCache = new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS, new LRUMap<>(size));
+        storedRequestCache = createCache(ttl, size);
+        storedAmpRequestCache = createCache(ttl, size);
     }
 
     /**
@@ -44,6 +43,14 @@ public class CachingStoredRequestFetcher implements StoredRequestFetcher {
     @Override
     public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, GlobalTimeout timeout) {
         return getFromCacheOrDelegate(storedAmpRequestCache, ids, timeout, delegate::getStoredRequestsByAmpId);
+    }
+
+    private static <T> Map<String, T> createCache(int ttl, int size) {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(ttl, TimeUnit.SECONDS)
+                .maximumSize(size)
+                .<String, T>build()
+                .asMap();
     }
 
     /**

@@ -38,6 +38,7 @@
         <jsonpatch.version>1.9</jsonpatch.version>
         <mysql.version>6.0.6</mysql.version>
         <postgresql.version>42.1.4</postgresql.version>
+        <caffeine.version>2.6.2</caffeine.version>
         <psl.version>2.2.0</psl.version>
         <metrics.version>3.2.3</metrics.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
@@ -165,6 +166,11 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
         </dependency>
         <dependency>
             <groupId>de.malkusch.whois-server-list</groupId>
