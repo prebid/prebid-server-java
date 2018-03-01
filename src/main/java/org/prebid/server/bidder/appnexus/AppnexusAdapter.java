@@ -5,8 +5,6 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.json.Json;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -14,6 +12,7 @@ import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbAdapter;
+import org.prebid.server.bidder.appnexus.model.BidRequestWithUrl;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
@@ -264,12 +263,4 @@ public class AppnexusAdapter extends OpenrtbAdapter {
         return mediaType;
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static final class BidRequestWithUrl {
-
-        BidRequest bidRequest;
-
-        String endpointUrl;
-    }
 }

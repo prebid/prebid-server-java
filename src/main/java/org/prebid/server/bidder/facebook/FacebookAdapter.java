@@ -9,14 +9,13 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.json.Json;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbAdapter;
+import org.prebid.server.bidder.facebook.model.NormalizedFacebookParams;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.facebook.proto.FacebookParams;
 import org.prebid.server.bidder.model.AdUnitBidWithParams;
@@ -114,13 +113,14 @@ public class FacebookAdapter extends OpenrtbAdapter {
         }
     }
 
-    private static List<AdUnitBidWithParams<Params>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private static List<AdUnitBidWithParams<NormalizedFacebookParams>> createAdUnitBidsWithParams(
+            List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
-    private static Params parseAndValidateParams(AdUnitBid adUnitBid) {
+    private static NormalizedFacebookParams parseAndValidateParams(AdUnitBid adUnitBid) {
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
             throw new PreBidException("Facebook params section is missing");
@@ -144,10 +144,10 @@ public class FacebookAdapter extends OpenrtbAdapter {
             throw new PreBidException(String.format("Invalid placementId param '%s'", placementId));
         }
 
-        return Params.of(placementId, placementIdSplit[0]);
+        return NormalizedFacebookParams.of(placementId, placementIdSplit[0]);
     }
 
-    private Stream<BidRequest> createBidRequests(AdUnitBidWithParams<Params> adUnitBidWithParams,
+    private Stream<BidRequest> createBidRequests(AdUnitBidWithParams<NormalizedFacebookParams> adUnitBidWithParams,
                                                  PreBidRequestContext preBidRequestContext) {
         final List<Imp> imps = makeImps(adUnitBidWithParams, preBidRequestContext);
         validateImps(imps);
@@ -168,7 +168,7 @@ public class FacebookAdapter extends OpenrtbAdapter {
                         .build());
     }
 
-    private static List<Imp> makeImps(AdUnitBidWithParams<Params> adUnitBidWithParams,
+    private static List<Imp> makeImps(AdUnitBidWithParams<NormalizedFacebookParams> adUnitBidWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
 
@@ -224,14 +224,14 @@ public class FacebookAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static App makeApp(PreBidRequestContext preBidRequestContext, Params params) {
+    private static App makeApp(PreBidRequestContext preBidRequestContext, NormalizedFacebookParams params) {
         final App app = preBidRequestContext.getPreBidRequest().getApp();
         return app == null ? null : app.toBuilder()
                 .publisher(Publisher.builder().id(params.getPubId()).build())
                 .build();
     }
 
-    private static Site makeSite(PreBidRequestContext preBidRequestContext, Params params) {
+    private static Site makeSite(PreBidRequestContext preBidRequestContext, NormalizedFacebookParams params) {
         final Site.SiteBuilder siteBuilder = siteBuilder(preBidRequestContext);
         return siteBuilder == null ? null : siteBuilder
                 .publisher(Publisher.builder().id(params.getPubId()).build())
@@ -266,12 +266,4 @@ public class FacebookAdapter extends OpenrtbAdapter {
                 .mediaType(MediaType.banner);
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static final class Params {
-
-        String placementId;
-
-        String pubId;
-    }
 }

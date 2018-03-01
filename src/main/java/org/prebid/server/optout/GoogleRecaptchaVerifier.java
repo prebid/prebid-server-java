@@ -1,6 +1,5 @@
 package org.prebid.server.optout;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClient;
@@ -10,8 +9,8 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import lombok.Value;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.optout.model.RecaptchaResponse;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -72,10 +71,11 @@ public class GoogleRecaptchaVerifier {
             return;
         }
 
-        if (Objects.equals(response.success, Boolean.TRUE)) {
+        if (Objects.equals(response.getSuccess(), Boolean.TRUE)) {
             future.complete();
         } else {
-            final String errors = response.errorCodes != null ? String.join(", ", response.errorCodes) : null;
+            final List<String> errorCodes = response.getErrorCodes();
+            final String errors = errorCodes != null ? String.join(", ", errorCodes) : null;
             future.fail(new PreBidException(String.format("Google recaptcha verify failed: %s", errors)));
         }
     }
@@ -97,12 +97,4 @@ public class GoogleRecaptchaVerifier {
         }
     }
 
-    @Value
-    private static class RecaptchaResponse {
-
-        Boolean success;
-
-        @JsonProperty("error-codes")
-        List<String> errorCodes;
-    }
 }

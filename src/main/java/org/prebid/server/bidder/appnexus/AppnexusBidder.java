@@ -10,13 +10,12 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
@@ -247,12 +246,4 @@ public class AppnexusBidder extends OpenrtbBidder {
                 .collect(Collectors.toList());
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static final class ImpWithMemberId {
-
-        Imp imp;
-
-        String memberId;
-    }
 }

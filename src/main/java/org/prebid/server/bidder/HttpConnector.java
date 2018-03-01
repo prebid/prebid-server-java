@@ -14,14 +14,13 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
+import org.prebid.server.bidder.model.BidsWithError;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.GlobalTimeout;
@@ -314,14 +313,4 @@ public class HttpConnector {
                 .build(), Collections.emptyList(), false);
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static final class BidsWithError {
-
-        List<Bid> bids;
-
-        String error;
-
-        boolean timedOut;
-    }
 }

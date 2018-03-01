@@ -8,8 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.json.Json;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -19,6 +17,7 @@ import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.bidder.pulsepoint.model.NormalizedPulsepointParams;
 import org.prebid.server.bidder.pulsepoint.proto.PulsepointParams;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -72,7 +71,8 @@ public class PulsepointAdapter extends OpenrtbAdapter {
 
         validateAdUnitBidsMediaTypes(adUnitBids);
 
-        final List<AdUnitBidWithParams<Params>> adUnitBidsWithParams = createAdUnitBidsWithParams(adUnitBids);
+        final List<AdUnitBidWithParams<NormalizedPulsepointParams>> adUnitBidsWithParams =
+                createAdUnitBidsWithParams(adUnitBids);
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
 
@@ -92,13 +92,14 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static List<AdUnitBidWithParams<Params>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids) {
+    private static List<AdUnitBidWithParams<NormalizedPulsepointParams>> createAdUnitBidsWithParams(
+            List<AdUnitBid> adUnitBids) {
         return adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid)))
                 .collect(Collectors.toList());
     }
 
-    private static Params parseAndValidateParams(AdUnitBid adUnitBid) {
+    private static NormalizedPulsepointParams parseAndValidateParams(AdUnitBid adUnitBid) {
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
             throw new PreBidException("Pulsepoint params section is missing");
@@ -143,20 +144,20 @@ public class PulsepointAdapter extends OpenrtbAdapter {
             throw new PreBidException(String.format("Invalid Height param %s", sizes[1]));
         }
 
-        return Params.of(String.valueOf(publisherId), String.valueOf(tagId), width, height);
+        return NormalizedPulsepointParams.of(String.valueOf(publisherId), String.valueOf(tagId), width, height);
     }
 
-    private static List<Imp> makeImps(List<AdUnitBidWithParams<Params>> adUnitBidsWithParams,
+    private static List<Imp> makeImps(List<AdUnitBidWithParams<NormalizedPulsepointParams>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
                 .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<Params> adUnitBidWithParams,
+    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<NormalizedPulsepointParams> adUnitBidWithParams,
                                                     PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
-        final Params params = adUnitBidWithParams.getParams();
+        final NormalizedPulsepointParams params = adUnitBidWithParams.getParams();
 
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
@@ -167,7 +168,8 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                         .build());
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid, Params params) {
+    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
+                                                      NormalizedPulsepointParams params) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
         switch (mediaType) {
@@ -190,7 +192,7 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private Publisher makePublisher(List<AdUnitBidWithParams<Params>> adUnitBidsWithParams) {
+    private Publisher makePublisher(List<AdUnitBidWithParams<NormalizedPulsepointParams>> adUnitBidsWithParams) {
         final String publisherId = adUnitBidsWithParams.stream()
                 .map(adUnitBidWithParams -> adUnitBidWithParams.getParams().getPublisherId())
                 .reduce((first, second) -> second).orElse(null);
@@ -231,16 +233,4 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                 .height(bid.getH());
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static class Params {
-
-        String publisherId;
-
-        String tagId;
-
-        Integer adSizeWidth;
-
-        Integer adSizeHeight;
-    }
 }

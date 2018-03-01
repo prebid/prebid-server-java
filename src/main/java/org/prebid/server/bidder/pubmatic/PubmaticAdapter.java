@@ -14,8 +14,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -26,6 +24,7 @@ import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.bidder.pubmatic.model.NormalizedPubmaticParams;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -85,8 +84,8 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         validateAdUnitBidsMediaTypes(adUnitBids);
 
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        final List<AdUnitBidWithParams<Params>> adUnitBidsWithParams = createAdUnitBidsWithParams(adUnitBids,
-                preBidRequest.getTid());
+        final List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams =
+                createAdUnitBidsWithParams(adUnitBids, preBidRequest.getTid());
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
 
@@ -105,9 +104,10 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static List<AdUnitBidWithParams<Params>> createAdUnitBidsWithParams(List<AdUnitBid> adUnitBids,
-                                                                                String requestId) {
-        final List<AdUnitBidWithParams<Params>> adUnitBidWithParams = adUnitBids.stream()
+    private static List<AdUnitBidWithParams<NormalizedPubmaticParams>> createAdUnitBidsWithParams(
+            List<AdUnitBid> adUnitBids, String requestId) {
+
+        final List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidWithParams = adUnitBids.stream()
                 .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid, requestId)))
                 .collect(Collectors.toList());
 
@@ -119,8 +119,8 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         return adUnitBidWithParams;
     }
 
-    private static boolean isValidParams(AdUnitBidWithParams<Params> adUnitBidWithParams) {
-        final Params params = adUnitBidWithParams.getParams();
+    private static boolean isValidParams(AdUnitBidWithParams<NormalizedPubmaticParams> adUnitBidWithParams) {
+        final NormalizedPubmaticParams params = adUnitBidWithParams.getParams();
         if (params == null) {
             return false;
         }
@@ -130,7 +130,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 || ObjectUtils.allNotNull(params.getTagId(), params.getWidth(), params.getHeight());
     }
 
-    private static Params parseAndValidateParams(AdUnitBid adUnitBid, String requestId) {
+    private static NormalizedPubmaticParams parseAndValidateParams(AdUnitBid adUnitBid, String requestId) {
         final ObjectNode params = adUnitBid.getParams();
         if (params == null) {
             logWrongParams(requestId, null, adUnitBid, "Ignored bid: invalid JSON  [%s] err [%s]", null,
@@ -187,7 +187,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
             return null;
         }
 
-        return Params.of(publisherId, adSlot, adSlots[0], width, height);
+        return NormalizedPubmaticParams.of(publisherId, adSlot, adSlots[0], width, height);
     }
 
     private static void logWrongParams(String requestId, String publisherId, AdUnitBid adUnitBid, String errorMessage,
@@ -196,17 +196,17 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 adUnitBid.getAdUnitCode(), adUnitBid.getBidId(), String.format(errorMessage, args));
     }
 
-    private static List<Imp> makeImps(List<AdUnitBidWithParams<Params>> adUnitBidsWithParams,
+    private static List<Imp> makeImps(List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
                 .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<Params> adUnitBidWithParams,
+    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<NormalizedPubmaticParams> adUnitBidWithParams,
                                                     PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
-        final Params params = adUnitBidWithParams.getParams();
+        final NormalizedPubmaticParams params = adUnitBidWithParams.getParams();
 
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
@@ -217,7 +217,8 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                         .build());
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid, Params params) {
+    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
+                                                      NormalizedPubmaticParams params) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
         switch (mediaType) {
@@ -233,7 +234,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         return impBuilder;
     }
 
-    private static Banner makeBanner(AdUnitBid adUnitBid, Params params) {
+    private static Banner makeBanner(AdUnitBid adUnitBid, NormalizedPubmaticParams params) {
         final List<Format> sizes = adUnitBid.getSizes();
         final Format format = sizes.get(0);
         return Banner.builder()
@@ -245,11 +246,11 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     }
 
     private static Publisher makePublisher(PreBidRequestContext preBidRequestContext,
-                                           List<AdUnitBidWithParams<Params>> adUnitBidsWithParams) {
+                                           List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams) {
         return adUnitBidsWithParams.stream()
                 .map(AdUnitBidWithParams::getParams)
                 .filter(params -> params != null && params.getPublisherId() != null && params.getAdSlot() != null)
-                .map(Params::getPublisherId)
+                .map(NormalizedPubmaticParams::getPublisherId)
                 .reduce((first, second) -> second)
                 .map(publisherId -> Publisher.builder()
                         .id(publisherId)
@@ -298,18 +299,4 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 .dealId(bid.getDealid());
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static final class Params {
-
-        String publisherId;
-
-        String adSlot;
-
-        String tagId;
-
-        Integer width;
-
-        Integer height;
-    }
 }
