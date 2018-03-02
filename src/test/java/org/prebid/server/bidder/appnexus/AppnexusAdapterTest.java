@@ -425,7 +425,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void extractBidsShouldReturnBidBuildersWithBidMediaTypeAsVideo() {
         // given
         adapterRequest = givenBidder(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                builder -> builder.bidderCode(BIDDER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCall(
@@ -441,8 +441,9 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.proto.response.Bid> bids = adapter.extractBids(adapterRequest, exchangeCall).stream()
-                .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).element(0)
@@ -453,7 +454,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void extractBidsShouldReturnBidBuildersWithBidMediaTypeAsBanner() {
         // given
         adapterRequest = givenBidder(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                builder -> builder.bidderCode(BIDDER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCall(
@@ -469,8 +470,9 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .build())));
 
         // when
-        final List<org.prebid.server.proto.response.Bid> bids = adapter.extractBids(adapterRequest, exchangeCall).stream()
-                .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
 
         // then
         assertThat(bids).element(0)
@@ -481,7 +483,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void extractBidsShouldThrowExceptionWhenBidExtNotDefined() {
         // given
         adapterRequest = givenBidder(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                builder -> builder.bidderCode(BIDDER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCall(
@@ -505,7 +507,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void extractBidsShouldThrowExceptionWhenBidExtAppnexusNotDefined() {
         // given
         adapterRequest = givenBidder(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                builder -> builder.bidderCode(BIDDER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCall(
@@ -529,7 +531,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void extractBidsShouldThrowExceptionWhenBidExtAppnexusBidTypeNotDefined() {
         // given
         adapterRequest = givenBidder(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                builder -> builder.bidderCode(BIDDER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCall(
@@ -554,7 +556,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void extractBidsShouldThrowExceptionWhenBidExtAppnexusBidTypeUnrecognized() {
         // given
         adapterRequest = givenBidder(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                builder -> builder.bidderCode(BIDDER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCall(
