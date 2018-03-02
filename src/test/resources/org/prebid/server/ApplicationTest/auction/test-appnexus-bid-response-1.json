@@ -10,7 +10,12 @@
           "crid": "crid4",
           "dealid": "dealId4",
           "w": 300,
-          "h": 250
+          "h": 250,
+          "ext": {
+            "appnexus": {
+              "bid_ad_type": 1
+            }
+          }
         }
       ],
       "seat": "seatId4",

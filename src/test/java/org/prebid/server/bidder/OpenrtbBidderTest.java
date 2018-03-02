@@ -2,60 +2,16 @@ package org.prebid.server.bidder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Video;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
-import java.util.Arrays;
-import java.util.Map;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 public class OpenrtbBidderTest extends VertxTest {
-
-    @Test
-    public void bidTypeShouldReturnBannerBidTypeByDefaultWhenImpIdToBidTypeEmpty() {
-        // when
-        final BidType result = OpenrtbBidder.bidType(Bid.builder().impid("abc").build(), emptyMap());
-
-        // then
-        assertThat(result).isEqualTo(BidType.banner);
-    }
-
-    @Test
-    public void bidTypeShouldReturnBidTypeWhenImpIdToBidTypeContainsBidType() {
-        // when
-        final BidType result = OpenrtbBidder.bidType(Bid.builder().impid("abc").build(),
-                singletonMap("abc", BidType.video));
-
-        // then
-        assertThat(result).isEqualTo(BidType.video);
-    }
-
-    @Test
-    public void impidToBidTypeShouldReturnImpIdsMappedToVideoOrBannerBidTypes() {
-        // when
-        final Map<String, BidType> result = OpenrtbBidder.impidToBidType(BidRequest.builder().imp(
-                Arrays.asList(
-                        Imp.builder().id("123").video(Video.builder().build()).build(),
-                        Imp.builder().id("456").build()))
-                .build());
-
-        // then
-        assertThat(result)
-                .containsEntry("123", BidType.video)
-                .containsEntry("456", BidType.banner)
-                .hasSize(2);
-    }
 
     @Test
     public void parseResponseShouldReturnNullWhenStatusCode204() {

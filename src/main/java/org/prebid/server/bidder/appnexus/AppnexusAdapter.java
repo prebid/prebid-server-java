@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.appnexus;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -7,6 +8,8 @@ import com.iab.openrtb.request.Imp;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.adapter.appnexus.model.AppnexusBidExt;
+import org.prebid.server.adapter.appnexus.model.AppnexusBidExtAppnexus;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
@@ -241,26 +244,48 @@ public class AppnexusAdapter extends OpenrtbAdapter {
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
                 .creativeId(bid.getCrid())
-                .mediaType(mediaTypeFor(bid.getImpid(), bidRequest.getImp()))
+                .mediaType(mediaTypeFor(bid.getExt()))
                 .width(bid.getW())
                 .height(bid.getH())
                 .dealId(bid.getDealid())
                 .nurl(bid.getNurl());
     }
 
-    private static MediaType mediaTypeFor(String impId, List<Imp> imps) {
-        MediaType mediaType = MediaType.banner;
-        if (imps != null) {
-            for (Imp imp : imps) {
-                if (Objects.equals(imp.getId(), impId)) {
-                    if (imp.getVideo() != null) {
-                        mediaType = MediaType.video;
-                    }
-                    break;
-                }
-            }
+    private static MediaType mediaTypeFor(ObjectNode bidExt) {
+        final AppnexusBidExtAppnexus appnexus = parseAppnexusBidExt(bidExt).getAppnexus();
+        if (appnexus == null) {
+            throw new PreBidException("bidResponse.bid.ext.appnexus should be defined");
         }
-        return mediaType;
+
+        final Integer bidAdType = appnexus.getBidAdType();
+
+        if (bidAdType == null) {
+            throw new PreBidException("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
+        }
+
+        switch (bidAdType) {
+            case 0:
+                return MediaType.banner;
+            case 1:
+                return MediaType.video;
+            default:
+                throw new PreBidException(
+                    String.format("Unrecognized bid_ad_type in response from appnexus: %s", bidAdType));
+        }
+    }
+
+    private static AppnexusBidExt parseAppnexusBidExt(ObjectNode bidExt) {
+        if (bidExt == null) {
+            throw new PreBidException("bidResponse.bid.ext should be defined for appnexus");
+        }
+
+        final AppnexusBidExt appnexusBidExt;
+        try {
+            appnexusBidExt = Json.mapper.treeToValue(bidExt, AppnexusBidExt.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+        return appnexusBidExt;
     }
 
 }

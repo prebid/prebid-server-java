@@ -21,6 +21,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.adapter.appnexus.model.AppnexusBidExt;
+import org.prebid.server.adapter.appnexus.model.AppnexusBidExtAppnexus;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
@@ -58,6 +60,8 @@ public class AppnexusAdapterTest extends VertxTest {
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
     private static final String EXTERNAL_URL = "http://external.org/";
+    private static final Integer BANNER_TYPE = 0;
+    private static final Integer VIDEO_TYPE = 1;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -391,6 +395,8 @@ public class AppnexusAdapterTest extends VertxTest {
                                         .w(300)
                                         .h(250)
                                         .dealid("dealId")
+                                        .ext(mapper.valueToTree(AppnexusBidExt.of(
+                                                AppnexusBidExtAppnexus.of(BANNER_TYPE))))
                                         .build()))
                                 .build())));
 
@@ -416,6 +422,160 @@ public class AppnexusAdapterTest extends VertxTest {
     }
 
     @Test
+    public void extractBidsShouldReturnBidBuildersWithBidMediaTypeAsVideo() {
+        // given
+        adapterRequest = givenBidder(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                identity());
+
+        exchangeCall = givenExchangeCall(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
+                bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .seat("seatId")
+                                .bid(singletonList(Bid.builder()
+                                        .impid("adUnitCode")
+                                        .ext(mapper.valueToTree(AppnexusBidExt.of(
+                                                AppnexusBidExtAppnexus.of(VIDEO_TYPE))))
+                                        .build()))
+                                .build())));
+
+        // when
+        final List<org.prebid.server.proto.response.Bid> bids = adapter.extractBids(adapterRequest, exchangeCall).stream()
+                .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+
+        // then
+        assertThat(bids).element(0)
+                .returns(MediaType.video, from(org.prebid.server.proto.response.Bid::getMediaType));
+    }
+
+    @Test
+    public void extractBidsShouldReturnBidBuildersWithBidMediaTypeAsBanner() {
+        // given
+        adapterRequest = givenBidder(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                identity());
+
+        exchangeCall = givenExchangeCall(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
+                bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .seat("seatId")
+                                .bid(singletonList(Bid.builder()
+                                        .impid("adUnitCode")
+                                        .ext(mapper.valueToTree(AppnexusBidExt.of(
+                                                AppnexusBidExtAppnexus.of(BANNER_TYPE))))
+                                        .build()))
+                                .build())));
+
+        // when
+        final List<org.prebid.server.proto.response.Bid> bids = adapter.extractBids(adapterRequest, exchangeCall).stream()
+                .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+
+        // then
+        assertThat(bids).element(0)
+                .returns(MediaType.banner, from(org.prebid.server.proto.response.Bid::getMediaType));
+    }
+
+    @Test
+    public void extractBidsShouldThrowExceptionWhenBidExtNotDefined() {
+        // given
+        adapterRequest = givenBidder(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                identity());
+
+        exchangeCall = givenExchangeCall(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
+                bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .seat("seatId")
+                                .bid(singletonList(Bid.builder()
+                                        .impid("adUnitCode")
+                                        .ext(null)
+                                        .build()))
+                                .build())));
+
+        // when and then
+        assertThatExceptionOfType(PreBidException.class)
+                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall).stream())
+                .withMessage("bidResponse.bid.ext should be defined for appnexus");
+    }
+
+    @Test
+    public void extractBidsShouldThrowExceptionWhenBidExtAppnexusNotDefined() {
+        // given
+        adapterRequest = givenBidder(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                identity());
+
+        exchangeCall = givenExchangeCall(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
+                bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .seat("seatId")
+                                .bid(singletonList(Bid.builder()
+                                        .impid("adUnitCode")
+                                        .ext(mapper.createObjectNode())
+                                        .build()))
+                                .build())));
+
+        // when and then
+        assertThatExceptionOfType(PreBidException.class)
+                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall).stream())
+                .withMessage("bidResponse.bid.ext.appnexus should be defined");
+    }
+
+    @Test
+    public void extractBidsShouldThrowExceptionWhenBidExtAppnexusBidTypeNotDefined() {
+        // given
+        adapterRequest = givenBidder(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                identity());
+
+        exchangeCall = givenExchangeCall(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
+                bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .seat("seatId")
+                                .bid(singletonList(Bid.builder()
+                                        .impid("adUnitCode")
+                                        .ext(mapper.valueToTree(AppnexusBidExt.of(
+                                                AppnexusBidExtAppnexus.of(null))))
+                                        .build()))
+                                .build())));
+
+        // when and then
+        assertThatExceptionOfType(PreBidException.class)
+                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall).stream())
+                .withMessage("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
+    }
+
+    @Test
+    public void extractBidsShouldThrowExceptionWhenBidExtAppnexusBidTypeUnrecognized() {
+        // given
+        adapterRequest = givenBidder(
+                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                identity());
+
+        exchangeCall = givenExchangeCall(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
+                bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .seat("seatId")
+                                .bid(singletonList(Bid.builder()
+                                        .impid("adUnitCode")
+                                        .ext(mapper.valueToTree(AppnexusBidExt.of(
+                                                AppnexusBidExtAppnexus.of(42))))
+                                        .build()))
+                                .build())));
+
+        // when and then
+        assertThatExceptionOfType(PreBidException.class)
+                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall).stream())
+                .withMessage("Unrecognized bid_ad_type in response from appnexus: 42");
+    }
+
+    @Test
     public void extractBidsShouldReturnEmptyBidsIfEmptyOrNullBidResponse() {
         // given
         adapterRequest = givenBidder(identity(), identity());
@@ -438,8 +598,17 @@ public class AppnexusAdapterTest extends VertxTest {
                 bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
                         .seatbid(singletonList(SeatBid.builder()
                                 .seat("seatId")
-                                .bid(asList(Bid.builder().impid("adUnitCode1").build(),
-                                        Bid.builder().impid("adUnitCode2").build()))
+                                .bid(asList(
+                                        Bid.builder()
+                                                .impid("adUnitCode1")
+                                                .ext(mapper.valueToTree(AppnexusBidExt.of(
+                                                        AppnexusBidExtAppnexus.of(BANNER_TYPE))))
+                                                .build(),
+                                        Bid.builder()
+                                                .impid("adUnitCode2")
+                                                .ext(mapper.valueToTree(AppnexusBidExt.of(
+                                                        AppnexusBidExtAppnexus.of(BANNER_TYPE))))
+                                                .build()))
                                 .build())));
 
         // when

@@ -1,9 +1,12 @@
 package org.prebid.server.bidder.appnexus;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -12,6 +15,8 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.adapter.appnexus.model.AppnexusBidExt;
+import org.prebid.server.adapter.appnexus.model.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbBidder;
@@ -36,7 +41,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -222,28 +226,70 @@ public class AppnexusBidder extends OpenrtbBidder {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(bidRequest, parseResponse(httpCall.getResponse())), Collections.emptyList());
+            return Result.of(extractBids(parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
-                : bidsFromResponse(bidRequest, bidResponse);
+                : bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final Map<String, BidType> impidToBidType = impidToBidType(bidRequest);
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType(bid, impidToBidType)))
+                .map(bid -> BidderBid.of(bid, bidType(bid)))
                 .collect(Collectors.toList());
+    }
+
+    private static BidType bidType(Bid bid) {
+        final AppnexusBidExtAppnexus appnexus = parseAppnexusBidExt(bid.getExt()).getAppnexus();
+        if (appnexus == null) {
+            throw new PreBidException("bidResponse.bid.ext.appnexus should be defined");
+        }
+
+        final Integer bidAdType = appnexus.getBidAdType();
+
+        if (bidAdType == null) {
+            throw new PreBidException("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
+        }
+
+        switch (bidAdType) {
+            case 0:
+                return BidType.banner;
+            case 1:
+                return BidType.video;
+            case 2:
+                return BidType.audio;
+            case 3:
+                return BidType.xNative;
+            default:
+                throw new PreBidException(
+                        String.format("Unrecognized bid_ad_type in response from appnexus: %s", bidAdType));
+
+        }
+    }
+
+    private static AppnexusBidExt parseAppnexusBidExt(ObjectNode bidExt) {
+        if (bidExt == null) {
+            throw new PreBidException("bidResponse.bid.ext should be defined for appnexus");
+        }
+
+        final AppnexusBidExt appnexusBidExt;
+        try {
+            appnexusBidExt = Json.mapper.treeToValue(bidExt, AppnexusBidExt.class);
+        } catch (JsonProcessingException e) {
+            logger.warn("Error occurred parsing bidresponse.bid.ext", e);
+            throw new PreBidException(e.getMessage(), e);
+        }
+        return appnexusBidExt;
     }
 
 }

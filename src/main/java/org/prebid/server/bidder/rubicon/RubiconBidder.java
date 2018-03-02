@@ -14,6 +14,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -302,4 +303,14 @@ public class RubiconBidder extends OpenrtbBidder {
                 .map(bid -> BidderBid.of(bid, bidType(bid, impidToBidType)))
                 .collect(Collectors.toList());
     }
+
+    private static BidType bidType(Bid bid, Map<String, BidType> impidToBidType) {
+        return impidToBidType.getOrDefault(bid.getImpid(), BidType.banner);
+    }
+
+    private static Map<String, BidType> impidToBidType(BidRequest bidRequest) {
+        return bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, imp -> imp.getVideo() != null ? BidType.video : BidType.banner));
+    }
+
 }

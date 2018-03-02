@@ -18,6 +18,8 @@ import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.adapter.appnexus.model.AppnexusBidExt;
+import org.prebid.server.adapter.appnexus.model.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
@@ -32,6 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus.ExtImpAppnexusBuilder;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -46,6 +49,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AppnexusBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://appnexus.com/openrtb2d";
+    private static final Integer BANNER_TYPE = 0;
+    private static final Integer VIDEO_TYPE = 1;
+    private static final Integer AUDIO_TYPE = 2;
+    private static final Integer xNATIVE_TYPE = 3;
 
     private AppnexusBidder appnexusBidder;
 
@@ -367,45 +374,148 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfNoMatchingImp() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId1"));
-
-        // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.banner));
-    }
-
-    @Test
-    public void makeBidsShouldReturnBannerBidIfMatchingImpHasNoVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfBidTypeFromResponseIsBanner() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId"));
+        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", BANNER_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
+                .ext(mapper.valueToTree(AppnexusBidExt.of(
+                        AppnexusBidExtAppnexus.of(BANNER_TYPE)))).impid("impId").build(), BidType.banner));
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfMatchingImpHasVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfBidTypeFromResponseIsVideo() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId").video(Video.builder().build()));
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId"));
+        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", VIDEO_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.video));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
+                .ext(mapper.valueToTree(AppnexusBidExt.of(
+                        AppnexusBidExtAppnexus.of(VIDEO_TYPE)))).impid("impId").build(), BidType.video));
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidIfBidTypeFromResponseIsAudio() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
+        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", AUDIO_TYPE));
+
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
+                .ext(mapper.valueToTree(AppnexusBidExt.of(
+                        AppnexusBidExtAppnexus.of(AUDIO_TYPE)))).impid("impId").build(), BidType.audio));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfBidTypeFromResponseBidExtIsNative() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
+        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", xNATIVE_TYPE));
+
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
+                .ext(mapper.valueToTree(AppnexusBidExt.of(
+                        AppnexusBidExtAppnexus.of(xNATIVE_TYPE)))).impid("impId").build(), BidType.xNative));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidTypeValueFromResponseIsNotValid() throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", 42));
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0)
+                .extracting(BidderError::getMessage)
+                .containsOnly("Unrecognized bid_ad_type in response from appnexus: 42");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidExtNotDefined() throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall httpCall = givenHttpCall(200,  mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .impid("impId")
+                                .ext(null)
+                                .build()))
+                        .build()))
+                .build()));
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0)
+                .extracting(BidderError::getMessage)
+                .containsOnly("bidResponse.bid.ext should be defined for appnexus");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidExtAppnexusNotDefined() throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall httpCall = givenHttpCall(200,  mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .impid("impId")
+                                .ext(mapper.createObjectNode())
+                                .build()))
+                        .build()))
+                .build()));
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0)
+                .extracting(BidderError::getMessage)
+                .containsOnly("bidResponse.bid.ext.appnexus should be defined");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidExtAppnexusBidTypeNotDefined() throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall httpCall = givenHttpCall(200,  mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .impid("impId")
+                                .ext(mapper.valueToTree(AppnexusBidExt.of(AppnexusBidExtAppnexus.of(null))))
+                                .build()))
+                        .build()))
+                .build()));
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0)
+                .extracting(BidderError::getMessage)
+                .containsOnly("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(Function<BidRequestBuilder, BidRequestBuilder> bidRequestCustomizer,
@@ -435,18 +545,19 @@ public class AppnexusBidderTest extends VertxTest {
         return mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpAppnexus.builder()).build()));
     }
 
-
     private static HttpCall givenHttpCall(int statusCode, String body) {
         return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
     }
 
-    private static String givenBidResponse(String impId) throws JsonProcessingException {
+    private static String givenBidResponse(String impId, Integer bidType) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid(impId)
+                                .ext(mapper.valueToTree(AppnexusBidExt.of(AppnexusBidExtAppnexus.of(bidType))))
                                 .build()))
                         .build()))
                 .build());
     }
+
 }
