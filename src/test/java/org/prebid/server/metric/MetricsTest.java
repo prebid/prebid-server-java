@@ -47,11 +47,6 @@ public class MetricsTest {
     }
 
     @Test
-    public void forAccountShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> metrics.forAccount(null));
-    }
-
-    @Test
     public void forAccountShouldReturnSameAccountMetricsOnSuccessiveCalls() {
         assertThat(metrics.forAccount("accountId")).isSameAs(metrics.forAccount("accountId"));
     }
@@ -68,11 +63,6 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void forAdapterShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> metrics.forAdapter(null));
     }
 
     @Test

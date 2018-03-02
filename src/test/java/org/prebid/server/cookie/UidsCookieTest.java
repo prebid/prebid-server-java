@@ -102,12 +102,6 @@ public class UidsCookieTest {
     }
 
     @Test
-    public void isFacebookSentinelShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> UidsCookie.isFacebookSentinel(null, null));
-        assertThatNullPointerException().isThrownBy(() -> UidsCookie.isFacebookSentinel("", null));
-    }
-
-    @Test
     public void isFacebookSentinelShouldReturnTrueForAudienceNetworkAndZero() {
         assertThat(UidsCookie.isFacebookSentinel("audienceNetwork", "0")).isTrue();
     }
@@ -120,11 +114,6 @@ public class UidsCookieTest {
     @Test
     public void isFacebookSentinelShouldReturnFalseForNonAudienceNetwork() {
         assertThat(UidsCookie.isFacebookSentinel("rubicon", "0")).isFalse();
-    }
-
-    @Test
-    public void deleteUidShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new UidsCookie(Uids.builder().build()).deleteUid(null));
     }
 
     @Test
@@ -168,14 +157,6 @@ public class UidsCookieTest {
 
         // then
         assertThat(uidsCookieReturned.uidFrom(RUBICON)).isNull();
-    }
-
-    @Test
-    public void updateUidShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new UidsCookie(Uids.builder().build()).updateUid(null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new UidsCookie(Uids.builder().build()).updateUid("", null));
     }
 
     @Test

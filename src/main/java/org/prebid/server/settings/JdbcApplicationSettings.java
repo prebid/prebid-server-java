@@ -28,8 +28,6 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     @Override
     public Future<Account> getAccountById(String accountId, GlobalTimeout timeout) {
-        Objects.requireNonNull(accountId);
-        Objects.requireNonNull(timeout);
         return jdbcClient.executeQuery("SELECT uuid, price_granularity FROM accounts_account where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
                 result -> mapToModelOrError(result, row -> Account.of(row.getString(0), row.getString(1))),
@@ -38,8 +36,6 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId, GlobalTimeout timeout) {
-        Objects.requireNonNull(adUnitConfigId);
-        Objects.requireNonNull(timeout);
         return jdbcClient.executeQuery("SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1",
                 Collections.singletonList(adUnitConfigId),
                 result -> mapToModelOrError(result, row -> row.getString(0)),

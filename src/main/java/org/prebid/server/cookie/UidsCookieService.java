@@ -64,8 +64,6 @@ public class UidsCookieService {
      * Note: UIDs will be excluded from resulting {@link UidsCookie} if their value are 'null'
      */
     public UidsCookie parseFromRequest(RoutingContext context) {
-        Objects.requireNonNull(context);
-
         Uids uids = null;
         final Cookie uidsCookie = context.getCookie(COOKIE_NAME);
         if (uidsCookie != null) {

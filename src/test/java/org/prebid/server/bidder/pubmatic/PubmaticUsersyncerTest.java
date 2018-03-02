@@ -1,4 +1,4 @@
-package org.prebid.server.usersyncer;
+package org.prebid.server.bidder.pubmatic;
 
 import org.junit.Test;
 import org.prebid.server.proto.response.UsersyncInfo;
@@ -11,7 +11,6 @@ public class PubmaticUsersyncerTest {
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new PubmaticUsersyncer(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new PubmaticUsersyncer("", null));
     }
 
     @Test

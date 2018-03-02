@@ -1,17 +1,15 @@
-package org.prebid.server.usersyncer;
+package org.prebid.server.bidder.facebook;
 
-import org.prebid.server.bidder.BidderName;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.proto.response.UsersyncInfo;
 
 import java.util.Objects;
 
-public class RubiconUsersyncer implements Usersyncer {
-
-    private static final String NAME = BidderName.rubicon.name();
+public class FacebookUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
 
-    public RubiconUsersyncer(String usersyncUrl) {
+    public FacebookUsersyncer(String usersyncUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl));
     }
 
@@ -20,13 +18,8 @@ public class RubiconUsersyncer implements Usersyncer {
     }
 
     @Override
-    public String name() {
-        return NAME;
-    }
-
-    @Override
     public String cookieFamilyName() {
-        return "rubicon";
+        return "audienceNetwork";
     }
 
     @Override

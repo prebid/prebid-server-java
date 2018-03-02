@@ -97,21 +97,6 @@ public class JdbcStoredRequestFetcherTest {
     }
 
     @Test
-    public void getStoredRequestByIdShouldReturnFailedFutureWithNullPointerExceptionCause() {
-        assertThatNullPointerException().isThrownBy(() -> jdbcStoredRequestFetcher.getStoredRequestsById(null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> jdbcStoredRequestFetcher.getStoredRequestsById(emptySet(), null));
-    }
-
-    @Test
-    public void getStoredRequestByAmpIdShouldReturnFailedFutureWithNullPointerExceptionCause() {
-        assertThatNullPointerException().isThrownBy(
-                () -> jdbcStoredRequestFetcher.getStoredRequestsByAmpId(null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> jdbcStoredRequestFetcher.getStoredRequestsByAmpId(emptySet(), null));
-    }
-
-    @Test
     public void getStoredRequestsByIdShouldReturnStoredRequests(TestContext context) {
         // when
         final Future<StoredRequestResult> future =

@@ -23,7 +23,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderRequester;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -42,8 +44,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
-import org.prebid.server.usersyncer.Usersyncer;
-import org.prebid.server.usersyncer.UsersyncerCatalog;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -75,9 +75,7 @@ public class ExchangeServiceTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private BidderRequesterCatalog bidderRequesterCatalog;
-    @Mock
-    private UsersyncerCatalog usersyncerCatalog;
+    private BidderCatalog bidderCatalog;
     @Mock
     private Usersyncer usersyncer;
     @Mock
@@ -86,40 +84,36 @@ public class ExchangeServiceTest extends VertxTest {
     private Metrics metrics;
     @Mock
     private AdapterMetrics adapterMetrics;
-
-    private ExchangeService exchangeService;
-
     @Mock
     private UidsCookie uidsCookie;
     @Mock
     private BidderRequester bidderRequester;
 
+    private ExchangeService exchangeService;
+
     @Before
     public void setUp() {
-        given(bidderRequesterCatalog.byName(anyString())).willReturn(bidderRequester);
-        given(usersyncerCatalog.byName(anyString())).willReturn(usersyncer);
+        given(bidderCatalog.isValidName(anyString())).willReturn(true);
+        given(bidderCatalog.bidderRequesterByName(anyString())).willReturn(bidderRequester);
+        given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
+
         given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
 
-        exchangeService = new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, metrics, 0);
+        exchangeService = new ExchangeService(bidderCatalog, cacheService, metrics, 0);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new ExchangeService(null, null, null, null, 0));
-        assertThatNullPointerException().isThrownBy(
-                () -> new ExchangeService(bidderRequesterCatalog, null, null, null, 0));
-        assertThatNullPointerException().isThrownBy(
-                () -> new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, null, null, 0));
-        assertThatNullPointerException().isThrownBy(
-                () -> new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, null, 0));
+        assertThatNullPointerException().isThrownBy(() -> new ExchangeService(null, null, null, 0));
+        assertThatNullPointerException().isThrownBy(() -> new ExchangeService(bidderCatalog, null, null, 0));
+        assertThatNullPointerException().isThrownBy(() -> new ExchangeService(bidderCatalog, cacheService, null, 0));
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, metrics, -1));
+                () -> new ExchangeService(bidderCatalog, cacheService, metrics, -1));
     }
 
     @Test
@@ -131,7 +125,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout()).result();
 
         // then
-        verifyZeroInteractions(bidderRequesterCatalog);
+        verifyZeroInteractions(bidderCatalog);
         verifyZeroInteractions(bidderRequester);
         assertThat(bidResponse).isNotNull();
     }
@@ -139,7 +133,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldTolerateImpWithUnknownBidderInExtension() {
         // given
-        given(bidderRequesterCatalog.isValidName(anyString())).willReturn(false);
+        given(bidderCatalog.isValidName(anyString())).willReturn(false);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("invalid", 0)));
 
@@ -147,8 +141,8 @@ public class ExchangeServiceTest extends VertxTest {
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout()).result();
 
         // then
-        verify(bidderRequesterCatalog).isValidName(eq("invalid"));
-        verifyNoMoreInteractions(bidderRequesterCatalog);
+        verify(bidderCatalog).isValidName(eq("invalid"));
+        verifyNoMoreInteractions(bidderCatalog);
         verifyZeroInteractions(bidderRequester);
         assertThat(bidResponse).isNotNull();
     }
@@ -355,7 +349,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnMultipleSeatBids() {
         // given
-        given(bidderRequesterCatalog.isValidName(anyString())).willReturn(true);
         given(bidderRequester.requestBids(any(), any()))
                 .willReturn(Future.succeededFuture(givenSeatBid(asList(
                         givenBid(Bid.builder().build()),
@@ -376,18 +369,18 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnSeparateSeatBidsForTheSameBidderIfBiddersAliasAndBidderWereUsedWithingSingleImp() {
         // given
-        given(bidderRequesterCatalog.isValidName("bidder")).willReturn(true);
+        given(bidderCatalog.isValidName("bidder")).willReturn(true);
 
         given(bidderRequester.requestBids(eq(givenBidRequest(givenSingleImp(singletonMap("bidder", 1)),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         singletonMap("bidderAlias", "bidder"), null, null, null)))))), any()))
-                .willReturn(Future.succeededFuture(givenSeatBid(asList(
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().build())))));
 
         given(bidderRequester.requestBids(eq(givenBidRequest(givenSingleImp(singletonMap("bidder", 2)),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         singletonMap("bidderAlias", "bidder"), null, null, null)))))), any()))
-                .willReturn(Future.succeededFuture(givenSeatBid(asList(
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().build())))));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(doubleMap("bidder", 1, "bidderAlias", 2)),
@@ -826,7 +819,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
-        exchangeService = new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, metrics, 100);
+        exchangeService = new ExchangeService(bidderCatalog, cacheService, metrics, 100);
 
         givenHttpConnector(givenSeatBid(singletonList(
                 givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build()))));
@@ -856,7 +849,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldIncrementRequestAndNoCookieAndUpdatePriceAndRequestTimeMetrics() {
         // given
-        given(bidderRequesterCatalog.isValidName(anyString())).willReturn(true);
+        given(bidderCatalog.isValidName(anyString())).willReturn(true);
 
         given(bidderRequester.requestBids(any(), any()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
@@ -877,8 +870,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldUpdatePriceMetricWithZeroValueIfBidPriceNull() {
         // given
-        given(bidderRequesterCatalog.isValidName(anyString())).willReturn(true);
-
         given(bidderRequester.requestBids(any(), any()))
                 .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
                         givenBid(Bid.builder().price(null).build())))));
@@ -895,8 +886,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldIncrementNoBidRequestsMetric() {
         // given
-        given(bidderRequesterCatalog.isValidName(anyString())).willReturn(true);
-
         given(bidderRequester.requestBids(any(), any()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
@@ -912,8 +901,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldIncrementErrorMetrics() {
         // given
-        given(bidderRequesterCatalog.isValidName(anyString())).willReturn(true);
-
         given(bidderRequester.requestBids(any(), any()))
                 .willReturn(Future.succeededFuture(BidderSeatBid.of(emptyList(), null, emptyList(), asList(
                         BidderError.of("bidder-error-1", false),
@@ -959,14 +946,13 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private void givenHttpConnector(BidderSeatBid response) {
-        given(bidderRequesterCatalog.isValidName(anyString())).willReturn(true);
         given(bidderRequester.requestBids(any(), any())).willReturn(Future.succeededFuture(response));
     }
 
     private void givenHttpConnector(String bidderRequesterName, BidderRequester bidderRequester,
                                     BidderSeatBid response) {
-        given(bidderRequesterCatalog.isValidName(eq(bidderRequesterName))).willReturn(true);
-        given(bidderRequesterCatalog.byName(eq(bidderRequesterName))).willReturn(bidderRequester);
+        given(bidderCatalog.isValidName(eq(bidderRequesterName))).willReturn(true);
+        given(bidderCatalog.bidderRequesterByName(eq(bidderRequesterName))).willReturn(bidderRequester);
         given(bidderRequester.requestBids(any(), any())).willReturn(Future.succeededFuture(response));
     }
 

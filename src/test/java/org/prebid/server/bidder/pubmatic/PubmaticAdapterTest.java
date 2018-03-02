@@ -13,7 +13,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,7 +32,6 @@ import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Video;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.PubmaticUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -51,7 +49,7 @@ import static org.mockito.BDDMockito.given;
 
 public class PubmaticAdapterTest extends VertxTest {
 
-    private static final String ADAPTER = "pubmatic";
+    private static final String BIDDER = "pubmatic";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
     private static final String EXTERNAL_URL = "http://external.org/";
@@ -105,7 +103,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfNoAtLeastOneValidAdunitBidParams() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder.params(null))));
 
         // when and then
@@ -118,7 +116,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @SuppressWarnings("unchecked")
     public void requestBidsShouldSendBidRequestWithNotModifiedImpIfInvalidParams() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBidCustomizable(identity()),
                 givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
                         PubmaticParams.of(null, null)))),
@@ -131,7 +129,7 @@ public class PubmaticAdapterTest extends VertxTest {
                 givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
                         PubmaticParams.of("publisherID", "slot42@200xNonNumber"))))));
 
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
         // when
         final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
@@ -163,7 +161,7 @@ public class PubmaticAdapterTest extends VertxTest {
                 builder -> builder
                         .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
 
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
         // when
         final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
@@ -175,7 +173,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
         //given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(emptySet()))));
@@ -191,7 +189,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(singleton(MediaType.video))
@@ -210,7 +208,7 @@ public class PubmaticAdapterTest extends VertxTest {
         // given
         adapterRequest = givenBidderCustomizable(
                 builder -> builder
-                        .bidderCode(ADAPTER)
+                        .bidderCode(BIDDER)
                         .adUnitCode("adUnitCode1")
                         .instl(1)
                         .topframe(1)
@@ -228,7 +226,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .tid("tid")
         );
 
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
         // when
         final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
@@ -291,7 +289,7 @@ public class PubmaticAdapterTest extends VertxTest {
                 .app(App.builder().build())
                 .user(User.builder().buyeruid("buyerUid").build()));
 
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUidFromCookie");
+        given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUidFromCookie");
 
         // when
         final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
@@ -305,7 +303,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
         //given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                         .video(Video.builder()
@@ -336,7 +334,7 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfMultipleAdUnitsInPreBidRequest() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
 
@@ -369,7 +367,7 @@ public class PubmaticAdapterTest extends VertxTest {
     public void extractBidsShouldReturnBidBuildersWithExpectedFields() {
         // given
         adapterRequest = givenBidderCustomizable(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"));
+                builder -> builder.bidderCode(BIDDER).bidId("bidId").adUnitCode("adUnitCode"));
 
         exchangeCall = givenExchangeCallCustomizable(
                 bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
@@ -401,7 +399,7 @@ public class PubmaticAdapterTest extends VertxTest {
                         .creativeId("crid")
                         .width(300)
                         .height(250)
-                        .bidder(ADAPTER)
+                        .bidder(BIDDER)
                         .bidId("bidId")
                         .dealId("dealId")
                         .build());
@@ -415,14 +413,14 @@ public class PubmaticAdapterTest extends VertxTest {
         exchangeCall = givenExchangeCallCustomizable(identity(), br -> br.seatbid(null));
 
         // when and then
-        Assertions.assertThat(adapter.extractBids(adapterRequest, exchangeCall)).isEmpty();
-        Assertions.assertThat(adapter.extractBids(adapterRequest, ExchangeCall.empty(null))).isEmpty();
+        assertThat(adapter.extractBids(adapterRequest, exchangeCall)).isEmpty();
+        assertThat(adapter.extractBids(adapterRequest, ExchangeCall.empty(null))).isEmpty();
     }
 
     @Test
     public void extractBidsShouldReturnMultipleBidBuildersIfMultipleAdUnitsInPreBidRequestAndBidsInResponse() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
 
@@ -447,7 +445,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
     private static AdapterRequest givenBidderCustomizable(
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
-        return AdapterRequest.of(ADAPTER, singletonList(givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer)));
+        return AdapterRequest.of(BIDDER, singletonList(givenAdUnitBidCustomizable(adUnitBidBuilderCustomizer)));
     }
 
     private static AdUnitBid givenAdUnitBidCustomizable(

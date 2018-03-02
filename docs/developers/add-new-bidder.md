@@ -17,38 +17,58 @@ Publishers will send values for these parameters in `request.imp[i].ext.{bidder}
 [the Auction endpoint](../endpoints/openrtb2/auction.md). Prebid Server will preprocess these so that
 your bidder will access them at `request.imp[i].ext.bidder`--regardless of what your `{bidder}` name is.
 
-## Implement your Bidder
+## Configuration
+
+Add default configuration properties for your Bidder to `src/main/resources/application.yaml` file.
+For more information about application configuration see [here](../config.md)
+
+## Implementation
 
 Bidder implementations are scattered throughout several files:
-
-- `static/bidder-params/{bidder}.json`: A [draft-4 json-schema](https://spacetelescope.github.io/understanding-json-schema/) which [validates your Bidder's params](https://www.jsonschemavalidator.net/).
-- `src/main/java/org/prebid/server/bidder{bidder}/{bidder}.java`: contains an implementation of [the Bidder interface](../../src/main/java/org/prebid/server/bidder/Bidder.java).
-- `src/main/java/org/prebid/server/model/openrtb/ext/{bidder}`: contract classes for your Bidder's params.
-- `src/main/java/org/prebid/server/spring/config/BidderConfiguration.java`: contains Bidder integration.
-- `src/test/java/org/prebid/server/bidder/{bidder}Test.java`: unit tests for your Bidder implementation.
+- `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Adapter.java`: contains an implementation of [the Adapter interface](../../src/main/java/org/prebid/server/bidder/Adapter.java).
+- `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Bidder.java`: contains an implementation of [the Bidder interface](../../src/main/java/org/prebid/server/bidder/Bidder.java).
+- `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Usersyncer.java`: contains an implementation of [the Usersyncer interface](../../src/main/java/org/prebid/server/bidder/Usersyncer.java).
+- `src/main/java/org/prebid/server/proto/openrtb/ext/{bidder}`: contract classes for your Bidder's params.
+- `src/main/resources/static/bidder-params/{bidder}.json`: A [draft-4 json-schema](https://spacetelescope.github.io/understanding-json-schema/) which [validates your Bidder's params](https://www.jsonschemavalidator.net/).
 
 Bidder implementations may assume that any params have already been validated against the defined json-schema.
 
-## Test your Bidder
+## Integration
+
+After implementation you should integrate the Bidder with file:
+- `src/main/java/org/prebid/server/spring/config/bidder/{bidder}Configuration.java`
+
+It should be public class with Spring `@Configuration` annotation so that framework could pick it up.
+
+This file consists of three main parts:
+- the constant `BIDDER_NAME` with the name of your Bidder.
+- injected configuration properties (like `endpoint`, `usersyncUrl`, etc) needed for the Bidder's implementation.
+- declaration of `BidderDeps` bean combining _bidder name_, _Usersyncer_, _Adapter_ and _BidderRequester_ in one place as a single point-of-truth for using it in application.
+
+Also, you can add `@ConditionalOnProperty` annotation on configuration if bidder has no default properties.
+See `src/main/java/org/prebid/server/spring/config/bidder/FacebookConfiguration.java` as an example.
+
+## Testing
 
 ### Automated Tests
 
 Assume common rules to write unit tests from [here](unit-tests.md).
 
-Bidder tests live in two files:
-
-- `src/test/java/org/prebid/server/bidder/{bidder}Test.java`: contains unit tests for your Bidder implementation.
+Bidder tests live in the next files:
+- `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}UsersyncerTest.java`: unit tests for your Usersyncer implementation.
+- `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}AdapterTest.java`: unit tests for your Adapter implementation.
+- `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}BidderTest.java`: unit tests for your Bidder implementation.
 
 Commonly you should write tests for covering:
-- creation of your Bidder implementation.
+- creation of your Adapter/Bidder/Usersyncer implementations.
 - correct Bidder's params filling.
 - JSON parser errors handling.
 - specific cases for composing requests to exchange.
 - specific cases for processing responses from exchange.
 
-Do not forget to add your Bidder to `org.prebid.server.ApplicationTest.openrtb2AuctionShouldRespondWithBidsFromDifferentExchanges`.
+Do not forget to add your Bidder to `org.prebid.server.ApplicationTest.openrtb2AuctionShouldRespondWithBidsFromDifferentExchanges` test.
 
-We expect to see at least 90% code coverage on each Bidder.
+We expect to see at least 90% code coverage on each bidder.
 
 ### Manual Tests
 

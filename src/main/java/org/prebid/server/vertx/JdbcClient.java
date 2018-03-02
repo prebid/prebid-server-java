@@ -42,11 +42,6 @@ public class JdbcClient {
      */
     public <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper,
                                       GlobalTimeout timeout) {
-        Objects.requireNonNull(query);
-        Objects.requireNonNull(params);
-        Objects.requireNonNull(mapper);
-        Objects.requireNonNull(timeout);
-
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
             return Future.failedFuture(timeoutException());

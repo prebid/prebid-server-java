@@ -30,7 +30,6 @@ import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Video;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.Usersyncer;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,11 +45,14 @@ import java.util.stream.Collectors;
  */
 public class HttpAdapterRequester implements BidderRequester {
 
+    private final String bidderName;
     private final Adapter adapter;
     private final Usersyncer usersyncer;
     private final HttpConnector httpConnector;
 
-    public HttpAdapterRequester(Adapter adapter, Usersyncer usersyncer, HttpConnector httpConnector) {
+    public HttpAdapterRequester(String bidderName, Adapter adapter, Usersyncer usersyncer,
+                                HttpConnector httpConnector) {
+        this.bidderName = Objects.requireNonNull(bidderName);
         this.adapter = Objects.requireNonNull(adapter);
         this.usersyncer = Objects.requireNonNull(usersyncer);
         this.httpConnector = Objects.requireNonNull(httpConnector);
@@ -178,14 +180,13 @@ public class HttpAdapterRequester implements BidderRequester {
      */
     private Result<AdapterRequest> toBidder(BidRequest bidRequest) {
         if (bidRequest.getImp().size() == 0) {
-            throw new InvalidRequestException(String.format("There no imps in bidRequest for bidder %s",
-                    adapter.name()));
+            throw new InvalidRequestException(String.format("There no imps in bidRequest for bidder %s", bidderName));
         }
         final Result<List<AdUnitBid>> adUnitBidsResult = toAdUnitBids(bidRequest.getImp());
         final List<AdUnitBid> adUnitBids = adUnitBidsResult.getValue();
         final List<BidderError> errors = adUnitBidsResult.getErrors();
         if (adUnitBids.size() > 0) {
-            return Result.of(AdapterRequest.of(adapter.name(), adUnitBids), errors);
+            return Result.of(AdapterRequest.of(bidderName, adUnitBids), errors);
         }
         throw new InvalidRequestException(messages(errors));
     }
@@ -227,7 +228,7 @@ public class HttpAdapterRequester implements BidderRequester {
                 .sizes(toAdUnitBidSizes(imp))
                 .topframe(imp.getBanner() != null && imp.getBanner().getTopframe() != null
                         ? imp.getBanner().getTopframe() : 0)
-                .bidderCode(adapter.name())
+                .bidderCode(bidderName)
                 .bidId(imp.getId())
                 .params((ObjectNode) imp.getExt().at("/bidder"))
                 .instl(imp.getInstl())
@@ -381,13 +382,5 @@ public class HttpAdapterRequester implements BidderRequester {
                 .responsebody(bidderDebug.getResponseBody())
                 .status(bidderDebug.getStatusCode())
                 .build();
-    }
-
-    /**
-     * Returns adapter's name
-     */
-    @Override
-    public String name() {
-        return adapter.name();
     }
 }

@@ -16,6 +16,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -35,7 +36,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
-import org.prebid.server.usersyncer.UsersyncerCatalog;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -60,16 +60,14 @@ public class ExchangeService {
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private static final Clock CLOCK = Clock.systemDefaultZone();
-    private final BidderRequesterCatalog bidderRequesterCatalog;
-    private final UsersyncerCatalog usersyncerCatalog;
+    private final BidderCatalog bidderCatalog;
     private final CacheService cacheService;
     private final Metrics metrics;
     private long expectedCacheTime;
 
-    public ExchangeService(BidderRequesterCatalog bidderRequesterCatalog, UsersyncerCatalog usersyncerCatalog,
-                           CacheService cacheService, Metrics metrics, long expectedCacheTime) {
-        this.bidderRequesterCatalog = Objects.requireNonNull(bidderRequesterCatalog);
-        this.usersyncerCatalog = Objects.requireNonNull(usersyncerCatalog);
+    public ExchangeService(BidderCatalog bidderCatalog, CacheService cacheService, Metrics metrics,
+                           long expectedCacheTime) {
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
         if (expectedCacheTime < 0) {
@@ -117,11 +115,9 @@ public class ExchangeService {
 
         // produce response from bidder results
         return bidderResults.compose(result -> {
-
             final List<BidderResponse> bidderResponses = result.list();
             updateMetricsFromResponses(bidderResponses);
-            return toBidResponse(
-                    bidderResponses, bidRequest, keywordsCreator, shouldCacheBids, globalTimeout);
+            return toBidResponse(bidderResponses, bidRequest, keywordsCreator, shouldCacheBids, globalTimeout);
         });
     }
 
@@ -135,8 +131,8 @@ public class ExchangeService {
 
             metrics.forAdapter(bidder).incCounter(MetricName.requests);
 
-            final boolean noBuyerId = StringUtils.isBlank(uidsCookie.uidFrom(
-                    usersyncerCatalog.byName(bidder).cookieFamilyName()));
+            final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
+                    uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
 
             if (bidderRequest.getBidRequest().getApp() == null && noBuyerId) {
                 metrics.forAdapter(bidder).incCounter(MetricName.no_cookie_requests);
@@ -245,7 +241,7 @@ public class ExchangeService {
      * Checks if bidder name is valid in case when bidder can also be alias name.
      */
     private boolean isValidBidder(String bidder, Map<String, String> aliases) {
-        return bidderRequesterCatalog.isValidName(bidder) || aliases.containsKey(bidder);
+        return (bidderCatalog.isValidName(bidder)) || aliases.containsKey(bidder);
     }
 
     /**
@@ -274,7 +270,9 @@ public class ExchangeService {
     private User userWithBuyerid(String bidder, BidRequest bidRequest, UidsCookie uidsCookie) {
         final User result;
 
-        final String buyerid = uidsCookie.uidFrom(usersyncerCatalog.byName(bidder).cookieFamilyName());
+        final String buyerid = bidderCatalog.isValidName(bidder)
+                ? uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName())
+                : null;
 
         final User user = bidRequest.getUser();
         if (StringUtils.isNotBlank(buyerid) && (user == null || StringUtils.isBlank(user.getBuyeruid()))) {
@@ -360,7 +358,7 @@ public class ExchangeService {
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, GlobalTimeout timeout,
                                                Map<String, String> aliases) {
         final String bidder = bidderRequest.getBidder();
-        return bidderRequesterCatalog.byName(resolveBidder(bidder, aliases))
+        return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
                 .requestBids(bidderRequest.getBidRequest(), timeout)
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
     }

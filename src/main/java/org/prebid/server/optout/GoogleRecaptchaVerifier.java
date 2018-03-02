@@ -38,8 +38,6 @@ public class GoogleRecaptchaVerifier {
      * Validates reCAPTCHA token by sending it to the re-captcha verfier endpoint url
      */
     public Future<Void> verify(String recaptcha) {
-        Objects.requireNonNull(recaptcha);
-
         final Future<Void> future = Future.future();
         httpClient.postAbs(recaptchaUrl, response -> handleResponse(response, future))
                 .exceptionHandler(exception -> handleException(exception, future))

@@ -4,7 +4,6 @@ import com.codahale.metrics.MetricRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -51,7 +50,6 @@ class UpdatableMetrics {
      * Increments metric's counter on a given value.
      */
     public void incCounter(MetricName metricName, long value) {
-        Objects.requireNonNull(metricName);
         incrementer.accept(metricRegistry, name(metricName), value);
     }
 
@@ -59,7 +57,6 @@ class UpdatableMetrics {
      * Updates metric's timer with a given value.
      */
     public void updateTimer(MetricName metricName, long millis) {
-        Objects.requireNonNull(metricName);
         metricRegistry.timer(name(metricName)).update(millis, TimeUnit.MILLISECONDS);
     }
 
@@ -67,7 +64,6 @@ class UpdatableMetrics {
      * Updates metric's histogram with a given value.
      */
     public void updateHistogram(MetricName metricName, long value) {
-        Objects.requireNonNull(metricName);
         // by default histograms with exponentially decaying reservoir (size=1028, alpha=0.015) are created
         metricRegistry.histogram(name(metricName)).update(value);
     }

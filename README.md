@@ -11,7 +11,7 @@ For more information, see:
 
 ## Usage
 
-When running, the server responds to several HTTP endpoints.
+When running, the server responds to several HTTP [endpoints](docs/endpoints).
 
 The server makes the following assumptions:
 - No ranking or decisioning is performed by this server. It just proxies requests.

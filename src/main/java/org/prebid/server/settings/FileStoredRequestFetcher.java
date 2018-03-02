@@ -51,8 +51,6 @@ public class FileStoredRequestFetcher implements StoredRequestFetcher {
      */
     @Override
     public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, GlobalTimeout timeout) {
-        Objects.requireNonNull(ids);
-
         final List<String> errors;
         final List<String> missedIds = ids.stream()
                 .filter(s -> !storedRequests.containsKey(s))

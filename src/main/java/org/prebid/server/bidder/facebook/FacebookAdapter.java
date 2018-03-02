@@ -13,8 +13,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbAdapter;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.facebook.model.NormalizedFacebookParams;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.facebook.proto.FacebookParams;
@@ -25,7 +25,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.Usersyncer;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
@@ -45,8 +44,6 @@ import java.util.stream.Stream;
  * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
  */
 public class FacebookAdapter extends OpenrtbAdapter {
-
-    private static final String NAME = BidderName.audienceNetwork.name();
 
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
             Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
@@ -78,11 +75,6 @@ public class FacebookAdapter extends OpenrtbAdapter {
             throw new IllegalArgumentException(String.format("Platform ID is not valid number: '%s'", platformId), e);
         }
         return Json.mapper.valueToTree(FacebookExt.of(platformIdAsInt));
-    }
-
-    @Override
-    public String name() {
-        return NAME;
     }
 
     @Override

@@ -1,0 +1,105 @@
+package org.prebid.server.bidder;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class BidderCatalogTest {
+
+    private static final String BIDDER = "rubicon";
+
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private Usersyncer usersyncer;
+    @Mock
+    private Adapter adapter;
+    @Mock
+    private BidderRequester bidderRequester;
+
+    private BidderDeps bidderDeps;
+    private BidderCatalog bidderCatalog;
+
+    @Test
+    public void isValidNameShouldReturnTrueForKnownBidder() {
+        // given
+        bidderDeps = BidderDeps.of(BIDDER, usersyncer, null, null);
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.isValidName(BIDDER)).isTrue();
+    }
+
+    @Test
+    public void isValidNameShouldReturnFalseForUnknownBidder() {
+        // given
+        bidderCatalog = new BidderCatalog(emptyList());
+
+        // when and then
+        assertThat(bidderCatalog.isValidName("unknown_bidder")).isFalse();
+    }
+
+    @Test
+    public void usersyncerByNameShouldReturnUsersyncerForKnownBidder() {
+        // given
+        bidderDeps = BidderDeps.of(BIDDER, usersyncer, null, null);
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.usersyncerByName(BIDDER)).isEqualTo(usersyncer);
+    }
+
+    @Test
+    public void usersyncerByNameShouldReturnNullForUnknownBidder() {
+        // given
+        bidderCatalog = new BidderCatalog(emptyList());
+
+        // when and then
+        assertThat(bidderCatalog.usersyncerByName("unknown_bidder")).isNull();
+    }
+
+    @Test
+    public void adapterByNameShouldReturnAdapterForKnownBidder() {
+        // given
+        bidderDeps = BidderDeps.of(BIDDER, null, adapter, null);
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.adapterByName(BIDDER)).isEqualTo(adapter);
+    }
+
+    @Test
+    public void adapterByNameShouldReturnNullForUnknownBidder() {
+        // given
+        bidderCatalog = new BidderCatalog(emptyList());
+
+        // when and then
+        assertThat(bidderCatalog.adapterByName("unknown_bidder")).isNull();
+    }
+
+    @Test
+    public void bidderRequesterByNameShouldReturnBidderRequesterForKnownBidder() {
+        // given
+        bidderDeps = BidderDeps.of(BIDDER, null, null, bidderRequester);
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.bidderRequesterByName(BIDDER)).isEqualTo(bidderRequester);
+    }
+
+    @Test
+    public void bidderRequesterByNameShouldReturnNullForUnknownBidder() {
+        // given
+        bidderCatalog = new BidderCatalog(emptyList());
+
+        // when and then
+        assertThat(bidderCatalog.bidderRequesterByName("unknown_bidder")).isNull();
+    }
+}

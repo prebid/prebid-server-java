@@ -14,12 +14,6 @@ import java.util.List;
 public interface Bidder {
 
     /**
-     * Provides a bidder's name that will be used to determine if a bidder should participate in auction by
-     * inspecting bidrequest.imp[i].ext.{bidder} fields.
-     */
-    String name();
-
-    /**
      * Makes the HTTP requests which should be made to fetch bids.
      * <p>
      * The errors should contain a list of errors which explain why this bidder's bids will be "subpar" in some way.

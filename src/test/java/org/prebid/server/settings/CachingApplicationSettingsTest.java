@@ -82,13 +82,6 @@ public class CachingApplicationSettingsTest {
     }
 
     @Test
-    public void getAdUnitConfigByIdShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> cachingApplicationSettings.getAdUnitConfigById(null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId", null));
-    }
-
-    @Test
     public void getAdUnitConfigByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
         final GlobalTimeout timeout = GlobalTimeout.create(500);

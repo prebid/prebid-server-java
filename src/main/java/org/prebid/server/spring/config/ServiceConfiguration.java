@@ -5,10 +5,10 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
-import org.prebid.server.auction.BidderRequesterCatalog;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
@@ -16,7 +16,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.StoredRequestFetcher;
-import org.prebid.server.usersyncer.UsersyncerCatalog;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.springframework.beans.factory.annotation.Value;
@@ -95,10 +94,10 @@ public class ServiceConfiguration {
     @Bean
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
-            BidderRequesterCatalog bidderRequesterCatalog, UsersyncerCatalog usersyncerCatalog,
+            BidderCatalog bidderCatalog,
             CacheService cacheService, Metrics metrics) {
 
-        return new ExchangeService(bidderRequesterCatalog, usersyncerCatalog, cacheService, metrics,
+        return new ExchangeService(bidderCatalog, cacheService, metrics,
                 expectedCacheTimeMs);
     }
 
@@ -117,14 +116,14 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    RequestValidator requestValidator(BidderRequesterCatalog bidderRequesterCatalog,
+    RequestValidator requestValidator(BidderCatalog bidderCatalog,
                                       BidderParamValidator bidderParamValidator) {
-        return new RequestValidator(bidderRequesterCatalog, bidderParamValidator);
+        return new RequestValidator(bidderCatalog, bidderParamValidator);
     }
 
     @Bean
-    BidderParamValidator bidderParamValidator(BidderRequesterCatalog bidderRequesterCatalog) {
-        return BidderParamValidator.create(bidderRequesterCatalog, "/static/bidder-params");
+    BidderParamValidator bidderParamValidator(BidderCatalog bidderCatalog) {
+        return BidderParamValidator.create(bidderCatalog, "/static/bidder-params");
     }
 
     @Bean

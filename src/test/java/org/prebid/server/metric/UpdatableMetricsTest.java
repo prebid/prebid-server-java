@@ -10,7 +10,6 @@ import org.mockito.junit.MockitoRule;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -27,11 +26,6 @@ public class UpdatableMetricsTest {
     public void setUp() {
         metricRegistry = new MetricRegistry();
         updatableMetrics = givenUpdatableMetricsWith(CounterType.counter);
-    }
-
-    @Test
-    public void incCounterShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> updatableMetrics.incCounter(null));
     }
 
     @Test
@@ -77,11 +71,6 @@ public class UpdatableMetricsTest {
     }
 
     @Test
-    public void updateTimerShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> updatableMetrics.updateTimer(null, 0L));
-    }
-
-    @Test
     public void updateTimerShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
@@ -121,11 +110,6 @@ public class UpdatableMetricsTest {
 
         // then
         assertThat(metricRegistry.timer("request_time").getSnapshot().getValues()).containsOnly(1_000_000_000L);
-    }
-
-    @Test
-    public void updateHistogramShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> updatableMetrics.updateHistogram(null, 0L));
     }
 
     @Test

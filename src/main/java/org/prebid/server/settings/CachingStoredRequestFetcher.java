@@ -38,15 +38,11 @@ public class CachingStoredRequestFetcher implements StoredRequestFetcher {
      */
     @Override
     public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, GlobalTimeout timeout) {
-        Objects.requireNonNull(ids);
-        Objects.requireNonNull(timeout);
         return getFromCacheOrDelegate(storedRequestCache, ids, timeout, delegate::getStoredRequestsById);
     }
 
     @Override
     public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, GlobalTimeout timeout) {
-        Objects.requireNonNull(ids);
-        Objects.requireNonNull(timeout);
         return getFromCacheOrDelegate(storedAmpRequestCache, ids, timeout, delegate::getStoredRequestsByAmpId);
     }
 

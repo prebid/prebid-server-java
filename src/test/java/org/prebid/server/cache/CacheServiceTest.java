@@ -116,27 +116,12 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void getCachedAssetURLShouldFailIfUUIDIsMissing() {
-        // then
-        assertThatNullPointerException().isThrownBy(() -> cacheService.getCachedAssetURL(null));
-    }
-
-    @Test
     public void getCachedAssetURLShouldReturnExpectedValue() {
         // when
         final String cachedAssetURL = cacheService.getCachedAssetURL("uuid1");
 
         // then
         assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=uuid1");
-    }
-
-    @Test
-    public void shouldFailOnNullArguments() {
-        // then
-        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBids(null, null));
-        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBids(emptyList(), null));
-        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBidsOpenrtb(null, null));
-        assertThatNullPointerException().isThrownBy(() -> cacheService.cacheBidsOpenrtb(emptyList(), null));
     }
 
     @Test

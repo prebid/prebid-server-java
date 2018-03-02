@@ -23,8 +23,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbAdapter;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
@@ -52,7 +52,6 @@ import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Sdk;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.Usersyncer;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -75,8 +74,6 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconAdapter.class);
 
-    private static final String NAME = BidderName.rubicon.name();
-
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
             Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
 
@@ -90,11 +87,6 @@ public class RubiconAdapter extends OpenrtbAdapter {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         authHeader = "Basic " + Base64.getEncoder().encodeToString((Objects.requireNonNull(xapiUsername)
                 + ':' + Objects.requireNonNull(xapiPassword)).getBytes());
-    }
-
-    @Override
-    public String name() {
-        return NAME;
     }
 
     @Override

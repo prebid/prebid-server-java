@@ -22,12 +22,6 @@ public class CookieSyncMetricsTest {
     }
 
     @Test
-    public void forBidderShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new CookieSyncMetrics(new MetricRegistry(),
-                CounterType.counter).forBidder(null));
-    }
-
-    @Test
     public void forBidderShouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
         // given
         final CookieSyncMetrics cookieSyncMetrics = new CookieSyncMetrics(new MetricRegistry(), CounterType.counter);

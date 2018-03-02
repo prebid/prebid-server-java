@@ -19,13 +19,13 @@ public class AccountMetrics extends UpdatableMetrics {
     private final Map<String, AdapterMetrics> adapterMetrics;
 
     AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
-        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType), nameCreator(account));
+        super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+                nameCreator(Objects.requireNonNull(account)));
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, account, adapterType);
         adapterMetrics = new HashMap<>();
     }
 
     private static Function<MetricName, String> nameCreator(String account) {
-        Objects.requireNonNull(account);
         return metricName -> String.format("account.%s.%s", account, metricName.name());
     }
 
@@ -33,7 +33,6 @@ public class AccountMetrics extends UpdatableMetrics {
      * Returns existing or creates a new {@link AdapterMetrics}.
      */
     public AdapterMetrics forAdapter(String adapterType) {
-        Objects.requireNonNull(adapterType);
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 }

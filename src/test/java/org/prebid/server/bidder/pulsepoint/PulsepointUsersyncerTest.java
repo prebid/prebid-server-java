@@ -1,4 +1,4 @@
-package org.prebid.server.usersyncer;
+package org.prebid.server.bidder.pulsepoint;
 
 import org.junit.Test;
 import org.prebid.server.proto.response.UsersyncInfo;

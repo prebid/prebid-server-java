@@ -9,7 +9,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
-import org.assertj.core.api.Assertions;
 import org.assertj.core.data.Offset;
 import org.junit.Before;
 import org.junit.Rule;
@@ -84,7 +83,7 @@ public class HttpBidderRequesterTest {
 
         // then
         assertThat(bidderSeatBid.getBids()).hasSize(0);
-        Assertions.assertThat(bidderSeatBid.getHttpCalls()).hasSize(0);
+        assertThat(bidderSeatBid.getHttpCalls()).hasSize(0);
         assertThat(bidderSeatBid.getErrors()).hasSize(0);
         assertThat(bidderSeatBid.getExt()).isNull();
     }
@@ -101,7 +100,7 @@ public class HttpBidderRequesterTest {
 
         // then
         assertThat(bidderSeatBid.getBids()).hasSize(0);
-        Assertions.assertThat(bidderSeatBid.getHttpCalls()).hasSize(0);
+        assertThat(bidderSeatBid.getHttpCalls()).hasSize(0);
         assertThat(bidderSeatBid.getErrors())
                 .extracting(BidderError::getMessage).containsOnly("error1", "error2");
     }
@@ -181,7 +180,7 @@ public class HttpBidderRequesterTest {
                 bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout()).result();
 
         // then
-        Assertions.assertThat(bidderSeatBid.getHttpCalls()).hasSize(2).containsOnly(
+        assertThat(bidderSeatBid.getHttpCalls()).hasSize(2).containsOnly(
                 ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").responsebody("responseBody1")
                         .status(200).build(),
                 ExtHttpCall.builder().uri("uri2").requestbody("requestBody2").responsebody("responseBody2")
@@ -202,7 +201,7 @@ public class HttpBidderRequesterTest {
                         .result();
 
         // then
-        Assertions.assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
+        assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
                 ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").build());
     }
 
@@ -220,7 +219,7 @@ public class HttpBidderRequesterTest {
                 bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout()).result();
 
         // then
-        Assertions.assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
+        assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
                 ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").build());
     }
 
@@ -238,7 +237,7 @@ public class HttpBidderRequesterTest {
                 bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout()).result();
 
         // then
-        Assertions.assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
+        assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
                 ExtHttpCall.builder().uri("uri1").requestbody("requestBody1").responsebody("responseBody1")
                         .status(500).build());
         assertThat(bidderSeatBid.getErrors()).hasSize(1)

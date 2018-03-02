@@ -66,12 +66,6 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
     }
 
     @Test
-    public void shouldFailIfRecaptchaIsMissing() {
-        // then
-        assertThatNullPointerException().isThrownBy(() -> googleRecaptchaVerifier.verify(null));
-    }
-
-    @Test
     public void shouldRequestToGoogleRecaptchaVerifierWithExpectedRequestBody() {
         // when
         googleRecaptchaVerifier.verify("recaptcha1");

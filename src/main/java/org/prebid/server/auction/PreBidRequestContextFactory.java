@@ -69,8 +69,6 @@ public class PreBidRequestContextFactory {
      * can be be eventually completed with success or error result.
      */
     public Future<PreBidRequestContext> fromRequest(RoutingContext context) {
-        Objects.requireNonNull(context);
-
         final JsonObject json;
         try {
             json = context.getBodyAsJson();

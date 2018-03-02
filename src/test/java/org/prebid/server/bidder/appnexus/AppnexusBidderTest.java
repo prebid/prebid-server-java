@@ -13,7 +13,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.assertj.core.api.Assertions;
 import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,7 +62,7 @@ public class AppnexusBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnNullIfBidequesImpsIsNull() {
-        Assertions.assertThat(appnexusBidder.makeHttpRequests(BidRequest.builder().build()))
+        assertThat(appnexusBidder.makeHttpRequests(BidRequest.builder().build()))
                 .isEqualTo(Result.of(emptyList(), emptyList()));
     }
 

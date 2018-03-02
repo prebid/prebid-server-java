@@ -18,7 +18,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.BidResponse.BidResponseBuilder;
 import com.iab.openrtb.response.SeatBid;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,7 +40,6 @@ import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.request.Video;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.PulsepointUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -59,7 +57,7 @@ import static org.mockito.BDDMockito.given;
 
 public class PulsepointAdapterTest extends VertxTest {
 
-    private static final String ADAPTER = "pulsepoint";
+    private static final String BIDDER = "pulsepoint";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
     private static final String EXTERNAL_URL = "http://external.org/";
@@ -114,7 +112,7 @@ public class PulsepointAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBid(identity()),
                 givenAdUnitBid(builder -> builder.params(null))));
 
@@ -227,7 +225,7 @@ public class PulsepointAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
         //given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(emptySet()))));
@@ -243,7 +241,7 @@ public class PulsepointAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
                         .mediaTypes(singleton(MediaType.video))
@@ -262,7 +260,7 @@ public class PulsepointAdapterTest extends VertxTest {
         // given
         adapterRequest = givenBidder(
                 builder -> builder
-                        .bidderCode(ADAPTER)
+                        .bidderCode(BIDDER)
                         .adUnitCode("adUnitCode1")
                         .instl(1)
                         .topframe(1)
@@ -279,7 +277,7 @@ public class PulsepointAdapterTest extends VertxTest {
                         .timeoutMillis(1500L)
                         .tid("tid1"));
 
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUid1");
+        given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid1");
 
         // when
         final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
@@ -346,7 +344,7 @@ public class PulsepointAdapterTest extends VertxTest {
                 .app(App.builder().build())
                 .user(User.builder().buyeruid("buyerUid").build()));
 
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUidFromCookie");
+        given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUidFromCookie");
 
         // when
         final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
@@ -360,7 +358,7 @@ public class PulsepointAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
         //given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                         .video(Video.builder()
@@ -393,7 +391,7 @@ public class PulsepointAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfMultipleAdUnitsInPreBidRequest() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
@@ -426,7 +424,7 @@ public class PulsepointAdapterTest extends VertxTest {
     public void extractBidsShouldReturnBidBuildersWithExpectedFields() {
         // given
         adapterRequest = givenBidder(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"));
+                builder -> builder.bidderCode(BIDDER).bidId("bidId").adUnitCode("adUnitCode"));
 
         exchangeCall = givenExchangeCall(
                 bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
@@ -458,7 +456,7 @@ public class PulsepointAdapterTest extends VertxTest {
                         .creativeId("crid")
                         .width(300)
                         .height(250)
-                        .bidder(ADAPTER)
+                        .bidder(BIDDER)
                         .bidId("bidId")
                         .build());
     }
@@ -471,14 +469,14 @@ public class PulsepointAdapterTest extends VertxTest {
         exchangeCall = givenExchangeCall(identity(), br -> br.seatbid(null));
 
         // when and then
-        Assertions.assertThat(adapter.extractBids(adapterRequest, exchangeCall)).isEmpty();
-        Assertions.assertThat(adapter.extractBids(adapterRequest, ExchangeCall.empty(null))).isEmpty();
+        assertThat(adapter.extractBids(adapterRequest, exchangeCall)).isEmpty();
+        assertThat(adapter.extractBids(adapterRequest, ExchangeCall.empty(null))).isEmpty();
     }
 
     @Test
     public void extractBidsShouldReturnMultipleBidBuildersIfMultipleAdUnitsInPreBidRequestAndBidsInResponse() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
@@ -502,7 +500,7 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     private static AdapterRequest givenBidder(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
-        return AdapterRequest.of(ADAPTER, singletonList(givenAdUnitBid(adUnitBidBuilderCustomizer)));
+        return AdapterRequest.of(BIDDER, singletonList(givenAdUnitBid(adUnitBidBuilderCustomizer)));
     }
 
     private static AdUnitBid givenAdUnitBid(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {

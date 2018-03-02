@@ -26,7 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.BidderRequesterCatalog;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
@@ -51,7 +51,7 @@ public class RequestValidatorTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private BidderRequesterCatalog bidderRequesterCatalog;
+    private BidderCatalog bidderCatalog;
     @Mock
     private BidderParamValidator bidderParamValidator;
 
@@ -60,9 +60,9 @@ public class RequestValidatorTest extends VertxTest {
     @Before
     public void setUp() {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
-        given(bidderRequesterCatalog.isValidName(eq(RUBICON))).willReturn(Boolean.TRUE);
+        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
 
-        requestValidator = new RequestValidator(bidderRequesterCatalog, bidderParamValidator);
+        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator);
     }
 
     @Test
@@ -685,7 +685,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessagesWhenImpExtBidderIsUnknown() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
-        given(bidderRequesterCatalog.isValidName(eq(RUBICON))).willReturn(Boolean.FALSE);
+        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(false);
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);

@@ -28,7 +28,6 @@ import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.Usersyncer;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -63,11 +62,6 @@ public class HttpConnector {
      */
     public Future<AdapterResponse> call(Adapter adapter, Usersyncer usersyncer, AdapterRequest adapterRequest,
                                         PreBidRequestContext preBidRequestContext) {
-        Objects.requireNonNull(adapter);
-        Objects.requireNonNull(usersyncer);
-        Objects.requireNonNull(adapterRequest);
-        Objects.requireNonNull(preBidRequestContext);
-
         final long bidderStarted = CLOCK.millis();
 
         final List<AdapterHttpRequest> httpRequests;

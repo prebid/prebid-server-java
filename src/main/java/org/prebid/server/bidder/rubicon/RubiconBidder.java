@@ -25,7 +25,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -76,8 +75,6 @@ public class RubiconBidder extends OpenrtbBidder {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
-    private static final String NAME = BidderName.rubicon.name();
-
     private static final String APPLICATION_JSON_UTF_8 = HttpHeaderValues.APPLICATION_JSON.toString() + ";"
             + HttpHeaderValues.CHARSET.toString() + "=" + StandardCharsets.UTF_8.toString().toLowerCase();
 
@@ -93,11 +90,6 @@ public class RubiconBidder extends OpenrtbBidder {
     public RubiconBidder(String endpoint, String xapiUsername, String xapiPassword) {
         endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
-    }
-
-    @Override
-    public String name() {
-        return NAME;
     }
 
     @Override

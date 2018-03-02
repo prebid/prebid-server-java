@@ -18,7 +18,7 @@ import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
-import org.prebid.server.bidder.AdapterCatalog;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
@@ -33,7 +33,6 @@ import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.usersyncer.UsersyncerCatalog;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -54,8 +53,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final ApplicationSettings applicationSettings;
-    private final AdapterCatalog adapterCatalog;
-    private final UsersyncerCatalog usersyncerCatalog;
+    private final BidderCatalog bidderCatalog;
     private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final CacheService cacheService;
     private final Metrics metrics;
@@ -64,12 +62,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private String date;
     private final Clock clock = Clock.systemDefaultZone();
 
-    public AuctionHandler(ApplicationSettings applicationSettings, AdapterCatalog adapterCatalog,
-                          UsersyncerCatalog usersyncerCatalog, PreBidRequestContextFactory preBidRequestContextFactory,
+    public AuctionHandler(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
+                          PreBidRequestContextFactory preBidRequestContextFactory,
                           CacheService cacheService, Vertx vertx, Metrics metrics, HttpConnector httpConnector) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.adapterCatalog = Objects.requireNonNull(adapterCatalog);
-        this.usersyncerCatalog = Objects.requireNonNull(usersyncerCatalog);
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
@@ -135,10 +132,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext, String accountId) {
         return preBidRequestContext.getAdapterRequests().stream()
-                .filter(bidder -> adapterCatalog.isValidName(bidder.getBidderCode()))
+                .filter(bidder -> bidderCatalog.isValidName(bidder.getBidderCode()))
                 .peek(bidder -> updateAdapterRequestMetrics(bidder.getBidderCode(), accountId))
-                .map(bidder -> httpConnector.call(adapterCatalog.byName(bidder.getBidderCode()),
-                        usersyncerCatalog.byName(bidder.getBidderCode()), bidder, preBidRequestContext))
+                .map(bidder -> httpConnector.call(bidderCatalog.adapterByName(bidder.getBidderCode()),
+                        bidderCatalog.usersyncerByName(bidder.getBidderCode()), bidder, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
@@ -266,7 +263,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private Stream<BidderStatus> invalidBidderStatuses(PreBidRequestContext preBidRequestContext) {
         return preBidRequestContext.getAdapterRequests().stream()
-                .filter(b -> !adapterCatalog.isValidName(b.getBidderCode()))
+                .filter(b -> !bidderCatalog.isValidName(b.getBidderCode()))
                 .map(b -> BidderStatus.builder().bidder(b.getBidderCode()).error("Unsupported bidder").build());
     }
 
@@ -296,17 +293,18 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private void updateResponseTimeMetrics(BidderStatus bidderStatus, PreBidRequestContext preBidRequestContext) {
         final String bidder = bidderStatus.getBidder();
         final Integer responseTimeMs = bidderStatus.getResponseTimeMs();
+
         metrics.forAdapter(bidder).updateTimer(MetricName.request_time, responseTimeMs);
-        metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId()).forAdapter(bidder)
-                .updateTimer(MetricName.request_time, responseTimeMs);
+        metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
+                .forAdapter(bidder).updateTimer(MetricName.request_time, responseTimeMs);
     }
 
     private void updateBidResultMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
         final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
         final String bidder = bidderStatus.getBidder();
         final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-        final AccountMetrics accountMetrics = metrics
-                .forAccount(preBidRequestContext.getPreBidRequest().getAccountId());
+        final AccountMetrics accountMetrics =
+                metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId());
         final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(bidder);
 
         for (final Bid bid : adapterResponse.getBids()) {

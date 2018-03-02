@@ -14,6 +14,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.appnexus.AppnexusUsersyncer;
+import org.prebid.server.bidder.rubicon.RubiconUsersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
@@ -24,9 +27,6 @@ import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
-import org.prebid.server.usersyncer.AppnexusUsersyncer;
-import org.prebid.server.usersyncer.RubiconUsersyncer;
-import org.prebid.server.usersyncer.UsersyncerCatalog;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -54,7 +54,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
-    private UsersyncerCatalog usersyncerCatalog;
+    private BidderCatalog bidderCatalog;
     @Mock
     private RubiconUsersyncer rubiconUsersyncer;
     @Mock
@@ -76,7 +76,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
-        cookieSyncHandler = new CookieSyncHandler(uidsCookieService, usersyncerCatalog, metrics);
+        cookieSyncHandler = new CookieSyncHandler(uidsCookieService, bidderCatalog, metrics);
     }
 
     @Test
@@ -84,7 +84,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(() -> new CookieSyncHandler(null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new CookieSyncHandler(uidsCookieService, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new CookieSyncHandler(uidsCookieService, usersyncerCatalog, null));
+                () -> new CookieSyncHandler(uidsCookieService, bidderCatalog, null));
     }
 
     @Test
@@ -103,7 +103,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(401));
         verify(httpResponse).setStatusMessage(eq("User has opted out"));
         verify(httpResponse).end();
-        verifyNoMoreInteractions(httpResponse, usersyncerCatalog);
+        verifyNoMoreInteractions(httpResponse, bidderCatalog);
     }
 
     @Test
@@ -122,7 +122,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).setStatusMessage(eq("JSON parse failed"));
         verify(httpResponse).end();
-        verifyNoMoreInteractions(httpResponse, usersyncerCatalog);
+        verifyNoMoreInteractions(httpResponse, bidderCatalog);
     }
 
     @Test
@@ -138,7 +138,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end();
-        verifyNoMoreInteractions(httpResponse, usersyncerCatalog);
+        verifyNoMoreInteractions(httpResponse, bidderCatalog);
     }
 
     @Test
@@ -168,7 +168,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         givenUsersyncersReturningFamilyName();
 
         final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.of("http://adnxsexample.com", "redirect", false);
-        given(usersyncerCatalog.byName(APPNEXUS).usersyncInfo()).willReturn(appnexusUsersyncInfo);
+        given(bidderCatalog.usersyncerByName(APPNEXUS).usersyncInfo()).willReturn(appnexusUsersyncInfo);
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -217,7 +217,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         givenUsersyncersReturningFamilyName();
 
-        given(usersyncerCatalog.isValidName("unsupported")).willReturn(false);
+        given(bidderCatalog.isValidName("unsupported")).willReturn(false);
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -240,7 +240,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         givenUsersyncersReturningFamilyName();
 
         final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.of("http://adnxsexample.com", "redirect", false);
-        given(usersyncerCatalog.byName(APPNEXUS).usersyncInfo()).willReturn(appnexusUsersyncInfo);
+        given(bidderCatalog.usersyncerByName(APPNEXUS).usersyncInfo()).willReturn(appnexusUsersyncInfo);
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -269,16 +269,14 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     private void givenUsersyncersReturningFamilyName() {
-        given(usersyncerCatalog.byName(eq(RUBICON))).willReturn(rubiconUsersyncer);
-        given(usersyncerCatalog.isValidName(eq(RUBICON))).willReturn(true);
-        given(usersyncerCatalog.byName(eq(APPNEXUS))).willReturn(appnexusUsersyncer);
-        given(usersyncerCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
+        given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(rubiconUsersyncer);
+        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
+        given(bidderCatalog.usersyncerByName(eq(APPNEXUS))).willReturn(appnexusUsersyncer);
+        given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
 
         given(rubiconUsersyncer.cookieFamilyName()).willReturn(RUBICON);
-        given(rubiconUsersyncer.name()).willReturn(RUBICON);
 
         given(appnexusUsersyncer.cookieFamilyName()).willReturn(APPNEXUS_COOKIE);
-        given(appnexusUsersyncer.name()).willReturn(APPNEXUS);
     }
 
     private CookieSyncResponse captureCookieSyncResponse() throws IOException {

@@ -11,11 +11,6 @@ import org.prebid.server.execution.GlobalTimeout;
 public interface BidderRequester {
 
     /**
-     * Returns bidder's name.
-     */
-    String name();
-
-    /**
      * Executes given request to a bidder.
      */
     Future<BidderSeatBid> requestBids(BidRequest bidRequest, GlobalTimeout timeout);

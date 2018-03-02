@@ -12,8 +12,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbAdapter;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
@@ -23,7 +23,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.Usersyncer;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
@@ -41,8 +40,6 @@ import java.util.stream.Stream;
  */
 public class PulsepointAdapter extends OpenrtbAdapter {
 
-    private static final String NAME = BidderName.pulsepoint.name();
-
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
             Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
 
@@ -51,11 +48,6 @@ public class PulsepointAdapter extends OpenrtbAdapter {
     public PulsepointAdapter(Usersyncer usersyncer, String endpointUrl) {
         super(usersyncer);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-    }
-
-    @Override
-    public String name() {
-        return NAME;
     }
 
     @Override

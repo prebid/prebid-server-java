@@ -39,8 +39,6 @@ public class OptoutHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        Objects.requireNonNull(context);
-
         final String recaptcha = getRequestParam(context, RECAPTCHA_PARAM);
         if (StringUtils.isBlank(recaptcha)) {
             sendRedirect(context);

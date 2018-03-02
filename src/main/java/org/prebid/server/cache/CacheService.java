@@ -10,6 +10,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.cache.proto.request.BannerValue;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
@@ -55,10 +56,7 @@ public class CacheService {
      * The returned result will always have the same number of elements as the values argument.
      */
     public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, GlobalTimeout timeout) {
-        Objects.requireNonNull(bids);
-        Objects.requireNonNull(timeout);
-
-        if (bids.isEmpty()) {
+        if (CollectionUtils.isEmpty(bids)) {
             return Future.succeededFuture(Collections.emptyList());
         }
 
@@ -74,10 +72,7 @@ public class CacheService {
      * The returned result will always have the same number of elements as the values argument.
      */
     public Future<List<String>> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids, GlobalTimeout timeout) {
-        Objects.requireNonNull(bids);
-        Objects.requireNonNull(timeout);
-
-        if (bids.isEmpty()) {
+        if (CollectionUtils.isEmpty(bids)) {
             return Future.succeededFuture(Collections.emptyList());
         }
 
@@ -194,7 +189,10 @@ public class CacheService {
      */
     private List<BidCacheResult> toResponse(BidCacheResponse bidCacheResponse) {
         return bidCacheResponse.getResponses().stream()
-                .map(cacheObject -> BidCacheResult.of(cacheObject.getUuid(), getCachedAssetURL(cacheObject.getUuid())))
+                .filter(Objects::nonNull)
+                .map(CacheObject::getUuid)
+                .filter(Objects::nonNull)
+                .map(uuid -> BidCacheResult.of(uuid, getCachedAssetURL(uuid)))
                 .collect(Collectors.toList());
     }
 
@@ -211,7 +209,6 @@ public class CacheService {
      * Composes cached asset URL for the given UUID cache value.
      */
     public String getCachedAssetURL(String uuid) {
-        Objects.requireNonNull(uuid);
         return cachedAssetUrlTemplate.replaceFirst("%PBS_CACHE_UUID%", uuid);
     }
 

@@ -76,12 +76,6 @@ public class JdbcApplicationSettingsTest {
     }
 
     @Test
-    public void getAccountByIdShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> jdbcApplicationSettings.getAccountById(null, null));
-        assertThatNullPointerException().isThrownBy(() -> jdbcApplicationSettings.getAccountById("accountId", null));
-    }
-
-    @Test
     public void getAccountByIdShouldReturnAccount(TestContext context) {
         // when
         final Future<Account> future = jdbcApplicationSettings.getAccountById("accountId", timeout());
@@ -105,13 +99,6 @@ public class JdbcApplicationSettingsTest {
             assertThat(exception).isInstanceOf(PreBidException.class).hasMessage("Not found");
             async.complete();
         }));
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> jdbcApplicationSettings.getAdUnitConfigById(null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> jdbcApplicationSettings.getAdUnitConfigById("adUnitConfigId", null));
     }
 
     @Test

@@ -28,7 +28,7 @@ import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.prebid.server.bidder.Adapter;
-import org.prebid.server.bidder.AdapterCatalog;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
@@ -47,7 +47,6 @@ import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.usersyncer.UsersyncerCatalog;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -77,9 +76,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private ApplicationSettings applicationSettings;
     @Mock
-    private AdapterCatalog adapterCatalog;
-    @Mock
-    private UsersyncerCatalog usersyncerCatalog;
+    private BidderCatalog bidderCatalog;
     @Mock
     private Adapter rubiconAdapter;
     @Mock
@@ -114,10 +111,11 @@ public class AuctionHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.of(null, null)));
 
-        given(adapterCatalog.byName(eq(RUBICON))).willReturn(rubiconAdapter);
-        given(adapterCatalog.isValidName(eq(RUBICON))).willReturn(true);
-        given(adapterCatalog.byName(eq(APPNEXUS))).willReturn(appnexusAdapter);
-        given(adapterCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
+        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
+        given(bidderCatalog.adapterByName(eq(RUBICON))).willReturn(rubiconAdapter);
+
+        given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
+        given(bidderCatalog.adapterByName(eq(APPNEXUS))).willReturn(appnexusAdapter);
 
         given(vertx.setPeriodic(anyLong(), any()))
                 .willAnswer(AdditionalAnswers.<Long, Handler<Long>>answerVoid((p, h) -> h.handle(0L)));
@@ -127,38 +125,37 @@ public class AuctionHandlerTest extends VertxTest {
         given(accountMetrics.forAdapter(any())).willReturn(accountAdapterMetrics);
 
         given(routingContext.request()).willReturn(httpRequest);
+        given(routingContext.response()).willReturn(httpResponse);
+
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
 
-        given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
-        auctionHandler = new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
-                preBidRequestContextFactory,
+        auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
                 cacheService, vertx, metrics, httpConnector);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(null, null, null, null, null, null, null, null));
+                () -> new AuctionHandler(null, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, null, null, null, null, null, null, null));
+                () -> new AuctionHandler(applicationSettings, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog, null, null, null, null,
-                        null));
+                () -> new AuctionHandler(applicationSettings, bidderCatalog, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
-                        preBidRequestContextFactory, null, null, null, null));
+                () -> new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, null, null,
+                        null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
-                        preBidRequestContextFactory, cacheService, null, null, null));
+                () -> new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
+                        null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
-                        preBidRequestContextFactory, cacheService, vertx, null, null));
+                () -> new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
+                        vertx, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog,
-                        preBidRequestContextFactory, cacheService, vertx, metrics, null));
+                () -> new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
+                        vertx, metrics, null));
     }
 
     @Test

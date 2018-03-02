@@ -13,8 +13,8 @@ import org.prebid.server.adapter.appnexus.model.AppnexusBidExtAppnexus;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbAdapter;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.appnexus.model.BidRequestWithUrl;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
@@ -27,7 +27,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.Usersyncer;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -47,8 +46,6 @@ import java.util.stream.Stream;
  */
 public class AppnexusAdapter extends OpenrtbAdapter {
 
-    private static final String NAME = BidderName.appnexus.name();
-
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.unmodifiableSet(
             EnumSet.of(MediaType.banner, MediaType.video));
 
@@ -60,11 +57,6 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     public AppnexusAdapter(Usersyncer usersyncer, String endpointUrl) {
         super(usersyncer);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-    }
-
-    @Override
-    public String name() {
-        return NAME;
     }
 
     @Override

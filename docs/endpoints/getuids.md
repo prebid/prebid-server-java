@@ -1,7 +1,6 @@
 # Getting User Syncs
 
 This endpoint is used by bidders to obtain user IDs with Prebid Server.
-The response body is empty for this request.
 If a user opted out then response cookie will contain empty UIDs with active `optOut` flag.
 
 ## Sample request

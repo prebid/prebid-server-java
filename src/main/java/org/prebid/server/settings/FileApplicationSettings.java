@@ -68,7 +68,6 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     private static <T> Future<T> mapValueToFuture(Map<String, T> map, String key) {
-        Objects.requireNonNull(key);
         final T value = map.get(key);
         if (value != null) {
             return Future.succeededFuture(value);

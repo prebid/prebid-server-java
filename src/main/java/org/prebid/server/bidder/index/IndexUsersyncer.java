@@ -1,13 +1,11 @@
-package org.prebid.server.usersyncer;
+package org.prebid.server.bidder.index;
 
-import org.prebid.server.bidder.BidderName;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.proto.response.UsersyncInfo;
 
 import java.util.Objects;
 
 public class IndexUsersyncer implements Usersyncer {
-
-    private static final String NAME = BidderName.indexExchange.name();
 
     private final UsersyncInfo usersyncInfo;
 
@@ -17,11 +15,6 @@ public class IndexUsersyncer implements Usersyncer {
 
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl) {
         return UsersyncInfo.of(usersyncUrl, "redirect", false);
-    }
-
-    @Override
-    public String name() {
-        return NAME;
     }
 
     @Override

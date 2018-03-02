@@ -36,7 +36,6 @@ import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.Usersyncer;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -54,7 +53,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class HttpAdapterRequesterTest {
 
-    private static final String ADAPTER = "rubicon";
+    private static final String BIDDER = "rubicon";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -71,14 +70,16 @@ public class HttpAdapterRequesterTest {
     @Before
     public void setUp() {
         // given
-        given(adapter.name()).willReturn(ADAPTER);
-        adapterHttpConnector = new HttpAdapterRequester(adapter, usersyncer, httpConnector);
+        adapterHttpConnector = new HttpAdapterRequester(BIDDER, adapter, usersyncer, httpConnector);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(adapter, usersyncer, null));
+        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(BIDDER, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(BIDDER, adapter, null, null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new HttpAdapterRequester(BIDDER, adapter, usersyncer, null));
     }
 
     @Test
@@ -263,7 +264,6 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         given(usersyncer.cookieFamilyName()).willReturn("someCookieFamily");
-        given(adapter.name()).willReturn(ADAPTER);
 
         given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(AdapterResponse.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
@@ -303,7 +303,6 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         given(usersyncer.cookieFamilyName()).willReturn("someCookieFamily");
-        given(adapter.name()).willReturn(ADAPTER);
 
         given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(AdapterResponse.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
@@ -316,6 +315,7 @@ public class HttpAdapterRequesterTest {
         // then
         final ArgumentCaptor<AdapterRequest> bidderArgumentCaptor = ArgumentCaptor.forClass(AdapterRequest.class);
         verify(httpConnector).call(eq(adapter), any(), bidderArgumentCaptor.capture(), any());
+
         final AdapterRequest adapterRequest = bidderArgumentCaptor.getValue();
         assertThat(adapterRequest.getAdUnitBids().get(0)).isEqualTo(AdUnitBid.builder()
                 .bidderCode("rubicon")
@@ -325,7 +325,6 @@ public class HttpAdapterRequesterTest {
                 .mediaTypes(new HashSet<>(asList(MediaType.video, MediaType.banner)))
                 .params(Json.mapper.createObjectNode())
                 .build());
-
     }
 
     @Test
@@ -530,7 +529,6 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         given(usersyncer.cookieFamilyName()).willReturn("someCookieFamily");
-        given(adapter.name()).willReturn(ADAPTER);
 
         given(httpConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture(AdapterResponse.of(
                 BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
@@ -561,9 +559,10 @@ public class HttpAdapterRequesterTest {
 
         final ArgumentCaptor<AdapterRequest> bidderArgumentCaptor = ArgumentCaptor.forClass(AdapterRequest.class);
         verify(httpConnector).call(eq(adapter), any(), bidderArgumentCaptor.capture(), any());
+
         final AdapterRequest adapterRequest = bidderArgumentCaptor.getValue();
-        assertThat(adapterRequest).isEqualTo(AdapterRequest.of(ADAPTER, singletonList(AdUnitBid.builder()
-                .bidderCode(ADAPTER)
+        assertThat(adapterRequest).isEqualTo(AdapterRequest.of(BIDDER, singletonList(AdUnitBid.builder()
+                .bidderCode(BIDDER)
                 .bidId("impId")
                 .sizes(singletonList(Format.builder().w(200).h(100).build()))
                 .topframe(1)

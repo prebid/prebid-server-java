@@ -1,4 +1,4 @@
-package org.prebid.server.usersyncer;
+package org.prebid.server.bidder.lifestreet;
 
 import org.junit.Test;
 import org.prebid.server.proto.response.UsersyncInfo;

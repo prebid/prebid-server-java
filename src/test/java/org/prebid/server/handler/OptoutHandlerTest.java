@@ -82,12 +82,6 @@ public class OptoutHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldFailOnNullArguments() {
-        // then
-        assertThatNullPointerException().isThrownBy(() -> optoutHandler.handle(null));
-    }
-
-    @Test
     public void shouldRedirectIfRecaptchaIsMissing() {
         // given
         given(httpRequest.getFormAttribute("g-recaptcha-response")).willReturn("");

@@ -42,9 +42,6 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key, GlobalTimeout timeout,
                                                         BiFunction<String, GlobalTimeout, Future<T>> retriever) {
-        Objects.requireNonNull(key);
-        Objects.requireNonNull(timeout);
-
         final Future<T> result;
 
         final T cachedValue = cache.get(key);

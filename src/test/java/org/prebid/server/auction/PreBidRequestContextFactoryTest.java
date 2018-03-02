@@ -18,7 +18,6 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -113,11 +112,6 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> factory.fromRequest(null));
-    }
-
-    @Test
     public void shouldReturnPopulatedContext() {
         // given
         httpRequest.headers().set(USER_AGENT, "userAgent");
@@ -137,11 +131,11 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         // then
         assertThat(preBidRequestContext.getAdapterRequests()).hasSize(1);
-        Assertions.assertThat(preBidRequestContext.getPreBidRequest()).isNotNull();
+        assertThat(preBidRequestContext.getPreBidRequest()).isNotNull();
         assertThat(preBidRequestContext.getIp()).isEqualTo("192.168.244.1");
         assertThat(preBidRequestContext.getSecure()).isNull();
         assertThat(preBidRequestContext.isDebug()).isFalse();
-        Assertions.assertThat(preBidRequestContext.getUidsCookie()).isNotNull();
+        assertThat(preBidRequestContext.getUidsCookie()).isNotNull();
         assertThat(preBidRequestContext.isNoLiveUids()).isTrue();
         assertThat(preBidRequestContext.getUa()).isEqualTo("userAgent");
         assertThat(preBidRequestContext.getReferer()).isEqualTo("http://www.example.com");
@@ -585,7 +579,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        Assertions.assertThat(preBidRequestContext.getUidsCookie()).isNull();
+        assertThat(preBidRequestContext.getUidsCookie()).isNull();
         assertThat(preBidRequestContext.isNoLiveUids()).isFalse();
         assertThat(preBidRequestContext.getUa()).isNull();
         assertThat(preBidRequestContext.getReferer()).isNull();

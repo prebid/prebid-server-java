@@ -18,7 +18,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.adapter.appnexus.model.AppnexusBidExt;
 import org.prebid.server.adapter.appnexus.model.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderName;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
@@ -54,8 +53,6 @@ public class AppnexusBidder extends OpenrtbBidder {
 
     private static final Logger logger = LoggerFactory.getLogger(AppnexusBidder.class);
 
-    private static final String NAME = BidderName.appnexus.name();
-
     private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
 
@@ -67,11 +64,6 @@ public class AppnexusBidder extends OpenrtbBidder {
 
     public AppnexusBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-    }
-
-    @Override
-    public String name() {
-        return NAME;
     }
 
     @Override

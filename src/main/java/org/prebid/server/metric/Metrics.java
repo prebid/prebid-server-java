@@ -4,7 +4,6 @@ import com.codahale.metrics.MetricRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -34,7 +33,6 @@ public class Metrics extends UpdatableMetrics {
      * Returns existing or creates a new {@link AccountMetrics}.
      */
     public AccountMetrics forAccount(String account) {
-        Objects.requireNonNull(account);
         return accountMetrics.computeIfAbsent(account, accountMetricsCreator);
     }
 
@@ -42,7 +40,6 @@ public class Metrics extends UpdatableMetrics {
      * Returns existing or creates a new {@link AdapterMetrics}.
      */
     public AdapterMetrics forAdapter(String adapterType) {
-        Objects.requireNonNull(adapterType);
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 

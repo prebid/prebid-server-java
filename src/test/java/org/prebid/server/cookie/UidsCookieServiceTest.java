@@ -22,7 +22,8 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -43,11 +44,6 @@ public class UidsCookieServiceTest extends VertxTest {
     @Before
     public void setUp() {
         uidsCookieService = new UidsCookieService("trp_optout", "true", null, null, "cookie-domain", 90);
-    }
-
-    @Test
-    public void shouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> uidsCookieService.parseFromRequest(null));
     }
 
     @Test

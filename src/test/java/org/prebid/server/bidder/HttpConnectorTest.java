@@ -46,7 +46,6 @@ import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.UsersyncInfo;
-import org.prebid.server.usersyncer.Usersyncer;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -107,14 +106,6 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new HttpConnector(null));
-    }
-
-    @Test
-    public void callShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> httpConnector.call(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> httpConnector.call(adapter, usersyncer, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> httpConnector.call(adapter, usersyncer, adapterRequest, null));
     }
 
     @Test

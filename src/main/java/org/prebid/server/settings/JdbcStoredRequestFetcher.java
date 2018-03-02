@@ -55,9 +55,6 @@ public class JdbcStoredRequestFetcher implements StoredRequestFetcher {
      * Fetches stored requests from database for the given query.
      */
     private Future<StoredRequestResult> fetchStoredRequests(String query, Set<String> ids, GlobalTimeout timeout) {
-        Objects.requireNonNull(ids);
-        Objects.requireNonNull(timeout);
-
         final List<String> idsQueryParameters = new ArrayList<>();
         IntStream.rangeClosed(1, StringUtils.countMatches(query, ID_PLACEHOLDER))
                 .forEach(i -> idsQueryParameters.addAll(ids));

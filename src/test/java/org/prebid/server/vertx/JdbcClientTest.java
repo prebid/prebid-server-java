@@ -84,15 +84,6 @@ public class JdbcClientTest {
     }
 
     @Test
-    public void executeQueryShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> jdbcClient.executeQuery(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> jdbcClient.executeQuery("query", null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> jdbcClient.executeQuery("query", emptyList(), null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> jdbcClient.executeQuery("query", emptyList(), identity(), null));
-    }
-
-    @Test
     public void executeQueryShouldReturnFailedFutureIfGlobalTimeoutAlreadyExpired() {
         // when
         final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(),

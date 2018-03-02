@@ -38,7 +38,6 @@ import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Video;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.AppnexusUsersyncer;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -56,7 +55,8 @@ import static org.mockito.BDDMockito.given;
 
 public class AppnexusAdapterTest extends VertxTest {
 
-    private static final String ADAPTER = "appnexus";
+    private static final String BIDDER = "appnexus";
+    private static final String BIDDER_COOKIE = "adnxs";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
     private static final String EXTERNAL_URL = "http://external.org/";
@@ -111,7 +111,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedEndpointUrl() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(identity(), params -> params.invCode("invCode1").member("member1"))));
 
         // when
@@ -125,7 +125,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBid(identity(), identity()),
                 givenAdUnitBid(builder -> builder.params(null), identity())));
 
@@ -162,7 +162,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
         //given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                                 .adUnitCode("adUnitCode1")
                                 .mediaTypes(emptySet()),
@@ -180,7 +180,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
         //given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                                 .adUnitCode("adUnitCode1")
                                 .mediaTypes(singleton(MediaType.video))
@@ -200,7 +200,7 @@ public class AppnexusAdapterTest extends VertxTest {
         // given
         adapterRequest = givenBidder(
                 builder -> builder
-                        .bidderCode(ADAPTER)
+                        .bidderCode(BIDDER)
                         .adUnitCode("adUnitCode1")
                         .instl(1)
                         .topframe(1)
@@ -223,7 +223,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .build())
         );
 
-        given(uidsCookie.uidFrom(eq("adnxs"))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(BIDDER_COOKIE))).willReturn("buyerUid");
 
         // when
         final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
@@ -293,7 +293,7 @@ public class AppnexusAdapterTest extends VertxTest {
                 .app(App.builder().build())
                 .user(User.builder().buyeruid("buyerUid").build()));
 
-        given(uidsCookie.uidFrom(eq(ADAPTER))).willReturn("buyerUidFromCookie");
+        given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUidFromCookie");
 
         // when
         final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
@@ -307,7 +307,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
         //given
-        adapterRequest = AdapterRequest.of(ADAPTER, singletonList(
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                                 .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
                                 .video(Video.builder()
@@ -346,7 +346,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfMultipleAdUnitsInPreBidRequest() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1"), identity()),
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
@@ -379,7 +379,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void extractBidsShouldReturnBidBuildersWithExpectedFields() {
         // given
         adapterRequest = givenBidder(
-                builder -> builder.bidderCode(ADAPTER).bidId("bidId").adUnitCode("adUnitCode"),
+                builder -> builder.bidderCode(BIDDER).bidId("bidId").adUnitCode("adUnitCode"),
                 identity());
 
         exchangeCall = givenExchangeCall(
@@ -415,7 +415,7 @@ public class AppnexusAdapterTest extends VertxTest {
                         .width(300)
                         .height(250)
                         .dealId("dealId")
-                        .bidder(ADAPTER)
+                        .bidder(BIDDER)
                         .bidId("bidId")
                         .mediaType(MediaType.banner)
                         .build());
@@ -590,7 +590,7 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void extractBidsShouldReturnMultipleBidBuildersIfMultipleAdUnitsInPreBidRequestAndBidsInResponse() {
         // given
-        adapterRequest = AdapterRequest.of(ADAPTER, asList(
+        adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode1"), identity()),
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
@@ -627,7 +627,7 @@ public class AppnexusAdapterTest extends VertxTest {
             Function<AppnexusParams.AppnexusParamsBuilder, AppnexusParams.AppnexusParamsBuilder>
                     paramsBuilderCustomizer) {
 
-        return AdapterRequest.of(ADAPTER, singletonList(
+        return AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(adUnitBidBuilderCustomizer, paramsBuilderCustomizer)));
     }
 

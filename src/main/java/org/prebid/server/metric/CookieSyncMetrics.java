@@ -29,18 +29,17 @@ public class CookieSyncMetrics extends UpdatableMetrics {
      * Returns existing or create a new {@link BidderCookieSyncMetrics} for supplied bidder.
      */
     public BidderCookieSyncMetrics forBidder(String bidder) {
-        Objects.requireNonNull(bidder);
         return bidderCookieSyncMetrics.computeIfAbsent(bidder, bidderCookieSyncMetricsCreator);
     }
 
     public static class BidderCookieSyncMetrics extends UpdatableMetrics {
 
         BidderCookieSyncMetrics(MetricRegistry metricRegistry, CounterType counterType, String bidder) {
-            super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType), nameCreator(bidder));
+            super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
+                    nameCreator(Objects.requireNonNull(bidder)));
         }
 
         private static Function<MetricName, String> nameCreator(String bidder) {
-            Objects.requireNonNull(bidder);
             return metricName -> String.format("usersync.%s.%s", bidder, metricName.name());
         }
     }

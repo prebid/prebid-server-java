@@ -185,12 +185,4 @@ public class HttpBidderRequester implements BidderRequester {
 
         return builder.build();
     }
-
-    /**
-     * Returns bidder's name.
-     */
-    @Override
-    public String name() {
-        return bidder.name();
-    }
 }

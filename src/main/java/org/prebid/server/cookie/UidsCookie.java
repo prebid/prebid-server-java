@@ -27,18 +27,13 @@ public class UidsCookie {
      * otherwise true
      */
     public static boolean isFacebookSentinel(String familyName, String uid) {
-        Objects.requireNonNull(familyName);
-        Objects.requireNonNull(uid);
-
-        return familyName.equals("audienceNetwork") && uid.equals("0");
+        return Objects.equals(familyName, "audienceNetwork") && uid.equals("0");
     }
 
     /**
      * Returns a UID value for given family name.
      */
     public String uidFrom(String familyName) {
-        Objects.requireNonNull(familyName);
-
         final UidWithExpiry uid = uids.getUids().get(familyName);
         return uid != null ? uid.getUid() : null;
     }
@@ -61,8 +56,6 @@ public class UidsCookie {
      * Returns true if UID value for given family name is 'live'.
      */
     public boolean hasLiveUidFrom(String familyName) {
-        Objects.requireNonNull(familyName);
-
         final UidWithExpiry uid = uids.getUids().get(familyName);
         return uid != null && uid.getUid() != null && isLive(uid);
     }
@@ -72,8 +65,6 @@ public class UidsCookie {
      * to avoid mutation of the current {@link UidsCookie} object.
      */
     public UidsCookie deleteUid(String familyName) {
-        Objects.requireNonNull(familyName);
-
         final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.getUids());
         uidsMap.remove(familyName);
         return new UidsCookie(uids.toBuilder().uids(uidsMap).build());
@@ -84,9 +75,6 @@ public class UidsCookie {
      * to avoid mutation of the current {@link UidsCookie}.
      */
     public UidsCookie updateUid(String familyName, String uid) {
-        Objects.requireNonNull(familyName);
-        Objects.requireNonNull(uid);
-
         final Map<String, UidWithExpiry> uidsMap = new HashMap<>(uids.getUids());
         uidsMap.put(familyName, UidWithExpiry.live(uid));
         return new UidsCookie(uids.toBuilder().uids(uidsMap).build());

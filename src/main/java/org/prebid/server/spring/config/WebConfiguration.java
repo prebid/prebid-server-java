@@ -12,7 +12,7 @@ import io.vertx.ext.web.handler.TimeoutHandler;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.bidder.AdapterCatalog;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
@@ -29,7 +29,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.StoredRequestFetcher;
-import org.prebid.server.usersyncer.UsersyncerCatalog;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
@@ -115,16 +114,15 @@ public class WebConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AuctionHandler auctionHandler(
             ApplicationSettings applicationSettings,
-            AdapterCatalog adapterCatalog,
-            UsersyncerCatalog usersyncerCatalog,
+            BidderCatalog bidderCatalog,
             PreBidRequestContextFactory preBidRequestContextFactory,
             CacheService cacheService,
             Vertx vertx,
             Metrics metrics,
             HttpConnector httpConnector) {
 
-        return new AuctionHandler(applicationSettings, adapterCatalog, usersyncerCatalog, preBidRequestContextFactory,
-                cacheService, vertx, metrics, httpConnector);
+        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService, vertx,
+                metrics, httpConnector);
     }
 
     @Bean
@@ -167,10 +165,10 @@ public class WebConfiguration {
     @Bean
     CookieSyncHandler cookieSyncHandler(
             UidsCookieService uidsCookieService,
-            UsersyncerCatalog usersyncerCatalog,
+            BidderCatalog bidderCatalog,
             Metrics metrics) {
 
-        return new CookieSyncHandler(uidsCookieService, usersyncerCatalog, metrics);
+        return new CookieSyncHandler(uidsCookieService, bidderCatalog, metrics);
     }
 
     @Bean

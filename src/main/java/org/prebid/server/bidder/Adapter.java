@@ -17,11 +17,6 @@ import java.util.List;
 public interface Adapter {
 
     /**
-     * Returns adapter's name.
-     */
-    String name();
-
-    /**
      * Composes list of http request to submit to exchange.
      *
      * @throws PreBidException if error occurs while adUnitBids validation.

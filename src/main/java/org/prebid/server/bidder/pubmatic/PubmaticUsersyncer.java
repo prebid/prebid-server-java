@@ -1,14 +1,12 @@
-package org.prebid.server.usersyncer;
+package org.prebid.server.bidder.pubmatic;
 
-import org.prebid.server.bidder.BidderName;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
 
 public class PubmaticUsersyncer implements Usersyncer {
-
-    private static final String NAME = BidderName.pubmatic.name();
 
     private final UsersyncInfo usersyncInfo;
 
@@ -19,11 +17,6 @@ public class PubmaticUsersyncer implements Usersyncer {
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
         final String redirectUri = HttpUtil.encodeUrl("%s/setuid?bidder=pubmatic&uid=", externalUrl);
         return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), "iframe", false);
-    }
-
-    @Override
-    public String name() {
-        return NAME;
     }
 
     @Override

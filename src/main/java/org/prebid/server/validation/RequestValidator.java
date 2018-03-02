@@ -15,7 +15,7 @@ import com.iab.openrtb.request.Video;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.BidderRequesterCatalog;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -38,15 +38,15 @@ public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
 
-    private final BidderRequesterCatalog bidderRequesterCatalog;
+    private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
      * properties of bidRequest
      */
-    public RequestValidator(BidderRequesterCatalog bidderRequesterCatalog, BidderParamValidator bidderParamValidator) {
-        this.bidderRequesterCatalog = Objects.requireNonNull(bidderRequesterCatalog);
+    public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
     }
 
@@ -113,7 +113,7 @@ public class RequestValidator {
         for (final Map.Entry<String, String> aliasToBidder : aliases.entrySet()) {
             final String alias = aliasToBidder.getKey();
             final String coreBidder = aliasToBidder.getValue();
-            if (!bidderRequesterCatalog.isValidName(coreBidder)) {
+            if (!bidderCatalog.isValidName(coreBidder)) {
                 throw new ValidationException(String.format(
                         "request.ext.prebid.aliases.%s refers to unknown bidder: %s", alias, coreBidder));
             }
@@ -193,7 +193,7 @@ public class RequestValidator {
 
     private void validateImpBidderExtName(int impIndex, Map.Entry<String, JsonNode> bidderExtension, String bidderName)
             throws ValidationException {
-        if (bidderRequesterCatalog.isValidName(bidderName)) {
+        if (bidderCatalog.isValidName(bidderName)) {
             final Set<String> messages = bidderParamValidator.validate(bidderName, bidderExtension.getValue());
             if (!messages.isEmpty()) {
                 throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex,

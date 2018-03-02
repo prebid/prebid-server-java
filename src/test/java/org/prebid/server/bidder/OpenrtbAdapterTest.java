@@ -18,11 +18,6 @@ import static org.assertj.core.api.Assertions.*;
 public class OpenrtbAdapterTest {
 
     @Test
-    public void validateAdUnitBidsMediaTypesShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> OpenrtbAdapter.validateAdUnitBidsMediaTypes(null));
-    }
-
-    @Test
     public void validateAdUnitBidsMediaTypesShouldFailWhenMediaTypeIsVideoAndMimesListIsEmpty() {
         // given
         final List<AdUnitBid> adUnitBids = singletonList(AdUnitBid.builder()
@@ -36,14 +31,6 @@ public class OpenrtbAdapterTest {
         assertThatThrownBy(() -> OpenrtbAdapter.validateAdUnitBidsMediaTypes(adUnitBids))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Invalid AdUnit: VIDEO media type with no video data");
-    }
-
-    @Test
-    public void allowedMediaTypesShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> OpenrtbAdapter.allowedMediaTypes(null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> OpenrtbAdapter.allowedMediaTypes(AdUnitBid.builder().build(), null));
     }
 
     @Test
@@ -77,12 +64,6 @@ public class OpenrtbAdapterTest {
     public void validateImpsShouldAllowListOfImps() {
         assertThatCode(() -> OpenrtbAdapter.validateImps(singletonList(Imp.builder().build())))
                 .doesNotThrowAnyException();
-    }
-
-    @Test
-    public void lookupBidShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> OpenrtbAdapter.lookupBid(null, null));
     }
 
     @Test

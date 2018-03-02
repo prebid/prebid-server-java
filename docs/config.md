@@ -4,7 +4,7 @@ Configuration is handled by [Spring Boot](https://docs.spring.io/spring-boot/doc
 which supports properties files, YAML files, environment variables and command-line arguments for setting config values.
 
 As a general rule, Prebid Server will immediately fails on startup if any of required properties is missing or invalid.
-The exception is bidder configurations (except Rubicon) which will inform you during starting in logs in case of any problems.
+The exception is IndexExchange and Facebook bidders configuration will inform you during starting in logs in case of invalid configuration.
 
 The next sections describes how to set up project configuration.
 

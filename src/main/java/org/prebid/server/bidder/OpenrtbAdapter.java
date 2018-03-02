@@ -19,7 +19,6 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.MediaType;
-import org.prebid.server.usersyncer.Usersyncer;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -113,8 +112,6 @@ public abstract class OpenrtbAdapter implements Adapter {
     }
 
     protected static void validateAdUnitBidsMediaTypes(List<AdUnitBid> adUnitBids) {
-        Objects.requireNonNull(adUnitBids);
-
         if (!adUnitBids.stream()
                 .allMatch(adUnitBid -> adUnitBid.getMediaTypes().stream()
                         .allMatch(mediaType -> isValidAdUnitBidVideoMediaType(mediaType, adUnitBid)))) {
@@ -129,9 +126,6 @@ public abstract class OpenrtbAdapter implements Adapter {
     }
 
     protected static Set<MediaType> allowedMediaTypes(AdUnitBid adUnitBid, Set<MediaType> adapterAllowedMediaTypes) {
-        Objects.requireNonNull(adUnitBid);
-        Objects.requireNonNull(adapterAllowedMediaTypes);
-
         final Set<MediaType> allowedMediaTypes = new HashSet<>(adapterAllowedMediaTypes);
         allowedMediaTypes.retainAll(adUnitBid.getMediaTypes());
         return allowedMediaTypes;
@@ -150,8 +144,6 @@ public abstract class OpenrtbAdapter implements Adapter {
     }
 
     protected static AdUnitBid lookupBid(List<AdUnitBid> adUnitBids, String adUnitCode) {
-        Objects.requireNonNull(adUnitBids);
-
         for (AdUnitBid adUnitBid : adUnitBids) {
             if (Objects.equals(adUnitBid.getAdUnitCode(), adUnitCode)) {
                 return adUnitBid;
