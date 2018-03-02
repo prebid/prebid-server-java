@@ -7,11 +7,16 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.GlobalTimeout;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.StoredRequestResult;
 
-import static org.assertj.core.api.Assertions.*;
+import java.util.Collections;
+
+import static java.util.Collections.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -30,21 +35,6 @@ public class CachingApplicationSettingsTest {
     @Before
     public void setUp() {
         cachingApplicationSettings = new CachingApplicationSettings(applicationSettings, 360, 100);
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new CachingApplicationSettings(null, 1, 1));
-        assertThatIllegalArgumentException().isThrownBy(() -> new CachingApplicationSettings(applicationSettings, 0, 1))
-                .withMessage("ttl and size must be positive");
-        assertThatIllegalArgumentException().isThrownBy(() -> new CachingApplicationSettings(applicationSettings, 1, 0))
-                .withMessage("ttl and size must be positive");
-    }
-
-    @Test
-    public void getAccountByIdShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> cachingApplicationSettings.getAccountById(null, null));
-        assertThatNullPointerException().isThrownBy(() -> cachingApplicationSettings.getAccountById("accountId", null));
     }
 
     @Test
@@ -113,5 +103,58 @@ public class CachingApplicationSettingsTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("Not found");
+    }
+
+    @Test
+    public void getStoredRequestByIdShouldReturnResultOnSuccessiveCalls() {
+        // given
+        final GlobalTimeout timeout = GlobalTimeout.create(500);
+        given(applicationSettings.getStoredRequestsById(eq(singleton("id")), same(timeout)))
+                .willReturn(Future.succeededFuture(StoredRequestResult.of(Collections.singletonMap("id", "json"),
+                        emptyList())));
+        // when
+        final Future<StoredRequestResult> future =
+                cachingApplicationSettings.getStoredRequestsById(singleton("id"), timeout);
+        cachingApplicationSettings.getStoredRequestsById(singleton("id"), timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(StoredRequestResult.of(Collections.singletonMap("id", "json"),
+                emptyList()));
+        verify(applicationSettings).getStoredRequestsById(eq(singleton("id")), same(timeout));
+        verifyNoMoreInteractions(applicationSettings);
+    }
+
+    @Test
+    public void getStoredRequestByIdShouldPropagateFailure() {
+        // given
+        given(applicationSettings.getStoredRequestsById(any(), any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Not found")));
+
+        // when
+        final Future<StoredRequestResult> future =
+                cachingApplicationSettings.getStoredRequestsById(singleton("id"), GlobalTimeout.create(500));
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Not found");
+    }
+
+    @Test
+    public void getStoredRequestByIdShouldReturnResultWithErrorsOnNotSuccessiveCallToCacheAndErrorInDelegateCall() {
+        // given
+        given(applicationSettings.getStoredRequestsById(eq(singleton("id")), any()))
+                .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(),
+                        singletonList("Stored requests for ids id was not found"))));
+
+        // when
+        final Future<StoredRequestResult> future =
+                cachingApplicationSettings.getStoredRequestsById(singleton("id"), GlobalTimeout.create(500));
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(StoredRequestResult.of(emptyMap(),
+                singletonList("Stored requests for ids id was not found")));
     }
 }

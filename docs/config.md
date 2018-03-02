@@ -21,12 +21,10 @@ metrics:
   type: graphite
   host: graphite:3003
   interval: 60
-datacache:
+settings:
   type: mysql
-stored-requests:
-  type: mysql
-  query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN %ID_LIST%
-  amp-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN %ID_LIST%
+  stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN %ID_LIST%
+  amp-stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN %ID_LIST%
 ```
 If some property is missed in `prebid-config.yaml` application will look for it 
 in `src/main/resources/application.yaml` file.

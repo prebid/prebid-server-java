@@ -9,10 +9,16 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.StoredRequestResult;
 
-import static org.assertj.core.api.Assertions.*;
+import static java.util.Collections.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 public class FileApplicationSettingsTest {
 
@@ -23,19 +29,13 @@ public class FileApplicationSettingsTest {
     private FileSystem fileSystem;
 
     @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> FileApplicationSettings.create(null, null));
-        assertThatNullPointerException().isThrownBy(() -> FileApplicationSettings.create(fileSystem, null));
-    }
-
-    @Test
     public void creationShouldFailIfFileCouldNotBeParsed() {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("invalid"));
 
         // when and then
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> FileApplicationSettings.create(fileSystem, "ignore"));
+                .isThrownBy(() -> FileApplicationSettings.create(fileSystem, "ignore", "ignore"));
     }
 
     @Test
@@ -43,7 +43,8 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs:"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore");
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("123", null);
@@ -57,7 +58,8 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore");
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("123", null);
@@ -72,7 +74,8 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore");
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("789", null);
@@ -86,7 +89,8 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore");
 
         // when
         final Future<String> config = applicationSettings.getAdUnitConfigById("123", null);
@@ -101,7 +105,8 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
                 "configs: [ {id: '123', config: '{\"bidder\": \"rubicon\"}'}, {id: '456'} ]"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore");
 
         // when
         final Future<String> adUnitConfigById1 = applicationSettings.getAdUnitConfigById("123", null);
@@ -119,12 +124,69 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs: [ id: '123', id: '456' ]"));
 
-        final FileApplicationSettings applicationSettings = FileApplicationSettings.create(fileSystem, "ignore");
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore");
 
         // when
         final Future<String> config = applicationSettings.getAdUnitConfigById("789", null);
 
         // then
         assertThat(config.failed()).isTrue();
+    }
+
+    @Test
+    public void getStoredRequestsByIdShouldReturnResultWithConfigNotFoundErrorForNotExistingId() {
+        // given
+        given(fileSystem.readDirBlocking(anyString())).willReturn(singletonList("/home/user/requests/1.json"));
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("accounts:")) // settings file
+                .willReturn(Buffer.buffer("value1")); // stored request
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore");
+
+        // when
+        final Future<StoredRequestResult> storedRequestResult = applicationSettings
+                .getStoredRequestsById(singleton("2"), null);
+
+        // then
+        verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
+        assertThat(storedRequestResult.succeeded()).isTrue();
+        assertThat(storedRequestResult.result().getErrors()).isNotNull().hasSize(1)
+                .isEqualTo(singletonList("No config found for id: 2"));
+        assertThat(storedRequestResult.result().getStoredIdToJson()).isNotNull().hasSize(1)
+                .isEqualTo(singletonMap("1", "value1"));
+    }
+
+    @Test
+    public void getStoredRequestsByIdShouldReturnResultWithEmptyErrorListIfAllIdsArePresent() {
+        // given
+        given(fileSystem.readDirBlocking(anyString())).willReturn(singletonList("/home/user/requests/1.json"));
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("accounts:")) // settings file
+                .willReturn(Buffer.buffer("value1")); // stored request
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore");
+
+        // when
+        final Future<StoredRequestResult> storedRequestResult = applicationSettings
+                .getStoredRequestsById(singleton("1"), null);
+        // then
+        verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
+        assertThat(storedRequestResult.result().getErrors()).isNotNull().isEmpty();
+        assertThat(storedRequestResult.result().getStoredIdToJson()).isNotNull().hasSize(1)
+                .isEqualTo(singletonMap("1", "value1"));
+    }
+
+    @Test
+    public void storedRequestsInitializationShouldNotReadFromNonJsonFiles() {
+        // given
+        given(fileSystem.readDirBlocking(anyString())).willReturn(singletonList("/home/user/requests/1.txt"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:")); // settings file
+
+        // when
+        FileApplicationSettings.create(fileSystem, "ignore", "ignore");
+
+        // then
+        verify(fileSystem, never()).readFileBlocking(eq("1.txt"));
     }
 }

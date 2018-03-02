@@ -36,7 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.response.AmpResponse;
-import org.prebid.server.settings.StoredRequestFetcher;
+import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -62,7 +62,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private final long defaultTimeout;
     private final long defaultStoredRequestsTimeoutMs;
-    private final StoredRequestFetcher storedRequestFetcher;
+    private final ApplicationSettings applicationSettings;
     private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final RequestValidator requestValidator;
     private final ExchangeService exchangeService;
@@ -70,13 +70,13 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final Metrics metrics;
 
     public AmpHandler(long defaultTimeout, long defaultStoredRequestsTimeoutMs,
-                      StoredRequestFetcher storedRequestFetcher,
+                      ApplicationSettings applicationSettings,
                       PreBidRequestContextFactory preBidRequestContextFactory,
                       RequestValidator requestValidator,
                       ExchangeService exchangeService, UidsCookieService uidsCookieService, Metrics metrics) {
         this.defaultTimeout = defaultTimeout;
         this.defaultStoredRequestsTimeoutMs = defaultStoredRequestsTimeoutMs;
-        this.storedRequestFetcher = Objects.requireNonNull(storedRequestFetcher);
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.exchangeService = Objects.requireNonNull(exchangeService);
@@ -129,7 +129,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private Future<BidRequest> toStoredBidRequest(AmpRequest ampRequest, long startTime) {
         final String storedRequestId = ampRequest.getTagId();
 
-        return storedRequestFetcher.getStoredRequestsByAmpId(Collections.singleton(storedRequestId),
+        return applicationSettings.getStoredRequestsByAmpId(Collections.singleton(storedRequestId),
                 storedRequestFetcherTimeout(startTime))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed with exception: %s", exception))))

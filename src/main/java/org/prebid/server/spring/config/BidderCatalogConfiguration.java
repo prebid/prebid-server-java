@@ -7,8 +7,10 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.facebook.FacebookAdapter;
 import org.prebid.server.bidder.index.IndexAdapter;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +22,7 @@ public class BidderCatalogConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(BidderCatalogConfiguration.class);
 
     @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderCatalog bidderCatalog(List<BidderDeps> bidderDeps) {
         // There are no default values for some adapter properties. We don't want to force their presence in external
         // configuration and just skip adapters with incomplete configuration. But we want to make anyone deploying

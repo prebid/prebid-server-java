@@ -37,7 +37,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
-import org.prebid.server.settings.StoredRequestFetcher;
+import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredRequestResult;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -61,7 +61,7 @@ public class AmpHandlerTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private StoredRequestFetcher storedRequestFetcher;
+    private ApplicationSettings applicationSettings;
     @Mock
     private RequestValidator requestValidator;
     @Mock
@@ -102,7 +102,7 @@ public class AmpHandlerTest extends VertxTest {
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
-        ampHandler = new AmpHandler(5000, 50, storedRequestFetcher, preBidRequestContextFactory, requestValidator,
+        ampHandler = new AmpHandler(5000, 50, applicationSettings, preBidRequestContextFactory, requestValidator,
                 exchangeService, uidsCookieService, metrics);
     }
 
@@ -110,14 +110,14 @@ public class AmpHandlerTest extends VertxTest {
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new AmpHandler(1, 1, storedRequestFetcher, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, storedRequestFetcher,
+                () -> new AmpHandler(1, 1, applicationSettings, null, null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, applicationSettings,
                 preBidRequestContextFactory, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, storedRequestFetcher,
+        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, applicationSettings,
                 preBidRequestContextFactory, requestValidator, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, storedRequestFetcher,
+        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, applicationSettings,
                 preBidRequestContextFactory, requestValidator, exchangeService, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, storedRequestFetcher,
+        assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, applicationSettings,
                 preBidRequestContextFactory, requestValidator, exchangeService, uidsCookieService, null));
     }
 
@@ -130,7 +130,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(storedRequestFetcher);
+        verifyZeroInteractions(applicationSettings);
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: AMP requests require an AMP tag_id"));
     }
@@ -138,7 +138,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfStoredBidRequestCouldNotFetched() {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(Future.failedFuture(new RuntimeException()));
 
         // when
@@ -153,7 +153,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfStoredBidRequestHasErrors() {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("error1"))));
 
         // when
@@ -167,7 +167,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfStoredBidRequestCouldNotBeParsed() {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), emptyList())));
 
         // when
@@ -181,7 +181,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfStoredBidRequestHasNoImp() throws JsonProcessingException {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(builder -> builder
                         .imp(emptyList())));
 
@@ -197,7 +197,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfStoredBidRequestHasMoreThenOneImp() throws JsonProcessingException {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(builder -> builder
                         .imp(asList(Imp.builder().build(), Imp.builder().build()))));
 
@@ -213,7 +213,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfStoredBidRequestHasNoExt() throws JsonProcessingException {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(builder -> builder.ext(null)));
 
         // when
@@ -229,7 +229,7 @@ public class AmpHandlerTest extends VertxTest {
         // given
         final ObjectNode ext = mapper.createObjectNode();
         ext.set("prebid", new TextNode("non-ExtBidRequest"));
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(builder -> builder.ext(ext)));
 
         // when
@@ -244,7 +244,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldRespondWithBadRequestIfStoredBidRequestExtHasNoTargetingAndCaching()
             throws JsonProcessingException {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(builder -> builder
                         .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(null, null, null, null))))));
 
@@ -259,7 +259,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestIfBidRequestIsNotValid() throws JsonProcessingException {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(identity()));
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(asList("error1", "error2")));
@@ -275,7 +275,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorIfAuctionFails() throws JsonProcessingException {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(identity()));
 
         given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
@@ -295,7 +295,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithInternalServerErrorIfCannotExtractBidTargeting() throws JsonProcessingException {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(any(), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(identity()));
 
         given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
@@ -318,7 +318,7 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithExpectedResponse() throws JsonProcessingException {
         // given
-        given(storedRequestFetcher.getStoredRequestsByAmpId(eq(singleton("tagId1")), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(eq(singleton("tagId1")), any()))
                 .willReturn(givenStoredRequestResultFuture(identity()));
 
         given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
@@ -335,7 +335,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(storedRequestFetcher).getStoredRequestsByAmpId(eq(singleton("tagId1")), any());
+        verify(applicationSettings).getStoredRequestsByAmpId(eq(singleton("tagId1")), any());
         verify(preBidRequestContextFactory).fromRequest(any(BidRequest.class), any(RoutingContext.class));
         verify(requestValidator).validate(any(BidRequest.class));
         verify(exchangeService).holdAuction(any(), any(), any());
@@ -423,7 +423,7 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     private void givenMocksForMetricSupport() throws JsonProcessingException {
-        given(storedRequestFetcher.getStoredRequestsByAmpId(eq(singleton("tagId1")), any()))
+        given(applicationSettings.getStoredRequestsByAmpId(eq(singleton("tagId1")), any()))
                 .willReturn(givenStoredRequestResultFuture(identity()));
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));

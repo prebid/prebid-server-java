@@ -15,7 +15,6 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
-import org.prebid.server.settings.StoredRequestFetcher;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,7 +44,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     PreBidRequestContextFactory preBidRequestContextFactory(
             @Value("${default-timeout-ms}") long defaultTimeoutMs,
             PublicSuffixList psl,
@@ -92,6 +90,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog,
@@ -102,11 +101,10 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
-            StoredRequestFetcher storedRequestFetcher) {
-        return new StoredRequestProcessor(storedRequestFetcher, defaultTimeoutMs);
+            ApplicationSettings applicationSettings) {
+        return new StoredRequestProcessor(applicationSettings, defaultTimeoutMs);
     }
 
     @Bean

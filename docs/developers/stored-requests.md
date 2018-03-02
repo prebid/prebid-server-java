@@ -9,7 +9,7 @@ Docs outlining the motivation and uses will be added sometime in the future.
 Configure your server to read stored requests from the filesystem:
 
 ```yaml
-stored-requests.type: filesystem
+settings.type: filesystem
 ```
 
 Choose an ID to reference your stored request data. Throughout this doc, replace {id} with the ID you've chosen.
@@ -125,7 +125,7 @@ So far, our examples have only used Stored Imp data. However, Stored Requests
 are also allowed on the [BidRequest](https://www.iab.com/wp-content/uploads/2016/03/OpenRTB-API-Specification-Version-2-5-FINAL.pdf#page=15).
 These work exactly the same way, but support storing properties like timeouts and price granularity.
 
-For example, assume the following `stored_requests/data/by_id/stored-request.json`:
+For example, assume the following `stored-requests/stored-request.json`:
 
 ```json
 {
@@ -192,18 +192,18 @@ Stored Requests do not need to be saved to files. Other backends are supported w
 
 For PostgreSQL:
 ```yaml
-stored-requests:
+settings:
   type: postgres
   host: localhost:5432
   user: db-username
   dbname: database-name
-  query: SELECT id, requestData FROM stored_requests WHERE id IN %ID_LIST%;
-  amp-query: SELECT id, requestData FROM stored_requests WHERE id IN %ID_LIST%;
+  stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN %ID_LIST%;
+  amp-stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN %ID_LIST%;
 ```
 
 For MySQL:
 ```yaml
-stored-requests:
+settings:
   type: mysql
 ```
 

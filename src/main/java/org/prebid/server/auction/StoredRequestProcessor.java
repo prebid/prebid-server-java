@@ -17,7 +17,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
-import org.prebid.server.settings.StoredRequestFetcher;
+import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredRequestResult;
 
 import java.io.IOException;
@@ -38,11 +38,11 @@ public class StoredRequestProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(StoredRequestProcessor.class);
 
-    private final StoredRequestFetcher storedRequestFetcher;
+    private final ApplicationSettings applicationSettings;
     private final long defaultTimeout;
 
-    public StoredRequestProcessor(StoredRequestFetcher storedRequestFetcher, long defaultTimeout) {
-        this.storedRequestFetcher = Objects.requireNonNull(storedRequestFetcher);
+    public StoredRequestProcessor(ApplicationSettings applicationSettings, long defaultTimeout) {
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.defaultTimeout = defaultTimeout;
     }
 
@@ -70,7 +70,7 @@ public class StoredRequestProcessor {
             return Future.succeededFuture(bidRequest);
         }
 
-        return storedRequestFetcher.getStoredRequestsById(storedRequestIds, timeout(bidRequest))
+        return applicationSettings.getStoredRequestsById(storedRequestIds, timeout(bidRequest))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed with exception: %s", exception))))
                 .compose(storedRequestResult -> storedRequestResult.getErrors().size() > 0

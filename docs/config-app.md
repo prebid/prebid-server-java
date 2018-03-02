@@ -60,32 +60,23 @@ For `influxdb` backend type available next options:
 - `cache.host` - set the external Cache Service destination in format `host:port`.
 - `cache.query` - appends to `/cache` as query string params (used for legacy Auction requests).
 
-## Data Cache
-- `datacache.type` - where preconfigured application settings must be fetched from. Can be: `filesystem`, `mysql` or `postgres`.
+## Application settings (account configuration, stored ad unit configurations, stored requests)
+- `settings.type` - where preconfigured application settings must be fetched from. Can be: `filesystem`, `mysql` or `postgres`.
 
 For `filesystem` type available next options:
-- `datacache.filename` - location of file settings.
+- `settings.settings-filename` - location of file settings.
+- `settings.stored-requests-dir` - directory with stored requests.
 
 For `mysql` or `postgres` type available next options:
-- `datacache.cache-size` - the size of LRU cache.
-- `datacache.ttl-seconds` - how log in seconds cache data will be available in LRU cache.
-
-## Stored Requests
-- `stored-requests.type` - where stored requests must be fetched from. Can be: `filesystem`, `mysql` or `postgres`.
-
-For `filesystem` type available next options:
-- `stored-requests.configpath` - location of file with saved stored requests.
-
-For `mysql` or `postgres` type available next options:
-- `stored-requests.host` - database destination in format `host:port`.
-- `stored-requests.dbname` - database name.
-- `stored-requests.user` - database user.
-- `stored-requests.password` - database password.
-- `stored-requests.pool-size` - set the initial/min/max pool size of database connections.
-- `stored-requests.in-memory-cache.ttl-seconds` - set the maximum response time.
-- `stored-requests.in-memory-cache.cache-size` - set the size of LRU cache.
-- `stored-requests.query` - the SQL query to fetch stored requests.
-- `stored-requests.amp-query` - the SQL query to fetch AMP stored requests.
+- `settings.host` - database destination in format `host:port`.
+- `settings.dbname` - database name.
+- `settings.user` - database user.
+- `settings.password` - database password.
+- `settings.pool-size` - set the initial/min/max pool size of database connections.
+- `settings.in-memory-cache.ttl-seconds` - how log in seconds cache data will be available in LRU cache.
+- `settings.in-memory-cache.cache-size` - the size of LRU cache.
+- `settings.stored-requests-query` - the SQL query to fetch stored requests.
+- `settings.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.

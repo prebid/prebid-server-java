@@ -44,10 +44,7 @@ adapters:
     usersync-url: http://prebid-match.dotomi.com/prebid/match?rurl=
 metrics:
   metricType: flushingCounter
-datacache:
-  cache-size: 10000
-  ttl-seconds: 360
-stored-requests:
+settings:
   pool-size: 20
   in-memory-cache:
     cache-size: 10000

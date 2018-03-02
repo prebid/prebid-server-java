@@ -41,12 +41,10 @@ cache:
   scheme: http
   host: localhost
   query: uuid=%PBS_CACHE_UUID%
-datacache:
+settings:
   type: filesystem
-  filename: sample-app-settings.yml
-stored-requests:
-  type: filesystem
-  configpath: /tmp
+  settings-filename: sample-app-settings.yml
+  stored-requests-dir: /tmp
 ```
 
 Also, create the Data Cache settings file `sample-app-settings.yml` with content:

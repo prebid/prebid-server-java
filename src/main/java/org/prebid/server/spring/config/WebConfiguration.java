@@ -28,7 +28,6 @@ import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
-import org.prebid.server.settings.StoredRequestFetcher;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
@@ -148,12 +147,12 @@ public class WebConfiguration {
             @Value("${auction.stored-requests-timeout-ms}") long defaultStoredRequestsTimeoutMs,
             RequestValidator requestValidator,
             ExchangeService exchangeService,
-            StoredRequestFetcher storedRequestFetcher,
+            ApplicationSettings applicationSettings,
             PreBidRequestContextFactory preBidRequestContextFactory,
             UidsCookieService uidsCookieService,
             Metrics metrics) {
 
-        return new AmpHandler(defaultTimeoutMs, defaultStoredRequestsTimeoutMs, storedRequestFetcher,
+        return new AmpHandler(defaultTimeoutMs, defaultStoredRequestsTimeoutMs, applicationSettings,
                 preBidRequestContextFactory, requestValidator, exchangeService, uidsCookieService, metrics);
     }
 

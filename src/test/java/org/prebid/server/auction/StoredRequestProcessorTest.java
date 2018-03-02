@@ -24,7 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
-import org.prebid.server.settings.StoredRequestFetcher;
+import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredRequestResult;
 
 import java.io.IOException;
@@ -51,13 +51,13 @@ public class StoredRequestProcessorTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private StoredRequestFetcher storedRequestFetcher;
+    private ApplicationSettings applicationSettings;
 
     private StoredRequestProcessor storedRequestProcessor;
 
     @Before
     public void setUp() {
-        storedRequestProcessor = new StoredRequestProcessor(storedRequestFetcher, DEFAULT_TIMEOUT);
+        storedRequestProcessor = new StoredRequestProcessor(applicationSettings, DEFAULT_TIMEOUT);
     }
 
     @Test
@@ -84,7 +84,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         final Map<String, String> storedRequestFetchResult = new HashMap<>();
         storedRequestFetchResult.put("bidRequest", storedRequestBidRequestJson);
         storedRequestFetchResult.put("imp", storedRequestImpJson);
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn(
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn(
                 Future.succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList())));
 
         // when
@@ -118,7 +118,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         String storedRequestBidRequestJson = mapper.writeValueAsString(BidRequest.builder().id("test-request-id")
                 .tmax(1000L).build());
         final Map<String, String> storedRequestFetchResult = singletonMap("123", storedRequestBidRequestJson);
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -144,7 +144,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .imp(emptyList()));
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", "{{}");
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -166,7 +166,7 @@ public class StoredRequestProcessorTest extends VertxTest {
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", mapper.writeValueAsString(
                 Json.mapper.createObjectNode().put("tmax", "stringValue")));
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -226,7 +226,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .format(singletonList(Format.builder().w(300).h(250).build())).build()).build());
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", storedRequestImpJson);
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -264,7 +264,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         impBuilder.ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.
                                 of(ExtStoredRequest.of("123")))))))));
 
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("No config found for id: 123")))));
 
         // when
@@ -288,7 +288,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(bidRequest);
 
         // then
-        verifyZeroInteractions(storedRequestFetcher);
+        verifyZeroInteractions(applicationSettings);
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result().getImp().get(0)).isSameAs(imp);
         assertThat(bidRequestFuture.result()).isSameAs(bidRequest);
@@ -309,7 +309,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .format(singletonList(Format.builder().w(300).h(250).build())).build()).build());
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", storedRequestImpJson);
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -370,7 +370,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .imp(singletonList(givenImp(impBuilder -> impBuilder
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("123")))))))));
 
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn((Future
                 .failedFuture(new Exception("Error during file fetching"))));
 
         // when
@@ -392,7 +392,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         .ext(Json.mapper.valueToTree(ExtImp.of(ExtImpPrebid.of(ExtStoredRequest.of("123")))))))));
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", "{{}");
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -413,7 +413,7 @@ public class StoredRequestProcessorTest extends VertxTest {
 
         final Map<String, String> storedRequestFetchResult = singletonMap("123", mapper.writeValueAsString(
                 Json.mapper.createObjectNode().put("secure", "stringValue")));
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn((Future
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn((Future
                 .succeededFuture(StoredRequestResult.of(storedRequestFetchResult, emptyList()))));
 
         // when
@@ -429,7 +429,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldUseTimeoutFromRequest() {
         // given
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn(Future.failedFuture((String) null));
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn(Future.failedFuture((String) null));
 
         // when
         storedRequestProcessor.processStoredRequests(givenBidRequest(
@@ -441,14 +441,14 @@ public class StoredRequestProcessorTest extends VertxTest {
 
         // then
         final ArgumentCaptor<GlobalTimeout> timeoutCaptor = ArgumentCaptor.forClass(GlobalTimeout.class);
-        verify(storedRequestFetcher).getStoredRequestsById(anySet(), timeoutCaptor.capture());
+        verify(applicationSettings).getStoredRequestsById(anySet(), timeoutCaptor.capture());
         assertThat(timeoutCaptor.getValue().remaining()).isCloseTo(1000L, offset(20L));
     }
 
     @Test
     public void shouldUseDefaultTimeoutIfMissingInRequest() {
         // given
-        given(storedRequestFetcher.getStoredRequestsById(any(), any())).willReturn(Future.failedFuture((String) null));
+        given(applicationSettings.getStoredRequestsById(any(), any())).willReturn(Future.failedFuture((String) null));
 
         // when
         storedRequestProcessor.processStoredRequests(givenBidRequest(
@@ -458,7 +458,7 @@ public class StoredRequestProcessorTest extends VertxTest {
 
         // then
         final ArgumentCaptor<GlobalTimeout> timeoutCaptor = ArgumentCaptor.forClass(GlobalTimeout.class);
-        verify(storedRequestFetcher).getStoredRequestsById(anySet(), timeoutCaptor.capture());
+        verify(applicationSettings).getStoredRequestsById(anySet(), timeoutCaptor.capture());
         assertThat(timeoutCaptor.getValue().remaining()).isCloseTo(DEFAULT_TIMEOUT, offset(20L));
     }
 
