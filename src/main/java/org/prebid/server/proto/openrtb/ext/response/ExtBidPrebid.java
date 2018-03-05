@@ -15,6 +15,4 @@ public class ExtBidPrebid {
     BidType type;
 
     Map<String, String> targeting;
-
-    ExtResponseCache cache;
 }

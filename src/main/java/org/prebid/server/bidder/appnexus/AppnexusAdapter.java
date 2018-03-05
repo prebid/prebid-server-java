@@ -175,7 +175,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     private static Float bidfloor(AppnexusParams params) {
         final BigDecimal reserve = params.getReserve();
         return reserve != null && reserve.compareTo(BigDecimal.ZERO) > 0
-                ? reserve.floatValue() // TODO: we need to factor in currency here if non-USD
+                ? reserve.floatValue()
                 : null;
     }
 
@@ -221,12 +221,11 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     @Override
     public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
         return responseBidStream(exchangeCall.getBidResponse())
-                .map(bid -> toBidBuilder(bid, adapterRequest, exchangeCall.getBidRequest()))
+                .map(bid -> toBidBuilder(bid, adapterRequest))
                 .collect(Collectors.toList());
     }
 
-    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest,
-                                               BidRequest bidRequest) {
+    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest) {
         final AdUnitBid adUnitBid = lookupBid(adapterRequest.getAdUnitBids(), bid.getImpid());
         return Bid.builder()
                 .bidder(adUnitBid.getBidderCode())

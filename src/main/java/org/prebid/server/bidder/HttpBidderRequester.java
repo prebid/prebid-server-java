@@ -146,9 +146,7 @@ public class HttpBidderRequester implements BidderRequester {
 
         final List<BidderError> bidderErrors = errors(previousErrors, calls, createdBids);
 
-        // TODO: by now ext is not filled (same behavior is observed in open-source version), either fill it or
-        // delete from seat
-        return BidderSeatBid.of(bids, null, httpCalls, bidderErrors);
+        return BidderSeatBid.of(bids, httpCalls, bidderErrors);
     }
 
     /**

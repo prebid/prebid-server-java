@@ -496,11 +496,6 @@ public class ExchangeService {
                                 toBid(bidderBid, bidder, keywordsCreator, winningBidsWithCacheIds))
                         .collect(Collectors.toList()));
 
-        final ObjectNode seatBidExt = bidderSeatBid.getExt();
-        if (seatBidExt != null) {
-            seatBidBuilder.ext(Json.mapper.valueToTree(ExtPrebid.of(null, seatBidExt)));
-        }
-
         return seatBidBuilder.build();
     }
 
@@ -515,9 +510,7 @@ public class ExchangeService {
                 winningBidsWithCacheIds.get(bid))
                 : null;
 
-        // TODO: by now cache is not filled (same behavior is observed in open-source version), either fill it or
-        // delete from extension
-        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords, null);
+        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords);
 
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
 

@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.model;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
@@ -22,17 +21,6 @@ public class BidderSeatBid {
      * List of bids which bidder wishes to make.
      */
     List<BidderBid> bids;
-
-    /**
-     * Contains the extension for this seatbid.
-     * <ul>
-     * <li>If {@link #bids}.size() > 0, this will become response.seatbid[i].ext.{bidder} on the final OpenRTB
-     * response.</li>
-     * <li>If {@link #bids}.isEmpty() == true, this will be ignored because the OpenRTB spec doesn't allow a seatbid
-     * with 0 bids.</li>
-     * </ul>
-     */
-    ObjectNode ext;
 
     /**
      * List of debugging info. It should only be populated if the request.test == 1.

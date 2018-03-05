@@ -85,7 +85,6 @@ public class HttpBidderRequesterTest {
         assertThat(bidderSeatBid.getBids()).hasSize(0);
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(0);
         assertThat(bidderSeatBid.getErrors()).hasSize(0);
-        assertThat(bidderSeatBid.getExt()).isNull();
     }
 
     @Test

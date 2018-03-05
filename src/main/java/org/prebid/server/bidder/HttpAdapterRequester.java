@@ -71,7 +71,7 @@ public class HttpAdapterRequester implements BidderRequester {
             preBidRequestContext = toPreBidRequestContext(bidRequest, timeout);
             bidderWithErrors = toBidder(bidRequest);
         } catch (InvalidRequestException exception) {
-            return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), null, Collections.emptyList(),
+            return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(),
                     exception.getMessages().stream().map(BidderError::create).collect(Collectors.toList())));
         }
         return httpConnector.call(adapter, usersyncer, bidderWithErrors.getValue(), preBidRequestContext)
@@ -305,7 +305,7 @@ public class HttpAdapterRequester implements BidderRequester {
         final List<BidderError> bidderErrors = new ArrayList<>(errors);
         bidderErrors.addAll(bidderBidsResult.getErrors());
 
-        return BidderSeatBid.of(bidderBidsResult.getValue(), null, adapterResponse.getBidderStatus().getDebug() != null
+        return BidderSeatBid.of(bidderBidsResult.getValue(), adapterResponse.getBidderStatus().getDebug() != null
                 ? toExtHttpCalls(adapterResponse.getBidderStatus().getDebug())
                 : null, bidderErrors);
     }
