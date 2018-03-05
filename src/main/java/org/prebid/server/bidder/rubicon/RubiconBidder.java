@@ -202,6 +202,7 @@ public class RubiconBidder extends OpenrtbBidder {
         final List<Integer> validRubiconSizeIds = sizes.stream()
                 .map(RubiconSize::toId)
                 .filter(id -> id > 0)
+                .sorted(RubiconSize.comparator())
                 .collect(Collectors.toList());
 
         if (validRubiconSizeIds.isEmpty()) {

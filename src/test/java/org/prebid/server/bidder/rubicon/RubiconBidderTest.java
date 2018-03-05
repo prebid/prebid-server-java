@@ -140,8 +140,8 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.banner(Banner.builder()
                 .format(asList(
-                        Format.builder().w(300).h(250).build(),
                         Format.builder().w(250).h(360).build(),
+                        Format.builder().w(300).h(250).build(),
                         Format.builder().w(300).h(600).build()))
                 .build()));
 
@@ -158,7 +158,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(ext -> mapper.treeToValue(ext, RubiconBannerExt.class))
                 .extracting(RubiconBannerExt::getRp).doesNotContainNull()
                 .extracting(RubiconBannerExtRp::getSizeId, RubiconBannerExtRp::getAltSizeIds)
-                .containsOnly(tuple(15, asList(32, 10)));
+                .containsOnly(tuple(15, asList(10, 32)));
     }
 
     @Test

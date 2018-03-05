@@ -18,9 +18,9 @@
         "h": 1024,
         "ext": {
           "rp": {
-            "size_id": 102,
+            "size_id": 80,
             "alt_size_ids": [
-              80
+              102
             ],
             "mime": "text/html"
           }

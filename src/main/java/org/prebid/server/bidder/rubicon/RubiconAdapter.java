@@ -255,6 +255,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final List<Integer> validRubiconSizeIds = sizes.stream()
                 .map(RubiconSize::toId)
                 .filter(id -> id > 0)
+                .sorted(RubiconSize.comparator())
                 .collect(Collectors.toList());
 
         return RubiconBannerExt.of(RubiconBannerExtRp.of(

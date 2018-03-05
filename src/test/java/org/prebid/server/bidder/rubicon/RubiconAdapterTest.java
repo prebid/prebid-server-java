@@ -440,8 +440,8 @@ public class RubiconAdapterTest extends VertxTest {
         adapterRequest = givenBidderCustomizable(
                 builder -> builder
                         .sizes(asList(
-                                Format.builder().w(300).h(250).build(),
                                 Format.builder().w(250).h(360).build(),
+                                Format.builder().w(300).h(250).build(),
                                 Format.builder().w(300).h(600).build())),
                 identity());
 
@@ -456,7 +456,7 @@ public class RubiconAdapterTest extends VertxTest {
                 .extracting(ext -> mapper.treeToValue(ext, RubiconBannerExt.class)).isNotNull()
                 .extracting(RubiconBannerExt::getRp).isNotNull()
                 .extracting(RubiconBannerExtRp::getSizeId, RubiconBannerExtRp::getAltSizeIds)
-                .containsOnly(tuple(15, asList(32, 10)));
+                .containsOnly(tuple(15, asList(10, 32)));
     }
 
     @Test

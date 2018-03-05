@@ -3,6 +3,7 @@ package org.prebid.server.bidder.rubicon;
 import com.iab.openrtb.request.Format;
 import lombok.EqualsAndHashCode;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,7 +70,39 @@ public final class RubiconSize {
         return new RubiconSize(w, h);
     }
 
-    public static int toId(Format size) {
+    public static Integer toId(Format size) {
         return SIZES.getOrDefault(size(size.getW(), size.getH()), 0);
+    }
+
+    // MAS comparator stuff
+    private static final Comparator<Integer> COMPARATOR = new MASComparator().thenComparing(Comparator.naturalOrder());
+
+    /**
+     * This comparator is used to sort size ids with intention to pick primary one. Sort order must be 15,2,9 in that
+     * order, then ascending order.
+     */
+    public static Comparator<Integer> comparator() {
+        return COMPARATOR;
+    }
+
+    private static class MASComparator implements Comparator<Integer> {
+
+        @Override
+        public int compare(Integer o1, Integer o2) {
+            return ordinal(o1) - ordinal(o2);
+        }
+
+        private static int ordinal(Integer i) {
+            switch (i) {
+                case 15:
+                    return 1;
+                case 2:
+                    return 2;
+                case 9:
+                    return 3;
+                default:
+                    return 4;
+            }
+        }
     }
 }
