@@ -415,14 +415,33 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void biddersParamsShouldReturnBidderSchemas() throws IOException, JSONException {
-        final Response response = given(spec)
+    public void biddersParamsShouldReturnBidderSchemas() throws IOException {
+        given(spec)
                 .when()
-                .get("/bidders/params");
+                .get("/bidders/params")
+                .then()
+                .assertThat()
+                .body(equalTo(jsonFrom("params/test-bidder-params-schemas.json")));
+    }
 
-        final String expectedAuctionResponse = jsonFrom("params/test-bidder-params-schemas.json");
+    @Test
+    public void infoBiddersShouldReturnRegisteredBidderNames() throws IOException {
+        given(spec)
+                .when()
+                .get("/info/bidders")
+                .then()
+                .assertThat()
+                .body(equalTo(jsonFrom("info-bidders/test-info-bidders-response.json")));
+    }
 
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    @Test
+    public void infoBidderDetailsShouldReturnMetadataForBidder() throws IOException {
+        given(spec)
+                .when()
+                .get("/info/bidders/rubicon")
+                .then()
+                .assertThat()
+                .body(equalTo(jsonFrom("info-bidders/test-info-bidder-details-response.json")));
     }
 
     private String jsonFrom(String file) throws IOException {

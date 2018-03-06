@@ -11,8 +11,6 @@ import java.util.List;
 
 /**
  * Pubmatic {@link Bidder} implementation.
- * <p>
- * Maintainer email: <a href="mailto:header-bidding@pubmatic.com">header-bidding@pubmatic.com</a>
  */
 public class PubmaticBidder implements Bidder {
 

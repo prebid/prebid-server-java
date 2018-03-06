@@ -7,6 +7,7 @@ import org.prebid.server.bidder.HttpAdapterRequester;
 import org.prebid.server.bidder.HttpConnector;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.conversant.ConversantAdapter;
+import org.prebid.server.bidder.conversant.ConversantMetaInfo;
 import org.prebid.server.bidder.conversant.ConversantUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -36,6 +37,6 @@ public class ConversantConfiguration {
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpConnector);
 
-        return BidderDeps.of(BIDDER_NAME, usersyncer, adapter, bidderRequester);
+        return BidderDeps.of(BIDDER_NAME, new ConversantMetaInfo(), usersyncer, adapter, bidderRequester);
     }
 }

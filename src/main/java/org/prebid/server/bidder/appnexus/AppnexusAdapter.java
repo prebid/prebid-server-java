@@ -8,14 +8,15 @@ import com.iab.openrtb.request.Imp;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.adapter.appnexus.model.AppnexusBidExt;
-import org.prebid.server.adapter.appnexus.model.AppnexusBidExtAppnexus;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.appnexus.model.BidRequestWithUrl;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
@@ -40,9 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * AppNexus {@link org.prebid.server.bidder.Adapter} implementation.
- * <p>
- * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
+ * AppNexus {@link Adapter} implementation.
  */
 public class AppnexusAdapter extends OpenrtbAdapter {
 
@@ -262,7 +261,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
                 return MediaType.video;
             default:
                 throw new PreBidException(
-                    String.format("Unrecognized bid_ad_type in response from appnexus: %s", bidAdType));
+                        String.format("Unrecognized bid_ad_type in response from appnexus: %s", bidAdType));
         }
     }
 

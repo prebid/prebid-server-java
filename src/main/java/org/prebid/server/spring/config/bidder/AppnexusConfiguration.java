@@ -9,6 +9,7 @@ import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.appnexus.AppnexusAdapter;
 import org.prebid.server.bidder.appnexus.AppnexusBidder;
+import org.prebid.server.bidder.appnexus.AppnexusMetaInfo;
 import org.prebid.server.bidder.appnexus.AppnexusUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -38,6 +39,6 @@ public class AppnexusConfiguration {
         final Bidder bidder = new AppnexusBidder(endpoint);
         final BidderRequester bidderRequester = new HttpBidderRequester(bidder, httpClient);
 
-        return BidderDeps.of(BIDDER_NAME, usersyncer, adapter, bidderRequester);
+        return BidderDeps.of(BIDDER_NAME, new AppnexusMetaInfo(), usersyncer, adapter, bidderRequester);
     }
 }

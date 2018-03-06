@@ -1,0 +1,80 @@
+package org.prebid.server.handler.info;
+
+import io.netty.util.AsciiString;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.handler.info.InfoBiddersHandler;
+
+import java.util.HashSet;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+
+public class InfoBiddersHandlerTest extends VertxTest {
+
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private BidderCatalog bidderCatalog;
+    @Mock
+    private RoutingContext routingContext;
+    @Mock
+    private HttpServerRequest httpRequest;
+    @Mock
+    private HttpServerResponse httpResponse;
+
+    private InfoBiddersHandler handler;
+
+    @Before
+    public void setUp() {
+        given(routingContext.request()).willReturn(httpRequest);
+        given(routingContext.response()).willReturn(httpResponse);
+        given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
+        given(bidderCatalog.names()).willReturn(emptySet());
+
+        handler = new InfoBiddersHandler(bidderCatalog);
+    }
+
+    @Test
+    public void creationShouldFailOnNullArguments() {
+        assertThatNullPointerException().isThrownBy(() -> new InfoBiddersHandler(null));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedHeaders() {
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse)
+                .putHeader(eq(new AsciiString("Content-Type")), eq(new AsciiString("application/json")));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedBody() {
+        // given
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
+        handler = new InfoBiddersHandler(bidderCatalog);
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(eq("[\"bidder1\",\"bidder2\",\"bidder3\"]"));
+    }
+}

@@ -24,6 +24,8 @@ import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
+import org.prebid.server.handler.info.InfoBidderDetailsHandler;
+import org.prebid.server.handler.info.InfoBiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -59,6 +61,8 @@ public class WebConfiguration {
                   GetuidsHandler getuidsHandler,
                   OptoutHandler optoutHandler,
                   BidderParamHandler bidderParamHandler,
+                  InfoBiddersHandler infoBiddersHandler,
+                  InfoBidderDetailsHandler infoBidderDetailsHandler,
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
@@ -78,6 +82,8 @@ public class WebConfiguration {
         router.post("/optout").handler(optoutHandler);
         router.get("/optout").handler(optoutHandler);
         router.get("/bidders/params").handler(bidderParamHandler);
+        router.get("/info/bidders").handler(infoBiddersHandler);
+        router.get("/info/bidders/:bidderName").handler(infoBidderDetailsHandler);
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves indexAdapter.html by default
 
@@ -199,6 +205,16 @@ public class WebConfiguration {
     @Bean
     BidderParamHandler bidderParamHandler(BidderParamValidator bidderParamValidator) {
         return new BidderParamHandler(bidderParamValidator);
+    }
+
+    @Bean
+    InfoBiddersHandler infoBiddersHandler(BidderCatalog bidderCatalog) {
+        return new InfoBiddersHandler(bidderCatalog);
+    }
+
+    @Bean
+    InfoBidderDetailsHandler infoBidderDetailsHandler(BidderCatalog bidderCatalog) {
+        return new InfoBidderDetailsHandler(bidderCatalog);
     }
 
     @Bean

@@ -18,8 +18,8 @@ import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.adapter.appnexus.model.AppnexusBidExt;
-import org.prebid.server.adapter.appnexus.model.AppnexusBidExtAppnexus;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
@@ -510,7 +510,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidExtNotDefined() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall httpCall = givenHttpCall(200,  mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")
@@ -532,7 +532,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidExtAppnexusNotDefined() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall httpCall = givenHttpCall(200,  mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")
@@ -554,7 +554,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidExtAppnexusBidTypeNotDefined() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall httpCall = givenHttpCall(200,  mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")

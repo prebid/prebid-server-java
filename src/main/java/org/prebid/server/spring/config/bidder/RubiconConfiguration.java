@@ -9,6 +9,7 @@ import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.rubicon.RubiconAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
+import org.prebid.server.bidder.rubicon.RubiconMetaInfo;
 import org.prebid.server.bidder.rubicon.RubiconUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -41,6 +42,6 @@ public class RubiconConfiguration {
         final Bidder bidder = new RubiconBidder(endpoint, username, password);
         final BidderRequester bidderRequester = new HttpBidderRequester(bidder, httpClient);
 
-        return BidderDeps.of(BIDDER_NAME, usersyncer, adapter, bidderRequester);
+        return BidderDeps.of(BIDDER_NAME, new RubiconMetaInfo(), usersyncer, adapter, bidderRequester);
     }
 }

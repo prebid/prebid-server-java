@@ -11,8 +11,6 @@ import java.util.List;
 
 /**
  * Pulsepoint {@link Bidder} implementation.
- * <p>
- * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
  */
 public class PulsepointBidder implements Bidder {
 

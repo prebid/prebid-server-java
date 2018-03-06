@@ -1,4 +1,4 @@
-package org.prebid.server.adapter.appnexus.model;
+package org.prebid.server.bidder.appnexus.proto;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;

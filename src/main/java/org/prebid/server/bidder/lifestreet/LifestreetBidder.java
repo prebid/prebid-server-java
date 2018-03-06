@@ -11,8 +11,6 @@ import java.util.List;
 
 /**
  * Lifestreet {@link Bidder} implementation.
- * <p>
- * Maintainer email: <a href="mailto:mobile.tech@lifestreet.com">mobile.tech@lifestreet.com</a>
  */
 public class LifestreetBidder implements Bidder {
 

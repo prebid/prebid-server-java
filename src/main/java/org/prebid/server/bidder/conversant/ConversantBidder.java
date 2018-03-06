@@ -11,8 +11,6 @@ import java.util.List;
 
 /**
  * Conversant {@link Bidder} implementation.
- * <p>
- * Maintainer email: <a href="mailto:mediapsr@conversantmedia.com">mediapsr@conversantmedia.com</a>
  */
 public class ConversantBidder implements Bidder {
 

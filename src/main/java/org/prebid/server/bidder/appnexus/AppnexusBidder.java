@@ -15,11 +15,11 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.adapter.appnexus.model.AppnexusBidExt;
-import org.prebid.server.adapter.appnexus.model.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
@@ -46,8 +46,6 @@ import java.util.stream.Collectors;
 
 /**
  * AppNexus {@link Bidder} implementation.
- * <p>
- * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
  */
 public class AppnexusBidder extends OpenrtbBidder {
 

@@ -18,6 +18,8 @@ public class BidderCatalogTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private MetaInfo metaInfo;
+    @Mock
     private Usersyncer usersyncer;
     @Mock
     private Adapter adapter;
@@ -30,7 +32,7 @@ public class BidderCatalogTest {
     @Test
     public void isValidNameShouldReturnTrueForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, usersyncer, null, null);
+        bidderDeps = BidderDeps.of(BIDDER, null, null, null, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -47,9 +49,28 @@ public class BidderCatalogTest {
     }
 
     @Test
+    public void metaInfoByNameShouldReturnMetaInfoForKnownBidder() {
+        // given
+        bidderDeps = BidderDeps.of(BIDDER, metaInfo, null, null, null);
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(bidderCatalog.metaInfoByName(BIDDER)).isEqualTo(metaInfo);
+    }
+
+    @Test
+    public void metaInfoByNameShouldReturnNullForUnknownBidder() {
+        // given
+        bidderCatalog = new BidderCatalog(emptyList());
+
+        // when and then
+        assertThat(bidderCatalog.metaInfoByName("unknown_bidder")).isNull();
+    }
+
+    @Test
     public void usersyncerByNameShouldReturnUsersyncerForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, usersyncer, null, null);
+        bidderDeps = BidderDeps.of(BIDDER, null, usersyncer, null, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -68,7 +89,7 @@ public class BidderCatalogTest {
     @Test
     public void adapterByNameShouldReturnAdapterForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, null, adapter, null);
+        bidderDeps = BidderDeps.of(BIDDER, null, null, adapter, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -87,7 +108,7 @@ public class BidderCatalogTest {
     @Test
     public void bidderRequesterByNameShouldReturnBidderRequesterForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, null, null, bidderRequester);
+        bidderDeps = BidderDeps.of(BIDDER, null, null, null, bidderRequester);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then

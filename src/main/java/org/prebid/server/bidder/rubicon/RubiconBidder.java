@@ -68,8 +68,6 @@ import java.util.stream.Collectors;
 
 /**
  * <a href="https://rubiconproject.com">Rubicon Project</a> {@link Bidder} implementation.
- * <p>
- * Maintainer email: <a href="mailto:header-bidding@rubiconproject.com">header-bidding@rubiconproject.com</a>
  */
 public class RubiconBidder extends OpenrtbBidder {
 

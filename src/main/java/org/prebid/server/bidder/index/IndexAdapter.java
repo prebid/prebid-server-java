@@ -9,6 +9,7 @@ import io.vertx.core.json.Json;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.index.proto.IndexParams;
@@ -29,9 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Index {@link org.prebid.server.bidder.Adapter} implementation.
- * <p>
- * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
+ * Index {@link Adapter} implementation.
  */
 public class IndexAdapter extends OpenrtbAdapter {
 

@@ -11,8 +11,6 @@ import java.util.List;
 
 /**
  * Facebook {@link Bidder} implementation.
- * <p>
- * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
  */
 public class FacebookBidder implements Bidder {
 

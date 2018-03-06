@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -66,9 +67,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * <a href="https://rubiconproject.com">Rubicon Project</a> {@link org.prebid.server.bidder.Adapter} implementation.
- * <p>
- * Maintainer email: <a href="mailto:header-bidding@rubiconproject.com">header-bidding@rubiconproject.com</a>
+ * <a href="https://rubiconproject.com">Rubicon Project</a> {@link Adapter} implementation.
  */
 public class RubiconAdapter extends OpenrtbAdapter {
 

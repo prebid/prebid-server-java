@@ -31,7 +31,18 @@ public class BidderCatalog {
      * Tells if given name corresponds to any of the registered bidders.
      */
     public boolean isValidName(String name) {
-        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getUsersyncer() != null;
+        return bidderDepsMap.containsKey(name);
+    }
+
+    /**
+     * Returns an {@link MetaInfo} registered by the given name or null if there is none.
+     * <p>
+     * Therefore this method should be called only for names that previously passed validity check
+     * through calling {@link #isValidName(String)}.
+     */
+    public MetaInfo metaInfoByName(String name) {
+        final BidderDeps bidderDeps = bidderDepsMap.get(name);
+        return bidderDeps != null ? bidderDeps.getMetaInfo() : null;
     }
 
     /**

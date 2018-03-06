@@ -1,5 +1,6 @@
 package org.prebid.server.handler;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.logging.Logger;
@@ -59,14 +60,14 @@ public class OptoutHandler implements Handler<RoutingContext> {
     private void sendRedirect(RoutingContext context) {
         context.response()
                 .putHeader(HttpHeaders.LOCATION, optoutRedirectUrl)
-                .setStatusCode(301)
+                .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
                 .end();
     }
 
     private void sendUnauthorized(RoutingContext context, Throwable cause) {
         logger.warn("Opt Out failed optout", cause);
         context.response()
-                .setStatusCode(401)
+                .setStatusCode(HttpResponseStatus.UNAUTHORIZED.code())
                 .end();
     }
 
@@ -74,7 +75,7 @@ public class OptoutHandler implements Handler<RoutingContext> {
         context.addCookie(cookie)
                 .response()
                 .putHeader(HttpHeaders.LOCATION, url)
-                .setStatusCode(301)
+                .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
                 .end();
     }
 

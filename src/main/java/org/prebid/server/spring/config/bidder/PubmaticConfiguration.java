@@ -7,6 +7,7 @@ import org.prebid.server.bidder.HttpAdapterRequester;
 import org.prebid.server.bidder.HttpConnector;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.pubmatic.PubmaticAdapter;
+import org.prebid.server.bidder.pubmatic.PubmaticMetaInfo;
 import org.prebid.server.bidder.pubmatic.PubmaticUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -36,6 +37,6 @@ public class PubmaticConfiguration {
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpConnector);
 
-        return BidderDeps.of(BIDDER_NAME, usersyncer, adapter, bidderRequester);
+        return BidderDeps.of(BIDDER_NAME, new PubmaticMetaInfo(), usersyncer, adapter, bidderRequester);
     }
 }

@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.facebook.model.NormalizedFacebookParams;
@@ -39,9 +40,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Facebook {@link org.prebid.server.bidder.Adapter} implementation.
- * <p>
- * Maintainer email: <a href="mailto:info@prebid.org">info@prebid.org</a>
+ * Facebook {@link Adapter} implementation.
  */
 public class FacebookAdapter extends OpenrtbAdapter {
 
