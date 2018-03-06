@@ -122,9 +122,9 @@ public class AppnexusBidder extends OpenrtbBidder {
 
     private static ImpWithMemberId makeImpWithMemberId(Imp imp) {
 
-        if (imp.getXNative() != null || imp.getAudio() != null) {
+        if (imp.getAudio() != null) {
             throw new PreBidException(
-                    String.format("Appnexus doesn't support audio or native Imps. Ignoring Imp ID=%s", imp.getId()));
+                    String.format("Appnexus doesn't support audio Imps. Ignoring Imp ID=%s", imp.getId()));
         }
 
         final ExtImpAppnexus appnexusExt = parseAppnexusExt(imp);
@@ -179,6 +179,8 @@ public class AppnexusBidder extends OpenrtbBidder {
                         .w(width)
                         .h(height)
                         .build();
+            } else {
+                result = banner;
             }
         }
         return result;

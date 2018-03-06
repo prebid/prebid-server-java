@@ -9,6 +9,7 @@ import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -67,7 +68,7 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsNotSupportedMediaType() {
+    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsNotSupportedAudioMediaType() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(Imp.builder().id("23").audio(Audio.builder().build())
@@ -84,7 +85,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .element(0).extracting(BidderError::getMessage)
-                .containsExactly("Appnexus doesn't support audio or native Imps. Ignoring Imp ID=23");
+                .containsExactly("Appnexus doesn't support audio Imps. Ignoring Imp ID=23");
     }
 
     @Test
@@ -243,6 +244,60 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetNativeIfRequestImpIsNative() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                Function.identity(),
+                builder -> builder.xNative(Native.builder().build()),
+                builder -> builder.placementId(20).invCode("tagid"));
+
+        // when
+        final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).hasSize(1)
+                .extracting(Imp::getXNative).doesNotContainNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetVideoTypeIfRequestImpIsVideo() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                Function.identity(),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder.placementId(20).invCode("tagid"));
+
+        // when
+        final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).hasSize(1)
+                .extracting(Imp::getVideo).doesNotContainNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetBannerIfRequestImpIsBanner() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                Function.identity(),
+                builder -> builder.banner(Banner.builder().build()),
+                builder -> builder.placementId(20).invCode("tagid"));
+
+        // when
+        final Result<List<HttpRequest>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then.
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).hasSize(1)
+                .extracting(Imp::getBanner).doesNotContainNull();
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetBannerSizesFromExistingFirstFormatElement() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -258,7 +313,7 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(imp -> imp.getBanner())
+                .extracting(Imp::getBanner)
                 .containsOnly(Banner.builder().w(100).h(200)
                         .format(singletonList(Format.builder().w(100).h(200).build())).build());
     }

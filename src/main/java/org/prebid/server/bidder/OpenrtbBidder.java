@@ -12,10 +12,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.exception.PreBidException;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -56,14 +53,5 @@ public abstract class OpenrtbBidder implements Bidder {
 
     protected static List<BidderError> errors(List<String> errors) {
         return errors.stream().map(BidderError::create).collect(Collectors.toList());
-    }
-
-    protected static String validateUrl(String url) {
-        Objects.requireNonNull(url);
-        try {
-            return new URL(url).toString();
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(String.format("URL supplied is not valid: %s", url), e);
-        }
     }
 }

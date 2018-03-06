@@ -3,6 +3,7 @@ package com.iab.openrtb.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.Value;
 
 import java.util.List;
@@ -57,6 +58,7 @@ public class Imp {
      * as a native ad opportunity.
      */
     @JsonProperty("native")
+    @Getter(onMethod = @__({@JsonProperty("native")}))
     Native xNative;
 
     /**
