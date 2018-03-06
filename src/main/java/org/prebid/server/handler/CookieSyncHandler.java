@@ -2,10 +2,10 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -49,14 +49,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final JsonObject body;
-        try {
-            body = context.getBodyAsJson();
-        } catch (DecodeException e) {
-            logger.info("Failed to parse /cookie_sync request body", e);
-            context.response().setStatusCode(400).setStatusMessage("JSON parse failed").end();
-            return;
-        }
+        final Buffer body = context.getBody();
 
         if (body == null) {
             logger.error("Incoming request has no body.");
@@ -64,7 +57,15 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final CookieSyncRequest cookieSyncRequest = body.mapTo(CookieSyncRequest.class);
+        final CookieSyncRequest cookieSyncRequest;
+        try {
+            cookieSyncRequest = Json.decodeValue(body, CookieSyncRequest.class);
+        } catch (DecodeException e) {
+            logger.info("Failed to parse /cookie_sync request body", e);
+            context.response().setStatusCode(400).setStatusMessage("JSON parse failed").end();
+            return;
+        }
+
         final List<String> biddersFromRequest = cookieSyncRequest.getBidders();
 
         // if bidder list was omitted in request, that means sync should be done for all bidders

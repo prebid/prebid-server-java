@@ -326,7 +326,7 @@ public class CacheServiceTest extends VertxTest {
         // offset value is greater here since cacheBidsOpenrtb performs mapper.valueToTree and this call might take a
         // little more time if mapper's caches hasn't been warmed up (this might happen if the test is the first one
         // that triggers mapper activity with affected classes)
-        assertThat(timeoutCaptor.getValue()).isCloseTo(1000L, offset(200L));
+        assertThat(timeoutCaptor.getValue()).isCloseTo(1000L, offset(300L));
     }
 
     @Test

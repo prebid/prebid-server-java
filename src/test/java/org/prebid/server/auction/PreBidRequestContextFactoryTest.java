@@ -12,10 +12,9 @@ import com.iab.openrtb.request.User;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -84,7 +83,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Before
     public void setUp() {
         // minimal request
-        given(routingContext.getBodyAsJson()).willReturn(givenPreBidRequest(identity()));
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(identity()));
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
@@ -119,12 +118,12 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
-                .sizes(Collections.singletonList(Format.builder().w(100).h(100).build()))
+                .sizes(singletonList(Format.builder().w(100).h(100).build()))
                 .bids(singletonList(givenBid(RUBICON)))
                 .build();
 
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(Collections.singletonList(adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -145,8 +144,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldFailIfRequestBodyCouldNotBeParsed() {
         // given
-        given(routingContext.getBodyAsJson()).willThrow(
-                new DecodeException("Could not parse", new JsonParseException(null, (String) null)));
+        given(routingContext.getBody()).willReturn(Buffer.buffer("{"));
 
         // when
         final Future<PreBidRequestContext> preBidRequestContextFuture = factory.fromRequest(routingContext);
@@ -155,14 +153,14 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         assertThat(preBidRequestContextFuture.failed()).isTrue();
         assertThat(preBidRequestContextFuture.cause())
                 .isInstanceOf(PreBidException.class)
-                .hasMessage("Could not parse")
+                .hasMessageStartingWith("Failed to decode")
                 .hasCauseInstanceOf(JsonParseException.class);
     }
 
     @Test
     public void shouldFailIfRequestBodyIsMissing() {
         // given
-        given(routingContext.getBodyAsJson()).willReturn(null);
+        given(routingContext.getBody()).willReturn(null);
 
         // when
         final Future<PreBidRequestContext> preBidRequestContextFuture = factory.fromRequest(routingContext);
@@ -183,8 +181,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .code("adUnitCode")
                 .bids(singletonList(Bid.of("bidId", RUBICON, rubiconParams(1001, 2001, 3001))))
                 .build();
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -212,8 +210,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .bids(singletonList(givenBid(RUBICON)))
                 .build();
 
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -230,11 +228,11 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .code("adUnitCode1")
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .bids(singletonList(givenBid(RUBICON)))
-                .mediaTypes(Collections.singletonList("RandomMediaType"))
+                .mediaTypes(singletonList("RandomMediaType"))
                 .build();
 
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -254,8 +252,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .mediaTypes(asList("banner", "video"))
                 .build();
 
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -278,8 +276,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .build();
 
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(asList(adUnit, adUnit2))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(asList(adUnit, adUnit2))));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -302,8 +300,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
                 .build();
 
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(asList(adUnit, adUnit2))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(asList(adUnit, adUnit2))));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -318,11 +316,11 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         // given
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
-                .sizes(Collections.singletonList(Format.builder().h(100).w(200).build()))
+                .sizes(singletonList(Format.builder().h(100).w(200).build()))
                 .bids(asList(givenBid(RUBICON), givenBid(APPNEXUS)))
                 .build();
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(asList(adUnit, adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(asList(adUnit, adUnit))));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -338,10 +336,10 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final AdUnit adUnit = AdUnit.builder()
                 .configId("configId")
                 .code("adUnitCode1")
-                .sizes(Collections.singletonList(Format.builder().h(100).w(200).build()))
+                .sizes(singletonList(Format.builder().h(100).w(200).build()))
                 .build();
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
 
         given(applicationSettings.getAdUnitConfigById(anyString(), any()))
                 .willReturn(Future.succeededFuture(mapper.writeValueAsString(singletonList(
@@ -357,7 +355,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
                         .bidderCode(RUBICON)
                         .bidId("bidId")
                         .adUnitCode("adUnitCode1")
-                        .sizes(Collections.singletonList(Format.builder().h(100).w(200).build()))
+                        .sizes(singletonList(Format.builder().h(100).w(200).build()))
                         .params(rubiconParams(4001, 5001, 6001))
                         .mediaTypes(Collections.singleton(MediaType.banner))
                         .build())));
@@ -367,8 +365,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     public void shouldTolerateMissingAdUnitConfig() {
         // given
         final AdUnit adUnit = AdUnit.builder().configId("configId").build();
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
 
         given(applicationSettings.getAdUnitConfigById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
@@ -384,8 +382,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     public void shouldTolerateInvalidAdUnitConfig() {
         // given
         final AdUnit adUnit = AdUnit.builder().configId("configId").build();
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
 
         given(applicationSettings.getAdUnitConfigById(anyString(), any()))
                 .willReturn(Future.succeededFuture("invalid"));
@@ -400,16 +398,16 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldGenerateBidIdIfAbsentInRequest() {
         // given
-        given(routingContext.getBodyAsJson()).willReturn(givenPreBidRequest(identity()));
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(identity()));
 
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
-                .sizes(Collections.singletonList(Format.builder().w(100).h(100).build()))
+                .sizes(singletonList(Format.builder().w(100).h(100).build()))
                 .bids(singletonList(givenBid(RUBICON)))
                 .build();
 
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.adUnits(Collections.singletonList(adUnit))));
+        given(routingContext.getBody())
+                .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
@@ -424,8 +422,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldPickTimeoutFromRequest() {
         // given
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.timeoutMillis(1000L)));
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.timeoutMillis(1000L)));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -437,8 +434,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldPickDefaultTimeoutIfZeroInRequest() {
         // given
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.timeoutMillis(0L)));
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.timeoutMillis(0L)));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -450,8 +446,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldPickDefaultTimeoutIfGreaterThan2000InRequest() {
         // given
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.timeoutMillis(5000L)));
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.timeoutMillis(5000L)));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -533,8 +528,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldSetIsDebugToTrueIfTrueInPreBidRequest() {
         // given
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.isDebug(true)));
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.isDebug(true)));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -546,8 +540,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldSetIsDebugToTrueIfQueryParameterEqualTo1() {
         // given
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.isDebug(false)));
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.isDebug(false)));
         given(httpRequest.getParam(eq("debug"))).willReturn("1");
 
         // when
@@ -572,8 +565,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Test
     public void shouldNotSetClientDataIfAppPresentInPreBidRequest() {
         // given
-        given(routingContext.getBodyAsJson()).willReturn(
-                givenPreBidRequest(builder -> builder.app(App.builder().build())));
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.app(App.builder().build())));
 
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
@@ -805,13 +797,18 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         return Bid.of(null, bidder, null);
     }
 
-    private JsonObject givenPreBidRequest(Function<PreBidRequestBuilder, PreBidRequestBuilder> builderCustomizer) {
-        return JsonObject.mapFrom(builderCustomizer.apply(
-                PreBidRequest.builder()
-                        .adUnits(singletonList(AdUnit.builder()
-                                .bids(singletonList(givenBid(RUBICON)))
-                                .build())))
-                .build());
+    private static Buffer givenPreBidRequest(Function<PreBidRequestBuilder, PreBidRequestBuilder> builderCustomizer) {
+        try {
+            return Buffer.buffer(mapper.writeValueAsString(
+                    builderCustomizer.apply(
+                            PreBidRequest.builder()
+                                    .adUnits(singletonList(AdUnit.builder()
+                                            .bids(singletonList(givenBid(RUBICON)))
+                                            .build())))
+                            .build()));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException();
+        }
     }
 
     private static ObjectNode rubiconParams(Integer accountId, Integer siteId, Integer zoneId) {

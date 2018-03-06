@@ -1,10 +1,9 @@
 package org.prebid.server.handler;
 
-import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.util.AsciiString;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,18 +33,13 @@ import java.util.HashSet;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.*;
 
 public class CookieSyncHandlerTest extends VertxTest {
 
@@ -115,8 +109,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfRequestBodyCouldNotBeParsed() {
         // given
-        given(routingContext.getBodyAsJson())
-                .willThrow(new DecodeException("Could not parse", new JsonParseException(null, (String) null)));
+        given(routingContext.getBody()).willReturn(Buffer.buffer("{"));
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
@@ -134,7 +127,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfRequestBodyIsMissing() {
         // given
-        given(routingContext.getBodyAsJson()).willReturn(null);
+        given(routingContext.getBody()).willReturn(null);
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
@@ -150,8 +143,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithExpectedHeaders() {
         // given
-        given(routingContext.getBodyAsJson())
-                .willReturn(JsonObject.mapFrom(CookieSyncRequest.of(emptyList())));
+        given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.of(emptyList())));
 
         // when
         cookieSyncHandler.handle(routingContext);
@@ -168,8 +160,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
-        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.of(asList(RUBICON, APPNEXUS))));
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, APPNEXUS))));
 
         givenUsersyncersReturningFamilyName();
 
@@ -193,8 +185,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldRespondWithBidderStatusForAllBiddersIfBiddersListOmittedInRequest() throws IOException {
 
         // given
-        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.of(null)));
+        given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.of(null)));
 
         givenUsersyncersReturningFamilyName();
         final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.of("http://adnxsexample.com", "redirect", false);
@@ -223,8 +214,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         uids.put(APPNEXUS_COOKIE, UidWithExpiry.live("12345"));
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
-        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.of(asList(RUBICON, APPNEXUS))));
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, APPNEXUS))));
 
         givenUsersyncersReturningFamilyName();
 
@@ -244,8 +235,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         uids.put(APPNEXUS_COOKIE, UidWithExpiry.live("12345"));
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
-        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.of(asList(RUBICON, "unsupported"))));
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, "unsupported"))));
 
         givenUsersyncersReturningFamilyName();
 
@@ -266,8 +257,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         uids.put(APPNEXUS_COOKIE, UidWithExpiry.expired("12345"));
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
-        given(routingContext.getBodyAsJson()).willReturn(JsonObject.mapFrom(
-                CookieSyncRequest.of(singletonList(APPNEXUS))));
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS))));
 
         givenUsersyncersReturningFamilyName();
 
@@ -290,14 +281,21 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementMetrics() {
         // given
-        given(routingContext.getBodyAsJson())
-                .willReturn(JsonObject.mapFrom(CookieSyncRequest.of(emptyList())));
+        given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.of(emptyList())));
 
         // when
         cookieSyncHandler.handle(routingContext);
 
         // then
         verify(metrics).incCounter(eq(MetricName.cookie_sync_requests));
+    }
+
+    private static Buffer givenRequestBody(CookieSyncRequest request) {
+        try {
+            return Buffer.buffer(mapper.writeValueAsString(request));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException();
+        }
     }
 
     private void givenUsersyncersReturningFamilyName() {

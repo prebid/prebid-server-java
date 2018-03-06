@@ -57,15 +57,11 @@ public class HttpBidderRequester implements BidderRequester {
     public Future<BidderSeatBid> requestBids(BidRequest bidRequest, GlobalTimeout timeout) {
         final Result<List<HttpRequest>> httpRequests = bidder.makeHttpRequests(bidRequest);
 
-        final Future<BidderSeatBid> result = Future.future();
-        CompositeFuture.join(httpRequests.getValue().stream()
+        return CompositeFuture.join(httpRequests.getValue().stream()
                 .map(httpRequest -> doRequest(httpRequest, timeout))
                 .collect(Collectors.toList()))
-                .setHandler(httpRequestsResult ->
-                        result.complete(toBidderSeatBid(bidder, bidRequest, httpRequests.getErrors(),
-                                httpRequestsResult.result().list())));
-
-        return result;
+                .map(httpRequestsResult -> toBidderSeatBid(bidder, bidRequest, httpRequests.getErrors(),
+                        httpRequestsResult.list()));
     }
 
     /**

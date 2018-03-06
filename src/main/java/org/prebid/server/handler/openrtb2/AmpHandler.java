@@ -14,7 +14,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -141,7 +140,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private static BidRequest toBidRequest(String bidRequestJson) {
         try {
-            return new JsonObject(bidRequestJson).mapTo(BidRequest.class);
+            return Json.decodeValue(bidRequestJson, BidRequest.class);
         } catch (DecodeException e) {
             throw new InvalidRequestException(e.getMessage());
         }

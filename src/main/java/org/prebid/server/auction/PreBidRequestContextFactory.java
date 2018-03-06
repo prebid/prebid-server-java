@@ -8,11 +8,11 @@ import com.iab.openrtb.request.User;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -69,18 +69,18 @@ public class PreBidRequestContextFactory {
      * can be be eventually completed with success or error result.
      */
     public Future<PreBidRequestContext> fromRequest(RoutingContext context) {
-        final JsonObject json;
-        try {
-            json = context.getBodyAsJson();
-        } catch (DecodeException e) {
-            return Future.failedFuture(new PreBidException(e.getMessage(), e.getCause()));
-        }
+        final Buffer body = context.getBody();
 
-        if (json == null) {
+        if (body == null) {
             return Future.failedFuture(new PreBidException("Incoming request has no body"));
         }
 
-        final PreBidRequest preBidRequest = json.mapTo(PreBidRequest.class);
+        final PreBidRequest preBidRequest;
+        try {
+            preBidRequest = Json.decodeValue(body, PreBidRequest.class);
+        } catch (DecodeException e) {
+            return Future.failedFuture(new PreBidException(e.getMessage(), e.getCause()));
+        }
 
         final List<AdUnit> adUnits = preBidRequest.getAdUnits();
         if (adUnits == null || adUnits.isEmpty()) {

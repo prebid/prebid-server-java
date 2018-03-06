@@ -11,7 +11,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -102,7 +101,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                     String.format("Request size exceeded max size of %d bytes.", maxRequestSize)));
         } else {
             try {
-                result = Future.succeededFuture(new JsonObject(body.toString()).mapTo(BidRequest.class));
+                result = Future.succeededFuture(Json.decodeValue(body, BidRequest.class));
             } catch (DecodeException e) {
                 result = Future.failedFuture(new InvalidRequestException(e.getMessage()));
             }
