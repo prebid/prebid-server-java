@@ -9,8 +9,6 @@ import java.util.List;
 @Value
 public class CookieSyncResponse {
 
-    String uuid;
-
     String status;
 
     List<BidderStatus> bidderStatus;

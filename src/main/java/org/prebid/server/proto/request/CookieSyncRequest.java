@@ -9,7 +9,5 @@ import java.util.List;
 @Value
 public class CookieSyncRequest {
 
-    String uuid;
-
     List<String> bidders;
 }

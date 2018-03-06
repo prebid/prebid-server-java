@@ -19,6 +19,7 @@ import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -64,8 +65,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
 
         final CookieSyncRequest cookieSyncRequest = body.mapTo(CookieSyncRequest.class);
+        final List<String> biddersFromRequest = cookieSyncRequest.getBidders();
 
-        final List<BidderStatus> bidderStatuses = cookieSyncRequest.getBidders().stream()
+        // if bidder list was omitted in request, that means sync should be done for all bidders
+        final Collection<String> biddersToSync = biddersFromRequest == null
+                ? bidderCatalog.names() : biddersFromRequest;
+
+        final List<BidderStatus> bidderStatuses = biddersToSync.stream()
                 .filter(bidderCatalog::isValidName)
                 .map(bidderName -> Tuple2.of(bidderName, bidderCatalog.usersyncerByName(bidderName)))
                 .filter(tuple2 -> !uidsCookie.hasLiveUidFrom(tuple2.getRight().cookieFamilyName()))
@@ -76,8 +82,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                         .build())
                 .collect(Collectors.toList());
 
-        final CookieSyncResponse response = CookieSyncResponse.of(cookieSyncRequest.getUuid(),
-                uidsCookie.hasLiveUids() ? "ok" : "no_cookie", bidderStatuses);
+        final CookieSyncResponse response = CookieSyncResponse.of(uidsCookie.hasLiveUids() ? "ok" : "no_cookie",
+                bidderStatuses);
 
         context.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)

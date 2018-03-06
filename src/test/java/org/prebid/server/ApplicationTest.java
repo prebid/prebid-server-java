@@ -351,7 +351,7 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void cookieSyncShouldReturnBidderStatusWithRubiconUsersyncInfo() {
         final CookieSyncResponse cookieSyncResponse = given(spec)
-                .body(CookieSyncRequest.of("uuid", singletonList(RUBICON)))
+                .body(CookieSyncRequest.of(singletonList(RUBICON)))
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -359,7 +359,7 @@ public class ApplicationTest extends VertxTest {
                 .extract()
                 .as(CookieSyncResponse.class);
 
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("uuid", "no_cookie",
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie",
                 singletonList(BidderStatus.builder()
                         .bidder(RUBICON)
                         .noCookie(true)
