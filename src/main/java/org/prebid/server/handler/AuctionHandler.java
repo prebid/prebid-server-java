@@ -19,7 +19,7 @@ import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.HttpConnector;
+import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.PreBidException;
@@ -57,20 +57,21 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final CacheService cacheService;
     private final Metrics metrics;
-    private final HttpConnector httpConnector;
+    private final HttpAdapterConnector httpAdapterConnector;
 
     private String date;
     private final Clock clock = Clock.systemDefaultZone();
 
     public AuctionHandler(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
                           PreBidRequestContextFactory preBidRequestContextFactory,
-                          CacheService cacheService, Vertx vertx, Metrics metrics, HttpConnector httpConnector) {
+                          CacheService cacheService, Vertx vertx, Metrics metrics,
+                          HttpAdapterConnector httpAdapterConnector) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
-        this.httpConnector = Objects.requireNonNull(httpConnector);
+        this.httpAdapterConnector = Objects.requireNonNull(httpAdapterConnector);
 
         // Refresh the date included in the response header every second.
         final Handler<Long> dateUpdater = event -> date = DateTimeFormatter.RFC_1123_DATE_TIME.format(
@@ -134,7 +135,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return preBidRequestContext.getAdapterRequests().stream()
                 .filter(bidder -> bidderCatalog.isValidName(bidder.getBidderCode()))
                 .peek(bidder -> updateAdapterRequestMetrics(bidder.getBidderCode(), accountId))
-                .map(bidder -> httpConnector.call(bidderCatalog.adapterByName(bidder.getBidderCode()),
+                .map(bidder -> httpAdapterConnector.call(bidderCatalog.adapterByName(bidder.getBidderCode()),
                         bidderCatalog.usersyncerByName(bidder.getBidderCode()), bidder, preBidRequestContext))
                 .collect(Collectors.toList());
     }

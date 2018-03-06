@@ -48,14 +48,14 @@ public class HttpAdapterRequester implements BidderRequester {
     private final String bidderName;
     private final Adapter adapter;
     private final Usersyncer usersyncer;
-    private final HttpConnector httpConnector;
+    private final HttpAdapterConnector httpAdapterConnector;
 
     public HttpAdapterRequester(String bidderName, Adapter adapter, Usersyncer usersyncer,
-                                HttpConnector httpConnector) {
+                                HttpAdapterConnector httpAdapterConnector) {
         this.bidderName = Objects.requireNonNull(bidderName);
         this.adapter = Objects.requireNonNull(adapter);
         this.usersyncer = Objects.requireNonNull(usersyncer);
-        this.httpConnector = Objects.requireNonNull(httpConnector);
+        this.httpAdapterConnector = Objects.requireNonNull(httpAdapterConnector);
     }
 
     /**
@@ -74,7 +74,7 @@ public class HttpAdapterRequester implements BidderRequester {
             return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(),
                     exception.getMessages().stream().map(BidderError::create).collect(Collectors.toList())));
         }
-        return httpConnector.call(adapter, usersyncer, bidderWithErrors.getValue(), preBidRequestContext)
+        return httpAdapterConnector.call(adapter, usersyncer, bidderWithErrors.getValue(), preBidRequestContext)
                 .map(bidderResult -> toBidderSeatBid(bidderResult, bidderWithErrors.getErrors()));
     }
 

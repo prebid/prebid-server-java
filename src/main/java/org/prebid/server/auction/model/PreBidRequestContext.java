@@ -20,15 +20,15 @@ public class PreBidRequestContext {
 
     GlobalTimeout timeout;
 
-    Integer secure;
+    String domain;
 
     String referer;
 
-    String domain;
+    String ip;
 
     String ua;
 
-    String ip;
+    Integer secure;
 
     boolean isDebug;
 

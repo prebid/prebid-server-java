@@ -19,8 +19,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -51,7 +51,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private ExchangeService exchangeService;
     @Mock
-    private PreBidRequestContextFactory preBidRequestContextFactory;
+    private AuctionRequestFactory auctionRequestFactory;
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
@@ -81,7 +81,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
         auctionHandler = new AuctionHandler(Integer.MAX_VALUE, 5000, requestValidator, exchangeService,
-                storedRequestProcessor, preBidRequestContextFactory, uidsCookieService, metrics);
+                storedRequestProcessor, auctionRequestFactory, uidsCookieService, metrics);
     }
 
     @Test
@@ -95,9 +95,9 @@ public class AuctionHandlerTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
                 exchangeService, storedRequestProcessor, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
-                exchangeService, storedRequestProcessor, preBidRequestContextFactory, null, null));
+                exchangeService, storedRequestProcessor, auctionRequestFactory, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
-                exchangeService, storedRequestProcessor, preBidRequestContextFactory, uidsCookieService, null));
+                exchangeService, storedRequestProcessor, auctionRequestFactory, uidsCookieService, null));
     }
 
     @Test
@@ -117,7 +117,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldRespondWithBadRequestIfRequestBodyExceedsMaxRequestSize() {
         // given
         auctionHandler = new AuctionHandler(1, 1, requestValidator, exchangeService, storedRequestProcessor,
-                preBidRequestContextFactory, uidsCookieService, metrics);
+                auctionRequestFactory, uidsCookieService, metrics);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -168,7 +168,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
                 .succeededFuture(BidRequest.builder().build()));
 
-        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
 
@@ -190,7 +190,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
                 .succeededFuture(BidRequest.builder().build()));
 
-        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
 
@@ -214,7 +214,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
                 .succeededFuture(BidRequest.builder().build()));
 
-        given(preBidRequestContextFactory.fromRequest(any(), any()))
+        given(auctionRequestFactory.fromRequest(any(), any()))
                 .willReturn(BidRequest.builder().tmax(1000L).build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
@@ -237,7 +237,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
                 .succeededFuture(BidRequest.builder().build()));
 
-        given(preBidRequestContextFactory.fromRequest(any(), any()))
+        given(auctionRequestFactory.fromRequest(any(), any()))
                 .willReturn(BidRequest.builder().build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
@@ -263,7 +263,7 @@ public class AuctionHandlerTest extends VertxTest {
             return Future.succeededFuture(BidRequest.builder().build());
         });
 
-        given(preBidRequestContextFactory.fromRequest(any(), any()))
+        given(auctionRequestFactory.fromRequest(any(), any()))
                 .willReturn(BidRequest.builder().tmax(1000L).build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
@@ -294,7 +294,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldIncrementAppRequestMetrics() {
         // given
         givenMocksForMetricSupport();
-        given(preBidRequestContextFactory.fromRequest(any(), any()))
+        given(auctionRequestFactory.fromRequest(any(), any()))
                 .willReturn(BidRequest.builder().app(App.builder().build()).build());
 
         // when
@@ -340,7 +340,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
                 .succeededFuture(BidRequest.builder().build()));
 
-        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
 

@@ -14,8 +14,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -43,20 +43,20 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final RequestValidator requestValidator;
     private final ExchangeService exchangeService;
     private final StoredRequestProcessor storedRequestProcessor;
-    private final PreBidRequestContextFactory preBidRequestContextFactory;
+    private final AuctionRequestFactory auctionRequestFactory;
     private final UidsCookieService uidsCookieService;
     private final Metrics metrics;
 
     public AuctionHandler(long maxRequestSize, long defaultTimeout, RequestValidator requestValidator,
                           ExchangeService exchangeService, StoredRequestProcessor storedRequestProcessor,
-                          PreBidRequestContextFactory preBidRequestContextFactory,
+                          AuctionRequestFactory auctionRequestFactory,
                           UidsCookieService uidsCookieService, Metrics metrics) {
         this.maxRequestSize = maxRequestSize;
         this.defaultTimeout = defaultTimeout;
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
-        this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
+        this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.metrics = Objects.requireNonNull(metrics);
     }
@@ -80,7 +80,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         parseRequest(context)
                 .compose(storedRequestProcessor::processStoredRequests)
-                .map(bidRequest -> preBidRequestContextFactory.fromRequest(bidRequest, context))
+                .map(bidRequest -> auctionRequestFactory.fromRequest(bidRequest, context))
                 .map(this::validateRequest)
                 .recover(this::updateErrorRequestsMetric)
                 .compose(bidRequest -> {

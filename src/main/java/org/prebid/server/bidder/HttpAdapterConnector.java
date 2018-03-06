@@ -45,15 +45,15 @@ import java.util.stream.Collectors;
  * This class exists to help segregate core auction logic and minimize code duplication across the {@link Adapter}
  * implementations.
  */
-public class HttpConnector {
+public class HttpAdapterConnector {
 
-    private static final Logger logger = LoggerFactory.getLogger(HttpConnector.class);
+    private static final Logger logger = LoggerFactory.getLogger(HttpAdapterConnector.class);
 
     private static final Clock CLOCK = Clock.systemDefaultZone();
 
     private final HttpClient httpClient;
 
-    public HttpConnector(HttpClient httpClient) {
+    public HttpAdapterConnector(HttpClient httpClient) {
         this.httpClient = Objects.requireNonNull(httpClient);
     }
 

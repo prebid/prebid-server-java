@@ -25,8 +25,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.metric.MetricName;
@@ -65,7 +65,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private RequestValidator requestValidator;
     @Mock
-    private PreBidRequestContextFactory preBidRequestContextFactory;
+    private AuctionRequestFactory auctionRequestFactory;
     @Mock
     private ExchangeService exchangeService;
     @Mock
@@ -102,7 +102,7 @@ public class AmpHandlerTest extends VertxTest {
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
-        ampHandler = new AmpHandler(5000, 50, applicationSettings, preBidRequestContextFactory, requestValidator,
+        ampHandler = new AmpHandler(5000, 50, applicationSettings, auctionRequestFactory, requestValidator,
                 exchangeService, uidsCookieService, metrics);
     }
 
@@ -112,13 +112,13 @@ public class AmpHandlerTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(
                 () -> new AmpHandler(1, 1, applicationSettings, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, applicationSettings,
-                preBidRequestContextFactory, null, null, null, null));
+                auctionRequestFactory, null, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, applicationSettings,
-                preBidRequestContextFactory, requestValidator, null, null, null));
+                auctionRequestFactory, requestValidator, null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, applicationSettings,
-                preBidRequestContextFactory, requestValidator, exchangeService, null, null));
+                auctionRequestFactory, requestValidator, exchangeService, null, null));
         assertThatNullPointerException().isThrownBy(() -> new AmpHandler(1, 1, applicationSettings,
-                preBidRequestContextFactory, requestValidator, exchangeService, uidsCookieService, null));
+                auctionRequestFactory, requestValidator, exchangeService, uidsCookieService, null));
     }
 
     @Test
@@ -278,7 +278,7 @@ public class AmpHandlerTest extends VertxTest {
         given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(identity()));
 
-        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
 
@@ -298,7 +298,7 @@ public class AmpHandlerTest extends VertxTest {
         given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(identity()));
 
-        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
 
@@ -321,7 +321,7 @@ public class AmpHandlerTest extends VertxTest {
         given(applicationSettings.getStoredRequestsByAmpId(eq(singleton("tagId1")), any()))
                 .willReturn(givenStoredRequestResultFuture(identity()));
 
-        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
 
@@ -336,7 +336,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getStoredRequestsByAmpId(eq(singleton("tagId1")), any());
-        verify(preBidRequestContextFactory).fromRequest(any(BidRequest.class), any(RoutingContext.class));
+        verify(auctionRequestFactory).fromRequest(any(BidRequest.class), any(RoutingContext.class));
         verify(requestValidator).validate(any(BidRequest.class));
         verify(exchangeService).holdAuction(any(), any(), any());
 
@@ -350,7 +350,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldIncrementAmpRequestMetrics() throws JsonProcessingException {
         // given
         givenMocksForMetricSupport();
-        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder()
+        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder()
                 .app(App.builder().build()).build());
 
         // when
@@ -365,7 +365,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldIncrementNoCookieMetrics() throws JsonProcessingException {
         // given
         givenMocksForMetricSupport();
-        given(preBidRequestContextFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
+        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
         given(uidsCookie.hasLiveUids()).willReturn(true);
 
         httpRequest.headers().add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +

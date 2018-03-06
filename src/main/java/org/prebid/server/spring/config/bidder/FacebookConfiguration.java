@@ -3,8 +3,8 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
+import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpAdapterRequester;
-import org.prebid.server.bidder.HttpConnector;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.facebook.FacebookAdapter;
 import org.prebid.server.bidder.facebook.FacebookMetaInfo;
@@ -36,11 +36,11 @@ public class FacebookConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderDeps facebookBidderDeps(HttpConnector httpConnector) {
+    BidderDeps facebookBidderDeps(HttpAdapterConnector httpAdapterConnector) {
         final Usersyncer usersyncer = new FacebookUsersyncer(usersyncUrl);
         final Adapter adapter = new FacebookAdapter(usersyncer, endpoint, nonSecureEndpoint, platformId);
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
-                httpConnector);
+                httpAdapterConnector);
 
         return BidderDeps.of(BIDDER_NAME, new FacebookMetaInfo(), usersyncer, adapter, bidderRequester);
     }

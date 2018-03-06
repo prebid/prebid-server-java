@@ -4,18 +4,10 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.User;
-import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
-import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -23,6 +15,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.ImplicitParametersExtractor;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -38,20 +31,16 @@ import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.settings.ApplicationSettings;
 
-import java.net.MalformedURLException;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.function.Function;
 
-import static io.vertx.core.http.HttpHeaders.REFERER;
-import static io.vertx.core.http.HttpHeaders.USER_AGENT;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.math.NumberUtils.isDigits;
 import static org.apache.commons.lang3.math.NumberUtils.toLong;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -59,18 +48,15 @@ import static org.mockito.Mockito.verify;
 
 public class PreBidRequestContextFactoryTest extends VertxTest {
 
-    private static final String X_FORWARDED_FOR = "X-Forwarded-For";
     private static final Long HTTP_REQUEST_TIMEOUT = 250L;
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
     @Mock
-    private RoutingContext routingContext;
-    @Mock
-    private HttpServerRequest httpRequest;
-    private final PublicSuffixList psl = new PublicSuffixListFactory().build();
+    private ImplicitParametersExtractor paramsExtractor;
     @Mock
     private ApplicationSettings applicationSettings;
     @Mock
@@ -80,42 +66,28 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
 
     private PreBidRequestContextFactory factory;
 
+    @Mock
+    private RoutingContext routingContext;
+    @Mock
+    private HttpServerRequest httpRequest;
+
     @Before
     public void setUp() {
         // minimal request
         given(routingContext.getBody()).willReturn(givenPreBidRequest(identity()));
         given(routingContext.request()).willReturn(httpRequest);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(0, "192.168.244.1"));
-        httpRequest.headers().set(REFERER, "http://example.com");
 
         // parsed uids cookie
         given(uidsCookieService.parseFromRequest(any())).willReturn(uidsCookie);
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
-        factory = new PreBidRequestContextFactory(HTTP_REQUEST_TIMEOUT, psl, applicationSettings, uidsCookieService);
-    }
-
-    @Test
-    public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(1L, psl, applicationSettings,
-                null));
-        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(1L, psl, null,
-                uidsCookieService));
-        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(1L, null, applicationSettings,
-                uidsCookieService));
-        assertThatNullPointerException().isThrownBy(() -> new PreBidRequestContextFactory(null, psl,
-                applicationSettings, uidsCookieService));
-
+        factory = new PreBidRequestContextFactory(HTTP_REQUEST_TIMEOUT, paramsExtractor, applicationSettings,
+                uidsCookieService);
     }
 
     @Test
     public void shouldReturnPopulatedContext() {
         // given
-        httpRequest.headers().set(USER_AGENT, "userAgent");
-        httpRequest.headers().set(REFERER, "http://www.example.com");
-
         final AdUnit adUnit = AdUnit.builder()
                 .code("adUnitCode1")
                 .sizes(singletonList(Format.builder().w(100).h(100).build()))
@@ -125,20 +97,26 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         given(routingContext.getBody())
                 .willReturn(givenPreBidRequest(builder -> builder.adUnits(singletonList(adUnit))));
 
+        given(paramsExtractor.refererFrom(any())).willReturn("http://www.example.com");
+        given(paramsExtractor.domainFrom(anyString())).willReturn("example.com");
+        given(paramsExtractor.ipFrom(any())).willReturn("192.168.244.1");
+        given(paramsExtractor.uaFrom(any())).willReturn("userAgent");
+        given(paramsExtractor.secureFrom(any())).willReturn(1);
+
         // when
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
         assertThat(preBidRequestContext.getAdapterRequests()).hasSize(1);
         assertThat(preBidRequestContext.getPreBidRequest()).isNotNull();
+        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://www.example.com");
+        assertThat(preBidRequestContext.getDomain()).isEqualTo("example.com");
         assertThat(preBidRequestContext.getIp()).isEqualTo("192.168.244.1");
-        assertThat(preBidRequestContext.getSecure()).isNull();
+        assertThat(preBidRequestContext.getUa()).isEqualTo("userAgent");
+        assertThat(preBidRequestContext.getSecure()).isEqualTo(1);
         assertThat(preBidRequestContext.isDebug()).isFalse();
         assertThat(preBidRequestContext.getUidsCookie()).isNotNull();
         assertThat(preBidRequestContext.isNoLiveUids()).isTrue();
-        assertThat(preBidRequestContext.getUa()).isEqualTo("userAgent");
-        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://www.example.com");
-        assertThat(preBidRequestContext.getDomain()).isEqualTo("example.com");
     }
 
     @Test
@@ -456,76 +434,6 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetSecureFlagIfXForwardedProtoIsHttps() {
-        // given
-        httpRequest.headers().set("X-Forwarded-Proto", "https");
-
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getSecure()).isEqualTo(1);
-    }
-
-
-    @Test
-    public void shouldSetSecureFlagIfConnectedViaSSL() {
-        // given
-        given(httpRequest.scheme()).willReturn("https");
-
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getSecure()).isEqualTo(1);
-    }
-
-    @Test
-    public void shouldNotSetSecureFlag() {
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getSecure()).isNull();
-    }
-
-    @Test
-    public void shouldSetSingleIpFromXForwardedFor() {
-        // given
-        httpRequest.headers().set(X_FORWARDED_FOR, " 192.168.144.1 ");
-
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getIp()).isEqualTo("192.168.144.1");
-    }
-
-    @Test
-    public void shouldSetFirstIpFromXForwardedFor() {
-        // given
-        httpRequest.headers().set(X_FORWARDED_FOR, " 192.168.44.1 , 192.168.144.1 , 192.168.244.1 ");
-
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getIp()).isEqualTo("192.168.44.1");
-    }
-
-    @Test
-    public void shouldSetIpFromXRealIP() {
-        // given
-        httpRequest.headers().set("X-Real-IP", " 192.168.44.1 ");
-
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getIp()).isEqualTo("192.168.44.1");
-    }
-
-    @Test
     public void shouldSetIsDebugToTrueIfTrueInPreBidRequest() {
         // given
         given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.isDebug(true)));
@@ -579,218 +487,17 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldFailIfRefererCouldNotBeParsed() {
+    public void shouldFailIfDomainCouldNotBeExtracted() {
         // given
-        httpRequest.headers().set(REFERER, "httpP://non_an_url");
+        final PreBidException exception = new PreBidException("Couldn't derive domain");
+        given(paramsExtractor.domainFrom(any())).willThrow(exception);
 
         // when
         final Future<PreBidRequestContext> preBidRequestContextFuture = factory.fromRequest(routingContext);
 
         // then
         assertThat(preBidRequestContextFuture.failed()).isTrue();
-        assertThat(preBidRequestContextFuture.cause())
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'httpP://non_an_url': unknown protocol: httpp")
-                .hasCauseInstanceOf(MalformedURLException.class);
-    }
-
-    @Test
-    public void shouldFailIfRefererDoesNotContainHost() {
-        // given
-        httpRequest.headers().set(REFERER, "http:/path");
-
-        // when
-        final Future<PreBidRequestContext> preBidRequestContextFuture = factory.fromRequest(routingContext);
-
-        // then
-        assertThat(preBidRequestContextFuture.failed()).isTrue();
-        assertThat(preBidRequestContextFuture.cause())
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("Host not found from URL 'http:/path'");
-    }
-
-    @Test
-    public void shouldFailIfDomainCouldNotBeDerivedFromReferer() {
-        // given
-        httpRequest.headers().set(REFERER, "http://domain");
-
-        // when
-        final Future<PreBidRequestContext> preBidRequestContextFuture = factory.fromRequest(routingContext);
-
-        // then
-        assertThat(preBidRequestContextFuture.failed()).isTrue();
-        assertThat(preBidRequestContextFuture.cause())
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("Invalid URL 'domain': cannot derive eTLD+1 for domain domain");
-    }
-
-    @Test
-    public void shouldDeriveRefererAndDomainFromRequestParamIfUrlOverrideParamExists() {
-        // given
-        given(httpRequest.getParam("url_override")).willReturn("http://exampleoverrride.com");
-
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://exampleoverrride.com");
-        assertThat(preBidRequestContext.getDomain()).isEqualTo("exampleoverrride.com");
-    }
-
-    @Test
-    public void shouldDeriveRefererAndDomainFromRefererHeaderIfUrlOverrideParamBlank() {
-        // given
-        given(httpRequest.getParam("url_override")).willReturn("");
-
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://example.com");
-        assertThat(preBidRequestContext.getDomain()).isEqualTo("example.com");
-    }
-
-    @Test
-    public void shouldPrefixHttpSchemeToUrlIfUrlOverrideParamDoesNotContainScheme() {
-        // given
-        given(httpRequest.getParam("url_override")).willReturn("example.com");
-
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://example.com");
-        assertThat(preBidRequestContext.getDomain()).isEqualTo("example.com");
-    }
-
-    @Test
-    public void shouldPrefixHttpSchemeToUrlIfRefererHeaderDoesNotContainScheme() {
-        // given
-        httpRequest.headers().set(REFERER, "example.com");
-
-        // when
-        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(preBidRequestContext.getReferer()).isEqualTo("http://example.com");
-        assertThat(preBidRequestContext.getDomain()).isEqualTo("example.com");
-    }
-
-    @Test
-    public void shouldSetFieldsFromHeadersIfBodyFieldsEmpty() {
-        // given
-        httpRequest.headers().set("User-Agent", "UnitTest");
-        httpRequest.headers().set("Referer", "http://example.com");
-        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
-
-        // when
-        final BidRequest populatedBidRequest = factory.fromRequest(BidRequest.builder().build(), routingContext);
-
-        // then
-        assertThat(populatedBidRequest.getSite()).isEqualTo(
-                Site.builder().page("http://example.com").domain("example.com").build());
-        assertThat(populatedBidRequest.getDevice()).isEqualTo(
-                Device.builder().ip("192.168.244.1").ua("UnitTest").build());
-        assertThat(populatedBidRequest.getUser()).isEqualTo(User.builder().id("userId").build());
-    }
-
-    @Test
-    public void shouldNotSetFieldsFromHeadersIfRequestFieldsNotEmpty() {
-        // given
-        httpRequest.headers().set("User-Agent", "UnitTest");
-        httpRequest.headers().set("Referer", "http://example.com");
-        given(uidsCookieService.parseHostCookie(any())).willReturn("userId");
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("test.com").page("http://test.com").build())
-                .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
-                .user(User.builder().id("userId").build())
-                .build();
-
-        // when
-        final BidRequest populatedBidRequest = factory.fromRequest(bidRequest, routingContext);
-
-        // then
-        assertThat(populatedBidRequest).isSameAs(bidRequest);
-    }
-
-    @Test
-    public void shouldNotSetSiteIfNoReferer() {
-        // given
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-
-        // when
-        final BidRequest populatedBidRequest = factory.fromRequest(BidRequest.builder().build(), routingContext);
-
-        // then
-        assertThat(populatedBidRequest.getSite()).isNull();
-    }
-
-    @Test
-    public void shouldNotSetSitePageIfNoReferer() {
-        // given
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("home.com").build())
-                .build();
-
-        // when
-        final BidRequest result = factory.fromRequest(bidRequest, routingContext);
-
-        // then
-        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
-    }
-
-    @Test
-    public void shouldNotSetSitePageIfRefererCouldNotBeParsed() {
-        // given
-        httpRequest.headers().set("Referer", "http://.com:50505");
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("home.com").build())
-                .build();
-
-        // when
-        final BidRequest result = factory.fromRequest(bidRequest, routingContext);
-
-        // then
-        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
-    }
-
-    @Test
-    public void shouldSetDeviceIpFromXForwardedFor() {
-        // given
-        httpRequest.headers().set("X-Forwarded-For", "203.0.113.195, 70.41.3.18");
-
-        // when
-        final BidRequest result = factory.fromRequest(BidRequest.builder().build(), routingContext);
-
-        // then
-        assertThat(result.getDevice()).isNotNull();
-        assertThat(result.getDevice().getIp()).isEqualTo("203.0.113.195");
-    }
-
-    @Test
-    public void shouldSetDeviceIpFromXRealIp() {
-        // given
-        httpRequest.headers().set("X-Real-IP", "54.83.132.159");
-
-        // when
-        final BidRequest result = factory.fromRequest(BidRequest.builder().build(), routingContext);
-
-        // then
-        assertThat(result.getDevice()).isNotNull();
-        assertThat(result.getDevice().getIp()).isEqualTo("54.83.132.159");
-    }
-
-    @Test
-    public void shouldNotSetUserIfNoHostCookie() {
-        // given
-        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
-
-        // when
-        final BidRequest result = factory.fromRequest(BidRequest.builder().build(), routingContext);
-
-        // then
-        assertThat(result.getUser()).isNull();
+        assertThat(preBidRequestContextFuture.cause()).isSameAs(exception);
     }
 
     private static Bid givenBid(String bidder) {

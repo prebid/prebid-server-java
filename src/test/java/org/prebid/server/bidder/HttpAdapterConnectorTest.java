@@ -67,7 +67,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-public class HttpConnectorTest extends VertxTest {
+public class HttpAdapterConnectorTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -85,7 +85,7 @@ public class HttpConnectorTest extends VertxTest {
 
     private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
-    private HttpConnector httpConnector;
+    private HttpAdapterConnector httpAdapterConnector;
 
     @Before
     public void setUp() {
@@ -100,12 +100,12 @@ public class HttpConnectorTest extends VertxTest {
 
         adapterRequest = AdapterRequest.of(null, null);
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        httpConnector = new HttpConnector(httpClient);
+        httpAdapterConnector = new HttpAdapterConnector(httpClient);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new HttpConnector(null));
+        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterConnector(null));
     }
 
     @Test
@@ -117,7 +117,7 @@ public class HttpConnectorTest extends VertxTest {
                 .willReturn(singletonList(givenHttpRequest(headers, identity())));
 
         // when
-        httpConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
+        httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         assertThat(httpClientRequest.headers()).extracting(Map.Entry::getKey).containsOnly("key1");
@@ -127,7 +127,7 @@ public class HttpConnectorTest extends VertxTest {
     @Test
     public void callShouldPerformHttpRequestsWithExpectedTimeout() {
         // when
-        httpConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
+        httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
@@ -142,7 +142,7 @@ public class HttpConnectorTest extends VertxTest {
                 .willReturn(singletonList(givenHttpRequest(null, b -> b.id("bidRequest1"))));
 
         // when
-        httpConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
+        httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         final BidRequest bidRequest = captureBidRequest();
@@ -157,7 +157,7 @@ public class HttpConnectorTest extends VertxTest {
                 .willReturn(emptyList());
 
         // when
-        httpConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
+        httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -170,7 +170,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willThrow(new PreBidException("Make http requests exception"));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -186,7 +187,8 @@ public class HttpConnectorTest extends VertxTest {
                 identity());
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -204,7 +206,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new ConnectTimeoutException()));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -221,7 +224,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException()));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -238,7 +242,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -252,7 +257,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -266,7 +272,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(204, "response");
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -281,7 +288,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(503, "response");
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -295,7 +303,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, "response");
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -319,7 +328,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willReturn(httpClientResponse);
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -362,7 +372,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -407,7 +418,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -436,7 +448,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -467,7 +480,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, bidResponse, bidResponse);
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -496,7 +510,8 @@ public class HttpConnectorTest extends VertxTest {
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -515,7 +530,8 @@ public class HttpConnectorTest extends VertxTest {
         given(usersyncer.usersyncInfo()).willReturn(UsersyncInfo.of("url1", null, false));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -536,7 +552,8 @@ public class HttpConnectorTest extends VertxTest {
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -560,7 +577,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(200, bidResponse);
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -588,7 +606,8 @@ public class HttpConnectorTest extends VertxTest {
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -605,7 +624,8 @@ public class HttpConnectorTest extends VertxTest {
                 identity());
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -626,7 +646,8 @@ public class HttpConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then
@@ -646,7 +667,8 @@ public class HttpConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(503, "response");
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpConnector.call(adapter, usersyncer, adapterRequest,
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
                 preBidRequestContext);
 
         // then

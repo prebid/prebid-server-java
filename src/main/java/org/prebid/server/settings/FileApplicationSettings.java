@@ -4,6 +4,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.GlobalTimeout;
@@ -44,7 +45,7 @@ public class FileApplicationSettings implements ApplicationSettings {
                 account -> Account.of(account, null));
         this.configs = toMap(settingsFile.getConfigs(),
                 AdUnitConfig::getId,
-                config -> config.getConfig() != null ? config.getConfig() : "");
+                config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));
         this.storedRequests = Objects.requireNonNull(storedRequests);
     }
 

@@ -9,11 +9,12 @@ import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
+import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.HttpConnector;
+import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.handler.AuctionHandler;
@@ -124,10 +125,10 @@ public class WebConfiguration {
             CacheService cacheService,
             Vertx vertx,
             Metrics metrics,
-            HttpConnector httpConnector) {
+            HttpAdapterConnector httpAdapterConnector) {
 
         return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService, vertx,
-                metrics, httpConnector);
+                metrics, httpAdapterConnector);
     }
 
     @Bean
@@ -138,12 +139,12 @@ public class WebConfiguration {
             RequestValidator requestValidator,
             ExchangeService exchangeService,
             StoredRequestProcessor storedRequestProcessor,
-            PreBidRequestContextFactory preBidRequestContextFactory,
+            AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
             Metrics metrics) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(maxRequestSize, defaultTimeoutMs, requestValidator,
-                exchangeService, storedRequestProcessor, preBidRequestContextFactory, uidsCookieService, metrics);
+                exchangeService, storedRequestProcessor, auctionRequestFactory, uidsCookieService, metrics);
     }
 
     @Bean
@@ -154,12 +155,12 @@ public class WebConfiguration {
             RequestValidator requestValidator,
             ExchangeService exchangeService,
             ApplicationSettings applicationSettings,
-            PreBidRequestContextFactory preBidRequestContextFactory,
+            AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
             Metrics metrics) {
 
         return new AmpHandler(defaultTimeoutMs, defaultStoredRequestsTimeoutMs, applicationSettings,
-                preBidRequestContextFactory, requestValidator, exchangeService, uidsCookieService, metrics);
+                auctionRequestFactory, requestValidator, exchangeService, uidsCookieService, metrics);
     }
 
     @Bean

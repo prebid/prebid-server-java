@@ -5,11 +5,13 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import org.prebid.server.ImplicitParametersExtractor;
+import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.HttpConnector;
+import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.metric.Metrics;
@@ -44,13 +46,27 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    ImplicitParametersExtractor implicitParametersExtractor(PublicSuffixList psl) {
+        return new ImplicitParametersExtractor(psl);
+    }
+
+    @Bean
     PreBidRequestContextFactory preBidRequestContextFactory(
             @Value("${default-timeout-ms}") long defaultTimeoutMs,
-            PublicSuffixList psl,
+            ImplicitParametersExtractor implicitParametersExtractor,
             ApplicationSettings applicationSettings,
             UidsCookieService uidsCookieService) {
 
-        return new PreBidRequestContextFactory(defaultTimeoutMs, psl, applicationSettings, uidsCookieService);
+        return new PreBidRequestContextFactory(defaultTimeoutMs, implicitParametersExtractor, applicationSettings,
+                uidsCookieService);
+    }
+
+    @Bean
+    AuctionRequestFactory auctionRequestFactory(
+            ImplicitParametersExtractor implicitParametersExtractor,
+            UidsCookieService uidsCookieService) {
+
+        return new AuctionRequestFactory(implicitParametersExtractor, uidsCookieService);
     }
 
     @Bean
@@ -109,8 +125,8 @@ public class ServiceConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    HttpConnector adaptersHttpConnector(HttpClient httpClient) {
-        return new HttpConnector(httpClient);
+    HttpAdapterConnector httpAdapterConnector(HttpClient httpClient) {
+        return new HttpAdapterConnector(httpClient);
     }
 
     @Bean

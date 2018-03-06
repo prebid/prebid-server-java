@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Describes the behavior for {@link Adapter} implementations.
  * <p>
- * Used by {@link HttpConnector} while performing requests to exchanges and compose results.
+ * Used by {@link HttpAdapterConnector} while performing requests to exchanges and compose results.
  */
 public interface Adapter {
 

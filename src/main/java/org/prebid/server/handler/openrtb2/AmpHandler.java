@@ -19,8 +19,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.model.AmpRequest;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -62,7 +62,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final long defaultStoredRequestsTimeoutMs;
     private final ApplicationSettings applicationSettings;
-    private final PreBidRequestContextFactory preBidRequestContextFactory;
+    private final AuctionRequestFactory auctionRequestFactory;
     private final RequestValidator requestValidator;
     private final ExchangeService exchangeService;
     private final UidsCookieService uidsCookieService;
@@ -70,13 +70,13 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     public AmpHandler(long defaultTimeout, long defaultStoredRequestsTimeoutMs,
                       ApplicationSettings applicationSettings,
-                      PreBidRequestContextFactory preBidRequestContextFactory,
+                      AuctionRequestFactory auctionRequestFactory,
                       RequestValidator requestValidator,
                       ExchangeService exchangeService, UidsCookieService uidsCookieService, Metrics metrics) {
         this.defaultTimeout = defaultTimeout;
         this.defaultStoredRequestsTimeoutMs = defaultStoredRequestsTimeoutMs;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
+        this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -121,7 +121,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                                                           long startTime) {
         return toStoredBidRequest(ampRequest, startTime)
                 .map(bidRequest -> validateStoredBidRequest(ampRequest.getTagId(), bidRequest))
-                .map(bidRequest -> preBidRequestContextFactory.fromRequest(bidRequest, context))
+                .map(bidRequest -> auctionRequestFactory.fromRequest(bidRequest, context))
                 .map(this::validateBidRequest);
     }
 
