@@ -137,7 +137,7 @@ public class ServiceConfiguration {
 
     @Bean
     BidderParamValidator bidderParamValidator(BidderCatalog bidderCatalog) {
-        return BidderParamValidator.create(bidderCatalog, "/static/bidder-params");
+        return BidderParamValidator.create(bidderCatalog, "static/bidder-params");
     }
 
     @Bean

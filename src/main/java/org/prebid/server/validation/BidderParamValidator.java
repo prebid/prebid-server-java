@@ -9,12 +9,9 @@ import com.networknt.schema.ValidationMessage;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.util.ResourceUtil;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -85,7 +82,7 @@ public class BidderParamValidator {
 
         bidderCatalog.names()
                 .forEach(bidderRequester -> bidderRawSchemas.put(bidderRequester,
-                        readFromClasspath(schemaDirectory, bidderRequester)));
+                        createSchemaNode(schemaDirectory, bidderRequester)));
 
         return new BidderParamValidator(toBidderSchemas(bidderRawSchemas), toSchemas(bidderRawSchemas));
     }
@@ -113,23 +110,16 @@ public class BidderParamValidator {
         return result;
     }
 
-    private static JsonNode readFromClasspath(String schemaDirectory, String bidder) {
+    private static JsonNode createSchemaNode(String schemaDirectory, String bidder) {
         final JsonNode result;
         final String path = schemaDirectory + FILE_SEP + bidder + JSON_FILE_EXT;
-
-        final InputStream resourceAsStream = BidderParamValidator.class.getResourceAsStream(path);
-
-        if (resourceAsStream != null) {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream,
-                    StandardCharsets.UTF_8))) {
-
-                result = toJsonNode(reader.lines().collect(Collectors.joining("\n")), bidder);
-            } catch (IOException | RuntimeException e) {
-                throw new IllegalArgumentException(
-                        String.format("Failed to load %s json schema at %s", bidder, path), e);
-            }
-        } else {
-            throw new IllegalArgumentException(String.format("Couldn't find %s json schema at %s", bidder, path));
+        try {
+            result = toJsonNode(ResourceUtil.readFromClasspath(path), bidder);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(String.format("Couldn't find %s json schema at %s", bidder, path), ex);
+        } catch (IOException | RuntimeException e) {
+            throw new IllegalArgumentException(
+                    String.format("Failed to load %s json schema at %s", bidder, path), e);
         }
         return result;
     }

@@ -444,6 +444,17 @@ public class ApplicationTest extends VertxTest {
                 .body(equalTo(jsonFrom("info-bidders/test-info-bidder-details-response.json")));
     }
 
+    @Test
+    public void validateShouldReturnResponseWithValidationMessages() throws IOException {
+        final Response response = given(spec)
+                .body(jsonFrom("auction/test-auction-request.json"))
+                .when()
+                .post("/validate");
+
+        assertThat(response.asString()).isEqualTo("$.ad_units[0].video.protocols: array found, integer expected\n" +
+                "$.ad_units[3].video.protocols: array found, integer expected");
+    }
+
     private String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(this.getClass().getResourceAsStream(

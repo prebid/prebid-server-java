@@ -11,6 +11,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
+import org.prebid.server.util.ResourceUtil;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -42,7 +43,7 @@ public class BidderParamValidatorTest extends VertxTest {
     public void setUp() {
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(RUBICON, APPNEXUS)));
 
-        bidderParamValidator = BidderParamValidator.create(bidderCatalog, "/static/bidder-params");
+        bidderParamValidator = BidderParamValidator.create(bidderCatalog, "static/bidder-params");
     }
 
     @Test
@@ -54,19 +55,19 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void createShouldFailOnInvalidSchemaPath() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> BidderParamValidator.create(bidderCatalog, "/noschema"));
+                () -> BidderParamValidator.create(bidderCatalog, "noschema"));
     }
 
     @Test
     public void createShouldFailOnEmptySchemaFile() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> BidderParamValidator.create(bidderCatalog, "schema/empty"));
+                () -> BidderParamValidator.create(bidderCatalog, "org/prebid/server/validation/schema/empty"));
     }
 
     @Test
     public void createShouldFailOnInvalidSchemaFile() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> BidderParamValidator.create(bidderCatalog, "schema/invalid"));
+                () -> BidderParamValidator.create(bidderCatalog, "org/prebid/server/validation/schema/invalid"));
     }
 
     @Test
@@ -125,28 +126,16 @@ public class BidderParamValidatorTest extends VertxTest {
 
     @Test
     public void schemaShouldReturnSchemasString() throws IOException {
-        //given
+        // given
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("test-rubicon", "test-appnexus")));
 
-        bidderParamValidator = BidderParamValidator.create(bidderCatalog, "schema/valid");
+        bidderParamValidator = BidderParamValidator.create(bidderCatalog, "org/prebid/server/validation/schema/valid");
 
         // when
         final String result = bidderParamValidator.schemas();
 
         // then
-        assertThat(result).isEqualTo(readFromClasspath("schema/valid/test-schemas.json"));
-    }
-
-    private static String readFromClasspath(String path) throws IOException {
-        String content = null;
-
-        final InputStream resourceAsStream = BidderParamValidatorTest.class.getResourceAsStream(path);
-        if (resourceAsStream != null) {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream,
-                    StandardCharsets.UTF_8))) {
-                content = reader.lines().collect(Collectors.joining("\n"));
-            }
-        }
-        return content;
+        assertThat(result).isEqualTo(ResourceUtil.readFromClasspath(
+                "org/prebid/server/validation/schema//valid/test-schemas.json"));
     }
 }
