@@ -4,17 +4,16 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
- * Defines the contract for bidrequest.user.ext
+ * ExtRegs defines the contract for bidrequest.regs.ext
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtUser {
+public class ExtRegs {
 
     /**
-     * Consent is a GDPR consent string. See "Advised Extensions" of
+     * GDPR should be "1" if the caller believes the user is subject to GDPR laws, "0" if not, and undefined
+     * if it's unknown. For more info on this parameter, see:
      * https://iabtechlab.com/wp-content/uploads/2018/02/OpenRTB_Advisory_GDPR_2018-02.pdf
      */
-    String consent;
-
-    ExtUserDigiTrust digitrust;
+    Integer gdpr;
 }

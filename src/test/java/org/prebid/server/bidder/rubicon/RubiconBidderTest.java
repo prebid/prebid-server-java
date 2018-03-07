@@ -265,7 +265,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(
-                        mapper.valueToTree(ExtUser.of(ExtUserDigiTrust.of("id", 123, 0))))
+                        mapper.valueToTree(ExtUser.of(null, ExtUserDigiTrust.of("id", 123, 0))))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 Function.identity());

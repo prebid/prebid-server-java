@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
@@ -9,6 +10,7 @@ import lombok.Value;
  * request falls under the United States Federal Trade Commission’s regulations
  * for the United States Children’s Online Privacy Protection Act (“COPPA”).
  */
+@AllArgsConstructor(staticName = "of")
 @Value
 public class Regs {
 

@@ -9,6 +9,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Pmp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -17,6 +18,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
@@ -87,6 +89,7 @@ public class RequestValidator {
             }
             validateSite(bidRequest.getSite());
             validateUser(bidRequest.getUser());
+            validateRegs(bidRequest.getRegs());
         } catch (ValidationException ex) {
             return ValidationResult.error(ex.getMessage());
         }
@@ -136,11 +139,29 @@ public class RequestValidator {
             try {
                 final ExtUser extUser = Json.mapper.treeToValue(user.getExt(), ExtUser.class);
                 final ExtUserDigiTrust digitrust = extUser.getDigitrust();
-                if (digitrust == null || digitrust.getPref() != 0) {
+                if (digitrust != null && digitrust.getPref() != 0) {
                     throw new ValidationException("request.user contains a digitrust object that is not valid.");
                 }
             } catch (JsonProcessingException e) {
-                throw new ValidationException("request.user.ext object is not valid.");
+                throw new ValidationException("request.user.ext object is not valid: %s", e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Validates {@link Regs}. Throws {@link ValidationException} in case if {@link ExtRegs} is present in
+     * bidrequest.regs.ext and its gdpr value has different value to 0 or 1.
+     */
+    private void validateRegs(Regs regs) throws ValidationException {
+        if (regs != null) {
+            try {
+                final ExtRegs extRegs = Json.mapper.treeToValue(regs.getExt(), ExtRegs.class);
+                final Integer gdpr = extRegs == null ? null : extRegs.getGdpr();
+                if (gdpr != null && (gdpr < 0 || gdpr > 1)) {
+                    throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1.");
+                }
+            } catch (JsonProcessingException e) {
+                throw new ValidationException("request.regs.ext is invalid: %s", e.getMessage());
             }
         }
     }

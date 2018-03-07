@@ -15,6 +15,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Pmp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Site.SiteBuilder;
 import com.iab.openrtb.request.User;
@@ -28,7 +29,9 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -725,25 +728,10 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenDigiTrustOmittedForUserExt() {
+    public void validateShouldReturnValidationMessageWhenDigiTrustPrefIsNotEqualToZero() {
         // given
-        final ObjectNode ext = mapper.createObjectNode();
-        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder().ext(ext).build())
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.user contains a digitrust object that is not valid.");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenDigiTrustPrefEqualZero() {
-        // given
-        final ObjectNode ext = mapper.valueToTree(ExtUserDigiTrust.of(null, null, 0));
-        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder().ext(ext).build())
+        final ObjectNode userExt = mapper.valueToTree(ExtUser.of(null, ExtUserDigiTrust.of(null, null, 1)));
+        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder().ext(userExt).build())
                 .build();
 
         // when
@@ -766,8 +754,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.user.ext object is not valid.");
+        assertThat(result.getErrors()).hasSize(1).element(0).asString()
+                .contains("request.user.ext object is not valid:");
     }
 
     @Test
@@ -813,6 +801,33 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorsWhenGdprIsNotOneOrZero() {
+        // given
+        final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2));
+        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(0, ext)).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0)
+                .isEqualTo("request.regs.ext.gdpr must be either 0 or 1.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorsWhenRegsExtIsNotValidJson() {
+        // given
+        final ObjectNode ext = mapper.createObjectNode().put("gdpr", "String");
+        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(0, ext)).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0).asString().contains("request.regs.ext is invalid:");
     }
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {
