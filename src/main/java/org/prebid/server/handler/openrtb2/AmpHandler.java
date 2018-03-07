@@ -170,9 +170,13 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
 
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
-        if (prebid == null || prebid.getTargeting() == null || cache == null || cache.getBids().isNull()) {
-            throw new InvalidRequestException("AMP requests require Targeting and Caching to be set");
+        if (prebid == null || prebid.getTargeting() == null) {
+            throw new InvalidRequestException("request.ext.prebid.targeting is required for AMP requests");
+        }
+
+        final ExtRequestPrebidCache cache = prebid.getCache();
+        if (cache == null || cache.getBids().isNull()) {
+            throw new InvalidRequestException("request.ext.prebid.cache.bids must be set to {} for AMP requests");
         }
 
         return bidRequest;

@@ -241,8 +241,7 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithBadRequestIfStoredBidRequestExtHasNoTargetingAndCaching()
-            throws JsonProcessingException {
+    public void shouldRespondWithBadRequestIfStoredBidRequestExtHasNoTargeting() throws JsonProcessingException {
         // given
         given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
                 .willReturn(givenStoredRequestResultFuture(builder -> builder
@@ -253,7 +252,25 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Invalid request format: AMP requests require Targeting and Caching to be set"));
+        verify(httpResponse)
+                .end(eq("Invalid request format: request.ext.prebid.targeting is required for AMP requests"));
+    }
+
+    @Test
+    public void shouldRespondWithBadRequestIfStoredBidRequestExtHasNoCaching() throws JsonProcessingException {
+        // given
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any()))
+                .willReturn(givenStoredRequestResultFuture(builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(
+                                ExtRequestPrebid.of(null, ExtRequestTargeting.of(null), null, null))))));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse)
+                .end(eq("Invalid request format: request.ext.prebid.cache.bids must be set to {} for AMP requests"));
     }
 
     @Test
