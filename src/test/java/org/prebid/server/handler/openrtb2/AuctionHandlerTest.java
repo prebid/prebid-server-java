@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -21,21 +20,16 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.GlobalTimeout;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.validation.RequestValidator;
-import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -46,8 +40,6 @@ public class AuctionHandlerTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
-    private RequestValidator requestValidator;
     @Mock
     private ExchangeService exchangeService;
     @Mock
@@ -68,109 +60,37 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private UidsCookie uidsCookie;
 
-    @Mock
-    private StoredRequestProcessor storedRequestProcessor;
-
     @Before
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
-        auctionHandler = new AuctionHandler(Integer.MAX_VALUE, 5000, requestValidator, exchangeService,
-                storedRequestProcessor, auctionRequestFactory, uidsCookieService, metrics);
+        auctionHandler = new AuctionHandler(5000, exchangeService, auctionRequestFactory, uidsCookieService, metrics);
     }
 
     @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, null, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, null, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator, null, null,
-                null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
-                exchangeService, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
-                exchangeService, storedRequestProcessor, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
-                exchangeService, storedRequestProcessor, auctionRequestFactory, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AuctionHandler(1, 1, requestValidator,
-                exchangeService, storedRequestProcessor, auctionRequestFactory, uidsCookieService, null));
-    }
-
-    @Test
-    public void shouldRespondWithBadRequestIfRequestBodyIsMissing() {
+    public void shouldRespondWithBadRequestIfBidRequestIsInvalid() {
         // given
-        given(routingContext.getBody()).willReturn(null);
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Invalid request format: Incoming request has no body"));
-    }
-
-    @Test
-    public void shouldRespondWithBadRequestIfRequestBodyExceedsMaxRequestSize() {
-        // given
-        auctionHandler = new AuctionHandler(1, 1, requestValidator, exchangeService, storedRequestProcessor,
-                auctionRequestFactory, uidsCookieService, metrics);
-
-        given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Invalid request format: Request size exceeded max size of 1 bytes."));
-    }
-
-    @Test
-    public void shouldRespondWithBadRequestIfRequestBodyCouldNotBeParsed() {
-        // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(startsWith("Invalid request format: Failed to decode:"));
-    }
-
-    @Test
-    public void shouldRespondWithBadRequestIfRequestIsNotValid() {
-        // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
-
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(
-                BidRequest.builder().build()));
-
-        given(requestValidator.validate(any())).willReturn(new ValidationResult(asList("error1", "error2")));
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Invalid request format: error1\nInvalid request format: error2"));
+        verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
     }
 
     @Test
     public void shouldRespondWithInternalServerErrorIfAuctionFails() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
-
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
-                .succeededFuture(BidRequest.builder().build()));
-
-        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
-
-        given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willThrow(new RuntimeException("Unexpected exception"));
 
@@ -185,14 +105,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBidResponse() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
-
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
-                .succeededFuture(BidRequest.builder().build()));
-
-        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
-
-        given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));
@@ -209,15 +123,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUseTimeoutFromRequest() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
-
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
-                .succeededFuture(BidRequest.builder().build()));
-
-        given(auctionRequestFactory.fromRequest(any(), any()))
-                .willReturn(BidRequest.builder().tmax(1000L).build());
-
-        given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().tmax(1000L).build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));
@@ -232,15 +139,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldUseDefaultTimeoutIfMissingInRequest() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
-
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
-                .succeededFuture(BidRequest.builder().build()));
-
-        given(auctionRequestFactory.fromRequest(any(), any()))
-                .willReturn(BidRequest.builder().build());
-
-        given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));
@@ -255,18 +155,12 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
-
-        given(storedRequestProcessor.processStoredRequests(any())).willAnswer(invocation -> {
-            // simulate delay introduced by processing stored requests
-            TimeUnit.MILLISECONDS.sleep(50L);
-            return Future.succeededFuture(BidRequest.builder().build());
-        });
-
-        given(auctionRequestFactory.fromRequest(any(), any()))
-                .willReturn(BidRequest.builder().tmax(1000L).build());
-
-        given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
+        given(auctionRequestFactory.fromRequest(any()))
+                .willAnswer(invocation -> {
+                    // simulate delay introduced by processing stored requests
+                    TimeUnit.MILLISECONDS.sleep(50L);
+                    return Future.succeededFuture(BidRequest.builder().tmax(1000L).build());
+                });
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));
@@ -282,6 +176,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldIncrementRequestsAndOrtbRequestsMetrics() {
         // given
         givenMocksForMetricSupport();
+
         // when
         auctionHandler.handle(routingContext);
 
@@ -294,8 +189,8 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldIncrementAppRequestMetrics() {
         // given
         givenMocksForMetricSupport();
-        given(auctionRequestFactory.fromRequest(any(), any()))
-                .willReturn(BidRequest.builder().app(App.builder().build()).build());
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().app(App.builder().build()).build()));
 
         // when
         auctionHandler.handle(routingContext);
@@ -325,7 +220,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorRequestMetrics() {
         // given
-        given(routingContext.getBody()).willReturn(Buffer.buffer("invalid"));
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
         // when
         auctionHandler.handle(routingContext);
@@ -335,14 +231,8 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     private void givenMocksForMetricSupport() {
-        given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
-
-        given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future
-                .succeededFuture(BidRequest.builder().build()));
-
-        given(auctionRequestFactory.fromRequest(any(), any())).willReturn(BidRequest.builder().build());
-
-        given(requestValidator.validate(any())).willReturn(new ValidationResult(emptyList()));
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));

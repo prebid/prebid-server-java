@@ -5,7 +5,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -59,12 +58,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final Metrics metrics;
     private final HttpAdapterConnector httpAdapterConnector;
 
-    private String date;
     private final Clock clock = Clock.systemDefaultZone();
 
     public AuctionHandler(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
                           PreBidRequestContextFactory preBidRequestContextFactory,
-                          CacheService cacheService, Vertx vertx, Metrics metrics,
+                          CacheService cacheService, Metrics metrics,
                           HttpAdapterConnector httpAdapterConnector) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -72,12 +70,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
         this.httpAdapterConnector = Objects.requireNonNull(httpAdapterConnector);
-
-        // Refresh the date included in the response header every second.
-        final Handler<Long> dateUpdater = event -> date = DateTimeFormatter.RFC_1123_DATE_TIME.format(
-                ZonedDateTime.now());
-        dateUpdater.handle(0L);
-        Objects.requireNonNull(vertx).setPeriodic(1000, dateUpdater);
     }
 
     /**
@@ -86,44 +78,43 @@ public class AuctionHandler implements Handler<RoutingContext> {
      */
     @Override
     public void handle(RoutingContext context) {
-        metrics.incCounter(MetricName.requests);
-
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
-        if (isSafari) {
-            metrics.incCounter(MetricName.safari_requests);
-        }
+
+        updateRequestMetrics(isSafari);
 
         preBidRequestContextFactory.fromRequest(context)
                 .recover(exception ->
                         failWith(String.format("Error parsing request: %s", exception.getMessage()), exception))
-                .compose(preBidRequestContext -> {
-                    updateAppAndNoCookieMetrics(preBidRequestContext, isSafari);
 
-                    // validate account id
-                    return applicationSettings.getAccountById(
-                            preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
-                            .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
-                            .recover(exception -> failWith("Unknown account id: Unknown account", exception));
-                })
-                .compose(result -> {
-                    final PreBidRequestContext preBidRequestContext = result.getLeft();
-                    final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
+                .map(preBidRequestContext -> updateAppAndNoCookieMetrics(preBidRequestContext, isSafari))
 
-                    metrics.forAccount(accountId).incCounter(MetricName.requests);
-                    setupRequestTimeUpdater(context);
+                .compose(preBidRequestContext -> applicationSettings.getAccountById(
+                        preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
+                        .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
+                        .recover(exception -> failWith("Unknown account id: Unknown account", exception)))
 
-                    return CompositeFuture.join(submitRequestsToAdapters(preBidRequestContext, accountId))
-                            .map(bidderResults -> Tuple3.of(preBidRequestContext, result.getRight(),
-                                    bidderResults.result().<AdapterResponse>list()));
-                })
-                .map(result -> Tuple3.of(result.getLeft(), result.getMiddle(),
-                        composePreBidResponse(result.getLeft(), result.getRight())))
-                .compose(result -> processCacheMarkup(result.getLeft(), result.getRight())
-                        .recover(exception ->
-                                failWith(String.format("Prebid cache failed: %s", exception.getMessage()), exception))
-                        .map(response -> Tuple3.of(result.getLeft(), result.getMiddle(), response)))
-                .map(result -> addTargetingKeywords(result.getLeft().getPreBidRequest(), result.getMiddle(),
-                        result.getRight()))
+                .map((Tuple2<PreBidRequestContext, Account> result) ->
+                        updateAccountRequestAndRequestTimeMetric(result, context))
+
+                .compose((Tuple2<PreBidRequestContext, Account> result) ->
+                        CompositeFuture.join(submitRequestsToAdapters(result.getLeft()))
+                                .map(bidderResults -> Tuple3.of(result.getLeft(), result.getRight(),
+                                        bidderResults.<AdapterResponse>list())))
+
+                .map((Tuple3<PreBidRequestContext, Account, List<AdapterResponse>> result) ->
+                        Tuple3.of(result.getLeft(), result.getMiddle(),
+                                composePreBidResponse(result.getLeft(), result.getRight())))
+
+                .compose((Tuple3<PreBidRequestContext, Account, PreBidResponse> result) ->
+                        processCacheMarkup(result.getLeft(), result.getRight())
+                                .recover(exception -> failWith(
+                                        String.format("Prebid cache failed: %s", exception.getMessage()), exception))
+                                .map(response -> Tuple3.of(result.getLeft(), result.getMiddle(), response)))
+
+                .map((Tuple3<PreBidRequestContext, Account, PreBidResponse> result) ->
+                        addTargetingKeywords(result.getLeft().getPreBidRequest(), result.getMiddle(),
+                                result.getRight()))
+
                 .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
     }
 
@@ -131,7 +122,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return Future.failedFuture(new PreBidException(message, exception));
     }
 
-    private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext, String accountId) {
+    private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext) {
+        final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
         return preBidRequestContext.getAdapterRequests().stream()
                 .filter(bidder -> bidderCatalog.isValidName(bidder.getBidderCode()))
                 .peek(bidder -> updateAdapterRequestMetrics(bidder.getBidderCode(), accountId))
@@ -240,9 +232,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private void respondWith(PreBidResponse response, RoutingContext context) {
         context.response()
-                .putHeader(HttpHeaders.DATE, date)
+                .putHeader(HttpHeaders.DATE, date())
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .end(Json.encode(response));
+    }
+
+    private static String date() {
+        return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now());
     }
 
     private PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
@@ -268,7 +264,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .map(b -> BidderStatus.builder().bidder(b.getBidderCode()).error("Unsupported bidder").build());
     }
 
-    private void updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext, boolean isSafari) {
+    private void updateRequestMetrics(boolean isSafari) {
+        metrics.incCounter(MetricName.requests);
+        if (isSafari) {
+            metrics.incCounter(MetricName.safari_requests);
+        }
+    }
+
+    private PreBidRequestContext updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext,
+                                                             boolean isSafari) {
         if (preBidRequestContext.getPreBidRequest().getApp() != null) {
             metrics.incCounter(MetricName.app_requests);
         } else if (preBidRequestContext.isNoLiveUids()) {
@@ -277,6 +281,19 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);
             }
         }
+
+        return preBidRequestContext;
+    }
+
+    private Tuple2<PreBidRequestContext, Account> updateAccountRequestAndRequestTimeMetric(
+            Tuple2<PreBidRequestContext, Account> preBidRequestContextAccount, RoutingContext context) {
+
+        final String accountId = preBidRequestContextAccount.getLeft().getPreBidRequest().getAccountId();
+        metrics.forAccount(accountId).incCounter(MetricName.requests);
+
+        setupRequestTimeUpdater(context);
+
+        return preBidRequestContextAccount;
     }
 
     private void setupRequestTimeUpdater(RoutingContext context) {

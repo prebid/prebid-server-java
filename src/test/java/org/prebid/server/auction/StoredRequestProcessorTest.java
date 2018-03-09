@@ -35,7 +35,6 @@ import java.util.function.Function;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -58,11 +57,6 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Before
     public void setUp() {
         storedRequestProcessor = new StoredRequestProcessor(applicationSettings, DEFAULT_TIMEOUT);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new StoredRequestProcessor(null, DEFAULT_TIMEOUT));
     }
 
     @Test
@@ -136,6 +130,25 @@ public class StoredRequestProcessorTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnAmpRequest() throws IOException {
+        // given
+        given(applicationSettings.getStoredRequestsByAmpId(any(), any())).willReturn((Future.succeededFuture(
+                StoredRequestResult.of(
+                        singletonMap("123", mapper.writeValueAsString(
+                                BidRequest.builder().id("test-request-id").build())),
+                        emptyList()))));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest("123");
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .id("test-request-id")
+                .build());
+    }
+
+    @Test
     public void shouldReturnFailedFutureWhenStoredBidRequestJsonIsNotValid() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder
@@ -158,7 +171,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureWhenMergedResultCantBeConvertedToBidRequest() throws IOException {
+    public void shouldReturnFailedFutureWhenMergedResultCouldNotBeConvertedToBidRequest() throws IOException {
         final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .ext(Json.mapper.valueToTree(
                         ExtBidRequest.of(ExtRequestPrebid.of(null, null, ExtStoredRequest.of("123"), null))))

@@ -9,10 +9,10 @@ import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
+import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
-import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
@@ -34,7 +34,6 @@ import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
-import org.prebid.server.validation.RequestValidator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
@@ -131,44 +130,36 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             PreBidRequestContextFactory preBidRequestContextFactory,
             CacheService cacheService,
-            Vertx vertx,
             Metrics metrics,
             HttpAdapterConnector httpAdapterConnector) {
 
-        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService, vertx,
+        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
                 metrics, httpAdapterConnector);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
-            @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
-            RequestValidator requestValidator,
             ExchangeService exchangeService,
-            StoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
             Metrics metrics) {
 
-        return new org.prebid.server.handler.openrtb2.AuctionHandler(maxRequestSize, defaultTimeoutMs, requestValidator,
-                exchangeService, storedRequestProcessor, auctionRequestFactory, uidsCookieService, metrics);
+        return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, exchangeService,
+                auctionRequestFactory, uidsCookieService, metrics);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AmpHandler openrtbAmpHandler(
             @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${auction.stored-requests-timeout-ms}") long defaultStoredRequestsTimeoutMs,
-            RequestValidator requestValidator,
+            AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
-            ApplicationSettings applicationSettings,
-            AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
             Metrics metrics) {
 
-        return new AmpHandler(defaultTimeoutMs, defaultStoredRequestsTimeoutMs, applicationSettings,
-                auctionRequestFactory, requestValidator, exchangeService, uidsCookieService, metrics);
+        return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService, metrics);
     }
 
     @Bean

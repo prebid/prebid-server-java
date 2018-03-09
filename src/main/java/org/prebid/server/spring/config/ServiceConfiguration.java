@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import org.prebid.server.ImplicitParametersExtractor;
+import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
@@ -63,10 +64,21 @@ public class ServiceConfiguration {
 
     @Bean
     AuctionRequestFactory auctionRequestFactory(
+            @Value("${auction.max-request-size}") int maxRequestSize,
+            StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
-            UidsCookieService uidsCookieService) {
+            UidsCookieService uidsCookieService,
+            RequestValidator requestValidator) {
 
-        return new AuctionRequestFactory(implicitParametersExtractor, uidsCookieService);
+        return new AuctionRequestFactory(maxRequestSize, storedRequestProcessor, implicitParametersExtractor,
+                uidsCookieService, requestValidator);
+    }
+
+    @Bean
+    AmpRequestFactory ampRequestFactory(
+            StoredRequestProcessor storedRequestProcessor, AuctionRequestFactory auctionRequestFactory) {
+
+        return new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory);
     }
 
     @Bean

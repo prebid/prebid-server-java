@@ -70,14 +70,34 @@ public class StoredRequestProcessor {
             return Future.succeededFuture(bidRequest);
         }
 
-        return applicationSettings.getStoredRequestsById(storedRequestIds, timeout(bidRequest))
+        return storedRequestsToBidRequest(
+                applicationSettings.getStoredRequestsById(storedRequestIds, timeout(bidRequest)),
+                bidRequest, bidRequestToStoredRequestId.get(bidRequest), impsToStoredRequestId);
+    }
+
+    /**
+     * Fetches AMP request from the source.
+     */
+    public Future<BidRequest> processAmpRequest(String ampRequestId) {
+        final BidRequest emptyBidRequest = BidRequest.builder().build();
+
+        return storedRequestsToBidRequest(
+                applicationSettings.getStoredRequestsByAmpId(Collections.singleton(ampRequestId),
+                        timeout(emptyBidRequest)),
+                emptyBidRequest, ampRequestId, Collections.emptyMap());
+    }
+
+    private Future<BidRequest> storedRequestsToBidRequest(Future<StoredRequestResult> storedRequestsFuture,
+                                                          BidRequest bidRequest, String storedBidRequestId,
+                                                          Map<Imp, String> impsToStoredRequestId) {
+        return storedRequestsFuture
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed with exception: %s", exception))))
                 .compose(storedRequestResult -> storedRequestResult.getErrors().size() > 0
                         ? Future.failedFuture(new InvalidRequestException(storedRequestResult.getErrors()))
                         : Future.succeededFuture(storedRequestResult))
-                .map(storedRequestResult -> mergeBidRequestAndImps(bidRequest, bidRequestToStoredRequestId
-                        .get(bidRequest), impsToStoredRequestId, storedRequestResult));
+                .map(storedRequestResult -> mergeBidRequestAndImps(bidRequest, storedBidRequestId,
+                        impsToStoredRequestId, storedRequestResult));
     }
 
     /**

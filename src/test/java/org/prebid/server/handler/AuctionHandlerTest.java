@@ -5,7 +5,6 @@ import com.iab.openrtb.request.Format;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -14,7 +13,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.AdditionalAnswers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
@@ -59,7 +57,8 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static java.util.function.Function.identity;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -86,8 +85,6 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private CacheService cacheService;
     @Mock
-    private Vertx vertx;
-    @Mock
     private Metrics metrics;
     @Mock
     private AdapterMetrics adapterMetrics;
@@ -96,15 +93,16 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private AdapterMetrics accountAdapterMetrics;
     @Mock
+    private HttpAdapterConnector httpAdapterConnector;
+
+    private AuctionHandler auctionHandler;
+
+    @Mock
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
-    @Mock
-    private HttpAdapterConnector httpAdapterConnector;
-
-    private AuctionHandler auctionHandler;
 
     @Before
     public void setUp() {
@@ -116,9 +114,6 @@ public class AuctionHandlerTest extends VertxTest {
 
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.adapterByName(eq(APPNEXUS))).willReturn(appnexusAdapter);
-
-        given(vertx.setPeriodic(anyLong(), any()))
-                .willAnswer(AdditionalAnswers.<Long, Handler<Long>>answerVoid((p, h) -> h.handle(0L)));
 
         given(metrics.forAdapter(any())).willReturn(adapterMetrics);
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);
@@ -133,29 +128,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
         auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, vertx, metrics, httpAdapterConnector);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(null, null, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, null, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, bidderCatalog, null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, null, null,
-                        null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
-                        null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
-                        vertx, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
-                        vertx, metrics, null));
+                cacheService, metrics, httpAdapterConnector);
     }
 
     @Test

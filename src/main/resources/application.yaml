@@ -9,7 +9,7 @@ vertx:
 http:
   port: 8080
 http-client:
-  max-pool-size: 32768
+  max-pool-size: 1000
   connect-timeout-ms: 2500
 external-url: http://localhost:8000
 default-timeout-ms: 250
