@@ -3,6 +3,7 @@ spring:
     banner-mode: "off"
 vertx:
   worker-pool-size: 20
+  uploads-dir: file-uploads
   verticle:
     deploy-timeout-ms: 5000
     instances: 1

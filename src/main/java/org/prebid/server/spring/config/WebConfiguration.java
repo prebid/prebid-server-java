@@ -99,8 +99,8 @@ public class WebConfiguration {
     }
 
     @Bean
-    BodyHandler bodyHandler() {
-        return BodyHandler.create();
+    BodyHandler bodyHandler(@Value("${vertx.uploads-dir}") String uploadsDir) {
+        return BodyHandler.create(uploadsDir);
     }
 
     @Bean
