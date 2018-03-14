@@ -15,6 +15,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -22,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.Collections;
@@ -88,8 +90,9 @@ public class RequestValidator {
                 throw new ValidationException("request.site or request.app must be defined, but not both.");
             }
             validateSite(bidRequest.getSite());
-            validateUser(bidRequest.getUser());
+            validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
+
         } catch (ValidationException ex) {
             return ValidationResult.error(ex.getMessage());
         }
@@ -134,13 +137,35 @@ public class RequestValidator {
         }
     }
 
-    private void validateUser(User user) throws ValidationException {
+    private void validateUser(User user, Map<String, String> aliases) throws ValidationException {
         if (user != null && user.getExt() != null) {
             try {
                 final ExtUser extUser = Json.mapper.treeToValue(user.getExt(), ExtUser.class);
                 final ExtUserDigiTrust digitrust = extUser.getDigitrust();
+                final ExtUserPrebid prebid = extUser.getPrebid();
+
+                if (digitrust == null && prebid == null) {
+                    throw new ValidationException("request.user.ext should not be an empty object.");
+                }
+
                 if (digitrust != null && digitrust.getPref() != 0) {
                     throw new ValidationException("request.user contains a digitrust object that is not valid.");
+                }
+
+                if (prebid != null) {
+                    final Map<String, String> buyerUids = prebid.getBuyeruids();
+                    if (MapUtils.isEmpty(buyerUids)) {
+                        throw new ValidationException("request.user.ext.prebid requires a \"buyeruids\" property "
+                                + "with at least one ID defined. If none exist, then request.user.ext.prebid"
+                                + " should not be defined.");
+                    }
+
+                    for (String bidder : buyerUids.keySet()) {
+                        if (!bidderCatalog.isValidName(bidder) && !aliases.containsKey(bidder)) {
+                            throw new ValidationException("request.user.ext.%s is neither a known bidder "
+                                    + "name nor an alias in request.ext.prebid.aliases.", bidder);
+                        }
+                    }
                 }
             } catch (JsonProcessingException e) {
                 throw new ValidationException("request.user.ext object is not valid: %s", e.getMessage());

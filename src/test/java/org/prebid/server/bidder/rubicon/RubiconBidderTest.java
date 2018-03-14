@@ -46,6 +46,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
@@ -58,6 +59,7 @@ import java.util.function.Function;
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.ZERO;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.*;
@@ -265,7 +267,8 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(
-                        mapper.valueToTree(ExtUser.of(null, ExtUserDigiTrust.of("id", 123, 0))))
+                        mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(emptyMap()), "", ExtUserDigiTrust.of("id", 123, 0))))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 Function.identity());

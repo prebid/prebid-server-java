@@ -41,6 +41,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
@@ -747,21 +749,49 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldHonorBuyeridFromRequest() {
+    public void shouldHonorBuyeridFromRequestAndClearBuyerIdsFromUserExtPrebidIfContains() {
         // given
         givenHttpConnector(givenEmptySeatBid());
 
         given(uidsCookie.uidFrom(anyString())).willReturn("buyeridFromCookie");
+        final Map<String, String> uids = new HashMap<>();
+        uids.put("someBidder", "uidval");
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
-                builder -> builder.user(User.builder().buyeruid("buyeridFromRequest").build()));
+                builder -> builder.user(User.builder().buyeruid("buyeridFromRequest").ext(mapper.valueToTree(
+                        ExtUser.of(ExtUserPrebid.of(uids), null,  null))).build()));
 
         // when
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout());
 
         // then
-        final BidRequest capturedBidRequest = captureBidRequest();
-        assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid("buyeridFromRequest").build());
+        final User capturedBidRequestUser = captureBidRequest().getUser();
+        assertThat(capturedBidRequestUser).isEqualTo(User.builder().buyeruid("buyeridFromRequest")
+                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+
+    }
+
+    @Test
+    public void shouldSetUserBuyerIdsFromUserExtPrebidAndClearPrebidBuyerIdsAfterwards() {
+        // given
+        givenHttpConnector(givenEmptySeatBid());
+        final Map<String, String> uids = new HashMap<>();
+        uids.put("someBidder", "uidval");
+
+        given(uidsCookie.uidFrom(anyString())).willReturn("buyeridFromCookie");
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.user(User.builder().ext(mapper.valueToTree(
+                        ExtUser.of(ExtUserPrebid.of(uids), null, null))).build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout());
+
+        // then
+        final User capturedBidRequestUser = captureBidRequest().getUser();
+        assertThat(capturedBidRequestUser).isEqualTo(User.builder().buyeruid("uidval")
+                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+
     }
 
     @Test

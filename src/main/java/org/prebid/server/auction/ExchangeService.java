@@ -32,6 +32,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
@@ -195,13 +197,16 @@ public class ExchangeService {
      * to Appnexus bidder.
      * <p>
      * Each of the created {@link BidRequest}s will have bidrequest.user.buyerid field populated with the value from
-     * {@link UidsCookie} corresponding to bidder's family name unless buyerid is already in the original OpenRTB
-     * request (in this case it will not be overridden).
+     * bidrequest.user.ext.prebid.buyerids or {@link UidsCookie} corresponding to bidder's family name unless buyerid
+     * is already in the original OpenRTB request (in this case it will not be overridden).
+     * In case if bidrequest.user.ext.prebid.buyerids contains values after extracting those values it will be cleared
+     * in order to avoid leaking of buyerids across bidders.
      * <p>
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from {@link BidRequest}.ext.prebid.aliases.
      */
-    private List<BidderRequest> extractBidderRequests(BidRequest bidRequest, UidsCookie uidsCookie,
+    private List<BidderRequest> extractBidderRequests(BidRequest bidRequest,
+                                                      UidsCookie uidsCookie,
                                                       Map<String, String> aliases) {
         // sanity check: discard imps without extension
         final List<Imp> imps = bidRequest.getImp().stream()
@@ -216,6 +221,14 @@ public class ExchangeService {
                 .distinct()
                 .collect(Collectors.toList());
 
+        final User user = bidRequest.getUser();
+        final ExtUser extUser = extUser(user);
+        final Map<String, String> uidsBody = uidsFromBody(extUser);
+
+        // set empty ext.prebid.buyerids attr to avoid leaking of buyerids across bidders
+        final ObjectNode userExtNode = !uidsBody.isEmpty() && extUser != null
+                ? removeBuyersidsFromUserExtPrebid(extUser) : null;
+
         // Splits the input request into requests which are sanitized for each bidder. Intended behavior is:
         // - bidrequest.imp[].ext will only contain the "prebid" field and a "bidder" field which has the params for
         // the intended Bidder.
@@ -224,24 +237,43 @@ public class ExchangeService {
                 // for each bidder create a new request that is a copy of original request except buyerid and imp
                 // extensions
                 .map(bidder -> BidderRequest.of(bidder, bidRequest.toBuilder()
-                        .user(userWithBuyerid(resolveBidder(bidder, aliases), bidRequest, uidsCookie))
-                        .imp(imps.stream()
-                                .filter(imp -> imp.getExt().hasNonNull(bidder))
-                                // for each imp create a new imp with extension crafted to contain only "prebid" and
-                                // bidder-specific extensions
-                                .map(imp -> imp.toBuilder()
-                                        .ext(Json.mapper.valueToTree(extractBidderExt(bidder, imp.getExt())))
-                                        .build())
-                                .collect(Collectors.toList()))
+                        .user(prepareUser(bidder, bidRequest, uidsBody, uidsCookie, userExtNode, aliases))
+                        .imp(prepareImps(bidder, imps))
                         .build()))
                 .collect(Collectors.toList());
     }
 
     /**
-     * Checks if bidder name is valid in case when bidder can also be alias name.
+     * Extracts {@link ExtUser} from {@link User} or returns null if not presents.
      */
-    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
-        return (bidderCatalog.isValidName(bidder)) || aliases.containsKey(bidder);
+    private ExtUser extUser(User user) {
+        final ObjectNode userExt = user != null ? user.getExt() : null;
+        if (userExt != null) {
+            try {
+                return Json.mapper.treeToValue(userExt, ExtUser.class);
+            } catch (JsonProcessingException e) {
+                throw new PreBidException(String.format("Error decoding bidRequest.user.ext: %s", e.getMessage()), e);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns 'explicit' UIDs from request body.
+     */
+    private Map<String, String> uidsFromBody(ExtUser extUser) {
+        return extUser != null && extUser.getPrebid() != null
+                // as long as ext.prebid exists we are guaranteed that user.ext.prebid.buyeruids also exists
+                ? extUser.getPrebid().getBuyeruids()
+                : Collections.emptyMap();
+    }
+
+    /**
+     * Returns 'user.ext' with empty 'prebid.buyeryds'.
+     */
+    private ObjectNode removeBuyersidsFromUserExtPrebid(ExtUser extUser) {
+        return Json.mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), extUser.getConsent(),
+                extUser.getDigitrust()));
     }
 
     /**
@@ -253,37 +285,74 @@ public class ExchangeService {
     }
 
     /**
+     * Returns original {@link User} (if 'user.buyeruid' already contains uid value for bidder or passed buyerUid and
+     * updatedUserExt are empty otherwise returns new {@link User} containing updatedUserExt and buyerUid
+     * (which means request contains 'explicit' buyeruid in 'request.user.ext.buyerids' or uidsCookie).
+     */
+    private User prepareUser(String bidder,
+                             BidRequest bidRequest,
+                             Map<String, String> uidsBody,
+                             UidsCookie uidsCookie,
+                             ObjectNode updatedUserExt,
+                             Map<String, String> aliases) {
+
+        final String resolvedBidder = resolveBidder(bidder, aliases);
+        final String buyerUid = extractUid(uidsBody, uidsCookie, resolvedBidder);
+
+        final User user = bidRequest.getUser();
+        if (updatedUserExt == null && StringUtils.isBlank(buyerUid)) {
+            return user;
+        }
+
+        final User.UserBuilder builder = user != null ? user.toBuilder() : User.builder();
+
+        if (user == null || StringUtils.isBlank(user.getBuyeruid()) && StringUtils.isNotBlank(buyerUid)) {
+            builder.buyeruid(buyerUid);
+        }
+
+        if (updatedUserExt != null) {
+            builder.ext(updatedUserExt);
+        }
+
+        return builder.build();
+    }
+
+    private List<Imp> prepareImps(String bidder, List<Imp> imps) {
+        return imps.stream()
+                .filter(imp -> imp.getExt().hasNonNull(bidder))
+                // for each imp create a new imp with extension crafted to contain only "prebid" and
+                // bidder-specific extensions
+                .map(imp -> imp.toBuilder()
+                        .ext(Json.mapper.valueToTree(
+                                extractBidderExt(bidder, imp.getExt())))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Extracts UID from uids from body or {@link UidsCookie}. If absent returns null.
+     */
+    private String extractUid(Map<String, String> uidsBody, UidsCookie uidsCookie, String bidder) {
+        final String uid = uidsBody.get(bidder);
+        return StringUtils.isNotBlank(uid)
+                ? uid
+                : uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName());
+    }
+
+    /**
+     * Checks if bidder name is valid in case when bidder can also be alias name.
+     */
+    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
+        return (bidderCatalog.isValidName(bidder)) || aliases.containsKey(bidder);
+    }
+
+    /**
      * Extracts aliases from {@link ExtBidRequest}.
      */
     private Map<String, String> getAliases(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         return aliases != null ? aliases : Collections.emptyMap();
-    }
-
-    /**
-     * Returns either original {@link User} (if there is no user id for the bidder in uids cookie or buyerid is
-     * already there) or new {@link User} with buyerid filled with user id from uids cookie.
-     * <p>
-     * This function expects bidder to be a "known" bidder name. It will not work on aliases.
-     */
-    private User userWithBuyerid(String bidder, BidRequest bidRequest, UidsCookie uidsCookie) {
-        final User result;
-
-        final String buyerid = bidderCatalog.isValidName(bidder)
-                ? uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName())
-                : null;
-
-        final User user = bidRequest.getUser();
-        if (StringUtils.isNotBlank(buyerid) && (user == null || StringUtils.isBlank(user.getBuyeruid()))) {
-            final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
-            builder.buyeruid(buyerid);
-            result = builder.build();
-        } else {
-            result = user;
-        }
-
-        return result;
     }
 
     /**

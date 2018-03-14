@@ -1,5 +1,6 @@
 package org.prebid.server.validation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -33,6 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.Arrays;
@@ -728,10 +730,103 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenDigiTrustPrefIsNotEqualToZero() {
+    public void validateShouldReturnValidationMessageWhenPrebidAndDigiTrustOfUserExtMissed() {
         // given
-        final ObjectNode userExt = mapper.valueToTree(ExtUser.of(null, ExtUserDigiTrust.of(null, null, 1)));
-        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder().ext(userExt).build())
+        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder()
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0)
+                .isEqualTo("request.user.ext should not be an empty object.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenPrebidBuyerIdsContainsNoValues() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder()
+                .ext(mapper.valueToTree(
+                        ExtUser.of(ExtUserPrebid.of(emptyMap()), null, ExtUserDigiTrust.of(null, null, 0)))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request.user.ext.prebid requires a "
+                + "\"buyeruids\" property with at least one ID defined. If none exist, then request.user.ext.prebid "
+                + "should not be defined.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenPrebidBuyerIdsContainsUnknownBidder()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().user(User.builder()
+                .ext(mapper.valueToTree(ExtUser.of(
+                        ExtUserPrebid.of(singletonMap("unknown-bidder", "42")),
+                        null,
+                        ExtUserDigiTrust.of(null, null, 0)))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request.user.ext.unknown-bidder "
+                + "is neither a known bidder name nor an alias in request.ext.prebid.aliases.");
+    }
+
+    @Test
+    public void validateShouldNotReturnAnyErrorInValidationResultWhenPrebidBuyerIdIsKnownBidderAlias() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        singletonMap("unknown-bidder", "rubicon"), null, null, null))))
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(singletonMap("unknown-bidder", "42")),
+                                null,
+                                ExtUserDigiTrust.of(null, null, 0)))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void validateShouldNotReturnAnyErrorInValidationResultWhenPrebidBuyerIdIsKnownBidder() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(singletonMap("rubicon", "42")),
+                                null,
+                                ExtUserDigiTrust.of(null, null, 0)))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenDigiTrustPrefNotEqualZero() {
+        // given;
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
+                        ExtUserPrebid.of(singletonMap("bidder", "uidval")),
+                        null,
+                        ExtUserDigiTrust.of(null, null, 1))))
+                        .build())
                 .build();
 
         // when
