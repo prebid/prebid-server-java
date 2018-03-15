@@ -1,4 +1,4 @@
-(work in progress)
+# Experimental - Not the "official" version. See https://github.com/prebid/prebid-server/
 
 # Prebid Server
 
