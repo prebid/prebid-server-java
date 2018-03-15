@@ -58,6 +58,7 @@ public class ApplicationTest extends VertxTest {
     private static final String LIFESTREET = "lifestreet";
     private static final String PUBMATIC = "pubmatic";
     private static final String CONVERSANT = "conversant";
+    private static final String ADFORM = "adform";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
 
@@ -144,6 +145,22 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-pubmatic-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-pubmatic-bid-response-1.json"))));
 
+        // adform bid response for imp 12
+        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange/"))
+                .withQueryParam("CC", WireMock.equalTo("1"))
+                .withQueryParam("rp", WireMock.equalTo("4"))
+                .withQueryParam("fd", WireMock.equalTo("1"))
+                .withQueryParam("stid", WireMock.equalTo("tid"))
+                // bWlkPTE1 is Base64 encoded "mid=15"
+                .withQueryParam("bWlkPTE1", WireMock.equalTo(""))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Accept", WireMock.equalTo("application/json"))
+                .withHeader("User-Agent", WireMock.equalTo("userAgent"))
+                .withHeader("X-Request-Agent", WireMock.equalTo("PrebidAdapter 0.1.0"))
+                .withHeader("X-Forwarded-For", WireMock.equalTo("192.168.244.1"))
+                .withRequestBody(WireMock.equalTo(""))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adform-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-cache-request.json")))
@@ -164,7 +181,6 @@ public class ApplicationTest extends VertxTest {
                         "bGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
-
 
         // then
         String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
@@ -471,6 +487,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(LIFESTREET, "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange");
         exchanges.put(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange");
         exchanges.put(CONVERSANT, "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange");
+        exchanges.put(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange");
 
         // inputs for aliases
         exchanges.put(APPNEXUS_ALIAS, null);

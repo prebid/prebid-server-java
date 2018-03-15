@@ -68,7 +68,7 @@ public class HttpAdapterConnector {
         try {
             httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
         } catch (PreBidException e) {
-            return Future.succeededFuture(errorBidderResult(e, bidderStarted));
+            return Future.succeededFuture(errorBidderResult(e, bidderStarted, adapterRequest.getBidderCode()));
         }
 
         return CompositeFuture.join(httpRequests.stream()
@@ -299,9 +299,10 @@ public class HttpAdapterConnector {
         return validBids;
     }
 
-    private static AdapterResponse errorBidderResult(Exception exception, long bidderStarted) {
+    private static AdapterResponse errorBidderResult(Exception exception, long bidderStarted, String bidder) {
         logger.warn("Error occurred while constructing bid requests", exception);
         return AdapterResponse.of(BidderStatus.builder()
+                .bidder(bidder)
                 .error(exception.getMessage())
                 .responseTimeMs(responseTime(bidderStarted))
                 .build(), Collections.emptyList(), false);

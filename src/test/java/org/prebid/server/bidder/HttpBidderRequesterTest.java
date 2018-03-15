@@ -129,6 +129,30 @@ public class HttpBidderRequesterTest {
     }
 
     @Test
+    public void shouldSendPopulatedGetRequestWithoutBody() {
+        // given
+        final MultiMap headers = new CaseInsensitiveHeaders();
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
+                HttpRequest.of(HttpMethod.GET, "uri", null, headers)), emptyList()));
+        headers.add("header1", "value1");
+        headers.add("header2", "value2");
+
+        // when
+        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout());
+
+        // then
+        verify(httpClient).requestAbs(eq(HttpMethod.GET), eq("uri"), any());
+        verify(httpClientRequest).end();
+        assertThat(httpClientRequest.headers()).hasSize(2)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(tuple("header1", "value1"), tuple("header2", "value2"));
+
+        final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
+        assertThat(timeoutCaptor.getValue()).isCloseTo(500L, Offset.offset(20L));
+    }
+
+    @Test
     public void shouldSendMultipleRequests() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(

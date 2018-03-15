@@ -151,7 +151,9 @@
     {
       "id": "impId71",
       "video": {
-        "mimes" : ["mimes"],
+        "mimes": [
+          "mimes"
+        ],
         "w": 300,
         "h": 600
       },
@@ -184,7 +186,9 @@
     {
       "id": "impId81",
       "video": {
-        "mimes" : ["mimes"],
+        "mimes": [
+          "mimes"
+        ],
         "w": 300,
         "h": 600
       },
@@ -306,11 +310,29 @@
     {
       "id": "impId32",
       "audio": {
-        "mimes": ["video/mp4"]
+        "mimes": [
+          "video/mp4"
+        ]
       },
       "ext": {
         "appnexus": {
           "placementId": 10433394
+        }
+      }
+    },
+    {
+      "id": "impId12",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "adform": {
+          "mid": 15
         }
       }
     }

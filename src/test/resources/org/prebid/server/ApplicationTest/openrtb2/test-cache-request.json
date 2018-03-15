@@ -3,6 +3,17 @@
     {
       "type": "json",
       "value": {
+        "id": "impId12",
+        "impid": "impId12",
+        "price": 10.5,
+        "adm": "banner",
+        "w": 400,
+        "h": 300
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "928185755156387460",
         "impid": "impId333",
         "price": 1,

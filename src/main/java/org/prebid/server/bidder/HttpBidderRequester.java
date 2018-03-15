@@ -8,6 +8,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
@@ -82,8 +83,11 @@ public class HttpBidderRequester implements BidderRequester {
                         .exceptionHandler(exception -> handleException(exception, result, httpRequest));
         httpClientRequest.headers().addAll(httpRequest.getHeaders());
         httpClientRequest.setTimeout(remainingTimeout);
-        httpClientRequest.end(httpRequest.getBody());
-
+        if (httpRequest.getMethod().equals(HttpMethod.GET)) {
+            httpClientRequest.end();
+        } else {
+            httpClientRequest.end(httpRequest.getBody());
+        }
         return result;
     }
 

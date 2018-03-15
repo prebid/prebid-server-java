@@ -9,6 +9,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.util.ResourceUtil;
@@ -30,6 +31,7 @@ public class BidderParamValidatorTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
+    private static final String ADFORM = "adform";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -41,7 +43,7 @@ public class BidderParamValidatorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(RUBICON, APPNEXUS)));
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(RUBICON, APPNEXUS, ADFORM)));
 
         bidderParamValidator = BidderParamValidator.create(bidderCatalog, "static/bidder-params");
     }
@@ -111,7 +113,7 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessagesWhenAppnexusImpExtExtIsOk() {
+    public void validateShouldNotReturnValidationMessagesWhenAppnexusImpExtIsOk() {
         // given
         final ExtImpAppnexus ext = ExtImpAppnexus.builder().placementId(1).build();
 
@@ -122,6 +124,32 @@ public class BidderParamValidatorTest extends VertxTest {
 
         // then
         assertThat(messages).isEmpty();
+    }
+
+    @Test
+    public void validateShouldNotReturnValidationMessagesWhenAdformImpExtIsOk() {
+        // given
+        final ExtImpAdform ext = ExtImpAdform.of(15L);
+
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(ADFORM, node);
+
+        // then
+        assertThat(messages).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessagesWhenAdformImpExtNotValid() {
+        // given
+        final JsonNode node = mapper.createObjectNode();
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(ADFORM, node);
+
+        // then
+        assertThat(messages.size()).isEqualTo(1);
     }
 
     @Test
