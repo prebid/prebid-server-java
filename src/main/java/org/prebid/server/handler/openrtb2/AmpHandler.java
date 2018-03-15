@@ -133,8 +133,9 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private static void handleResult(AsyncResult<AmpResponse> responseResult, RoutingContext context) {
+        addCorsHeaders(context);
         if (responseResult.succeeded()) {
-            addHeaders(context);
+            context.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
             context.response().end(Json.encode(responseResult.result()));
         } else {
             final Throwable exception = responseResult.cause();
@@ -154,7 +155,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
     }
 
-    private static void addHeaders(RoutingContext context) {
+    private static void addCorsHeaders(RoutingContext context) {
         String originHeader = null;
         final List<String> ampSourceOrigin = context.queryParam("__amp_source_origin");
         if (CollectionUtils.isNotEmpty(ampSourceOrigin)) {
@@ -168,8 +169,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         // Add AMP headers
         context.response()
                 .putHeader("AMP-Access-Control-Allow-Source-Origin", originHeader)
-                .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin")
-                .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
+                .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
     }
 
     private void updateRequestMetrics(boolean isSafari) {

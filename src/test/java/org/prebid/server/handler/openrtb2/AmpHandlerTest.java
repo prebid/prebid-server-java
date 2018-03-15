@@ -68,7 +68,6 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private UidsCookie uidsCookie;
 
-
     @Before
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
@@ -100,6 +99,8 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", (String) null);
+        verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
     }
 
@@ -115,6 +116,8 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
+        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", (String) null);
+        verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
     }
 
@@ -132,6 +135,8 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
+        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", (String) null);
+        verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
         verify(httpResponse).end(
                 startsWith("Critical error while running the auction: Critical error while unpacking AMP targets:"));
     }
