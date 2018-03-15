@@ -21,6 +21,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.GlobalTimeout;
@@ -33,8 +34,10 @@ import org.prebid.server.proto.response.MediaType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -107,20 +110,20 @@ public class HttpAdapterRequester implements BidderRequester {
      */
     private UidsCookie toUidsCookie(BidRequest bidRequest) {
         final User user = bidRequest.getUser();
-        UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(Collections.emptyMap()).build());
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
         if (user != null) {
             final String buyeruid = user.getBuyeruid();
             final String id = user.getId();
             if (StringUtils.isNotEmpty(buyeruid)) {
-                uidsCookie = uidsCookie.updateUid(usersyncer.cookieFamilyName(), buyeruid);
+                uids.put(usersyncer.cookieFamilyName(), UidWithExpiry.live(buyeruid));
             }
             // This shouldn't be appnexus-specific... but this line does correctly invert the
             // logic from org.prebid.adapter.OpenRtbAdapter.userBuilder(...) method
             if (StringUtils.isNotEmpty(id)) {
-                uidsCookie = uidsCookie.updateUid("adnxs", id);
+                uids.put("adnxs", UidWithExpiry.live(id));
             }
         }
-        return uidsCookie;
+        return new UidsCookie(Uids.builder().uids(uids).build());
     }
 
     /**

@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Contains logic for obtaining UIDs from the request and actualizing them.
@@ -64,61 +63,33 @@ public class UidsCookieService {
      * Note: UIDs will be excluded from resulting {@link UidsCookie} if their value are 'null'
      */
     public UidsCookie parseFromRequest(RoutingContext context) {
-        Uids uids = null;
+        Uids parsedUids = null;
         final Cookie uidsCookie = context.getCookie(COOKIE_NAME);
         if (uidsCookie != null) {
             try {
-                uids = Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(uidsCookie.getValue())),
-                        Uids.class);
+                parsedUids = Json.decodeValue(
+                        Buffer.buffer(Base64.getUrlDecoder().decode(uidsCookie.getValue())), Uids.class);
             } catch (IllegalArgumentException | DecodeException e) {
-                logger.debug("Could not decode or parse {0} cookie value {1}", COOKIE_NAME, uidsCookie.getValue(), e);
+                logger.debug("Could not decode or parse {0} cookie value {1}", e, COOKIE_NAME, uidsCookie.getValue());
             }
         }
 
-        if (uids == null) {
-            uids = Uids.builder()
-                    .uids(Collections.emptyMap())
-                    .bday(ZonedDateTime.now(Clock.systemUTC()))
-                    .build();
+        final Uids.UidsBuilder uidsBuilder = Uids.builder()
+                .uidsLegacy(Collections.emptyMap())
+                .bday(parsedUids != null ? parsedUids.getBday() : ZonedDateTime.now(Clock.systemUTC()));
+
+        final Boolean optout;
+        final Map<String, UidWithExpiry> uidsMap;
+
+        if (isOptedOut(context)) {
+            optout = true;
+            uidsMap = Collections.emptyMap();
+        } else {
+            optout = parsedUids != null ? parsedUids.getOptout() : null;
+            uidsMap = enrichAndSanitizeUids(parsedUids, context);
         }
 
-        if (uids.getUids() == null) {
-            uids = uids.toBuilder()
-                    .uids(Collections.emptyMap())
-                    .build();
-        }
-
-        final Map<String, String> uidsLegacy = uids.getUidsLegacy();
-        if (uids.getUids().isEmpty() && uidsLegacy != null) {
-            final Map<String, UidWithExpiry> convertedUids = uidsLegacy.entrySet().stream().collect(
-                    Collectors.toMap(Map.Entry::getKey, value -> UidWithExpiry.expired(value.getValue())));
-            uids = uids.toBuilder()
-                    .uids(convertedUids)
-                    .uidsLegacy(Collections.emptyMap())
-                    .build();
-        }
-
-        final String hostCookie = parseHostCookie(context);
-        final boolean isOptedOut = isOptedOut(context);
-
-        if (uids.getUids().get(hostCookieFamily) == null && hostCookie != null && !isOptedOut) {
-            final Map<String, UidWithExpiry> uidsWithHostCookie = new HashMap<>(uids.getUids());
-            uidsWithHostCookie.put(hostCookieFamily, UidWithExpiry.live(hostCookie));
-            uids = uids.toBuilder().uids(uidsWithHostCookie).build();
-        }
-
-        if (isOptedOut) {
-            uids = uids.toBuilder()
-                    .optout(true)
-                    .uids(Collections.emptyMap())
-                    .build();
-        }
-
-        uids.getUids().entrySet().removeIf(entry ->
-                UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().getUid())
-                        || StringUtils.isEmpty(entry.getValue().getUid()));
-
-        return new UidsCookie(uids);
+        return new UidsCookie(uidsBuilder.uids(uidsMap).optout(optout).build());
     }
 
     /**
@@ -155,5 +126,34 @@ public class UidsCookieService {
             return cookie != null && Objects.equals(cookie.getValue(), optOutCookieValue);
         }
         return false;
+    }
+
+
+    /**
+     * Enriches {@link Uids} parsed from request cookies with uid from host cookie (if applicable) and removes
+     * invalid uids. Also converts legacy uids to uids with expiration.
+     */
+    private Map<String, UidWithExpiry> enrichAndSanitizeUids(Uids uids, RoutingContext context) {
+        final Map<String, UidWithExpiry> originalUidsMap = uids != null ? uids.getUids() : null;
+        final Map<String, UidWithExpiry> workingUidsMap = originalUidsMap != null ? originalUidsMap : new HashMap<>();
+        final Map<String, String> legacyUids = uids != null ? uids.getUidsLegacy() : null;
+
+        if (workingUidsMap.isEmpty() && legacyUids != null) {
+            legacyUids.forEach((key, value) -> workingUidsMap.put(key, UidWithExpiry.expired(value)));
+        }
+
+        final String hostCookie = parseHostCookie(context);
+        if (workingUidsMap.get(hostCookieFamily) == null && hostCookie != null) {
+            workingUidsMap.put(hostCookieFamily, UidWithExpiry.live(hostCookie));
+        }
+
+        workingUidsMap.entrySet().removeIf(this::facebookSentinelOrEmpty);
+
+        return workingUidsMap;
+    }
+
+    private boolean facebookSentinelOrEmpty(Map.Entry<String, UidWithExpiry> entry) {
+        return UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().getUid())
+                || StringUtils.isEmpty(entry.getValue().getUid());
     }
 }
