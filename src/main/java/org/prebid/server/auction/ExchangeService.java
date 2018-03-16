@@ -43,12 +43,13 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -438,36 +439,96 @@ public class ExchangeService {
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, boolean shouldCacheBids,
                                               GlobalTimeout timeout) {
-        final List<Bid> winningBids = determineWinningBids(keywordsCreator, bidderResponses);
+        final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
+        final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
+        populateWinningBids(keywordsCreator, bidderResponses, winningBids, winningBidsByBidder);
 
         return toWinningBidsWithCacheIds(shouldCacheBids, winningBids, keywordsCreator, timeout)
-                .map(winningBidsWithCacheIds ->
-                        toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                                winningBidsWithCacheIds));
+                .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
+                        winningBidsWithCacheIds, winningBidsByBidder));
     }
 
     /**
-     * Determines wining bids for each impId (ad unit code). Winning bid is the one with the highest price.
+     * Returns new {@link HashSet} in case of existing keywordsCreator or {@link Collections.EmptySet} if null.
      */
-    private static List<Bid> determineWinningBids(TargetingKeywordsCreator keywordsCreator,
-                                                  List<BidderResponse> bidderResponses) {
+    private static Set<Bid> newOrEmptySet(TargetingKeywordsCreator keywordsCreator) {
+        return keywordsCreator != null ? new HashSet<>() : Collections.emptySet();
+    }
+
+    /**
+     * Populates 2 input sets:
+     * <p>
+     * - winning bids for each impId (ad unit code) through all bidder responses.
+     * <br>
+     * - winning bids for each impId but for separate bidder.
+     * <p>
+     * Winning bid is the one with the highest price.
+     */
+    private static void populateWinningBids(TargetingKeywordsCreator keywordsCreator,
+                                            List<BidderResponse> bidderResponses, Set<Bid> winningBids,
+                                            Set<Bid> winningBidsByBidder) {
         // determine winning bids only if targeting keywords are requested
-        return keywordsCreator == null ? Collections.emptyList() : bidderResponses.stream()
-                .flatMap(bidderResponse -> bidderResponse.getSeatBid().getBids().stream()
-                        .map(BidderBid::getBid))
-                // group bids by impId (ad unit code)
-                .collect(Collectors.groupingBy(Bid::getImpid))
-                .values().stream()
-                // sort each bid list by price and pick a winning bid for each impId
-                .peek(bids -> bids.sort(Comparator.comparing(Bid::getPrice).reversed()))
-                .map(bids -> bids.get(0)) // each list is guaranteed to be non-empty
-                .collect(Collectors.toList());
+        if (keywordsCreator != null) {
+            final Map<String, Bid> winningBidsMap = new HashMap<>(); // impId -> Bid
+            final Map<String, Map<String, Bid>> winningBidsByBidderMap = new HashMap<>(); // impId -> [bidder -> Bid]
+
+            for (BidderResponse bidderResponse : bidderResponses) {
+                final String bidder = bidderResponse.getBidder();
+
+                for (BidderBid bidderBid : bidderResponse.getSeatBid().getBids()) {
+                    final Bid bid = bidderBid.getBid();
+
+                    tryAddWinningBid(bid, winningBidsMap);
+                    tryAddWinningBidByBidder(bid, bidder, winningBidsByBidderMap);
+                }
+            }
+
+            winningBids.addAll(winningBidsMap.values());
+
+            final List<Bid> bidsByBidder = winningBidsByBidderMap.values().stream()
+                    .flatMap(bidsByBidderMap -> bidsByBidderMap.values().stream())
+                    .collect(Collectors.toList());
+            winningBidsByBidder.addAll(bidsByBidder);
+        }
+    }
+
+    /**
+     * Tries to add a winning bid for each impId.
+     */
+    private static void tryAddWinningBid(Bid bid, Map<String, Bid> winningBids) {
+        final String impId = bid.getImpid();
+
+        if (!winningBids.containsKey(impId) || bid.getPrice().compareTo(winningBids.get(impId).getPrice()) > 0) {
+            winningBids.put(impId, bid);
+        }
+    }
+
+    /**
+     * Tries to add a winning bid for each impId for separate bidder.
+     */
+    private static void tryAddWinningBidByBidder(Bid bid, String bidder,
+                                                 Map<String, Map<String, Bid>> winningBidsByBidder) {
+        final String impId = bid.getImpid();
+
+        if (!winningBidsByBidder.containsKey(impId)) {
+            final Map<String, Bid> bidsByBidder = new HashMap<>();
+            bidsByBidder.put(bidder, bid);
+
+            winningBidsByBidder.put(impId, bidsByBidder);
+        } else {
+            final Map<String, Bid> bidsByBidder = winningBidsByBidder.get(impId);
+
+            if (!bidsByBidder.containsKey(bidder)
+                    || bid.getPrice().compareTo(bidsByBidder.get(bidder).getPrice()) > 0) {
+                bidsByBidder.put(bidder, bid);
+            }
+        }
     }
 
     /**
      * Corresponds cacheId (or null if not present) to each {@link Bid}.
      */
-    private Future<Map<Bid, String>> toWinningBidsWithCacheIds(boolean shouldCacheBids, List<Bid> winningBids,
+    private Future<Map<Bid, String>> toWinningBidsWithCacheIds(boolean shouldCacheBids, Set<Bid> winningBids,
                                                                TargetingKeywordsCreator keywordsCreator,
                                                                GlobalTimeout timeout) {
         final Future<Map<Bid, String>> result;
@@ -491,7 +552,7 @@ public class ExchangeService {
     /**
      * Creates a map with {@link Bid} as a key and null as a value.
      */
-    private static Map<Bid, String> toMapBidsWithEmptyCacheIds(List<Bid> bids) {
+    private static Map<Bid, String> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
         final Map<Bid, String> result = new HashMap<>(bids.size());
         bids.forEach(bid -> result.put(bid, null));
         return result;
@@ -503,7 +564,7 @@ public class ExchangeService {
      * Adds entries with null as a value for bids which were not submitted to {@link CacheService}.
      */
     private static Map<Bid, String> mergeCacheResults(List<Bid> winningBidsWithNonZeroCpm, List<String> cacheIds,
-                                                      List<Bid> winningBids) {
+                                                      Set<Bid> winningBids) {
         if (CollectionUtils.isEmpty(cacheIds) || cacheIds.size() != winningBidsWithNonZeroCpm.size()) {
             return toMapBidsWithEmptyCacheIds(winningBids);
         }
@@ -529,10 +590,12 @@ public class ExchangeService {
      */
     private static BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                           TargetingKeywordsCreator keywordsCreator,
-                                                          Map<Bid, String> winningBidsWithCacheIds) {
+                                                          Map<Bid, String> winningBidsWithCacheIds,
+                                                          Set<Bid> winningBidsByBidder) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
-                .map(bidderResponse -> toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds))
+                .map(bidderResponse ->
+                        toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, keywordsCreator);
@@ -551,7 +614,7 @@ public class ExchangeService {
      * extension field populated.
      */
     private static SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
-                                     Map<Bid, String> winningBidsWithCacheIds) {
+                                     Map<Bid, String> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder) {
         final String bidder = bidderResponse.getBidder();
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
 
@@ -561,7 +624,7 @@ public class ExchangeService {
                 .group(0)
                 .bid(bidderSeatBid.getBids().stream()
                         .map(bidderBid ->
-                                toBid(bidderBid, bidder, keywordsCreator, winningBidsWithCacheIds))
+                                toBid(bidderBid, bidder, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
                         .collect(Collectors.toList()));
 
         return seatBidBuilder.build();
@@ -571,9 +634,9 @@ public class ExchangeService {
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
     private static Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
-                             Map<Bid, String> winningBidsWithCacheIds) {
+                             Map<Bid, String> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder) {
         final Bid bid = bidderBid.getBid();
-        final Map<String, String> targetingKeywords = keywordsCreator != null
+        final Map<String, String> targetingKeywords = keywordsCreator != null && winningBidsByBidder.contains(bid)
                 ? keywordsCreator.makeFor(bid, bidder, winningBidsWithCacheIds.containsKey(bid),
                 winningBidsWithCacheIds.get(bid))
                 : null;

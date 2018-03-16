@@ -729,6 +729,37 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldPopulateTargetingKeywordsForWinningBidsAndWinningBidsByBidder() {
+        // given
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(asList(
+                givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(1.23)).build()),
+                givenBid(Bid.builder().id("bidId2").impid("impId1").price(BigDecimal.valueOf(4.56)).build()))));
+        givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId3").impid("impId1").price(BigDecimal.valueOf(7.89)).build()))));
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, ExtRequestTargeting.of("low"), null, null)))));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout()).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
+                .extracting(
+                        Bid::getId,
+                        bid -> toTargetingByKey(bid, "hb_bidder"),
+                        bid -> toTargetingByKey(bid, "hb_bidder_bidder1"))
+                .containsOnly(
+                        tuple("bidId1", null, null),
+                        tuple("bidId2", null, "bidder1"), // winning bid for separate bidder
+                        tuple("bidId3", "bidder2", null)); // winning bid through all bids
+    }
+
+    @Test
     public void shouldNotModifyUserFromRequestIfNoBuyeridInCookie() {
         // given
         givenHttpConnector(givenEmptySeatBid());
@@ -759,7 +790,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.user(User.builder().buyeruid("buyeridFromRequest").ext(mapper.valueToTree(
-                        ExtUser.of(ExtUserPrebid.of(uids), null,  null))).build()));
+                        ExtUser.of(ExtUserPrebid.of(uids), null, null))).build()));
 
         // when
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout());
@@ -1014,5 +1045,10 @@ public class ExchangeServiceTest extends VertxTest {
         } catch (IOException e) {
             return rethrow(e);
         }
+    }
+
+    private static String toTargetingByKey(Bid bid, String targetingKey) {
+        final Map<String, String> targeting = toExtPrebid(bid.getExt()).getPrebid().getTargeting();
+        return targeting != null ? targeting.get(targetingKey) : null;
     }
 }

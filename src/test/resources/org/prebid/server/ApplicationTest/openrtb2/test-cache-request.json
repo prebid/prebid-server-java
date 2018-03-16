@@ -3,12 +3,36 @@
     {
       "type": "json",
       "value": {
-        "id": "impId12",
-        "impid": "impId12",
-        "price": 10.5,
-        "adm": "banner",
-        "w": 400,
-        "h": 300
+        "id": "impId5",
+        "impid": "impId5",
+        "price": 9,
+        "adm": "adm5",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "impid": "impId1",
+        "price": 8.43,
+        "adm": "adm1",
+        "crid": "crid1",
+        "dealid": "dealId1",
+        "w": 300,
+        "h": 250,
+        "ext": {
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          }
+        }
       }
     },
     {
@@ -41,25 +65,24 @@
     {
       "type": "json",
       "value": {
-        "impid": "impId1",
-        "price": 8.43,
-        "adm": "adm1",
-        "crid": "crid1",
-        "dealid": "dealId1",
+        "id": "impId4",
+        "impid": "impId4",
+        "price": 6,
+        "adm": "adm4",
+        "crid": "crid4",
         "w": 300,
-        "h": 250,
-        "ext": {
-          "rp": {
-            "targeting": [
-              {
-                "key": "rpfl_1001",
-                "values": [
-                  "2_tier0100"
-                ]
-              }
-            ]
-          }
-        }
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId12",
+        "impid": "impId12",
+        "price": 10.5,
+        "adm": "banner",
+        "w": 400,
+        "h": 300
       }
     },
     {
@@ -70,6 +93,18 @@
         "adm": "adm2",
         "crid": "crid2",
         "dealid": "dealId2",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId41",
+        "impid": "impId41",
+        "price": 5,
+        "nurl": "adm41",
+        "crid": "crid41",
         "w": 300,
         "h": 600
       }
@@ -99,41 +134,6 @@
             "ranking_price": 0.0
           }
         }
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "impId4",
-        "impid": "impId4",
-        "price": 6,
-        "adm": "adm4",
-        "crid": "crid4",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "impId5",
-        "impid": "impId5",
-        "price": 9,
-        "adm": "adm5",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "impId41",
-        "impid": "impId41",
-        "price": 5,
-        "nurl": "adm41",
-        "crid": "crid41",
-        "w": 300,
-        "h": 600
       }
     }
   ]
