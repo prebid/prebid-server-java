@@ -100,7 +100,7 @@ public class ExchangeService {
         final ExtRequestTargeting targeting = targeting(requestExt);
 
         // build targeting keywords creator
-        final TargetingKeywordsCreator keywordsCreator = buildKeywordsCreator(targeting);
+        final TargetingKeywordsCreator keywordsCreator = buildKeywordsCreator(targeting, bidRequest.getApp() != null);
 
         final boolean shouldCacheBids = shouldCacheBids(targeting, requestExt);
 
@@ -382,9 +382,8 @@ public class ExchangeService {
      * Returns null if bidrequest.ext.prebid.targeting is missing - it means that no targeting keywords
      * should be included in bid response.
      */
-    private static TargetingKeywordsCreator buildKeywordsCreator(ExtRequestTargeting targeting) {
-        return targeting != null
-                ? TargetingKeywordsCreator.withPriceGranularity(targeting.getPricegranularity()) : null;
+    private static TargetingKeywordsCreator buildKeywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
+        return targeting != null ? TargetingKeywordsCreator.create(targeting.getPricegranularity(), isApp) : null;
     }
 
     /**

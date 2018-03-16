@@ -33,6 +33,11 @@ public class TargetingKeywordsCreator {
      */
     private static final String HB_PB_KEY = "hb_pb";
     /**
+     * Exists to support the Prebid Universal Creative. If it exists, the only legal value is mobile-app.
+     * It will exist only if the incoming bidRequest defiend request.app instead of request.site.
+     */
+    private static final String HB_ENV_KEY = "hb_env";
+    /**
      * Name of the Bidder. For example, "appnexus" or "rubicon".
      */
     private static final String HB_BIDDER_KEY = "hb_bidder";
@@ -65,20 +70,27 @@ public class TargetingKeywordsCreator {
      * Used as a value for HB_CREATIVE_LOADTYPE_KEY
      */
     private static final String HB_CREATIVE_LOADTYPE_HTML_VALUE = "html";
+    /**
+     * Used as a value for HB_ENV_KEY
+     */
+    private static final String HB_ENV_APP_VALUE = "mobile-app";
 
     private final String priceGranularityString;
     private final CpmBucket.PriceGranularity priceGranularity;
+    private final boolean isApp;
 
-    private TargetingKeywordsCreator(String priceGranularityString, CpmBucket.PriceGranularity priceGranularity) {
+    private TargetingKeywordsCreator(String priceGranularityString, CpmBucket.PriceGranularity priceGranularity,
+                                     boolean isApp) {
         this.priceGranularityString = priceGranularityString;
         this.priceGranularity = priceGranularity;
+        this.isApp = isApp;
     }
 
     /**
      * Creates {@link TargetingKeywordsCreator} for the given params.
      */
-    public static TargetingKeywordsCreator withPriceGranularity(String priceGranularity) {
-        return new TargetingKeywordsCreator(priceGranularity, parsePriceGranularity(priceGranularity));
+    public static TargetingKeywordsCreator create(String priceGranularity, boolean isApp) {
+        return new TargetingKeywordsCreator(priceGranularity, parsePriceGranularity(priceGranularity), isApp);
     }
 
     /**
@@ -160,6 +172,9 @@ public class TargetingKeywordsCreator {
         }
         if (StringUtils.isNotBlank(dealId)) {
             keywordMap.put(HB_DEAL_KEY, dealId);
+        }
+        if (isApp) {
+            keywordMap.put(HB_ENV_KEY, HB_ENV_APP_VALUE);
         }
 
         final Map<String, String> keywords = keywordMap.asMap();
