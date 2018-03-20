@@ -1,7 +1,9 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
@@ -11,7 +13,10 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public class AmpRequestFactory {
@@ -40,25 +45,45 @@ public class AmpRequestFactory {
 
         return storedRequestProcessor.processAmpRequest(tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
+                .map(AmpRequestFactory::setDefaultRequestExt)
                 .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context))
                 .map(auctionRequestFactory::validateRequest);
     }
 
     private static BidRequest validateStoredBidRequest(String tagId, BidRequest bidRequest) {
-        if (CollectionUtils.isEmpty(bidRequest.getImp())) {
+        final List<Imp> imps = bidRequest.getImp();
+        if (CollectionUtils.isEmpty(imps)) {
             throw new InvalidRequestException(
-                    String.format("AMP tag_id '%s' does not include an Imp object. One id required", tagId));
+                    String.format("data for tag_id='%s' does not define the required imp array.", tagId));
         }
 
-        if (bidRequest.getImp().size() > 1) {
+        final int impSize = imps.size();
+        if (impSize > 1) {
             throw new InvalidRequestException(
-                    String.format("AMP tag_id '%s' includes multiple Imp objects. We must have only one", tagId));
+                    String.format("data for tag_id '%s' includes %d imp elements. Only one is allowed",
+                            tagId, impSize));
         }
 
         if (bidRequest.getExt() == null) {
             throw new InvalidRequestException("AMP requests require Ext to be set");
         }
+        return bidRequest;
+    }
 
+    /**
+     * Updates {@link BidRequest}.ext.prebid.targeting and {@link BidRequest}.ext.prebid.cache.bids with default values
+     * if it was not included by user. Updates {@link Imp} security if required to ensure that amp always uses
+     * https protocol.
+     */
+    private static BidRequest setDefaultRequestExt(BidRequest bidRequest) {
+        final List<Imp> imps = bidRequest.getImp();
+        // Force HTTPS as AMP requires it, but pubs can forget to set it.
+        final Imp imp = imps.get(0);
+        final Integer secure = imp.getSecure();
+        final boolean setSecure = secure == null || secure != 1;
+
+        // AMP won't function unless ext.prebid.targeting and ext.prebid.cache.bids are defined.
+        // If the user didn't include them, default those here.
         final ExtBidRequest requestExt;
         try {
             requestExt = Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class);
@@ -66,16 +91,45 @@ public class AmpRequestFactory {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
         }
 
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        if (prebid == null || prebid.getTargeting() == null) {
-            throw new InvalidRequestException("request.ext.prebid.targeting is required for AMP requests");
+        final ExtRequestPrebid prebid = requestExt.getPrebid();
+
+        final boolean setDefaultTargeting;
+        final boolean setDefaultCache;
+
+        if (prebid == null) {
+            setDefaultTargeting = true;
+            setDefaultCache = true;
+        } else {
+            setDefaultTargeting = prebid.getTargeting() == null;
+            final ExtRequestPrebidCache cache = prebid.getCache();
+            setDefaultCache = cache == null || cache.getBids().isNull();
         }
 
-        final ExtRequestPrebidCache cache = prebid.getCache();
-        if (cache == null || cache.getBids().isNull()) {
-            throw new InvalidRequestException("request.ext.prebid.cache.bids must be set to {} for AMP requests");
-        }
+        return setDefaultTargeting || setDefaultCache || setSecure
+                ? bidRequest.toBuilder()
+                .ext(createExtWithDefaults(bidRequest, prebid, setDefaultTargeting, setDefaultCache))
+                .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
+                .build()
+                : bidRequest;
+    }
 
-        return bidRequest;
+    /**
+     * Creates updated with default values bidrequest.ext {@link ObjectNode}
+     */
+    private static ObjectNode createExtWithDefaults(BidRequest bidRequest, ExtRequestPrebid prebid,
+                                                    boolean setDefaultTargeting, boolean setDefaultCache) {
+        final boolean isPrebidNull = prebid == null;
+        return setDefaultTargeting || setDefaultCache
+                ? Json.mapper.valueToTree(ExtBidRequest.of(
+                ExtRequestPrebid.of(
+                        isPrebidNull ? Collections.emptyMap() : prebid.getAliases(),
+                        setDefaultTargeting
+                                ? ExtRequestTargeting.of(CpmBucket.PriceGranularity.medium.name())
+                                : prebid.getTargeting(),
+                        isPrebidNull ? null : prebid.getStoredrequest(),
+                        setDefaultCache
+                                ? ExtRequestPrebidCache.of(Json.mapper.createObjectNode())
+                                : prebid.getCache())))
+                : bidRequest.getExt();
     }
 }
