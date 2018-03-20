@@ -9,7 +9,7 @@
       "debug": [
         {
           "request_uri": "http://localhost:8090/lifestreet-exchange",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode8\",\"banner\":{\"w\":300,\"h\":250},\"tagid\":\"slot.tag1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"LS-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode8\",\"banner\":{\"w\":300,\"h\":250},\"tagid\":\"slot.tag1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\"},\"user\":{\"id\":\"12345\",\"buyeruid\":\"LS-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
           "response_body": "{\"id\":\"bidResponseId8\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode8\",\"price\":5.78,\"adm\":\"adm8\",\"crid\":\"crid8\",\"dealid\":\"dealId8\",\"w\":300,\"h\":250}],\"seat\":\"seatId8\",\"group\":0}]}",
           "status_code": 200
         }
@@ -22,7 +22,7 @@
       "debug": [
         {
           "request_uri": "http://localhost:8090/facebook-exchange",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode5\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"pub1_place1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"pub1\"}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"FB-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"platformid\":101}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode5\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"pub1_place1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"pub1\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\"},\"user\":{\"id\":\"12345\",\"buyeruid\":\"FB-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"platformid\":101}}",
           "response_body": "{\"id\":\"bidResponseId5\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode5\",\"price\":5.78,\"adm\":\"adm5\",\"crid\":\"crid5\",\"dealid\":\"dealId5\",\"w\":300,\"h\":250}],\"seat\":\"seatId5\",\"group\":0}]}",
           "status_code": 200
         }
@@ -35,7 +35,7 @@
       "debug": [
         {
           "request_uri": "http://localhost:8090/appnexus-exchange?member_id=member1",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode4\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1]},\"tagid\":\"invCode1\",\"bidfloor\":1.0,\"ext\":{\"appnexus\":{\"placement_id\":9848285,\"keywords\":\"k1=v1,k1=v2\",\"traffic_source_code\":\"trafficSourceCode1\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"12345\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode4\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1]},\"tagid\":\"invCode1\",\"bidfloor\":1.0,\"ext\":{\"appnexus\":{\"placement_id\":9848285,\"keywords\":\"k1=v1,k1=v2\",\"traffic_source_code\":\"trafficSourceCode1\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\"},\"user\":{\"id\":\"12345\",\"buyeruid\":\"12345\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
           "response_body": "{\"id\":\"bidResponseId4\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode4\",\"price\":5.78,\"adm\":\"adm4\",\"crid\":\"crid4\",\"dealid\":\"dealId4\",\"w\":300,\"h\":250,\"ext\":{\"appnexus\":{\"bid_ad_type\":1}}}],\"seat\":\"seatId4\",\"group\":0}]}",
           "status_code": 200
         }
@@ -48,7 +48,7 @@
       "debug": [
         {
           "request_uri": "http://localhost:8090/pubmatic-exchange",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode9\",\"banner\":{\"w\":300,\"h\":250},\"tagid\":\"slot9\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId9\",\"domain\":\"example.com\"}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"PM-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode9\",\"banner\":{\"w\":300,\"h\":250},\"tagid\":\"slot9\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId9\",\"domain\":\"example.com\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\"},\"user\":{\"id\":\"12345\",\"buyeruid\":\"PM-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
           "response_body": "{\"id\":\"bidResponseId9\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode9\",\"price\":5.78,\"adm\":\"adm9\",\"crid\":\"crid9\",\"dealid\":\"dealId9\",\"w\":300,\"h\":250}],\"seat\":\"seatId9\",\"group\":0}]}",
           "status_code": 200
         }
@@ -61,19 +61,19 @@
       "debug": [
         {
           "request_uri": "http://localhost:8090/rubicon-exchange?tk_xint=rp-pbs",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode1\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1],\"ext\":{\"skip\":5,\"skipdelay\":1,\"rp\":{\"size_id\":15}}},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"rating\":[\"5-star\"],\"prodtype\":[\"tech\"]},\"track\":{\"mint\":\"prebid\",\"mint_version\":\"source1_platform1_version1\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"id\":\"12345\",\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"ext\":{\"rp\":{\"target\":{\"ucat\":[\"new\"],\"search\":[\"iphone\"]}}}},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode1\",\"video\":{\"mimes\":[\"mimes\"],\"minduration\":20,\"maxduration\":60,\"protocols\":[1],\"w\":300,\"h\":250,\"startdelay\":5,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[1],\"ext\":{\"skip\":5,\"skipdelay\":1,\"rp\":{\"size_id\":15}}},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"rating\":[\"5-star\"],\"prodtype\":[\"tech\"]},\"track\":{\"mint\":\"prebid\",\"mint_version\":\"source1_platform1_version1\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"id\":\"12345\",\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"ext\":{\"rp\":{\"target\":{\"ucat\":[\"new\"],\"search\":[\"iphone\"]}}}},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
           "response_body": "{\"id\":\"bidResponseId1\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode1\",\"price\":8.43,\"adm\":\"adm1\",\"crid\":\"crid1\",\"dealid\":\"dealId1\",\"w\":300,\"h\":250,\"ext\":{\"rp\":{\"targeting\":[{\"key\":\"rpfl_1001\",\"values\":[\"2_tier0100\"]}]}}}],\"seat\":\"seatId1\",\"group\":0}]}",
           "status_code": 200
         },
         {
           "request_uri": "http://localhost:8090/rubicon-exchange?tk_xint=rp-pbs",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode2\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":600,\"ext\":{\"rp\":{\"size_id\":10,\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":7001,\"track\":{\"mint\":\"prebid\",\"mint_version\":\"source1_platform1_version1\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":5001}}},\"ext\":{\"rp\":{\"site_id\":6001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"id\":\"12345\",\"buyeruid\":\"J5VLCWQP-26-CWFT\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode2\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":600,\"ext\":{\"rp\":{\"size_id\":10,\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":7001,\"track\":{\"mint\":\"prebid\",\"mint_version\":\"source1_platform1_version1\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":5001}}},\"ext\":{\"rp\":{\"site_id\":6001}}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"id\":\"12345\",\"buyeruid\":\"J5VLCWQP-26-CWFT\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
           "response_body": "{\"id\":\"bidResponseId2\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode2\",\"price\":4.26,\"adm\":\"adm2\",\"crid\":\"crid2\",\"dealid\":\"dealId2\",\"w\":300,\"h\":600}],\"seat\":\"seatId2\",\"group\":0}]}",
           "status_code": 200
         },
         {
           "request_uri": "http://localhost:8090/rubicon-exchange?tk_xint=rp-pbs",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode3\",\"banner\":{\"format\":[{\"w\":768,\"h\":1024},{\"w\":980,\"h\":400}],\"w\":768,\"h\":1024,\"ext\":{\"rp\":{\"size_id\":80,\"alt_size_ids\":[102],\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":4001,\"track\":{\"mint\":\"prebid\",\"mint_version\":\"source1_platform1_version1\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"id\":\"12345\",\"buyeruid\":\"J5VLCWQP-26-CWFT\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode3\",\"banner\":{\"format\":[{\"w\":768,\"h\":1024},{\"w\":980,\"h\":400}],\"w\":768,\"h\":1024,\"ext\":{\"rp\":{\"size_id\":80,\"alt_size_ids\":[102],\"mime\":\"text/html\"}}},\"ext\":{\"rp\":{\"zone_id\":4001,\"track\":{\"mint\":\"prebid\",\"mint_version\":\"source1_platform1_version1\"}}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ext\":{\"rp\":{\"pixelratio\":4.2}}},\"user\":{\"id\":\"12345\",\"buyeruid\":\"J5VLCWQP-26-CWFT\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
           "response_body": "{\"id\":\"bidResponseId3\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode3\",\"price\":5.12,\"adm\":\"adm3\",\"crid\":\"crid3\",\"dealid\":\"dealId3\",\"w\":0,\"h\":0}],\"seat\":\"seatId3\",\"group\":0}]}",
           "status_code": 200
         }
@@ -86,7 +86,7 @@
       "debug": [
         {
           "request_uri": "http://localhost:8090/conversant-exchange",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode10\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250,\"pos\":28},\"displaymanager\":\"prebid-s2s\",\"tagid\":\"tagId1\",\"bidfloor\":7.32,\"secure\":42}],\"site\":{\"id\":\"siteId1\",\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"mobile\":64},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"CV-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode10\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250,\"pos\":28},\"displaymanager\":\"prebid-s2s\",\"tagid\":\"tagId1\",\"bidfloor\":7.32,\"secure\":42}],\"site\":{\"id\":\"siteId1\",\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"mobile\":64},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\"},\"user\":{\"id\":\"12345\",\"buyeruid\":\"CV-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
           "response_body": "{\"id\":\"bidResponseId10\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode10\",\"price\":5.78,\"adm\":\"adm10\",\"crid\":\"crid10\",\"dealid\":\"dealId10\",\"w\":300,\"h\":250}],\"seat\":\"seatId10\",\"group\":0}]}",
           "status_code": 200
         }
@@ -99,8 +99,21 @@
       "debug": [
         {
           "request_uri": "http://localhost:8090/pulsepoint-exchange",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode6\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"456\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"123\"}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"PP-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode6\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"456\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"123\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\"},\"user\":{\"id\":\"12345\",\"buyeruid\":\"PP-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
           "response_body": "{\"id\":\"bidResponseId6\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode6\",\"price\":5.78,\"adm\":\"adm6\",\"crid\":\"crid6\",\"dealid\":\"dealId6\",\"w\":300,\"h\":250}],\"seat\":\"seatId6\",\"group\":0}]}",
+          "status_code": 200
+        }
+      ]
+    },
+    {
+      "bidder": "sovrn",
+      "response_time_ms": "{{ sovrn.response_time_ms }}",
+      "num_bids": 1,
+      "debug": [
+        {
+          "request_uri": "http://localhost:8090/sovrn-exchange",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode11\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"tagId1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http:\/\/www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\"},\"user\":{\"id\":\"12345\",\"buyeruid\":\"990011\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "response_body": "{\"id\":\"bidResponseId11\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode11\",\"price\":5.78,\"adm\":\"adm11\",\"crid\":\"crid11\",\"dealid\":\"dealId11\",\"w\":300,\"h\":250}],\"seat\":\"seatId11\",\"group\":0}]}",
           "status_code": 200
         }
       ]
@@ -112,7 +125,7 @@
       "debug": [
         {
           "request_uri": "http://localhost:8090/indexexchange-exchange",
-          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode7\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"adUnitCode7\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"486\"}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"192.168.244.1\",\"pxratio\":4.2},\"user\":{\"id\":\"12345\",\"buyeruid\":\"IE-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode7\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"adUnitCode7\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"486\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\"},\"user\":{\"id\":\"12345\",\"buyeruid\":\"IE-UID\"},\"test\":0,\"at\":1,\"tmax\":1000,\"allimps\":0,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
           "response_body": "{\"id\":\"bidResponseId7\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode7\",\"price\":5.78,\"adm\":\"adm7\",\"crid\":\"crid7\",\"dealid\":\"dealId7\",\"w\":300,\"h\":250}],\"seat\":\"seatId7\",\"group\":0}]}",
           "status_code": 200
         }
@@ -322,6 +335,32 @@
         "hb_bidder": "pulsepoint",
         "hb_cache_id": "f5f475e6-c786-4596-92e5-1f9a33285b5e",
         "hb_creative_loadtype": "html"
+      }
+    },
+    {
+      "bid_id": "bidId11",
+      "code": "adUnitCode11",
+      "creative_id": "crid11",
+      "bidder": "sovrn",
+      "price": 5.78,
+      "width": 300,
+      "height": 250,
+      "deal_id": "dealId11",
+      "cache_id": "9a2fd672-21a9-4aff-b750-55845bef8d45",
+      "cache_url": "{{ cache_resource_url }}9a2fd672-21a9-4aff-b750-55845bef8d45",
+      "response_time_ms": "{{ sovrn.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "5.70",
+        "hb_size": "300x250",
+        "hb_bidder_sovrn": "sovrn",
+        "hb_pb_sovrn": "5.70",
+        "hb_bidder": "sovrn",
+        "hb_cache_id": "9a2fd672-21a9-4aff-b750-55845bef8d45",
+        "hb_deal_sovrn": "dealId11",
+        "hb_creative_loadtype": "html",
+        "hb_deal": "dealId11",
+        "hb_size_sovrn": "300x250",
+        "hb_cache_id_sovrn": "9a2fd672-21a9-4aff-b750-55845bef8d45"
       }
     },
     {

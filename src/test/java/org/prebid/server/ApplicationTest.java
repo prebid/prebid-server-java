@@ -59,6 +59,7 @@ public class ApplicationTest extends VertxTest {
     private static final String PUBMATIC = "pubmatic";
     private static final String CONVERSANT = "conversant";
     private static final String ADFORM = "adform";
+    private static final String SOVRN = "sovrn";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
 
@@ -161,6 +162,18 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(WireMock.equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adform-bid-response-1.json"))));
 
+        // sovrn bid response for imp 13
+        wireMockRule.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Accept", WireMock.equalTo("application/json"))
+                .withHeader("User-Agent", WireMock.equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", WireMock.equalTo("192.168.244.1"))
+                .withHeader("DNT", WireMock.equalTo("2"))
+                .withHeader("Accept-Language", WireMock.equalTo("en"))
+                .withCookie("ljt_reader", WireMock.equalTo("990011"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-sovrn-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-sovrn-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-cache-request.json")))
@@ -175,12 +188,11 @@ public class ApplicationTest extends VertxTest {
                 // this uids cookie value stands for
                 // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
                 // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
-                // "conversant":"CV-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbm" +
-                        "NlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwi" +
-                        "bGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCJ9fQ==")
+                // "conversant":"CV-UID","sovrn":"990011"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdnJuIjoiOTkwMDExIn19")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
+
 
         // then
         String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
@@ -287,6 +299,18 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("auction/test-conversant-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/test-conversant-bid-response-1.json"))));
 
+        // sovrn bid response for ad unit 11
+        wireMockRule.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Accept", WireMock.equalTo("application/json"))
+                .withHeader("User-Agent", WireMock.equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", WireMock.equalTo("192.168.244.1"))
+                .withHeader("DNT", WireMock.equalTo("10"))
+                .withHeader("Accept-Language", WireMock.equalTo("en"))
+                .withCookie("ljt_reader", WireMock.equalTo("990011"))
+                .withRequestBody(equalToJson(jsonFrom("auction/test-sovrn-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-sovrn-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/test-cache-request.json")))
@@ -301,9 +325,9 @@ public class ApplicationTest extends VertxTest {
                 // this uids cookie value stands for
                 // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
                 // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
-                // "conversant":"CV-UID"}}
+                // "conversant":"CV-UID","sovrn":"990011"}}
                 .cookie("uids",
-                        "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCJ9fQ==")
+                        "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdnJuIjoiOTkwMDExIn19")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/test-auction-request.json"))
                 .post("/auction");
@@ -488,6 +512,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange");
         exchanges.put(CONVERSANT, "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange");
         exchanges.put(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange");
+        exchanges.put(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange");
 
         // inputs for aliases
         exchanges.put(APPNEXUS_ALIAS, null);

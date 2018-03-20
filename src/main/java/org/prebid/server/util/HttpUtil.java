@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 
 /**
@@ -51,6 +52,20 @@ public final class HttpUtil {
             return URLEncoder.encode(uri, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new IllegalArgumentException(String.format("Cannot encode uri: %s", uri));
+        }
+    }
+
+    /**
+     * Returns decoded input value if supplied input not null, otherwise returns null.
+     */
+    public static String decodeUrl(String input) {
+        if (StringUtils.isBlank(input)) {
+            return null;
+        }
+        try {
+            return URLDecoder.decode(input, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalArgumentException(String.format("Cannot decode input: %s", input));
         }
     }
 }

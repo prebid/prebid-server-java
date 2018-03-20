@@ -46,6 +46,9 @@ adapters:
   conversant:
     endpoint: http://media.msg.dotomi.com/s2s/header/24
     usersync-url: http://prebid-match.dotomi.com/prebid/match?rurl=
+  sovrn:
+    endpoint: http://ap.lijit.com/rtb/bid?src=prebid_server
+    usersync-url: //ap.lijit.com/pixel?
 metrics:
   metricType: flushingCounter
 settings:

@@ -2,40 +2,21 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId3",
+      "id": "impId13",
       "banner": {
         "format": [
           {
             "w": 300,
             "h": 250
-          },
-          {
-            "w": 300,
-            "h": 600
           }
         ],
         "w": 300,
-        "h": 250,
-        "pos": 3
+        "h": 250
       },
-      "tagid": "abc",
-      "bidfloor": 1.0,
+      "tagid": "tagId1",
       "ext": {
-        "appnexus": {
-          "keywords": "foo=bar,foo=baz",
-          "traffic_source_code": "trafficSource"
-        }
-      }
-    },
-    {
-      "id": "impId333",
-      "native": {
-        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"id\":1,\"required\":1,\"title\":{\"len\":500}},{\"id\":2,\"required\":1,\"img\":{\"type\":3,\"wmin\":1,\"hmin\":1}},{\"id\":3,\"required\":0,\"data\":{\"type\":1,\"len\":200}},{\"id\":4,\"required\":0,\"data\":{\"type\":2,\"len\":15000}},{\"id\":5,\"required\":0,\"data\":{\"type\":6,\"len\":40}},{\"id\":6,\"required\":0,\"data\":{\"type\":500}}]}",
-        "ver": "1.1"
-      },
-      "ext": {
-        "appnexus": {
-          "placement_id": 9880618
+        "bidder": {
+          "tagid": "tagId1"
         }
       }
     }
@@ -55,7 +36,7 @@
     "language": "en"
   },
   "user": {
-    "buyeruid": "12345",
+    "buyeruid": "990011",
     "ext": {
       "digitrust": {
         "id": "id",

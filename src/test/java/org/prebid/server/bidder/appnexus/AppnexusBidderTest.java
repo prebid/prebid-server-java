@@ -62,7 +62,7 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnNullIfBidequesImpsIsNull() {
+    public void makeHttpRequestsShouldReturnEmptyResultWhenMissingBidRequestImps() {
         assertThat(appnexusBidder.makeHttpRequests(BidRequest.builder().build()))
                 .isEqualTo(Result.of(emptyList(), emptyList()));
     }

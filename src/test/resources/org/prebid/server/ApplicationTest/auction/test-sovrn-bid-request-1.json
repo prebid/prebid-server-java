@@ -2,13 +2,18 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId7",
+      "id": "adUnitCode11",
       "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ],
         "w": 300,
-        "h": 600,
-        "topframe": 0
+        "h": 250
       },
-      "tagid": "slot.tag"
+      "tagid": "tagId1"
     }
   ],
   "site": {
@@ -16,12 +21,15 @@
     "page": "http://www.example.com"
   },
   "device": {
-    "dnt": 2,
-    "pxratio": 4.2,
+    "ua": "userAgent",
+    "dnt": 10,
+    "ip": "192.168.244.1",
+    "pxratio" : 4.2,
     "language": "en"
   },
   "user": {
-    "buyeruid": "LS-UID"
+    "id": "12345",
+    "buyeruid": "990011"
   },
   "test": 0,
   "at": 1,

@@ -19,3 +19,4 @@ for review and approval of the ported adapter:
 - lifestreet
 - pubmatic
 - pulsepoint
+- sovrn

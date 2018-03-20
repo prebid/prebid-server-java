@@ -21,7 +21,9 @@
   "device": {
     "ua": "userAgent",
     "ip": "192.168.244.1",
-    "pxratio": 4.2
+    "pxratio": 4.2,
+    "language": "en",
+    "dnt": 10
   },
   "user": {
     "id": "12345",

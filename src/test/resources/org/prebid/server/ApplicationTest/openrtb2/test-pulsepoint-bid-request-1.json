@@ -31,8 +31,10 @@
       "id" : "123"
     }
   },
-  "device" : {
-    "pxratio" : 4.2
+  "device": {
+    "dnt": 2,
+    "pxratio": 4.2,
+    "language": "en"
   },
   "user" : {
     "buyeruid" : "PP-UID"

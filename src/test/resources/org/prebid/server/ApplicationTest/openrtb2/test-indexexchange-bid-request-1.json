@@ -41,7 +41,9 @@
     }
   },
   "device": {
-    "pxratio": 4.2
+    "dnt": 2,
+    "pxratio": 4.2,
+    "language": "en"
   },
   "user": {
     "buyeruid": "IE-UID"

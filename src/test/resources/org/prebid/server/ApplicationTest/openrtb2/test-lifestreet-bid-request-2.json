@@ -16,8 +16,10 @@
     "domain" : "example.com",
     "page" : "http://www.example.com"
   },
-  "device" : {
-    "pxratio" : 4.2
+  "device": {
+    "dnt": 2,
+    "pxratio": 4.2,
+    "language": "en"
   },
   "user" : {
     "buyeruid" : "LS-UID"

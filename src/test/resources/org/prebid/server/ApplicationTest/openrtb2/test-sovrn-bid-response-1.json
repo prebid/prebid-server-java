@@ -1,0 +1,20 @@
+{
+  "id": "bidResponseId13",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "impid": "impId13",
+          "price": 5.78,
+          "adm": "adm13",
+          "crid": "crid13",
+          "dealid": "dealId13",
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "seat": "seatId13",
+      "group": 0
+    }
+  ]
+}
