@@ -72,11 +72,11 @@ public class SovrnBidder extends OpenrtbBidder {
             }
         }
 
+        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(processedImps).build();
+        final String body = Json.encode(outgoingRequest);
+
         return Result.of(Collections.singletonList(
-                HttpRequest.of(HttpMethod.POST,
-                        endpointUrl,
-                        body(bidRequest, processedImps),
-                        headers(bidRequest))),
+                HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers(bidRequest), outgoingRequest)),
                 errors(errors));
     }
 
@@ -106,10 +106,6 @@ public class SovrnBidder extends OpenrtbBidder {
             logger.warn("Error occurred parsing sovrn parameters", e);
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    private static String body(BidRequest bidRequest, List<Imp> imps) {
-        return Json.encode(bidRequest.toBuilder().imp(imps).build());
     }
 
     private MultiMap headers(BidRequest bidRequest) {

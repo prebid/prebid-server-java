@@ -63,7 +63,7 @@ public class SovrnAdapterTest extends VertxTest {
 
     private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
-    private ExchangeCall exchangeCall;
+    private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private SovrnAdapter adapter;
     private SovrnUsersyncer usersyncer;
 
@@ -98,7 +98,8 @@ public class SovrnAdapterTest extends VertxTest {
                         .device(Device.builder().dnt(11).language("fr").build()));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
@@ -118,7 +119,7 @@ public class SovrnAdapterTest extends VertxTest {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(givenAdUnitBid(
                 adUnitBidBuilder -> adUnitBidBuilder
-                    .params(null)
+                        .params(null)
         )));
 
         // when and then
@@ -145,8 +146,8 @@ public class SovrnAdapterTest extends VertxTest {
         //given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
-                                .adUnitCode("adUnitCode1")
-                                .mediaTypes(emptySet())
+                        .adUnitCode("adUnitCode1")
+                        .mediaTypes(emptySet())
                 )));
 
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
@@ -162,8 +163,8 @@ public class SovrnAdapterTest extends VertxTest {
         //given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
-                                .adUnitCode("adUnitCode1")
-                                .mediaTypes(EnumSet.of(MediaType.video))
+                        .adUnitCode("adUnitCode1")
+                        .mediaTypes(EnumSet.of(MediaType.video))
                 )));
 
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
@@ -184,11 +185,12 @@ public class SovrnAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUidFromCookie");
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.getBidRequest().getUser())
+                .extracting(r -> r.getPayload().getUser())
                 .containsOnly(User.builder().buyeruid("110099").build());
     }
 
@@ -200,11 +202,12 @@ public class SovrnAdapterTest extends VertxTest {
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"))));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
+                .flatExtracting(r -> r.getPayload().getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
     }
 
@@ -237,11 +240,12 @@ public class SovrnAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(BIDDER_COOKIE))).willReturn("110099");
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(AdapterHttpRequest::getBidRequest)
+                .extracting(AdapterHttpRequest::getPayload)
                 .containsOnly(BidRequest.builder()
                         .id("tid1")
                         .at(1)
@@ -454,7 +458,7 @@ public class SovrnAdapterTest extends VertxTest {
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 
-    private static ExchangeCall givenExchangeCall(
+    private static ExchangeCall<BidRequest, BidResponse> givenExchangeCall(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
             Function<BidResponse.BidResponseBuilder, BidResponse.BidResponseBuilder> bidResponseBuilderCustomizer) {
 

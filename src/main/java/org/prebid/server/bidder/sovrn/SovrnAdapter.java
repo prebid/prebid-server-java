@@ -5,8 +5,10 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Cookie;
 import org.apache.commons.lang3.StringUtils;
@@ -48,13 +50,13 @@ public class SovrnAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<AdapterHttpRequest> makeHttpRequests(AdapterRequest adapterRequest,
-                                                     PreBidRequestContext preBidRequestContext) {
+    public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
+                                                                 PreBidRequestContext preBidRequestContext) {
         final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
-        final AdapterHttpRequest httpRequest = AdapterHttpRequest.of(
+        final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST,
                 endpointUrl,
-                headers(bidRequest),
-                createBidRequest(adapterRequest, preBidRequestContext));
+                createBidRequest(adapterRequest, preBidRequestContext),
+                headers(bidRequest));
 
         return Collections.singletonList(httpRequest);
     }
@@ -151,10 +153,10 @@ public class SovrnAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.getBidResponse())
-                .sorted(Comparator
-                        .comparingDouble(bid -> bid.getPrice() != null ? bid.getPrice().doubleValue() : 0d))
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest,
+                                            ExchangeCall<BidRequest, BidResponse> exchangeCall) {
+        return responseBidStream(exchangeCall.getResponse())
+                .sorted(Comparator.comparingDouble(bid -> bid.getPrice() != null ? bid.getPrice().doubleValue() : 0d))
                 .map(bid -> toBidBuilder(bid, adapterRequest))
                 .collect(Collectors.toList());
     }
