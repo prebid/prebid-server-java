@@ -38,9 +38,9 @@ public class RubiconConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps rubiconBidderDeps(HttpClient httpClient) {
         final Usersyncer usersyncer = new RubiconUsersyncer(usersyncUrl);
-        final Adapter adapter = new RubiconAdapter(usersyncer, endpoint, username, password);
-        final Bidder bidder = new RubiconBidder(endpoint, username, password);
-        final BidderRequester bidderRequester = new HttpBidderRequester(bidder, httpClient);
+        final Adapter<?, ?> adapter = new RubiconAdapter(usersyncer, endpoint, username, password);
+        final Bidder<?> bidder = new RubiconBidder(endpoint, username, password);
+        final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
 
         return BidderDeps.of(BIDDER_NAME, new RubiconMetaInfo(), usersyncer, adapter, bidderRequester);
     }

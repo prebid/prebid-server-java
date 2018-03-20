@@ -33,7 +33,7 @@ public class PubmaticConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps pubmaticBidderDeps(HttpAdapterConnector httpAdapterConnector) {
         final Usersyncer usersyncer = new PubmaticUsersyncer(usersyncUrl, externalUrl);
-        final Adapter adapter = new PubmaticAdapter(usersyncer, endpoint);
+        final Adapter<?, ?> adapter = new PubmaticAdapter(usersyncer, endpoint);
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpAdapterConnector);
 

@@ -62,6 +62,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.*;
 
 public class AuctionHandlerTest extends VertxTest {
@@ -77,9 +78,9 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private Adapter rubiconAdapter;
+    private Adapter<?, ?> rubiconAdapter;
     @Mock
-    private Adapter appnexusAdapter;
+    private Adapter<?, ?> appnexusAdapter;
     @Mock
     private PreBidRequestContextFactory preBidRequestContextFactory;
     @Mock
@@ -110,10 +111,10 @@ public class AuctionHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(Account.of(null, null)));
 
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
-        given(bidderCatalog.adapterByName(eq(RUBICON))).willReturn(rubiconAdapter);
+        willReturn(rubiconAdapter).given(bidderCatalog).adapterByName(eq(RUBICON));
 
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
-        given(bidderCatalog.adapterByName(eq(APPNEXUS))).willReturn(appnexusAdapter);
+        willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
 
         given(metrics.forAdapter(any())).willReturn(adapterMetrics);
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);

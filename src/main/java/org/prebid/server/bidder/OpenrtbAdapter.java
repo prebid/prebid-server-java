@@ -1,6 +1,7 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
@@ -30,7 +31,7 @@ import java.util.stream.Stream;
 /**
  * Basic {@link Adapter} implementation containing common logic functionality and helper methods.
  */
-public abstract class OpenrtbAdapter implements Adapter {
+public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse> {
 
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
@@ -39,6 +40,16 @@ public abstract class OpenrtbAdapter implements Adapter {
 
     protected OpenrtbAdapter(Usersyncer usersyncer) {
         this.usersyncer = Objects.requireNonNull(usersyncer);
+    }
+
+    @Override
+    public boolean tolerateErrors() {
+        return false; // by default all adapters throw up errors
+    }
+
+    @Override
+    public Class<BidResponse> responseClass() {
+        return BidResponse.class;
     }
 
     protected static Banner.BannerBuilder bannerBuilder(AdUnitBid adUnitBid) {
@@ -150,11 +161,6 @@ public abstract class OpenrtbAdapter implements Adapter {
             }
         }
         throw new PreBidException(String.format("Unknown ad unit code '%s'", adUnitCode));
-    }
-
-    @Override
-    public boolean tolerateErrors() {
-        return false; // by default all adapters throw up errors
     }
 
     /**

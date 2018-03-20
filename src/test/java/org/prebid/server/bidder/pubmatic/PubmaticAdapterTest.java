@@ -62,7 +62,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
     private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
-    private ExchangeCall exchangeCall;
+    private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private PubmaticAdapter adapter;
     private PubmaticUsersyncer usersyncer;
 
@@ -90,7 +90,8 @@ public class PubmaticAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedHeaders() {
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
@@ -132,24 +133,25 @@ public class PubmaticAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
-        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp()).hasSize(6);
-        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp())
+        assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp()).hasSize(6);
+        assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getTagid)
                 .containsOnly("slot1", null, null, null, null, null);
 
         final List formats = singletonList(Format.builder().w(480).h(320).build());
-        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp())
+        assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getFormat)
                 .containsOnly(null, formats, formats, formats, formats, formats);
 
-        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp())
+        assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getW)
                 .containsOnly(300, 480, 480, 480, 480, 480);
 
-        assertThat(httpRequests).flatExtracting(r -> r.getBidRequest().getImp())
+        assertThat(httpRequests).flatExtracting(r -> r.getPayload().getImp())
                 .extracting(Imp::getBanner).extracting(Banner::getH)
                 .containsOnly(250, 320, 320, 320, 320, 320);
     }
@@ -164,7 +166,8 @@ public class PubmaticAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).isNotEmpty();
@@ -229,11 +232,12 @@ public class PubmaticAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(AdapterHttpRequest::getBidRequest)
+                .extracting(AdapterHttpRequest::getPayload)
                 .containsOnly(BidRequest.builder()
                         .id("tid")
                         .at(1)
@@ -274,11 +278,12 @@ public class PubmaticAdapterTest extends VertxTest {
                 .app(App.builder().id("appId").build()).user(User.builder().build()));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.getBidRequest().getApp().getId())
+                .extracting(r -> r.getPayload().getApp().getId())
                 .containsOnly("appId");
     }
 
@@ -292,11 +297,12 @@ public class PubmaticAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUidFromCookie");
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.getBidRequest().getUser())
+                .extracting(r -> r.getPayload().getUser())
                 .containsOnly(User.builder().buyeruid("buyerUid").build());
     }
 
@@ -314,11 +320,12 @@ public class PubmaticAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.getBidRequest().getImp())
+                .flatExtracting(r -> r.getPayload().getImp())
                 .containsOnly(
                         Imp.builder()
                                 .video(com.iab.openrtb.request.Video.builder().w(480).h(320)
@@ -339,11 +346,12 @@ public class PubmaticAdapterTest extends VertxTest {
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
+                .flatExtracting(r -> r.getPayload().getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
     }
 
@@ -478,7 +486,7 @@ public class PubmaticAdapterTest extends VertxTest {
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 
-    private static ExchangeCall givenExchangeCallCustomizable(
+    private static ExchangeCall<BidRequest, BidResponse> givenExchangeCallCustomizable(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
             Function<BidResponse.BidResponseBuilder, BidResponse.BidResponseBuilder> bidResponseBuilderCustomizer) {
 

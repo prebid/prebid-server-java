@@ -32,7 +32,7 @@ public class IndexConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps indexBidderDeps(HttpAdapterConnector httpAdapterConnector) {
         final Usersyncer usersyncer = new IndexUsersyncer(usersyncUrl);
-        final Adapter adapter = new IndexAdapter(usersyncer, endpoint);
+        final Adapter<?, ?> adapter = new IndexAdapter(usersyncer, endpoint);
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpAdapterConnector);
 

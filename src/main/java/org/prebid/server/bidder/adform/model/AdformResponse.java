@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.adform.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
@@ -10,16 +9,13 @@ import java.math.BigDecimal;
 @Value
 public class AdformResponse {
 
-    @JsonProperty("response")
-    String responseType;
+    String response;
 
     String banner;
 
-    @JsonProperty("win_bid")
-    BigDecimal price;
+    BigDecimal winBid;
 
-    @JsonProperty("win_cur")
-    String currency;
+    String winCur;
 
     Integer width;
 

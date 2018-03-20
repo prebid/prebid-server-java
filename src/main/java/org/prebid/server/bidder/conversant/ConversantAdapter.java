@@ -6,6 +6,8 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.BidResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -60,15 +62,16 @@ public class ConversantAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<AdapterHttpRequest> makeHttpRequests(AdapterRequest adapterRequest,
-                                                     PreBidRequestContext preBidRequestContext) {
+    public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
+                                                                 PreBidRequestContext preBidRequestContext) {
         if (preBidRequestContext.getPreBidRequest().getApp() == null
                 && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()) == null) {
             return Collections.emptyList();
         }
 
         final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
-        final AdapterHttpRequest httpRequest = AdapterHttpRequest.of(endpointUrl, headers(), bidRequest);
+        final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST, endpointUrl,
+                bidRequest, headers());
         return Collections.singletonList(httpRequest);
     }
 
@@ -227,10 +230,11 @@ public class ConversantAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
-        final Map<String, Imp> impsMap = impsWithIds(exchangeCall.getBidRequest());
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest,
+                                            ExchangeCall<BidRequest, BidResponse> exchangeCall) {
+        final Map<String, Imp> impsMap = impsWithIds(exchangeCall.getRequest());
 
-        return responseBidStream(exchangeCall.getBidResponse())
+        return responseBidStream(exchangeCall.getResponse())
                 .map(bid -> toBidBuilder(bid, adapterRequest, impsMap.get(bid.getImpid())))
                 .collect(Collectors.toList());
     }

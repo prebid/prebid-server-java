@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.adform.utils;
+package org.prebid.server.bidder.adform;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;

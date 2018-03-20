@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.BidResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -59,11 +61,11 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<AdapterHttpRequest> makeHttpRequests(AdapterRequest adapterRequest,
-                                                     PreBidRequestContext preBidRequestContext) {
+    public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
+                                                                 PreBidRequestContext preBidRequestContext) {
         final BidRequestWithUrl bidRequestWithUrl = createBidRequest(endpointUrl, adapterRequest, preBidRequestContext);
-        final AdapterHttpRequest httpRequest = AdapterHttpRequest.of(bidRequestWithUrl.getEndpointUrl(), headers(),
-                bidRequestWithUrl.getBidRequest());
+        final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST,
+                bidRequestWithUrl.getEndpointUrl(), bidRequestWithUrl.getBidRequest(), headers());
         return Collections.singletonList(httpRequest);
     }
 
@@ -219,8 +221,9 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.getBidResponse())
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest,
+                                            ExchangeCall<BidRequest, BidResponse> exchangeCall) {
+        return responseBidStream(exchangeCall.getResponse())
                 .map(bid -> toBidBuilder(bid, adapterRequest))
                 .collect(Collectors.toList());
     }

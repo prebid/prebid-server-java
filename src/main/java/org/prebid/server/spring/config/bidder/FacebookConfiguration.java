@@ -38,7 +38,7 @@ public class FacebookConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps facebookBidderDeps(HttpAdapterConnector httpAdapterConnector) {
         final Usersyncer usersyncer = new FacebookUsersyncer(usersyncUrl);
-        final Adapter adapter = new FacebookAdapter(usersyncer, endpoint, nonSecureEndpoint, platformId);
+        final Adapter<?, ?> adapter = new FacebookAdapter(usersyncer, endpoint, nonSecureEndpoint, platformId);
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpAdapterConnector);
 

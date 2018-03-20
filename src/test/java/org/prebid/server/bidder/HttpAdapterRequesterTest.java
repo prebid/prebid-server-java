@@ -61,7 +61,7 @@ public class HttpAdapterRequesterTest {
     @Mock
     private HttpAdapterConnector httpAdapterConnector;
     @Mock
-    private Adapter adapter;
+    private Adapter<?, ?> adapter;
     @Mock
     private Usersyncer usersyncer;
 

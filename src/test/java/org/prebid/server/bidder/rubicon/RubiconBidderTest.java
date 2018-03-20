@@ -80,13 +80,6 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new RubiconBidder(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconBidder(ENDPOINT_URL, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new RubiconBidder(ENDPOINT_URL, USERNAME, null));
-    }
-
-    @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new RubiconBidder("invalid_url", USERNAME, PASSWORD));
     }
@@ -98,7 +91,7 @@ public class RubiconBidderTest extends VertxTest {
                 Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build()));
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
@@ -123,7 +116,7 @@ public class RubiconBidderTest extends VertxTest {
                         .inventory(mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech")))));
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -148,7 +141,7 @@ public class RubiconBidderTest extends VertxTest {
                 .build()));
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -174,7 +167,7 @@ public class RubiconBidderTest extends VertxTest {
                 .build()));
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -197,7 +190,7 @@ public class RubiconBidderTest extends VertxTest {
                 builder -> builder.video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()));
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -221,7 +214,7 @@ public class RubiconBidderTest extends VertxTest {
                         .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build()));
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -249,7 +242,7 @@ public class RubiconBidderTest extends VertxTest {
                         Visitor.of(singletonList("new"), singletonList("iphone")))));
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -273,7 +266,7 @@ public class RubiconBidderTest extends VertxTest {
                 builder -> builder.video(Video.builder().build()),
                 Function.identity());
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -295,7 +288,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -314,7 +307,7 @@ public class RubiconBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
 
@@ -342,7 +335,7 @@ public class RubiconBidderTest extends VertxTest {
                 builder -> builder.accountId(2001).siteId(3001));
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -366,7 +359,7 @@ public class RubiconBidderTest extends VertxTest {
                 builder -> builder.accountId(2001).siteId(3001));
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -388,7 +381,7 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(asList(imp, imp)).build();
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         final BidRequest expectedBidRequest = BidRequest.builder()
@@ -417,7 +410,7 @@ public class RubiconBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -437,7 +430,7 @@ public class RubiconBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -448,11 +441,10 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultIfResponseStatusIs204() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall httpCall = givenHttpCall(204, null);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, 204, null);
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -462,11 +454,10 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseStatusIsNot200Or204() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall httpCall = givenHttpCall(302, null);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, 302, null);
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).extracting(BidderError::getMessage)
@@ -477,11 +468,10 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall httpCall = givenHttpCall(200, "invalid");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, 200, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -490,58 +480,44 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfNoMatchingImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfRequestImpHasNoVideo() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId1", ONE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                200, givenBidResponse(ONE));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("impId1").price(ONE).build(), banner));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner));
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfMatchingImpHasNoVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfRequestImpHasVideo() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", ONE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(builder -> builder.video(Video.builder().build())),
+                200, givenBidResponse(ONE));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("impId").price(ONE).build(), banner));
-    }
-
-    @Test
-    public void makeBidsShouldReturnVideoBidIfMatchingImpHasVideo() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId").video(Video.builder().build()));
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", ONE));
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("impId").price(ONE).build(), video));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video));
     }
 
     @Test
     public void makeBidsShouldNotReturnImpIfPriceLessOrEqualToZero() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId").video(Video.builder().build()));
-        final HttpCall httpCall = givenHttpCall(200, givenBidResponse("impId", ZERO));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                200, givenBidResponse(ZERO));
 
         // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -576,15 +552,17 @@ public class RubiconBidderTest extends VertxTest {
         return givenImp(impCustomizer, identity());
     }
 
-    private static HttpCall givenHttpCall(int statusCode, String body) {
-        return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, int statusCode, String body) {
+        return HttpCall.full(
+                HttpRequest.of(null, null, null, null, bidRequest),
+                HttpResponse.of(statusCode, null, body),
+                null);
     }
 
-    private static String givenBidResponse(String impId, BigDecimal price) throws JsonProcessingException {
+    private static String givenBidResponse(BigDecimal price) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
-                                .impid(impId)
                                 .price(price)
                                 .build()))
                         .build()))

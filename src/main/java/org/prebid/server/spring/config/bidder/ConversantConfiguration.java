@@ -33,7 +33,7 @@ public class ConversantConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps conversantBidderDeps(HttpAdapterConnector httpAdapterConnector) {
         final Usersyncer usersyncer = new ConversantUsersyncer(usersyncUrl, externalUrl);
-        final Adapter adapter = new ConversantAdapter(usersyncer, endpoint);
+        final Adapter<?, ?> adapter = new ConversantAdapter(usersyncer, endpoint);
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpAdapterConnector);
 

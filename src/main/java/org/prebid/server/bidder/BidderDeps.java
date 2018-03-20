@@ -33,7 +33,7 @@ public class BidderDeps {
     /**
      * Bidder's adapter is used in legacy auction handling.
      */
-    Adapter adapter;
+    Adapter<?, ?> adapter;
 
     /**
      * Bidder's requester is used in OpenRTB 2.5 auction handling.

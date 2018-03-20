@@ -1,6 +1,5 @@
 package org.prebid.server.bidder;
 
-import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.channel.ConnectTimeoutException;
@@ -60,11 +59,12 @@ public class HttpAdapterConnector {
     /**
      * Executes HTTP requests for particular {@link Adapter} and returns {@link AdapterResponse}
      */
-    public Future<AdapterResponse> call(Adapter adapter, Usersyncer usersyncer, AdapterRequest adapterRequest,
-                                        PreBidRequestContext preBidRequestContext) {
+    public <T, R> Future<AdapterResponse> call(Adapter<T, R> adapter, Usersyncer usersyncer,
+                                               AdapterRequest adapterRequest,
+                                               PreBidRequestContext preBidRequestContext) {
         final long bidderStarted = CLOCK.millis();
 
-        final List<AdapterHttpRequest> httpRequests;
+        final List<AdapterHttpRequest<T>> httpRequests;
         try {
             httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
         } catch (PreBidException e) {
@@ -72,7 +72,7 @@ public class HttpAdapterConnector {
         }
 
         return CompositeFuture.join(httpRequests.stream()
-                .map(httpRequest -> doRequest(httpRequest, preBidRequestContext.getTimeout()))
+                .map(httpRequest -> doRequest(httpRequest, preBidRequestContext.getTimeout(), adapter.responseClass()))
                 .collect(Collectors.toList()))
                 .map(compositeFuture -> toBidderResult(adapter, usersyncer, adapterRequest, preBidRequestContext,
                         bidderStarted, compositeFuture.list()));
@@ -81,11 +81,12 @@ public class HttpAdapterConnector {
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private Future<ExchangeCall> doRequest(AdapterHttpRequest httpRequest, GlobalTimeout timeout) {
-        final BidRequest bidRequest = httpRequest.getBidRequest();
+    private <T, R> Future<ExchangeCall> doRequest(AdapterHttpRequest<T> httpRequest, GlobalTimeout timeout,
+                                                  Class<R> responseClass) {
+        final T requestBody = httpRequest.getPayload();
         final String uri = httpRequest.getUri();
 
-        final String body = Json.encode(bidRequest);
+        final String body = requestBody != null ? Json.encode(requestBody) : null;
         final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(uri, body);
         final Future<ExchangeCall> future = Future.future();
 
@@ -95,8 +96,8 @@ public class HttpAdapterConnector {
             return future;
         }
 
-        final HttpClientRequest httpClientRequest = httpClient.postAbs(uri,
-                response -> handleResponse(bidderDebugBuilder, response, future, bidRequest))
+        final HttpClientRequest httpClientRequest = httpClient.requestAbs(httpRequest.getMethod(), uri,
+                response -> handleResponse(bidderDebugBuilder, response, responseClass, future, requestBody))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future))
                 .setTimeout(remainingTimeout);
 
@@ -105,7 +106,11 @@ public class HttpAdapterConnector {
             httpClientRequest.headers().addAll(headers);
         }
 
-        httpClientRequest.end(body);
+        if (body != null) {
+            httpClientRequest.end(body);
+        } else {
+            httpClientRequest.end();
+        }
 
         return future;
     }
@@ -124,12 +129,13 @@ public class HttpAdapterConnector {
                 .build();
     }
 
-    private static void handleResponse(BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                       HttpClientResponse response, Future<ExchangeCall> future,
-                                       BidRequest bidRequest) {
+    private static <T, R> void handleResponse(BidderDebug.BidderDebugBuilder bidderDebugBuilder,
+                                              HttpClientResponse response, Class<R> responseClass,
+                                              Future<ExchangeCall> future, T request) {
         response
                 .bodyHandler(buffer -> future.complete(
-                        toExchangeCall(bidRequest, response.statusCode(), buffer.toString(), bidderDebugBuilder)))
+                        toExchangeCall(request, response.statusCode(), buffer.toString(), responseClass,
+                                bidderDebugBuilder)))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future));
     }
 
@@ -150,8 +156,8 @@ public class HttpAdapterConnector {
      * Transforms HTTP call results into {@link ExchangeCall} filled with debug information,
      * {@link BidResponse} and errors happened along the way.
      */
-    private static ExchangeCall toExchangeCall(BidRequest bidRequest, int statusCode, String body,
-                                               BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
+    private static <T, R> ExchangeCall toExchangeCall(T request, int statusCode, String body, Class<R> responseClass,
+                                                      BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
         final BidderDebug bidderDebug = completeBidderDebug(bidderDebugBuilder, statusCode, body);
 
         if (statusCode == 204) {
@@ -163,24 +169,25 @@ public class HttpAdapterConnector {
             return ExchangeCall.error(bidderDebug, String.format("HTTP status %d; body: %s", statusCode, body));
         }
 
-        final BidResponse bidResponse;
+        final R bidResponse;
         try {
-            bidResponse = Json.decodeValue(body, BidResponse.class);
+            bidResponse = Json.decodeValue(body, responseClass);
         } catch (DecodeException e) {
             logger.warn("Error occurred while parsing bid response: {0}", e, body);
             return ExchangeCall.error(bidderDebug, e.getMessage());
         }
 
-        return ExchangeCall.success(bidRequest, bidResponse, bidderDebug);
+        return ExchangeCall.success(request, bidResponse, bidderDebug);
     }
 
     /**
      * Transforms {@link ExchangeCall} into single {@link AdapterResponse} filled with debug information,
      * list of {@link Bid}, {@link BidderStatus}, etc.
      */
-    private static AdapterResponse toBidderResult(Adapter adapter, Usersyncer usersyncer, AdapterRequest adapterRequest,
-                                                  PreBidRequestContext preBidRequestContext,
-                                                  long bidderStarted, List<ExchangeCall> exchangeCalls) {
+    private static <T, R> AdapterResponse toBidderResult(
+            Adapter<T, R> adapter, Usersyncer usersyncer, AdapterRequest adapterRequest,
+            PreBidRequestContext preBidRequestContext, long bidderStarted, List<ExchangeCall<T, R>> exchangeCalls) {
+
         final Integer responseTime = responseTime(bidderStarted);
 
         final BidderStatus.BidderStatusBuilder bidderStatusBuilder = BidderStatus.builder()
@@ -232,8 +239,8 @@ public class HttpAdapterConnector {
     /**
      * Transforms {@link ExchangeCall} into {@link BidsWithError} object with list of bids or error.
      */
-    private static BidsWithError bidsWithError(Adapter adapter, AdapterRequest adapterRequest,
-                                               ExchangeCall exchangeCall, Integer responseTime) {
+    private static <T, R> BidsWithError bidsWithError(Adapter<T, R> adapter, AdapterRequest adapterRequest,
+                                                      ExchangeCall<T, R> exchangeCall, Integer responseTime) {
         final String error = exchangeCall.getError();
         if (StringUtils.isNotBlank(error)) {
             return BidsWithError.of(Collections.emptyList(), error, exchangeCall.isTimedOut());

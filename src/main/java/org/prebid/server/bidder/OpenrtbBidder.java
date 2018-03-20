@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 /**
  * Basic {@link Bidder} implementation containing common logic functionality and helper methods.
  */
-public abstract class OpenrtbBidder implements Bidder {
+public abstract class OpenrtbBidder<T> implements Bidder<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(OpenrtbBidder.class);
 

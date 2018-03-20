@@ -49,11 +49,11 @@ import java.util.stream.Collectors;
 public class HttpAdapterRequester implements BidderRequester {
 
     private final String bidderName;
-    private final Adapter adapter;
+    private final Adapter<?, ?> adapter;
     private final Usersyncer usersyncer;
     private final HttpAdapterConnector httpAdapterConnector;
 
-    public HttpAdapterRequester(String bidderName, Adapter adapter, Usersyncer usersyncer,
+    public HttpAdapterRequester(String bidderName, Adapter<?, ?> adapter, Usersyncer usersyncer,
                                 HttpAdapterConnector httpAdapterConnector) {
         this.bidderName = Objects.requireNonNull(bidderName);
         this.adapter = Objects.requireNonNull(adapter);

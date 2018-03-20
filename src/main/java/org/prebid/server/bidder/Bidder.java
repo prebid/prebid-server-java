@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Defines the contract needed to participate in an auction.
  */
-public interface Bidder {
+public interface Bidder<T> {
 
     /**
      * Makes the HTTP requests which should be made to fetch bids.
@@ -19,7 +19,7 @@ public interface Bidder {
      * The errors should contain a list of errors which explain why this bidder's bids will be "subpar" in some way.
      * For example: the request contained ad types which this bidder doesn't support.
      */
-    Result<List<HttpRequest>> makeHttpRequests(BidRequest request);
+    Result<List<HttpRequest<T>>> makeHttpRequests(BidRequest request);
 
     /**
      * Unpacks the server's response into bids.
@@ -27,5 +27,5 @@ public interface Bidder {
      * The errors should contain a list of errors which explain why this bidder's bids will be
      * "subpar" in some way. For example: the server response didn't have the expected format.
      */
-    Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest);
+    Result<List<BidderBid>> makeBids(HttpCall<T> httpCall, BidRequest bidRequest);
 }

@@ -9,9 +9,9 @@ import lombok.Value;
  */
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Value
-public class HttpCall {
+public class HttpCall<T> {
 
-    HttpRequest request;
+    HttpRequest<T> request;
 
     HttpResponse response;
 
@@ -19,11 +19,11 @@ public class HttpCall {
 
     boolean timedOut;
 
-    public static HttpCall full(HttpRequest request, HttpResponse response, String error) {
-        return new HttpCall(request, response, error, false);
+    public static <T> HttpCall<T> full(HttpRequest<T> request, HttpResponse response, String error) {
+        return new HttpCall<>(request, response, error, false);
     }
 
-    public static HttpCall partial(HttpRequest request, String error, boolean timedOut) {
-        return new HttpCall(request, null, error, timedOut);
+    public static <T> HttpCall<T> partial(HttpRequest<T> request, String error, boolean timedOut) {
+        return new HttpCall<>(request, null, error, timedOut);
     }
 }

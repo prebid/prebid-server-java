@@ -69,7 +69,7 @@ public class ConversantAdapterTest extends VertxTest {
 
     private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
-    private ExchangeCall exchangeCall;
+    private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private ConversantAdapter adapter;
     private ConversantUsersyncer usersyncer;
 
@@ -99,7 +99,8 @@ public class ConversantAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedHeaders() {
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
@@ -115,7 +116,8 @@ public class ConversantAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder.app(null));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).isEmpty();
@@ -169,11 +171,12 @@ public class ConversantAdapterTest extends VertxTest {
                 builder -> builder.api(asList(1, 3, 6, 100)));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.getBidRequest().getImp()).isNotNull()
+                .flatExtracting(r -> r.getPayload().getImp()).isNotNull()
                 .flatExtracting(imp -> imp.getVideo().getApi())
                 .containsOnly(1, 3, 6);
     }
@@ -187,11 +190,12 @@ public class ConversantAdapterTest extends VertxTest {
                 builder -> builder.protocols(asList(1, 5, 10, 100)));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.getBidRequest().getImp()).isNotNull()
+                .flatExtracting(r -> r.getPayload().getImp()).isNotNull()
                 .flatExtracting(imp -> imp.getVideo().getProtocols())
                 .containsOnly(1, 5, 10);
     }
@@ -205,11 +209,12 @@ public class ConversantAdapterTest extends VertxTest {
                 builder -> builder.protocols(null));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.getBidRequest().getImp()).isNotNull()
+                .flatExtracting(r -> r.getPayload().getImp()).isNotNull()
                 .flatExtracting(imp -> imp.getVideo().getProtocols())
                 .containsOnly(200);
     }
@@ -223,11 +228,12 @@ public class ConversantAdapterTest extends VertxTest {
                 builder -> builder.position(0));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.getBidRequest().getImp()).isNotNull()
+                .flatExtracting(r -> r.getPayload().getImp()).isNotNull()
                 .extracting(imp -> imp.getVideo().getPos())
                 .containsOnly(0);
     }
@@ -241,11 +247,12 @@ public class ConversantAdapterTest extends VertxTest {
                 builder -> builder.position(100));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests)
-                .flatExtracting(r -> r.getBidRequest().getImp()).isNotNull()
+                .flatExtracting(r -> r.getPayload().getImp()).isNotNull()
                 .extracting(imp -> imp.getVideo().getPos())
                 .hasSize(1)
                 .containsNull();
@@ -318,11 +325,12 @@ public class ConversantAdapterTest extends VertxTest {
         );
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(AdapterHttpRequest::getBidRequest)
+                .extracting(AdapterHttpRequest::getPayload)
                 .containsOnly(BidRequest.builder()
                         .id("tid1")
                         .at(1)
@@ -370,11 +378,12 @@ public class ConversantAdapterTest extends VertxTest {
                 .app(App.builder().id("appId").build()));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.getBidRequest().getApp().getId())
+                .extracting(r -> r.getPayload().getApp().getId())
                 .containsOnly("appId");
     }
 
@@ -388,11 +397,12 @@ public class ConversantAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUidFromCookie");
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.getBidRequest().getUser())
+                .extracting(r -> r.getPayload().getUser())
                 .containsOnly(User.builder().buyeruid("buyerUid").build());
     }
 
@@ -404,11 +414,12 @@ public class ConversantAdapterTest extends VertxTest {
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
+                .flatExtracting(r -> r.getPayload().getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
     }
 
@@ -443,11 +454,12 @@ public class ConversantAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
+                .flatExtracting(r -> r.getPayload().getImp()).hasSize(2)
                 .extracting(imp -> imp.getVideo() == null, imp -> imp.getBanner() == null)
                 .containsOnly(tuple(true, false), tuple(false, true));
     }
@@ -587,7 +599,7 @@ public class ConversantAdapterTest extends VertxTest {
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 
-    private static ExchangeCall givenExchangeCall(
+    private static ExchangeCall<BidRequest, BidResponse> givenExchangeCall(
             Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer,
             Function<BidResponseBuilder, BidResponseBuilder> bidResponseBuilderCustomizer) {
 

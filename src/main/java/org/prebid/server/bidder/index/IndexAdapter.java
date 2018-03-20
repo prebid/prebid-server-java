@@ -5,6 +5,8 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.BidResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -45,12 +47,13 @@ public class IndexAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<AdapterHttpRequest> makeHttpRequests(AdapterRequest adapterRequest,
-                                                     PreBidRequestContext preBidRequestContext) {
+    public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
+                                                                 PreBidRequestContext preBidRequestContext) {
         validatePreBidRequest(preBidRequestContext.getPreBidRequest());
 
         final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
-        final AdapterHttpRequest httpRequest = AdapterHttpRequest.of(endpointUrl, headers(), bidRequest);
+        final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST, endpointUrl,
+                bidRequest, headers());
         return Collections.singletonList(httpRequest);
     }
 
@@ -150,8 +153,9 @@ public class IndexAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.getBidResponse())
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest,
+                                            ExchangeCall<BidRequest, BidResponse> exchangeCall) {
+        return responseBidStream(exchangeCall.getResponse())
                 .map(bid -> toBidBuilder(bid, adapterRequest))
                 .collect(Collectors.toList());
     }

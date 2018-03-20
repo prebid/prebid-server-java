@@ -1,10 +1,9 @@
-package org.prebid.server.bidder.adform.util;
+package org.prebid.server.bidder.adform;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import org.junit.Test;
-import org.prebid.server.bidder.adform.utils.AdformHttpUtil;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -74,7 +73,7 @@ public class AdformHttpUtilTest {
     }
 
     @Test
-    public void buildAdformUrlShouldReturnHttpsProtocolIfSecureIsTrue(){
+    public void buildAdformUrlShouldReturnHttpsProtocolIfSecureIsTrue() {
         // when
         final String url = AdformHttpUtil.buildAdformUrl(Arrays.asList("15", "16"), "http://adx.adform.net/adx", "tid",
                 true);

@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.model;
 
-import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -10,11 +10,14 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class AdapterHttpRequest {
+public class AdapterHttpRequest<T> {
+
+    HttpMethod method;
 
     String uri;
 
+    T payload;
+
     MultiMap headers;
 
-    BidRequest bidRequest;
 }

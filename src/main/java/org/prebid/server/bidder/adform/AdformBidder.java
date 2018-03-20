@@ -19,7 +19,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.adform.model.AdformResponse;
-import org.prebid.server.bidder.adform.utils.AdformHttpUtil;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -41,7 +40,7 @@ import java.util.stream.Collectors;
 /**
  * Adform {@link Bidder} implementation.
  */
-public class AdformBidder extends OpenrtbBidder {
+public class AdformBidder extends OpenrtbBidder<Void> {
 
     private static final String VERSION = "0.1.0";
     private static final String BANNER = "banner";
@@ -61,7 +60,7 @@ public class AdformBidder extends OpenrtbBidder {
      * Creates GET http request with all parameters in url and headers with empty body.
      */
     @Override
-    public Result<List<HttpRequest>> makeHttpRequests(BidRequest request) {
+    public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
 
         final List<Imp> imps = request.getImp();
         final ResultWithErrors<List<ExtImpAdform>> extImpAdformsResult = getExtImpAdforms(imps);
@@ -87,7 +86,9 @@ public class AdformBidder extends OpenrtbBidder {
                 getReferer(request.getSite()),
                 getUserId(request.getUser()));
 
-        return Result.of(Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers)), errors(errors));
+        return Result.of(
+                Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers, null)),
+                errors(errors));
     }
 
     /**
@@ -118,17 +119,8 @@ public class AdformBidder extends OpenrtbBidder {
             }
             extImpAdforms.add(extImpAdform);
         }
-        return ResultWithErrors.of(extImpAdforms, errors);
-    }
 
-    /**
-     * Class which holds result with {@link List} of errors
-     */
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static class ResultWithErrors<T> {
-        T result;
-        List<String> errors;
+        return ResultWithErrors.of(extImpAdforms, errors);
     }
 
     /**
@@ -190,7 +182,7 @@ public class AdformBidder extends OpenrtbBidder {
      * Returns empty result {@link List} with errors in case of response status different from "OK" or "No Content"
      */
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
         final int responseStatusCode = httpResponse.getStatusCode();
         if (responseStatusCode == HttpResponseStatus.NO_CONTENT.code()) {
@@ -218,14 +210,15 @@ public class AdformBidder extends OpenrtbBidder {
         final List<BidderBid> bidderBids = new ArrayList<>();
         for (int i = 0; i < adformResponses.size(); i++) {
             final AdformResponse adformResponse = adformResponses.get(i);
-            if (StringUtils.isEmpty(adformResponse.getBanner()) || !BANNER.equals(adformResponse.getResponseType())) {
+            if (StringUtils.isEmpty(adformResponse.getBanner())
+                    || !Objects.equals(adformResponse.getResponse(), BANNER)) {
                 continue;
             }
             final Imp imp = imps.get(i);
             bidderBids.add(BidderBid.of(Bid.builder()
                             .id(imp.getId())
                             .impid(imp.getId())
-                            .price(adformResponse.getPrice())
+                            .price(adformResponse.getWinBid())
                             .adm(adformResponse.getBanner())
                             .w(adformResponse.getWidth())
                             .h(adformResponse.getHeight())
@@ -234,5 +227,15 @@ public class AdformBidder extends OpenrtbBidder {
                     BidType.banner));
         }
         return bidderBids;
+    }
+
+    /**
+     * Class which holds result with {@link List} of errors
+     */
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    private static class ResultWithErrors<T> {
+        T result;
+        List<String> errors;
     }
 }

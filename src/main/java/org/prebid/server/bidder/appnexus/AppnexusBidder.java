@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 /**
  * AppNexus {@link Bidder} implementation.
  */
-public class AppnexusBidder extends OpenrtbBidder {
+public class AppnexusBidder extends OpenrtbBidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(AppnexusBidder.class);
 
@@ -65,7 +65,7 @@ public class AppnexusBidder extends OpenrtbBidder {
     }
 
     @Override
-    public Result<List<HttpRequest>> makeHttpRequests(BidRequest bidRequest) {
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
@@ -98,12 +98,13 @@ public class AppnexusBidder extends OpenrtbBidder {
         } else {
             url = endpointUrl;
         }
-        return Result.of(Collections.singletonList(
-                HttpRequest.of(HttpMethod.POST, url, body(bidRequest, processedImps), headers())), errors(errors));
-    }
 
-    private static String body(BidRequest bidRequest, List<Imp> imps) {
-        return Json.encode(bidRequest.toBuilder().imp(imps).build());
+        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(processedImps).build();
+        final String body = Json.encode(outgoingRequest);
+
+        return Result.of(
+                Collections.singletonList(HttpRequest.of(HttpMethod.POST, url, body, headers(), outgoingRequest)),
+                errors(errors));
     }
 
     /**
@@ -216,7 +217,7 @@ public class AppnexusBidder extends OpenrtbBidder {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             return Result.of(extractBids(parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (PreBidException e) {

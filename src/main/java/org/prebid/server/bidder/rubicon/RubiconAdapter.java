@@ -13,8 +13,10 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -89,8 +91,8 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<AdapterHttpRequest> makeHttpRequests(AdapterRequest adapterRequest,
-                                                     PreBidRequestContext preBidRequestContext) {
+    public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
+                                                                 PreBidRequestContext preBidRequestContext) {
         final MultiMap headers = headers()
                 .add(HttpHeaders.AUTHORIZATION, authHeader)
                 .add(HttpHeaders.USER_AGENT, PREBID_SERVER_USER_AGENT);
@@ -99,13 +101,13 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
         validateAdUnitBidsMediaTypes(adUnitBids);
 
-        final List<AdapterHttpRequest> httpRequests = adUnitBids.stream()
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adUnitBids.stream()
                 .flatMap(adUnitBid -> createBidRequests(adUnitBid, preBidRequestContext))
-                .map(bidRequest -> AdapterHttpRequest.of(endpointUrl, headers, bidRequest))
+                .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl, bidRequest, headers))
                 .collect(Collectors.toList());
 
         validateBidRequests(httpRequests.stream()
-                .map(AdapterHttpRequest::getBidRequest)
+                .map(AdapterHttpRequest::getPayload)
                 .collect(Collectors.toList()));
 
         return httpRequests;
@@ -331,10 +333,11 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.getBidResponse())
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest,
+                                            ExchangeCall<BidRequest, BidResponse> exchangeCall) {
+        return responseBidStream(exchangeCall.getResponse())
                 .filter(bid -> bid.getPrice() != null && bid.getPrice().compareTo(BigDecimal.ZERO) != 0)
-                .map(bid -> toBidBuilder(bid, adapterRequest, mediaTypeFor(exchangeCall.getBidRequest())))
+                .map(bid -> toBidBuilder(bid, adapterRequest, mediaTypeFor(exchangeCall.getRequest())))
                 .limit(1) // one bid per request/response
                 .collect(Collectors.toList());
     }

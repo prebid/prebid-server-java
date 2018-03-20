@@ -1,18 +1,16 @@
 package org.prebid.server.bidder.model;
 
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.response.BidResponse;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.proto.response.BidderDebug;
 
 @AllArgsConstructor
 @Value
-public class ExchangeCall {
+public class ExchangeCall<T, R> {
 
-    BidRequest bidRequest;
+    T request;
 
-    BidResponse bidResponse;
+    R response;
 
     BidderDebug bidderDebug;
 
@@ -20,19 +18,19 @@ public class ExchangeCall {
 
     boolean timedOut;
 
-    public static ExchangeCall error(BidderDebug bidderDebug, String error) {
-        return new ExchangeCall(null, null, bidderDebug, error, false);
+    public static <T, R> ExchangeCall<T, R> error(BidderDebug bidderDebug, String error) {
+        return new ExchangeCall<>(null, null, bidderDebug, error, false);
     }
 
-    public static ExchangeCall timeout(BidderDebug bidderDebug, String error) {
-        return new ExchangeCall(null, null, bidderDebug, error, true);
+    public static <T, R> ExchangeCall<T, R> timeout(BidderDebug bidderDebug, String error) {
+        return new ExchangeCall<>(null, null, bidderDebug, error, true);
     }
 
-    public static ExchangeCall success(BidRequest bidRequest, BidResponse bidResponse, BidderDebug bidderDebug) {
-        return new ExchangeCall(bidRequest, bidResponse, bidderDebug, null, false);
+    public static <T, R> ExchangeCall<T, R> success(T request, R response, BidderDebug bidderDebug) {
+        return new ExchangeCall<>(request, response, bidderDebug, null, false);
     }
 
-    public static ExchangeCall empty(BidderDebug bidderDebug) {
-        return new ExchangeCall(null, null, bidderDebug, null, false);
+    public static <T, R> ExchangeCall<T, R> empty(BidderDebug bidderDebug) {
+        return new ExchangeCall<>(null, null, bidderDebug, null, false);
     }
 }

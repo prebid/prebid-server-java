@@ -14,7 +14,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -62,14 +61,13 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * <a href="https://rubiconproject.com">Rubicon Project</a> {@link Bidder} implementation.
  */
-public class RubiconBidder extends OpenrtbBidder {
+public class RubiconBidder extends OpenrtbBidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
@@ -91,14 +89,15 @@ public class RubiconBidder extends OpenrtbBidder {
     }
 
     @Override
-    public Result<List<HttpRequest>> makeHttpRequests(BidRequest bidRequest) {
-        final List<HttpRequest> httpRequests = new ArrayList<>();
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<String> errors = new ArrayList<>();
 
         for (final Imp imp : bidRequest.getImp()) {
             try {
-                final String body = Json.encode(createSingleRequest(imp, bidRequest));
-                httpRequests.add(HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers));
+                final BidRequest singleRequest = createSingleRequest(imp, bidRequest);
+                final String body = Json.encode(singleRequest);
+                httpRequests.add(HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers, singleRequest));
             } catch (PreBidException e) {
                 errors.add(e.getMessage());
             }
@@ -108,9 +107,11 @@ public class RubiconBidder extends OpenrtbBidder {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(bidRequest, parseResponse(httpCall.getResponse())), Collections.emptyList());
+            return Result.of(
+                    extractBids(httpCall.getRequest().getPayload(), parseResponse(httpCall.getResponse())),
+                    Collections.emptyList());
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }
@@ -283,25 +284,17 @@ public class RubiconBidder extends OpenrtbBidder {
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final Map<String, BidType> impidToBidType = impidToBidType(bidRequest);
-
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
-                .map(bid -> BidderBid.of(bid, bidType(bid, impidToBidType)))
+                .map(bid -> BidderBid.of(bid, bidType(bidRequest)))
                 .collect(Collectors.toList());
     }
 
-    private static BidType bidType(Bid bid, Map<String, BidType> impidToBidType) {
-        return impidToBidType.getOrDefault(bid.getImpid(), BidType.banner);
+    private static BidType bidType(BidRequest bidRequest) {
+        return bidRequest.getImp().get(0).getVideo() != null ? BidType.video : BidType.banner;
     }
-
-    private static Map<String, BidType> impidToBidType(BidRequest bidRequest) {
-        return bidRequest.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, imp -> imp.getVideo() != null ? BidType.video : BidType.banner));
-    }
-
 }

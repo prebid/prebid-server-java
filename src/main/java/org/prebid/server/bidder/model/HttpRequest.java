@@ -10,7 +10,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class HttpRequest {
+public class HttpRequest<T> {
 
     HttpMethod method;
 
@@ -19,4 +19,6 @@ public class HttpRequest {
     String body;
 
     MultiMap headers;
+
+    T payload;
 }

@@ -40,14 +40,14 @@ import java.util.stream.Stream;
  * Any logic which can be done within a single Seat goes inside this class.
  * Any logic which requires responses from all Seats goes inside the {@link ExchangeService}.
  */
-public class HttpBidderRequester implements BidderRequester {
+public class HttpBidderRequester<T> implements BidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
-    private final Bidder bidder;
+    private final Bidder<T> bidder;
     private final HttpClient httpClient;
 
-    public HttpBidderRequester(Bidder bidder, HttpClient httpClient) {
+    public HttpBidderRequester(Bidder<T> bidder, HttpClient httpClient) {
         this.bidder = Objects.requireNonNull(bidder);
         this.httpClient = Objects.requireNonNull(httpClient);
     }
@@ -56,20 +56,20 @@ public class HttpBidderRequester implements BidderRequester {
      * Executes given request to a given bidder.
      */
     public Future<BidderSeatBid> requestBids(BidRequest bidRequest, GlobalTimeout timeout) {
-        final Result<List<HttpRequest>> httpRequests = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<T>>> httpRequests = bidder.makeHttpRequests(bidRequest);
 
         return CompositeFuture.join(httpRequests.getValue().stream()
                 .map(httpRequest -> doRequest(httpRequest, timeout))
                 .collect(Collectors.toList()))
-                .map(httpRequestsResult -> toBidderSeatBid(bidder, bidRequest, httpRequests.getErrors(),
+                .map(httpRequestsResult -> toBidderSeatBid(bidRequest, httpRequests.getErrors(),
                         httpRequestsResult.list()));
     }
 
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private Future<HttpCall> doRequest(HttpRequest httpRequest, GlobalTimeout timeout) {
-        final Future<HttpCall> result = Future.future();
+    private Future<HttpCall<T>> doRequest(HttpRequest<T> httpRequest, GlobalTimeout timeout) {
+        final Future<HttpCall<T>> result = Future.future();
 
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
@@ -91,7 +91,7 @@ public class HttpBidderRequester implements BidderRequester {
         return result;
     }
 
-    private void handleResponse(HttpClientResponse response, Future<HttpCall> result, HttpRequest httpRequest) {
+    private void handleResponse(HttpClientResponse response, Future<HttpCall<T>> result, HttpRequest<T> httpRequest) {
         response
                 .bodyHandler(buffer -> result.complete(
                         toCall(response.statusCode(), buffer.toString(), response.headers(), httpRequest)))
@@ -102,7 +102,8 @@ public class HttpBidderRequester implements BidderRequester {
      * Handles request (e.g. read timeout) and response (e.g. connection reset) errors producing partial
      * {@link HttpCall} containing request and error description.
      */
-    private static void handleException(Throwable exception, Future<HttpCall> result, HttpRequest httpRequest) {
+    private static <T> void handleException(Throwable exception, Future<HttpCall<T>> result,
+                                            HttpRequest<T> httpRequest) {
         logger.warn("Error occurred while sending HTTP request to a bidder", exception);
         final boolean isTimedOut = exception instanceof TimeoutException
                 || exception instanceof ConnectTimeoutException;
@@ -113,7 +114,7 @@ public class HttpBidderRequester implements BidderRequester {
      * Produces full {@link HttpCall} containing request, response and possible error description (if status code
      * indicates an error).
      */
-    private HttpCall toCall(int statusCode, String body, MultiMap headers, HttpRequest httpRequest) {
+    private HttpCall<T> toCall(int statusCode, String body, MultiMap headers, HttpRequest<T> httpRequest) {
         return HttpCall.full(httpRequest, HttpResponse.of(statusCode, headers, body), errorOrNull(statusCode));
     }
 
@@ -128,8 +129,8 @@ public class HttpBidderRequester implements BidderRequester {
      * Transforms HTTP call results into single {@link BidderSeatBid} filled with debug information, bids and errors
      * happened along the way.
      */
-    private BidderSeatBid toBidderSeatBid(Bidder bidder, BidRequest bidRequest, List<BidderError> previousErrors,
-                                          List<HttpCall> calls) {
+    private BidderSeatBid toBidderSeatBid(BidRequest bidRequest, List<BidderError> previousErrors,
+                                          List<HttpCall<T>> calls) {
         // If this is a test bid, capture debugging info from the requests
         final List<ExtHttpCall> httpCalls = bidRequest.getTest() == 1
                 ? calls.stream().map(HttpBidderRequester::toExt).collect(Collectors.toList())
@@ -152,7 +153,7 @@ public class HttpBidderRequester implements BidderRequester {
     /**
      * Assembles all errors for {@link BidderSeatBid} into the list of {@link List}&lt;{@link BidderError}&gt;
      */
-    private List<BidderError> errors(List<BidderError> previousErrors, List<HttpCall> calls,
+    private List<BidderError> errors(List<BidderError> previousErrors, List<HttpCall<T>> calls,
                                      List<Result<List<BidderBid>>> createdBids) {
 
         final List<BidderError> bidderErrors = new ArrayList<>(previousErrors);
@@ -169,8 +170,8 @@ public class HttpBidderRequester implements BidderRequester {
     /**
      * Constructs {@link ExtHttpCall} filled with HTTP call information.
      */
-    private static ExtHttpCall toExt(HttpCall httpCall) {
-        final HttpRequest request = httpCall.getRequest();
+    private static <T> ExtHttpCall toExt(HttpCall<T> httpCall) {
+        final HttpRequest<T> request = httpCall.getRequest();
         final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
                 .uri(request.getUri())
                 .requestbody(request.getBody());

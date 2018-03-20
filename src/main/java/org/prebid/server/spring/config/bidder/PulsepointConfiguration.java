@@ -33,7 +33,7 @@ public class PulsepointConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps pulsepointBidderDeps(HttpAdapterConnector httpAdapterConnector) {
         final Usersyncer usersyncer = new PulsepointUsersyncer(usersyncUrl, externalUrl);
-        final Adapter adapter = new PulsepointAdapter(usersyncer, endpoint);
+        final Adapter<?, ?> adapter = new PulsepointAdapter(usersyncer, endpoint);
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpAdapterConnector);
 

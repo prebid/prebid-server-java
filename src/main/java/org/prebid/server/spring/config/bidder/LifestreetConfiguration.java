@@ -33,7 +33,7 @@ public class LifestreetConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps lifestreetBidderDeps(HttpAdapterConnector httpAdapterConnector) {
         final Usersyncer usersyncer = new LifestreetUsersyncer(usersyncUrl, externalUrl);
-        final Adapter adapter = new LifestreetAdapter(usersyncer, endpoint);
+        final Adapter<?, ?> adapter = new LifestreetAdapter(usersyncer, endpoint);
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpAdapterConnector);
 

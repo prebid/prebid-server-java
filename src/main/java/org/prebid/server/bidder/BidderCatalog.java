@@ -62,7 +62,7 @@ public class BidderCatalog {
      * Therefore this method should be called only for names that previously passed validity check
      * through calling {@link #isValidName(String)}.
      */
-    public Adapter adapterByName(String name) {
+    public Adapter<?, ?> adapterByName(String name) {
         final BidderDeps bidderDeps = bidderDepsMap.get(name);
         return bidderDeps != null ? bidderDeps.getAdapter() : null;
     }

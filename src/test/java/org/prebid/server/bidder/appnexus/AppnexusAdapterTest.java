@@ -71,7 +71,7 @@ public class AppnexusAdapterTest extends VertxTest {
 
     private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
-    private ExchangeCall exchangeCall;
+    private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private AppnexusAdapter adapter;
     private AppnexusUsersyncer usersyncer;
 
@@ -99,7 +99,8 @@ public class AppnexusAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithExpectedHeaders() {
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).flatExtracting(r -> r.getHeaders().entries())
@@ -115,7 +116,8 @@ public class AppnexusAdapterTest extends VertxTest {
                 givenAdUnitBid(identity(), params -> params.invCode("invCode1").member("member1"))));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
@@ -226,11 +228,12 @@ public class AppnexusAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(BIDDER_COOKIE))).willReturn("buyerUid");
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(AdapterHttpRequest::getBidRequest)
+                .extracting(AdapterHttpRequest::getPayload)
                 .containsOnly(BidRequest.builder()
                         .id("tid1")
                         .at(1)
@@ -278,11 +281,12 @@ public class AppnexusAdapterTest extends VertxTest {
                 .app(App.builder().id("appId").build()).user(User.builder().build()));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.getBidRequest().getApp().getId())
+                .extracting(r -> r.getPayload().getApp().getId())
                 .containsOnly("appId");
     }
 
@@ -296,11 +300,12 @@ public class AppnexusAdapterTest extends VertxTest {
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUidFromCookie");
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.getBidRequest().getUser())
+                .extracting(r -> r.getPayload().getUser())
                 .containsOnly(User.builder().buyeruid("buyerUid").build());
     }
 
@@ -320,11 +325,12 @@ public class AppnexusAdapterTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.getBidRequest().getImp())
+                .flatExtracting(r -> r.getPayload().getImp())
                 .containsOnly(
                         Imp.builder()
                                 .video(com.iab.openrtb.request.Video.builder().w(300).h(250).mimes(
@@ -351,11 +357,12 @@ public class AppnexusAdapterTest extends VertxTest {
                 givenAdUnitBid(builder -> builder.adUnitCode("adUnitCode2"), identity())));
 
         // when
-        final List<AdapterHttpRequest> httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.getBidRequest().getImp()).hasSize(2)
+                .flatExtracting(r -> r.getPayload().getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
     }
 
@@ -674,7 +681,7 @@ public class AppnexusAdapterTest extends VertxTest {
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 
-    private static ExchangeCall givenExchangeCall(
+    private static ExchangeCall<BidRequest, BidResponse> givenExchangeCall(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer,
             Function<BidResponse.BidResponseBuilder, BidResponse.BidResponseBuilder> bidResponseBuilderCustomizer) {
 

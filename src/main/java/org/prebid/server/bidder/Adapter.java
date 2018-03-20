@@ -14,22 +14,23 @@ import java.util.List;
  * <p>
  * Used by {@link HttpAdapterConnector} while performing requests to exchanges and compose results.
  */
-public interface Adapter {
+public interface Adapter<T, R> {
 
     /**
      * Composes list of http request to submit to exchange.
      *
      * @throws PreBidException if error occurs while adUnitBids validation.
      */
-    List<AdapterHttpRequest> makeHttpRequests(AdapterRequest adapterRequest, PreBidRequestContext preBidRequestContext)
-            throws PreBidException;
+    List<AdapterHttpRequest<T>> makeHttpRequests(AdapterRequest adapterRequest,
+                                                 PreBidRequestContext preBidRequestContext) throws PreBidException;
 
     /**
      * Extracts bids from exchange response.
      *
      * @throws PreBidException if error occurs while bids validation.
      */
-    List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) throws PreBidException;
+    List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall<T, R> exchangeCall)
+            throws PreBidException;
 
     /**
      * If true - {@link org.prebid.server.auction.model.AdapterResponse} will contain bids if at least one valid bid
@@ -40,4 +41,9 @@ public interface Adapter {
      * occurs during processing.
      */
     boolean tolerateErrors();
+
+    /**
+     * A class that will be used to parse response from exchange.
+     */
+    Class<R> responseClass();
 }

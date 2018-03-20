@@ -35,9 +35,9 @@ public class AppnexusConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps appnexusBidderDeps(HttpClient httpClient) {
         final Usersyncer usersyncer = new AppnexusUsersyncer(usersyncUrl, externalUrl);
-        final Adapter adapter = new AppnexusAdapter(usersyncer, endpoint);
-        final Bidder bidder = new AppnexusBidder(endpoint);
-        final BidderRequester bidderRequester = new HttpBidderRequester(bidder, httpClient);
+        final Adapter<?, ?> adapter = new AppnexusAdapter(usersyncer, endpoint);
+        final Bidder<?> bidder = new AppnexusBidder(endpoint);
+        final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
 
         return BidderDeps.of(BIDDER_NAME, new AppnexusMetaInfo(), usersyncer, adapter, bidderRequester);
     }

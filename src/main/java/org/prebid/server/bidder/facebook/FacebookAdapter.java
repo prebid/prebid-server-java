@@ -8,6 +8,8 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.BidResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -77,8 +79,8 @@ public class FacebookAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<AdapterHttpRequest> makeHttpRequests(AdapterRequest adapterRequest,
-                                                     PreBidRequestContext preBidRequestContext) {
+    public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
+                                                                 PreBidRequestContext preBidRequestContext) {
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
         validateAdUnitBidsMediaTypes(adUnitBids);
@@ -86,7 +88,7 @@ public class FacebookAdapter extends OpenrtbAdapter {
 
         return createAdUnitBidsWithParams(adUnitBids).stream()
                 .flatMap(adUnitBidWithParams -> createBidRequests(adUnitBidWithParams, preBidRequestContext))
-                .map(bidRequest -> AdapterHttpRequest.of(endpointUrl(), headers(), bidRequest))
+                .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl(), bidRequest, headers()))
                 .collect(Collectors.toList());
     }
 
@@ -235,8 +237,9 @@ public class FacebookAdapter extends OpenrtbAdapter {
     }
 
     @Override
-    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest, ExchangeCall exchangeCall) {
-        return responseBidStream(exchangeCall.getBidResponse())
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest,
+                                            ExchangeCall<BidRequest, BidResponse> exchangeCall) {
+        return responseBidStream(exchangeCall.getResponse())
                 .map(bid -> toBidBuilder(bid, adapterRequest))
                 .limit(1) // one bid per request/response
                 .collect(Collectors.toList());
