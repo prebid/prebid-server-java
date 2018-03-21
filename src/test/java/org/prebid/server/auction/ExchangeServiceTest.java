@@ -478,6 +478,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .status(404)
                                 .responsebody("bidder2_responseBody2")
                                 .build())));
+        assertThat(ext.getDebug().getResolvedrequest()).isEqualTo(bidRequest);
     }
 
     @Test

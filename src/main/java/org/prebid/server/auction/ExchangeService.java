@@ -672,8 +672,8 @@ public class ExchangeService {
                 .collect(Collectors.toMap(BidderResponse::getBidder, r -> r.getSeatBid().getHttpCalls()))
                 : null;
 
-        return ExtBidResponse.of(httpCalls != null ? ExtResponseDebug.of(httpCalls) : null,
-                errors, responseTimeMillis, null);
+        return ExtBidResponse.of(httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null, errors,
+                responseTimeMillis, null);
     }
 
     private static <T> List<T> append(List<T> originalList, T value) {

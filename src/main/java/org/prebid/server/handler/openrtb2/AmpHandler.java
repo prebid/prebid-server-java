@@ -18,6 +18,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -27,6 +28,8 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.AmpResponse;
 import org.prebid.server.util.HttpUtil;
 
@@ -46,6 +49,9 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ?>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtBidPrebid, ?>>() {
+            };
+    private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
+            new TypeReference<ExtBidResponse>() {
             };
 
     private final long defaultTimeout;
@@ -80,9 +86,10 @@ public class AmpHandler implements Handler<RoutingContext> {
         ampRequestFactory.fromRequest(context)
                 .recover(this::updateErrorRequestsMetric)
                 .map(bidRequest -> updateAppAndNoCookieMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
-                .compose(bidRequest -> exchangeService.holdAuction(bidRequest, uidsCookie,
-                        timeout(bidRequest, startTime)))
-                .map(AmpHandler::toAmpResponse)
+                .compose(bidRequest ->
+                        exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime))
+                                .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
+                .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
 
@@ -91,24 +98,36 @@ public class AmpHandler implements Handler<RoutingContext> {
         return GlobalTimeout.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
     }
 
-    private static AmpResponse toAmpResponse(BidResponse bidResponse) {
-        if (bidResponse.getSeatbid() == null) {
-            return AmpResponse.of(Collections.emptyMap());
-        }
-
-        final Map<String, String> targeting = bidResponse.getSeatbid().stream()
+    private static AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        // fetch targeting information from response bids
+        final List<SeatBid> seatBids = bidResponse.getSeatbid();
+        final Map<String, String> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .flatMap(bid -> bidTargetingFrom(bid).entrySet().stream())
+                .flatMap(bid -> targetingFrom(bid).entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        return AmpResponse.of(targeting);
+        // fetch debug information from response if requested
+        final ExtResponseDebug extResponseDebug = bidRequest.getTest() == 1 ? extResponseDebugFrom(bidResponse) : null;
+
+        return AmpResponse.of(targeting, extResponseDebug);
     }
 
-    private static Map<String, String> bidTargetingFrom(Bid bid) {
+    private static ExtResponseDebug extResponseDebugFrom(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse;
+        try {
+            extBidResponse = Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(
+                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
+        }
+        return extBidResponse != null ? extBidResponse.getDebug() : null;
+    }
+
+    private static Map<String, String> targetingFrom(Bid bid) {
         final ExtPrebid<ExtBidPrebid, ?> extBid;
         try {
             extBid = Json.mapper.convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);

@@ -22,6 +22,7 @@ import java.util.Objects;
 public class AmpRequestFactory {
 
     private static final String TAG_ID_REQUEST_PARAM = "tag_id";
+    private static final String DEBUG_REQUEST_PARAM = "debug";
 
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
@@ -45,7 +46,7 @@ public class AmpRequestFactory {
 
         return storedRequestProcessor.processAmpRequest(tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
-                .map(AmpRequestFactory::setDefaultRequestExt)
+                .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context))
                 .map(auctionRequestFactory::validateRequest);
     }
@@ -73,9 +74,9 @@ public class AmpRequestFactory {
     /**
      * Updates {@link BidRequest}.ext.prebid.targeting and {@link BidRequest}.ext.prebid.cache.bids with default values
      * if it was not included by user. Updates {@link Imp} security if required to ensure that amp always uses
-     * https protocol.
+     * https protocol. Sets {@link BidRequest}.test = 1 if it was passed in context.
      */
-    private static BidRequest setDefaultRequestExt(BidRequest bidRequest) {
+    private static BidRequest fillExplicitParameters(BidRequest bidRequest, RoutingContext context) {
         final List<Imp> imps = bidRequest.getImp();
         // Force HTTPS as AMP requires it, but pubs can forget to set it.
         final Imp imp = imps.get(0);
@@ -105,10 +106,14 @@ public class AmpRequestFactory {
             setDefaultCache = cache == null || cache.getBids().isNull();
         }
 
-        return setDefaultTargeting || setDefaultCache || setSecure
+        final String debug = context.request().getParam(DEBUG_REQUEST_PARAM);
+        final boolean setTestParam = Objects.equals(debug, "1");
+
+        return setDefaultTargeting || setDefaultCache || setSecure || setTestParam
                 ? bidRequest.toBuilder()
                 .ext(createExtWithDefaults(bidRequest, prebid, setDefaultTargeting, setDefaultCache))
                 .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
+                .test(setTestParam ? 1 : 0)
                 .build()
                 : bidRequest;
     }
@@ -125,11 +130,11 @@ public class AmpRequestFactory {
                         isPrebidNull ? Collections.emptyMap() : prebid.getAliases(),
                         setDefaultTargeting
                                 ? ExtRequestTargeting.of(CpmBucket.PriceGranularity.medium.name())
-                                : prebid.getTargeting(),
+                                : isPrebidNull ? null : prebid.getTargeting(),
                         isPrebidNull ? null : prebid.getStoredrequest(),
                         setDefaultCache
                                 ? ExtRequestPrebidCache.of(Json.mapper.createObjectNode())
-                                : prebid.getCache())))
+                                : isPrebidNull ? null : prebid.getCache())))
                 : bidRequest.getExt();
     }
 }

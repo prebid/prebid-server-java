@@ -31,6 +31,8 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -163,6 +165,23 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithDebugInfoIncluded() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().id("reqId1").test(1).build();
+        given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(givenBidResponseWithExtFuture(
+                mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest), null, null, null))));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(
+                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"test\":1,\"allimps\":0}}}"));
+    }
+
+    @Test
     public void shouldIncrementAmpRequestMetrics() {
         // given
         given(ampRequestFactory.fromRequest(any()))
@@ -214,13 +233,19 @@ public class AmpHandlerTest extends VertxTest {
         verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
-    private static Future<BidResponse> givenBidResponseFuture(ObjectNode ext) {
+    private static Future<BidResponse> givenBidResponseFuture(ObjectNode extPrebid) {
         return Future.succeededFuture(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
-                                .ext(ext)
+                                .ext(extPrebid)
                                 .build()))
                         .build()))
+                .build());
+    }
+
+    private static Future<BidResponse> givenBidResponseWithExtFuture(ObjectNode extBidResponse) {
+        return Future.succeededFuture(BidResponse.builder()
+                .ext(extBidResponse)
                 .build());
     }
 }
