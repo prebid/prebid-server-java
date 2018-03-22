@@ -15,9 +15,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.emptyList;
@@ -25,7 +28,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -45,8 +47,14 @@ public class JdbcClientTest {
 
     private JdbcClient jdbcClient;
 
+    private Clock clock;
+    private Timeout timeout;
+
     @Before
     public void setUp() {
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        timeout = new TimeoutFactory(clock).create(500L);
+
         jdbcClient = new JdbcClient(vertx, vertxJdbcClient);
     }
 
@@ -86,8 +94,7 @@ public class JdbcClientTest {
     @Test
     public void executeQueryShouldReturnFailedFutureIfGlobalTimeoutAlreadyExpired() {
         // when
-        final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(),
-                GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000L, 1000L));
+        final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(), expiredTimeout());
 
         // then
         assertThat(future.failed()).isTrue();
@@ -111,13 +118,12 @@ public class JdbcClientTest {
         givenQueryReturning(connection, Future.succeededFuture(new ResultSet()));
 
         // when
-        final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(),
-                GlobalTimeout.create(1000L));
+        final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout);
 
         // then
         final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
         verify(vertx).setTimer(timeoutCaptor.capture(), any());
-        assertThat(timeoutCaptor.getValue()).isCloseTo(1000L, offset(20L));
+        assertThat(timeoutCaptor.getValue()).isEqualTo(500L);
 
         verify(vertx).cancelTimer(eq(123L));
 
@@ -134,8 +140,7 @@ public class JdbcClientTest {
         givenGetConnectionReturning(Future.failedFuture(new RuntimeException("Failed to acquire connection")));
 
         // when
-        final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(),
-                GlobalTimeout.create(1000L));
+        final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout);
 
         // then
         verify(vertx).cancelTimer(eq(123L));
@@ -155,8 +160,7 @@ public class JdbcClientTest {
         givenQueryReturning(connection, Future.failedFuture(new RuntimeException("Failed to execute query")));
 
         // when
-        final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(),
-                GlobalTimeout.create(1000L));
+        final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout);
 
         // then
         verify(vertx).cancelTimer(eq(123L));
@@ -178,8 +182,7 @@ public class JdbcClientTest {
 
         // when
         final Future<String> future = jdbcClient.executeQuery("query", emptyList(),
-                resultSet -> resultSet.getResults().get(0).getString(0),
-                GlobalTimeout.create(1000L));
+                resultSet -> resultSet.getResults().get(0).getString(0), timeout);
 
         // then
         verify(vertx).cancelTimer(eq(123L));
@@ -202,5 +205,9 @@ public class JdbcClientTest {
             ((Handler<AsyncResult<ResultSet>>) invocation.getArgument(2)).handle(result);
             return null;
         });
+    }
+
+    private Timeout expiredTimeout() {
+        return new TimeoutFactory(clock).create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
     }
 }

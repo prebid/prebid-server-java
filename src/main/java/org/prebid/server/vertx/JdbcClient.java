@@ -6,7 +6,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
 
 import java.util.List;
 import java.util.Objects;
@@ -41,7 +41,7 @@ public class JdbcClient {
      * object by provided mapper
      */
     public <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper,
-                                      GlobalTimeout timeout) {
+                                      Timeout timeout) {
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
             return Future.failedFuture(timeoutException());

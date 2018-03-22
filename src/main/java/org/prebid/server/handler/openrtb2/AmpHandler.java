@@ -23,7 +23,8 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -45,8 +46,6 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AmpHandler.class);
 
-    private static final Clock CLOCK = Clock.systemDefaultZone();
-
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ?>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<ExtBidPrebid, ?>>() {
             };
@@ -59,14 +58,19 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final ExchangeService exchangeService;
     private final UidsCookieService uidsCookieService;
     private final Metrics metrics;
+    private final Clock clock;
+    private final TimeoutFactory timeoutFactory;
 
     public AmpHandler(long defaultTimeout, AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
-                      UidsCookieService uidsCookieService, Metrics metrics) {
+                      UidsCookieService uidsCookieService, Metrics metrics, Clock clock,
+                      TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.metrics = Objects.requireNonNull(metrics);
+        this.clock = Objects.requireNonNull(clock);
+        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
     }
 
     @Override
@@ -75,7 +79,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         // for bids. However, tmax may be defined in the Stored Request data.
         // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
         // more accurately if we note the real start time, and use it to compute the auction timeout.
-        final long startTime = CLOCK.millis();
+        final long startTime = clock.millis();
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
 
@@ -93,9 +97,9 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
 
-    private GlobalTimeout timeout(BidRequest bidRequest, long startTime) {
+    private Timeout timeout(BidRequest bidRequest, long startTime) {
         final Long tmax = bidRequest.getTmax();
-        return GlobalTimeout.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
+        return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
     }
 
     private static AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {

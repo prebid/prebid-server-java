@@ -24,7 +24,7 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -67,7 +67,7 @@ public class HttpAdapterRequester implements BidderRequester {
      * {@link BidderSeatBid} format.
      */
     @Override
-    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, GlobalTimeout timeout) {
+    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout) {
         final PreBidRequestContext preBidRequestContext;
         final Result<AdapterRequest> bidderWithErrors;
         try {
@@ -84,7 +84,7 @@ public class HttpAdapterRequester implements BidderRequester {
     /**
      * Converts ORTB {@link BidRequest} to {@link PreBidRequestContext}.
      */
-    private PreBidRequestContext toPreBidRequestContext(BidRequest bidRequest, GlobalTimeout timeout) {
+    private PreBidRequestContext toPreBidRequestContext(BidRequest bidRequest, Timeout timeout) {
         return PreBidRequestContext.builder()
                 .preBidRequest(PreBidRequest
                         .builder()

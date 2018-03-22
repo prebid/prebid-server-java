@@ -5,7 +5,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.ResultSet;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredRequestResult;
 import org.prebid.server.vertx.JdbcClient;
@@ -42,7 +42,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Account> getAccountById(String accountId, GlobalTimeout timeout) {
+    public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT uuid, price_granularity FROM accounts_account where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
                 result -> mapToModelOrError(result, row -> Account.of(row.getString(0), row.getString(1))),
@@ -50,7 +50,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, GlobalTimeout timeout) {
+    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1",
                 Collections.singletonList(adUnitConfigId),
                 result -> mapToModelOrError(result, row -> row.getString(0)),
@@ -62,7 +62,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      * {@link Future&lt;{@link StoredRequestResult }&gt;}
      */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, GlobalTimeout timeout) {
+    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, Timeout timeout) {
         return fetchStoredRequests(selectStoredRequestsQuery, ids, timeout);
     }
 
@@ -70,7 +70,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      * Runs a process to get StoredRequest by amp ids from database and returns {@link Future<StoredRequestResult>}
      */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, GlobalTimeout timeout) {
+    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, Timeout timeout) {
         return fetchStoredRequests(selectAmpStoreRequestsQuery, ids, timeout);
     }
 
@@ -85,7 +85,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     /**
      * Fetches stored requests from database for the given query.
      */
-    private Future<StoredRequestResult> fetchStoredRequests(String query, Set<String> ids, GlobalTimeout timeout) {
+    private Future<StoredRequestResult> fetchStoredRequests(String query, Set<String> ids, Timeout timeout) {
         final List<String> idsQueryParameters = new ArrayList<>();
         IntStream.rangeClosed(1, StringUtils.countMatches(query, ID_PLACEHOLDER))
                 .forEach(i -> idsQueryParameters.addAll(ids));

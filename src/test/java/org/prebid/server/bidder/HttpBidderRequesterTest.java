@@ -9,7 +9,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
-import org.assertj.core.data.Offset;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -24,10 +23,13 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -56,6 +58,8 @@ public class HttpBidderRequesterTest {
 
     @Mock
     private Bidder<?> bidder;
+    private Timeout timeout;
+    private Timeout expiredTimeout;
 
     @Before
     public void setUp() {
@@ -63,6 +67,11 @@ public class HttpBidderRequesterTest {
         given(httpClient.requestAbs(any(), anyString(), any())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
         given(httpClientRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
+        timeout = timeoutFactory.create(500L);
+        expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
         bidderHttpConnector = new HttpBidderRequester<>(bidder, httpClient);
     }
@@ -73,7 +82,7 @@ public class HttpBidderRequesterTest {
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(emptyList(), emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout())
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout)
                 .result();
 
         // then
@@ -89,7 +98,7 @@ public class HttpBidderRequesterTest {
                 BidderError.create("error2"))));
 
         // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout())
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout)
                 .result();
 
         // then
@@ -109,7 +118,7 @@ public class HttpBidderRequesterTest {
         headers.add("header2", "value2");
 
         // when
-        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout());
+        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
         verify(httpClient).requestAbs(eq(HttpMethod.POST), eq("uri"), any());
@@ -120,7 +129,7 @@ public class HttpBidderRequesterTest {
 
         final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
         verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue()).isCloseTo(500L, Offset.offset(20L));
+        assertThat(timeoutCaptor.getValue()).isEqualTo(500L);
     }
 
     @Test
@@ -133,7 +142,7 @@ public class HttpBidderRequesterTest {
         headers.add("header2", "value2");
 
         // when
-        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout());
+        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
         verify(httpClient).requestAbs(eq(HttpMethod.GET), eq("uri"), any());
@@ -144,7 +153,7 @@ public class HttpBidderRequesterTest {
 
         final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
         verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue()).isCloseTo(500L, Offset.offset(20L));
+        assertThat(timeoutCaptor.getValue()).isEqualTo(500L);
     }
 
     @Test
@@ -156,7 +165,7 @@ public class HttpBidderRequesterTest {
                 emptyList()));
 
         // when
-        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout());
+        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
         verify(httpClient, times(2)).requestAbs(any(), any(), any());
@@ -174,7 +183,7 @@ public class HttpBidderRequesterTest {
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout())
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout)
                 .result();
 
         // then
@@ -195,7 +204,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout()).result();
+                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(2).containsOnly(
@@ -214,9 +223,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(),
-                        GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000))
-                        .result();
+                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), expiredTimeout).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -234,7 +241,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout()).result();
+                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -252,7 +259,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout()).result();
+                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -271,9 +278,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().build(),
-                        GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000))
-                        .result();
+                bidderHttpConnector.requestBids(BidRequest.builder().build(), expiredTimeout).result();
 
         // then
         assertThat(bidderSeatBid.getErrors()).hasSize(1)
@@ -331,7 +336,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid = bidderHttpConnector
-                .requestBids(BidRequest.builder().test(1).build(), timeout())
+                .requestBids(BidRequest.builder().test(1).build(), timeout)
                 .result();
 
         // then
@@ -345,10 +350,6 @@ public class HttpBidderRequesterTest {
                 BidderError.create(
                         "Server responded with failure status: 500. Set request.test = 1 for debugging info."),
                 BidderError.create("makeBidsError"));
-    }
-
-    private static GlobalTimeout timeout() {
-        return GlobalTimeout.create(500);
     }
 
     private void givenHttpClientReturnsResponses(int statusCode, String... bidResponses) {

@@ -31,7 +31,8 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
@@ -48,6 +49,9 @@ import org.prebid.server.settings.model.Account;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -95,6 +99,7 @@ public class AuctionHandlerTest extends VertxTest {
     private AdapterMetrics accountAdapterMetrics;
     @Mock
     private HttpAdapterConnector httpAdapterConnector;
+    private Clock clock;
 
     private AuctionHandler auctionHandler;
 
@@ -128,8 +133,10 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+
         auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, metrics, httpAdapterConnector);
+                cacheService, metrics, httpAdapterConnector, clock);
     }
 
     @Test
@@ -208,7 +215,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldInteractWithCacheServiceIfRequestHasBidsAndCacheMarkupFlag() throws IOException {
         // given
-        final GlobalTimeout timeout = GlobalTimeout.create(1000L);
+        final Timeout timeout = new TimeoutFactory(clock).create(500L);
+
         givenPreBidRequestContext(
                 builder -> builder.cacheMarkup(1),
                 builder -> builder

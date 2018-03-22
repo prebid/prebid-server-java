@@ -7,7 +7,7 @@ import io.vertx.core.file.FileSystem;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AdUnitConfig;
 import org.prebid.server.settings.model.SettingsFile;
@@ -65,12 +65,12 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Account> getAccountById(String accountId, GlobalTimeout timeout) {
+    public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return mapValueToFuture(accounts, accountId);
     }
 
     @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, GlobalTimeout timeout) {
+    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
         return mapValueToFuture(configs, adUnitConfigId);
     }
 
@@ -79,7 +79,7 @@ public class FileApplicationSettings implements ApplicationSettings {
      * to list for each missed Id. Returns {@link Future<StoredRequestResult>} with all loaded files and errors list.
      */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, GlobalTimeout timeout) {
+    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, Timeout timeout) {
         final List<String> errors;
         final List<String> missedIds = ids.stream()
                 .filter(s -> !storedRequests.containsKey(s))
@@ -95,7 +95,7 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, GlobalTimeout timeout) {
+    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, Timeout timeout) {
         return getStoredRequestsById(ids, timeout);
     }
 

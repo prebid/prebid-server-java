@@ -14,7 +14,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredRequestResult;
 import org.prebid.server.vertx.JdbcClient;
@@ -22,6 +23,9 @@ import org.prebid.server.vertx.JdbcClient;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -46,6 +50,8 @@ public class JdbcApplicationSettingsTest {
     private Vertx vertx;
 
     private JdbcApplicationSettings jdbcApplicationSettings;
+
+    private Timeout timeout;
 
     @BeforeClass
     public static void beforeClass() throws SQLException {
@@ -80,6 +86,8 @@ public class JdbcApplicationSettingsTest {
     public void setUp() {
         vertx = Vertx.vertx();
 
+        timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
+
         this.jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectQuery, selectQuery);
     }
 
@@ -91,7 +99,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnAccount(TestContext context) {
         // when
-        final Future<Account> future = jdbcApplicationSettings.getAccountById("accountId", timeout());
+        final Future<Account> future = jdbcApplicationSettings.getAccountById("accountId", timeout);
 
         // then
         final Async async = context.async();
@@ -104,7 +112,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldFailIfAccountNotFound(TestContext context) {
         // when
-        final Future<Account> future = jdbcApplicationSettings.getAccountById("non-existing", timeout());
+        final Future<Account> future = jdbcApplicationSettings.getAccountById("non-existing", timeout);
 
         // then
         final Async async = context.async();
@@ -117,7 +125,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAdUnitConfigByIdShouldReturnConfig(TestContext context) {
         // when
-        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("adUnitConfigId", timeout());
+        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("adUnitConfigId", timeout);
 
         // then
         final Async async = context.async();
@@ -130,7 +138,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAdUnitConfigByIdShouldFailIfConfigNotFound(TestContext context) {
         // when
-        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("non-existing", timeout());
+        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("non-existing", timeout);
 
         // then
         final Async async = context.async();
@@ -144,7 +152,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredRequestsByIdShouldReturnStoredRequests(TestContext context) {
         // when
         final Future<StoredRequestResult> future =
-                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("1", "2")), timeout());
+                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("1", "2")), timeout);
 
         // then
         final Async async = context.async();
@@ -162,7 +170,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredRequestsByAmpIdShouldReturnStoredRequests(TestContext context) {
         // when
         final Future<StoredRequestResult> future =
-                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("1", "2")), timeout());
+                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("1", "2")), timeout);
 
         // then
         final Async async = context.async();
@@ -183,7 +191,7 @@ public class JdbcApplicationSettingsTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")), timeout());
+                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")), timeout);
 
         // then
         final Async async = context.async();
@@ -205,7 +213,7 @@ public class JdbcApplicationSettingsTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("1", "2", "3")), timeout());
+                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("1", "2", "3")), timeout);
 
         // then
         final Async async = context.async();
@@ -224,7 +232,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredRequestsByIdShouldReturnStoredRequestsWithError(TestContext context) {
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("1", "3")), timeout());
+                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("1", "3")), timeout);
 
         // then
         final Async async = context.async();
@@ -239,7 +247,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredRequestsByAmpIdShouldReturnStoredRequestsWithError(TestContext context) {
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("1", "3")), timeout());
+                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("1", "3")), timeout);
 
         // then
         final Async async = context.async();
@@ -258,7 +266,7 @@ public class JdbcApplicationSettingsTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")), timeout());
+                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("1", "2", "3")), timeout);
 
         // then
         final Async async = context.async();
@@ -277,7 +285,7 @@ public class JdbcApplicationSettingsTest {
 
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("1", "2", "3")), timeout());
+                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("1", "2", "3")), timeout);
 
         // then
         final Async async = context.async();
@@ -292,7 +300,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredRequestsByIdShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("3", "4")), timeout());
+                jdbcApplicationSettings.getStoredRequestsById(new HashSet<>(asList("3", "4")), timeout);
 
         // then
         final Async async = context.async();
@@ -307,7 +315,7 @@ public class JdbcApplicationSettingsTest {
     public void getStoredRequestsByAmpIdShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
         final Future<StoredRequestResult> storedRequestResultFuture =
-                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("3", "4")), timeout());
+                jdbcApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("3", "4")), timeout);
 
         // then
         final Async async = context.async();
@@ -326,7 +334,4 @@ public class JdbcApplicationSettingsTest {
                         .put("max_pool_size", 10)));
     }
 
-    private static GlobalTimeout timeout() {
-        return GlobalTimeout.create(1000);
-    }
 }

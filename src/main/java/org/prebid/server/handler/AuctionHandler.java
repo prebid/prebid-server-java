@@ -59,18 +59,19 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final Metrics metrics;
     private final HttpAdapterConnector httpAdapterConnector;
 
-    private final Clock clock = Clock.systemDefaultZone();
+    private final Clock clock;
 
     public AuctionHandler(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
                           PreBidRequestContextFactory preBidRequestContextFactory,
                           CacheService cacheService, Metrics metrics,
-                          HttpAdapterConnector httpAdapterConnector) {
+                          HttpAdapterConnector httpAdapterConnector, Clock clock) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
         this.httpAdapterConnector = Objects.requireNonNull(httpAdapterConnector);
+        this.clock = Objects.requireNonNull(clock);
     }
 
     /**

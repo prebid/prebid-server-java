@@ -19,7 +19,8 @@ import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.Bid;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -45,15 +46,18 @@ public class PreBidRequestContextFactory {
     private final ImplicitParametersExtractor paramsExtractor;
     private final ApplicationSettings applicationSettings;
     private final UidsCookieService uidsCookieService;
+    private final TimeoutFactory timeoutFactory;
 
     private final Random rand = new Random();
 
     public PreBidRequestContextFactory(Long defaultHttpRequestTimeout, ImplicitParametersExtractor paramsExtractor,
-                                       ApplicationSettings applicationSettings, UidsCookieService uidsCookieService) {
+                                       ApplicationSettings applicationSettings, UidsCookieService uidsCookieService,
+                                       TimeoutFactory timeoutFactory) {
         this.defaultHttpRequestTimeout = Objects.requireNonNull(defaultHttpRequestTimeout);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
     }
 
     /**
@@ -79,7 +83,7 @@ public class PreBidRequestContextFactory {
             return Future.failedFuture(new PreBidException("No ad units specified"));
         }
 
-        final GlobalTimeout timeout = timeoutOrDefault(preBidRequest);
+        final Timeout timeout = timeoutOrDefault(preBidRequest);
 
         return extractBidders(preBidRequest, timeout)
                 .map(bidders -> PreBidRequestContext.builder().adapterRequests(bidders))
@@ -114,7 +118,7 @@ public class PreBidRequestContextFactory {
         return builder;
     }
 
-    private Future<List<AdapterRequest>> extractBidders(PreBidRequest preBidRequest, GlobalTimeout timeout) {
+    private Future<List<AdapterRequest>> extractBidders(PreBidRequest preBidRequest, Timeout timeout) {
         // this is a List<Future<Stream<AdUnitBid>>> actually
         final List<Future> adUnitBidFutures = preBidRequest.getAdUnits().stream()
                 .filter(PreBidRequestContextFactory::isValidAdUnit)
@@ -135,7 +139,7 @@ public class PreBidRequestContextFactory {
         return Objects.nonNull(adUnit.getCode()) && CollectionUtils.isNotEmpty(adUnit.getSizes());
     }
 
-    private Future<List<Bid>> resolveUnitBids(AdUnit unit, GlobalTimeout timeout) {
+    private Future<List<Bid>> resolveUnitBids(AdUnit unit, Timeout timeout) {
         final Future<List<Bid>> result;
 
         final String configId = unit.getConfigId();
@@ -188,12 +192,12 @@ public class PreBidRequestContextFactory {
         return bidMediaTypes;
     }
 
-    private GlobalTimeout timeoutOrDefault(PreBidRequest preBidRequest) {
+    private Timeout timeoutOrDefault(PreBidRequest preBidRequest) {
         Long value = preBidRequest.getTimeoutMillis();
         if (value == null || value <= 0 || value > 2000L) {
             value = defaultHttpRequestTimeout;
         }
-        return GlobalTimeout.create(value);
+        return timeoutFactory.create(value);
     }
 
     private static boolean isDebug(PreBidRequest preBidRequest, HttpServerRequest httpRequest) {

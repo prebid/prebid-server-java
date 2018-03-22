@@ -11,7 +11,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -39,10 +40,13 @@ public class StoredRequestProcessor {
     private static final Logger logger = LoggerFactory.getLogger(StoredRequestProcessor.class);
 
     private final ApplicationSettings applicationSettings;
+    private final TimeoutFactory timeoutFactory;
     private final long defaultTimeout;
 
-    public StoredRequestProcessor(ApplicationSettings applicationSettings, long defaultTimeout) {
+    public StoredRequestProcessor(ApplicationSettings applicationSettings, TimeoutFactory timeoutFactory,
+                                  long defaultTimeout) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.defaultTimeout = defaultTimeout;
     }
 
@@ -245,8 +249,8 @@ public class StoredRequestProcessor {
     /**
      * If the request defines tmax explicitly, then it is returned as is. Otherwise default timeout is returned.
      */
-    private GlobalTimeout timeout(BidRequest bidRequest) {
+    private Timeout timeout(BidRequest bidRequest) {
         final Long tmax = bidRequest.getTmax();
-        return GlobalTimeout.create(tmax != null && tmax > 0 ? tmax : defaultTimeout);
+        return timeoutFactory.create(tmax != null && tmax > 0 ? tmax : defaultTimeout);
     }
 }

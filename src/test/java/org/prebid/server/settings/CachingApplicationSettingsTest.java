@@ -9,10 +9,14 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredRequestResult;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Collections;
 
 import static java.util.Collections.*;
@@ -32,15 +36,18 @@ public class CachingApplicationSettingsTest {
 
     private CachingApplicationSettings cachingApplicationSettings;
 
+    private Timeout timeout;
+
     @Before
     public void setUp() {
+        timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
+
         cachingApplicationSettings = new CachingApplicationSettings(applicationSettings, 360, 100);
     }
 
     @Test
     public void getAccountByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
-        final GlobalTimeout timeout = GlobalTimeout.create(500);
         given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
                 .willReturn(Future.succeededFuture(Account.of("accountId", "med")));
 
@@ -63,7 +70,7 @@ public class CachingApplicationSettingsTest {
 
         // when
         final Future<Account> future =
-                cachingApplicationSettings.getAccountById("accountId", GlobalTimeout.create(500));
+                cachingApplicationSettings.getAccountById("accountId", timeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -74,7 +81,6 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getAdUnitConfigByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
-        final GlobalTimeout timeout = GlobalTimeout.create(500);
         given(applicationSettings.getAdUnitConfigById(eq("adUnitConfigId"), same(timeout)))
                 .willReturn(Future.succeededFuture("config"));
 
@@ -97,7 +103,7 @@ public class CachingApplicationSettingsTest {
 
         // when
         final Future<String> future =
-                cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId", GlobalTimeout.create(500));
+                cachingApplicationSettings.getAdUnitConfigById("adUnitConfigId", timeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -108,7 +114,6 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getStoredRequestByIdShouldReturnResultOnSuccessiveCalls() {
         // given
-        final GlobalTimeout timeout = GlobalTimeout.create(500);
         given(applicationSettings.getStoredRequestsById(eq(singleton("id")), same(timeout)))
                 .willReturn(Future.succeededFuture(StoredRequestResult.of(Collections.singletonMap("id", "json"),
                         emptyList())));
@@ -133,7 +138,7 @@ public class CachingApplicationSettingsTest {
 
         // when
         final Future<StoredRequestResult> future =
-                cachingApplicationSettings.getStoredRequestsById(singleton("id"), GlobalTimeout.create(500));
+                cachingApplicationSettings.getStoredRequestsById(singleton("id"), timeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -150,11 +155,12 @@ public class CachingApplicationSettingsTest {
 
         // when
         final Future<StoredRequestResult> future =
-                cachingApplicationSettings.getStoredRequestsById(singleton("id"), GlobalTimeout.create(500));
+                cachingApplicationSettings.getStoredRequestsById(singleton("id"), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(StoredRequestResult.of(emptyMap(),
                 singletonList("Stored requests for ids id was not found")));
     }
+
 }

@@ -23,14 +23,15 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Clock;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -48,6 +49,8 @@ public class AuctionHandlerTest extends VertxTest {
     private UidsCookieService uidsCookieService;
     @Mock
     private Metrics metrics;
+    @Mock
+    private Clock clock;
 
     private AuctionHandler auctionHandler;
 
@@ -69,7 +72,11 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
-        auctionHandler = new AuctionHandler(5000, exchangeService, auctionRequestFactory, uidsCookieService, metrics);
+        given(clock.millis()).willReturn(Instant.now().toEpochMilli());
+        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
+
+        auctionHandler = new AuctionHandler(5000, exchangeService, auctionRequestFactory, uidsCookieService, metrics,
+                clock, timeoutFactory);
     }
 
     @Test
@@ -133,7 +140,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        assertThat(captureTimeout().remaining()).isCloseTo(1000L, offset(20L));
+        assertThat(captureTimeout().remaining()).isEqualTo(1000L);
     }
 
     @Test
@@ -149,27 +156,26 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        assertThat(captureTimeout().remaining()).isCloseTo(5000L, offset(20L));
+        assertThat(captureTimeout().remaining()).isEqualTo(5000L);
     }
 
     @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
         given(auctionRequestFactory.fromRequest(any()))
-                .willAnswer(invocation -> {
-                    // simulate delay introduced by processing stored requests
-                    TimeUnit.MILLISECONDS.sleep(50L);
-                    return Future.succeededFuture(BidRequest.builder().tmax(1000L).build());
-                });
+                .willReturn(Future.succeededFuture(BidRequest.builder().tmax(1000L).build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));
+
+        final Instant now = Instant.now();
+        given(clock.millis()).willReturn(now.toEpochMilli()).willReturn(now.plusMillis(50L).toEpochMilli());
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
-        assertThat(captureTimeout().remaining()).isCloseTo(950L, offset(20L));
+        assertThat(captureTimeout().remaining()).isEqualTo(950L);
     }
 
     @Test
@@ -238,8 +244,8 @@ public class AuctionHandlerTest extends VertxTest {
                 Future.succeededFuture(BidResponse.builder().build()));
     }
 
-    private GlobalTimeout captureTimeout() {
-        final ArgumentCaptor<GlobalTimeout> timeoutCaptor = ArgumentCaptor.forClass(GlobalTimeout.class);
+    private Timeout captureTimeout() {
+        final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(exchangeService).holdAuction(any(), any(), timeoutCaptor.capture());
         return timeoutCaptor.getValue();
     }

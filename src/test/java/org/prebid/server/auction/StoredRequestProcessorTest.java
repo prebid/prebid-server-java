@@ -18,7 +18,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -28,6 +29,9 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredRequestResult;
 
 import java.io.IOException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,7 +39,6 @@ import java.util.function.Function;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.BDDMockito.given;
@@ -56,7 +59,8 @@ public class StoredRequestProcessorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        storedRequestProcessor = new StoredRequestProcessor(applicationSettings, DEFAULT_TIMEOUT);
+        final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
+        storedRequestProcessor = new StoredRequestProcessor(applicationSettings, timeoutFactory, DEFAULT_TIMEOUT);
     }
 
     @Test
@@ -453,9 +457,9 @@ public class StoredRequestProcessorTest extends VertxTest {
                         .tmax(1000L)));
 
         // then
-        final ArgumentCaptor<GlobalTimeout> timeoutCaptor = ArgumentCaptor.forClass(GlobalTimeout.class);
+        final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(applicationSettings).getStoredRequestsById(anySet(), timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue().remaining()).isCloseTo(1000L, offset(20L));
+        assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(1000L);
     }
 
     @Test
@@ -470,9 +474,9 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 ExtRequestPrebid.of(null, null, ExtStoredRequest.of("bidRequest"), null))))));
 
         // then
-        final ArgumentCaptor<GlobalTimeout> timeoutCaptor = ArgumentCaptor.forClass(GlobalTimeout.class);
+        final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(applicationSettings).getStoredRequestsById(anySet(), timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue().remaining()).isCloseTo(DEFAULT_TIMEOUT, offset(20L));
+        assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(DEFAULT_TIMEOUT);
     }
 
     private static BidRequest givenBidRequest(

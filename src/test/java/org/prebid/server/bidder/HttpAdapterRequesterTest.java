@@ -28,7 +28,8 @@ import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -38,6 +39,9 @@ import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.MediaType;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.HashSet;
 
 import static java.util.Arrays.asList;
@@ -67,9 +71,13 @@ public class HttpAdapterRequesterTest {
 
     private HttpAdapterRequester adapterHttpConnector;
 
+    private Timeout timeout;
+
     @Before
     public void setUp() {
         // given
+        timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
+
         adapterHttpConnector = new HttpAdapterRequester(BIDDER, adapter, usersyncer, httpAdapterConnector);
     }
 
@@ -88,7 +96,7 @@ public class HttpAdapterRequesterTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
@@ -105,7 +113,7 @@ public class HttpAdapterRequesterTest {
                 .publisher(Publisher.builder().id("").build()).build()).build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
@@ -123,7 +131,7 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
@@ -141,7 +149,7 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
@@ -160,7 +168,7 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
@@ -182,7 +190,7 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
@@ -202,7 +210,7 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
@@ -222,7 +230,7 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
@@ -242,7 +250,7 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
@@ -272,7 +280,7 @@ public class HttpAdapterRequesterTest {
                         false)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         final ArgumentCaptor<AdapterRequest> bidderArgumentCaptor = ArgumentCaptor.forClass(AdapterRequest.class);
@@ -312,7 +320,7 @@ public class HttpAdapterRequesterTest {
                         false)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         final ArgumentCaptor<AdapterRequest> bidderArgumentCaptor = ArgumentCaptor.forClass(AdapterRequest.class);
@@ -351,7 +359,7 @@ public class HttpAdapterRequesterTest {
                         false)));
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -381,8 +389,7 @@ public class HttpAdapterRequesterTest {
                         false)));
 
         // when
-        final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest,
-                GlobalTimeout.create(500));
+        final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         assertThat(futureResult.succeeded()).isTrue();
@@ -412,8 +419,7 @@ public class HttpAdapterRequesterTest {
                         false)));
 
         // when
-        final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest,
-                GlobalTimeout.create(500));
+        final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         assertThat(futureResult.succeeded()).isTrue();
@@ -444,7 +450,7 @@ public class HttpAdapterRequesterTest {
                         false)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
@@ -471,7 +477,7 @@ public class HttpAdapterRequesterTest {
                         false)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
@@ -498,7 +504,7 @@ public class HttpAdapterRequesterTest {
                         false)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, GlobalTimeout.create(500));
+        adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
@@ -542,10 +548,9 @@ public class HttpAdapterRequesterTest {
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
                         singletonList(Bid.builder().mediaType(MediaType.banner).build()),
                         false)));
-        GlobalTimeout globalTimeout = GlobalTimeout.create(500);
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, globalTimeout);
+        adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
@@ -562,7 +567,7 @@ public class HttpAdapterRequesterTest {
         // compare fields separately because uidCookie's expiration time is different in expected and actual objects
         assertThat(preBidRequestContext.getReferer()).isEqualTo("page");
         assertThat(preBidRequestContext.getDomain()).isEqualTo("domain");
-        assertThat(preBidRequestContext.getTimeout()).isSameAs(globalTimeout);
+        assertThat(preBidRequestContext.getTimeout()).isSameAs(timeout);
         assertThat(preBidRequestContext.getUidsCookie().uidFrom("someCookieFamily")).isEqualTo("buyeruid");
 
         final ArgumentCaptor<AdapterRequest> bidderArgumentCaptor = ArgumentCaptor.forClass(AdapterRequest.class);
@@ -618,8 +623,7 @@ public class HttpAdapterRequesterTest {
                         false)));
 
         // when
-        final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest,
-                GlobalTimeout.create(500));
+        final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest, timeout);
 
         // then
         assertThat(futureResult.result()).isEqualTo(BidderSeatBid.of(singletonList(
@@ -637,4 +641,5 @@ public class HttpAdapterRequesterTest {
                 .call(eq(adapter), eq(usersyncer), any(), preBidRequestContextArgumentCaptor.capture());
         return preBidRequestContextArgumentCaptor.getValue();
     }
+
 }

@@ -17,6 +17,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -40,6 +41,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -131,10 +133,11 @@ public class WebConfiguration {
             PreBidRequestContextFactory preBidRequestContextFactory,
             CacheService cacheService,
             Metrics metrics,
-            HttpAdapterConnector httpAdapterConnector) {
+            HttpAdapterConnector httpAdapterConnector,
+            Clock clock) {
 
         return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
-                metrics, httpAdapterConnector);
+                metrics, httpAdapterConnector, clock);
     }
 
     @Bean
@@ -144,10 +147,12 @@ public class WebConfiguration {
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
-            Metrics metrics) {
+            Metrics metrics,
+            Clock clock,
+            TimeoutFactory timeoutFactory) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, exchangeService,
-                auctionRequestFactory, uidsCookieService, metrics);
+                auctionRequestFactory, uidsCookieService, metrics, clock, timeoutFactory);
     }
 
     @Bean
@@ -157,9 +162,12 @@ public class WebConfiguration {
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
             UidsCookieService uidsCookieService,
-            Metrics metrics) {
+            Metrics metrics,
+            Clock clock,
+            TimeoutFactory timeoutFactory) {
 
-        return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService, metrics);
+        return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService, metrics,
+                clock, timeoutFactory);
     }
 
     @Bean

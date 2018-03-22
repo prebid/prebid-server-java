@@ -43,7 +43,8 @@ import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.response.BidderDebug;
@@ -53,6 +54,8 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -65,7 +68,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.data.Offset.offset;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -85,14 +87,16 @@ public class HttpAdapterConnectorTest extends VertxTest {
     private Usersyncer usersyncer;
     @Mock
     private HttpClient httpClient;
-    @Mock
-    private HttpClientRequest httpClientRequest;
-    @Mock
-    private UidsCookie uidsCookie;
+    private Clock clock;
+
+    private HttpAdapterConnector httpAdapterConnector;
 
     private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
-    private HttpAdapterConnector httpAdapterConnector;
+    @Mock
+    private UidsCookie uidsCookie;
+    @Mock
+    private HttpClientRequest httpClientRequest;
 
     @Before
     public void setUp() {
@@ -106,9 +110,12 @@ public class HttpAdapterConnectorTest extends VertxTest {
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+
         adapterRequest = AdapterRequest.of(null, null);
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        httpAdapterConnector = new HttpAdapterConnector(httpClient);
+
+        httpAdapterConnector = new HttpAdapterConnector(httpClient, clock);
     }
 
     @Test
@@ -160,7 +167,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         // then
         final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
         verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue()).isCloseTo(1000L, offset(20L));
+        assertThat(timeoutCaptor.getValue()).isEqualTo(500L);
     }
 
     @Test
@@ -221,7 +228,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     public void callShouldSubmitTimeOutErrorToAdapterIfGlobalTimeoutAlreadyExpired() {
         // given
         preBidRequestContext = givenPreBidRequestContext(
-                builder -> builder.timeout(GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000)),
+                builder -> builder.timeout(expiredTimeout()),
                 identity());
 
         // when
@@ -660,7 +667,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
-                        .timeout(GlobalTimeout.create(Clock.systemDefaultZone().millis() - 10000, 1000))
+                        .timeout(expiredTimeout())
                         .isDebug(true),
                 identity());
 
@@ -759,7 +766,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
                 PreBidRequestContext.builder()
                         .preBidRequest(preBidRequest)
                         .uidsCookie(uidsCookie)
-                        .timeout(GlobalTimeout.create(1000L));
+                        .timeout(timeout());
         return preBidRequestContextBuilderCustomizer.apply(preBidRequestContextBuilderMinimal).build();
     }
 
@@ -826,6 +833,14 @@ public class HttpAdapterConnectorTest extends VertxTest {
             ((Handler<T>) inv.getArgument(0)).handle(obj);
             return inv.getMock();
         };
+    }
+
+    private Timeout timeout() {
+        return new TimeoutFactory(clock).create(500L);
+    }
+
+    private Timeout expiredTimeout() {
+        return new TimeoutFactory(clock).create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
     }
 
     @AllArgsConstructor(staticName = "of")

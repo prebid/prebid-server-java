@@ -3,7 +3,7 @@ package org.prebid.server.auction.model;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.request.PreBidRequest;
 
 import java.util.List;
@@ -18,7 +18,7 @@ public class PreBidRequestContext {
 
     UidsCookie uidsCookie;
 
-    GlobalTimeout timeout;
+    Timeout timeout;
 
     String domain;
 

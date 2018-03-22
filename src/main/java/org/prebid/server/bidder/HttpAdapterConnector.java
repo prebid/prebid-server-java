@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.BidsWithError;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.BidderStatus;
@@ -48,12 +48,12 @@ public class HttpAdapterConnector {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpAdapterConnector.class);
 
-    private static final Clock CLOCK = Clock.systemDefaultZone();
-
     private final HttpClient httpClient;
+    private final Clock clock;
 
-    public HttpAdapterConnector(HttpClient httpClient) {
+    public HttpAdapterConnector(HttpClient httpClient, Clock clock) {
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.clock = Objects.requireNonNull(clock);
     }
 
     /**
@@ -62,7 +62,7 @@ public class HttpAdapterConnector {
     public <T, R> Future<AdapterResponse> call(Adapter<T, R> adapter, Usersyncer usersyncer,
                                                AdapterRequest adapterRequest,
                                                PreBidRequestContext preBidRequestContext) {
-        final long bidderStarted = CLOCK.millis();
+        final long bidderStarted = clock.millis();
 
         final List<AdapterHttpRequest<T>> httpRequests;
         try {
@@ -81,7 +81,7 @@ public class HttpAdapterConnector {
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private <T, R> Future<ExchangeCall> doRequest(AdapterHttpRequest<T> httpRequest, GlobalTimeout timeout,
+    private <T, R> Future<ExchangeCall> doRequest(AdapterHttpRequest<T> httpRequest, Timeout timeout,
                                                   Class<R> responseClass) {
         final T requestBody = httpRequest.getPayload();
         final String uri = httpRequest.getUri();
@@ -184,7 +184,7 @@ public class HttpAdapterConnector {
      * Transforms {@link ExchangeCall} into single {@link AdapterResponse} filled with debug information,
      * list of {@link Bid}, {@link BidderStatus}, etc.
      */
-    private static <T, R> AdapterResponse toBidderResult(
+    private <T, R> AdapterResponse toBidderResult(
             Adapter<T, R> adapter, Usersyncer usersyncer, AdapterRequest adapterRequest,
             PreBidRequestContext preBidRequestContext, long bidderStarted, List<ExchangeCall<T, R>> exchangeCalls) {
 
@@ -232,8 +232,8 @@ public class HttpAdapterConnector {
         return AdapterResponse.of(bidderStatusBuilder.build(), bidsToReturn, timedOut);
     }
 
-    private static int responseTime(long bidderStarted) {
-        return Math.toIntExact(CLOCK.millis() - bidderStarted);
+    private int responseTime(long bidderStarted) {
+        return Math.toIntExact(clock.millis() - bidderStarted);
     }
 
     /**
@@ -306,7 +306,7 @@ public class HttpAdapterConnector {
         return validBids;
     }
 
-    private static AdapterResponse errorBidderResult(Exception exception, long bidderStarted, String bidder) {
+    private AdapterResponse errorBidderResult(Exception exception, long bidderStarted, String bidder) {
         logger.warn("Error occurred while constructing bid requests", exception);
         return AdapterResponse.of(BidderStatus.builder()
                 .bidder(bidder)

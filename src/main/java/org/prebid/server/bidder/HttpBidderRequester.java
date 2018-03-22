@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 
 import java.util.ArrayList;
@@ -55,7 +55,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
     /**
      * Executes given request to a given bidder.
      */
-    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, GlobalTimeout timeout) {
+    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout) {
         final Result<List<HttpRequest<T>>> httpRequests = bidder.makeHttpRequests(bidRequest);
 
         return CompositeFuture.join(httpRequests.getValue().stream()
@@ -68,7 +68,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private Future<HttpCall<T>> doRequest(HttpRequest<T> httpRequest, GlobalTimeout timeout) {
+    private Future<HttpCall<T>> doRequest(HttpRequest<T> httpRequest, Timeout timeout) {
         final Future<HttpCall<T>> result = Future.future();
 
         final long remainingTimeout = timeout.remaining();

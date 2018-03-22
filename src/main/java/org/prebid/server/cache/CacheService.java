@@ -18,7 +18,7 @@ import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 
@@ -55,7 +55,7 @@ public class CacheService {
      * <p>
      * The returned result will always have the same number of elements as the values argument.
      */
-    public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, GlobalTimeout timeout) {
+    public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, Timeout timeout) {
         if (CollectionUtils.isEmpty(bids)) {
             return Future.succeededFuture(Collections.emptyList());
         }
@@ -71,7 +71,7 @@ public class CacheService {
      * Stores JSON values for the given {@link com.iab.openrtb.response.Bid}s in the cache.
      * The returned result will always have the same number of elements as the values argument.
      */
-    public Future<List<String>> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids, GlobalTimeout timeout) {
+    public Future<List<String>> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids, Timeout timeout) {
         if (CollectionUtils.isEmpty(bids)) {
             return Future.succeededFuture(Collections.emptyList());
         }
@@ -118,7 +118,7 @@ public class CacheService {
     /**
      * Asks external prebid cache service to store the given value.
      */
-    private Future<BidCacheResponse> makeRequest(String body, int bidCount, GlobalTimeout timeout) {
+    private Future<BidCacheResponse> makeRequest(String body, int bidCount, Timeout timeout) {
         final Future<BidCacheResponse> future = Future.future();
 
         final long remainingTimeout = timeout.remaining();

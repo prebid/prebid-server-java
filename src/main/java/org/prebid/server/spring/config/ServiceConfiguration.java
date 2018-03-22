@@ -15,6 +15,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.Properties;
 
 @Configuration
@@ -56,10 +58,11 @@ public class ServiceConfiguration {
             @Value("${default-timeout-ms}") long defaultTimeoutMs,
             ImplicitParametersExtractor implicitParametersExtractor,
             ApplicationSettings applicationSettings,
-            UidsCookieService uidsCookieService) {
+            UidsCookieService uidsCookieService,
+            TimeoutFactory timeoutFactory) {
 
         return new PreBidRequestContextFactory(defaultTimeoutMs, implicitParametersExtractor, applicationSettings,
-                uidsCookieService);
+                uidsCookieService, timeoutFactory);
     }
 
     @Bean
@@ -122,23 +125,24 @@ public class ServiceConfiguration {
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog,
-            CacheService cacheService, Metrics metrics) {
+            CacheService cacheService, Metrics metrics, Clock clock) {
 
-        return new ExchangeService(bidderCatalog, cacheService, metrics,
+        return new ExchangeService(bidderCatalog, cacheService, metrics, clock,
                 expectedCacheTimeMs);
     }
 
     @Bean
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
-            ApplicationSettings applicationSettings) {
-        return new StoredRequestProcessor(applicationSettings, defaultTimeoutMs);
+            ApplicationSettings applicationSettings,
+            TimeoutFactory timeoutFactory) {
+        return new StoredRequestProcessor(applicationSettings, timeoutFactory, defaultTimeoutMs);
     }
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    HttpAdapterConnector httpAdapterConnector(HttpClient httpClient) {
-        return new HttpAdapterConnector(httpClient);
+    HttpAdapterConnector httpAdapterConnector(HttpClient httpClient, Clock clock) {
+        return new HttpAdapterConnector(httpClient, clock);
     }
 
     @Bean
@@ -163,5 +167,15 @@ public class ServiceConfiguration {
         } catch (IOException | ClassNotFoundException e) {
             throw new IllegalArgumentException("Could not initialize public suffix list", e);
         }
+    }
+
+    @Bean
+    Clock clock() {
+        return Clock.systemDefaultZone();
+    }
+
+    @Bean
+    TimeoutFactory timeoutFactory(Clock clock) {
+        return new TimeoutFactory(clock);
     }
 }

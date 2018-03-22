@@ -17,7 +17,8 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
@@ -31,22 +32,24 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
-    private static final Clock CLOCK = Clock.systemDefaultZone();
-
     private final long defaultTimeout;
     private final ExchangeService exchangeService;
     private final AuctionRequestFactory auctionRequestFactory;
     private final UidsCookieService uidsCookieService;
     private final Metrics metrics;
+    private final Clock clock;
+    private final TimeoutFactory timeoutFactory;
 
     public AuctionHandler(long defaultTimeout, ExchangeService exchangeService,
                           AuctionRequestFactory auctionRequestFactory, UidsCookieService uidsCookieService,
-                          Metrics metrics) {
+                          Metrics metrics, Clock clock, TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.metrics = Objects.requireNonNull(metrics);
+        this.clock = Objects.requireNonNull(clock);
+        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
     }
 
     @Override
@@ -55,7 +58,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         // for bids. However, tmax may be defined in the Stored Request data.
         // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
         // more accurately if we note the real start time, and use it to compute the auction timeout.
-        final long startTime = CLOCK.millis();
+        final long startTime = clock.millis();
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
 
@@ -70,9 +73,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
 
-    private GlobalTimeout timeout(BidRequest bidRequest, long startTime) {
+    private Timeout timeout(BidRequest bidRequest, long startTime) {
         final Long tmax = bidRequest.getTmax();
-        return GlobalTimeout.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
+        return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
     }
 
     private void handleResult(AsyncResult<BidResponse> responseResult, RoutingContext context) {

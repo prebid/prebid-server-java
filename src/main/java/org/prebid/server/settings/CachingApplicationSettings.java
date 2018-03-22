@@ -2,7 +2,7 @@ package org.prebid.server.settings;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
-import org.prebid.server.execution.GlobalTimeout;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredRequestResult;
 
@@ -38,12 +38,12 @@ public class CachingApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Account> getAccountById(String accountId, GlobalTimeout timeout) {
+    public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return getFromCacheOrDelegate(accountCache, accountId, timeout, delegate::getAccountById);
     }
 
     @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, GlobalTimeout timeout) {
+    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
         return getFromCacheOrDelegate(adUnitConfigCache, adUnitConfigId, timeout, delegate::getAdUnitConfigById);
     }
 
@@ -51,12 +51,12 @@ public class CachingApplicationSettings implements ApplicationSettings {
      * Retrieves stored requests from cache or delegates it to original storedRequestFetcher.
      */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, GlobalTimeout timeout) {
+    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, Timeout timeout) {
         return getFromCacheOrDelegate(storedRequestCache, ids, timeout, delegate::getStoredRequestsById);
     }
 
     @Override
-    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, GlobalTimeout timeout) {
+    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, Timeout timeout) {
         return getFromCacheOrDelegate(storedAmpRequestCache, ids, timeout, delegate::getStoredRequestsByAmpId);
     }
 
@@ -68,8 +68,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
                 .asMap();
     }
 
-    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key, GlobalTimeout timeout,
-                                                        BiFunction<String, GlobalTimeout, Future<T>> retriever) {
+    private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key, Timeout timeout,
+                                                        BiFunction<String, Timeout, Future<T>> retriever) {
         final Future<T> result;
 
         final T cachedValue = cache.get(key);
@@ -93,8 +93,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
      * with all found stored requests and error from origin source id call was made.
      */
     private static Future<StoredRequestResult> getFromCacheOrDelegate(
-            Map<String, String> cache, Set<String> ids, GlobalTimeout timeout,
-            BiFunction<Set<String>, GlobalTimeout, Future<StoredRequestResult>> retriever) {
+            Map<String, String> cache, Set<String> ids, Timeout timeout,
+            BiFunction<Set<String>, Timeout, Future<StoredRequestResult>> retriever) {
 
         final Map<String, String> storedRequestsFromCache = new HashMap<>();
         final Set<String> missedIds = new HashSet<>();

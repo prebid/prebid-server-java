@@ -35,9 +35,9 @@ public class SovrnConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps sovrnBidderDeps(HttpClient httpClient) {
         final Usersyncer usersyncer = new SovrnUsersyncer(usersyncUrl, externalUrl);
-        final Adapter adapter = new SovrnAdapter(usersyncer, endpoint);
-        final Bidder bidder = new SovrnBidder(endpoint);
-        final BidderRequester bidderRequester = new HttpBidderRequester(bidder, httpClient);
+        final Adapter<?, ?> adapter = new SovrnAdapter(usersyncer, endpoint);
+        final Bidder<?> bidder = new SovrnBidder(endpoint);
+        final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
 
         return BidderDeps.of(BIDDER_NAME, new SovrnMetaInfo(), usersyncer, adapter, bidderRequester);
     }

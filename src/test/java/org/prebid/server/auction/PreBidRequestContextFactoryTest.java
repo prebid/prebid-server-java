@@ -24,6 +24,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconParams;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.Bid;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -31,6 +32,9 @@ import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.settings.ApplicationSettings;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.function.Function;
@@ -81,8 +85,9 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any())).willReturn(uidsCookie);
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
+        final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
         factory = new PreBidRequestContextFactory(HTTP_REQUEST_TIMEOUT, paramsExtractor, applicationSettings,
-                uidsCookieService);
+                uidsCookieService, timeoutFactory);
     }
 
     @Test
@@ -406,7 +411,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getTimeout().remaining()).isCloseTo(1000L, offset(20L));
+        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(1000L);
     }
 
     @Test
@@ -418,7 +423,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getTimeout().remaining()).isCloseTo(HTTP_REQUEST_TIMEOUT, offset(20L));
+        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(HTTP_REQUEST_TIMEOUT);
     }
 
     @Test
@@ -430,7 +435,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getTimeout().remaining()).isCloseTo(HTTP_REQUEST_TIMEOUT, offset(20L));
+        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(HTTP_REQUEST_TIMEOUT);
     }
 
     @Test

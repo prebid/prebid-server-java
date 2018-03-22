@@ -27,6 +27,7 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -34,6 +35,9 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -86,7 +90,10 @@ public class AmpHandlerTest extends VertxTest {
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
-        ampHandler = new AmpHandler(5000, ampRequestFactory, exchangeService, uidsCookieService, metrics);
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
+        ampHandler = new AmpHandler(5000, ampRequestFactory, exchangeService, uidsCookieService, metrics,
+                clock, timeoutFactory);
     }
 
     @Test
