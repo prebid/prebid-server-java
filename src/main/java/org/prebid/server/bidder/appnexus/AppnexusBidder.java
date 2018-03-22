@@ -120,26 +120,18 @@ public class AppnexusBidder extends OpenrtbBidder<BidRequest> {
     }
 
     private static ImpWithMemberId makeImpWithMemberId(Imp imp) {
-
         if (imp.getAudio() != null) {
             throw new PreBidException(
                     String.format("Appnexus doesn't support audio Imps. Ignoring Imp ID=%s", imp.getId()));
         }
 
-        final ExtImpAppnexus appnexusExt = parseAppnexusExt(imp);
-
-        final Integer placementId = appnexusExt.getPlacementId();
-        final String invCode = appnexusExt.getInvCode();
-        final String member = appnexusExt.getMember();
-        if ((placementId == null || Objects.equals(placementId, 0))
-                && (StringUtils.isBlank(invCode) || StringUtils.isBlank(member))) {
-            throw new PreBidException("No placement or member+invcode provided");
-        }
+        final ExtImpAppnexus appnexusExt = parseAndValidateAppnexusExt(imp);
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .banner(makeBanner(imp.getBanner(), appnexusExt))
                 .ext(Json.mapper.valueToTree(makeAppnexusImpExt(appnexusExt)));
 
+        final String invCode = appnexusExt.getInvCode();
         if (StringUtils.isNotBlank(invCode)) {
             impBuilder.tagid(invCode);
         }
@@ -148,13 +140,15 @@ public class AppnexusBidder extends OpenrtbBidder<BidRequest> {
         if (reserve != null && reserve.compareTo(BigDecimal.ZERO) > 0) {
             impBuilder.bidfloor(reserve.floatValue()); // This will be broken for non-USD currency.
         }
-        return ImpWithMemberId.of(impBuilder.build(), member);
+
+        return ImpWithMemberId.of(impBuilder.build(), appnexusExt.getMember());
     }
 
     private static AppnexusImpExt makeAppnexusImpExt(ExtImpAppnexus appnexusExt) {
         return AppnexusImpExt.of(
                 AppnexusImpExtAppnexus.of(appnexusExt.getPlacementId(), makeKeywords(appnexusExt.getKeywords()),
-                        appnexusExt.getTrafficSourceCode()));
+                        appnexusExt.getTrafficSourceCode(), appnexusExt.getUsePmtRule(),
+                        appnexusExt.getPrivateSizes()));
     }
 
     private static Banner makeBanner(Banner banner, ExtImpAppnexus appnexusExt) {
@@ -206,14 +200,37 @@ public class AppnexusBidder extends OpenrtbBidder<BidRequest> {
         return kvs.stream().collect(Collectors.joining(","));
     }
 
-    private static ExtImpAppnexus parseAppnexusExt(Imp imp) {
+    private static ExtImpAppnexus parseAndValidateAppnexusExt(Imp imp) {
+        ExtImpAppnexus ext;
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpAppnexus>>convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE)
+            ext = Json.mapper.<ExtPrebid<?, ExtImpAppnexus>>convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
             logger.warn("Error occurred parsing appnexus parameters", e);
             throw new PreBidException(e.getMessage(), e);
         }
+
+        // Accept legacy Appnexus parameters if we don't have modern ones
+        // Don't worry if both is set as validation rules should prevent, and this is temporary anyway.
+        boolean setPlacementId = ext.getPlacementId() == null && ext.getLegacyPlacementId() != null;
+        boolean setInvCode = ext.getInvCode() == null && ext.getLegacyInvCode() != null;
+        boolean setTrafficSourceCode = ext.getTrafficSourceCode() == null && ext.getLegacyTrafficSourceCode() != null;
+        if (setPlacementId || setInvCode || setTrafficSourceCode) {
+            ext = ext.toBuilder()
+                    .placementId(setPlacementId ? ext.getLegacyPlacementId() : ext.getPlacementId())
+                    .invCode(setInvCode ? ext.getLegacyInvCode() : ext.getInvCode())
+                    .trafficSourceCode(setTrafficSourceCode ? ext.getLegacyTrafficSourceCode()
+                            : ext.getTrafficSourceCode())
+                    .build();
+        }
+
+        final Integer placementId = ext.getPlacementId();
+        if ((placementId == null || Objects.equals(placementId, 0))
+                && (StringUtils.isBlank(ext.getInvCode()) || StringUtils.isBlank(ext.getMember()))) {
+            throw new PreBidException("No placement or member+invcode provided");
+        }
+
+        return ext;
     }
 
     @Override

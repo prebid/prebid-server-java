@@ -106,7 +106,7 @@ public class BidderParamValidatorTest extends VertxTest {
         final Set<String> messages = bidderParamValidator.validate(APPNEXUS, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(2);
+        assertThat(messages.size()).isEqualTo(4);
     }
 
     @Test

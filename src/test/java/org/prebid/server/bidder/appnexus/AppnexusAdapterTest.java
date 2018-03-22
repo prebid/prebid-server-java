@@ -141,7 +141,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void makeHttpRequestsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
         // given
         final ObjectNode params = mapper.createObjectNode();
-        params.set("placementId", new TextNode("non-integer"));
+        params.set("placement_id", new TextNode("non-integer"));
         adapterRequest = givenBidder(builder -> builder.params(params), identity());
 
         // when and then
@@ -252,7 +252,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                                 .build()))
                                         .build())
                                 .ext(mapper.valueToTree(AppnexusImpExt.of(
-                                        AppnexusImpExtAppnexus.of(9848285, "k1=v1", "<src-code/>"))))
+                                        AppnexusImpExtAppnexus.of(9848285, "k1=v1", "<src-code/>", null, null))))
                                 .build()))
                         .site(Site.builder()
                                 .domain("example.com")
@@ -337,14 +337,14 @@ public class AppnexusAdapterTest extends VertxTest {
                                         singletonList("Mime")).playbackmethod(singletonList(1)).build())
                                 .tagid("30011")
                                 .ext(mapper.valueToTree(AppnexusImpExt.of(
-                                        AppnexusImpExtAppnexus.of(9848285, null, null))))
+                                        AppnexusImpExtAppnexus.of(9848285, null, null, null, null))))
                                 .build(),
                         Imp.builder()
                                 .banner(Banner.builder().w(300).h(250).format(
                                         singletonList(Format.builder().w(300).h(250).build())).build())
                                 .tagid("30011")
                                 .ext(mapper.valueToTree(AppnexusImpExt.of(
-                                        AppnexusImpExtAppnexus.of(9848285, null, null))))
+                                        AppnexusImpExtAppnexus.of(9848285, null, null, null, null))))
                                 .build()
                 );
     }
@@ -364,6 +364,33 @@ public class AppnexusAdapterTest extends VertxTest {
         assertThat(httpRequests).hasSize(1)
                 .flatExtracting(r -> r.getPayload().getImp()).hasSize(2)
                 .extracting(Imp::getId).containsOnly("adUnitCode1", "adUnitCode2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldHonorLegacyParams() {
+        // given
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
+                givenAdUnitBid(identity(), params -> params
+                        .placementId(null)
+                        .legacyPlacementId(101)
+                        .invCode(null)
+                        .legacyInvCode("legacyInvCode1")
+                        .trafficSourceCode(null)
+                        .legacyTrafficSourceCode("legacyTrafficSourceCode1"))));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .flatExtracting(r -> r.getPayload().getImp()).hasSize(1)
+                .extracting(Imp::getTagid, Imp::getExt).containsOnly(
+                tuple(
+                        "legacyInvCode1",
+                        mapper.valueToTree(AppnexusImpExt.of(
+                                AppnexusImpExtAppnexus.of(101, null, "legacyTrafficSourceCode1", null, null)))
+                ));
     }
 
     @Test

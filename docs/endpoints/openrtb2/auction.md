@@ -39,7 +39,7 @@ The following is a "hello world" request which fetches the [Prebid sample ad](ht
       },
       "ext": {
         "appnexus": {
-          "placementId": 10433394
+          "placement_id": 10433394
         }
       }
     }
@@ -183,10 +183,10 @@ This can be used to request bids from the same Bidder with different params. For
       },
       "ext": {
         "appnexus: {
-          "placementId": 123
+          "placement_id": 123
         },
         "districtm": {
-          "placementId": 456
+          "placement_id": 456
         }
       }
     }

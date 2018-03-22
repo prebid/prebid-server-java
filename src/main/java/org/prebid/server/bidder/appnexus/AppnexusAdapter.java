@@ -107,7 +107,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
             throw new PreBidException("Appnexus params section is missing");
         }
 
-        final AppnexusParams params;
+        AppnexusParams params;
         try {
             params = Json.mapper.convertValue(paramsNode, AppnexusParams.class);
         } catch (IllegalArgumentException e) {
@@ -115,11 +115,27 @@ public class AppnexusAdapter extends OpenrtbAdapter {
             throw new PreBidException(e.getMessage(), e.getCause());
         }
 
+        // Accept legacy Appnexus parameters if we don't have modern ones
+        // Don't worry if both is set as validation rules should prevent, and this is temporary anyway.
+        boolean setPlacementId = params.getPlacementId() == null && params.getLegacyPlacementId() != null;
+        boolean setInvCode = params.getInvCode() == null && params.getLegacyInvCode() != null;
+        boolean setTrafficSourceCode = params.getTrafficSourceCode() == null
+                && params.getLegacyTrafficSourceCode() != null;
+        if (setPlacementId || setInvCode || setTrafficSourceCode) {
+            params = params.toBuilder()
+                    .placementId(setPlacementId ? params.getLegacyPlacementId() : params.getPlacementId())
+                    .invCode(setInvCode ? params.getLegacyInvCode() : params.getInvCode())
+                    .trafficSourceCode(setTrafficSourceCode ? params.getLegacyTrafficSourceCode()
+                            : params.getTrafficSourceCode())
+                    .build();
+        }
+
         final Integer placementId = params.getPlacementId();
         if (placementId == null || Objects.equals(placementId, 0)
                 && (StringUtils.isEmpty(params.getInvCode()) || StringUtils.isEmpty(params.getMember()))) {
             throw new PreBidException("No placement or member+invcode provided");
         }
+
         return params;
     }
 
@@ -183,8 +199,8 @@ public class AppnexusAdapter extends OpenrtbAdapter {
 
     private static AppnexusImpExt makeImpExt(AppnexusParams params) {
         return AppnexusImpExt.of(
-                AppnexusImpExtAppnexus.of(
-                        params.getPlacementId(), makeKeywords(params), params.getTrafficSourceCode()));
+                AppnexusImpExtAppnexus.of(params.getPlacementId(), makeKeywords(params), params.getTrafficSourceCode(),
+                        params.getUsePmtRule(), params.getPrivateSizes()));
     }
 
     private static String makeKeywords(AppnexusParams params) {

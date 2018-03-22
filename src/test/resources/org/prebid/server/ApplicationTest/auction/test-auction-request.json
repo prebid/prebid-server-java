@@ -115,8 +115,8 @@
           "bid_id": "bidId4",
           "bidder": "appnexus",
           "params": {
-            "placementId": 9848285,
-            "invCode": "invCode1",
+            "placement_id": 9848285,
+            "inv_code": "invCode1",
             "member": "member1",
             "keywords": [
               {
@@ -127,7 +127,7 @@
                 ]
               }
             ],
-            "trafficSourceCode": "trafficSourceCode1",
+            "traffic_source_code": "trafficSourceCode1",
             "reserve": 1,
             "position": "above"
           }

@@ -774,10 +774,10 @@
             "ext": {
               "appnexus": {
                 "member": "103",
-                "invCode": "abc",
+                "inv_code": "abc",
                 "reserve": 1.0,
                 "position": "below",
-                "trafficSourceCode": "trafficSource",
+                "traffic_source_code": "trafficSource",
                 "keywords": [
                   {
                     "key": "foo",
@@ -790,10 +790,10 @@
               },
               "appnexusAlias": {
                 "member": "104",
-                "invCode": "abc",
+                "inv_code": "abc",
                 "reserve": 1.0,
                 "position": "above",
-                "trafficSourceCode": "trafficSourceAlias",
+                "traffic_source_code": "trafficSourceAlias",
                 "keywords": [
                   {
                     "key": "foo",
@@ -814,7 +814,7 @@
             },
             "ext": {
               "appnexus": {
-                "placementId": 9880618
+                "placement_id": 9880618
               }
             }
           },
@@ -827,7 +827,7 @@
             },
             "ext": {
               "appnexus": {
-                "placementId": 10433394
+                "placement_id": 10433394
               }
             }
           },
