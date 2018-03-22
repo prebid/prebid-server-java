@@ -10,7 +10,6 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.cache.proto.request.BannerValue;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
@@ -28,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -56,13 +56,16 @@ public class CacheService {
      * The returned result will always have the same number of elements as the values argument.
      */
     public Future<List<BidCacheResult>> cacheBids(List<Bid> bids, Timeout timeout) {
-        if (CollectionUtils.isEmpty(bids)) {
-            return Future.succeededFuture(Collections.emptyList());
-        }
+        return doCache(bids, timeout, CacheService::createPutObject, this::createBidCacheResult);
+    }
 
-        final String body = Json.encode(toRequest(bids));
-        return makeRequest(body, bids.size(), timeout)
-                .map(this::toResponse);
+    /**
+     * Makes cache for bids with video media type only (legacy).
+     * <p>
+     * The returned result will always have the same number of elements as the values argument.
+     */
+    public Future<List<BidCacheResult>> cacheBidsVideoOnly(List<Bid> bids, Timeout timeout) {
+        return doCache(bids, timeout, CacheService::createPutObjectVideoOnly, this::createBidCacheResult);
     }
 
     /**
@@ -72,67 +75,41 @@ public class CacheService {
      * The returned result will always have the same number of elements as the values argument.
      */
     public Future<List<String>> cacheBidsOpenrtb(List<com.iab.openrtb.response.Bid> bids, Timeout timeout) {
-        if (CollectionUtils.isEmpty(bids)) {
-            return Future.succeededFuture(Collections.emptyList());
-        }
-
-        final String body = Json.encode(toRequestOpenrtb(bids));
-        return makeRequest(body, bids.size(), timeout)
-                .map(this::toResponseOpenrtb);
+        return doCache(bids, timeout, CacheService::createPutObjectOpenrtb, CacheService::createUuid);
     }
 
     /**
-     * Creates bid cache request for the given {@link Bid}s.
+     * Generic method to work with cache service.
      */
-    private static BidCacheRequest toRequest(List<Bid> bids) {
-        final List<PutObject> putObjects = bids.stream()
-                .map(CacheService::toPutObject)
-                .collect(Collectors.toList());
-
-        return BidCacheRequest.of(putObjects);
-    }
-
-    /**
-     * Makes put object from {@link Bid}. Used for legacy auction request.
-     */
-    private static PutObject toPutObject(Bid bid) {
-        if (MediaType.video.equals(bid.getMediaType())) {
-            return PutObject.of("xml", new TextNode(bid.getAdm()));
-        } else {
-            return PutObject.of("json", Json.mapper.valueToTree(
-                    BannerValue.of(bid.getAdm(), bid.getNurl(), bid.getWidth(), bid.getHeight())));
-        }
-    }
-
-    /**
-     * Creates bid cache request for the given {@link com.iab.openrtb.response.Bid}s.
-     */
-    private static BidCacheRequest toRequestOpenrtb(List<com.iab.openrtb.response.Bid> bids) {
-        final List<PutObject> putObjects = bids.stream()
-                .map(bid -> PutObject.of("json", Json.mapper.valueToTree(bid)))
-                .collect(Collectors.toList());
-
-        return BidCacheRequest.of(putObjects);
+    private <T, R> Future<List<R>> doCache(List<T> bids, Timeout timeout,
+                                           Function<T, PutObject> requestItemCreator,
+                                           Function<CacheObject, R> responseItemCreator) {
+        return makeRequest(toRequest(bids, requestItemCreator), bids.size(), timeout)
+                .map(bidCacheResponse -> toResponse(bidCacheResponse, responseItemCreator));
     }
 
     /**
      * Asks external prebid cache service to store the given value.
      */
-    private Future<BidCacheResponse> makeRequest(String body, int bidCount, Timeout timeout) {
-        final Future<BidCacheResponse> future = Future.future();
+    private Future<BidCacheResponse> makeRequest(BidCacheRequest bidCacheRequest, int bidCount, Timeout timeout) {
+        final Future<BidCacheResponse> future;
+        if (bidCount == 0) {
+            future = Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
+        } else {
+            future = Future.future();
 
-        final long remainingTimeout = timeout.remaining();
-        if (remainingTimeout <= 0) {
-            handleException(new TimeoutException(), future);
-            return future;
+            final long remainingTimeout = timeout.remaining();
+            if (remainingTimeout <= 0) {
+                handleException(new TimeoutException(), future);
+            } else {
+                httpClient.postAbs(endpointUrl, response -> handleResponse(response, bidCount, future))
+                        .exceptionHandler(exception -> handleException(exception, future))
+                        .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                        .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
+                        .setTimeout(remainingTimeout)
+                        .end(Json.encode(bidCacheRequest));
+            }
         }
-
-        httpClient.postAbs(endpointUrl, response -> handleResponse(response, bidCount, future))
-                .exceptionHandler(exception -> handleException(exception, future))
-                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                .setTimeout(remainingTimeout)
-                .end(body);
         return future;
     }
 
@@ -185,23 +162,60 @@ public class CacheService {
     }
 
     /**
-     * Creates prebid cache service response for legacy auction request.
+     * Makes put object from {@link Bid}. Used for legacy auction request.
      */
-    private List<BidCacheResult> toResponse(BidCacheResponse bidCacheResponse) {
-        return bidCacheResponse.getResponses().stream()
-                .filter(Objects::nonNull)
-                .map(CacheObject::getUuid)
-                .filter(Objects::nonNull)
-                .map(uuid -> BidCacheResult.of(uuid, getCachedAssetURL(uuid)))
-                .collect(Collectors.toList());
+    private static PutObject createPutObject(Bid bid) {
+        return MediaType.video.equals(bid.getMediaType()) ? videoPutObject(bid) : bannerPutObject(bid);
     }
 
     /**
-     * Creates prebid cache service response for OpenRTB auction request.
+     * Makes put object from {@link Bid} with video media type only. Used for legacy auction request.
      */
-    private List<String> toResponseOpenrtb(BidCacheResponse bidCacheResponse) {
+    private static PutObject createPutObjectVideoOnly(Bid bid) {
+        return MediaType.video.equals(bid.getMediaType()) ? videoPutObject(bid) : null;
+    }
+
+    /**
+     * Makes put object from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
+     */
+    private static PutObject createPutObjectOpenrtb(com.iab.openrtb.response.Bid bid) {
+        return PutObject.of("json", Json.mapper.valueToTree(bid));
+    }
+
+    /**
+     * Creates bid cache request for the given bids.
+     */
+    private static <T> BidCacheRequest toRequest(List<T> bids, Function<T, PutObject> requestItemCreator) {
+        return BidCacheRequest.of(bids.stream()
+                .filter(Objects::nonNull)
+                .map(requestItemCreator)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList()));
+    }
+
+    /**
+     * Transforms {@link CacheObject} into {@link BidCacheResult}. Used for legacy auction request.
+     */
+    private BidCacheResult createBidCacheResult(CacheObject cacheObject) {
+        final String uuid = cacheObject.getUuid();
+        return BidCacheResult.of(uuid, getCachedAssetURL(uuid));
+    }
+
+    /**
+     * Transforms {@link CacheObject} into UUID. Used for OpenRTB auction request.
+     */
+    private static String createUuid(CacheObject cacheObject) {
+        return cacheObject.getUuid();
+    }
+
+    /**
+     * Creates prebid cache service response according to the creator.
+     */
+    private <T> List<T> toResponse(BidCacheResponse bidCacheResponse, Function<CacheObject, T> responseItemCreator) {
         return bidCacheResponse.getResponses().stream()
-                .map(CacheObject::getUuid)
+                .filter(Objects::nonNull)
+                .map(responseItemCreator)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -227,7 +241,7 @@ public class CacheService {
     /**
      * Composes cached asset url template against the given query, schema and host.
      */
-    public static String getCachedAssetUrlTemplate(String cacheQuery, String cacheSchema, String cacheHost) {
+    public static String getCachedAssetUrlTemplate(String cacheSchema, String cacheHost, String cacheQuery) {
         try {
             final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
             return new URL(baseUrl, "/cache?" + cacheQuery).toString();
@@ -241,5 +255,20 @@ public class CacheService {
      */
     private static URL getCacheBaseUrl(String cacheSchema, String cacheHost) throws MalformedURLException {
         return new URL(cacheSchema + "://" + cacheHost);
+    }
+
+    /**
+     * Creates video {@link PutObject} from the given {@link Bid}. Used for legacy auction request.
+     */
+    private static PutObject videoPutObject(Bid bid) {
+        return PutObject.of("xml", new TextNode(bid.getAdm()));
+    }
+
+    /**
+     * Creates banner {@link PutObject} from the given {@link Bid}. Used for legacy auction request.
+     */
+    private static PutObject bannerPutObject(Bid bid) {
+        return PutObject.of("json",
+                Json.mapper.valueToTree(BannerValue.of(bid.getAdm(), bid.getNurl(), bid.getWidth(), bid.getHeight())));
     }
 }

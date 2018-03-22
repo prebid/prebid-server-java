@@ -45,7 +45,7 @@ public class ServiceConfiguration {
         return new CacheService(
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host),
-                CacheService.getCachedAssetUrlTemplate(query, scheme, host));
+                CacheService.getCachedAssetUrlTemplate(scheme, host, query));
     }
 
     @Bean

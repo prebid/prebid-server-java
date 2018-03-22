@@ -172,8 +172,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final Integer cacheMarkup = preBidRequestContext.getPreBidRequest().getCacheMarkup();
         final List<Bid> bids = preBidResponse.getBids();
-        if (cacheMarkup != null && cacheMarkup == 1 && !bids.isEmpty()) {
-            result = cacheService.cacheBids(bids, preBidRequestContext.getTimeout())
+        if (!bids.isEmpty() && cacheMarkup != null && (cacheMarkup == 1 || cacheMarkup == 2)) {
+            result = (cacheMarkup == 1
+                    ? cacheService.cacheBids(bids, preBidRequestContext.getTimeout())
+                    : cacheService.cacheBidsVideoOnly(bids, preBidRequestContext.getTimeout()))
                     .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults));
         } else {
             result = Future.succeededFuture(preBidResponse);
