@@ -353,6 +353,25 @@
           "tagid": "tagId1"
         }
       }
+    },
+    {
+      "id": "impId14",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "adtelligent": {
+          "aid": 1000,
+          "siteId": 1234,
+          "bidFloor": 20,
+          "placementId": 10
+        }
+      }
     }
   ],
   "device": {

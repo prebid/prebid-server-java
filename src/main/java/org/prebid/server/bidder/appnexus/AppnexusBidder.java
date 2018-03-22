@@ -16,7 +16,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 /**
  * AppNexus {@link Bidder} implementation.
  */
-public class AppnexusBidder extends OpenrtbBidder<BidRequest> {
+public class AppnexusBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(AppnexusBidder.class);
 
@@ -103,8 +103,8 @@ public class AppnexusBidder extends OpenrtbBidder<BidRequest> {
         final String body = Json.encode(outgoingRequest);
 
         return Result.of(
-                Collections.singletonList(HttpRequest.of(HttpMethod.POST, url, body, headers(), outgoingRequest)),
-                errors(errors));
+                Collections.singletonList(HttpRequest.of(HttpMethod.POST, url, body, BidderUtil.headers(),
+                        outgoingRequest)), BidderUtil.errors(errors));
     }
 
     /**
@@ -236,7 +236,7 @@ public class AppnexusBidder extends OpenrtbBidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(parseResponse(httpCall.getResponse())), Collections.emptyList());
+            return Result.of(extractBids(BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }

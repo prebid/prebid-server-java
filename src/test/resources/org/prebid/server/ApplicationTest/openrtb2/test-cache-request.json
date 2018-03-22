@@ -3,6 +3,18 @@
     {
       "type": "json",
       "value": {
+        "impid": "impId14",
+        "price": 8.43,
+        "adm": "adm14",
+        "crid": "crid14",
+        "dealid": "dealId14",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "impid": "impId13",
         "price": 5.78,
         "adm": "adm13",

@@ -16,16 +16,22 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Basic {@link Bidder} implementation containing common logic functionality and helper methods.
+ * Util class to help {@link Bidder}s implementation process responses and requests
  */
-public abstract class OpenrtbBidder<T> implements Bidder<T> {
+public class BidderUtil {
 
-    private static final Logger logger = LoggerFactory.getLogger(OpenrtbBidder.class);
+    private BidderUtil() {
+    }
+
+    private static final Logger logger = LoggerFactory.getLogger(BidderUtil.class);
 
     public static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
-    protected static BidResponse parseResponse(HttpResponse httpResponse) {
+    /**
+     * Parses {@link HttpResponse} to {@link BidResponse} class and handles http status codes different to Ok 200
+     */
+    public static BidResponse parseResponse(HttpResponse httpResponse) {
         final int statusCode = httpResponse.getStatusCode();
 
         if (statusCode == 204) {
@@ -45,13 +51,19 @@ public abstract class OpenrtbBidder<T> implements Bidder<T> {
         }
     }
 
-    protected static MultiMap headers() {
+    /**
+     * Creates shared headers for all bidders
+     */
+    public static MultiMap headers() {
         return MultiMap.caseInsensitiveMultiMap()
                 .add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
     }
 
-    protected static List<BidderError> errors(List<String> errors) {
+    /**
+     * Converts {@link List} of errors to {@link BidderError} format
+     */
+    public static List<BidderError> errors(List<String> errors) {
         return errors.stream().map(BidderError::create).collect(Collectors.toList());
     }
 }

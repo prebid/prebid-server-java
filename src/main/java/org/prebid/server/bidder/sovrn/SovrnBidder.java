@@ -17,7 +17,7 @@ import io.vertx.ext.web.Cookie;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 /**
  * Sovrn {@link Bidder} implementation.
  */
-public class SovrnBidder extends OpenrtbBidder {
+public class SovrnBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(SovrnBidder.class);
 
@@ -57,7 +57,7 @@ public class SovrnBidder extends OpenrtbBidder {
     }
 
     @Override
-    public Result<List<HttpRequest>> makeHttpRequests(BidRequest bidRequest) {
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
@@ -77,7 +77,7 @@ public class SovrnBidder extends OpenrtbBidder {
 
         return Result.of(Collections.singletonList(
                 HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers(bidRequest), outgoingRequest)),
-                errors(errors));
+                BidderUtil.errors(errors));
     }
 
     private static Imp makeImp(Imp imp) {
@@ -109,7 +109,7 @@ public class SovrnBidder extends OpenrtbBidder {
     }
 
     private MultiMap headers(BidRequest bidRequest) {
-        final MultiMap headers = headers();
+        final MultiMap headers = BidderUtil.headers();
 
         final Device device = bidRequest.getDevice();
         if (device != null) {
@@ -136,7 +136,7 @@ public class SovrnBidder extends OpenrtbBidder {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(parseResponse(httpCall.getResponse())), Collections.emptyList());
+            return Result.of(extractBids(BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }

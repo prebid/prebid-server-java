@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,6 +30,7 @@ public class BidderCatalogConfiguration {
         // the application aware of that nuisance.
         final List<Class<?>> adapterClasses = bidderDeps.stream()
                 .map(BidderDeps::getAdapter)
+                .filter(Objects::nonNull)
                 .map(Adapter::getClass)
                 .collect(Collectors.toList());
         Stream.of(FacebookAdapter.class, IndexAdapter.class)

@@ -24,7 +24,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -67,7 +67,7 @@ import java.util.stream.Collectors;
 /**
  * <a href="https://rubiconproject.com">Rubicon Project</a> {@link Bidder} implementation.
  */
-public class RubiconBidder extends OpenrtbBidder<BidRequest> {
+public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
 
@@ -103,14 +103,14 @@ public class RubiconBidder extends OpenrtbBidder<BidRequest> {
             }
         }
 
-        return Result.of(httpRequests, errors(errors));
+        return Result.of(httpRequests, BidderUtil.errors(errors));
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             return Result.of(
-                    extractBids(httpCall.getRequest().getPayload(), parseResponse(httpCall.getResponse())),
+                    extractBids(httpCall.getRequest().getPayload(), BidderUtil.parseResponse(httpCall.getResponse())),
                     Collections.emptyList());
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));

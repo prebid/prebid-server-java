@@ -62,7 +62,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         updateRequestMetrics(isSafari);
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
-
         auctionRequestFactory.fromRequest(context)
                 .recover(this::updateErrorRequestsMetric)
                 .map(bidRequest -> updateAppAndNoCookieMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))

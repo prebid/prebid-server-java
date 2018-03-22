@@ -11,24 +11,24 @@ import org.prebid.server.exception.PreBidException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-public class OpenrtbBidderTest extends VertxTest {
+public class BidderUtilTest extends VertxTest {
 
     @Test
     public void parseResponseShouldReturnNullWhenStatusCode204() {
-        assertThat(OpenrtbBidder.parseResponse(HttpResponse.of(204, null, null))).isNull();
+        assertThat(BidderUtil.parseResponse(HttpResponse.of(204, null, null))).isNull();
     }
 
     @Test
     public void parseResponseShouldThrowExceptionWhenStatusCodeIsNot200() {
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> OpenrtbBidder.parseResponse(HttpResponse.of(404, null, null)))
+                .isThrownBy(() -> BidderUtil.parseResponse(HttpResponse.of(404, null, null)))
                 .withMessage("Unexpected status code: 404. Run with request.test = 1 for more info");
     }
 
     @Test
     public void parseResponseShouldThrowExceptionWhenResponseBodyCouldNotParsed() {
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> OpenrtbBidder.parseResponse(HttpResponse.of(200, null, "invalid_body")))
+                .isThrownBy(() -> BidderUtil.parseResponse(HttpResponse.of(200, null, "invalid_body")))
                 .withMessageStartingWith("Unrecognized token 'invalid_body':");
     }
 
@@ -39,7 +39,7 @@ public class OpenrtbBidderTest extends VertxTest {
         final HttpResponse response = HttpResponse.of(200, null, mapper.writeValueAsString(bidRequest));
 
         // when
-        final BidResponse result = OpenrtbBidder.parseResponse(response);
+        final BidResponse result = BidderUtil.parseResponse(response);
 
         // then
         assertThat(result).isNotNull();

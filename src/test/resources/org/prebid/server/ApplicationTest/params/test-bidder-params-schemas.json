@@ -358,6 +358,33 @@
       "site_id"
     ]
   },
+  "adtelligent": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Adtelligent Adapter Params",
+    "description": "A schema which validates params accepted by the Adtelligent adapter",
+    "type": "object",
+    "properties": {
+      "placementId": {
+        "type": "integer",
+        "description": "An ID which identifies this placement of the impression"
+      },
+      "siteId": {
+        "type": "integer",
+        "description": "An ID which identifies the site selling the impression"
+      },
+      "aid": {
+        "type": "integer",
+        "description": "An ID which identifies the channel"
+      },
+      "bidFloor": {
+        "type": "number",
+        "description": "BidFloor, US Dollars"
+      }
+    },
+    "required": [
+      "aid"
+    ]
+  },
   "sovrn": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Sovrn Adapter Params",

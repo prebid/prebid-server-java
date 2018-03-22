@@ -60,6 +60,7 @@ public class ApplicationTest extends VertxTest {
     private static final String CONVERSANT = "conversant";
     private static final String ADFORM = "adform";
     private static final String SOVRN = "sovrn";
+    private static final String ADTELLIGENT = "adtelligent";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
 
@@ -174,6 +175,12 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-sovrn-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-sovrn-bid-response-1.json"))));
 
+        // adtelligent bid response for imp 14
+        wireMockRule.stubFor(post(urlPathEqualTo("/adtelligent-exchange"))
+                .withQueryParam("aid", WireMock.equalToJson("1000"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-adtelligent-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adtelligent-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-cache-request.json")))
@@ -188,8 +195,11 @@ public class ApplicationTest extends VertxTest {
                 // this uids cookie value stands for
                 // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
                 // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
-                // "conversant":"CV-UID","sovrn":"990011"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdnJuIjoiOTkwMDExIn19")
+                // "conversant":"CV-UID","sovrn":"990011","adtelligent":"AT-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmN"
+                        + "lTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibG"
+                        + "lmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdnJuI"
+                        + "joiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQifX0=")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
@@ -197,7 +207,6 @@ public class ApplicationTest extends VertxTest {
         // then
         String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
                 response, "ext.responsetimemillis.%s");
-        System.out.println(response.asString());
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
@@ -513,6 +522,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(CONVERSANT, "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange");
         exchanges.put(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange");
         exchanges.put(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange");
+        exchanges.put(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange");
 
         // inputs for aliases
         exchanges.put(APPNEXUS_ALIAS, null);

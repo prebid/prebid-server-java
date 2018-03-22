@@ -17,7 +17,7 @@ import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.adform.model.AdformResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 /**
  * Adform {@link Bidder} implementation.
  */
-public class AdformBidder extends OpenrtbBidder<Void> {
+public class AdformBidder implements Bidder<Void> {
 
     private static final String VERSION = "0.1.0";
     private static final String BANNER = "banner";
@@ -68,7 +68,7 @@ public class AdformBidder extends OpenrtbBidder<Void> {
         final List<String> errors = extImpAdformsResult.errors;
 
         if (extImpAdforms.size() == 0) {
-            return Result.of(Collections.emptyList(), errors(errors));
+            return Result.of(Collections.emptyList(), BidderUtil.errors(errors));
         }
 
         final String url = AdformHttpUtil.buildAdformUrl(
@@ -79,7 +79,7 @@ public class AdformBidder extends OpenrtbBidder<Void> {
 
         final Device device = request.getDevice();
         final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
-                headers(),
+                BidderUtil.headers(),
                 VERSION,
                 getUserAgent(device),
                 getIp(device),
@@ -88,7 +88,7 @@ public class AdformBidder extends OpenrtbBidder<Void> {
 
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers, null)),
-                errors(errors));
+                BidderUtil.errors(errors));
     }
 
     /**

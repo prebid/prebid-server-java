@@ -56,7 +56,7 @@ public class SovrnBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -77,7 +77,7 @@ public class SovrnBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -98,7 +98,7 @@ public class SovrnBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -118,7 +118,7 @@ public class SovrnBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -146,7 +146,7 @@ public class SovrnBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -184,7 +184,7 @@ public class SovrnBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -218,7 +218,7 @@ public class SovrnBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -230,7 +230,7 @@ public class SovrnBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetRequestUrlWithoutMemberIdIfItMissedRequestBodyImps() {
 
         // when
-        final Result<List<HttpRequest>> result = sovrnBidder.makeHttpRequests(BidRequest.builder()
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(BidRequest.builder()
                 .imp(singletonList(Imp.builder().build()))
                 .build());
 
