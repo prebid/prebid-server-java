@@ -23,11 +23,14 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.connect-timeout-ms` - set the connect timeout.
 
 ## Auction
-- `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction and Amp requests.
+- `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.expected-cache-time-ms` - approximate value in milliseconds for Cache Service interacting. 
 This time will be subtracted from global timeout.
+
+## Amp
+- `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
 
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.

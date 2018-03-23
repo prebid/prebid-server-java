@@ -158,7 +158,7 @@ public class WebConfiguration {
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AmpHandler openrtbAmpHandler(
-            @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${amp.default-timeout-ms}") int defaultTimeoutMs,
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
             UidsCookieService uidsCookieService,
