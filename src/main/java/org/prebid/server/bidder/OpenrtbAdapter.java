@@ -1,5 +1,6 @@
 package org.prebid.server.bidder;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -48,8 +49,9 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
     }
 
     @Override
-    public Class<BidResponse> responseClass() {
-        return BidResponse.class;
+    public TypeReference<BidResponse> responseTypeReference() {
+        return new TypeReference<BidResponse>() {
+        };
     }
 
     protected static Banner.BannerBuilder bannerBuilder(AdUnitBid adUnitBid) {

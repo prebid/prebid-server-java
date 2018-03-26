@@ -18,7 +18,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
-import org.prebid.server.bidder.adform.model.AdformResponse;
+import org.prebid.server.bidder.adform.model.AdformBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -70,16 +70,16 @@ public class AdformBidder implements Bidder<Void> {
         if (extImpAdforms.size() == 0) {
             return Result.of(Collections.emptyList(), BidderUtil.errors(errors));
         }
-
+        final Device device = request.getDevice();
         final String url = AdformHttpUtil.buildAdformUrl(
                 getMasterTagIds(extImpAdforms),
                 endpointUrl,
                 getTid(request.getSource()),
+                getIp(device),
+                getIfa(device),
                 getSecure(imps));
 
-        final Device device = request.getDevice();
         final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
-                BidderUtil.headers(),
                 VERSION,
                 getUserAgent(device),
                 getIp(device),
@@ -169,12 +169,18 @@ public class AdformBidder implements Bidder<Void> {
     }
 
     /**
+     * Retrieves ifs from {@link Device}
+     */
+    private String getIfa(Device device) {
+        return device != null ? ObjectUtils.firstNonNull(device.getIfa(), "") : "";
+    }
+
+    /**
      * Retrieves tid from {@link Source}
      */
     private String getTid(Source source) {
         return source != null ? ObjectUtils.firstNonNull(source.getTid(), "") : "";
     }
-
 
     /**
      * Converts Adform Response format to {@link List} of {@link BidderBid}s with {@link List} of errors.
@@ -193,36 +199,36 @@ public class AdformBidder implements Bidder<Void> {
                     String.format("unexpected status code: %d. Run with request.debug = 1 for more info",
                             responseStatusCode))));
         }
-        final List<AdformResponse> adformResponses;
+        final List<AdformBid> adformBids;
         try {
-            adformResponses = Json.mapper.readValue(httpResponse.getBody(),
-                    Json.mapper.getTypeFactory().constructCollectionType(List.class, AdformResponse.class));
+            adformBids = Json.mapper.readValue(httpResponse.getBody(),
+                    Json.mapper.getTypeFactory().constructCollectionType(List.class, AdformBid.class));
         } catch (IOException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }
-        return Result.of(toBidderBid(adformResponses, bidRequest.getImp()), Collections.emptyList());
+        return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());
     }
 
     /**
-     * Converts {@link AdformResponse} to {@link List} of {@link BidderBid}.
+     * Converts {@link AdformBid} to {@link List} of {@link BidderBid}.
      */
-    private List<BidderBid> toBidderBid(List<AdformResponse> adformResponses, List<Imp> imps) {
+    private List<BidderBid> toBidderBid(List<AdformBid> adformBids, List<Imp> imps) {
         final List<BidderBid> bidderBids = new ArrayList<>();
-        for (int i = 0; i < adformResponses.size(); i++) {
-            final AdformResponse adformResponse = adformResponses.get(i);
-            if (StringUtils.isEmpty(adformResponse.getBanner())
-                    || !Objects.equals(adformResponse.getResponse(), BANNER)) {
+        for (int i = 0; i < adformBids.size(); i++) {
+            final AdformBid adformBid = adformBids.get(i);
+            if (StringUtils.isEmpty(adformBid.getBanner())
+                    || !Objects.equals(adformBid.getResponse(), BANNER)) {
                 continue;
             }
             final Imp imp = imps.get(i);
             bidderBids.add(BidderBid.of(Bid.builder()
                             .id(imp.getId())
                             .impid(imp.getId())
-                            .price(adformResponse.getWinBid())
-                            .adm(adformResponse.getBanner())
-                            .w(adformResponse.getWidth())
-                            .h(adformResponse.getHeight())
-                            .dealid(adformResponse.getDealId())
+                            .price(adformBid.getWinBid())
+                            .adm(adformBid.getBanner())
+                            .w(adformBid.getWidth())
+                            .h(adformBid.getHeight())
+                            .dealid(adformBid.getDealId())
                             .build(),
                     BidType.banner));
         }

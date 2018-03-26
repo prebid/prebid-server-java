@@ -43,7 +43,8 @@
   "device": {
     "dnt": 2,
     "pxratio": 4.2,
-    "language": "en"
+    "language": "en",
+    "ifa": "ifaId"
   },
   "user": {
     "buyeruid": "IE-UID"

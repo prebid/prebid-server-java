@@ -35,6 +35,13 @@ public class BidderCatalog {
     }
 
     /**
+     * Tells if adapter with given name exists.
+     */
+    public boolean isValidAdapterName(String name) {
+        return bidderDepsMap.containsKey(name) && adapterByName(name) != null;
+    }
+
+    /**
      * Returns an {@link MetaInfo} registered by the given name or null if there is none.
      * <p>
      * Therefore this method should be called only for names that previously passed validity check

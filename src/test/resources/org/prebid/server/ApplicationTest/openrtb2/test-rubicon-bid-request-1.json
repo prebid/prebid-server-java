@@ -65,6 +65,7 @@
     "ip": "192.168.244.1",
     "pxratio": 4.2,
     "language": "en",
+    "ifa": "ifaId",
     "ext": {
       "rp": {
         "pixelratio": 4.2

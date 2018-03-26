@@ -115,9 +115,11 @@ public class AuctionHandlerTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.of(null, null)));
 
+        given(bidderCatalog.isValidAdapterName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         willReturn(rubiconAdapter).given(bidderCatalog).adapterByName(eq(RUBICON));
 
+        given(bidderCatalog.isValidAdapterName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
 

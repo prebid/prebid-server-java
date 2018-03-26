@@ -1,5 +1,6 @@
 package org.prebid.server.bidder;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.channel.ConnectTimeoutException;
@@ -72,7 +73,8 @@ public class HttpAdapterConnector {
         }
 
         return CompositeFuture.join(httpRequests.stream()
-                .map(httpRequest -> doRequest(httpRequest, preBidRequestContext.getTimeout(), adapter.responseClass()))
+                .map(httpRequest -> doRequest(httpRequest, preBidRequestContext.getTimeout(),
+                        adapter.responseTypeReference()))
                 .collect(Collectors.toList()))
                 .map(compositeFuture -> toBidderResult(adapter, usersyncer, adapterRequest, preBidRequestContext,
                         bidderStarted, compositeFuture.list()));
@@ -82,7 +84,7 @@ public class HttpAdapterConnector {
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
     private <T, R> Future<ExchangeCall> doRequest(AdapterHttpRequest<T> httpRequest, Timeout timeout,
-                                                  Class<R> responseClass) {
+                                                  TypeReference<R> typeReference) {
         final T requestBody = httpRequest.getPayload();
         final String uri = httpRequest.getUri();
 
@@ -97,7 +99,7 @@ public class HttpAdapterConnector {
         }
 
         final HttpClientRequest httpClientRequest = httpClient.requestAbs(httpRequest.getMethod(), uri,
-                response -> handleResponse(bidderDebugBuilder, response, responseClass, future, requestBody))
+                response -> handleResponse(bidderDebugBuilder, response, typeReference, future, requestBody))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future))
                 .setTimeout(remainingTimeout);
 
@@ -130,11 +132,11 @@ public class HttpAdapterConnector {
     }
 
     private static <T, R> void handleResponse(BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                              HttpClientResponse response, Class<R> responseClass,
+                                              HttpClientResponse response, TypeReference<R> responseTypeReference,
                                               Future<ExchangeCall> future, T request) {
         response
                 .bodyHandler(buffer -> future.complete(
-                        toExchangeCall(request, response.statusCode(), buffer.toString(), responseClass,
+                        toExchangeCall(request, response.statusCode(), buffer.toString(), responseTypeReference,
                                 bidderDebugBuilder)))
                 .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future));
     }
@@ -156,7 +158,8 @@ public class HttpAdapterConnector {
      * Transforms HTTP call results into {@link ExchangeCall} filled with debug information,
      * {@link BidResponse} and errors happened along the way.
      */
-    private static <T, R> ExchangeCall toExchangeCall(T request, int statusCode, String body, Class<R> responseClass,
+    private static <T, R> ExchangeCall toExchangeCall(T request, int statusCode, String body,
+                                                      TypeReference<R> responseTypeReference,
                                                       BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
         final BidderDebug bidderDebug = completeBidderDebug(bidderDebugBuilder, statusCode, body);
 
@@ -171,7 +174,7 @@ public class HttpAdapterConnector {
 
         final R bidResponse;
         try {
-            bidResponse = Json.decodeValue(body, responseClass);
+            bidResponse = Json.decodeValue(body, responseTypeReference);
         } catch (DecodeException e) {
             logger.warn("Error occurred while parsing bid response: {0}", e, body);
             return ExchangeCall.error(bidderDebug, e.getMessage());

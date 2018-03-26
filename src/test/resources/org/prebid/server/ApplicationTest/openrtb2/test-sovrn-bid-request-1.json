@@ -33,7 +33,8 @@
     "dnt": 2,
     "ip": "192.168.244.1",
     "pxratio": 4.2,
-    "language": "en"
+    "language": "en",
+    "ifa": "ifaId"
   },
   "user": {
     "buyeruid": "990011",

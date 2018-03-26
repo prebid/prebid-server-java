@@ -1,0 +1,11 @@
+[
+  {
+    "response": "banner",
+    "banner": "adm12",
+    "win_bid": "10.5",
+    "currency": "currency",
+    "width": 400,
+    "height": 300,
+    "dealId": "dealId"
+  }
+]

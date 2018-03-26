@@ -153,6 +153,8 @@ public class ApplicationTest extends VertxTest {
                 .withQueryParam("rp", WireMock.equalTo("4"))
                 .withQueryParam("fd", WireMock.equalTo("1"))
                 .withQueryParam("stid", WireMock.equalTo("tid"))
+                .withQueryParam("ip", WireMock.equalTo("192.168.244.1"))
+                .withQueryParam("adid", WireMock.equalTo("ifaId"))
                 // bWlkPTE1 is Base64 encoded "mid=15"
                 .withQueryParam("bWlkPTE1", WireMock.equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
@@ -160,6 +162,7 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("User-Agent", WireMock.equalTo("userAgent"))
                 .withHeader("X-Request-Agent", WireMock.equalTo("PrebidAdapter 0.1.0"))
                 .withHeader("X-Forwarded-For", WireMock.equalTo("192.168.244.1"))
+                .withHeader("Cookie", WireMock.equalTo("uid=AF-UID"))
                 .withRequestBody(WireMock.equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adform-bid-response-1.json"))));
 
@@ -195,11 +198,11 @@ public class ApplicationTest extends VertxTest {
                 // this uids cookie value stands for
                 // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
                 // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
-                // "conversant":"CV-UID","sovrn":"990011","adtelligent":"AT-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmN"
-                        + "lTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibG"
-                        + "lmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdnJuI"
-                        + "joiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQifX0=")
+                // "conversant":"CV-UID","sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbm"
+                        + "NlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwi"
+                        + "bGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdn"
+                        + "JuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJBRi1VSUQifX0=")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
@@ -320,6 +323,25 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("auction/test-sovrn-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/test-sovrn-bid-response-1.json"))));
 
+        // adform bid response for ad unit 12
+        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange/"))
+                .withQueryParam("CC", WireMock.equalTo("1"))
+                .withQueryParam("rp", WireMock.equalTo("4"))
+                .withQueryParam("fd", WireMock.equalTo("1"))
+                .withQueryParam("stid", WireMock.equalTo("tid"))
+                .withQueryParam("ip", WireMock.equalTo("192.168.244.1"))
+                .withQueryParam("adid", WireMock.equalTo("ifaId"))
+                // bWlkPTE1 is Base64 encoded "mid=15"
+                .withQueryParam("bWlkPTE1", WireMock.equalTo(""))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Accept", WireMock.equalTo("application/json"))
+                .withHeader("User-Agent", WireMock.equalTo("userAgent"))
+                .withHeader("X-Request-Agent", WireMock.equalTo("PrebidAdapter 0.1.0"))
+                .withHeader("X-Forwarded-For", WireMock.equalTo("192.168.244.1"))
+                .withHeader("Cookie", WireMock.equalTo("uid=AF-UID"))
+                .withRequestBody(WireMock.equalTo(""))
+                .willReturn(aResponse().withBody(jsonFrom("auction/test-adform-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/test-cache-request.json")))
@@ -334,9 +356,9 @@ public class ApplicationTest extends VertxTest {
                 // this uids cookie value stands for
                 // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
                 // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
-                // "conversant":"CV-UID","sovrn":"990011"}}
+                // "conversant":"CV-UID","sovrn":"990011","adform":"AF-UID"}}
                 .cookie("uids",
-                        "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdnJuIjoiOTkwMDExIn19")
+                        "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdnJuIjoiOTkwMDExIiwiYWRmb3JtIjoiQUYtVUlEIn19")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/test-auction-request.json"))
                 .post("/auction");
@@ -350,7 +372,6 @@ public class ApplicationTest extends VertxTest {
 
         final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/test-auction-response.json"),
                 response, "bidder_status.find { it.bidder == '%s' }.response_time_ms");
-
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 

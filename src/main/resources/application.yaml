@@ -25,6 +25,9 @@ adapters:
   adform:
     endpoint: http://adx.adform.net/adx
     usersync-url: //cm.adform.net/cookie?redirect_url=
+  adtelligent:
+    endpoint: http://hb.adtelligent.com/auction
+    usersync-url: //sync.adtelligent.com/csync?t=p&ep=0&redir=
   rubicon:
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
     usersync-url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid

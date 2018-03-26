@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 @Builder
 @Value
-public class AdformResponse {
+public class AdformBid {
 
     String response;
 

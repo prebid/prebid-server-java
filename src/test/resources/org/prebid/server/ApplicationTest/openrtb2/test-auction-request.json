@@ -377,7 +377,8 @@
   "device": {
     "pxratio": 4.2,
     "dnt": 2,
-    "language": "en"
+    "language": "en",
+    "ifa": "ifaId"
   },
   "site": {
     "publisher": {

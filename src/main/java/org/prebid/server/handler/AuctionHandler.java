@@ -13,7 +13,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.TargetingKeywordsCreator;
-import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
@@ -127,16 +126,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext) {
         final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
         return preBidRequestContext.getAdapterRequests().stream()
-                .filter(this::isValidAdapter)
+                .filter(bidder -> bidderCatalog.isValidAdapterName(bidder.getBidderCode()))
                 .peek(bidder -> updateAdapterRequestMetrics(bidder.getBidderCode(), accountId))
                 .map(bidder -> httpAdapterConnector.call(bidderCatalog.adapterByName(bidder.getBidderCode()),
                         bidderCatalog.usersyncerByName(bidder.getBidderCode()), bidder, preBidRequestContext))
                 .collect(Collectors.toList());
-    }
-
-    private boolean isValidAdapter(AdapterRequest adapterRequest) {
-        final String adapterName = adapterRequest.getBidderCode();
-        return bidderCatalog.isValidName(adapterName) && bidderCatalog.adapterByName(adapterName) != null;
     }
 
     private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,

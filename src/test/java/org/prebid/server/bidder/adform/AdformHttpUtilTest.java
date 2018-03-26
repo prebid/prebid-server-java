@@ -20,13 +20,8 @@ public class AdformHttpUtilTest {
 
     @Test
     public void buildAdformHeadersShouldReturnAllHeaders() {
-        // given
-        final MultiMap commonHeaders = MultiMap.caseInsensitiveMultiMap()
-                .add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
-
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders(commonHeaders, "0.1.0", "userAgent", "ip",
+        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip",
                 "www.example.com", "buyeruid");
 
         // then
@@ -44,8 +39,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeadersShouldNotContainRefererHeaderIfRefererIsEmpty() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders(MultiMap.caseInsensitiveMultiMap(), "0.1.0",
-                "userAgent", "ip", "", "buyeruid");
+        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "", "buyeruid");
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpHeaders.REFERER.toString());
@@ -54,8 +48,7 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformHeadersShouldNotContainCookieHeaderIfUserIdIsEmpty() {
         // when
-        final MultiMap headers = AdformHttpUtil.buildAdformHeaders(MultiMap.caseInsensitiveMultiMap(), "0.1.0",
-                "userAgent", "ip", "referer", "");
+        final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "referer", "");
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpHeaders.COOKIE.toString());
@@ -65,21 +58,35 @@ public class AdformHttpUtilTest {
     public void buildAdformUrlShouldReturnCorrectUrl() {
         // when
         final String url = AdformHttpUtil.buildAdformUrl(Arrays.asList("15", "16"), "http://adx.adform.net/adx", "tid",
-                false);
+                "ip", "adId", false);
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url).isEqualTo("http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&bWlkPTE1&bWlkPTE2");
+        assertThat(url)
+                .isEqualTo("http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=adId&bWlkPTE1&bWlkPTE2");
     }
 
     @Test
     public void buildAdformUrlShouldReturnHttpsProtocolIfSecureIsTrue() {
         // when
         final String url = AdformHttpUtil.buildAdformUrl(Arrays.asList("15", "16"), "http://adx.adform.net/adx", "tid",
-                true);
+                "ip", "adId", true);
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url).isEqualTo("https://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&bWlkPTE1&bWlkPTE2");
+        assertThat(url)
+                .isEqualTo("https://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=adId&bWlkPTE1&bWlkPTE2");
+    }
+
+    @Test
+    public void buildAdformUrlShouldNotContainAdidParamIfAdvertisingIdIsMissed() {
+        // when
+        final String url = AdformHttpUtil.buildAdformUrl(Arrays.asList("15", "16"), "http://adx.adform.net/adx", "tid",
+                "ip", null, true);
+
+        // then
+        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        assertThat(url)
+                .isEqualTo("https://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&bWlkPTE1&bWlkPTE2");
     }
 }

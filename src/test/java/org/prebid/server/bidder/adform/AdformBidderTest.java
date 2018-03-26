@@ -17,7 +17,7 @@ import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.adform.model.AdformResponse;
+import org.prebid.server.bidder.adform.model.AdformBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -60,7 +60,7 @@ public class AdformBidderTest extends VertxTest {
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpAdform.of(15L)))).build()))
                 .site(Site.builder().page("www.example.com").build())
                 .user(User.builder().buyeruid("buyeruid").build())
-                .device(Device.builder().ua("ua").ip("ip").build())
+                .device(Device.builder().ua("ua").ip("ip").ifa("ifaId").build())
                 .source(Source.builder().tid("tid").build())
                 .build();
 
@@ -72,7 +72,7 @@ public class AdformBidderTest extends VertxTest {
         // bWlkPTE1 is Base64 encoded "mid=15" value
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("http://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&bWlkPTE1");
+                .containsExactly("http://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=ifaId&bWlkPTE1");
         assertThat(result.getValue()).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.GET);
 
         assertThat(result.getValue()).
@@ -164,7 +164,7 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&bWlkPTE1");
+                .containsExactly("https://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&ip=&bWlkPTE1");
     }
 
     @Test
@@ -211,7 +211,7 @@ public class AdformBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfResponseBannerFieldIsEmpty() throws JsonProcessingException {
         // given
-        final String adformResponse = mapper.writeValueAsString(AdformResponse.builder().build());
+        final String adformResponse = mapper.writeValueAsString(AdformBid.builder().build());
         final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), adformResponse);
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().build())).build();
 
@@ -226,7 +226,7 @@ public class AdformBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfResponseTypeIsNotBanner() throws JsonProcessingException {
         // given
-        final String adformResponse = mapper.writeValueAsString(AdformResponse.builder().banner("someBanner")
+        final String adformResponse = mapper.writeValueAsString(AdformBid.builder().banner("someBanner")
                 .response("notBanner").build());
         final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), adformResponse);
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().build())).build();
@@ -242,7 +242,7 @@ public class AdformBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidderBid() throws JsonProcessingException {
         // given
-        final String adformResponse = mapper.writeValueAsString(AdformResponse.builder().banner("admBanner")
+        final String adformResponse = mapper.writeValueAsString(AdformBid.builder().banner("admBanner")
                 .response("banner").winCur("currency").dealId("dealId").height(300).width(400)
                 .winBid(BigDecimal.ONE).build());
 
@@ -262,8 +262,8 @@ public class AdformBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldSkipInvalidBidAndReturnValidBid() throws JsonProcessingException {
         // given
-        final String adformResponse = mapper.writeValueAsString(asList(AdformResponse.builder().banner("admBanner")
-                .response("banner").build(), AdformResponse.builder().build()));
+        final String adformResponse = mapper.writeValueAsString(asList(AdformBid.builder().banner("admBanner")
+                .response("banner").build(), AdformBid.builder().build()));
 
         final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), adformResponse);
         final BidRequest bidRequest = BidRequest.builder().imp(asList(Imp.builder().id("id1").build(),

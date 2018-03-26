@@ -1,6 +1,7 @@
 package org.prebid.server.bidder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
@@ -102,7 +103,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
     public void setUp() {
         willReturn(singletonList(givenHttpRequest()))
                 .given(adapter).makeHttpRequests(any(), any());
-        willReturn(BidResponse.class).given(adapter).responseClass();
+        willReturn(new TypeReference<BidResponse>() {
+        }).given(adapter).responseTypeReference();
 
         given(httpClient.requestAbs(any(), anyString(), any())).willReturn(httpClientRequest);
 
@@ -358,7 +360,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         final Adapter<String, Object> anotherAdapter = (Adapter<String, Object>) mock(Adapter.class);
         willReturn(singletonList(givenHttpRequest())).given(anotherAdapter).makeHttpRequests(any(), any());
-        willReturn(CustomResponse.class).given(anotherAdapter).responseClass();
+        willReturn(new TypeReference<CustomResponse>() {
+        }).given(anotherAdapter).responseTypeReference();
         given(anotherAdapter.extractBids(any(), any()))
                 .willReturn(singletonList(org.prebid.server.proto.response.Bid.builder()));
 

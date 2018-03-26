@@ -1,5 +1,6 @@
 package org.prebid.server.bidder;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -45,5 +46,5 @@ public interface Adapter<T, R> {
     /**
      * A class that will be used to parse response from exchange.
      */
-    Class<R> responseClass();
+    TypeReference<R> responseTypeReference();
 }

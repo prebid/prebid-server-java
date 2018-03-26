@@ -328,12 +328,34 @@
       "media_types": [
         "banner"
       ]
+    },
+    {
+      "code": "adUnitCode12",
+      "sizes": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId12",
+          "bidder": "adform",
+          "params": {
+            "mid": 15
+          }
+        }
+      ],
+      "media_types": [
+        "banner"
+      ]
     }
   ],
   "device": {
     "pxratio": 4.2,
     "language": "en",
-    "dnt": 10
+    "dnt": 10,
+    "ifa": "ifaId"
   },
   "sdk": {
     "version": "version1",
