@@ -13,11 +13,18 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.springframework.core.convert.ConversionService;
+import org.springframework.core.convert.support.DefaultConversionService;
 
 import javax.annotation.PostConstruct;
 
 @Configuration
 public class ApplicationConfiguration {
+
+    @Bean
+    ConversionService conversionService() {
+        return new DefaultConversionService();
+    }
 
     @Bean
     Vertx vertx(@Value("${vertx.worker-pool-size}") Integer workerPoolSize) {

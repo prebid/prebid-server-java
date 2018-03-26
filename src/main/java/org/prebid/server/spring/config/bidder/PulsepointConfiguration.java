@@ -7,6 +7,7 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpAdapterRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.pulsepoint.PulsepointAdapter;
+import org.prebid.server.bidder.pulsepoint.PulsepointBidder;
 import org.prebid.server.bidder.pulsepoint.PulsepointMetaInfo;
 import org.prebid.server.bidder.pulsepoint.PulsepointUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,7 @@ public class PulsepointConfiguration {
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpAdapterConnector);
 
-        return BidderDeps.of(BIDDER_NAME, new PulsepointMetaInfo(), usersyncer, adapter, bidderRequester);
+        return BidderDeps.of(BIDDER_NAME, new PulsepointMetaInfo(), usersyncer, new PulsepointBidder(), adapter,
+                bidderRequester);
     }
 }

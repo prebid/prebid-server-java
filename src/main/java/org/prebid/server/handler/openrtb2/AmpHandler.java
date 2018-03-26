@@ -1,6 +1,7 @@
 package org.prebid.server.handler.openrtb2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -19,6 +20,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -35,19 +37,20 @@ import org.prebid.server.proto.response.AmpResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AmpHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AmpHandler.class);
 
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ?>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtBidPrebid, ?>>() {
+    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>>() {
             };
     private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
             new TypeReference<ExtBidResponse>() {
@@ -57,17 +60,21 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
     private final UidsCookieService uidsCookieService;
+    private final Set<String> biddersSupportingCustomTargeting;
+    private final BidderCatalog bidderCatalog;
     private final Metrics metrics;
     private final Clock clock;
     private final TimeoutFactory timeoutFactory;
 
     public AmpHandler(long defaultTimeout, AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
-                      UidsCookieService uidsCookieService, Metrics metrics, Clock clock,
-                      TimeoutFactory timeoutFactory) {
+                      UidsCookieService uidsCookieService, Set<String> biddersSupportingCustomTargeting,
+                      BidderCatalog bidderCatalog, Metrics metrics, Clock clock, TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -102,16 +109,15 @@ public class AmpHandler implements Handler<RoutingContext> {
         return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
     }
 
-    private static AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
         // fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
         final Map<String, String> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .flatMap(bid -> targetingFrom(bid).entrySet().stream())
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         // fetch debug information from response if requested
@@ -131,8 +137,8 @@ public class AmpHandler implements Handler<RoutingContext> {
         return extBidResponse != null ? extBidResponse.getDebug() : null;
     }
 
-    private static Map<String, String> targetingFrom(Bid bid) {
-        final ExtPrebid<ExtBidPrebid, ?> extBid;
+    private Map<String, String> targetingFrom(Bid bid, String bidder) {
+        final ExtPrebid<ExtBidPrebid, ObjectNode> extBid;
         try {
             extBid = Json.mapper.convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
@@ -148,11 +154,34 @@ public class AmpHandler implements Handler<RoutingContext> {
             final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
             if (targeting != null && targeting.keySet().stream()
                     .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
-                return targeting;
+
+                return enrichWithCustomTargeting(targeting, extBid, bidder);
             }
         }
 
         return Collections.emptyMap();
+    }
+
+    private Map<String, String> enrichWithCustomTargeting(
+            Map<String, String> targeting, ExtPrebid<ExtBidPrebid, ObjectNode> extBid, String bidder) {
+
+        final Map<String, String> customTargeting = customTargetingFrom(extBid.getBidder(), bidder);
+        if (!customTargeting.isEmpty()) {
+            final Map<String, String> enrichedTargeting = new HashMap<>(targeting);
+            enrichedTargeting.putAll(customTargeting);
+            return enrichedTargeting;
+        }
+        return targeting;
+    }
+
+    private Map<String, String> customTargetingFrom(ObjectNode extBidBidder, String bidder) {
+        if (extBidBidder != null && biddersSupportingCustomTargeting.contains(bidder)
+                && bidderCatalog.isValidName(bidder)) {
+
+            return bidderCatalog.bidderByName(bidder).extractTargeting(extBidBidder);
+        } else {
+            return Collections.emptyMap();
+        }
     }
 
     private static void handleResult(AsyncResult<AmpResponse> responseResult, RoutingContext context) {

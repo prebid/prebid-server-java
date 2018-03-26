@@ -35,10 +35,10 @@ public class AdformConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps adformBidderDeps(HttpClient httpClient) {
         final Usersyncer usersyncer = new AdformUsersyncer(usersyncUrl, externalUrl);
-        final Adapter<?, ?> adapter = new AdformAdapter(usersyncer, endpoint);
         final Bidder<Void> bidder = new AdformBidder(endpoint);
+        final Adapter<?, ?> adapter = new AdformAdapter(usersyncer, endpoint);
         final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
 
-        return BidderDeps.of(BIDDER_NAME, new AdformMetaInfo(), usersyncer, adapter, bidderRequester);
+        return BidderDeps.of(BIDDER_NAME, new AdformMetaInfo(), usersyncer, bidder, adapter, bidderRequester);
     }
 }

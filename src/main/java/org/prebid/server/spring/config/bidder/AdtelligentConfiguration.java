@@ -33,8 +33,8 @@ public class AdtelligentConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps adtelligentBidderDeps(HttpClient httpClient) {
         final Usersyncer usersyncer = new AdtelligentUsersyncer(usersyncUrl, externalUrl);
-        final Bidder bidder = new AdtelligentBidder(endpoint);
-        final BidderRequester bidderRequester = new HttpBidderRequester(bidder, httpClient);
-        return BidderDeps.of(BIDDER_NAME, new AdtelligentMetaInfo(), usersyncer, null, bidderRequester);
+        final Bidder<?> bidder = new AdtelligentBidder(endpoint);
+        final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
+        return BidderDeps.of(BIDDER_NAME, new AdtelligentMetaInfo(), usersyncer, bidder, null, bidderRequester);
     }
 }

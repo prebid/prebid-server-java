@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.adform;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -34,6 +35,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -89,6 +91,38 @@ public class AdformBidder implements Bidder<Void> {
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers, null)),
                 BidderUtil.errors(errors));
+    }
+
+    /**
+     * Converts Adform Response format to {@link List} of {@link BidderBid}s with {@link List} of errors.
+     * Returns empty result {@link List} in case of "No Content" response status.
+     * Returns empty result {@link List} with errors in case of response status different from "OK" or "No Content"
+     */
+    @Override
+    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
+        final HttpResponse httpResponse = httpCall.getResponse();
+        final int responseStatusCode = httpResponse.getStatusCode();
+        if (responseStatusCode == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.of(Collections.emptyList(), Collections.emptyList());
+        }
+        if (responseStatusCode != HttpResponseStatus.OK.code()) {
+            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(
+                    String.format("unexpected status code: %d. Run with request.debug = 1 for more info",
+                            responseStatusCode))));
+        }
+        final List<AdformBid> adformBids;
+        try {
+            adformBids = Json.mapper.readValue(httpResponse.getBody(),
+                    Json.mapper.getTypeFactory().constructCollectionType(List.class, AdformBid.class));
+        } catch (IOException e) {
+            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+        }
+        return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());
+    }
+
+    @Override
+    public Map<String, String> extractTargeting(ObjectNode ext) {
+        return Collections.emptyMap();
     }
 
     /**
@@ -180,33 +214,6 @@ public class AdformBidder implements Bidder<Void> {
      */
     private String getTid(Source source) {
         return source != null ? ObjectUtils.firstNonNull(source.getTid(), "") : "";
-    }
-
-    /**
-     * Converts Adform Response format to {@link List} of {@link BidderBid}s with {@link List} of errors.
-     * Returns empty result {@link List} in case of "No Content" response status.
-     * Returns empty result {@link List} with errors in case of response status different from "OK" or "No Content"
-     */
-    @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final HttpResponse httpResponse = httpCall.getResponse();
-        final int responseStatusCode = httpResponse.getStatusCode();
-        if (responseStatusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        }
-        if (responseStatusCode != HttpResponseStatus.OK.code()) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(
-                    String.format("unexpected status code: %d. Run with request.debug = 1 for more info",
-                            responseStatusCode))));
-        }
-        final List<AdformBid> adformBids;
-        try {
-            adformBids = Json.mapper.readValue(httpResponse.getBody(),
-                    Json.mapper.getTypeFactory().constructCollectionType(List.class, AdformBid.class));
-        } catch (IOException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
-        }
-        return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());
     }
 
     /**

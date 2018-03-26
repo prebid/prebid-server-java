@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.sovrn;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -78,6 +80,20 @@ public class SovrnBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(
                 HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers(bidRequest), outgoingRequest)),
                 BidderUtil.errors(errors));
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
+        try {
+            return Result.of(extractBids(BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
+        } catch (PreBidException e) {
+            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+        }
+    }
+
+    @Override
+    public Map<String, String> extractTargeting(ObjectNode ext) {
+        return Collections.emptyMap();
     }
 
     private static Imp makeImp(Imp imp) {
@@ -130,15 +146,6 @@ public class SovrnBidder implements Bidder<BidRequest> {
     private static void addHeaderIfValueIsNotBlank(MultiMap headers, String name, String value) {
         if (StringUtils.isNotBlank(value)) {
             headers.add(name, value);
-        }
-    }
-
-    @Override
-    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
-        try {
-            return Result.of(extractBids(BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
-        } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }
     }
 

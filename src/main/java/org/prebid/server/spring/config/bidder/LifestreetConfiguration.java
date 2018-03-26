@@ -7,6 +7,7 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpAdapterRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.lifestreet.LifestreetAdapter;
+import org.prebid.server.bidder.lifestreet.LifestreetBidder;
 import org.prebid.server.bidder.lifestreet.LifestreetMetaInfo;
 import org.prebid.server.bidder.lifestreet.LifestreetUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,7 @@ public class LifestreetConfiguration {
         final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
                 httpAdapterConnector);
 
-        return BidderDeps.of(BIDDER_NAME, new LifestreetMetaInfo(), usersyncer, adapter, bidderRequester);
+        return BidderDeps.of(BIDDER_NAME, new LifestreetMetaInfo(), usersyncer, new LifestreetBidder(), adapter,
+                bidderRequester);
     }
 }

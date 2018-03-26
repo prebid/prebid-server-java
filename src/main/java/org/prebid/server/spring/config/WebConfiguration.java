@@ -9,6 +9,8 @@ import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
@@ -27,8 +29,8 @@ import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
 import org.prebid.server.handler.ValidateHandler;
-import org.prebid.server.handler.info.InfoBidderDetailsHandler;
-import org.prebid.server.handler.info.InfoBiddersHandler;
+import org.prebid.server.handler.info.BidderDetailsHandler;
+import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -37,13 +39,18 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Configuration
 public class WebConfiguration {
@@ -65,8 +72,8 @@ public class WebConfiguration {
                   OptoutHandler optoutHandler,
                   ValidateHandler validateHandler,
                   BidderParamHandler bidderParamHandler,
-                  InfoBiddersHandler infoBiddersHandler,
-                  InfoBidderDetailsHandler infoBidderDetailsHandler,
+                  BiddersHandler biddersHandler,
+                  BidderDetailsHandler bidderDetailsHandler,
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
@@ -87,8 +94,8 @@ public class WebConfiguration {
         router.get("/optout").handler(optoutHandler);
         router.post("/validate").handler(validateHandler);
         router.get("/bidders/params").handler(bidderParamHandler);
-        router.get("/info/bidders").handler(infoBiddersHandler);
-        router.get("/info/bidders/:bidderName").handler(infoBidderDetailsHandler);
+        router.get("/info/bidders").handler(biddersHandler);
+        router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves indexAdapter.html by default
 
@@ -162,12 +169,14 @@ public class WebConfiguration {
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
             UidsCookieService uidsCookieService,
+            AmpProperties ampProperties,
+            BidderCatalog bidderCatalog,
             Metrics metrics,
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
-        return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService, metrics,
-                clock, timeoutFactory);
+        return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService,
+                ampProperties.getCustomTargetingSet(), bidderCatalog, metrics, clock, timeoutFactory);
     }
 
     @Bean
@@ -216,17 +225,30 @@ public class WebConfiguration {
     }
 
     @Bean
-    InfoBiddersHandler infoBiddersHandler(BidderCatalog bidderCatalog) {
-        return new InfoBiddersHandler(bidderCatalog);
+    BiddersHandler biddersHandler(BidderCatalog bidderCatalog) {
+        return new BiddersHandler(bidderCatalog);
     }
 
     @Bean
-    InfoBidderDetailsHandler infoBidderDetailsHandler(BidderCatalog bidderCatalog) {
-        return new InfoBidderDetailsHandler(bidderCatalog);
+    BidderDetailsHandler bidderDetailsHandler(BidderCatalog bidderCatalog) {
+        return new BidderDetailsHandler(bidderCatalog);
     }
 
     @Bean
     StaticHandler staticHandler() {
         return StaticHandler.create("static").setCachingEnabled(false);
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "amp")
+    @Data
+    @NoArgsConstructor
+    private static class AmpProperties {
+
+        private List<String> customTargeting = new ArrayList<>();
+
+        Set<String> getCustomTargetingSet() {
+            return new HashSet<>(customTargeting);
+        }
     }
 }

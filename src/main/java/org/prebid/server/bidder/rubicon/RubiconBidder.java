@@ -44,6 +44,9 @@ import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
+import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExt;
+import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
@@ -56,6 +59,7 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -65,6 +69,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -122,6 +127,25 @@ public class RubiconBidder implements Bidder<BidRequest> {
         } catch (PreBidException e) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
         }
+    }
+
+    @Override
+    public Map<String, String> extractTargeting(ObjectNode extBidBidder) {
+        final RubiconTargetingExt rubiconTargetingExt;
+        try {
+            rubiconTargetingExt = Json.mapper.convertValue(extBidBidder, RubiconTargetingExt.class);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Error adding rubicon specific targeting to amp response", e);
+            return Collections.emptyMap();
+        }
+
+        final RubiconTargetingExtRp rp = rubiconTargetingExt.getRp();
+        final List<RubiconTargeting> targeting = rp != null ? rp.getTargeting() : null;
+        return targeting != null
+                ? targeting.stream()
+                .filter(rubiconTargeting -> !CollectionUtils.isEmpty(rubiconTargeting.getValues()))
+                .collect(Collectors.toMap(RubiconTargeting::getKey, t -> t.getValues().get(0)))
+                : Collections.emptyMap();
     }
 
     private static MultiMap headers(String xapiUsername, String xapiPassword) {

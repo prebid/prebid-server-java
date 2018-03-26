@@ -26,8 +26,8 @@ For more information about application configuration see [here](../config.md)
 
 Bidder implementations are scattered throughout several files:
 - `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}MetaInfo.java`: contains metadata (e.g. contact email, platform & media type support) about the Bidder.
-- `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Adapter.java`: contains an implementation of [the Adapter interface](../../src/main/java/org/prebid/server/bidder/Adapter.java).
 - `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Bidder.java`: contains an implementation of [the Bidder interface](../../src/main/java/org/prebid/server/bidder/Bidder.java).
+- `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Adapter.java`: contains an implementation of [the Adapter interface](../../src/main/java/org/prebid/server/bidder/Adapter.java).
 - `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Usersyncer.java`: contains an implementation of [the Usersyncer interface](../../src/main/java/org/prebid/server/bidder/Usersyncer.java).
 - `src/main/java/org/prebid/server/proto/openrtb/ext/{bidder}`: contract classes for your Bidder's params.
 - `src/main/resources/static/bidder-params/{bidder}.json`: A [draft-4 json-schema](https://spacetelescope.github.io/understanding-json-schema/) which [validates your Bidder's params](https://www.jsonschemavalidator.net/).
@@ -56,9 +56,9 @@ See `src/main/java/org/prebid/server/spring/config/bidder/FacebookConfiguration.
 Assume common rules to write unit tests from [here](unit-tests.md).
 
 Bidder tests live in the next files:
-- `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}UsersyncerTest.java`: unit tests for your Usersyncer implementation.
-- `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}AdapterTest.java`: unit tests for your Adapter implementation.
 - `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}BidderTest.java`: unit tests for your Bidder implementation.
+- `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}AdapterTest.java`: unit tests for your Adapter implementation.
+- `src/test/java/org/prebid/server/bidder/{bidder}/{bidder}UsersyncerTest.java`: unit tests for your Usersyncer implementation.
 
 Commonly you should write tests for covering:
 - creation of your Adapter/Bidder/Usersyncer implementations.

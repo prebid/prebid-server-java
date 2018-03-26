@@ -35,6 +35,9 @@ This time will be subtracted from global timeout.
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
 
+## AMP
+- `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
+
 There are two typical keys:
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
 - `adapters.<BIDDER_NAME>.usersync-url` - the url for synchronizing UIDs cookie.

@@ -64,6 +64,17 @@ public class BidderCatalog {
     }
 
     /**
+     * Returns an {@link Bidder} registered by the given name or null if there is none.
+     * <p>
+     * Therefore this method should be called only for names that previously passed validity check
+     * through calling {@link #isValidName(String)}.
+     */
+    public Bidder<?> bidderByName(String name) {
+        final BidderDeps bidderDeps = bidderDepsMap.get(name);
+        return bidderDeps != null ? bidderDeps.getBidder() : null;
+    }
+
+    /**
      * Returns an {@link Adapter} registered by the given name or null if there is none.
      * <p>
      * Therefore this method should be called only for names that previously passed validity check

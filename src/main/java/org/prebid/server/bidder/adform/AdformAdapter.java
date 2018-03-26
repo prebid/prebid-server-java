@@ -45,7 +45,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     }
 
     /**
-     * Creates {@link AdapterHttpRequest} with GET http method and  all parameters in url and headers, with empty body.
+     * Creates {@link AdapterHttpRequest} with GET http method and all parameters in url and headers, with empty body.
      */
     @Override
     public List<AdapterHttpRequest<Void>> makeHttpRequests(AdapterRequest adapterRequest,
@@ -59,6 +59,46 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 getUrl(preBidRequestContext, masterTagIds),
                 null,
                 headers(preBidRequestContext)));
+    }
+
+    @Override
+    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest,
+                                            ExchangeCall<Void, List<AdformBid>> exchangeCall) throws PreBidException {
+        return toBidBuilder(exchangeCall.getResponse(), adapterRequest);
+    }
+
+    @Override
+    public boolean tolerateErrors() {
+        return false;
+    }
+
+    @Override
+    public TypeReference<List<AdformBid>> responseTypeReference() {
+        return new TypeReference<List<AdformBid>>() {
+        };
+    }
+
+    /**
+     * Converts {@link AdUnitBid} to masterTagId. In case of any problem to retrieve or validate masterTagId, throws
+     * {@link PreBidException}
+     */
+    private String toMasterTagId(AdUnitBid adUnitBid) {
+        final ObjectNode params = adUnitBid.getParams();
+        if (params == null) {
+            throw new PreBidException("Adform params section is missing");
+        }
+        final AdformParams adformParams;
+        try {
+            adformParams = Json.mapper.treeToValue(params, AdformParams.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage(), e.getCause());
+        }
+        final Long masterTagId = adformParams.getMid();
+        if (masterTagId != null && masterTagId > 0) {
+            return masterTagId.toString();
+        } else {
+            throw new PreBidException(String.format("master tag(placement) id is invalid=%s", masterTagId));
+        }
     }
 
     /**
@@ -89,40 +129,6 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     }
 
     /**
-     * Converts {@link AdUnitBid} to masterTagId. In case of any problem to retrieve or validate masterTagId, throws
-     * {@link PreBidException}
-     */
-    private String toMasterTagId(AdUnitBid adUnitBid) {
-        final ObjectNode params = adUnitBid.getParams();
-        if (params == null) {
-            throw new PreBidException("Adform params section is missing");
-        }
-        final AdformParams adformParams;
-        try {
-            adformParams = Json.mapper.treeToValue(params, AdformParams.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e.getCause());
-        }
-        final Long masterTagId = adformParams.getMasterTagId();
-        if (masterTagId != null && masterTagId > 0) {
-            return masterTagId.toString();
-        } else {
-            throw new PreBidException(String.format("master tag(placement) id is invalid=%s",
-                    masterTagId));
-        }
-    }
-
-    /**
-     * Extracts bid from response.
-     */
-    @Override
-    public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest,
-                                            ExchangeCall<Void, List<AdformBid>> exchangeCall)
-            throws PreBidException {
-        return toBidBuilder(exchangeCall.getResponse(), adapterRequest);
-    }
-
-    /**
      * Coverts response {@link AdformBid} to {@link Bid} by matching them with {@link AdUnitBid}
      */
     private static List<Bid.BidBuilder> toBidBuilder(List<AdformBid> adformBids, AdapterRequest adapterRequest) {
@@ -147,16 +153,5 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
             }
         }
         return bidBuilders;
-    }
-
-    @Override
-    public boolean tolerateErrors() {
-        return false;
-    }
-
-    @Override
-    public TypeReference<List<AdformBid>> responseTypeReference() {
-        return new TypeReference<List<AdformBid>>() {
-        };
     }
 }

@@ -42,6 +42,9 @@ import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
+import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExt;
+import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
@@ -62,8 +65,7 @@ import java.util.function.Function;
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.ZERO;
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.*;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -85,7 +87,8 @@ public class RubiconBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new RubiconBidder("invalid_url", USERNAME, PASSWORD, rubiconMetaInfo));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RubiconBidder("invalid_url", USERNAME, PASSWORD,
+                rubiconMetaInfo));
     }
 
     @Test
@@ -561,6 +564,50 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null,
                         NullNode.getInstance(),
                         RubiconImpExtRpTrack.of("", "")), asList("moat.com", "doubleclickbygoogle.com")));
+    }
+
+    @Test
+    public void extractTargetingShouldReturnEmptyMapForEmptyExtension() {
+        assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
+    }
+
+    @Test
+    public void extractTargetingShouldReturnEmptyMapForInvalidExtension() {
+        assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode().put("rp", 1))).isEmpty();
+        assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode().putObject("rp").put("targeting", 1)))
+                .isEmpty();
+    }
+
+    @Test
+    public void extractTargetingShouldReturnEmptyMapForNullRp() {
+        assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode().putObject("rp"))).isEmpty();
+    }
+
+    @Test
+    public void extractTargetingShouldReturnEmptyMapForNullTargeting() {
+        assertThat(rubiconBidder.extractTargeting(mapper.createObjectNode().putObject("rp").putObject("targeting")))
+                .isEmpty();
+    }
+
+    @Test
+    public void extractTargetingShouldIgnoreEmptyTargetingValuesList() {
+        // given
+        final ObjectNode extBidBidder = mapper.valueToTree(RubiconTargetingExt.of(
+                RubiconTargetingExtRp.of(singletonList(RubiconTargeting.of("rpfl_1001", emptyList())))));
+
+        // when and then
+        assertThat(rubiconBidder.extractTargeting(extBidBidder)).isEmpty();
+    }
+
+    @Test
+    public void extractTargetingShouldReturnNotEmptyTargetingMap() {
+        // given
+        final ObjectNode extBidBidder = mapper.valueToTree(RubiconTargetingExt.of(
+                RubiconTargetingExtRp.of(singletonList(
+                        RubiconTargeting.of("rpfl_1001", asList("2_tier0100", "3_tier0100"))))));
+
+        // when and then
+        assertThat(rubiconBidder.extractTargeting(extBidBidder)).containsOnly(entry("rpfl_1001", "2_tier0100"));
     }
 
     private static BidRequest givenBidRequest(Function<BidRequestBuilder, BidRequestBuilder> bidRequestCustomizer,

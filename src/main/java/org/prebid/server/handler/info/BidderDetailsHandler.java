@@ -13,11 +13,11 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class InfoBidderDetailsHandler implements Handler<RoutingContext> {
+public class BidderDetailsHandler implements Handler<RoutingContext> {
 
     private final Map<String, String> bidderInfos;
 
-    public InfoBidderDetailsHandler(BidderCatalog bidderCatalog) {
+    public BidderDetailsHandler(BidderCatalog bidderCatalog) {
         bidderInfos = createBidderInfos(Objects.requireNonNull(bidderCatalog));
     }
 

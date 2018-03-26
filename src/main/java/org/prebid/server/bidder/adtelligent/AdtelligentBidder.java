@@ -65,6 +65,24 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
     }
 
     /**
+     * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
+     * Handles cases when response status is different to OK 200.
+     */
+    @Override
+    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
+        try {
+            return extractBids(BidderUtil.parseResponse(httpCall.getResponse()), bidRequest.getImp());
+        } catch (PreBidException e) {
+            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+        }
+    }
+
+    @Override
+    public Map<String, String> extractTargeting(ObjectNode ext) {
+        return Collections.emptyMap();
+    }
+
+    /**
      * Validates and creates {@link Map} where sourceId is used as key and {@link List} of {@link Imp} as value.
      */
     private ResultWithErrors<Map<Integer, List<Imp>>> mapSourceIdToImp(List<Imp> imps) {
@@ -152,19 +170,6 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                 .bidfloor(bidFloor != null && bidFloor > 0 ? bidFloor : imp.getBidfloor())
                 .ext(Json.mapper.valueToTree(adtelligentImpExt))
                 .build();
-    }
-
-    /**
-     * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
-     * Handles cases when response status is different to OK 200.
-     */
-    @Override
-    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
-        try {
-            return extractBids(BidderUtil.parseResponse(httpCall.getResponse()), bidRequest.getImp());
-        } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
-        }
     }
 
     /**

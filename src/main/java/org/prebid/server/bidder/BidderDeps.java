@@ -2,8 +2,6 @@ package org.prebid.server.bidder;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.prebid.server.handler.CookieSyncHandler;
-import org.prebid.server.handler.info.InfoBidderDetailsHandler;
 
 /**
  * Gathers all dependencies for bidder.
@@ -21,14 +19,20 @@ public class BidderDeps {
     String name;
 
     /**
-     * Bidder's meta information is used in {@link InfoBidderDetailsHandler} handler
+     * Bidder's meta information is used in {@link org.prebid.server.handler.info.BidderDetailsHandler} handler
      */
     MetaInfo metaInfo;
 
     /**
-     * Bidder's user syncer is used in {@link CookieSyncHandler} handler and holds cookie family name.
+     * Bidder's user syncer is used in {@link org.prebid.server.handler.CookieSyncHandler} handler and holds cookie
+     * family name.
      */
     Usersyncer usersyncer;
+
+    /**
+     * Bidder implementation is used in auction handling.
+     */
+    Bidder<?> bidder;
 
     /**
      * Bidder's adapter is used in legacy auction handling.

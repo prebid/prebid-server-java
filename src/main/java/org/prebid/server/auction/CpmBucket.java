@@ -8,6 +8,7 @@ import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 class CpmBucket {
@@ -15,6 +16,8 @@ class CpmBucket {
     enum PriceGranularity {
         low, medium, med, high, auto, dense
     }
+
+    private static final Locale LOCALE = Locale.US;
 
     private static final EnumMap<PriceGranularity, BucketConfig> PRICE_BUCKET_CONFIGS =
             new EnumMap<>(PriceGranularity.class);
@@ -64,7 +67,7 @@ class CpmBucket {
     }
 
     private static String format(BigDecimal value) {
-        return String.format("%.2f", value);
+        return String.format(LOCALE, "%.2f", value);
     }
 
     private static class BucketConfig {

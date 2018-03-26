@@ -9,7 +9,19 @@
         "crid": "crid1",
         "dealid": "dealId1",
         "w": 300,
-        "h": 600
+        "h": 600,
+        "ext": {
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          }
+        }
       }
     }
   ]

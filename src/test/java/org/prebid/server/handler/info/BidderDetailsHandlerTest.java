@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-public class InfoBidderDetailsHandlerTest extends VertxTest {
+public class BidderDetailsHandlerTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -37,7 +37,7 @@ public class InfoBidderDetailsHandlerTest extends VertxTest {
     @Mock
     private HttpServerResponse httpResponse;
 
-    private InfoBidderDetailsHandler handler;
+    private BidderDetailsHandler handler;
 
     @Before
     public void setUp() {
@@ -53,18 +53,18 @@ public class InfoBidderDetailsHandlerTest extends VertxTest {
 
         given(metaInfo.info()).willReturn(givenBidderInfo());
 
-        handler = new InfoBidderDetailsHandler(bidderCatalog);
+        handler = new BidderDetailsHandler(bidderCatalog);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new InfoBidderDetailsHandler(null));
+        assertThatNullPointerException().isThrownBy(() -> new BidderDetailsHandler(null));
     }
 
     @Test
     public void shouldRespondWithExpectedHeaders() {
         // given
-        handler = new InfoBidderDetailsHandler(bidderCatalog);
+        handler = new BidderDetailsHandler(bidderCatalog);
 
         // when
         handler.handle(routingContext);
@@ -78,7 +78,7 @@ public class InfoBidderDetailsHandlerTest extends VertxTest {
     public void shouldRespondWithHttpStatus404IfNoBidderFound() {
         // given
         given(bidderCatalog.names()).willReturn(emptySet());
-        handler = new InfoBidderDetailsHandler(bidderCatalog);
+        handler = new BidderDetailsHandler(bidderCatalog);
 
         // when
         handler.handle(routingContext);

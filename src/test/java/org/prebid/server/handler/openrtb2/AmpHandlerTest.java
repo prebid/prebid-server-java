@@ -24,6 +24,8 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -41,11 +43,16 @@ import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.Mockito.*;
 
 public class AmpHandlerTest extends VertxTest {
 
@@ -58,6 +65,8 @@ public class AmpHandlerTest extends VertxTest {
     private ExchangeService exchangeService;
     @Mock
     private UidsCookieService uidsCookieService;
+    @Mock
+    private BidderCatalog bidderCatalog;
     @Mock
     private Metrics metrics;
 
@@ -92,8 +101,8 @@ public class AmpHandlerTest extends VertxTest {
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        ampHandler = new AmpHandler(5000, ampRequestFactory, exchangeService, uidsCookieService, metrics,
-                clock, timeoutFactory);
+        ampHandler = new AmpHandler(5000, ampRequestFactory, exchangeService, uidsCookieService,
+                singleton("bidder1"), bidderCatalog, metrics, clock, timeoutFactory);
     }
 
     @Test
@@ -172,6 +181,44 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithCustomTargetingIncluded() {
+        // given
+        given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(BidRequest.builder().build()));
+
+        final Map<String, String> targeting = new HashMap<>();
+        targeting.put("key1", "value1");
+        targeting.put("hb_cache_id_bidder1", "value2");
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder()
+                                .seat("bidder1")
+                                .bid(singletonList(Bid.builder()
+                                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, targeting),
+                                                mapper.createObjectNode())))
+                                        .build()))
+                                .build()))
+                        .build()));
+
+        final Map<String, String> customTargeting = new HashMap<>();
+        customTargeting.put("rpfl_11078", "15_tier0030");
+        final Bidder<?> bidder = mock(Bidder.class);
+        given(bidder.extractTargeting(any())).willReturn(customTargeting);
+
+        given(bidderCatalog.isValidName(anyString())).willReturn(true);
+        willReturn(bidder).given(bidderCatalog).bidderByName(anyString());
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", (String) null);
+        verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+        verify(httpResponse).putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
+        verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\"," +
+                "\"hb_cache_id_bidder1\":\"value2\"}}"));
+    }
+
+    @Test
     public void shouldRespondWithDebugInfoIncluded() {
         // given
         final BidRequest bidRequest = BidRequest.builder().id("reqId1").test(1).build();
@@ -240,11 +287,11 @@ public class AmpHandlerTest extends VertxTest {
         verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
-    private static Future<BidResponse> givenBidResponseFuture(ObjectNode extPrebid) {
+    private static Future<BidResponse> givenBidResponseFuture(ObjectNode extBid) {
         return Future.succeededFuture(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
-                                .ext(extPrebid)
+                                .ext(extBid)
                                 .build()))
                         .build()))
                 .build());

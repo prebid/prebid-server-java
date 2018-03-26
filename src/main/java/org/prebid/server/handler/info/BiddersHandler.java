@@ -10,11 +10,11 @@ import org.prebid.server.bidder.BidderCatalog;
 import java.util.Objects;
 import java.util.TreeSet;
 
-public class InfoBiddersHandler implements Handler<RoutingContext> {
+public class BiddersHandler implements Handler<RoutingContext> {
 
     private final String body;
 
-    public InfoBiddersHandler(BidderCatalog bidderCatalog) {
+    public BiddersHandler(BidderCatalog bidderCatalog) {
         body = Json.encode(new TreeSet<>(Objects.requireNonNull(bidderCatalog).names()));
     }
 
