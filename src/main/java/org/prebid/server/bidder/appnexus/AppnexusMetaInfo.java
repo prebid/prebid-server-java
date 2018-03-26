@@ -11,6 +11,6 @@ public class AppnexusMetaInfo implements MetaInfo {
     public BidderInfo info() {
         return BidderInfo.create("info@prebid.org",
                 Arrays.asList("banner", "native"),
-                Arrays.asList("banner", "video"));
+                Arrays.asList("banner", "video"), null);
     }
 }

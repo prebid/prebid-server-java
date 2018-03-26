@@ -12,12 +12,15 @@ public class BidderInfo {
 
     CapabilitiesInfo capabilities;
 
-    public static BidderInfo create(String maintainerEmail, List<String> appMediaTypes, List<String> siteMediaTypes) {
+    List<String> vendors;
+
+    public static BidderInfo create(String maintainerEmail, List<String> appMediaTypes, List<String> siteMediaTypes,
+                                    List<String> supportedVendors) {
         final MaintainerInfo maintainer = new MaintainerInfo(maintainerEmail);
         final CapabilitiesInfo capabilities = new CapabilitiesInfo(platformInfo(appMediaTypes),
                 platformInfo(siteMediaTypes));
 
-        return new BidderInfo(maintainer, capabilities);
+        return new BidderInfo(maintainer, capabilities, supportedVendors);
     }
 
     private static PlatformInfo platformInfo(List<String> mediaTypes) {

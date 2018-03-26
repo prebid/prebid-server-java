@@ -12,6 +12,6 @@ public class PulsepointMetaInfo implements MetaInfo {
     public BidderInfo info() {
         return BidderInfo.create("info@prebid.org",
                 Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"));
+                Arrays.asList("banner", "video"), null);
     }
 }

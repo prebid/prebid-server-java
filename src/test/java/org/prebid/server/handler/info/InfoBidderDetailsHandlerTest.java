@@ -13,7 +13,6 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.MetaInfo;
-import org.prebid.server.handler.info.InfoBidderDetailsHandler;
 import org.prebid.server.proto.response.BidderInfo;
 
 import static java.util.Collections.*;
@@ -100,6 +99,6 @@ public class InfoBidderDetailsHandlerTest extends VertxTest {
     }
 
     private static BidderInfo givenBidderInfo() {
-        return BidderInfo.create("test@email.org", singletonList("mediaType1"), singletonList("mediaType2"));
+        return BidderInfo.create("test@email.org", singletonList("mediaType1"), singletonList("mediaType2"), null);
     }
 }

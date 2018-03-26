@@ -12,6 +12,6 @@ public class LifestreetMetaInfo implements MetaInfo {
     public BidderInfo info() {
         return BidderInfo.create("mobile.tech@lifestreet.com",
                 Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"));
+                Arrays.asList("banner", "video"), null);
     }
 }

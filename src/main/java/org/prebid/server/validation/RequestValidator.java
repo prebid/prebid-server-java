@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -196,9 +197,7 @@ public class RequestValidator {
             throw new ValidationException("request.imp[%d] missing required field: \"id\"", index);
         }
         if (imp.getMetric() != null && !imp.getMetric().isEmpty()) {
-            throw new ValidationException(
-                    "request.imp[%d].metric is not yet supported by prebid-server. Support may be added in the future.",
-                    index);
+            validateMetrics(imp.getMetric(), index);
         }
         if (imp.getBanner() == null && imp.getVideo() == null && imp.getAudio() == null && imp.getXNative() == null) {
             throw new ValidationException(
@@ -319,6 +318,19 @@ public class RequestValidator {
     private void validateMimes(List<String> mimes, String msg, int index) throws ValidationException {
         if (CollectionUtils.isEmpty(mimes)) {
             throw new ValidationException(msg, index);
+        }
+    }
+
+    private void validateMetrics(List<Metric> metrics, int impIndex) throws ValidationException {
+        for (int i = 0; i < metrics.size(); i++) {
+            if (metrics.get(i).getType() == null || metrics.get(i).getType().isEmpty()) {
+                throw new ValidationException("Missing request.imp[%d].metric[%d].type", impIndex, i);
+            }
+
+            if (metrics.get(i).getValue() < 0.0 || metrics.get(i).getValue() > 1.0) {
+                throw new ValidationException("request.imp[%d].metric[%d].value must be in the range [0.0, 1.0]",
+                        impIndex, i);
+            }
         }
     }
 

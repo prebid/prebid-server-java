@@ -1,6 +1,5 @@
 package org.prebid.server.validation;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -184,25 +183,6 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request.imp[0] missing required field: \"id\"");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenMetricTypeIsSpecified() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .imp(singletonList(validImpBuilder()
-                        .metric(singletonList(Metric.builder().type("none")
-                                .build()))
-                        .build()))
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].metric is not yet supported by prebid-server. " +
-                        "Support may be added in the future.");
     }
 
     @Test
@@ -762,8 +742,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenPrebidBuyerIdsContainsUnknownBidder()
-            throws JsonProcessingException {
+    public void validateShouldReturnValidationMessageWhenPrebidBuyerIdsContainsUnknownBidder() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().user(User.builder()
                 .ext(mapper.valueToTree(ExtUser.of(
@@ -923,6 +902,37 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).element(0).asString().contains("request.regs.ext is invalid:");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMetricTypeNullOrEmpty() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .metric(singletonList(Metric.builder().type(null).build())).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("Missing request.imp[0].metric[0].type");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMetricValueIsNotValid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .metric(singletonList(Metric.builder().type("viewability").value(2).build())).build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0)
+                .isEqualTo("request.imp[0].metric[0].value must be in the range [0.0, 1.0]");
     }
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {

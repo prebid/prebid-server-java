@@ -315,7 +315,7 @@ public class RubiconAdapterTest extends VertxTest {
                                                 RubiconBannerExtRp.of(15, null, "text/html"))))
                                         .build())
                                 .ext(mapper.valueToTree(RubiconImpExt.of(RubiconImpExtRp.of(4001, null,
-                                        RubiconImpExtRpTrack.of("prebid", "source1_platform1_version1")))))
+                                        RubiconImpExtRpTrack.of("prebid", "source1_platform1_version1")), null)))
                                 .build()))
                         .site(Site.builder()
                                 .domain("example.com")

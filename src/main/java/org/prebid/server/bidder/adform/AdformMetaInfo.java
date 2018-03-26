@@ -17,6 +17,6 @@ public class AdformMetaInfo implements MetaInfo {
     public BidderInfo info() {
         return BidderInfo.create("scope.sspp@adform.com",
                 Collections.singletonList("banner"),
-                Collections.singletonList("banner"));
+                Collections.singletonList("banner"), null);
     }
 }

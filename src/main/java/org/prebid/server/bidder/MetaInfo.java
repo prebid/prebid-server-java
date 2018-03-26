@@ -8,7 +8,8 @@ import org.prebid.server.proto.response.BidderInfo;
 public interface MetaInfo {
 
     /**
-     * Returns bidder's related meta information like maintainer email address or supported media types.
+     * Returns bidder's related meta information like maintainer email address or supported media types and supported
+     * vendors for viewability.
      */
     BidderInfo info();
 }

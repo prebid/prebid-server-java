@@ -10,6 +10,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -25,6 +26,8 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
+import org.prebid.server.bidder.MetaInfo;
+import org.prebid.server.bidder.ViewabilityVendors;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -60,8 +63,10 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -82,10 +87,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final MultiMap headers;
+    private final Set<String> supportedVendors;
 
-    public RubiconBidder(String endpoint, String xapiUsername, String xapiPassword) {
+    public RubiconBidder(String endpoint, String xapiUsername, String xapiPassword, MetaInfo rubiconMetaInfo) {
         endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
+        supportedVendors = new HashSet<>(Objects.requireNonNull(rubiconMetaInfo).info().getVendors());
     }
 
     @Override
@@ -129,7 +136,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return "Basic " + Base64.getEncoder().encodeToString((xapiUsername + ':' + xapiPassword).getBytes());
     }
 
-    private static BidRequest createSingleRequest(Imp imp, BidRequest bidRequest) {
+    private BidRequest createSingleRequest(Imp imp, BidRequest bidRequest) {
         final ExtImpRubicon rubiconImpExt = parseRubiconExt(imp);
 
         return bidRequest.toBuilder()
@@ -151,9 +158,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Imp makeImp(Imp imp, ExtImpRubicon rubiconImpExt) {
+    private Imp makeImp(Imp imp, ExtImpRubicon rubiconImpExt) {
         final Imp.ImpBuilder builder = imp.toBuilder()
-                .ext(Json.mapper.valueToTree(makeImpExt(rubiconImpExt)));
+                .metric(makeMetrics(imp))
+                .ext(Json.mapper.valueToTree(makeImpExt(rubiconImpExt, imp)));
 
         final Video video = imp.getVideo();
         if (video != null) {
@@ -165,14 +173,49 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return builder.build();
     }
 
-    private static RubiconImpExt makeImpExt(ExtImpRubicon rubiconImpExt) {
+    private List<Metric> makeMetrics(Imp imp) {
+        final List<Metric> metrics = imp.getMetric();
+
+        if (metrics == null) {
+            return null;
+        }
+
+        final List<Metric> modifiedMetrics = new ArrayList<>();
+        for (Metric metric : metrics) {
+            if (isMetricSupported(metric)) {
+                modifiedMetrics.add(metric.toBuilder().vendor("seller-declared").build());
+            } else {
+                modifiedMetrics.add(metric);
+            }
+        }
+
+        return modifiedMetrics;
+    }
+
+    private boolean isMetricSupported(Metric metric) {
+        return supportedVendors.contains(metric.getVendor()) && metric.getType().equals("viewability");
+    }
+
+    private RubiconImpExt makeImpExt(ExtImpRubicon rubiconImpExt, Imp imp) {
+
         return RubiconImpExt.of(RubiconImpExtRp.of(rubiconImpExt.getZoneId(), makeInventory(rubiconImpExt),
-                RubiconImpExtRpTrack.of("", "")));
+                RubiconImpExtRpTrack.of("", "")), mapVendorsNamesToUrls(imp.getMetric()));
     }
 
     private static JsonNode makeInventory(ExtImpRubicon rubiconImpExt) {
         final JsonNode inventory = rubiconImpExt.getInventory();
         return inventory.isNull() ? null : inventory;
+    }
+
+    private List<String> mapVendorsNamesToUrls(List<Metric> metrics) {
+        if (metrics == null) {
+            return null;
+        }
+        List<String> vendorsUrls = metrics.stream()
+                .filter(this::isMetricSupported)
+                .map(metric -> ViewabilityVendors.valueOf(metric.getVendor()).getUrl())
+                .collect(Collectors.toList());
+        return vendorsUrls.isEmpty() ? null : vendorsUrls;
     }
 
     private static Video makeVideo(Video video, RubiconVideoParams rubiconVideoParams) {

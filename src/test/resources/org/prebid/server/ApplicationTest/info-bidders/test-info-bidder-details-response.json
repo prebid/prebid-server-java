@@ -14,5 +14,15 @@
         "video"
       ]
     }
-  }
+  },
+  "vendors": [
+    "activeview",
+    "adform",
+    "comscore",
+    "doubleverify",
+    "integralads",
+    "moat",
+    "sizemek",
+    "whiteops"
+  ]
 }

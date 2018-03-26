@@ -39,9 +39,11 @@ public class RubiconConfiguration {
     BidderDeps rubiconBidderDeps(HttpClient httpClient) {
         final Usersyncer usersyncer = new RubiconUsersyncer(usersyncUrl);
         final Adapter<?, ?> adapter = new RubiconAdapter(usersyncer, endpoint, username, password);
-        final Bidder<?> bidder = new RubiconBidder(endpoint, username, password);
+
+        RubiconMetaInfo metaInfo = new RubiconMetaInfo();
+        final Bidder<?> bidder = new RubiconBidder(endpoint, username, password, metaInfo);
         final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
 
-        return BidderDeps.of(BIDDER_NAME, new RubiconMetaInfo(), usersyncer, adapter, bidderRequester);
+        return BidderDeps.of(BIDDER_NAME, metaInfo, usersyncer, adapter, bidderRequester);
     }
 }

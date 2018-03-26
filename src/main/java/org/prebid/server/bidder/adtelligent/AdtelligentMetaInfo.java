@@ -18,6 +18,6 @@ public class AdtelligentMetaInfo implements MetaInfo {
     public BidderInfo info() {
         return BidderInfo.create("hb@adtelligent.com",
                 Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"));
+                Arrays.asList("banner", "video"), null);
     }
 }

@@ -11,6 +11,6 @@ public class SovrnMetaInfo implements MetaInfo {
     public BidderInfo info() {
         return BidderInfo.create("sovrnoss@sovrn.com",
                 Collections.singletonList("banner"),
-                Collections.singletonList("banner"));
+                Collections.singletonList("banner"), null);
     }
 }

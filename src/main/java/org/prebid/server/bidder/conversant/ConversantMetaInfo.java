@@ -12,6 +12,6 @@ public class ConversantMetaInfo implements MetaInfo {
     public BidderInfo info() {
         return BidderInfo.create("mediapsr@conversantmedia.com",
                 Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"));
+                Arrays.asList("banner", "video"), null);
     }
 }

@@ -12,6 +12,6 @@ public class PubmaticMetaInfo implements MetaInfo {
     public BidderInfo info() {
         return BidderInfo.create("header-bidding@pubmatic.com",
                 Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"));
+                Arrays.asList("banner", "video"), null);
     }
 }

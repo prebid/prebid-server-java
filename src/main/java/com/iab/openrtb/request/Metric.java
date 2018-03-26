@@ -11,7 +11,7 @@ import lombok.Value;
  * Each metric is identified by its type, reports the value of the metric,
  * and optionally identifies the source or vendor measuring the value.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Metric {
 

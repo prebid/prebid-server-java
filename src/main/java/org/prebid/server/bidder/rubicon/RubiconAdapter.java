@@ -215,7 +215,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static RubiconImpExt makeImpExt(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
         return RubiconImpExt.of(RubiconImpExtRp.of(rubiconParams.getZoneId(), makeInventory(rubiconParams),
-                makeImpExtRpTrack(preBidRequestContext)));
+                makeImpExtRpTrack(preBidRequestContext)), null);
     }
 
     private static JsonNode makeInventory(RubiconParams rubiconParams) {

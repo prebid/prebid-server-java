@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.rubicon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -10,6 +11,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
+import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -24,6 +26,7 @@ import lombok.Value;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -71,17 +74,18 @@ public class RubiconBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=prebid";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
+    private final MetaInfo rubiconMetaInfo = new RubiconMetaInfo();
 
     private RubiconBidder rubiconBidder;
 
     @Before
     public void setUp() {
-        rubiconBidder = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD);
+        rubiconBidder = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, rubiconMetaInfo);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new RubiconBidder("invalid_url", USERNAME, PASSWORD));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RubiconBidder("invalid_url", USERNAME, PASSWORD, rubiconMetaInfo));
     }
 
     @Test
@@ -127,7 +131,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
                 .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
                         mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
-                        RubiconImpExtRpTrack.of("", ""))));
+                        RubiconImpExtRpTrack.of("", "")), null));
     }
 
     @Test
@@ -228,7 +232,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14))))
                                 .build())
                         .ext(mapper.valueToTree(RubiconImpExt.of(
-                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))))
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null)))
                         .build());
     }
 
@@ -388,7 +392,7 @@ public class RubiconBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.of(
-                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))))
+                                RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")), null)))
                         .build()))
                 .build();
 
@@ -522,6 +526,41 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldProcessMetricsAndFillViewabilityVendor() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.video(Video.builder().build())
+                        .metric(asList(Metric.builder().vendor("somebody").type("viewability").value(0.9f).build(),
+                                Metric.builder().vendor("moat").type("viewability").value(0.3f).build(),
+                                Metric.builder().vendor("comscore").type("unsupported").value(0.5f).build(),
+                                Metric.builder().vendor("activeview").type("viewability").value(0.6f).build(),
+                                Metric.builder().vendor("somebody").type("unsupported").value(0.7f).build())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .flatExtracting(Imp::getMetric).doesNotContainNull()
+                .containsOnly(Metric.builder().type("viewability").value(0.9f).vendor("somebody").build(),
+                        Metric.builder().type("viewability").value(0.3f).vendor("seller-declared").build(),
+                        Metric.builder().type("unsupported").value(0.5f).vendor("comscore").build(),
+                        Metric.builder().type("viewability").value(0.6f).vendor("seller-declared").build(),
+                        Metric.builder().type("unsupported").value(0.7f).vendor("somebody").build());
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null,
+                        NullNode.getInstance(),
+                        RubiconImpExtRpTrack.of("", "")), asList("moat.com", "doubleclickbygoogle.com")));
     }
 
     private static BidRequest givenBidRequest(Function<BidRequestBuilder, BidRequestBuilder> bidRequestCustomizer,
