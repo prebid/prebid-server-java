@@ -16,10 +16,12 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 
-import javax.annotation.PostConstruct;
-
 @Configuration
 public class ApplicationConfiguration {
+
+    static {
+        ObjectMapperConfigurer.configure();
+    }
 
     @Bean
     ConversionService conversionService() {
@@ -50,10 +52,5 @@ public class ApplicationConfiguration {
             @Autowired(required = false) JdbcClient jdbcClient) {
 
         return new PrebidVerticle(vertx, router, jdbcClient, port);
-    }
-
-    @PostConstruct
-    void initializeObjectMapper() {
-        ObjectMapperConfigurer.configure();
     }
 }
