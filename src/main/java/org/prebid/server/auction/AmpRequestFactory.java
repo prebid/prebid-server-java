@@ -113,7 +113,7 @@ public class AmpRequestFactory {
                 ? bidRequest.toBuilder()
                 .ext(createExtWithDefaults(bidRequest, prebid, setDefaultTargeting, setDefaultCache))
                 .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
-                .test(setTestParam ? 1 : 0)
+                .test(setTestParam ? 1 : bidRequest.getTest())
                 .build()
                 : bidRequest;
     }

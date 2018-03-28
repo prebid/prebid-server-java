@@ -63,7 +63,7 @@ public class BidRequest {
      * Indicator of test mode in which auctions are not billable,
      * where 0 = live mode, 1 = test mode.
      */
-    int test;
+    Integer test;
 
     /**
      * Auction type, where 1 = First Price, 2 = Second Price Plus. Exchange-specific
@@ -104,7 +104,7 @@ public class BidRequest {
      * road-blocking. 0 = no or unknown, 1 = yes, the impressions offered
      * represent all that are available.
      */
-    int allimps;
+    Integer allimps;
 
     /**
      * Array of allowed currencies for bids on this bid request using ISO-4217
