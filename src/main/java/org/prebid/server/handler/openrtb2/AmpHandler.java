@@ -17,6 +17,8 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.Tuple2;
@@ -208,19 +210,19 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private static void addCorsHeaders(RoutingContext context) {
-        String originHeader = null;
+        String origin = null;
         final List<String> ampSourceOrigin = context.queryParam("__amp_source_origin");
         if (CollectionUtils.isNotEmpty(ampSourceOrigin)) {
-            originHeader = ampSourceOrigin.iterator().next();
+            origin = ampSourceOrigin.iterator().next();
         }
-        if (originHeader == null) {
+        if (origin == null) {
             // Just to be safe
-            originHeader = context.request().headers().get("Origin");
+            origin = ObjectUtils.firstNonNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
         }
 
         // Add AMP headers
         context.response()
-                .putHeader("AMP-Access-Control-Allow-Source-Origin", originHeader)
+                .putHeader("AMP-Access-Control-Allow-Source-Origin", origin)
                 .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
     }
 
