@@ -30,10 +30,8 @@
     "id": "12345",
     "buyeruid": "PM-UID"
   },
-  "test": 0,
   "at": 1,
   "tmax": 1000,
-  "allimps": 0,
   "source": {
     "fd": 1,
     "tid": "tid"

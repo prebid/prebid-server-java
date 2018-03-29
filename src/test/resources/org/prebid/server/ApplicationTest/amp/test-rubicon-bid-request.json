@@ -57,9 +57,7 @@
   "user": {
     "buyeruid": "J5VLCWQP-26-CWFT"
   },
-  "test": 0,
   "tmax": 2000,
-  "allimps": 0,
   "ext": {
     "prebid": {
       "targeting": {

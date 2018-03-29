@@ -123,7 +123,8 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         // fetch debug information from response if requested
-        final ExtResponseDebug extResponseDebug = bidRequest.getTest() == 1 ? extResponseDebugFrom(bidResponse) : null;
+        final ExtResponseDebug extResponseDebug = Objects.equals(bidRequest.getTest(), 1)
+                ? extResponseDebugFrom(bidResponse) : null;
 
         return AmpResponse.of(targeting, extResponseDebug);
     }

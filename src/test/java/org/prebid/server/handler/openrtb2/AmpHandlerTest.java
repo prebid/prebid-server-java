@@ -15,6 +15,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,7 +53,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class AmpHandlerTest extends VertxTest {
 
@@ -117,7 +120,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", (String) null);
+        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", StringUtils.EMPTY);
         verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
     }
@@ -134,7 +137,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", (String) null);
+        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", StringUtils.EMPTY);
         verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
     }
@@ -153,7 +156,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", (String) null);
+        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", StringUtils.EMPTY);
         verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
         verify(httpResponse).end(
                 startsWith("Critical error while running the auction: Critical error while unpacking AMP targets:"));
@@ -174,7 +177,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", (String) null);
+        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", StringUtils.EMPTY);
         verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
         verify(httpResponse).putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"hb_cache_id_bidder1\":\"value2\"}}"));
@@ -211,7 +214,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", (String) null);
+        verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", StringUtils.EMPTY);
         verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
         verify(httpResponse).putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\"," +
@@ -232,7 +235,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"test\":1,\"allimps\":0}}}"));
+                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"test\":1}}}"));
     }
 
     @Test

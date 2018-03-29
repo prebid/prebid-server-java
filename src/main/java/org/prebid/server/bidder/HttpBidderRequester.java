@@ -132,7 +132,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
     private BidderSeatBid toBidderSeatBid(BidRequest bidRequest, List<BidderError> previousErrors,
                                           List<HttpCall<T>> calls) {
         // If this is a test bid, capture debugging info from the requests
-        final List<ExtHttpCall> httpCalls = bidRequest.getTest() == 1
+        final List<ExtHttpCall> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? calls.stream().map(HttpBidderRequester::toExt).collect(Collectors.toList())
                 : Collections.emptyList();
 

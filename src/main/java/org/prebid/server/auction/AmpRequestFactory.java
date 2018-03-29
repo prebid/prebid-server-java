@@ -106,14 +106,15 @@ public class AmpRequestFactory {
             setDefaultCache = cache == null || cache.getBids().isNull();
         }
 
-        final String debug = context.request().getParam(DEBUG_REQUEST_PARAM);
-        final boolean setTestParam = Objects.equals(debug, "1");
+        final String debugQueryParam = context.request().getParam(DEBUG_REQUEST_PARAM);
+        final Integer test = bidRequest.getTest();
+        final boolean setTestParam = !Objects.equals(test, 1) && Objects.equals(debugQueryParam, "1");
 
         return setDefaultTargeting || setDefaultCache || setSecure || setTestParam
                 ? bidRequest.toBuilder()
                 .ext(createExtWithDefaults(bidRequest, prebid, setDefaultTargeting, setDefaultCache))
                 .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
-                .test(setTestParam ? 1 : bidRequest.getTest())
+                .test(setTestParam ? Integer.valueOf(1) : test)
                 .build()
                 : bidRequest;
     }

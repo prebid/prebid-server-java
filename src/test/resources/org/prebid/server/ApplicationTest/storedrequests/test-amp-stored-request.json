@@ -26,9 +26,7 @@
     "domain": "example.com",
     "page": "http://www.example.com"
   },
-  "test": 0,
   "tmax": 2000,
-  "allimps": 0,
   "ext": {
     "prebid": {
       "targeting": {

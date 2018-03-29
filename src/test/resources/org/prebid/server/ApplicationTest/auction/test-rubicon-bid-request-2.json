@@ -63,10 +63,8 @@
     "id": "12345",
     "buyeruid": "J5VLCWQP-26-CWFT"
   },
-  "test": 0,
   "at": 1,
   "tmax": 1000,
-  "allimps": 0,
   "source": {
     "fd": 1,
     "tid": "tid"

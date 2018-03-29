@@ -668,7 +668,7 @@ public class ExchangeService {
             errors.replaceAll((k, v) -> append(v, priceGranularityError));
         }
 
-        final Map<String, List<ExtHttpCall>> httpCalls = bidRequest.getTest() == 1
+        final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, r -> r.getSeatBid().getHttpCalls()))
                 : null;

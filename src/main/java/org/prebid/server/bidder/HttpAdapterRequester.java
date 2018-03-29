@@ -100,7 +100,7 @@ public class HttpAdapterRequester implements BidderRequester {
                 .timeout(timeout)
                 .domain(bidRequest.getSite() != null ? bidRequest.getSite().getDomain() : null)
                 .referer(bidRequest.getSite() != null ? bidRequest.getSite().getPage() : null)
-                .isDebug(bidRequest.getTest() == 1)
+                .isDebug(Objects.equals(bidRequest.getTest(), 1))
                 .build();
     }
 
