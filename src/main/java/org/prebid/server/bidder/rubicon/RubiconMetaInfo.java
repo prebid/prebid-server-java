@@ -11,12 +11,11 @@ import java.util.stream.Stream;
 
 public class RubiconMetaInfo implements MetaInfo {
 
-    @Override
-    public BidderInfo info() {
-        return BidderInfo.create("header-bidding@rubiconproject.com",
-                Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"),
-                Stream.of(
+    private BidderInfo bidderInfo;
+
+    public RubiconMetaInfo(boolean enabled) {
+        bidderInfo = BidderInfo.create(enabled, "header-bidding@rubiconproject.com",
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), Stream.of(
                         ViewabilityVendors.activeview,
                         ViewabilityVendors.adform,
                         ViewabilityVendors.comscore,
@@ -26,5 +25,10 @@ public class RubiconMetaInfo implements MetaInfo {
                         ViewabilityVendors.sizemek,
                         ViewabilityVendors.whiteops)
                         .map(ViewabilityVendors::name).collect(Collectors.toList()));
+    }
+
+    @Override
+    public BidderInfo info() {
+        return bidderInfo;
     }
 }

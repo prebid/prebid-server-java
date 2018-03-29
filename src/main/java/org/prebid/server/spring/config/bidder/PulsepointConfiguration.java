@@ -1,10 +1,13 @@
 package org.prebid.server.spring.config.bidder;
 
+import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
+import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpAdapterRequester;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.pulsepoint.PulsepointAdapter;
 import org.prebid.server.bidder.pulsepoint.PulsepointBidder;
@@ -17,9 +20,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-public class PulsepointConfiguration {
+public class PulsepointConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "pulsepoint";
+
+    @Value("${adapters.pulsepoint.enabled}")
+    private boolean enabled;
 
     @Value("${adapters.pulsepoint.endpoint}")
     private String endpoint;
@@ -32,13 +38,38 @@ public class PulsepointConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderDeps pulsepointBidderDeps(HttpAdapterConnector httpAdapterConnector) {
-        final Usersyncer usersyncer = new PulsepointUsersyncer(usersyncUrl, externalUrl);
-        final Adapter<?, ?> adapter = new PulsepointAdapter(usersyncer, endpoint);
-        final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
-                httpAdapterConnector);
+    BidderDeps pulsepointBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        return bidderDeps(httpClient, httpAdapterConnector);
+    }
 
-        return BidderDeps.of(BIDDER_NAME, new PulsepointMetaInfo(), usersyncer, new PulsepointBidder(), adapter,
-                bidderRequester);
+    @Override
+    protected String bidderName() {
+        return BIDDER_NAME;
+    }
+
+    @Override
+    protected MetaInfo createMetaInfo() {
+        return new PulsepointMetaInfo(enabled);
+    }
+
+    @Override
+    protected Usersyncer createUsersyncer() {
+        return new PulsepointUsersyncer(usersyncUrl, externalUrl);
+    }
+
+    @Override
+    protected Bidder<?> createBidder(MetaInfo metaInfo) {
+        return new PulsepointBidder();
+    }
+
+    @Override
+    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
+        return new PulsepointAdapter(usersyncer, endpoint);
+    }
+
+    @Override
+    protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
+                                                    Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
+        return new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer, httpAdapterConnector);
     }
 }

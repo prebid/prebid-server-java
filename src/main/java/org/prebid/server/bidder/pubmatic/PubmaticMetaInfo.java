@@ -8,10 +8,15 @@ import java.util.Collections;
 
 public class PubmaticMetaInfo implements MetaInfo {
 
+    private BidderInfo bidderInfo;
+
+    public PubmaticMetaInfo(boolean enabled) {
+        bidderInfo = BidderInfo.create(enabled, "header-bidding@pubmatic.com",
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+    }
+
     @Override
     public BidderInfo info() {
-        return BidderInfo.create("header-bidding@pubmatic.com",
-                Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"), null);
+        return bidderInfo;
     }
 }

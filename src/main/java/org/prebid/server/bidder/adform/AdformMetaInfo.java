@@ -10,13 +10,18 @@ import java.util.Collections;
  */
 public class AdformMetaInfo implements MetaInfo {
 
+    private BidderInfo bidderInfo;
+
+    public AdformMetaInfo(boolean enabled) {
+        bidderInfo = BidderInfo.create(enabled, "scope.sspp@adform.com",
+                Collections.singletonList("banner"), Collections.singletonList("banner"), null);
+    }
+
     /**
      * Returns Adform bidder related meta information: maintainer email address and supported media types.
      */
     @Override
     public BidderInfo info() {
-        return BidderInfo.create("scope.sspp@adform.com",
-                Collections.singletonList("banner"),
-                Collections.singletonList("banner"), null);
+        return bidderInfo;
     }
 }

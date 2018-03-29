@@ -7,10 +7,15 @@ import java.util.Collections;
 
 public class SovrnMetaInfo implements MetaInfo {
 
+    private BidderInfo bidderInfo;
+
+    public SovrnMetaInfo(boolean enabled) {
+        bidderInfo = BidderInfo.create(enabled, "sovrnoss@sovrn.com",
+                Collections.singletonList("banner"), Collections.singletonList("banner"), null);
+    }
+
     @Override
     public BidderInfo info() {
-        return BidderInfo.create("sovrnoss@sovrn.com",
-                Collections.singletonList("banner"),
-                Collections.singletonList("banner"), null);
+        return bidderInfo;
     }
 }

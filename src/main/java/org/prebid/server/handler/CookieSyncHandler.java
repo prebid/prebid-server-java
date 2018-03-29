@@ -9,8 +9,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.metric.MetricName;
@@ -73,14 +73,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 ? bidderCatalog.names() : biddersFromRequest;
 
         final List<BidderStatus> bidderStatuses = biddersToSync.stream()
-                .filter(bidderCatalog::isValidName)
-                .map(bidderName -> Tuple2.of(bidderName, bidderCatalog.usersyncerByName(bidderName)))
-                .filter(tuple2 -> !uidsCookie.hasLiveUidFrom(tuple2.getRight().cookieFamilyName()))
-                .map(bidderAndUsersyncer -> BidderStatus.builder()
-                        .noCookie(true)
-                        .bidder(bidderAndUsersyncer.getLeft())
-                        .usersync(bidderAndUsersyncer.getRight().usersyncInfo())
-                        .build())
+                .map(bidderName -> bidderStatusFor(bidderName, uidsCookie))
+                .filter(Objects::nonNull) // skip bidder with live Uid
                 .collect(Collectors.toList());
 
         final CookieSyncResponse response = CookieSyncResponse.of(uidsCookie.hasLiveUids() ? "ok" : "no_cookie",
@@ -89,5 +83,37 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         context.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .end(Json.encode(response));
+    }
+
+    private BidderStatus bidderStatusFor(String bidderName, UidsCookie uidsCookie) {
+        final BidderStatus result;
+
+        if (!bidderCatalog.isValidName(bidderName)) {
+            result = bidderStatusBuilder(bidderName)
+                    .error("Unsupported bidder")
+                    .build();
+        } else if (!bidderCatalog.isActive(bidderName)) {
+            result = bidderStatusBuilder(bidderName)
+                    .error(String.format("%s is not configured properly on this Prebid Server deploy. "
+                            + "If you believe this should work, contact the company hosting the service "
+                            + "and tell them to check their configuration.", bidderName))
+                    .build();
+        } else {
+            final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderName);
+            if (!uidsCookie.hasLiveUidFrom(usersyncer.cookieFamilyName())) {
+                result = bidderStatusBuilder(bidderName)
+                        .noCookie(true)
+                        .usersync(usersyncer.usersyncInfo())
+                        .build();
+            } else {
+                result = null;
+            }
+        }
+
+        return result;
+    }
+
+    private static BidderStatus.BidderStatusBuilder bidderStatusBuilder(String bidderName) {
+        return BidderStatus.builder().bidder(bidderName);
     }
 }

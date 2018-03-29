@@ -8,10 +8,15 @@ import java.util.Collections;
 
 public class ConversantMetaInfo implements MetaInfo {
 
+    private BidderInfo bidderInfo;
+
+    public ConversantMetaInfo(boolean enabled) {
+        bidderInfo = BidderInfo.create(enabled, "mediapsr@conversantmedia.com",
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+    }
+
     @Override
     public BidderInfo info() {
-        return BidderInfo.create("mediapsr@conversantmedia.com",
-                Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"), null);
+        return bidderInfo;
     }
 }

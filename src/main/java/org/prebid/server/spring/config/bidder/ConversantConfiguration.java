@@ -1,10 +1,13 @@
 package org.prebid.server.spring.config.bidder;
 
+import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
+import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpAdapterRequester;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.conversant.ConversantAdapter;
 import org.prebid.server.bidder.conversant.ConversantBidder;
@@ -17,9 +20,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-public class ConversantConfiguration {
+public class ConversantConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "conversant";
+
+    @Value("${adapters.conversant.enabled}")
+    private boolean enabled;
 
     @Value("${adapters.conversant.endpoint}")
     private String endpoint;
@@ -32,13 +38,38 @@ public class ConversantConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderDeps conversantBidderDeps(HttpAdapterConnector httpAdapterConnector) {
-        final Usersyncer usersyncer = new ConversantUsersyncer(usersyncUrl, externalUrl);
-        final Adapter<?, ?> adapter = new ConversantAdapter(usersyncer, endpoint);
-        final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
-                httpAdapterConnector);
+    BidderDeps conversantBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        return bidderDeps(httpClient, httpAdapterConnector);
+    }
 
-        return BidderDeps.of(BIDDER_NAME, new ConversantMetaInfo(), usersyncer, new ConversantBidder(), adapter,
-                bidderRequester);
+    @Override
+    protected String bidderName() {
+        return BIDDER_NAME;
+    }
+
+    @Override
+    protected MetaInfo createMetaInfo() {
+        return new ConversantMetaInfo(enabled);
+    }
+
+    @Override
+    protected Usersyncer createUsersyncer() {
+        return new ConversantUsersyncer(usersyncUrl, externalUrl);
+    }
+
+    @Override
+    protected Bidder<?> createBidder(MetaInfo metaInfo) {
+        return new ConversantBidder();
+    }
+
+    @Override
+    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
+        return new ConversantAdapter(usersyncer, endpoint);
+    }
+
+    @Override
+    protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
+                                                    Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
+        return new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer, httpAdapterConnector);
     }
 }

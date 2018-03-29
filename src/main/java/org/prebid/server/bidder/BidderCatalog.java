@@ -35,6 +35,13 @@ public class BidderCatalog {
     }
 
     /**
+     * Tells if given bidder is enabled and ready for auction.
+     */
+    public boolean isActive(String name) {
+        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getMetaInfo().info().isEnabled();
+    }
+
+    /**
      * Tells if adapter with given name exists.
      */
     public boolean isValidAdapterName(String name) {

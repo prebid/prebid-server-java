@@ -279,7 +279,7 @@ public class ExchangeService {
     }
 
     /**
-     * Returns the known BidderName associated with bidder, if bidder is an alias.
+     * Returns the name associated with bidder if bidder is an alias.
      * If it's not an alias, the bidder is returned.
      */
     private String resolveBidder(String bidder, Map<String, String> aliases) {
@@ -345,7 +345,7 @@ public class ExchangeService {
      * Checks if bidder name is valid in case when bidder can also be alias name.
      */
     private boolean isValidBidder(String bidder, Map<String, String> aliases) {
-        return (bidderCatalog.isValidName(bidder)) || aliases.containsKey(bidder);
+        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
     }
 
     /**

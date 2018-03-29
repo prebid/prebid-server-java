@@ -5,7 +5,9 @@ import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
+import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.rubicon.RubiconAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
@@ -18,9 +20,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-public class RubiconConfiguration {
+public class RubiconConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "rubicon";
+
+    @Value("${adapters.rubicon.enabled}")
+    private boolean enabled;
 
     @Value("${adapters.rubicon.endpoint}")
     private String endpoint;
@@ -36,13 +41,38 @@ public class RubiconConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderDeps rubiconBidderDeps(HttpClient httpClient) {
-        final Usersyncer usersyncer = new RubiconUsersyncer(usersyncUrl);
-        final RubiconMetaInfo metaInfo = new RubiconMetaInfo();
-        final Bidder<?> bidder = new RubiconBidder(endpoint, username, password, metaInfo);
-        final Adapter<?, ?> adapter = new RubiconAdapter(usersyncer, endpoint, username, password);
-        final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
+    BidderDeps rubiconBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        return bidderDeps(httpClient, httpAdapterConnector);
+    }
 
-        return BidderDeps.of(BIDDER_NAME, metaInfo, usersyncer, bidder, adapter, bidderRequester);
+    @Override
+    public String bidderName() {
+        return BIDDER_NAME;
+    }
+
+    @Override
+    public MetaInfo createMetaInfo() {
+        return new RubiconMetaInfo(enabled);
+    }
+
+    @Override
+    public Usersyncer createUsersyncer() {
+        return new RubiconUsersyncer(usersyncUrl);
+    }
+
+    @Override
+    protected Bidder<?> createBidder(MetaInfo metaInfo) {
+        return new RubiconBidder(endpoint, username, password, metaInfo);
+    }
+
+    @Override
+    public Adapter createAdapter(Usersyncer usersyncer) {
+        return new RubiconAdapter(usersyncer, endpoint, username, password);
+    }
+
+    @Override
+    protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
+                                                    Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
+        return new HttpBidderRequester<>(bidder, httpClient);
     }
 }

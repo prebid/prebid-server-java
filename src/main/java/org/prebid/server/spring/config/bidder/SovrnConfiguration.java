@@ -5,7 +5,9 @@ import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
+import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.sovrn.SovrnAdapter;
 import org.prebid.server.bidder.sovrn.SovrnBidder;
@@ -18,9 +20,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-public class SovrnConfiguration {
+public class SovrnConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "sovrn";
+
+    @Value("${adapters.sovrn.enabled}")
+    private boolean enabled;
 
     @Value("${adapters.sovrn.endpoint}")
     private String endpoint;
@@ -33,12 +38,38 @@ public class SovrnConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderDeps sovrnBidderDeps(HttpClient httpClient) {
-        final Usersyncer usersyncer = new SovrnUsersyncer(usersyncUrl, externalUrl);
-        final Bidder<?> bidder = new SovrnBidder(endpoint);
-        final Adapter<?, ?> adapter = new SovrnAdapter(usersyncer, endpoint);
-        final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
+    BidderDeps sovrnBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        return bidderDeps(httpClient, httpAdapterConnector);
+    }
 
-        return BidderDeps.of(BIDDER_NAME, new SovrnMetaInfo(), usersyncer, bidder, adapter, bidderRequester);
+    @Override
+    protected String bidderName() {
+        return BIDDER_NAME;
+    }
+
+    @Override
+    protected MetaInfo createMetaInfo() {
+        return new SovrnMetaInfo(enabled);
+    }
+
+    @Override
+    protected Usersyncer createUsersyncer() {
+        return new SovrnUsersyncer(usersyncUrl, externalUrl);
+    }
+
+    @Override
+    protected Bidder<?> createBidder(MetaInfo metaInfo) {
+        return new SovrnBidder(endpoint);
+    }
+
+    @Override
+    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
+        return new SovrnAdapter(usersyncer, endpoint);
+    }
+
+    @Override
+    protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
+                                                    Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
+        return new HttpBidderRequester<>(bidder, httpClient);
     }
 }

@@ -7,10 +7,15 @@ import java.util.Arrays;
 
 public class AppnexusMetaInfo implements MetaInfo {
 
+    private BidderInfo bidderInfo;
+
+    public AppnexusMetaInfo(boolean enabled) {
+        bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
+                Arrays.asList("banner", "native"), Arrays.asList("banner", "video"), null);
+    }
+
     @Override
     public BidderInfo info() {
-        return BidderInfo.create("info@prebid.org",
-                Arrays.asList("banner", "native"),
-                Arrays.asList("banner", "video"), null);
+        return bidderInfo;
     }
 }

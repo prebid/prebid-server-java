@@ -5,7 +5,9 @@ import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
+import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.adform.AdformAdapter;
 import org.prebid.server.bidder.adform.AdformBidder;
@@ -18,9 +20,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-public class AdformConfiguration {
+public class AdformConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "adform";
+
+    @Value("${adapters.adform.enabled}")
+    private boolean enabled;
 
     @Value("${adapters.adform.endpoint}")
     private String endpoint;
@@ -33,12 +38,38 @@ public class AdformConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderDeps adformBidderDeps(HttpClient httpClient) {
-        final Usersyncer usersyncer = new AdformUsersyncer(usersyncUrl, externalUrl);
-        final Bidder<Void> bidder = new AdformBidder(endpoint);
-        final Adapter<?, ?> adapter = new AdformAdapter(usersyncer, endpoint);
-        final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
+    BidderDeps adformBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        return bidderDeps(httpClient, httpAdapterConnector);
+    }
 
-        return BidderDeps.of(BIDDER_NAME, new AdformMetaInfo(), usersyncer, bidder, adapter, bidderRequester);
+    @Override
+    protected String bidderName() {
+        return BIDDER_NAME;
+    }
+
+    @Override
+    protected MetaInfo createMetaInfo() {
+        return new AdformMetaInfo(enabled);
+    }
+
+    @Override
+    protected Usersyncer createUsersyncer() {
+        return new AdformUsersyncer(usersyncUrl, externalUrl);
+    }
+
+    @Override
+    protected Bidder<?> createBidder(MetaInfo metaInfo) {
+        return new AdformBidder(endpoint);
+    }
+
+    @Override
+    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
+        return new AdformAdapter(usersyncer, endpoint);
+    }
+
+    @Override
+    protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
+                                                    Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
+        return new HttpBidderRequester<>(bidder, httpClient);
     }
 }

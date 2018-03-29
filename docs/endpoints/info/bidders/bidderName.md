@@ -11,6 +11,7 @@ This endpoint returns JSON like:
 
 ```
 {
+  "enabled": true,
   "maintainer": {
     "email": "info@prebid.org"
   },
@@ -39,12 +40,12 @@ This endpoint returns JSON like:
 
 The fields hold the following information:
 
+- `enabled`: A property to indicate the bidder should be active and takes part in auction. Can be `true` or `false`.
 - `maintainer.email`: A contact email for the Bidder's maintainer. In general, Bidder bugs should be logged as [issues](https://github.com/prebid/prebid-server-java/issues)... but this contact email may be useful in case of emergency.
 - `capabilities.app.mediaTypes`: A list of media types this Bidder supports from Mobile Apps.
 - `capabilities.site.mediaTypes`: A list of media types this Bidder supports from Web pages.
+- `vendors` : A list of vendors this Bidder supports for viewability scores.
 
 If `capabilities.app` or `capabilities.site` do not exist, then this Bidder does not support that platform.
 OpenRTB Requests which define a `request.app` or `request.site` property will fail if a
 `request.imp[i].ext.{bidderName}` exists for a Bidder which doesn't support them.
-
-`vendors` : A list of vendors this Bidder supports for viewability scores.

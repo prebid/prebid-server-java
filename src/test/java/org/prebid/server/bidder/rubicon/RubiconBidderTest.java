@@ -76,7 +76,8 @@ public class RubiconBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=prebid";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
-    private final MetaInfo rubiconMetaInfo = new RubiconMetaInfo();
+
+    private final MetaInfo rubiconMetaInfo = new RubiconMetaInfo(true);
 
     private RubiconBidder rubiconBidder;
 

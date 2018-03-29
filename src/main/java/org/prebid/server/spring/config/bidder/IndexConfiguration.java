@@ -1,10 +1,13 @@
 package org.prebid.server.spring.config.bidder;
 
+import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
+import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpAdapterRequester;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.index.IndexAdapter;
 import org.prebid.server.bidder.index.IndexBidder;
@@ -12,16 +15,17 @@ import org.prebid.server.bidder.index.IndexMetaInfo;
 import org.prebid.server.bidder.index.IndexUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-@ConditionalOnProperty(name = "adapters.indexexchange.endpoint")
-public class IndexConfiguration {
+public class IndexConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "indexExchange";
+
+    @Value("${adapters.indexexchange.enabled}")
+    private boolean enabled;
 
     @Value("${adapters.indexexchange.endpoint}")
     private String endpoint;
@@ -31,12 +35,38 @@ public class IndexConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderDeps indexBidderDeps(HttpAdapterConnector httpAdapterConnector) {
-        final Usersyncer usersyncer = new IndexUsersyncer(usersyncUrl);
-        final Adapter<?, ?> adapter = new IndexAdapter(usersyncer, endpoint);
-        final BidderRequester bidderRequester = new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer,
-                httpAdapterConnector);
+    BidderDeps indexexchangeBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        return bidderDeps(httpClient, httpAdapterConnector);
+    }
 
-        return BidderDeps.of(BIDDER_NAME, new IndexMetaInfo(), usersyncer, new IndexBidder(), adapter, bidderRequester);
+    @Override
+    protected String bidderName() {
+        return BIDDER_NAME;
+    }
+
+    @Override
+    protected MetaInfo createMetaInfo() {
+        return new IndexMetaInfo(enabled);
+    }
+
+    @Override
+    protected Usersyncer createUsersyncer() {
+        return new IndexUsersyncer(usersyncUrl);
+    }
+
+    @Override
+    protected Bidder<?> createBidder(MetaInfo metaInfo) {
+        return new IndexBidder();
+    }
+
+    @Override
+    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
+        return new IndexAdapter(usersyncer, endpoint);
+    }
+
+    @Override
+    protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
+                                                    Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
+        return new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer, httpAdapterConnector);
     }
 }

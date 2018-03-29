@@ -126,18 +126,18 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext) {
         final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
         return preBidRequestContext.getAdapterRequests().stream()
-                .filter(bidder -> bidderCatalog.isValidAdapterName(bidder.getBidderCode()))
-                .peek(bidder -> updateAdapterRequestMetrics(bidder.getBidderCode(), accountId))
-                .map(bidder -> httpAdapterConnector.call(bidderCatalog.adapterByName(bidder.getBidderCode()),
-                        bidderCatalog.usersyncerByName(bidder.getBidderCode()), bidder, preBidRequestContext))
+                .filter(ar -> bidderCatalog.isValidAdapterName(ar.getBidderCode()))
+                .peek(ar -> updateAdapterRequestMetrics(ar.getBidderCode(), accountId))
+                .map(ar -> httpAdapterConnector.call(bidderCatalog.adapterByName(ar.getBidderCode()),
+                        bidderCatalog.usersyncerByName(ar.getBidderCode()), ar, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
     private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
                                                  List<AdapterResponse> adapterResponses) {
         adapterResponses.stream()
-                .filter(br -> StringUtils.isNotBlank(br.getBidderStatus().getError()))
-                .forEach(br -> updateErrorMetrics(br, preBidRequestContext));
+                .filter(ar -> StringUtils.isNotBlank(ar.getBidderStatus().getError()))
+                .forEach(ar -> updateErrorMetrics(ar, preBidRequestContext));
 
         final List<BidderStatus> bidderStatuses = Stream.concat(
                 adapterResponses.stream()
@@ -147,9 +147,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toList());
 
         final List<Bid> bids = adapterResponses.stream()
-                .filter(br -> StringUtils.isBlank(br.getBidderStatus().getError()))
-                .peek(br -> updateBidResultMetrics(br, preBidRequestContext))
-                .flatMap(br -> br.getBids().stream())
+                .filter(ar -> StringUtils.isBlank(ar.getBidderStatus().getError()))
+                .peek(ar -> updateBidResultMetrics(ar, preBidRequestContext))
+                .flatMap(ar -> ar.getBids().stream())
                 .collect(Collectors.toList());
 
         return PreBidResponse.builder()

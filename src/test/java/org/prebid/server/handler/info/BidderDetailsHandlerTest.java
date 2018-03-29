@@ -94,11 +94,12 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
+                eq("{\"enabled\":true,\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
                         + "{\"app\":{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}"));
     }
 
     private static BidderInfo givenBidderInfo() {
-        return BidderInfo.create("test@email.org", singletonList("mediaType1"), singletonList("mediaType2"), null);
+        return BidderInfo.create(true, "test@email.org",
+                singletonList("mediaType1"), singletonList("mediaType2"), null);
     }
 }

@@ -5,7 +5,9 @@ import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
+import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.appnexus.AppnexusAdapter;
 import org.prebid.server.bidder.appnexus.AppnexusBidder;
@@ -18,9 +20,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-public class AppnexusConfiguration {
+public class AppnexusConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "appnexus";
+
+    @Value("${adapters.appnexus.enabled}")
+    private boolean enabled;
 
     @Value("${adapters.appnexus.endpoint}")
     private String endpoint;
@@ -33,12 +38,38 @@ public class AppnexusConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    BidderDeps appnexusBidderDeps(HttpClient httpClient) {
-        final Usersyncer usersyncer = new AppnexusUsersyncer(usersyncUrl, externalUrl);
-        final Bidder<?> bidder = new AppnexusBidder(endpoint);
-        final Adapter<?, ?> adapter = new AppnexusAdapter(usersyncer, endpoint);
-        final BidderRequester bidderRequester = new HttpBidderRequester<>(bidder, httpClient);
+    BidderDeps appnexusBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        return bidderDeps(httpClient, httpAdapterConnector);
+    }
 
-        return BidderDeps.of(BIDDER_NAME, new AppnexusMetaInfo(), usersyncer, bidder, adapter, bidderRequester);
+    @Override
+    protected String bidderName() {
+        return BIDDER_NAME;
+    }
+
+    @Override
+    protected MetaInfo createMetaInfo() {
+        return new AppnexusMetaInfo(enabled);
+    }
+
+    @Override
+    protected Usersyncer createUsersyncer() {
+        return new AppnexusUsersyncer(usersyncUrl, externalUrl);
+    }
+
+    @Override
+    protected Bidder<?> createBidder(MetaInfo metaInfo) {
+        return new AppnexusBidder(endpoint);
+    }
+
+    @Override
+    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
+        return new AppnexusAdapter(usersyncer, endpoint);
+    }
+
+    @Override
+    protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
+                                                    Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
+        return new HttpBidderRequester<>(bidder, httpClient);
     }
 }

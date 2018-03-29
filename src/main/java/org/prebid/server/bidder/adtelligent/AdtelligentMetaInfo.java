@@ -11,13 +11,18 @@ import java.util.Collections;
  */
 public class AdtelligentMetaInfo implements MetaInfo {
 
+    private BidderInfo bidderInfo;
+
+    public AdtelligentMetaInfo(boolean enabled) {
+        bidderInfo = BidderInfo.create(enabled, "hb@adtelligent.com",
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+    }
+
     /**
      * Returns Adtelligent bidder related meta information: maintainer email address and supported media types.
      */
     @Override
     public BidderInfo info() {
-        return BidderInfo.create("hb@adtelligent.com",
-                Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"), null);
+        return bidderInfo;
     }
 }

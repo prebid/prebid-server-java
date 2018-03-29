@@ -8,10 +8,15 @@ import java.util.Collections;
 
 public class PulsepointMetaInfo implements MetaInfo {
 
+    private BidderInfo bidderInfo;
+
+    public PulsepointMetaInfo(boolean enabled) {
+        bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+    }
+
     @Override
     public BidderInfo info() {
-        return BidderInfo.create("info@prebid.org",
-                Collections.singletonList("banner"),
-                Arrays.asList("banner", "video"), null);
+        return bidderInfo;
     }
 }

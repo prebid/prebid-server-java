@@ -34,8 +34,7 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -56,17 +55,18 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private RubiconUsersyncer rubiconUsersyncer;
-    @Mock
-    private AppnexusUsersyncer appnexusUsersyncer;
-    @Mock
     private Metrics metrics;
+
+    private CookieSyncHandler cookieSyncHandler;
+
     @Mock
     private RoutingContext routingContext;
     @Mock
     private HttpServerResponse httpResponse;
-
-    private CookieSyncHandler cookieSyncHandler;
+    @Mock
+    private RubiconUsersyncer rubiconUsersyncer;
+    @Mock
+    private AppnexusUsersyncer appnexusUsersyncer;
 
     @Before
     public void setUp() {
@@ -163,6 +163,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, APPNEXUS))));
 
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
         givenUsersyncersReturningFamilyName();
 
         final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.of("http://adnxsexample.com", "redirect", false);
@@ -186,6 +188,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.of(null)));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
 
         givenUsersyncersReturningFamilyName();
         final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.of("http://adnxsexample.com", "redirect", false);
@@ -214,6 +218,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         uids.put(APPNEXUS_COOKIE, UidWithExpiry.live("12345"));
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, APPNEXUS))));
 
@@ -232,7 +238,6 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
         uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
-        uids.put(APPNEXUS_COOKIE, UidWithExpiry.live("12345"));
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
 
         given(routingContext.getBody())
@@ -240,6 +245,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         givenUsersyncersReturningFamilyName();
 
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isValidName("unsupported")).willReturn(false);
 
         // when
@@ -247,7 +253,42 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("ok", emptyList()));
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1)
+                .extracting(BidderStatus::getBidder, BidderStatus::getError)
+                .containsOnly(tuple("unsupported", "Unsupported bidder"));
+    }
+
+    @Test
+    public void shouldTolerateDisabledBidder() throws IOException {
+        // given
+        final Map<String, UidWithExpiry> uids = new HashMap<>();
+        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, "disabled"))));
+
+        givenUsersyncersReturningFamilyName();
+
+        given(bidderCatalog.isValidName(RUBICON)).willReturn(true);
+        given(bidderCatalog.isValidName("disabled")).willReturn(true);
+
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        given(bidderCatalog.isActive("disabled")).willReturn(false);
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1)
+                .extracting(BidderStatus::getBidder, BidderStatus::getError)
+                .containsOnly(tuple("disabled",
+                        "disabled is not configured properly on this Prebid Server deploy. "
+                                + "If you believe this should work, contact the company hosting the service and tell "
+                                + "them to check their configuration."));
     }
 
     @Test
@@ -259,6 +300,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS))));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
 
         givenUsersyncersReturningFamilyName();
 

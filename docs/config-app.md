@@ -31,18 +31,17 @@ This time will be subtracted from global timeout.
 
 ## Amp
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
+- `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
 
-## AMP
-- `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
-
-There are two typical keys:
+There are several typical keys:
+- `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
 - `adapters.<BIDDER_NAME>.usersync-url` - the url for synchronizing UIDs cookie.
 
-But feel free to add additional specific bidder options.
+But feel free to add additional bidder's specific options.
 
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.

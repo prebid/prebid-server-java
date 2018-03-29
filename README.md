@@ -35,6 +35,7 @@ To start the Prebid Server you need to do the following steps:
 ```yaml
 adapters:
   rubicon:
+    enabled: true
     XAPI.Username: user1
     XAPI.Password: password1
 metrics:

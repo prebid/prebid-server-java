@@ -4,7 +4,6 @@ Configuration is handled by [Spring Boot](https://docs.spring.io/spring-boot/doc
 which supports properties files, YAML files, environment variables and command-line arguments for setting config values.
 
 As a general rule, Prebid Server will immediately fails on startup if any of required properties is missing or invalid.
-The exception is IndexExchange and Facebook bidders configuration will inform you during starting in logs in case of invalid configuration.
 
 The next sections describes how to set up project configuration.
 
@@ -23,8 +22,8 @@ metrics:
   interval: 60
 settings:
   type: mysql
-  stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN %ID_LIST%
-  amp-stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN %ID_LIST%
+  stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN (%ID_LIST%)
+  amp-stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN (%ID_LIST%)
 ```
 If some property is missed in `prebid-config.yaml` application will look for it 
 in `src/main/resources/application.yaml` file.

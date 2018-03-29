@@ -53,7 +53,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -392,7 +391,7 @@ public class AuctionHandlerTest extends VertxTest {
         final List<AdUnitBid> adUnitBids = singletonList(AdUnitBid.builder()
                 .adUnitCode("adUnitCode1")
                 .bidId("bidId1")
-                .sizes(Collections.singletonList(Format.builder().w(100).h(200).build()))
+                .sizes(singletonList(Format.builder().w(100).h(200).build()))
                 .build());
         final List<AdapterRequest> adapterRequests = singletonList(AdapterRequest.of(RUBICON, adUnitBids));
 

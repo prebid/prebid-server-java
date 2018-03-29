@@ -197,8 +197,8 @@ settings:
   host: localhost:5432
   user: db-username
   dbname: database-name
-  stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN %ID_LIST%;
-  amp-stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN %ID_LIST%;
+  stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN (%ID_LIST%)
+  amp-stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN (%ID_LIST%)
 ```
 
 For MySQL:
