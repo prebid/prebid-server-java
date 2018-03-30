@@ -1,6 +1,9 @@
 package org.prebid.server.spring.config.bidder;
 
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -22,6 +25,8 @@ import org.springframework.context.annotation.Scope;
 @Configuration
 public class FacebookConfiguration extends BidderConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(FacebookConfiguration.class);
+
     private static final String BIDDER_NAME = "audienceNetwork";
 
     @Value("${adapters.facebook.enabled}")
@@ -33,15 +38,19 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Value("${adapters.facebook.nonSecureEndpoint}")
     private String nonSecureEndpoint;
 
-    @Value("${adapters.facebook.usersync-url}")
+    @Value("${adapters.facebook.usersync-url:#{null}}")
     private String usersyncUrl;
 
-    @Value("${adapters.facebook.platformId}")
+    @Value("${adapters.facebook.platformId:#{null}}")
     private String platformId;
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps facebookBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        if (enabled && (usersyncUrl == null || platformId == null)) {
+            throw new RuntimeException(String.format("%s is enabled but has missing required configuration properties. "
+                    + "Please review configuration.", BIDDER_NAME));
+        }
         return bidderDeps(httpClient, httpAdapterConnector);
     }
 
@@ -57,7 +66,8 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new FacebookUsersyncer(usersyncUrl);
+        // FIXME: we need to add DisabledUsersyncer to avoid NPE
+        return new FacebookUsersyncer(usersyncUrl == null ? StringUtils.EMPTY : usersyncUrl);
     }
 
     @Override

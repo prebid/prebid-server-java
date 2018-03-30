@@ -306,9 +306,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 clock.millis() - requestStarted));
     }
 
-    private void updateAdapterRequestMetrics(String bidderCode, String accountId) {
-        metrics.forAdapter(bidderCode).incCounter(MetricName.requests);
-        metrics.forAccount(accountId).forAdapter(bidderCode).incCounter(MetricName.requests);
+    private void updateAdapterRequestMetrics(String bidder, String accountId) {
+        metrics.forAdapter(bidder).incCounter(MetricName.requests);
+        metrics.forAccount(accountId).forAdapter(bidder).incCounter(MetricName.requests);
     }
 
     private void updateResponseTimeMetrics(BidderStatus bidderStatus, PreBidRequestContext preBidRequestContext) {

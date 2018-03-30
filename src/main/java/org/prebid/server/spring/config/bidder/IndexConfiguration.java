@@ -27,7 +27,7 @@ public class IndexConfiguration extends BidderConfiguration {
     @Value("${adapters.indexexchange.enabled}")
     private boolean enabled;
 
-    @Value("${adapters.indexexchange.endpoint}")
+    @Value("${adapters.indexexchange.endpoint:#{null}}")
     private String endpoint;
 
     @Value("${adapters.indexexchange.usersync-url}")
@@ -36,6 +36,10 @@ public class IndexConfiguration extends BidderConfiguration {
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps indexexchangeBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        if (enabled && endpoint == null) {
+            throw new RuntimeException(String.format("%s is enabled but has missing required configuration properties. "
+                    + "Please review configuration.", BIDDER_NAME));
+        }
         return bidderDeps(httpClient, httpAdapterConnector);
     }
 
