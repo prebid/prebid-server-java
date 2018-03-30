@@ -10,6 +10,7 @@ import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -186,12 +187,20 @@ public class StoredRequestProcessor {
      */
     private <K> Map<K, String> mapStoredRequestHolderToStoredRequestId(
             List<K> storedRequestHolders, Function<K, ExtStoredRequest> storedRequestExtractor) {
+
+        if (CollectionUtils.isEmpty(storedRequestHolders)) {
+            return Collections.emptyMap();
+        }
+
         final Map<K, String> holderToPreBidRequest = new HashMap<>();
         final List<String> errors = new ArrayList<>();
+
         for (K storedRequestHolder : storedRequestHolders) {
             final ExtStoredRequest extStoredRequest = storedRequestExtractor.apply(storedRequestHolder);
+
             if (extStoredRequest != null) {
                 final String storedRequestId = extStoredRequest.getId();
+
                 if (storedRequestId != null) {
                     holderToPreBidRequest.put(storedRequestHolder, storedRequestId);
                 } else {
@@ -199,9 +208,11 @@ public class StoredRequestProcessor {
                 }
             }
         }
+
         if (errors.size() > 0) {
             throw new InvalidRequestException(errors);
         }
+
         return holderToPreBidRequest;
     }
 
