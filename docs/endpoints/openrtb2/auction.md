@@ -126,6 +126,7 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
 ```
 {
   "pricegraularity": "One of ['low', 'med', 'high', 'auto', 'dense']", // Required property.
+  "includewinners": false // Optional param defaulting to true
 }
 ```
 
@@ -140,7 +141,7 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
 ```
 
 The winning bid for each `request.imp[i]` will also contain `hb_bidder`, `hb_size`, and `hb_pb`
-(with _no_ {bidderName} suffix).
+(with _no_ {bidderName} suffix). To prevent these keys, set `request.ext.prebid.targeting.includeWinners` to false.
 
 #### Cookie syncs
 

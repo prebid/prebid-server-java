@@ -130,7 +130,7 @@ public class HttpAdapterRequester implements BidderRequester {
      * Creates accountId from {@link BidRequest} based on {@link com.iab.openrtb.request.Publisher} id from
      * {@link Site} or {@link App}. In case accountId was not found {@link InvalidRequestException} will be thrown.
      */
-    private String toAccountId(BidRequest bidRequest) {
+    private static String toAccountId(BidRequest bidRequest) {
         final Site site = bidRequest.getSite();
         if (site != null && site.getPublisher() != null && StringUtils.isNotEmpty(site.getPublisher().getId())) {
             return site.getPublisher().getId();
@@ -147,7 +147,7 @@ public class HttpAdapterRequester implements BidderRequester {
      * Creates transactionId from {@link Source}. In case transactionId was not found, {@link InvalidRequestException}
      * will be thrown.
      */
-    private String toTransactionId(Source source) {
+    private static String toTransactionId(Source source) {
         if (source != null && StringUtils.isNotEmpty(source.getTid())) {
             return source.getTid();
         }
@@ -158,7 +158,7 @@ public class HttpAdapterRequester implements BidderRequester {
      * Calculates secure type from {@link List<Imp>}. Values of secure in imps should be same, 0 or 1. If different
      * values found {@link InvalidRequestException} will be thrown.
      */
-    private Integer toSecure(List<Imp> imps) {
+    private static Integer toSecure(List<Imp> imps) {
         final List<Integer> secureValues = imps.stream()
                 .filter(Objects::nonNull)
                 .filter(imp -> imp.getSecure() != null)
@@ -243,7 +243,7 @@ public class HttpAdapterRequester implements BidderRequester {
      * Creates sizes {@link List<Format>} from {@link Imp}. In case sizes list is empty, {@link InvalidRequestException}
      * will be thrown.
      */
-    private List<Format> toAdUnitBidSizes(Imp imp) {
+    private static List<Format> toAdUnitBidSizes(Imp imp) {
         final List<Format> sizes = new ArrayList<>();
         final com.iab.openrtb.request.Video video = imp.getVideo();
         final Integer videoHeight = video != null ? video.getH() : null;
@@ -264,7 +264,7 @@ public class HttpAdapterRequester implements BidderRequester {
      * Creates {@link Set<MediaType>} from {@link Imp}. In case any {@link MediaType} was found,
      * {@link InvalidRequestException} will be thrown.
      */
-    private Set<MediaType> toMediaTypes(Imp imp) {
+    private static Set<MediaType> toMediaTypes(Imp imp) {
         final Set<MediaType> mediaTypes = new HashSet<>();
         if (imp.getBanner() != null) {
             mediaTypes.add(MediaType.banner);
@@ -281,7 +281,7 @@ public class HttpAdapterRequester implements BidderRequester {
     /**
      * Creates {@link Video} from {@link Imp}.
      */
-    private Video toVideo(Imp imp) {
+    private static Video toVideo(Imp imp) {
         final com.iab.openrtb.request.Video impVideo = imp.getVideo();
         if (impVideo == null) {
             return null;
@@ -336,7 +336,7 @@ public class HttpAdapterRequester implements BidderRequester {
      * not defined in {@link org.prebid.server.proto.response.Bid} or incorrect {@link MediaType} value,
      * {@link Result} with error list ad null value will be returned.
      */
-    private Result<BidType> toBidType(org.prebid.server.proto.response.Bid bid) {
+    private static Result<BidType> toBidType(org.prebid.server.proto.response.Bid bid) {
         final MediaType mediaType = bid.getMediaType();
         if (mediaType == null) {
             return Result.of(null, Collections.singletonList(BidderError.create("Media Type is not defined for Bid")));
@@ -355,7 +355,7 @@ public class HttpAdapterRequester implements BidderRequester {
     /**
      * Converts {@link org.prebid.server.proto.response.Bid} to {@link Bid}.
      */
-    private Bid toOrtbBid(org.prebid.server.proto.response.Bid bid) {
+    private static Bid toOrtbBid(org.prebid.server.proto.response.Bid bid) {
         return Bid.builder().id(bid.getBidId())
                 .impid(bid.getCode())
                 .crid(bid.getCreativeId())
@@ -372,13 +372,13 @@ public class HttpAdapterRequester implements BidderRequester {
      * Converts {@link List<BidderDebug>} to {@link List<ExtHttpCall>}.
      */
     private List<ExtHttpCall> toExtHttpCalls(List<BidderDebug> bidderDebugs) {
-        return bidderDebugs.stream().map(this::toExtHttpCall).collect(Collectors.toList());
+        return bidderDebugs.stream().map(HttpAdapterRequester::toExtHttpCall).collect(Collectors.toList());
     }
 
     /**
      * Creates {@link ExtHttpCall} from {@link BidderDebug}
      */
-    private ExtHttpCall toExtHttpCall(BidderDebug bidderDebug) {
+    private static ExtHttpCall toExtHttpCall(BidderDebug bidderDebug) {
         return ExtHttpCall.builder()
                 .uri(bidderDebug.getRequestUri())
                 .requestbody(bidderDebug.getRequestBody())

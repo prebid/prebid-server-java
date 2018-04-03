@@ -116,10 +116,12 @@ public class AuctionHandlerTest extends VertxTest {
 
         given(bidderCatalog.isValidAdapterName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
+        given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
         willReturn(rubiconAdapter).given(bidderCatalog).adapterByName(eq(RUBICON));
 
         given(bidderCatalog.isValidAdapterName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
+        given(bidderCatalog.isActive(eq(APPNEXUS))).willReturn(true);
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
 
         given(metrics.forAdapter(any())).willReturn(adapterMetrics);
@@ -637,6 +639,23 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).incCounter(eq(MetricName.error_requests));
+    }
+
+    @Test
+    public void shouldNotIncrementMetricsForDisabledBidder() {
+        // given
+        given(bidderCatalog.isActive(eq(RUBICON))).willReturn(false);
+
+        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+
+        givenBidderRespondingWithError(RUBICON, "disabled bidder error", false);
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(adapterMetrics);
+        verifyZeroInteractions(accountAdapterMetrics);
     }
 
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(

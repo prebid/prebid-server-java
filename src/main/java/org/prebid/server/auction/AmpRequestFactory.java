@@ -130,7 +130,7 @@ public class AmpRequestFactory {
                 ExtRequestPrebid.of(
                         isPrebidNull ? Collections.emptyMap() : prebid.getAliases(),
                         setDefaultTargeting
-                                ? ExtRequestTargeting.of(CpmBucket.PriceGranularity.medium.name())
+                                ? ExtRequestTargeting.of(CpmBucket.PriceGranularity.medium.name(), true)
                                 : isPrebidNull ? null : prebid.getTargeting(),
                         isPrebidNull ? null : prebid.getStoredrequest(),
                         setDefaultCache

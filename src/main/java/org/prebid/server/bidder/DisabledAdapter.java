@@ -13,6 +13,10 @@ import org.prebid.server.proto.response.Bid;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Used to indicate disabled adapter. First method call to this adapter should throw exception.
+ * Other methods should never be called.
+ */
 public class DisabledAdapter implements Adapter<BidRequest, BidResponse> {
 
     private String errorMessage;
