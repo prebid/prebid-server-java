@@ -71,15 +71,16 @@ public class AuctionRequestFactory {
         final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
         final User populatedUser = populateUser(bidRequest.getUser(), context);
         final Integer at = bidRequest.getAt();
+        final Boolean setDefaultAt = at == null || at == 0;
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || at == null || at == 0) {
+        if (populatedDevice != null || populatedSite != null || populatedUser != null || setDefaultAt) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
                     .user(populatedUser != null ? populatedUser : bidRequest.getUser())
                     // set the auction type to 1 if it wasn't on the request,
                     // since header bidding is generally a first-price auction.
-                    .at(at == null || at == 0 ? 1 : at)
+                    .at(setDefaultAt ? Integer.valueOf(1) : at)
                     .build();
         } else {
             result = bidRequest;

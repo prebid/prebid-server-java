@@ -197,17 +197,27 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetAtIfItIsNotEqualsToNull(){
+    public void shouldSetDefaultAtIfInitialValueIsEqualsToZero() {
         // given
-        givenBidRequest(BidRequest.builder()
-                .at(2)
-                .build());
+        givenBidRequest(BidRequest.builder().at(0).build());
 
         // when
         final BidRequest result = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(result.getAt()).isEqualTo(2);
+        assertThat(result.getAt()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldSetDefaultAtIfInitialValueIsEqualsToNull() {
+        // given
+        givenBidRequest(BidRequest.builder().at(null).build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getAt()).isEqualTo(1);
     }
 
     @Test
