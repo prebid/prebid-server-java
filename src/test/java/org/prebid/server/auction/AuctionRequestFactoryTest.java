@@ -125,6 +125,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .site(Site.builder().domain("test.com").page("http://test.com").build())
                 .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
                 .user(User.builder().id("userId").build())
+                .at(1)
                 .build();
 
         givenBidRequest(bidRequest);
@@ -193,6 +194,30 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getUser()).isNull();
+    }
+
+    @Test
+    public void shouldSetDefaultAtIfInitialValueIsEqualsToZero() {
+        // given
+        givenBidRequest(BidRequest.builder().at(0).build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getAt()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldSetDefaultAtIfInitialValueIsEqualsToNull() {
+        // given
+        givenBidRequest(BidRequest.builder().at(null).build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getAt()).isEqualTo(1);
     }
 
     @Test

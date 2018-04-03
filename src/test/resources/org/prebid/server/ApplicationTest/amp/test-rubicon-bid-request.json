@@ -58,6 +58,7 @@
     "buyeruid": "J5VLCWQP-26-CWFT"
   },
   "tmax": 2000,
+  "at" : 1,
   "ext": {
     "prebid": {
       "targeting": {
