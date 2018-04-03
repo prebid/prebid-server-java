@@ -1,25 +1,32 @@
 package org.prebid.server.validation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.App.AppBuilder;
+import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Deal.DealBuilder;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Format.FormatBuilder;
+import com.iab.openrtb.request.ImageObject;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Site.SiteBuilder;
+import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.VideoObject;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,11 +43,11 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -91,7 +98,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request missing required field: \"id\"");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request missing required field: \"id\"");
     }
 
     @Test
@@ -103,7 +110,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request missing required field: \"id\"");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request missing required field: \"id\"");
     }
 
     @Test
@@ -115,7 +122,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request.tmax must be nonnegative. Got -100");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.tmax must be nonnegative. Got -100");
     }
 
     @Test
@@ -153,8 +160,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp must contain at least one element.");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp must contain at least one element.");
     }
 
     @Test
@@ -168,7 +174,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request.imp[0] missing required field: \"id\"");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp[0] missing required field: \"id\"");
     }
 
     @Test
@@ -182,7 +188,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request.imp[0] missing required field: \"id\"");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp[0] missing required field: \"id\"");
     }
 
     @Test
@@ -201,9 +207,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0] must contain at least one of \"banner\", \"video\", \"audio\", or " +
-                        "\"native\"");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0] must contain at least one of \"banner\", \"video\", \"audio\", or "
+                        + "\"native\"");
     }
 
     @Test
@@ -220,8 +226,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].video.mimes must contain at least one supported MIME type");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].video.mimes must contain at least one supported MIME type");
     }
 
     @Test
@@ -238,44 +244,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].audio.mimes must contain at least one supported MIME type");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenNativeRequestAttributeNullValue() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .imp(singletonList(validImpBuilder()
-                        .xNative(Native.builder().request(null).build())
-                        .build()))
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].native.request must be a JSON encoded string conforming to the openrtb 1.2" +
-                        " Native spec");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenNativeRequestAttributeEmpty() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .imp(singletonList(validImpBuilder()
-                        .xNative(Native.builder().request("").build())
-                        .build()))
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].native.request must be a JSON encoded string conforming to the openrtb 1.2" +
-                        " Native spec");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].audio.mimes must contain at least one supported MIME type");
     }
 
     @Test
@@ -288,9 +258,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, " +
-                        "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
+                       + "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
     }
 
     @Test
@@ -303,9 +273,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, " +
-                        "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
+                        + "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
     }
 
     @Test
@@ -318,9 +288,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, " +
-                        "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
+                        + "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
     }
 
     @Test
@@ -359,9 +329,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] should define *either* {w, h} (for static size " +
-                        "requirements) *or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} (for static size "
+                        + "requirements) *or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero.");
     }
 
     @Test
@@ -374,8 +344,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
 
     @Test
@@ -388,8 +358,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
 
     @Test
@@ -402,8 +372,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
 
     @Test
@@ -416,8 +386,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
     }
 
     @Test
@@ -430,9 +400,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define " +
-                        "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define"
+                        + " non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
     }
 
     @Test
@@ -445,9 +415,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define " +
-                        "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("Request imp[0].banner.format[0] must define "
+                        + "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
     }
 
     @Test
@@ -460,9 +429,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
-                        " properties.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\","
+                        + " and \"hratio\" properties.");
     }
 
     @Test
@@ -476,9 +445,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
-                        " properties.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and "
+                       + "\"hratio\" properties.");
     }
 
     @Test
@@ -491,9 +460,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
-                        " properties.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and"
+                        + " \"hratio\" properties.");
     }
 
     @Test
@@ -506,9 +475,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\"" +
-                        " properties.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and"
+                       + " \"hratio\" properties.");
     }
 
     @Test
@@ -521,8 +490,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].pmp.deals[0] missing required field: \"id\"");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].pmp.deals[0] missing required field: \"id\"");
     }
 
     @Test
@@ -535,8 +504,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].pmp.deals[0] missing required field: \"id\"");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].pmp.deals[0] missing required field: \"id\"");
     }
 
     @Test
@@ -549,8 +518,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.site should include at least one of request.site.id or request.site.page.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.site should include at least one of request.site.id or request.site.page.");
     }
 
     @Test
@@ -563,8 +532,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.site should include at least one of request.site.id or request.site.page.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.site should include at least one of request.site.id or request.site.page.");
     }
 
     @Test
@@ -603,8 +572,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.site should include at least one of request.site.id or request.site.page.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.site should include at least one of request.site.id or request.site.page.");
     }
 
     @Test
@@ -619,8 +588,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.site or request.app must be defined, but not both.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.site or request.app must be defined, but not both.");
     }
 
     @Test
@@ -635,8 +604,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.site or request.app must be defined, but not both.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.site or request.app must be defined, but not both.");
     }
 
     @Test
@@ -662,8 +631,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].ext must contain at least one bidder");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp[0].ext must contain at least one bidder");
     }
 
     @Test
@@ -676,8 +644,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].ext contains unknown bidder: rubicon");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp[0].ext contains unknown bidder: rubicon");
     }
 
     @Test
@@ -699,14 +666,14 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
         given(bidderParamValidator.validate(any(), any()))
-                .willReturn(new LinkedHashSet<>(Arrays.asList("errorMessage1", "errorMessage2")));
+                .willReturn(new LinkedHashSet<>(asList("errorMessage1", "errorMessage2")));
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].ext.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].ext.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
     }
 
     @Test
@@ -720,8 +687,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.user.ext should not be an empty object.");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.user.ext should not be an empty object.");
     }
 
     @Test
@@ -736,7 +702,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request.user.ext.prebid requires a "
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.user.ext.prebid requires a "
                 + "\"buyeruids\" property with at least one ID defined. If none exist, then request.user.ext.prebid "
                 + "should not be defined.");
     }
@@ -755,7 +721,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("request.user.ext.unknown-bidder "
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.user.ext.unknown-bidder "
                 + "is neither a known bidder name nor an alias in request.ext.prebid.aliases.");
     }
 
@@ -812,8 +778,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.user contains a digitrust object that is not valid.");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.user contains a digitrust object that is not valid.");
     }
 
     @Test
@@ -843,7 +809,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo(
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
                 "request.ext.prebid.aliases.rubicon defines a no-op alias."
                         + " Choose a different alias, or remove this entry.");
     }
@@ -859,7 +825,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo(
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
                 "request.ext.prebid.aliases.alias refers to unknown bidder: fake");
     }
 
@@ -887,8 +853,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.regs.ext.gdpr must be either 0 or 1.");
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.regs.ext.gdpr must be either 0 or 1.");
     }
 
     @Test
@@ -902,6 +867,603 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).element(0).asString().contains("request.regs.ext is invalid:");
+    }
+
+    @Test
+    public void validateShouldThrowExceptionWhenNativeRequestEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(Function.identity());
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp.[0].ext.native contains empty request value");
+    }
+
+    @Test
+    public void validateShouldThrowExceptionWhenNativeRequestMalformed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(nativeCustomizer -> nativeCustomizer.request("broken-request"));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Error while parsing request.imp.[0].ext.native.request");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenContentTypeOutOfPossibleValuesRange()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(100));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.context must be in the range [1, 3]. Got 100");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenPlacementTypeOutOfPossibleValuesRange()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.plcmttype(100));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.plcmttype must be in the range [1, 4]. Got 100");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenAssetsContainsZeroElements()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(emptyList()));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets must be an array containing at least one object.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenElementInAssetsHasIdSet()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder().id(1).build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].id must not be defined. Prebid Server will"
+                        + " set this automatically, using the index of the asset in the array as the ID.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenIndividualAssetHasTitleAndImage()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .title(TitleObject.builder().build())
+                        .img(ImageObject.builder().build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
+                        + " {title, img, video, data}");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenIndividualAssetHasTitleAndVideo()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .title(TitleObject.builder().build())
+                        .video(VideoObject.builder().build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
+                        + " {title, img, video, data}");
+    }
+
+
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenIndividualAssetHasTitleAndData()
+            throws JsonProcessingException {
+
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .title(TitleObject.builder().build())
+                        .data(DataObject.builder().build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
+                        + " {title, img, video, data}");
+
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenIndividualAssetHasImageAndVideo()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder().build())
+                        .video(VideoObject.builder().build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
+                        + " {title, img, video, data}");
+
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenIndividualAssetHasImageAndData()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder().build())
+                        .data(DataObject.builder().build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
+                        + " {title, img, video, data}");
+
+    }
+
+
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenHasZeroTitleLen() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .title(TitleObject.builder().len(0).build()).build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].title.len must be a positive integer");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenHasNullTitleLen() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .title(TitleObject.builder().len(null).build()).build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].title.len must be a positive integer");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenImageWidthsNull() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest0 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder()
+                                .w(null).wmin(null)
+                                .h(1).hmin(1)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result0 = requestValidator.validate(bidRequest0);
+
+        // then
+        assertThat(result0.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenImageWidthsZero() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest1 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder()
+                                .w(0).wmin(0)
+                                .h(1).hmin(1)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result1 = requestValidator.validate(bidRequest1);
+
+        // then
+        assertThat(result1.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenImageWidthNullAndWidthMinZero()
+            throws JsonProcessingException {
+
+        // given
+        final BidRequest bidRequest2 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder()
+                                .w(null).wmin(0)
+                                .h(1).hmin(1)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result2 = requestValidator.validate(bidRequest2);
+
+        // then
+        assertThat(result2.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenImageWidthZeroAndWidthMinNull()
+            throws JsonProcessingException {
+
+        // given
+        final BidRequest bidRequest2 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder()
+                                .w(0).wmin(null)
+                                .h(1).hmin(1)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result2 = requestValidator.validate(bidRequest2);
+
+        // then
+        assertThat(result2.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenImageHeightsNull() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest0 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder()
+                                .h(null).hmin(null)
+                                .w(1).wmin(1)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result0 = requestValidator.validate(bidRequest0);
+
+        // then
+        assertThat(result0.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
+
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenImageHeightsZero() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder()
+                                .h(0).hmin(0)
+                                .w(1).wmin(1)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenImageHeightZeroAndHeightMinNull()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder()
+                                .h(0).hmin(null)
+                                .w(1).wmin(1)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenImageHeightNullAndHeightMinZero()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .img(ImageObject.builder()
+                                .h(0).hmin(0)
+                                .w(1).wmin(1)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenDataTypeOutOfPossibleValuesRange()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .data(DataObject.builder().type(100).build()).build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].native.request.assets[0].data.type must in the range [1, 12]. Got 100.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenNativeVideoHasEmptyMimes()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .video(VideoObject.builder().mimes(emptyList()).build()).build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].video.mimes must be an array with at least one"
+                        +" MIME type.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenNativeVideoHasEmptyMinDuration()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .video(VideoObject.builder()
+                                .mimes(singletonList("mime"))
+                                .minduration(null)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].video.minduration must be a positive integer.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenNativeVideoHasMinDurationLessThanOne()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .video(VideoObject.builder()
+                                .mimes(singletonList("mime"))
+                                .minduration(0)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].video.minduration must be a positive integer.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenNativeVideoHasEmptyMaxDuration()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .video(VideoObject.builder()
+                                .mimes(singletonList("mime"))
+                                .minduration(2)
+                                .maxduration(null)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenNativeVideoHasMaxDurationLessThanOne()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .video(VideoObject.builder()
+                                .mimes(singletonList("mime"))
+                                .minduration(2)
+                                .maxduration(0)
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenNativeVideoHasEmptyProtocols()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .video(VideoObject.builder()
+                                .mimes(singletonList("mime"))
+                                .minduration(2)
+                                .maxduration(0)
+                                .protocols(emptyList())
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenNativeVideoProtocolsOutOfPossibleValues()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .video(VideoObject.builder()
+                                .mimes(singletonList("mime"))
+                                .minduration(2)
+                                .maxduration(0)
+                                .protocols(singletonList(20))
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithOutErrorsWhenNativeVideoIsValid()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(singletonList(Asset.builder()
+                        .video(VideoObject.builder()
+                                .mimes(singletonList("mime"))
+                                .minduration(2)
+                                .maxduration(2)
+                                .protocols(singletonList(0))
+                                .build())
+                        .build())));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void validateShouldUpdateNativeRequestAssetsIds() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.assets(asList(Asset.builder().build(), Asset.builder().build())));
+
+        // when
+        requestValidator.validate(bidRequest);
+
+        assertThat(bidRequest.getImp()).hasSize(1)
+                .extracting(Imp::getXNative).doesNotContainNull()
+                .extracting(Native::getRequest).doesNotContainNull()
+                .extracting(req -> mapper.readValue(req, Request.class))
+                .flatExtracting(Request::getAssets)
+                .flatExtracting(Asset::getId)
+                .containsOnly(0, 1);
+    }
+
+    private BidRequest givenBidRequest(
+            Function<Native.NativeBuilder, Native.NativeBuilder> nativeCustomizer) {
+        return validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                    .xNative(nativeCustomizer.apply(Native.builder()).build()).build())).build();
+    }
+
+    private BidRequest givenBidRequestWithNativeRequest(
+            Function<Request.RequestBuilder, Request.RequestBuilder> nativeRequestCustomizer)
+            throws JsonProcessingException {
+        return validBidRequestBuilder()
+                .imp(singletonList(validImpBuilder()
+                        .xNative(Native.builder()
+                                .request(mapper.writeValueAsString(nativeRequestCustomizer.apply(
+                                        Request.builder()).build()))
+                        .build())
+                    .build()))
+                .build();
     }
 
     @Test
@@ -945,7 +1507,6 @@ public class RequestValidatorTest extends VertxTest {
         return Imp.builder().id("200")
                 .video(Video.builder().mimes(singletonList("vmime"))
                         .build())
-                .xNative(Native.builder().request("{\"param\" : \"val\"}").build())
                 .banner(Banner.builder()
                         .format(singletonList(Format.builder().wmin(1).wratio(5).hratio(1).build()))
                         .build())
@@ -964,7 +1525,7 @@ public class RequestValidatorTest extends VertxTest {
     private static BidRequest overwritePmpFirstDealInFirstImp(
             BidRequest bidRequest, Function<DealBuilder, DealBuilder> dealModifier) {
         final Pmp pmp = bidRequest.getImp().get(0).getPmp().toBuilder()
-                .deals((singletonList(dealModifier.apply(dealModifier.apply(Deal.builder())).build()))).build();
+                .deals(singletonList(dealModifier.apply(dealModifier.apply(Deal.builder())).build())).build();
 
         return bidRequest.toBuilder().imp(singletonList(validImpBuilder().pmp(pmp).build())).build();
     }

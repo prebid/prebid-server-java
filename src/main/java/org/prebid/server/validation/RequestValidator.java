@@ -3,17 +3,24 @@ package org.prebid.server.validation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.ImageObject;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.VideoObject;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -27,6 +34,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -34,6 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A component that validates {@link BidRequest} objects for openrtb2 auction endpoint.
@@ -208,16 +218,196 @@ public class RequestValidator {
         validateBanner(imp.getBanner(), index);
         validateVideoMimes(imp.getVideo(), index);
         validateAudioMimes(imp.getAudio(), index);
-
-        if (imp.getXNative() != null) {
-            if (StringUtils.isBlank(imp.getXNative().getRequest())) {
-                throw new ValidationException("request.imp[%d].native.request must be a JSON "
-                        + "encoded string conforming to the openrtb 1.2 Native spec", index);
-            }
-        }
-
+        fillAndValidateNative(imp.getXNative(), index);
         validatePmp(imp.getPmp(), index);
         validateImpExt(imp.getExt(), aliases, index);
+    }
+
+    private void fillAndValidateNative(Native xNative, int impIndex) throws ValidationException {
+        if (xNative == null) {
+            return;
+        }
+
+        final Request nativeRequest = parseNativeRequest(xNative.getRequest(), impIndex);
+
+        validateNativeContext(nativeRequest.getContext(), impIndex);
+        validateNativePlacementType(nativeRequest.getPlcmttype(), impIndex);
+        final List<Asset> updatedAssets = validateAndGetUpdatedNativeAssets(nativeRequest.getAssets(), impIndex);
+
+        // modifier was added to reduce memory consumption on updating bidRequest.imp[i].native.request object
+        xNative.setRequest(toEncodedRequest(nativeRequest, updatedAssets));
+    }
+
+    private static Request parseNativeRequest(String rawStringNativeRequest, int impIndex) throws ValidationException {
+        if (StringUtils.isBlank(rawStringNativeRequest)) {
+            throw new ValidationException("request.imp.[%s].ext.native contains empty request value", impIndex);
+        }
+        try {
+            return Json.mapper.readValue(rawStringNativeRequest, Request.class);
+        } catch (IOException e) {
+            throw new ValidationException(
+                    "Error while parsing request.imp.[%s].ext.native.request", impIndex);
+        }
+    }
+
+    private void validateNativeContext(Integer context, int index) throws ValidationException {
+        if (context != null && (context < 1 || context > 3)) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.context must be in the range [1, 3]. Got %d", index, context);
+        }
+    }
+
+    private void validateNativePlacementType(Integer placementType, int index) throws ValidationException {
+        if (placementType != null && (placementType < 1 || placementType > 4)) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.plcmttype must be in the range [1, 4]. Got %d",
+                    index, placementType);
+        }
+    }
+
+    private List<Asset> validateAndGetUpdatedNativeAssets(List<Asset> assets, int impIndex)
+            throws ValidationException {
+
+        if (CollectionUtils.isEmpty(assets)) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets must be an array containing at least one object.", impIndex);
+        }
+
+        final List<Asset> updatedAssets = new ArrayList<>();
+        for (int i = 0; i < assets.size(); i++) {
+            final Asset asset = assets.get(i);
+            validateNativeAsset(asset, impIndex, i);
+            updatedAssets.add(asset.toBuilder().id(i).build());
+        }
+        return updatedAssets;
+    }
+
+    private void validateNativeAsset(Asset asset, int impIndex, int assetIndex) throws ValidationException {
+        if (asset.getId() != null) {
+            throw new ValidationException("request.imp[%d].native.request.assets[%d].id must not be defined. Prebid"
+                    + " Server will set this automatically, using the index of the asset in the array as the ID.",
+                    impIndex, assetIndex);
+        }
+
+        final TitleObject title = asset.getTitle();
+        final ImageObject image = asset.getImg();
+        final VideoObject video = asset.getVideo();
+        final DataObject data = asset.getData();
+
+        final long assetsCount = Stream.of(title, image, video, data)
+                .filter(Objects::nonNull)
+                .count();
+
+        if (assetsCount > 1) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets[%d] must define at most one of {title, img, video, data}",
+                    impIndex, assetIndex);
+        }
+
+        validateNativeAssetTitle(title, impIndex, assetIndex);
+        validateNativeAssetImage(image, impIndex, assetIndex);
+        validateNativeAssetVideo(video, impIndex, assetIndex);
+        validateNativeAssetData(data, impIndex, assetIndex);
+    }
+
+    private void validateNativeAssetTitle(TitleObject title, int impIndex, int assetIndex) throws ValidationException {
+        if (title != null && (title.getLen() == null || title.getLen() < 1)) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets[%d].title.len must be a positive integer",
+                    impIndex, assetIndex);
+        }
+    }
+
+    private void validateNativeAssetImage(ImageObject image, int impIndex, int assetIndex) throws ValidationException {
+        if (image == null) {
+            return;
+        }
+
+        final boolean isNotPresentWidth = image.getW() == null || image.getW() == 0;
+        final boolean isNotPresentWidthMin = image.getWmin() == null || image.getWmin() == 0;
+        if (isNotPresentWidth & isNotPresentWidthMin) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets[%d].img must contain at least one of \"w\" or \"wmin\"",
+                    impIndex, assetIndex);
+        }
+
+        final boolean isNotPresentHeight = image.getH() == null || image.getH() == 0;
+        final boolean isNotPresentHeightMin = image.getHmin() == null || image.getHmin() == 0;
+        if (isNotPresentHeight && isNotPresentHeightMin) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets[%d].img must contain at least one of \"h\" or \"hmin\"",
+                    impIndex, assetIndex);
+        }
+
+    }
+
+    private void validateNativeAssetData(DataObject data, int impIndex, int assetIndex) throws ValidationException {
+        if (data == null || data.getType() == null) {
+            return;
+        }
+
+        final Integer type = data.getType();
+        if (type < 1 || type > 12) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets[%d].data.type must in the range [1, 12]. Got %d.",
+                    impIndex, assetIndex, type);
+        }
+
+    }
+
+    private void validateNativeAssetVideo(VideoObject video, int impIndex, int assetIndex) throws ValidationException {
+        if (video == null) {
+            return;
+        }
+
+        if (CollectionUtils.isEmpty(video.getMimes())) {
+            throw new ValidationException("request.imp[%d].native.request.assets[%d].video.mimes must be an "
+                    + "array with at least one MIME type.", impIndex, assetIndex);
+        }
+
+        if (video.getMinduration() == null || video.getMinduration() < 1) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets[%d].video.minduration must be a positive integer.",
+                    impIndex, assetIndex);
+        }
+
+        if (video.getMaxduration() == null || video.getMaxduration() < 1) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets[%d].video.maxduration must be a positive integer.",
+                    impIndex, assetIndex);
+        }
+
+        validateNativeVideoProtocols(video.getProtocols(), impIndex, assetIndex);
+    }
+
+    private void validateNativeVideoProtocols(List<Integer> protocols, int impIndex, int assetIndex)
+            throws ValidationException {
+        if (CollectionUtils.isEmpty(protocols)) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets[%d].video.protocols must be an array with at least"
+                            + " one element", impIndex, assetIndex);
+        }
+
+        for (int i = 0; i < protocols.size(); i++) {
+            validateNativeVideoProtocol(protocols.get(i), impIndex, assetIndex, i);
+        }
+    }
+
+    private void validateNativeVideoProtocol(Integer protocol, int impIndex, int assetIndex, int protocolIndex)
+            throws ValidationException {
+        if (protocol < 0 || protocol > 10) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.assets[%d].video.protocols[%d] must be in the range [1, 10]."
+                            + " Got %d", impIndex, assetIndex, protocolIndex, protocol);
+        }
+    }
+
+    private static String toEncodedRequest(Request nativeRequest, List<Asset> updatedAssets) {
+        try {
+            return Json.mapper.writeValueAsString(nativeRequest.toBuilder().assets(updatedAssets).build());
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Error while marshaling native request to the string", e);
+        }
     }
 
     private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex) throws ValidationException {
