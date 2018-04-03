@@ -2,7 +2,7 @@ package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
 
 import java.util.List;
 
@@ -25,8 +25,8 @@ import java.util.List;
  * those types. However, any given bid for the impression must conform to one of
  * the offered types.
  */
+@Data
 @Builder
-@Value
 public class Native {
 
     /** Request payload complying with the Native Ad Specification. (required) */
