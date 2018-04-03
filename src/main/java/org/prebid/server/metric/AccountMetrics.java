@@ -1,7 +1,6 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.prebid.server.bidder.BidderCatalog;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,27 +18,15 @@ public class AccountMetrics extends UpdatableMetrics {
     // thread-safe
     private final Map<String, AdapterMetrics> adapterMetrics;
 
-    AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, BidderCatalog bidderCatalog,
-                   String account) {
+    AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                 nameCreator(Objects.requireNonNull(account)));
-        Objects.requireNonNull(bidderCatalog);
-
-        this.adapterMetricsCreator = adapterType -> createAdapterMetrics(metricRegistry, counterType,
-                bidderCatalog, account, adapterType);
+        adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, account, adapterType);
         adapterMetrics = new HashMap<>();
     }
 
     private static Function<MetricName, String> nameCreator(String account) {
         return metricName -> String.format("account.%s.%s", account, metricName.name());
-    }
-
-    private static AdapterMetrics createAdapterMetrics(MetricRegistry metricRegistry, CounterType counterType,
-                                                       BidderCatalog bidderCatalog, String account,
-                                                       String adapterType) {
-        return bidderCatalog.isActive(adapterType)
-                ? new AdapterMetrics(metricRegistry, counterType, account, adapterType)
-                : new DisabledAdapterMetrics(metricRegistry, counterType, adapterType);
     }
 
     /**

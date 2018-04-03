@@ -20,13 +20,14 @@ public class ResourceUtil {
      */
     public static String readFromClasspath(String path) throws IOException {
         final InputStream resourceAsStream = ResourceUtil.class.getClassLoader().getResourceAsStream(path);
-        if (resourceAsStream != null) {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream,
-                    StandardCharsets.UTF_8))) {
-                return reader.lines().collect(Collectors.joining("\n"));
-            }
-        } else {
+
+        if (resourceAsStream == null) {
             throw new IllegalArgumentException(String.format("Could not find file at path: %s", path));
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream,
+                StandardCharsets.UTF_8))) {
+            return reader.lines().collect(Collectors.joining("\n"));
         }
     }
 }

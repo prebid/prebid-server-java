@@ -9,6 +9,9 @@ import org.prebid.server.execution.Timeout;
 import java.util.Collections;
 import java.util.Objects;
 
+/**
+ * Used to indicate disabled bidder. First method call to this adapter should return empty bids and error in result.
+ */
 public class DisabledBidderRequester implements BidderRequester {
 
     private String errorMessage;

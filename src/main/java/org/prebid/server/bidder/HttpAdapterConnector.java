@@ -317,5 +317,4 @@ public class HttpAdapterConnector {
                 .responseTimeMs(responseTime(bidderStarted))
                 .build(), Collections.emptyList(), false);
     }
-
 }

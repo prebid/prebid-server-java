@@ -1,11 +1,9 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.prebid.server.bidder.BidderCatalog;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -22,25 +20,14 @@ public class Metrics extends UpdatableMetrics {
     private final Map<String, AdapterMetrics> adapterMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
 
-    public Metrics(MetricRegistry metricRegistry, CounterType counterType, BidderCatalog bidderCatalog) {
+    public Metrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(metricRegistry, counterType, Enum::name);
-        Objects.requireNonNull(bidderCatalog);
 
-        adapterMetricsCreator =
-                adapterType -> createAdapterMetrics(metricRegistry, counterType, bidderCatalog, adapterType);
-        accountMetricsCreator =
-                account -> new AccountMetrics(metricRegistry, counterType, bidderCatalog, account);
-
+        accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
+        adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
-    }
-
-    private static AdapterMetrics createAdapterMetrics(MetricRegistry metricRegistry, CounterType counterType,
-                                                       BidderCatalog bidderCatalog, String adapterType) {
-        return bidderCatalog.isActive(adapterType)
-                ? new AdapterMetrics(metricRegistry, counterType, adapterType)
-                : new DisabledAdapterMetrics(metricRegistry, counterType, adapterType);
     }
 
     /**

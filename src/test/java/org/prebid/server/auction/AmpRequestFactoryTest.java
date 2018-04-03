@@ -175,7 +175,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .element(0)
                 .extracting(ExtBidRequest::getPrebid)
                 .containsExactly(ExtRequestPrebid.of(emptyMap(),
-                        ExtRequestTargeting.of(CpmBucket.PriceGranularity.medium.name()), null,
+                        ExtRequestTargeting.of(CpmBucket.PriceGranularity.medium.name(), true), null,
                         ExtRequestPrebidCache.of(Json.mapper.createObjectNode())));
     }
 
@@ -257,7 +257,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("debug")).willReturn("1");
 
-        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null),
+        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null),
                 ExtRequestPrebidCache.of(mapper.createObjectNode()));
 
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));

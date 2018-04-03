@@ -14,4 +14,9 @@ public class ExtRequestTargeting {
      * Defines the contract for bidrequest.ext.prebid.targeting.pricegranularity
      */
     String pricegranularity;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.targeting.includewinners
+     */
+    Boolean includewinners;
 }

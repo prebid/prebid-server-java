@@ -77,20 +77,23 @@ public class TargetingKeywordsCreator {
 
     private final String priceGranularityString;
     private final CpmBucket.PriceGranularity priceGranularity;
+    private final boolean includeWinners;
     private final boolean isApp;
 
     private TargetingKeywordsCreator(String priceGranularityString, CpmBucket.PriceGranularity priceGranularity,
-                                     boolean isApp) {
+                                     boolean includeWinners, boolean isApp) {
         this.priceGranularityString = priceGranularityString;
         this.priceGranularity = priceGranularity;
+        this.includeWinners = includeWinners;
         this.isApp = isApp;
     }
 
     /**
      * Creates {@link TargetingKeywordsCreator} for the given params.
      */
-    public static TargetingKeywordsCreator create(String priceGranularity, boolean isApp) {
-        return new TargetingKeywordsCreator(priceGranularity, parsePriceGranularity(priceGranularity), isApp);
+    public static TargetingKeywordsCreator create(String priceGranularity, boolean includeWinners, boolean isApp) {
+        return new TargetingKeywordsCreator(priceGranularity, parsePriceGranularity(priceGranularity), includeWinners,
+                isApp);
     }
 
     /**
@@ -161,7 +164,7 @@ public class TargetingKeywordsCreator {
         final String roundedCpm = isPriceGranularityValid() ? CpmBucket.fromCpm(price, priceGranularity) : defaultCpm;
         final String hbSize = sizeFrom(width, height);
 
-        final KeywordMap keywordMap = new KeywordMap(bidder, winningBid);
+        final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners);
         keywordMap.put(HB_PB_KEY, roundedCpm);
         keywordMap.put(HB_BIDDER_KEY, bidder);
         if (hbSize != null) {
@@ -205,13 +208,16 @@ public class TargetingKeywordsCreator {
      * Brings a convenient way for creating keywords regarding to bidder and winning bid flag.
      */
     private class KeywordMap {
+
         private final String bidder;
         private final boolean winningBid;
+        private final boolean includeWinners;
         private final Map<String, String> keywords;
 
-        KeywordMap(String bidder, boolean winningBid) {
+        KeywordMap(String bidder, boolean winningBid, boolean includeWinners) {
             this.bidder = bidder;
             this.winningBid = winningBid;
+            this.includeWinners = includeWinners;
             this.keywords = new HashMap<>();
         }
 
@@ -223,7 +229,7 @@ public class TargetingKeywordsCreator {
             final List<String> keys = new ArrayList<>(2);
             keys.add(String.format("%s_%s", prefix, bidder));
             // For the top bid, we want to put additional keys apart from bidder-suffixed
-            if (winningBid) {
+            if (winningBid && includeWinners) {
                 keys.add(prefix);
             }
             return keys;

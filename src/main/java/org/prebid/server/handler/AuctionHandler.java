@@ -119,154 +119,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
     }
 
-    private static <T> Future<T> failWith(String message, Throwable exception) {
-        return Future.failedFuture(new PreBidException(message, exception));
-    }
-
-    private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext) {
-        final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
-        return preBidRequestContext.getAdapterRequests().stream()
-                .filter(ar -> bidderCatalog.isValidAdapterName(ar.getBidderCode()))
-                .peek(ar -> updateAdapterRequestMetrics(ar.getBidderCode(), accountId))
-                .map(ar -> httpAdapterConnector.call(bidderCatalog.adapterByName(ar.getBidderCode()),
-                        bidderCatalog.usersyncerByName(ar.getBidderCode()), ar, preBidRequestContext))
-                .collect(Collectors.toList());
-    }
-
-    private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
-                                                 List<AdapterResponse> adapterResponses) {
-        adapterResponses.stream()
-                .filter(ar -> StringUtils.isNotBlank(ar.getBidderStatus().getError()))
-                .forEach(ar -> updateErrorMetrics(ar, preBidRequestContext));
-
-        final List<BidderStatus> bidderStatuses = Stream.concat(
-                adapterResponses.stream()
-                        .map(AdapterResponse::getBidderStatus)
-                        .peek(bs -> updateResponseTimeMetrics(bs, preBidRequestContext)),
-                invalidBidderStatuses(preBidRequestContext))
-                .collect(Collectors.toList());
-
-        final List<Bid> bids = adapterResponses.stream()
-                .filter(ar -> StringUtils.isBlank(ar.getBidderStatus().getError()))
-                .peek(ar -> updateBidResultMetrics(ar, preBidRequestContext))
-                .flatMap(ar -> ar.getBids().stream())
-                .collect(Collectors.toList());
-
-        return PreBidResponse.builder()
-                .status(preBidRequestContext.isNoLiveUids() ? "no_cookie" : "OK")
-                .tid(preBidRequestContext.getPreBidRequest().getTid())
-                .bidderStatus(bidderStatuses)
-                .bids(bids)
-                .build();
-    }
-
-    private Future<PreBidResponse> processCacheMarkup(PreBidRequestContext preBidRequestContext,
-                                                      PreBidResponse preBidResponse) {
-        final Future<PreBidResponse> result;
-
-        final Integer cacheMarkup = preBidRequestContext.getPreBidRequest().getCacheMarkup();
-        final List<Bid> bids = preBidResponse.getBids();
-        if (!bids.isEmpty() && cacheMarkup != null && (cacheMarkup == 1 || cacheMarkup == 2)) {
-            result = (cacheMarkup == 1
-                    ? cacheService.cacheBids(bids, preBidRequestContext.getTimeout())
-                    : cacheService.cacheBidsVideoOnly(bids, preBidRequestContext.getTimeout()))
-                    .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults));
-        } else {
-            result = Future.succeededFuture(preBidResponse);
-        }
-
-        return result;
-    }
-
-    private PreBidResponse mergeBidsWithCacheResults(PreBidResponse preBidResponse,
-                                                     List<BidCacheResult> bidCacheResults) {
-        final List<Bid> bids = preBidResponse.getBids();
-        for (int i = 0; i < bids.size(); i++) {
-            final BidCacheResult result = bidCacheResults.get(i);
-            // IMPORTANT: see javadoc in Bid class
-            bids.get(i)
-                    .setAdm(null)
-                    .setNurl(null)
-                    .setCacheId(result.getCacheId())
-                    .setCacheUrl(result.getCacheUrl());
-        }
-
-        return preBidResponse;
-    }
-
-    /**
-     * Sorts the bids and adds ad server targeting keywords to each bid.
-     * The bids are sorted by cpm to find the highest bid.
-     * The ad server targeting keywords are added to all bids, with specific keywords for the highest bid.
-     */
-    private static PreBidResponse addTargetingKeywords(PreBidRequest preBidRequest, Account account,
-                                                       PreBidResponse preBidResponse) {
-        final Integer sortBids = preBidRequest.getSortBids();
-        if (sortBids != null && sortBids == 1) {
-            final TargetingKeywordsCreator keywordsCreator =
-                    TargetingKeywordsCreator.create(account.getPriceGranularity(), false);
-
-            final Map<String, List<Bid>> adUnitCodeToBids = preBidResponse.getBids().stream()
-                    .collect(Collectors.groupingBy(Bid::getCode));
-
-            for (final List<Bid> bids : adUnitCodeToBids.values()) {
-                bids.sort(Comparator.comparing(Bid::getPrice)
-                        .reversed()
-                        .thenComparing(Bid::getResponseTimeMs));
-
-                for (final Bid bid : bids) {
-                    // IMPORTANT: see javadoc in Bid class
-                    bid.setAdServerTargeting(joinMaps(
-                            keywordsCreator.makeFor(bid, bid == bids.get(0)),
-                            bid.getAdServerTargeting()));
-                }
-            }
-        }
-
-        return preBidResponse;
-    }
-
-    private static <K, V> Map<K, V> joinMaps(Map<K, V> left, Map<K, V> right) {
-        if (right != null) {
-            left.putAll(right);
-        }
-        return left;
-    }
-
-    private void respondWith(PreBidResponse response, RoutingContext context) {
-        context.response()
-                .putHeader(HttpHeaders.DATE, date())
-                .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .end(Json.encode(response));
-    }
-
-    private static String date() {
-        return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now());
-    }
-
-    private PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
-        if (responseResult.succeeded()) {
-            return responseResult.result();
-        } else {
-            metrics.incCounter(MetricName.error_requests);
-            final Throwable exception = responseResult.cause();
-            logger.info("Failed to process /auction request", exception);
-            return error(exception instanceof PreBidException
-                    ? exception.getMessage()
-                    : "Unexpected server error");
-        }
-    }
-
-    private static PreBidResponse error(String status) {
-        return PreBidResponse.builder().status(status).build();
-    }
-
-    private Stream<BidderStatus> invalidBidderStatuses(PreBidRequestContext preBidRequestContext) {
-        return preBidRequestContext.getAdapterRequests().stream()
-                .filter(b -> !bidderCatalog.isValidName(b.getBidderCode()))
-                .map(b -> BidderStatus.builder().bidder(b.getBidderCode()).error("Unsupported bidder").build());
-    }
-
     private void updateRequestMetrics(boolean isSafari) {
         metrics.incCounter(MetricName.requests);
         if (isSafari) {
@@ -306,23 +158,105 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 clock.millis() - requestStarted));
     }
 
+    private static <T> Future<T> failWith(String message, Throwable exception) {
+        return Future.failedFuture(new PreBidException(message, exception));
+    }
+
+    private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext) {
+        final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
+        return preBidRequestContext.getAdapterRequests().stream()
+                .filter(ar -> bidderCatalog.isValidAdapterName(ar.getBidderCode()))
+                .peek(ar -> updateAdapterRequestMetrics(ar.getBidderCode(), accountId))
+                .map(ar -> httpAdapterConnector.call(bidderCatalog.adapterByName(ar.getBidderCode()),
+                        bidderCatalog.usersyncerByName(ar.getBidderCode()), ar, preBidRequestContext))
+                .collect(Collectors.toList());
+    }
+
     private void updateAdapterRequestMetrics(String bidder, String accountId) {
+        if (!bidderCatalog.isActive(bidder)) {
+            return;
+        }
+
         metrics.forAdapter(bidder).incCounter(MetricName.requests);
         metrics.forAccount(accountId).forAdapter(bidder).incCounter(MetricName.requests);
     }
 
+    private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
+                                                 List<AdapterResponse> adapterResponses) {
+        adapterResponses.stream()
+                .filter(ar -> StringUtils.isNotBlank(ar.getBidderStatus().getError()))
+                .forEach(ar -> updateErrorMetrics(ar, preBidRequestContext));
+
+        final List<BidderStatus> bidderStatuses = Stream.concat(
+                adapterResponses.stream()
+                        .map(AdapterResponse::getBidderStatus)
+                        .peek(bs -> updateResponseTimeMetrics(bs, preBidRequestContext)),
+                invalidBidderStatuses(preBidRequestContext))
+                .collect(Collectors.toList());
+
+        final List<Bid> bids = adapterResponses.stream()
+                .filter(ar -> StringUtils.isBlank(ar.getBidderStatus().getError()))
+                .peek(ar -> updateBidResultMetrics(ar, preBidRequestContext))
+                .flatMap(ar -> ar.getBids().stream())
+                .collect(Collectors.toList());
+
+        return PreBidResponse.builder()
+                .status(preBidRequestContext.isNoLiveUids() ? "no_cookie" : "OK")
+                .tid(preBidRequestContext.getPreBidRequest().getTid())
+                .bidderStatus(bidderStatuses)
+                .bids(bids)
+                .build();
+    }
+
+    private void updateErrorMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
+        final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
+        final String bidder = bidderStatus.getBidder();
+
+        if (!bidderCatalog.isActive(bidder)) {
+            return;
+        }
+
+        final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
+        final AdapterMetrics accountAdapterMetrics = metrics
+                .forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
+                .forAdapter(bidder);
+
+        if (adapterResponse.isTimedOut()) {
+            adapterMetrics.incCounter(MetricName.timeout_requests);
+            accountAdapterMetrics.incCounter(MetricName.timeout_requests);
+        } else {
+            adapterMetrics.incCounter(MetricName.error_requests);
+            accountAdapterMetrics.incCounter(MetricName.error_requests);
+        }
+    }
+
     private void updateResponseTimeMetrics(BidderStatus bidderStatus, PreBidRequestContext preBidRequestContext) {
         final String bidder = bidderStatus.getBidder();
-        final Integer responseTimeMs = bidderStatus.getResponseTimeMs();
 
+        if (!bidderCatalog.isActive(bidder)) {
+            return;
+        }
+
+        final Integer responseTimeMs = bidderStatus.getResponseTimeMs();
         metrics.forAdapter(bidder).updateTimer(MetricName.request_time, responseTimeMs);
         metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
                 .forAdapter(bidder).updateTimer(MetricName.request_time, responseTimeMs);
     }
 
+    private Stream<BidderStatus> invalidBidderStatuses(PreBidRequestContext preBidRequestContext) {
+        return preBidRequestContext.getAdapterRequests().stream()
+                .filter(b -> !bidderCatalog.isValidName(b.getBidderCode()))
+                .map(b -> BidderStatus.builder().bidder(b.getBidderCode()).error("Unsupported bidder").build());
+    }
+
     private void updateBidResultMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
         final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
         final String bidder = bidderStatus.getBidder();
+
+        if (!bidderCatalog.isActive(bidder)) {
+            return;
+        }
+
         final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
         final AccountMetrics accountMetrics =
                 metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId());
@@ -350,20 +284,104 @@ public class AuctionHandler implements Handler<RoutingContext> {
         }
     }
 
-    private void updateErrorMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
-        final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
-        final String bidder = bidderStatus.getBidder();
-        final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-        final AdapterMetrics accountAdapterMetrics = metrics
-                .forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
-                .forAdapter(bidder);
+    private Future<PreBidResponse> processCacheMarkup(PreBidRequestContext preBidRequestContext,
+                                                      PreBidResponse preBidResponse) {
+        final Future<PreBidResponse> result;
 
-        if (adapterResponse.isTimedOut()) {
-            adapterMetrics.incCounter(MetricName.timeout_requests);
-            accountAdapterMetrics.incCounter(MetricName.timeout_requests);
+        final Integer cacheMarkup = preBidRequestContext.getPreBidRequest().getCacheMarkup();
+        final List<Bid> bids = preBidResponse.getBids();
+        if (!bids.isEmpty() && cacheMarkup != null && (cacheMarkup == 1 || cacheMarkup == 2)) {
+            result = (cacheMarkup == 1
+                    ? cacheService.cacheBids(bids, preBidRequestContext.getTimeout())
+                    : cacheService.cacheBidsVideoOnly(bids, preBidRequestContext.getTimeout()))
+                    .map(bidCacheResults -> mergeBidsWithCacheResults(preBidResponse, bidCacheResults));
         } else {
-            adapterMetrics.incCounter(MetricName.error_requests);
-            accountAdapterMetrics.incCounter(MetricName.error_requests);
+            result = Future.succeededFuture(preBidResponse);
         }
+
+        return result;
+    }
+
+    private static PreBidResponse mergeBidsWithCacheResults(PreBidResponse preBidResponse,
+                                                            List<BidCacheResult> bidCacheResults) {
+        final List<Bid> bids = preBidResponse.getBids();
+        for (int i = 0; i < bids.size(); i++) {
+            final BidCacheResult result = bidCacheResults.get(i);
+            // IMPORTANT: see javadoc in Bid class
+            bids.get(i)
+                    .setAdm(null)
+                    .setNurl(null)
+                    .setCacheId(result.getCacheId())
+                    .setCacheUrl(result.getCacheUrl());
+        }
+
+        return preBidResponse;
+    }
+
+    /**
+     * Sorts the bids and adds ad server targeting keywords to each bid.
+     * The bids are sorted by cpm to find the highest bid.
+     * The ad server targeting keywords are added to all bids, with specific keywords for the highest bid.
+     */
+    private static PreBidResponse addTargetingKeywords(PreBidRequest preBidRequest, Account account,
+                                                       PreBidResponse preBidResponse) {
+        final Integer sortBids = preBidRequest.getSortBids();
+        if (sortBids != null && sortBids == 1) {
+            final TargetingKeywordsCreator keywordsCreator =
+                    TargetingKeywordsCreator.create(account.getPriceGranularity(), true, false);
+
+            final Map<String, List<Bid>> adUnitCodeToBids = preBidResponse.getBids().stream()
+                    .collect(Collectors.groupingBy(Bid::getCode));
+
+            for (final List<Bid> bids : adUnitCodeToBids.values()) {
+                bids.sort(Comparator.comparing(Bid::getPrice)
+                        .reversed()
+                        .thenComparing(Bid::getResponseTimeMs));
+
+                for (final Bid bid : bids) {
+                    // IMPORTANT: see javadoc in Bid class
+                    bid.setAdServerTargeting(joinMaps(
+                            keywordsCreator.makeFor(bid, bid == bids.get(0)),
+                            bid.getAdServerTargeting()));
+                }
+            }
+        }
+
+        return preBidResponse;
+    }
+
+    private static <K, V> Map<K, V> joinMaps(Map<K, V> left, Map<K, V> right) {
+        if (right != null) {
+            left.putAll(right);
+        }
+        return left;
+    }
+
+    private static void respondWith(PreBidResponse response, RoutingContext context) {
+        context.response()
+                .putHeader(HttpHeaders.DATE, date())
+                .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .end(Json.encode(response));
+    }
+
+    private static String date() {
+        return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now());
+    }
+
+    private PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
+        if (responseResult.succeeded()) {
+            return responseResult.result();
+        } else {
+            metrics.incCounter(MetricName.error_requests);
+            final Throwable exception = responseResult.cause();
+            logger.info("Failed to process /auction request", exception);
+            return error(exception instanceof PreBidException
+                    ? exception.getMessage()
+                    : "Unexpected server error");
+        }
+    }
+
+    private static PreBidResponse error(String status) {
+        return PreBidResponse.builder().status(status).build();
     }
 }

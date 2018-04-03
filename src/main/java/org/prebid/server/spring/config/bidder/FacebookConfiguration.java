@@ -48,8 +48,9 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps facebookBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && (usersyncUrl == null || platformId == null)) {
-            throw new RuntimeException(String.format("%s is enabled but has missing required configuration properties. "
-                    + "Please review configuration.", BIDDER_NAME));
+            throw new IllegalStateException(
+                    String.format("%s is enabled but has missing required configuration properties. "
+                            + "Please review configuration.", BIDDER_NAME));
         }
         return bidderDeps(httpClient, httpAdapterConnector);
     }
@@ -66,8 +67,7 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        // FIXME: we need to add DisabledUsersyncer to avoid NPE
-        return new FacebookUsersyncer(usersyncUrl == null ? StringUtils.EMPTY : usersyncUrl);
+        return new FacebookUsersyncer(enabled && usersyncUrl != null ? usersyncUrl : StringUtils.EMPTY);
     }
 
     @Override

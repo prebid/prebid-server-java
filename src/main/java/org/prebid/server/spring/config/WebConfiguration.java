@@ -97,7 +97,7 @@ public class WebConfiguration {
         router.get("/info/bidders").handler(biddersHandler);
         router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
         router.get("/static/*").handler(staticHandler);
-        router.get("/").handler(staticHandler); // serves indexAdapter.html by default
+        router.get("/").handler(staticHandler); // serves index.html by default
 
         return router;
     }

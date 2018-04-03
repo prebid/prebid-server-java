@@ -9,18 +9,14 @@ import org.assertj.core.api.SoftAssertions;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.bidder.BidderCatalog;
 
 import java.util.EnumMap;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.given;
 
 public class MetricsTest {
 
@@ -31,23 +27,18 @@ public class MetricsTest {
 
     private MetricRegistry metricRegistry;
 
-    @Mock
-    private BidderCatalog bidderCatalog;
-
     private Metrics metrics;
 
     @Before
     public void setUp() {
-        given(bidderCatalog.isActive(anyString())).willReturn(true);
-
         metricRegistry = new MetricRegistry();
-        metrics = new Metrics(metricRegistry, CounterType.counter, bidderCatalog);
+        metrics = new Metrics(metricRegistry, CounterType.counter);
     }
 
     @Test
     public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new Metrics(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new Metrics(metricRegistry, CounterType.counter, null));
+        assertThatNullPointerException().isThrownBy(() -> new Metrics(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new Metrics(metricRegistry, null));
     }
 
     @Test
@@ -92,15 +83,6 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void forAdapterShouldReturnDisabledMetricsForDisabledBidder() {
-        // given
-        given(bidderCatalog.isActive("disabled")).willReturn(false);
-
-        // when and then
-        assertThat(metrics.forAccount("accountId").forAdapter("disabled")).isInstanceOf(DisabledAdapterMetrics.class);
     }
 
     @Test
@@ -171,7 +153,7 @@ public class MetricsTest {
             metricRegistry = new MetricRegistry();
 
             // when
-            metricsConsumer.accept(new Metrics(metricRegistry, CounterType.valueOf(counterType.name()), bidderCatalog));
+            metricsConsumer.accept(new Metrics(metricRegistry, CounterType.valueOf(counterType.name())));
 
             // then
             softly.assertThat(metricRegistry.getMetrics()).hasValueSatisfying(new Condition<>(

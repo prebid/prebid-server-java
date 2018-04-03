@@ -37,8 +37,9 @@ public class IndexConfiguration extends BidderConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps indexexchangeBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && endpoint == null) {
-            throw new RuntimeException(String.format("%s is enabled but has missing required configuration properties. "
-                    + "Please review configuration.", BIDDER_NAME));
+            throw new IllegalStateException(
+                    String.format("%s is enabled but has missing required configuration properties. "
+                            + "Please review configuration.", BIDDER_NAME));
         }
         return bidderDeps(httpClient, httpAdapterConnector);
     }
