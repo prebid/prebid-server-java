@@ -36,8 +36,8 @@ import static org.assertj.core.api.Assertions.*;
 
 public class FacebookBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://sovrn.com/openrtb2d";
-    private static final String NON_SECURED_ENDPOINT_URL = "http://sovrn.com/openrtb2d";
+    private static final String ENDPOINT_URL = "https://facebook.com/openrtb2d";
+    private static final String NON_SECURED_ENDPOINT_URL = "http://facebook.com/openrtb2d";
     private static final String PLATFORM_ID = "101";
     
     private FacebookBidder facebookBidder;

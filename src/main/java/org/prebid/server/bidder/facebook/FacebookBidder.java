@@ -64,16 +64,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
         platformJson = createPlatformJson(Objects.requireNonNull(platformId));
     }
 
-    private static ObjectNode createPlatformJson(String platformId) {
-        final Integer platformIdAsInt;
-        try {
-            platformIdAsInt = Integer.valueOf(platformId);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(String.format("Platform ID is not valid number: '%s'", platformId), e);
-        }
-        return Json.mapper.valueToTree(FacebookExt.of(platformIdAsInt));
-    }
-
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
@@ -123,6 +113,16 @@ public class FacebookBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 
+    private static ObjectNode createPlatformJson(String platformId) {
+        final Integer platformIdAsInt;
+        try {
+            platformIdAsInt = Integer.valueOf(platformId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(String.format("Platform ID is not valid number: '%s'", platformId), e);
+        }
+        return Json.mapper.valueToTree(FacebookExt.of(platformIdAsInt));
+    }
+
     private ExtImpFacebook parseExtImpFacebook(Imp imp) {
         if (imp.getExt() == null) {
             throw new PreBidException("audienceNetwork parameters section is missing");
@@ -149,7 +149,16 @@ public class FacebookBidder implements Bidder<BidRequest> {
         return placementIdSplit[0];
     }
 
-    private Site makeSite(BidRequest bidRequest, String pubId) {
+    private Imp makeImp(Imp imp, String placementId) {
+        validateMediaImpMediaTypes(imp);
+        return imp.toBuilder()
+                .tagid(placementId)
+                .banner(makeBanner(imp))
+                .ext(platformJson)
+                .build();
+    }
+
+    private static Site makeSite(BidRequest bidRequest, String pubId) {
         final Site site = bidRequest.getSite();
         if (site == null) {
             return null;
@@ -165,7 +174,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private App makeApp(BidRequest bidRequest, String pubId) {
+    private static App makeApp(BidRequest bidRequest, String pubId) {
         final App app = bidRequest.getApp();
         if (app == null) {
             return null;
@@ -181,7 +190,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private Publisher makePublisher(Publisher publisher, String pubId) {
+    private static Publisher makePublisher(Publisher publisher, String pubId) {
         final Publisher.PublisherBuilder publisherBuilder = publisher == null
                 ? Publisher.builder()
                 : publisher.toBuilder();
@@ -190,16 +199,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private Imp makeImp(Imp imp, String pubId) {
-        validateMediaImpMediaTypes(imp);
-        return imp.toBuilder()
-                .tagid(pubId)
-                .banner(makeBanner(imp))
-                .ext(platformJson)
-                .build();
-    }
-
-    private void validateMediaImpMediaTypes(Imp imp) {
+    private static void validateMediaImpMediaTypes(Imp imp) {
         if (imp.getXNative() != null || imp.getAudio() != null) {
             throw new PreBidException(
                     String.format("audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=%s",
@@ -214,16 +214,16 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Banner makeBanner(Imp imp) {
+    private static Banner makeBanner(Imp imp) {
         final Banner banner = imp.getBanner();
         if (banner == null) {
             return null;
         }
 
-        final int h = banner.getH();
-        final int w = banner.getW();
+        final Integer h = banner.getH();
+        final Integer w = banner.getW();
 
-        if (w == LEGACY_BANNER_WIDTH && h == LEGACY_BANNER_HEIGHT) {
+        if (Objects.equals(w, LEGACY_BANNER_WIDTH) && Objects.equals(h, LEGACY_BANNER_HEIGHT)) {
             // do not send legacy 320x50 size to facebook, instead use 0x50
             return banner.toBuilder().w(0).build();
         }
@@ -248,7 +248,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .limit(1)
                 .map(bid -> BidderBid.of(bid, BidType.banner))
                 .collect(Collectors.toList());
     }
