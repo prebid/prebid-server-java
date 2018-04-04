@@ -46,6 +46,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.validation.ResponseBidValidator;
+import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -82,6 +84,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
+    private ResponseBidValidator responseBidValidator;
+    @Mock
     private Usersyncer usersyncer;
     @Mock
     private CacheService cacheService;
@@ -106,19 +110,20 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.bidderRequesterByName(anyString())).willReturn(bidderRequester);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
 
+        given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
         given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
 
-        exchangeService = new ExchangeService(bidderCatalog, cacheService, metrics, clock, 0);
+        exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock, 0);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new ExchangeService(bidderCatalog, cacheService, metrics, clock, -1));
+                () -> new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock, -1));
     }
 
     @Test
@@ -602,6 +607,30 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldTolerateResponseBidValidationErrors() throws JsonProcessingException {
+        // given
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(1.23)).build()))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, ExtRequestTargeting.of("low", true), null, null)))));
+
+        given(responseBidValidator.validate(any()))
+                .willReturn(ValidationResult.error("bid validation error"));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+
+        // then
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getErrors()).hasSize(1).containsOnly(
+                entry("bidder1", singletonList("bid validation error")));
+    }
+
+    @Test
     public void shouldPopulateTargetingKeywords() {
         // given
         givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(asList(
@@ -905,7 +934,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
-        exchangeService = new ExchangeService(bidderCatalog, cacheService, metrics, clock, 100);
+        exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock, 100);
 
         givenHttpConnector(givenSeatBid(singletonList(
                 givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build()))));
@@ -1000,23 +1029,6 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(adapterMetrics, times(1)).incCounter(eq(MetricName.timeout_requests));
         verify(adapterMetrics, times(2)).incCounter(eq(MetricName.error_requests));
-    }
-
-    @Test
-    public void shouldNotIncrementMetricsForDisabledBidder() {
-        // given
-        given(bidderCatalog.isActive(eq("somebidder"))).willReturn(false);
-
-        given(bidderRequester.requestBids(any(), any()))
-                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
-
-        // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
-
-        // then
-        verifyZeroInteractions(adapterMetrics);
     }
 
     private BidRequest captureBidRequest() {

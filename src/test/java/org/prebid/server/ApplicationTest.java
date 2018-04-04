@@ -206,7 +206,6 @@ public class ApplicationTest extends VertxTest {
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
-
         // then
         String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
                 response, "ext.responsetimemillis.%s");

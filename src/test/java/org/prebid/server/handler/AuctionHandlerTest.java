@@ -641,23 +641,6 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
-    @Test
-    public void shouldNotIncrementMetricsForDisabledBidder() {
-        // given
-        given(bidderCatalog.isActive(eq(RUBICON))).willReturn(false);
-
-        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
-
-        givenBidderRespondingWithError(RUBICON, "disabled bidder error", false);
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        verifyZeroInteractions(adapterMetrics);
-        verifyZeroInteractions(accountAdapterMetrics);
-    }
-
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
