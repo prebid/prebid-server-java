@@ -524,12 +524,6 @@ public class RequestValidator {
         }
     }
 
-    private static class ValidationException extends Exception {
-        ValidationException(String errorMessageFormat, Object... args) {
-            super(String.format(errorMessageFormat, args));
-        }
-    }
-
     private static boolean hasValue(Integer value) {
         return value != null && value != 0;
     }

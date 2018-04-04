@@ -21,6 +21,7 @@ import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
+import org.prebid.server.validation.ResponseBidValidator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
@@ -124,10 +125,10 @@ public class ServiceConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
-            BidderCatalog bidderCatalog,
+            BidderCatalog bidderCatalog, ResponseBidValidator responseBidValidator,
             CacheService cacheService, Metrics metrics, Clock clock) {
 
-        return new ExchangeService(bidderCatalog, cacheService, metrics, clock,
+        return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock,
                 expectedCacheTimeMs);
     }
 
@@ -136,6 +137,7 @@ public class ServiceConfiguration {
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
             ApplicationSettings applicationSettings,
             TimeoutFactory timeoutFactory) {
+
         return new StoredRequestProcessor(applicationSettings, timeoutFactory, defaultTimeoutMs);
     }
 
@@ -154,6 +156,11 @@ public class ServiceConfiguration {
     @Bean
     BidderParamValidator bidderParamValidator(BidderCatalog bidderCatalog) {
         return BidderParamValidator.create(bidderCatalog, "static/bidder-params");
+    }
+
+    @Bean
+    ResponseBidValidator responseValidator() {
+        return new ResponseBidValidator();
     }
 
     @Bean
