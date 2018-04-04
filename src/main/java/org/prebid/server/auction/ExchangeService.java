@@ -38,6 +38,8 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.validation.ResponseBidValidator;
+import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -63,14 +65,18 @@ public class ExchangeService {
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final BidderCatalog bidderCatalog;
+    private final ResponseBidValidator responseBidValidator;
     private final CacheService cacheService;
     private final Metrics metrics;
     private final Clock clock;
     private long expectedCacheTime;
 
-    public ExchangeService(BidderCatalog bidderCatalog, CacheService cacheService, Metrics metrics, Clock clock,
+    public ExchangeService(BidderCatalog bidderCatalog,
+                           ResponseBidValidator responseBidValidator, CacheService cacheService,
+                           Metrics metrics, Clock clock,
                            long expectedCacheTime) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -327,9 +333,6 @@ public class ExchangeService {
                                      Map<String, String> aliases) {
         for (BidderRequest bidderRequest : bidderRequests) {
             final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
-            if (!bidderCatalog.isActive(bidder)) {
-                return;
-            }
 
             metrics.forAdapter(bidder).incCounter(MetricName.requests);
 
@@ -393,7 +396,37 @@ public class ExchangeService {
         final String bidder = bidderRequest.getBidder();
         return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
                 .requestBids(bidderRequest.getBidRequest(), timeout)
+                .map(this::validateAndUpdateResponse)
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
+    }
+
+    /**
+     * Validates bid response from exchange.
+     * <p>
+     * Removes invalid bids from response and adds corresponding error to {@link BidderSeatBid}.
+     * <p>
+     * Returns input argument as the result if no errors found or create new {@link BidderSeatBid} otherwise.
+     */
+    private BidderSeatBid validateAndUpdateResponse(BidderSeatBid bidderSeatBid) {
+        final List<BidderBid> bids = bidderSeatBid.getBids();
+
+        final List<BidderBid> validBids = new ArrayList<>(bids.size());
+        final List<BidderError> errors = new ArrayList<>(bidderSeatBid.getErrors());
+
+        for (BidderBid bid : bids) {
+            final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
+            if (validationResult.hasErrors()) {
+                for (String error : validationResult.getErrors()) {
+                    errors.add(BidderError.create(error));
+                }
+            } else {
+                validBids.add(bid);
+            }
+        }
+
+        return validBids.size() == bids.size()
+                ? bidderSeatBid
+                : BidderSeatBid.of(validBids, bidderSeatBid.getHttpCalls(), errors);
     }
 
     private int responseTime(long startTime) {
@@ -420,11 +453,8 @@ public class ExchangeService {
     private void updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
-            if (!bidderCatalog.isActive(bidder)) {
-                return;
-            }
-
             final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
+
             adapterMetrics.updateTimer(MetricName.request_time, bidderResponse.getResponseTime());
 
             final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();

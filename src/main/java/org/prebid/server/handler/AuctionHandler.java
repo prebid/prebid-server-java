@@ -173,10 +173,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private void updateAdapterRequestMetrics(String bidder, String accountId) {
-        if (!bidderCatalog.isActive(bidder)) {
-            return;
-        }
-
         metrics.forAdapter(bidder).incCounter(MetricName.requests);
         metrics.forAccount(accountId).forAdapter(bidder).incCounter(MetricName.requests);
     }
@@ -212,10 +208,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
         final String bidder = bidderStatus.getBidder();
 
-        if (!bidderCatalog.isActive(bidder)) {
-            return;
-        }
-
         final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
         final AdapterMetrics accountAdapterMetrics = metrics
                 .forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
@@ -233,10 +225,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private void updateResponseTimeMetrics(BidderStatus bidderStatus, PreBidRequestContext preBidRequestContext) {
         final String bidder = bidderStatus.getBidder();
 
-        if (!bidderCatalog.isActive(bidder)) {
-            return;
-        }
-
         final Integer responseTimeMs = bidderStatus.getResponseTimeMs();
         metrics.forAdapter(bidder).updateTimer(MetricName.request_time, responseTimeMs);
         metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
@@ -252,10 +240,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private void updateBidResultMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
         final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
         final String bidder = bidderStatus.getBidder();
-
-        if (!bidderCatalog.isActive(bidder)) {
-            return;
-        }
 
         final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
         final AccountMetrics accountMetrics =
