@@ -427,7 +427,7 @@
             "status": 200
           },
           {
-            "uri": "http://localhost:8090/lifestreet-exchange",
+            "uri": "{{ lifestreet.exchange_uri }}",
             "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId71\",\"video\":{\"mimes\":[\"mimes\"],\"w\":300,\"h\":600,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[null]},\"tagid\":\"slot.tag\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"dnt\":2,\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"LS-UID\"},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"}}",
             "responsebody": "{\"id\":\"bidResponseId71\",\"seatbid\":[{\"bid\":[{\"id\":\"791858127\",\"impid\":\"impId71\",\"price\":4.75,\"adm\":\"adm71\",\"crid\":\"crid71\",\"dealid\":\"dealId71\",\"w\":300,\"h\":600}],\"seat\":\"seatId71\",\"group\":0}]}",
             "status": 200
