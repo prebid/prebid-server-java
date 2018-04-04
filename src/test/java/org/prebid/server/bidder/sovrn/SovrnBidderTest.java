@@ -64,7 +64,7 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId");
     }
 
@@ -85,7 +85,7 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId");
     }
 
@@ -106,7 +106,7 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=23");
     }
 
@@ -126,7 +126,7 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("Sovrn parameters section is missing");
     }
 

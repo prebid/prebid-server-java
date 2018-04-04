@@ -85,7 +85,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("Appnexus doesn't support audio Imps. Ignoring Imp ID=23");
     }
 
@@ -532,7 +532,7 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
+        assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsOnly("Unrecognized bid_ad_type in response from appnexus: 42");
         assertThat(result.getValue()).isEmpty();
@@ -554,7 +554,7 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
+        assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsOnly("bidResponse.bid.ext should be defined for appnexus");
         assertThat(result.getValue()).isEmpty();
@@ -576,7 +576,7 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
+        assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsOnly("bidResponse.bid.ext.appnexus should be defined");
         assertThat(result.getValue()).isEmpty();
@@ -598,7 +598,7 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
+        assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsOnly("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
         assertThat(result.getValue()).isEmpty();

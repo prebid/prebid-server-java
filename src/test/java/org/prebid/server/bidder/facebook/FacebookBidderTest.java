@@ -113,7 +113,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId");
     }
 
@@ -137,7 +137,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId");
     }
 
@@ -161,7 +161,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("audienceNetwork doesn't support video type with no video data");
     }
 
@@ -187,7 +187,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("audienceNetwork parameters section is missing");
     }
 
@@ -214,7 +214,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("Missing placementId param");
     }
 
@@ -241,7 +241,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("Missing placementId param");
     }
 
@@ -268,7 +268,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .element(0).extracting(BidderError::getMessage)
+                .extracting(BidderError::getMessage)
                 .containsExactly("Invalid placementId param '~malformed'");
     }
 
