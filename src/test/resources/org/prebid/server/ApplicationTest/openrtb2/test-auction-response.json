@@ -281,21 +281,22 @@
     {
       "bid": [
         {
-          "id": "impId5",
           "impid": "impId5",
+          "crid": "crid5",
+          "dealid": "dealId5",
           "price": 9.0,
           "adm": "adm5",
-          "w": 300,
-          "h": 600,
+          "w": 0,
+          "h": 50,
           "ext": {
             "prebid": {
               "targeting": {
                 "hb_pb": "9.00",
+                "hb_deal" : "dealId5",
+                "hb_deal_audienceNetwork": "dealId5",
                 "hb_bidder_audienceNetwork": "audienceNetwork",
-                "hb_size": "300x600",
                 "hb_cache_id_audienceNetwork": "117431c9-807a-41e1-82a7-dcd8f8875493",
                 "hb_bidder": "audienceNetwork",
-                "hb_size_audienceNetwork": "300x600",
                 "hb_cache_id": "117431c9-807a-41e1-82a7-dcd8f8875493",
                 "hb_pb_audienceNetwork": "9.00",
                 "hb_creative_loadtype": "demand_sdk"
@@ -456,8 +457,8 @@
         "audienceNetwork": [
           {
             "uri": "{{ audienceNetwork.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId5\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":600,\"topframe\":0},\"tagid\":\"pub1_place1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"pub1\"}},\"device\":{\"dnt\":2,\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"FB-UID\"},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"platformid\":101}}",
-            "responsebody": "{\"id\":\"bidResponseId5\",\"seatbid\":[{\"bid\":[{\"impid\":\"impId5\",\"price\":9.0,\"adm\":\"adm5\",\"crid\":\"crid5\",\"dealid\":\"dealId5\",\"w\":300,\"h\":250}],\"seat\":\"seatId5\",\"group\":0}]}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId5\",\"banner\":{\"format\":[{\"w\":320,\"h\":50}],\"w\":0,\"h\":50},\"tagid\":\"pub1_place1\",\"ext\":{\"platformid\":101}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http:\/\/www.example.com\",\"publisher\":{\"id\":\"publisherId\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"FB-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0}}},\"test\":1,\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":\"med\"},\"cache\":{\"bids\":[]}}}}",
+            "responsebody": "{\"id\":\"bidResponseId5\",\"seatbid\":[{\"bid\":[{\"impid\":\"impId5\",\"price\":9.0,\"adm\":\"adm5\",\"crid\":\"crid5\",\"dealid\":\"dealId5\",\"w\":0,\"h\":50}],\"seat\":\"seatId5\",\"group\":0}]}",
             "status": 200
           }
         ],
@@ -611,17 +612,16 @@
             "banner": {
               "format": [
                 {
-                  "w": 300,
-                  "h": 600
+                  "w": 320,
+                  "h": 50
                 }
               ],
-              "w": 300,
-              "h": 600
+              "w": 320,
+              "h": 50
             },
             "ext": {
               "audienceNetwork": {
-                "placementId": "pub1_place1",
-                "site_id": "siteId"
+                "placementId": "pub1_place1"
               }
             }
           },

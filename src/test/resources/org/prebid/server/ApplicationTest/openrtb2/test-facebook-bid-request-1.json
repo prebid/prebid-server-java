@@ -6,33 +6,45 @@
       "banner": {
         "format": [
           {
-            "w": 300,
-            "h": 600
+            "w": 320,
+            "h": 50
           }
         ],
-        "w": 300,
-        "h": 600,
-        "topframe": 0
+        "w": 0,
+        "h": 50
       },
-      "tagid": "pub1_place1"
+      "tagid": "pub1_place1",
+      "ext": {
+        "platformid": 101
+      }
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "pub1"
+      "id": "publisherId"
     }
   },
   "device": {
+    "ua": "userAgent",
     "dnt": 2,
+    "ip": "192.168.244.1",
     "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "FB-UID"
+    "buyeruid": "FB-UID",
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
   },
+  "test": 1,
   "at": 1,
   "tmax": 1000,
   "source": {
@@ -40,6 +52,17 @@
     "tid": "tid"
   },
   "ext": {
-    "platformid": 101
+    "prebid": {
+      "aliases": {
+        "appnexusAlias": "appnexus",
+        "conversantAlias": "conversant"
+      },
+      "targeting": {
+        "pricegranularity": "med"
+      },
+      "cache": {
+        "bids": []
+      }
+    }
   }
 }

@@ -27,12 +27,13 @@
     {
       "type": "json",
       "value": {
-        "id": "impId5",
         "impid": "impId5",
         "price": 9,
         "adm": "adm5",
-        "w": 300,
-        "h": 600
+        "crid": "crid5",
+        "dealid": "dealId5",
+        "w": 0,
+        "h": 50
       }
     },
     {

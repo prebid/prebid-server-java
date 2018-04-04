@@ -10,7 +10,7 @@ import java.util.List;
  * This object describes the publisher of the media in which the ad will be
  * displayed. The publisher is typically the seller in an OpenRTB transaction.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Publisher {
 

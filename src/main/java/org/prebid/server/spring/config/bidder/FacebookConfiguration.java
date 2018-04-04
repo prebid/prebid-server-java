@@ -1,15 +1,13 @@
 package org.prebid.server.spring.config.bidder;
 
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
 import org.prebid.server.bidder.HttpAdapterConnector;
-import org.prebid.server.bidder.HttpAdapterRequester;
+import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.facebook.FacebookAdapter;
@@ -24,8 +22,6 @@ import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class FacebookConfiguration extends BidderConfiguration {
-
-    private static final Logger logger = LoggerFactory.getLogger(FacebookConfiguration.class);
 
     private static final String BIDDER_NAME = "audienceNetwork";
 
@@ -72,7 +68,7 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new FacebookBidder();
+        return new FacebookBidder(endpoint, nonSecureEndpoint, platformId);
     }
 
     @Override
@@ -83,6 +79,6 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Override
     protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
                                                     Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
-        return new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer, httpAdapterConnector);
+        return new HttpBidderRequester<>(bidder, httpClient);
     }
 }

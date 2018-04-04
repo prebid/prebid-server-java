@@ -9,6 +9,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.facebook.proto.ExtImpFacebook;
 import org.prebid.server.bidder.sovrn.proto.ExtImpSovrn;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
@@ -31,6 +32,7 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String ADFORM = "adform";
     private static final String SOVRN = "sovrn";
     private static final String ADTELLIGENT = "adtelligent";
+    private static final String FACEBOOK = "audienceNetwork";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -42,7 +44,8 @@ public class BidderParamValidatorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(RUBICON, APPNEXUS, ADFORM, SOVRN, ADTELLIGENT)));
+        given(bidderCatalog.names()).willReturn(new HashSet<>(
+                asList(RUBICON, APPNEXUS, ADFORM, SOVRN, ADTELLIGENT, FACEBOOK)));
 
         bidderParamValidator = BidderParamValidator.create(bidderCatalog, "static/bidder-params");
     }
@@ -166,7 +169,7 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessagesWhenAdformSovrnExtNotValid() {
+    public void validateShouldReturnValidationMessagesWhenSovrnExtNotValid() {
         // given
         final JsonNode node = mapper.createObjectNode();
 
@@ -198,6 +201,32 @@ public class BidderParamValidatorTest extends VertxTest {
 
         // when
         final Set<String> messages = bidderParamValidator.validate(ADTELLIGENT, node);
+
+        // then
+        assertThat(messages.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void validateShouldNotReturnValidationMessagesWhenFacebookImpExtIsOk() {
+        // given
+        final ExtImpFacebook ext = ExtImpFacebook.of("placementId");
+
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(FACEBOOK, node);
+
+        // then
+        assertThat(messages).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessagesWhenFacebookExtNotValid() {
+        // given
+        final JsonNode node = mapper.createObjectNode();
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(FACEBOOK, node);
 
         // then
         assertThat(messages.size()).isEqualTo(1);
