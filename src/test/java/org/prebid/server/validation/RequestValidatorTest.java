@@ -730,7 +730,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        singletonMap("unknown-bidder", "rubicon"), null, null, null))))
+                        singletonMap("unknown-bidder", "rubicon"), null, null, null, null))))
                 .user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.of(
                                 ExtUserPrebid.of(singletonMap("unknown-bidder", "42")),
@@ -802,7 +802,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenAliasNameEqualsToBidderItPointsOn() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                singletonMap("rubicon", "rubicon"), null, null, null)));
+                singletonMap("rubicon", "rubicon"), null, null, null, null)));
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
@@ -818,7 +818,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenAliasPointOnNotValidBidderName() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                singletonMap("alias", "fake"), null, null, null)));
+                singletonMap("alias", "fake"), null, null, null, null)));
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
@@ -833,7 +833,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationResultWithoutErrorMessageWhenAliasesWasUsed() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                singletonMap("alias", "rubicon"), null, null, null)));
+                singletonMap("alias", "rubicon"), null, null, null, null)));
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
@@ -1495,6 +1495,70 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].metric[0].value must be in the range [0.0, 1.0]");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAdjustmentFactorNegative() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.of(null, singletonMap("rubicon", -1.1F), null, null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.ext.prebid.bidadjustmentfactors.rubicon must be a positive number. Got -1.100000");
+    }
+
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBidderUnknown() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.of(null, singletonMap("unknownBidder", 1.1F), null, null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.ext.prebid.bidadjustmentfactors.unknownBidder is not a known bidder or alias");
+    }
+
+    @Test
+    public void validateShouldNotReturnValidationMessageWhenBidderIsKnownAndAdjustmentIsValid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.of(null, singletonMap("rubicon", 1.1F), null, null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void validateShouldNotReturnValidationMessageWhenBidderIsKnownAliasForCoreBidderAndAdjustmentIsValid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.of(singletonMap("rubicon_alias", "rubicon"),
+                                singletonMap("rubicon_alias", 1.1F), null, null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
     }
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {

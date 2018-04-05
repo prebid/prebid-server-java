@@ -13,5 +13,5 @@ public interface BidderRequester {
     /**
      * Executes given request to a bidder.
      */
-    Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout);
+    Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout, Float bidPriceAdjustmentFactor);
 }

@@ -1,6 +1,7 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.response.Bid;
 import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -23,6 +24,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,14 +57,14 @@ public class HttpBidderRequester<T> implements BidderRequester {
     /**
      * Executes given request to a given bidder.
      */
-    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout) {
+    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout, Float bidPriceAdjustmentFactor) {
         final Result<List<HttpRequest<T>>> httpRequests = bidder.makeHttpRequests(bidRequest);
 
         return CompositeFuture.join(httpRequests.getValue().stream()
                 .map(httpRequest -> doRequest(httpRequest, timeout))
                 .collect(Collectors.toList()))
                 .map(httpRequestsResult -> toBidderSeatBid(bidRequest, httpRequests.getErrors(),
-                        httpRequestsResult.list()));
+                        httpRequestsResult.list(), bidPriceAdjustmentFactor));
     }
 
     /**
@@ -129,8 +131,10 @@ public class HttpBidderRequester<T> implements BidderRequester {
      * Transforms HTTP call results into single {@link BidderSeatBid} filled with debug information, bids and errors
      * happened along the way.
      */
-    private BidderSeatBid toBidderSeatBid(BidRequest bidRequest, List<BidderError> previousErrors,
-                                          List<HttpCall<T>> calls) {
+    private BidderSeatBid toBidderSeatBid(BidRequest bidRequest,
+                                          List<BidderError> previousErrors,
+                                          List<HttpCall<T>> calls,
+                                          Float bidPriceAdjustmentFactor) {
         // If this is a test bid, capture debugging info from the requests
         final List<ExtHttpCall> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? calls.stream().map(HttpBidderRequester::toExt).collect(Collectors.toList())
@@ -142,12 +146,29 @@ public class HttpBidderRequester<T> implements BidderRequester {
                 .collect(Collectors.toList());
 
         final List<BidderBid> bids = createdBids.stream()
-                .flatMap(bid -> bid.getValue().stream())
+                .flatMap(bidderBid -> bidderBid.getValue().stream())
+                .map(bidderBid -> applyBidPriceAdjustmentFactor(bidderBid, bidPriceAdjustmentFactor))
                 .collect(Collectors.toList());
 
         final List<BidderError> bidderErrors = errors(previousErrors, calls, createdBids);
 
         return BidderSeatBid.of(bids, httpCalls, bidderErrors);
+    }
+
+    /**
+     * Applies correction to {@link BidderBid}'s {@link Bid#price}
+     */
+    private BidderBid applyBidPriceAdjustmentFactor(BidderBid bidderBid, Float priceAdjustmentFactor) {
+        if (priceAdjustmentFactor == null) {
+            return bidderBid;
+        }
+
+        final Bid bid = bidderBid.getBid();
+        final BigDecimal price = bid != null && bid.getPrice().compareTo(BigDecimal.ZERO) > 0 ? bid.getPrice() : null;
+        final Bid updatedBid = price != null
+                ? bid.toBuilder().price(price.multiply(BigDecimal.valueOf(priceAdjustmentFactor))).build()
+                : null;
+        return updatedBid == null ? bidderBid : BidderBid.of(updatedBid, bidderBid.getType());
     }
 
     /**

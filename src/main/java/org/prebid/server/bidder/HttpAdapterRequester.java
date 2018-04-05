@@ -32,6 +32,7 @@ import org.prebid.server.proto.request.Video;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.MediaType;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,7 +68,7 @@ public class HttpAdapterRequester implements BidderRequester {
      * {@link BidderSeatBid} format.
      */
     @Override
-    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout) {
+    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout, Float priceAdjustmentFactor) {
         final PreBidRequestContext preBidRequestContext;
         final Result<AdapterRequest> bidderWithErrors;
         try {
@@ -78,7 +79,8 @@ public class HttpAdapterRequester implements BidderRequester {
                     exception.getMessages().stream().map(BidderError::create).collect(Collectors.toList())));
         }
         return httpAdapterConnector.call(adapter, usersyncer, bidderWithErrors.getValue(), preBidRequestContext)
-                .map(bidderResult -> toBidderSeatBid(bidderResult, bidderWithErrors.getErrors()));
+                .map(bidderResult ->
+                        toBidderSeatBid(bidderResult, bidderWithErrors.getErrors(), priceAdjustmentFactor));
     }
 
     /**
@@ -303,8 +305,9 @@ public class HttpAdapterRequester implements BidderRequester {
      * Converts {@link AdapterResponse} response from legacy adapters to {@link BidderSeatBid} objects for ORTB response
      * format.
      */
-    private BidderSeatBid toBidderSeatBid(AdapterResponse adapterResponse, List<BidderError> errors) {
-        final Result<List<BidderBid>> bidderBidsResult = toBidderBids(adapterResponse);
+    private BidderSeatBid toBidderSeatBid(AdapterResponse adapterResponse, List<BidderError> errors,
+                                          Float priceAdjustmentFactor) {
+        final Result<List<BidderBid>> bidderBidsResult = toBidderBids(adapterResponse, priceAdjustmentFactor);
         final List<BidderError> bidderErrors = new ArrayList<>(errors);
         bidderErrors.addAll(bidderBidsResult.getErrors());
 
@@ -316,14 +319,14 @@ public class HttpAdapterRequester implements BidderRequester {
     /**
      * Converts {@link AdapterResponse} to {@link Result}&lt;{@link List}&lt;{@link BidderBid}&gt;&gt;.
      */
-    private Result<List<BidderBid>> toBidderBids(AdapterResponse adapterResponse) {
+    private Result<List<BidderBid>> toBidderBids(AdapterResponse adapterResponse, Float priceAdjustmentFactor) {
         final List<BidderBid> bidderBids = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
         for (org.prebid.server.proto.response.Bid bid : adapterResponse.getBids()) {
             final Result<BidType> bidTypeResult = toBidType(bid);
             final List<BidderError> bidderErrors = bidTypeResult.getErrors();
             if (bidderErrors.isEmpty()) {
-                bidderBids.add(BidderBid.of(toOrtbBid(bid), bidTypeResult.getValue()));
+                bidderBids.add(BidderBid.of(toOrtbBid(bid, priceAdjustmentFactor), bidTypeResult.getValue()));
             } else {
                 errors.addAll(bidderErrors);
             }
@@ -355,17 +358,30 @@ public class HttpAdapterRequester implements BidderRequester {
     /**
      * Converts {@link org.prebid.server.proto.response.Bid} to {@link Bid}.
      */
-    private static Bid toOrtbBid(org.prebid.server.proto.response.Bid bid) {
+    private static Bid toOrtbBid(org.prebid.server.proto.response.Bid bid, Float priceAdjustmentFactor) {
+        final BigDecimal price = bid.getPrice();
         return Bid.builder().id(bid.getBidId())
                 .impid(bid.getCode())
                 .crid(bid.getCreativeId())
-                .price(bid.getPrice())
+                .price(applyBidPriceAdjustment(price, priceAdjustmentFactor))
                 .nurl(bid.getNurl())
                 .adm(bid.getAdm())
                 .w(bid.getWidth())
                 .h(bid.getHeight())
                 .dealid(bid.getDealId())
                 .build();
+    }
+
+    /**
+     * Returns corrected price according to adjustment factor value.
+     */
+    private static BigDecimal applyBidPriceAdjustment(BigDecimal price, Float priceAdjustmentFactor) {
+        if (price == null) {
+            return null;
+        }
+        return price.compareTo(BigDecimal.ZERO) > 0 && priceAdjustmentFactor != null
+                ? price.multiply(BigDecimal.valueOf(priceAdjustmentFactor))
+                : price;
     }
 
     /**

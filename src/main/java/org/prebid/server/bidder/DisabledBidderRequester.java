@@ -21,7 +21,7 @@ public class DisabledBidderRequester implements BidderRequester {
     }
 
     @Override
-    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout) {
+    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout, Float bidPriceAdjustmentFactor) {
         return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(),
                 Collections.singletonList(BidderError.create(errorMessage))));
     }

@@ -18,6 +18,11 @@ public class ExtRequestPrebid {
     Map<String, String> aliases;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.bidadjustmentfactors
+     */
+    Map<String, Float> bidadjustmentfactors;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.targeting
      */
     ExtRequestTargeting targeting;

@@ -24,6 +24,7 @@ import com.iab.openrtb.request.VideoObject;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -82,10 +83,17 @@ public class RequestValidator {
             final ExtBidRequest extBidRequest = parseAndValidateExtBidRequest(bidRequest);
 
             final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
-            Map<String, String> aliases = extRequestPrebid != null ? extRequestPrebid.getAliases() : null;
-            aliases = aliases != null ? aliases : Collections.emptyMap();
 
-            validateAliases(aliases);
+            final boolean isPrebidExtPresent = extRequestPrebid != null;
+            Map<String, String> aliases = Collections.emptyMap();
+
+            if (isPrebidExtPresent) {
+                aliases = ObjectUtils.defaultIfNull(extRequestPrebid.getAliases(), Collections.emptyMap());
+                validateAliases(aliases);
+                validateBidAdjustmentFactors(
+                        ObjectUtils.defaultIfNull(extRequestPrebid.getBidadjustmentfactors(), Collections.emptyMap()),
+                        aliases);
+            }
 
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
                 throw new ValidationException("request.imp must contain at least one element.");
@@ -108,6 +116,31 @@ public class RequestValidator {
             return ValidationResult.error(ex.getMessage());
         }
         return ValidationResult.success();
+    }
+
+    private void validateBidAdjustmentFactors(Map<String, Float> adjustmentFactors, Map<String, String> aliases)
+            throws ValidationException {
+
+        for (Map.Entry<String, Float> bidderAdjustment : adjustmentFactors.entrySet()) {
+            final String bidder = bidderAdjustment.getKey();
+            final Float adjustmentFactor = bidderAdjustment.getValue();
+
+            if (isUnknownBidderOrAlias(bidder, aliases)) {
+                throw new ValidationException(
+                        "request.ext.prebid.bidadjustmentfactors.%s is not a known bidder or alias", bidder);
+            }
+
+            if (adjustmentFactor <= 0) {
+                throw new ValidationException(
+                        "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %f",
+                        bidder, adjustmentFactor);
+            }
+
+        }
+    }
+
+    private boolean isUnknownBidderOrAlias(String bidder, Map<String, String> aliases) {
+        return !bidderCatalog.isValidName(bidder) && !aliases.containsKey(bidder);
     }
 
     private ExtBidRequest parseAndValidateExtBidRequest(BidRequest bidRequest) throws ValidationException {
@@ -172,7 +205,7 @@ public class RequestValidator {
                     }
 
                     for (String bidder : buyerUids.keySet()) {
-                        if (!bidderCatalog.isValidName(bidder) && !aliases.containsKey(bidder)) {
+                        if (isUnknownBidderOrAlias(bidder, aliases)) {
                             throw new ValidationException("request.user.ext.%s is neither a known bidder "
                                     + "name nor an alias in request.ext.prebid.aliases.", bidder);
                         }

@@ -19,7 +19,7 @@ public class DisabledBidderRequesterTest {
     @Test
     public void makeHttpRequestsShouldRespondWithExpectedError() {
         // when
-        final BidderSeatBid bidderSeatBid = disabledBidderRequester.requestBids(null, null).result();
+        final BidderSeatBid bidderSeatBid = disabledBidderRequester.requestBids(null, null, null).result();
 
         // then
         assertThat(bidderSeatBid.getBids()).isEmpty();

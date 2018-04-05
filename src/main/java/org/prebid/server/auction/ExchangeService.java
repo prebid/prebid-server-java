@@ -119,8 +119,8 @@ public class ExchangeService {
 
         // send all the requests to the bidders and gathers results
         final CompositeFuture bidderResults = CompositeFuture.join(bidderRequests.stream()
-                .map(bidderRequest -> requestBids(bidderRequest, startTime,
-                        auctionTimeout(timeout, shouldCacheBids), aliases))
+                .map(bidderRequest -> requestBids(bidderRequest, startTime, auctionTimeout(timeout, shouldCacheBids),
+                        aliases, bidAdjustments(requestExt)))
                 .collect(Collectors.toList()));
 
         // produce response from bidder results
@@ -150,6 +150,15 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         return aliases != null ? aliases : Collections.emptyMap();
+    }
+
+    /**
+     * Extracts bidAdjustments from {@link ExtBidRequest}.
+     */
+    private static Map<String, Float> bidAdjustments(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final Map<String, Float> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
+        return bidAdjustmentFactors != null ? bidAdjustmentFactors : Collections.emptyMap();
     }
 
     /**
@@ -392,10 +401,11 @@ public class ExchangeService {
      * recorded response time.
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, Timeout timeout,
-                                               Map<String, String> aliases) {
+                                               Map<String, String> aliases,
+                                               Map<String, Float> bidAdjustments) {
         final String bidder = bidderRequest.getBidder();
         return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
-                .requestBids(bidderRequest.getBidRequest(), timeout)
+                .requestBids(bidderRequest.getBidRequest(), timeout, bidAdjustments.get(bidder))
                 .map(this::validateAndUpdateResponse)
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
     }
