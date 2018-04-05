@@ -83,17 +83,16 @@
       "banner": {
         "format": [
           {
-            "w": 300,
-            "h": 600
+            "w": 320,
+            "h": 50
           }
         ],
-        "w": 300,
-        "h": 600
+        "w": 320,
+        "h": 50
       },
       "ext": {
         "audienceNetwork": {
-          "placementId": "pub1_place1",
-          "site_id": "siteId"
+          "placementId": "pub1_place1"
         }
       }
     },
