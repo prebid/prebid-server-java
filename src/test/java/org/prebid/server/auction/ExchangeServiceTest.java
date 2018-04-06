@@ -1051,26 +1051,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(Bid::getPrice).containsExactly(BigDecimal.valueOf(2.0));
     }
 
-    @Test
-    public void shouldRequestBidsWithBidAdjustmentFactor() {
-        // given
-        final BidderRequester bidderRequester = mock(BidderRequester.class);
-        givenHttpConnector("bidder", bidderRequester, givenSeatBid(singletonList(
-                givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
-
-        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(emptyMap(),
-                        singletonMap("bidder", BigDecimal.valueOf(2.468)), null, null, null)))));
-
-        // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
-
-        // then
-        assertThat(bidResponse.getSeatbid())
-                .flatExtracting(SeatBid::getBid)
-                .extracting(Bid::getPrice).containsExactly(BigDecimal.valueOf(4.936));
-    }
-
     private BidRequest captureBidRequest() {
         final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
         verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());

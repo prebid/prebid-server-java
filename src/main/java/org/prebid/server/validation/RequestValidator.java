@@ -85,10 +85,9 @@ public class RequestValidator {
 
             final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
 
-            final boolean isPrebidExtPresent = extRequestPrebid != null;
             Map<String, String> aliases = Collections.emptyMap();
 
-            if (isPrebidExtPresent) {
+            if (extRequestPrebid != null) {
                 aliases = ObjectUtils.defaultIfNull(extRequestPrebid.getAliases(), Collections.emptyMap());
                 validateAliases(aliases);
                 validateBidAdjustmentFactors(
@@ -124,13 +123,13 @@ public class RequestValidator {
 
         for (Map.Entry<String, BigDecimal> bidderAdjustment : adjustmentFactors.entrySet()) {
             final String bidder = bidderAdjustment.getKey();
-            final BigDecimal adjustmentFactor = bidderAdjustment.getValue();
 
             if (isUnknownBidderOrAlias(bidder, aliases)) {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s is not a known bidder or alias", bidder);
             }
 
+            final BigDecimal adjustmentFactor = bidderAdjustment.getValue();
             if (adjustmentFactor.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %f",

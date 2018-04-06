@@ -304,7 +304,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -317,7 +317,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -743,7 +743,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -761,7 +761,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -841,7 +841,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -1426,7 +1426,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -1543,7 +1543,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -1559,7 +1559,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {
