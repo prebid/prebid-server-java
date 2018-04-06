@@ -36,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -118,19 +119,19 @@ public class RequestValidator {
         return ValidationResult.success();
     }
 
-    private void validateBidAdjustmentFactors(Map<String, Float> adjustmentFactors, Map<String, String> aliases)
+    private void validateBidAdjustmentFactors(Map<String, BigDecimal> adjustmentFactors, Map<String, String> aliases)
             throws ValidationException {
 
-        for (Map.Entry<String, Float> bidderAdjustment : adjustmentFactors.entrySet()) {
+        for (Map.Entry<String, BigDecimal> bidderAdjustment : adjustmentFactors.entrySet()) {
             final String bidder = bidderAdjustment.getKey();
-            final Float adjustmentFactor = bidderAdjustment.getValue();
+            final BigDecimal adjustmentFactor = bidderAdjustment.getValue();
 
             if (isUnknownBidderOrAlias(bidder, aliases)) {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s is not a known bidder or alias", bidder);
             }
 
-            if (adjustmentFactor <= 0) {
+            if (adjustmentFactor.floatValue() <= 0f) {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %f",
                         bidder, adjustmentFactor);

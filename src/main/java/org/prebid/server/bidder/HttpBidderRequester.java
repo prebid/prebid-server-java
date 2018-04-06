@@ -57,7 +57,8 @@ public class HttpBidderRequester<T> implements BidderRequester {
     /**
      * Executes given request to a given bidder.
      */
-    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout, Float bidPriceAdjustmentFactor) {
+    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout,
+                                             BigDecimal bidPriceAdjustmentFactor) {
         final Result<List<HttpRequest<T>>> httpRequests = bidder.makeHttpRequests(bidRequest);
 
         return CompositeFuture.join(httpRequests.getValue().stream()
@@ -134,7 +135,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
     private BidderSeatBid toBidderSeatBid(BidRequest bidRequest,
                                           List<BidderError> previousErrors,
                                           List<HttpCall<T>> calls,
-                                          Float bidPriceAdjustmentFactor) {
+                                          BigDecimal bidPriceAdjustmentFactor) {
         // If this is a test bid, capture debugging info from the requests
         final List<ExtHttpCall> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? calls.stream().map(HttpBidderRequester::toExt).collect(Collectors.toList())
@@ -158,7 +159,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
     /**
      * Applies correction to {@link BidderBid}'s {@link Bid#price}
      */
-    private BidderBid applyBidPriceAdjustmentFactor(BidderBid bidderBid, Float priceAdjustmentFactor) {
+    private BidderBid applyBidPriceAdjustmentFactor(BidderBid bidderBid, BigDecimal priceAdjustmentFactor) {
         if (priceAdjustmentFactor == null) {
             return bidderBid;
         }
@@ -166,7 +167,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
         final Bid bid = bidderBid.getBid();
         final BigDecimal price = bid != null && bid.getPrice().compareTo(BigDecimal.ZERO) > 0 ? bid.getPrice() : null;
         final Bid updatedBid = price != null
-                ? bid.toBuilder().price(price.multiply(BigDecimal.valueOf(priceAdjustmentFactor))).build()
+                ? bid.toBuilder().price(price.multiply(priceAdjustmentFactor)).build()
                 : null;
         return updatedBid == null ? bidderBid : BidderBid.of(updatedBid, bidderBid.getType());
     }

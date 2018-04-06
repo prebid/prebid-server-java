@@ -6,6 +6,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.execution.Timeout;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Objects;
 
@@ -21,7 +22,8 @@ public class DisabledBidderRequester implements BidderRequester {
     }
 
     @Override
-    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout, Float bidPriceAdjustmentFactor) {
+    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout,
+                                             BigDecimal bidPriceAdjustmentFactor) {
         return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(),
                 Collections.singletonList(BidderError.create(errorMessage))));
     }

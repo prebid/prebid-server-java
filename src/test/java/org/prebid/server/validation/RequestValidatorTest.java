@@ -27,6 +27,7 @@ import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
+import java.math.BigDecimal;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -1502,7 +1503,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.of(null, singletonMap("rubicon", -1.1F), null, null, null))))
+                        ExtRequestPrebid.of(null, singletonMap("rubicon", BigDecimal.valueOf(-1.1)), null, null, null))))
                 .build();
 
         // when
@@ -1519,7 +1520,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.of(null, singletonMap("unknownBidder", 1.1F), null, null, null))))
+                        ExtRequestPrebid.of(null, singletonMap("unknownBidder", BigDecimal.valueOf(1.1F)), null, null, null))))
                 .build();
 
         // when
@@ -1535,7 +1536,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.of(null, singletonMap("rubicon", 1.1F), null, null, null))))
+                        ExtRequestPrebid.of(null, singletonMap("rubicon", BigDecimal.valueOf(1.1)), null, null, null))))
                 .build();
 
         // when
@@ -1551,7 +1552,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(
                         ExtRequestPrebid.of(singletonMap("rubicon_alias", "rubicon"),
-                                singletonMap("rubicon_alias", 1.1F), null, null, null))))
+                                singletonMap("rubicon_alias", BigDecimal.valueOf(1.1)), null, null, null))))
                 .build();
 
         // when

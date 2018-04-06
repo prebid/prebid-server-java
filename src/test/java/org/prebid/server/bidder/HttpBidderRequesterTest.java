@@ -371,15 +371,15 @@ public class HttpBidderRequesterTest {
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout, 2f)
-                .result();
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout,
+                BigDecimal.valueOf(2)).result();
 
         // then
         assertThat(bidderSeatBid.getBids())
                 .extracting(bidderBid -> bidderBid.getBid().getPrice(), BidderBid::getType)
                 .contains(
-                        tuple(BigDecimal.valueOf(2.0), BidType.banner),
-                        tuple(BigDecimal.valueOf(20.0), BidType.video));
+                        tuple(BigDecimal.valueOf(2), BidType.banner),
+                        tuple(BigDecimal.valueOf(20), BidType.video));
     }
 
     @Test

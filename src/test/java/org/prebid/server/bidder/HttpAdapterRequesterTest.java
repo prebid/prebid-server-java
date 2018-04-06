@@ -659,7 +659,7 @@ public class HttpAdapterRequesterTest {
                         .app(App.builder().publisher(Publisher.builder().id("appPublisherId").build()).build())
                         .source(Source.builder().tid("TransactionId").build())
                     .build(),
-                timeout, 2f).result();
+                timeout, BigDecimal.valueOf(2.0)).result();
 
         // then
         assertThat(bidderSeatBid.getBids())

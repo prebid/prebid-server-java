@@ -3,6 +3,7 @@ package org.prebid.server.proto.openrtb.ext.request;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -20,7 +21,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.bidadjustmentfactors
      */
-    Map<String, Float> bidadjustmentfactors;
+    Map<String, BigDecimal> bidadjustmentfactors;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting

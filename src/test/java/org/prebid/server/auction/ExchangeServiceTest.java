@@ -1040,15 +1040,15 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 givenImp(singletonMap("bidder", 1), identity())),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        emptyMap(), singletonMap("bidder", 1.15f), null, null, null)))));
+                        emptyMap(), singletonMap("bidder", BigDecimal.valueOf(1.15)), null, null, null)))));
 
         // when
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
 
         // then
-        final ArgumentCaptor<Float> adjustmentCaptor = ArgumentCaptor.forClass(Float.class);
+        final ArgumentCaptor<BigDecimal> adjustmentCaptor = ArgumentCaptor.forClass(BigDecimal.class);
         verify(bidderRequester).requestBids(any(), any(), adjustmentCaptor.capture());
-        assertThat(adjustmentCaptor.getValue()).isEqualTo(1.15f);
+        assertThat(adjustmentCaptor.getValue()).isEqualTo(BigDecimal.valueOf(1.15));
     }
 
     private BidRequest captureBidRequest() {

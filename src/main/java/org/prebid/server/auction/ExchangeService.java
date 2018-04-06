@@ -155,9 +155,9 @@ public class ExchangeService {
     /**
      * Extracts bidAdjustments from {@link ExtBidRequest}.
      */
-    private static Map<String, Float> bidAdjustments(ExtBidRequest requestExt) {
+    private static Map<String, BigDecimal> bidAdjustments(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final Map<String, Float> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
+        final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
         return bidAdjustmentFactors != null ? bidAdjustmentFactors : Collections.emptyMap();
     }
 
@@ -402,7 +402,7 @@ public class ExchangeService {
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, Timeout timeout,
                                                Map<String, String> aliases,
-                                               Map<String, Float> bidAdjustments) {
+                                               Map<String, BigDecimal> bidAdjustments) {
         final String bidder = bidderRequest.getBidder();
         return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
                 .requestBids(bidderRequest.getBidRequest(), timeout, bidAdjustments.get(bidder))
