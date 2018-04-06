@@ -5,6 +5,8 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -17,7 +19,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.cookie.UidsCookie;
@@ -31,9 +36,12 @@ import org.prebid.server.metric.Metrics;
 import java.time.Clock;
 import java.time.Instant;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.verify;
 
 public class AuctionHandlerTest extends VertxTest {
@@ -47,6 +55,10 @@ public class AuctionHandlerTest extends VertxTest {
     private AuctionRequestFactory auctionRequestFactory;
     @Mock
     private UidsCookieService uidsCookieService;
+    @Mock
+    private Vertx vertx;
+    @Mock
+    private AnalyticsReporter analyticsReporter;
     @Mock
     private Metrics metrics;
     @Mock
@@ -75,8 +87,8 @@ public class AuctionHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
 
-        auctionHandler = new AuctionHandler(5000, exchangeService, auctionRequestFactory, uidsCookieService, metrics,
-                clock, timeoutFactory);
+        auctionHandler = new AuctionHandler(5000, exchangeService, auctionRequestFactory, uidsCookieService, vertx,
+                analyticsReporter, metrics, clock, timeoutFactory);
     }
 
     @Test
@@ -181,7 +193,11 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementRequestsAndOrtbRequestsMetrics() {
         // given
-        givenMocksForMetricSupport();
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
 
         // when
         auctionHandler.handle(routingContext);
@@ -194,7 +210,9 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementAppRequestMetrics() {
         // given
-        givenMocksForMetricSupport();
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
+
         given(auctionRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(BidRequest.builder().app(App.builder().build()).build()));
 
@@ -208,8 +226,13 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementNoCookieMetrics() {
         // given
-        givenMocksForMetricSupport();
-        given(uidsCookie.hasLiveUids()).willReturn(true);
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
+
+        given(uidsCookie.hasLiveUids()).willReturn(false);
 
         httpRequest.headers().add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
                 "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
@@ -236,17 +259,88 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
-    private void givenMocksForMetricSupport() {
+    @Test
+    public void shouldPassBadRequestEventToAnalyticsReporterIfBidRequestIsInvalid() {
+        // given
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
+
+        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
+                .status(400)
+                .errors(singletonList("Request is invalid"))
+                .build());
+    }
+
+    @Test
+    public void shouldPassInternalServerErrorEventToAnalyticsReporterIfAuctionFails() {
+        // given
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willThrow(new RuntimeException("Unexpected exception"));
+
+        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
+                .bidRequest(BidRequest.builder().build())
+                .status(500)
+                .errors(singletonList("Unexpected exception"))
+                .build());
+    }
+
+    @Test
+    public void shouldPassSuccessfulEventToAnalyticsReporter() {
+        // given
         given(auctionRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(BidRequest.builder().build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));
+
+        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
+                .bidRequest(BidRequest.builder().build())
+                .bidResponse(BidResponse.builder().build())
+                .status(200)
+                .errors(emptyList())
+                .build());
     }
 
     private Timeout captureTimeout() {
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(exchangeService).holdAuction(any(), any(), timeoutCaptor.capture());
         return timeoutCaptor.getValue();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Answer<Object> withNullAndInvokeHandler() {
+        return invocation -> {
+            ((Handler<Void>) invocation.getArgument(0)).handle(null);
+            return null;
+        };
+    }
+
+    private AuctionEvent captureAuctionEvent() {
+        final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
+        verify(analyticsReporter).processEvent(auctionEventCaptor.capture());
+        return auctionEventCaptor.getValue();
     }
 }
