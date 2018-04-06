@@ -1,3 +1,6 @@
+/*
+** PubmaticParams.java
+*/
 package org.prebid.server.bidder.pubmatic.proto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
