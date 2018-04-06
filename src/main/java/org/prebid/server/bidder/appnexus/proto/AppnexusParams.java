@@ -1,3 +1,6 @@
+/*
+** AppnexusParams.java
+*/
 package org.prebid.server.bidder.appnexus.proto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
