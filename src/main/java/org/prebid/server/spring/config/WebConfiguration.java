@@ -11,6 +11,7 @@ import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.prebid.server.analytics.CompositeAnalyticsReporter;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
@@ -155,12 +156,13 @@ public class WebConfiguration {
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
             Vertx vertx,
+            CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, exchangeService,
-                auctionRequestFactory, uidsCookieService, vertx, null, metrics, clock, timeoutFactory);
+                auctionRequestFactory, uidsCookieService, vertx, analyticsReporter, metrics, clock, timeoutFactory);
     }
 
     @Bean
