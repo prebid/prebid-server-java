@@ -4,7 +4,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class DisabledBidderRequesterTest {
@@ -19,7 +18,7 @@ public class DisabledBidderRequesterTest {
     @Test
     public void makeHttpRequestsShouldRespondWithExpectedError() {
         // when
-        final BidderSeatBid bidderSeatBid = disabledBidderRequester.requestBids(null, null, null).result();
+        final BidderSeatBid bidderSeatBid = disabledBidderRequester.requestBids(null, null).result();
 
         // then
         assertThat(bidderSeatBid.getBids()).isEmpty();

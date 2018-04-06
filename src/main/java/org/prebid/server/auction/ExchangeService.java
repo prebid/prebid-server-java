@@ -404,9 +404,11 @@ public class ExchangeService {
                                                Map<String, String> aliases,
                                                Map<String, BigDecimal> bidAdjustments) {
         final String bidder = bidderRequest.getBidder();
+        final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidder);
         return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
-                .requestBids(bidderRequest.getBidRequest(), timeout, bidAdjustments.get(bidder))
+                .requestBids(bidderRequest.getBidRequest(), timeout)
                 .map(this::validateAndUpdateResponse)
+                .map(seat -> ExchangeService.applyBidPriceAdjustment(seat, bidPriceAdjustmentFactor))
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
     }
 
@@ -437,6 +439,33 @@ public class ExchangeService {
         return validBids.size() == bids.size()
                 ? bidderSeatBid
                 : BidderSeatBid.of(validBids, bidderSeatBid.getHttpCalls(), errors);
+    }
+
+    /**
+     * Applies correction to {@link Bid#price}
+     * <p>
+     * Should be used when {@link BidderSeatBid} was validated
+     * by {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
+     */
+    private static BidderSeatBid applyBidPriceAdjustment(BidderSeatBid bidderSeatBid,
+                                                         BigDecimal priceAdjustmentFactor) {
+        if (priceAdjustmentFactor == null) {
+            return bidderSeatBid;
+        }
+        return BidderSeatBid.of(adjustBids(bidderSeatBid, priceAdjustmentFactor),
+                bidderSeatBid.getHttpCalls(), bidderSeatBid.getErrors());
+    }
+
+    private static List<BidderBid> adjustBids(BidderSeatBid bidderSeatBid, BigDecimal priceAdjustmentFactor) {
+        return bidderSeatBid.getBids().stream()
+                .map(bidderBid -> {
+                    final Bid bid = bidderBid.getBid();
+                    return BidderBid.of(
+                            bid.toBuilder().price(bid.getPrice().multiply(priceAdjustmentFactor)).build(),
+                            bidderBid.getType());
+                        }
+                )
+                .collect(Collectors.toList());
     }
 
     private int responseTime(long startTime) {

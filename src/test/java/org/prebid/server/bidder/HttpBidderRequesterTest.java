@@ -1,7 +1,6 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.response.Bid;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -10,7 +9,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
-import java.math.BigDecimal;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,7 +25,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 
 import java.time.Clock;
@@ -36,8 +33,6 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
-import static java.math.BigDecimal.ONE;
-import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -87,7 +82,7 @@ public class HttpBidderRequesterTest {
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(emptyList(), emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout, null)
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout)
                 .result();
 
         // then
@@ -103,7 +98,7 @@ public class HttpBidderRequesterTest {
                 BidderError.create("error2"))));
 
         // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout, null)
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout)
                 .result();
 
         // then
@@ -123,7 +118,7 @@ public class HttpBidderRequesterTest {
         headers.add("header2", "value2");
 
         // when
-        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout, null);
+        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
         verify(httpClient).requestAbs(eq(HttpMethod.POST), eq("uri"), any());
@@ -147,7 +142,7 @@ public class HttpBidderRequesterTest {
         headers.add("header2", "value2");
 
         // when
-        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout, null);
+        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
         verify(httpClient).requestAbs(eq(HttpMethod.GET), eq("uri"), any());
@@ -170,7 +165,7 @@ public class HttpBidderRequesterTest {
                 emptyList()));
 
         // when
-        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout, null);
+        bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
         verify(httpClient, times(2)).requestAbs(any(), any(), any());
@@ -188,7 +183,7 @@ public class HttpBidderRequesterTest {
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout, null)
+        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout)
                 .result();
 
         // then
@@ -209,7 +204,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout, null).result();
+                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(2).containsOnly(
@@ -228,7 +223,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), expiredTimeout, null).result();
+                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), expiredTimeout).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -246,7 +241,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout, null).result();
+                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -264,7 +259,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout, null).result();
+                bidderHttpConnector.requestBids(BidRequest.builder().test(1).build(), timeout).result();
 
         // then
         assertThat(bidderSeatBid.getHttpCalls()).hasSize(1).containsOnly(
@@ -283,7 +278,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                bidderHttpConnector.requestBids(BidRequest.builder().build(), expiredTimeout, null).result();
+                bidderHttpConnector.requestBids(BidRequest.builder().build(), expiredTimeout).result();
 
         // then
         assertThat(bidderSeatBid.getErrors()).hasSize(1)
@@ -341,7 +336,7 @@ public class HttpBidderRequesterTest {
 
         // when
         final BidderSeatBid bidderSeatBid = bidderHttpConnector
-                .requestBids(BidRequest.builder().test(1).build(), timeout, null)
+                .requestBids(BidRequest.builder().test(1).build(), timeout)
                 .result();
 
         // then
@@ -355,56 +350,6 @@ public class HttpBidderRequesterTest {
                 BidderError.create(
                         "Server responded with failure status: 500. Set request.test = 1 for debugging info."),
                 BidderError.create("makeBidsError"));
-    }
-
-    @Test
-    public void shouldReturnBidsWithUpdatedPriceWhenAdjustmentFactorIsPresent() {
-        // given
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)), emptyList()));
-
-        givenHttpClientReturnsResponses(200, "responseBody");
-
-        final List<BidderBid> bids = asList(
-                BidderBid.of(Bid.builder().price(ONE).build(), BidType.banner),
-                BidderBid.of(Bid.builder().price(TEN).build(), BidType.video));
-        given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
-
-        // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout,
-                BigDecimal.valueOf(2)).result();
-
-        // then
-        assertThat(bidderSeatBid.getBids())
-                .extracting(bidderBid -> bidderBid.getBid().getPrice(), BidderBid::getType)
-                .contains(
-                        tuple(BigDecimal.valueOf(2), BidType.banner),
-                        tuple(BigDecimal.valueOf(20), BidType.video));
-    }
-
-    @Test
-    public void shouldReturnBidsWithoutUpdatingPriceWhenAdjustmentFactorNotPresent() {
-        // given
-        given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)), emptyList()));
-
-        givenHttpClientReturnsResponses(200, "responseBody");
-
-        final List<BidderBid> bids = asList(
-                BidderBid.of(Bid.builder().price(ONE).build(), BidType.banner),
-                BidderBid.of(Bid.builder().price(TEN).build(), BidType.video));
-        given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
-
-        // when
-        final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout, null)
-                .result();
-
-        // then
-        assertThat(bidderSeatBid.getBids())
-                .extracting(bidderBid -> bidderBid.getBid().getPrice(), BidderBid::getType)
-                .contains(
-                        tuple(ONE, BidType.banner),
-                        tuple(TEN, BidType.video));
     }
 
     private void givenHttpClientReturnsResponses(int statusCode, String... bidResponses) {
