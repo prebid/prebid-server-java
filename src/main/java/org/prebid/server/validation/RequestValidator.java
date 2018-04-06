@@ -131,7 +131,7 @@ public class RequestValidator {
                         "request.ext.prebid.bidadjustmentfactors.%s is not a known bidder or alias", bidder);
             }
 
-            if (adjustmentFactor.floatValue() <= 0f) {
+            if (adjustmentFactor.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new ValidationException(
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %f",
                         bidder, adjustmentFactor);
