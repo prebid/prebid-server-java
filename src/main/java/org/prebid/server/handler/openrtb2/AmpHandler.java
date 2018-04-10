@@ -9,7 +9,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -87,16 +86,14 @@ public class AmpHandler extends AbstractMeteredHandler<RequestHandlerMetrics> {
                 .recover(th -> getHandlerMetrics().updateErrorRequestsMetric(context, this, th))
                 .map(bidRequest -> getHandlerMetrics().updateAppAndNoCookieMetrics(context, this, bidRequest,
                         uidsCookie.hasLiveUids(), bidRequest.getApp() != null))
-                .compose(bidRequest -> timeout(startTime, bidRequest, context)
-                        .compose(timeOut -> Future.succeededFuture(Tuple2.of(bidRequest, timeOut))))
-                .compose((Tuple2<BidRequest, Timeout> tuple2) -> exchangeService.holdAuction(tuple2.getLeft(),
-                        uidsCookie, tuple2.getRight()).map(bidResponse -> Tuple2.of(tuple2.getLeft(), bidResponse)))
+                .compose(bidRequest -> exchangeService.holdAuction(bidRequest, uidsCookie,
+                        timeout(startTime, bidRequest)).map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
                 .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
 
-    private Future<Timeout> timeout(long startTime, BidRequest bidRequest, RoutingContext context) {
-        return super.timeout(startTime, bidRequest.getTmax(), defaultTimeout, context);
+    private Timeout timeout(long startTime, BidRequest bidRequest) {
+        return super.timeout(startTime, bidRequest.getTmax(), defaultTimeout);
     }
 
     private UidsCookie getUidsCookie(RoutingContext context) {

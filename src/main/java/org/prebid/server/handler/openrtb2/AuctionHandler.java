@@ -5,7 +5,6 @@ import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -13,7 +12,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -57,15 +55,13 @@ public class AuctionHandler extends AbstractMeteredHandler<RequestHandlerMetrics
                 .recover(th -> getHandlerMetrics().updateErrorRequestsMetric(context, this, th))
                 .map(bidRequest -> getHandlerMetrics().updateAppAndNoCookieMetrics(context, this, bidRequest,
                         uidsCookie.hasLiveUids(), bidRequest.getApp() != null))
-                .compose(bidRequest -> timeout(startTime, bidRequest, context)
-                        .compose(timeOut -> Future.succeededFuture(Tuple2.of(bidRequest, timeOut))))
-                .compose((Tuple2<BidRequest, Timeout> tuple2) -> exchangeService.holdAuction(tuple2.getLeft(),
-                        uidsCookie, tuple2.getRight()))
+                .compose(bidRequest -> exchangeService.holdAuction(bidRequest, uidsCookie,
+                        timeout(startTime, bidRequest)))
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
 
-    private Future<Timeout> timeout(long startTime, BidRequest bidRequest, RoutingContext context) {
-        return super.timeout(startTime, bidRequest.getTmax(), defaultTimeout, context);
+    private Timeout timeout(long startTime, BidRequest bidRequest) {
+        return super.timeout(startTime, bidRequest.getTmax(), defaultTimeout);
     }
 
     private UidsCookie getUidsCookie(RoutingContext context) {
