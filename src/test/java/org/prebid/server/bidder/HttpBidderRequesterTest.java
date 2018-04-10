@@ -86,9 +86,9 @@ public class HttpBidderRequesterTest {
                 .result();
 
         // then
-        assertThat(bidderSeatBid.getBids()).hasSize(0);
-        assertThat(bidderSeatBid.getHttpCalls()).hasSize(0);
-        assertThat(bidderSeatBid.getErrors()).hasSize(0);
+        assertThat(bidderSeatBid.getBids()).isEmpty();
+        assertThat(bidderSeatBid.getHttpCalls()).isEmpty();
+        assertThat(bidderSeatBid.getErrors()).isEmpty();
     }
 
     @Test
@@ -102,8 +102,8 @@ public class HttpBidderRequesterTest {
                 .result();
 
         // then
-        assertThat(bidderSeatBid.getBids()).hasSize(0);
-        assertThat(bidderSeatBid.getHttpCalls()).hasSize(0);
+        assertThat(bidderSeatBid.getBids()).isEmpty();
+        assertThat(bidderSeatBid.getHttpCalls()).isEmpty();
         assertThat(bidderSeatBid.getErrors())
                 .extracting(BidderError::getMessage).containsOnly("error1", "error2");
     }

@@ -119,8 +119,8 @@ public class ExchangeService {
 
         // send all the requests to the bidders and gathers results
         final CompositeFuture bidderResults = CompositeFuture.join(bidderRequests.stream()
-                .map(bidderRequest -> requestBids(bidderRequest, startTime,
-                        auctionTimeout(timeout, shouldCacheBids), aliases))
+                .map(bidderRequest -> requestBids(bidderRequest, startTime, auctionTimeout(timeout, shouldCacheBids),
+                        aliases, bidAdjustments(requestExt)))
                 .collect(Collectors.toList()));
 
         // produce response from bidder results
@@ -150,6 +150,15 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         return aliases != null ? aliases : Collections.emptyMap();
+    }
+
+    /**
+     * Extracts bidAdjustments from {@link ExtBidRequest}.
+     */
+    private static Map<String, BigDecimal> bidAdjustments(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
+        return bidAdjustmentFactors != null ? bidAdjustmentFactors : Collections.emptyMap();
     }
 
     /**
@@ -392,11 +401,14 @@ public class ExchangeService {
      * recorded response time.
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, Timeout timeout,
-                                               Map<String, String> aliases) {
+                                               Map<String, String> aliases,
+                                               Map<String, BigDecimal> bidAdjustments) {
         final String bidder = bidderRequest.getBidder();
+        final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidder);
         return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
                 .requestBids(bidderRequest.getBidRequest(), timeout)
                 .map(this::validateAndUpdateResponse)
+                .map(seat -> applyBidPriceAdjustment(seat, bidPriceAdjustmentFactor))
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
     }
 
@@ -427,6 +439,33 @@ public class ExchangeService {
         return validBids.size() == bids.size()
                 ? bidderSeatBid
                 : BidderSeatBid.of(validBids, bidderSeatBid.getHttpCalls(), errors);
+    }
+
+    /**
+     * Applies correction to {@link Bid#price}
+     * <p>
+     * Should be used when {@link BidderSeatBid} was validated
+     * by {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
+     */
+    private static BidderSeatBid applyBidPriceAdjustment(BidderSeatBid bidderSeatBid,
+                                                         BigDecimal priceAdjustmentFactor) {
+        final List<BidderBid> bidderBids = bidderSeatBid.getBids();
+        return CollectionUtils.isEmpty(bidderBids) || priceAdjustmentFactor == null
+                ? bidderSeatBid
+                : BidderSeatBid.of(adjustBids(bidderBids, priceAdjustmentFactor),
+                bidderSeatBid.getHttpCalls(), bidderSeatBid.getErrors());
+    }
+
+    private static List<BidderBid> adjustBids(List<BidderBid> bidderBids, BigDecimal priceAdjustmentFactor) {
+        return bidderBids.stream()
+                .map(bidderBid -> adjustBid(bidderBid, priceAdjustmentFactor))
+                .collect(Collectors.toList());
+    }
+
+    private static BidderBid adjustBid(BidderBid bidderBid, BigDecimal priceAdjustmentFactor) {
+        final Bid bid = bidderBid.getBid();
+        return BidderBid.of(bid.toBuilder().price(bid.getPrice().multiply(priceAdjustmentFactor)).build(),
+                bidderBid.getType());
     }
 
     private int responseTime(long startTime) {

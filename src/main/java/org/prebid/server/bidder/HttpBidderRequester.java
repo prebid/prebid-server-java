@@ -129,7 +129,8 @@ public class HttpBidderRequester<T> implements BidderRequester {
      * Transforms HTTP call results into single {@link BidderSeatBid} filled with debug information, bids and errors
      * happened along the way.
      */
-    private BidderSeatBid toBidderSeatBid(BidRequest bidRequest, List<BidderError> previousErrors,
+    private BidderSeatBid toBidderSeatBid(BidRequest bidRequest,
+                                          List<BidderError> previousErrors,
                                           List<HttpCall<T>> calls) {
         // If this is a test bid, capture debugging info from the requests
         final List<ExtHttpCall> httpCalls = Objects.equals(bidRequest.getTest(), 1)
@@ -142,7 +143,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
                 .collect(Collectors.toList());
 
         final List<BidderBid> bids = createdBids.stream()
-                .flatMap(bid -> bid.getValue().stream())
+                .flatMap(bidderBid -> bidderBid.getValue().stream())
                 .collect(Collectors.toList());
 
         final List<BidderError> bidderErrors = errors(previousErrors, calls, createdBids);

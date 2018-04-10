@@ -129,6 +129,7 @@ public class AmpRequestFactory {
                 ? Json.mapper.valueToTree(ExtBidRequest.of(
                 ExtRequestPrebid.of(
                         isPrebidNull ? Collections.emptyMap() : prebid.getAliases(),
+                        isPrebidNull ? Collections.emptyMap() : prebid.getBidadjustmentfactors(),
                         setDefaultTargeting
                                 ? ExtRequestTargeting.of(CpmBucket.PriceGranularity.medium.name(), true)
                                 : isPrebidNull ? null : prebid.getTargeting(),
