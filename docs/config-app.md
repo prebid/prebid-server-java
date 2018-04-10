@@ -45,22 +45,25 @@ But feel free to add additional bidder's specific options.
 
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.
-- `metrics.type` - define where metrics will be submitted. Available options: `graphite`, `influxdb`.
+
+Metrics can be submitted simultaneously to many backends. Currently we support `graphite` and `influxdb`.
 
 For `graphite` backend type available next options:
-- `metrics.prefix` - the prefix of all metric names.
-- `metrics.host` - host:port for sending statistics.
-- `metrics.interval` - interval in seconds between successive sending statistics.
+- `metrics.graphite.prefix` - the prefix of all metric names.
+- `metrics.graphite.host` - the graphite host for sending statistics.
+- `metrics.graphite.port` - the graphite port for sending statistics.
+- `metrics.graphite.interval` - interval in seconds between successive sending metrics.
 
 For `influxdb` backend type available next options:
-- `metrics.prefix` - the prefix of all metric names.
-- `metrics.protocol` - external service destination protocol.
-- `metrics.host` - the influxDb `host:port` for sending metrics.
-- `metrics.database` - the influxDb database to write metrics.
-- `metrics.auth` - the authorization string to be used to connect to InfluxDb, of format `username:password`.
-- `metrics.connectTimeout` - the connect timeout.
-- `metrics.readTimeout` - the response timeout.
-- `metrics.interval` - interval in seconds between successive sending metrics.
+- `metrics.influxdb.prefix` - the prefix of all metric names.
+- `metrics.influxdb.protocol` - external service destination protocol.
+- `metrics.influxdb.host` - the influxDb host for sending metrics.
+- `metrics.influxdb.port` - the influxDb port for sending metrics.
+- `metrics.influxdb.database` - the influxDb database to write metrics.
+- `metrics.influxdb.auth` - the authorization string to be used to connect to InfluxDb, of format `username:password`.
+- `metrics.influxdb.connectTimeout` - the connect timeout.
+- `metrics.influxdb.readTimeout` - the response timeout.
+- `metrics.influxdb.interval` - interval in seconds between successive sending metrics.
 
 ## Cache
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
@@ -75,7 +78,8 @@ For `filesystem` type available next options:
 - `settings.stored-requests-dir` - directory with stored requests.
 
 For `mysql` or `postgres` type available next options:
-- `settings.host` - database destination in format `host:port`.
+- `settings.host` - database destination host.
+- `settings.port` - database destination port.
 - `settings.dbname` - database name.
 - `settings.user` - database user.
 - `settings.password` - database password.

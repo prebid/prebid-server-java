@@ -87,7 +87,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .recover(exception ->
                         failWith(String.format("Error parsing request: %s", exception.getMessage()), exception))
 
-                .map(preBidRequestContext -> updateAppAndNoCookieMetrics(preBidRequestContext, isSafari))
+                .map(preBidRequestContext -> updateAppAndNoCookieAndImpsMetrics(preBidRequestContext, isSafari))
 
                 .compose(preBidRequestContext -> applicationSettings.getAccountById(
                         preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
@@ -126,8 +126,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         }
     }
 
-    private PreBidRequestContext updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext,
-                                                             boolean isSafari) {
+    private PreBidRequestContext updateAppAndNoCookieAndImpsMetrics(PreBidRequestContext preBidRequestContext,
+                                                                    boolean isSafari) {
         if (preBidRequestContext.getPreBidRequest().getApp() != null) {
             metrics.incCounter(MetricName.app_requests);
         } else if (preBidRequestContext.isNoLiveUids()) {
@@ -136,6 +136,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);
             }
         }
+        metrics.incCounter(MetricName.imps_requested, preBidRequestContext.getPreBidRequest().getAdUnits().size());
 
         return preBidRequestContext;
     }
@@ -357,6 +358,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             return responseResult.result();
         } else {
             metrics.incCounter(MetricName.error_requests);
+
             final Throwable exception = responseResult.cause();
             logger.info("Failed to process /auction request", exception);
             return error(exception instanceof PreBidException

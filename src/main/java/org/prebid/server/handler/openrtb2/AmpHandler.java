@@ -97,13 +97,34 @@ public class AmpHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         ampRequestFactory.fromRequest(context)
-                .recover(this::updateErrorRequestsMetric)
-                .map(bidRequest -> updateAppAndNoCookieMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
+                .map(bidRequest -> updateAppAndNoCookieAndImpsMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
                 .compose(bidRequest ->
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime))
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
                 .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
+                .recover(this::updateErrorRequestsMetric)
                 .setHandler(responseResult -> handleResult(responseResult, context));
+    }
+
+    private void updateRequestMetrics(boolean isSafari) {
+        metrics.incCounter(MetricName.amp_requests);
+        if (isSafari) {
+            metrics.incCounter(MetricName.safari_requests);
+        }
+    }
+
+    private BidRequest updateAppAndNoCookieAndImpsMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
+        if (bidRequest.getApp() != null) {
+            metrics.incCounter(MetricName.app_requests);
+        } else if (isLifeSync) {
+            metrics.incCounter(MetricName.no_cookie_requests);
+            if (isSafari) {
+                metrics.incCounter(MetricName.safari_no_cookie_requests);
+            }
+        }
+        metrics.incCounter(MetricName.imps_requested, bidRequest.getImp().size());
+
+        return bidRequest;
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
@@ -127,17 +148,6 @@ public class AmpHandler implements Handler<RoutingContext> {
                 ? extResponseDebugFrom(bidResponse) : null;
 
         return AmpResponse.of(targeting, extResponseDebug);
-    }
-
-    private static ExtResponseDebug extResponseDebugFrom(BidResponse bidResponse) {
-        final ExtBidResponse extBidResponse;
-        try {
-            extBidResponse = Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
-        }
-        return extBidResponse != null ? extBidResponse.getDebug() : null;
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -187,6 +197,22 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
     }
 
+    private static ExtResponseDebug extResponseDebugFrom(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse;
+        try {
+            extBidResponse = Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(
+                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
+        }
+        return extBidResponse != null ? extBidResponse.getDebug() : null;
+    }
+
+    private Future<AmpResponse> updateErrorRequestsMetric(Throwable failed) {
+        metrics.incCounter(MetricName.error_requests);
+        return Future.failedFuture(failed);
+    }
+
     private static void handleResult(AsyncResult<AmpResponse> responseResult, RoutingContext context) {
         addCorsHeaders(context);
         if (responseResult.succeeded()) {
@@ -203,6 +229,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                                 .collect(Collectors.joining("\n")));
             } else {
                 logger.error("Critical error while running the auction", exception);
+
                 context.response()
                         .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
                         .end(String.format("Critical error while running the auction: %s", exception.getMessage()));
@@ -225,30 +252,5 @@ public class AmpHandler implements Handler<RoutingContext> {
         context.response()
                 .putHeader("AMP-Access-Control-Allow-Source-Origin", origin)
                 .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
-    }
-
-    private void updateRequestMetrics(boolean isSafari) {
-        metrics.incCounter(MetricName.amp_requests);
-        if (isSafari) {
-            metrics.incCounter(MetricName.safari_requests);
-        }
-    }
-
-    private Future<BidRequest> updateErrorRequestsMetric(Throwable failed) {
-        metrics.incCounter(MetricName.error_requests);
-        return Future.failedFuture(failed);
-    }
-
-    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
-        if (bidRequest.getApp() != null) {
-            metrics.incCounter(MetricName.app_requests);
-        } else if (isLifeSync) {
-            metrics.incCounter(MetricName.amp_no_cookie);
-            if (isSafari) {
-                metrics.incCounter(MetricName.safari_no_cookie_requests);
-            }
-        }
-
-        return bidRequest;
     }
 }
