@@ -1,5 +1,6 @@
 package org.prebid.server.handler;
 
+import com.codahale.metrics.MetricRegistry;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Format;
 import io.netty.util.AsciiString;
@@ -35,8 +36,9 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
+import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.MetricName;
-import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.prebid.AuctionHandlerMetrics;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.response.Bid;
@@ -89,25 +91,23 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private CacheService cacheService;
     @Mock
-    private Metrics metrics;
-    @Mock
-    private AdapterMetrics adapterMetrics;
-    @Mock
-    private AccountMetrics accountMetrics;
-    @Mock
-    private AdapterMetrics accountAdapterMetrics;
+    private org.prebid.server.metric.Metrics metrics;
     @Mock
     private HttpAdapterConnector httpAdapterConnector;
-    private Clock clock;
-
-    private AuctionHandler auctionHandler;
-
     @Mock
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
+
+    private Clock clock;
+    private AuctionHandler auctionHandler;
+    private static MetricRegistry registry = new MetricRegistry();
+    private AuctionHandlerMetrics handlerMetrics;
+    private AdapterMetrics adapterMetrics;
+    private AccountMetrics accountMetrics;
+    private AdapterMetrics accountAdapterMetrics;
 
     @Before
     public void setUp() {
@@ -124,10 +124,6 @@ public class AuctionHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(eq(APPNEXUS))).willReturn(true);
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
 
-        given(metrics.forAdapter(any())).willReturn(adapterMetrics);
-        given(metrics.forAccount(anyString())).willReturn(accountMetrics);
-        given(accountMetrics.forAdapter(any())).willReturn(accountAdapterMetrics);
-
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
 
@@ -138,15 +134,24 @@ public class AuctionHandlerTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
+        adapterMetrics = spy(new org.prebid.server.metric.dropwizard.AdapterMetrics(registry, CounterType.flushingCounter, "rubicon"));
+        accountMetrics = spy(new org.prebid.server.metric.dropwizard.AccountMetrics(registry, CounterType.flushingCounter, "rubicon"));
+        accountAdapterMetrics = spy(new org.prebid.server.metric.dropwizard.AdapterMetrics(registry, CounterType.flushingCounter, "rubicon"));
+
+        given(metrics.forAdapter(any())).willReturn(adapterMetrics);
+        given(metrics.forAccount(anyString())).willReturn(accountMetrics);
+        given(accountMetrics.forAdapter(anyString())).willReturn(accountAdapterMetrics);
+
+        handlerMetrics = spy(new AuctionHandlerMetrics(metrics, clock));
+
         auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, metrics, httpAdapterConnector, clock);
+                cacheService, handlerMetrics, httpAdapterConnector, clock);
     }
 
     @Test
     public void shouldRespondWithErrorIfRequestIsNotValid() throws IOException {
         // given
-        given(preBidRequestContextFactory.fromRequest(any()))
-                .willReturn(Future.failedFuture(new PreBidException("Could not create")));
+        given(preBidRequestContextFactory.fromRequest(any())).willReturn(Future.failedFuture(new PreBidException("Could not create")));
 
         // when
         auctionHandler.handle(routingContext);
@@ -189,7 +194,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithNoCookieStatusIfNoLiveUidsInCookie() throws IOException {
         // given
-        givenPreBidRequestContext(identity(), builder -> builder.noLiveUids(true));
+        final boolean hasLiveUids = true;
+        givenPreBidRequestContext(identity(), builder -> builder.noLiveUids(hasLiveUids));
 
         // when
         auctionHandler.handle(routingContext);
@@ -237,7 +243,6 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(cacheService).cacheBids(anyList(), same(timeout));
-
         final PreBidResponse preBidResponse = capturePreBidResponse();
         assertThat(preBidResponse.getBids()).extracting(Bid::getAdm).containsNull();
         assertThat(preBidResponse.getBids()).extracting(Bid::getNurl).containsNull();
@@ -257,9 +262,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(cacheService);
-
         final PreBidResponse preBidResponse = capturePreBidResponse();
+        verifyZeroInteractions(cacheService);
         assertThat(preBidResponse.getBids()).extracting(Bid::getCacheId).containsNull();
         assertThat(preBidResponse.getBids()).extracting(Bid::getCacheUrl).containsNull();
     }
@@ -339,6 +343,7 @@ public class AuctionHandlerTest extends VertxTest {
         final List<AdUnitBid> adUnitBids = asList(null, null);
         final List<AdapterRequest> adapterRequests = asList(AdapterRequest.of(RUBICON, adUnitBids),
                 AdapterRequest.of(APPNEXUS, adUnitBids));
+
         givenPreBidRequestContext(builder -> builder.sortBids(1), builder -> builder.adapterRequests(adapterRequests));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
@@ -448,6 +453,7 @@ public class AuctionHandlerTest extends VertxTest {
         final List<AdapterRequest> adapterRequests = asList(
                 AdapterRequest.of("unsupported", singletonList(null)),
                 AdapterRequest.of(RUBICON, singletonList(null)));
+
         givenPreBidRequestContext(identity(), builder -> builder.adapterRequests(adapterRequests));
 
         givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
@@ -579,19 +585,22 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
+        verify(handlerMetrics).bidResponseOrError(any());
         verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
     @Test
     public void shouldIncrementErrorMetricIfRequestIsNotValid() {
         // given
-        given(preBidRequestContextFactory.fromRequest(any()))
-                .willReturn(Future.failedFuture(new PreBidException("Could not create")));
+        PreBidException ex = new PreBidException("Could not create");
+        given(preBidRequestContextFactory.fromRequest(any())).willReturn(Future.failedFuture(ex));
+
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
+        verify(handlerMetrics).bidResponseOrError(any());
         verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
@@ -638,27 +647,28 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
+        verify(handlerMetrics).bidResponseOrError(any());
         verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
-    private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
+    private PreBidRequestContext givenPreBidRequestContextWith1AdUnitAnd1Bid(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
         final List<AdapterRequest> adapterRequests = singletonList(AdapterRequest.of(RUBICON, singletonList(null)));
-        givenPreBidRequestContext(preBidRequestBuilderCustomizer, builder -> builder.adapterRequests(adapterRequests));
+        return givenPreBidRequestContext(preBidRequestBuilderCustomizer, builder -> builder.adapterRequests(adapterRequests));
     }
 
-    private void givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(
+    private PreBidRequestContext givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(
             Function<PreBidRequestContextBuilder, PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer) {
         final List<AdUnitBid> adUnitBids = asList(null, null);
         final List<AdapterRequest> adapterRequests = asList(
                 AdapterRequest.of(RUBICON, adUnitBids),
                 AdapterRequest.of(APPNEXUS, adUnitBids));
-        givenPreBidRequestContext(identity(),
+        return givenPreBidRequestContext(identity(),
                 preBidRequestContextBuilderCustomizer.compose(builder -> builder.adapterRequests(adapterRequests)));
     }
 
-    private void givenPreBidRequestContext(
+    private PreBidRequestContext givenPreBidRequestContext(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer,
             Function<PreBidRequestContextBuilder, PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer) {
 
@@ -674,6 +684,7 @@ public class AuctionHandlerTest extends VertxTest {
                         .preBidRequest(preBidRequest))
                 .build();
         given(preBidRequestContextFactory.fromRequest(any())).willReturn(Future.succeededFuture(preBidRequestContext));
+        return preBidRequestContext;
     }
 
     private void givenBidderRespondingWithBids(String bidder, Function<BidderStatusBuilder, BidderStatusBuilder>

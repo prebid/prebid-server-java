@@ -1,10 +1,8 @@
 package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -22,19 +20,14 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.metric.AccountMetrics;
-import org.prebid.server.metric.AdapterMetrics;
-import org.prebid.server.metric.MetricName;
-import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.prebid.AuctionHandlerMetrics;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -45,32 +38,27 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class AuctionHandler implements Handler<RoutingContext> {
+public class AuctionHandler extends AbstractMeteredHandler<AuctionHandlerMetrics> {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
-
-    private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
     private final PreBidRequestContextFactory preBidRequestContextFactory;
     private final CacheService cacheService;
-    private final Metrics metrics;
     private final HttpAdapterConnector httpAdapterConnector;
-
-    private final Clock clock;
 
     public AuctionHandler(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
                           PreBidRequestContextFactory preBidRequestContextFactory,
-                          CacheService cacheService, Metrics metrics,
+                          CacheService cacheService,
+                          AuctionHandlerMetrics handlerMetrics,
                           HttpAdapterConnector httpAdapterConnector, Clock clock) {
+        super(handlerMetrics, clock);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
         this.cacheService = Objects.requireNonNull(cacheService);
-        this.metrics = Objects.requireNonNull(metrics);
         this.httpAdapterConnector = Objects.requireNonNull(httpAdapterConnector);
-        this.clock = Objects.requireNonNull(clock);
     }
 
     /**
@@ -79,15 +67,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
      */
     @Override
     public void handle(RoutingContext context) {
-        final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
-
-        updateRequestMetrics(isSafari);
+        getHandlerMetrics().updateRequestMetrics(context, this);
 
         preBidRequestContextFactory.fromRequest(context)
                 .recover(exception ->
                         failWith(String.format("Error parsing request: %s", exception.getMessage()), exception))
-
-                .map(preBidRequestContext -> updateAppAndNoCookieMetrics(preBidRequestContext, isSafari))
+                .map(preBidRequestContext -> getHandlerMetrics().updateAppAndNoCookieMetrics(context, this,
+                        preBidRequestContext, preBidRequestContext.isNoLiveUids(),
+                        preBidRequestContext.getPreBidRequest().getApp() != null))
 
                 .compose(preBidRequestContext -> applicationSettings.getAccountById(
                         preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
@@ -95,7 +82,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .recover(exception -> failWith("Unknown account id: Unknown account", exception)))
 
                 .map((Tuple2<PreBidRequestContext, Account> result) ->
-                        updateAccountRequestAndRequestTimeMetric(result, context))
+                        getHandlerMetrics().updateAccountRequestAndRequestTimeMetric(result, context))
 
                 .compose((Tuple2<PreBidRequestContext, Account> result) ->
                         CompositeFuture.join(submitRequestsToAdapters(result.getLeft()))
@@ -116,46 +103,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         addTargetingKeywords(result.getLeft().getPreBidRequest(), result.getMiddle(),
                                 result.getRight()))
 
-                .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
-    }
-
-    private void updateRequestMetrics(boolean isSafari) {
-        metrics.incCounter(MetricName.requests);
-        if (isSafari) {
-            metrics.incCounter(MetricName.safari_requests);
-        }
-    }
-
-    private PreBidRequestContext updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext,
-                                                             boolean isSafari) {
-        if (preBidRequestContext.getPreBidRequest().getApp() != null) {
-            metrics.incCounter(MetricName.app_requests);
-        } else if (preBidRequestContext.isNoLiveUids()) {
-            metrics.incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                metrics.incCounter(MetricName.safari_no_cookie_requests);
-            }
-        }
-
-        return preBidRequestContext;
-    }
-
-    private Tuple2<PreBidRequestContext, Account> updateAccountRequestAndRequestTimeMetric(
-            Tuple2<PreBidRequestContext, Account> preBidRequestContextAccount, RoutingContext context) {
-
-        final String accountId = preBidRequestContextAccount.getLeft().getPreBidRequest().getAccountId();
-        metrics.forAccount(accountId).incCounter(MetricName.requests);
-
-        setupRequestTimeUpdater(context);
-
-        return preBidRequestContextAccount;
-    }
-
-    private void setupRequestTimeUpdater(RoutingContext context) {
-        // set up handler to update request time metric when response is sent back to a client
-        final long requestStarted = clock.millis();
-        context.response().endHandler(ignoredVoid -> metrics.updateTimer(MetricName.request_time,
-                clock.millis() - requestStarted));
+                .setHandler(preBidResponseResult ->
+                        respondWith(getHandlerMetrics().bidResponseOrError(preBidResponseResult), context));
     }
 
     private static <T> Future<T> failWith(String message, Throwable exception) {
@@ -166,33 +115,28 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
         return preBidRequestContext.getAdapterRequests().stream()
                 .filter(ar -> bidderCatalog.isValidAdapterName(ar.getBidderCode()))
-                .peek(ar -> updateAdapterRequestMetrics(ar.getBidderCode(), accountId))
+                .peek(ar -> getHandlerMetrics().updateAdapterRequestMetrics(ar.getBidderCode(), accountId))
                 .map(ar -> httpAdapterConnector.call(bidderCatalog.adapterByName(ar.getBidderCode()),
                         bidderCatalog.usersyncerByName(ar.getBidderCode()), ar, preBidRequestContext))
                 .collect(Collectors.toList());
-    }
-
-    private void updateAdapterRequestMetrics(String bidder, String accountId) {
-        metrics.forAdapter(bidder).incCounter(MetricName.requests);
-        metrics.forAccount(accountId).forAdapter(bidder).incCounter(MetricName.requests);
     }
 
     private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
                                                  List<AdapterResponse> adapterResponses) {
         adapterResponses.stream()
                 .filter(ar -> StringUtils.isNotBlank(ar.getBidderStatus().getError()))
-                .forEach(ar -> updateErrorMetrics(ar, preBidRequestContext));
+                .forEach(ar -> getHandlerMetrics().updateErrorMetrics(ar, preBidRequestContext));
 
         final List<BidderStatus> bidderStatuses = Stream.concat(
                 adapterResponses.stream()
                         .map(AdapterResponse::getBidderStatus)
-                        .peek(bs -> updateResponseTimeMetrics(bs, preBidRequestContext)),
+                        .peek(bs -> getHandlerMetrics().updateResponseTimeMetrics(bs, preBidRequestContext)),
                 invalidBidderStatuses(preBidRequestContext))
                 .collect(Collectors.toList());
 
         final List<Bid> bids = adapterResponses.stream()
                 .filter(ar -> StringUtils.isBlank(ar.getBidderStatus().getError()))
-                .peek(ar -> updateBidResultMetrics(ar, preBidRequestContext))
+                .peek(ar -> getHandlerMetrics().updateBidResultMetrics(ar, preBidRequestContext))
                 .flatMap(ar -> ar.getBids().stream())
                 .collect(Collectors.toList());
 
@@ -204,68 +148,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .build();
     }
 
-    private void updateErrorMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
-        final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
-        final String bidder = bidderStatus.getBidder();
-
-        final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-        final AdapterMetrics accountAdapterMetrics = metrics
-                .forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
-                .forAdapter(bidder);
-
-        if (adapterResponse.isTimedOut()) {
-            adapterMetrics.incCounter(MetricName.timeout_requests);
-            accountAdapterMetrics.incCounter(MetricName.timeout_requests);
-        } else {
-            adapterMetrics.incCounter(MetricName.error_requests);
-            accountAdapterMetrics.incCounter(MetricName.error_requests);
-        }
-    }
-
-    private void updateResponseTimeMetrics(BidderStatus bidderStatus, PreBidRequestContext preBidRequestContext) {
-        final String bidder = bidderStatus.getBidder();
-
-        final Integer responseTimeMs = bidderStatus.getResponseTimeMs();
-        metrics.forAdapter(bidder).updateTimer(MetricName.request_time, responseTimeMs);
-        metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
-                .forAdapter(bidder).updateTimer(MetricName.request_time, responseTimeMs);
-    }
-
     private Stream<BidderStatus> invalidBidderStatuses(PreBidRequestContext preBidRequestContext) {
         return preBidRequestContext.getAdapterRequests().stream()
                 .filter(b -> !bidderCatalog.isValidName(b.getBidderCode()))
                 .map(b -> BidderStatus.builder().bidder(b.getBidderCode()).error("Unsupported bidder").build());
-    }
-
-    private void updateBidResultMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
-        final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
-        final String bidder = bidderStatus.getBidder();
-
-        final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-        final AccountMetrics accountMetrics =
-                metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId());
-        final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(bidder);
-
-        for (final Bid bid : adapterResponse.getBids()) {
-            final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
-            adapterMetrics.updateHistogram(MetricName.prices, cpm);
-            accountMetrics.updateHistogram(MetricName.prices, cpm);
-            accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
-        }
-
-        final Integer numBids = bidderStatus.getNumBids();
-        if (numBids != null) {
-            accountMetrics.incCounter(MetricName.bids_received, numBids);
-            accountAdapterMetrics.incCounter(MetricName.bids_received, numBids);
-        } else if (Objects.equals(bidderStatus.getNoBid(), Boolean.TRUE)) {
-            adapterMetrics.incCounter(MetricName.no_bid_requests);
-            accountAdapterMetrics.incCounter(MetricName.no_bid_requests);
-        }
-
-        if (Objects.equals(bidderStatus.getNoCookie(), Boolean.TRUE)) {
-            adapterMetrics.incCounter(MetricName.no_cookie_requests);
-            accountAdapterMetrics.incCounter(MetricName.no_cookie_requests);
-        }
     }
 
     private Future<PreBidResponse> processCacheMarkup(PreBidRequestContext preBidRequestContext,
@@ -352,20 +238,4 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now());
     }
 
-    private PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
-        if (responseResult.succeeded()) {
-            return responseResult.result();
-        } else {
-            metrics.incCounter(MetricName.error_requests);
-            final Throwable exception = responseResult.cause();
-            logger.info("Failed to process /auction request", exception);
-            return error(exception instanceof PreBidException
-                    ? exception.getMessage()
-                    : "Unexpected server error");
-        }
-    }
-
-    private static PreBidResponse error(String status) {
-        return PreBidResponse.builder().status(status).build();
-    }
 }

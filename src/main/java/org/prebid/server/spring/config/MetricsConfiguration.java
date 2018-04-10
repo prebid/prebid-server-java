@@ -13,12 +13,16 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.noop.NoOpMetrics;
 import org.prebid.server.vertx.CloseableAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.AllNestedConditions;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
@@ -39,53 +43,6 @@ public class MetricsConfiguration {
     @Autowired
     private Vertx vertx;
 
-    @Bean
-    @ConditionalOnProperty(prefix = "metrics", name = "type", havingValue = "graphite")
-    ScheduledReporter graphiteReporter(GraphiteProperties graphiteProperties, MetricRegistry metricRegistry) {
-        // format is "<host>:<port>"
-        final String hostAndPort = graphiteProperties.getHost();
-
-        final Graphite graphite = new Graphite(host(hostAndPort), port(hostAndPort));
-        final ScheduledReporter reporter = GraphiteReporter.forRegistry(metricRegistry)
-                .prefixedWith(graphiteProperties.getPrefix())
-                .build(graphite);
-        reporter.start(graphiteProperties.getInterval(), TimeUnit.SECONDS);
-
-        return reporter;
-    }
-
-    @Bean
-    @ConditionalOnProperty(prefix = "metrics", name = "type", havingValue = "influxdb")
-    ScheduledReporter influxdbReporter(InfluxdbProperties influxdbProperties, MetricRegistry metricRegistry)
-            throws Exception {
-        // format is "<host>:<port>"
-        final String hostAndPort = influxdbProperties.getHost();
-
-        final InfluxDbSender influxDbSender = new InfluxDbHttpSender(
-                influxdbProperties.getProtocol(),
-                host(hostAndPort), port(hostAndPort),
-                influxdbProperties.getDatabase(),
-                influxdbProperties.getAuth(),
-                TimeUnit.SECONDS,
-                influxdbProperties.getConnectTimeout(),
-                influxdbProperties.getReadTimeout(),
-                influxdbProperties.getPrefix());
-        final ScheduledReporter reporter = InfluxDbReporter.forRegistry(metricRegistry).build(influxDbSender);
-        reporter.start(influxdbProperties.getInterval(), TimeUnit.SECONDS);
-
-        return reporter;
-    }
-
-    @Bean
-    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry) {
-        return new Metrics(metricRegistry, counterType);
-    }
-
-    @Bean
-    MetricRegistry metricRegistry() {
-        return new MetricRegistry();
-    }
-
     @PostConstruct
     void registerReporterCloseHooks() {
         reporters.stream()
@@ -93,9 +50,21 @@ public class MetricsConfiguration {
                 .forEach(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));
     }
 
+    @Bean(name = "dropwizardMetrics")
+    @Conditional({EnableDropwizardMetrics.class})
+    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType) {
+        return new org.prebid.server.metric.dropwizard.Metrics(new MetricRegistry(), counterType);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "metrics", name = "kind", havingValue = "noop")
+    Metrics metrics() {
+        return new NoOpMetrics();
+    }
+
     @Component
     @ConfigurationProperties(prefix = "metrics")
-    @ConditionalOnProperty(prefix = "metrics", name = "type", havingValue = "graphite")
+    @Conditional({EnableGraphiteReporter.class})
     @Validated
     @Data
     @NoArgsConstructor
@@ -112,7 +81,7 @@ public class MetricsConfiguration {
 
     @Component
     @ConfigurationProperties(prefix = "metrics")
-    @ConditionalOnProperty(prefix = "metrics", name = "type", havingValue = "influxdb")
+    @Conditional({EnableInfluxdbReporter.class})
     @Validated
     @Data
     @NoArgsConstructor
@@ -139,11 +108,75 @@ public class MetricsConfiguration {
         private Integer interval;
     }
 
+    @Bean
+    @Conditional({EnableGraphiteReporter.class})
+    ScheduledReporter graphiteReporter(GraphiteProperties graphiteProperties,
+                                       @Qualifier("dropwizardMetrics") Metrics metrics) {
+        // format is "<host>:<port>"
+        final String hostAndPort = graphiteProperties.getHost();
+
+        final Graphite graphite = new Graphite(host(hostAndPort), port(hostAndPort));
+        final ScheduledReporter reporter = GraphiteReporter.forRegistry(
+                ((org.prebid.server.metric.dropwizard.Metrics) metrics).getMetricRegistry())
+                .prefixedWith(graphiteProperties.getPrefix())
+                .build(graphite);
+        reporter.start(graphiteProperties.getInterval(), TimeUnit.SECONDS);
+
+        return reporter;
+    }
+
+    @Bean
+    @Conditional({EnableInfluxdbReporter.class})
+    ScheduledReporter influxdbReporter(InfluxdbProperties influxdbProperties,
+                                       @Qualifier("dropwizardMetrics") Metrics metrics) throws Exception {
+        // format is "<host>:<port>"
+        final String hostAndPort = influxdbProperties.getHost();
+
+        final InfluxDbSender influxDbSender = new InfluxDbHttpSender(
+                influxdbProperties.getProtocol(),
+                host(hostAndPort), port(hostAndPort),
+                influxdbProperties.getDatabase(),
+                influxdbProperties.getAuth(),
+                TimeUnit.SECONDS,
+                influxdbProperties.getConnectTimeout(),
+                influxdbProperties.getReadTimeout(),
+                influxdbProperties.getPrefix());
+        final ScheduledReporter reporter = InfluxDbReporter.forRegistry(
+                ((org.prebid.server.metric.dropwizard.Metrics) metrics).getMetricRegistry()).build(influxDbSender);
+        reporter.start(influxdbProperties.getInterval(), TimeUnit.SECONDS);
+
+        return reporter;
+    }
+
     private static String host(String hostAndPort) {
         return StringUtils.substringBefore(hostAndPort, ":");
     }
 
     private static int port(String hostAndPort) {
         return Integer.parseInt(StringUtils.substringAfter(hostAndPort, ":"));
+    }
+
+    static class EnableDropwizardMetrics extends AllNestedConditions {
+
+        EnableDropwizardMetrics() {
+            super(ConfigurationPhase.REGISTER_BEAN);
+        }
+
+        @ConditionalOnProperty(prefix = "metrics", name = "kind", havingValue = "dropwizard", matchIfMissing = true)
+        static class DropwizardMetrics { }
+    }
+
+    static class EnableGraphiteReporter extends EnableDropwizardMetrics {
+
+        @ConditionalOnProperty(prefix = "metrics", name = "type", havingValue = "graphite")
+        static class GraphiteReporter { }
+
+    }
+
+    static class EnableInfluxdbReporter extends EnableDropwizardMetrics {
+
+        @ConditionalOnProperty(prefix = "metrics", name = "type", havingValue = "influxdb")
+        static class GraphiteReporter { }
+
     }
 }

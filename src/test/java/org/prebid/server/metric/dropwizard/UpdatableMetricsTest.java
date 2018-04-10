@@ -1,4 +1,4 @@
-package org.prebid.server.metric;
+package org.prebid.server.metric.dropwizard;
 
 import com.codahale.metrics.MetricRegistry;
 import org.junit.Before;
@@ -6,6 +6,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.metric.CounterType;
+import org.prebid.server.metric.MetricName;
 
 import java.util.function.Function;
 
@@ -20,7 +22,7 @@ public class UpdatableMetricsTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private MetricRegistry metricRegistry;
-    private UpdatableMetrics updatableMetrics;
+    private org.prebid.server.metric.UpdatableMetrics updatableMetrics;
 
     @Before
     public void setUp() {
@@ -142,7 +144,7 @@ public class UpdatableMetricsTest {
         verify(nameCreator).apply(eq(MetricName.prices));
     }
 
-    private UpdatableMetrics givenUpdatableMetricsWith(CounterType counterType) {
+    private org.prebid.server.metric.UpdatableMetrics givenUpdatableMetricsWith(CounterType counterType) {
         return new UpdatableMetrics(metricRegistry, counterType, Enum::name);
     }
 }

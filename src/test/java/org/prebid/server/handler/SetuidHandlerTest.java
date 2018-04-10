@@ -18,9 +18,9 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.metric.BidderCookieSyncMetrics;
 import org.prebid.server.metric.CookieSyncMetrics;
 import org.prebid.server.metric.MetricName;
-import org.prebid.server.metric.Metrics;
 
 import java.util.Base64;
 import java.util.HashMap;
@@ -45,11 +45,11 @@ public class SetuidHandlerTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
-    private Metrics metrics;
+    private org.prebid.server.metric.Metrics metrics;
     @Mock
     private CookieSyncMetrics cookieSyncMetrics;
     @Mock
-    private CookieSyncMetrics.BidderCookieSyncMetrics bidderCookieSyncMetrics;
+    private BidderCookieSyncMetrics bidderCookieSyncMetrics;
 
     private SetuidHandler setuidHandler;
 

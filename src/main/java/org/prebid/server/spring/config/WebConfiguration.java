@@ -33,10 +33,13 @@ import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.prebid.AuctionHandlerMetrics;
+import org.prebid.server.metric.prebid.RequestHandlerMetrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -139,12 +142,12 @@ public class WebConfiguration {
             BidderCatalog bidderCatalog,
             PreBidRequestContextFactory preBidRequestContextFactory,
             CacheService cacheService,
-            Metrics metrics,
+            @Qualifier("auctionHandlerMetrics") AuctionHandlerMetrics handlerMetrics,
             HttpAdapterConnector httpAdapterConnector,
             Clock clock) {
 
         return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
-                metrics, httpAdapterConnector, clock);
+                handlerMetrics, httpAdapterConnector, clock);
     }
 
     @Bean
@@ -154,12 +157,13 @@ public class WebConfiguration {
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
-            Metrics metrics,
+            @Qualifier("requestHandlerMetrics") RequestHandlerMetrics handlerMetrics,
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, exchangeService,
-                auctionRequestFactory, uidsCookieService, metrics, clock, timeoutFactory);
+                auctionRequestFactory, uidsCookieService, handlerMetrics, clock,
+                timeoutFactory);
     }
 
     @Bean
@@ -171,12 +175,12 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             AmpProperties ampProperties,
             BidderCatalog bidderCatalog,
-            Metrics metrics,
+            @Qualifier("requestHandlerMetrics") RequestHandlerMetrics handlerMetrics,
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
         return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService,
-                ampProperties.getCustomTargetingSet(), bidderCatalog, metrics, clock, timeoutFactory);
+                ampProperties.getCustomTargetingSet(), bidderCatalog, handlerMetrics, clock, timeoutFactory);
     }
 
     @Bean

@@ -24,9 +24,7 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.metric.AdapterMetrics;
-import org.prebid.server.metric.MetricName;
-import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.prebid.ExchangeServiceMetrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -41,7 +39,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,28 +59,26 @@ import java.util.stream.StreamSupport;
 public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
-    private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final BidderCatalog bidderCatalog;
     private final ResponseBidValidator responseBidValidator;
     private final CacheService cacheService;
-    private final Metrics metrics;
     private final Clock clock;
     private long expectedCacheTime;
+    private final ExchangeServiceMetrics serviceMetrics;
 
     public ExchangeService(BidderCatalog bidderCatalog,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
-                           Metrics metrics, Clock clock,
-                           long expectedCacheTime) {
+                           ExchangeServiceMetrics serviceMetrics, Clock clock, long expectedCacheTime) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
-        this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time could not be negative");
         }
         this.expectedCacheTime = expectedCacheTime;
+        this.serviceMetrics = Objects.requireNonNull(serviceMetrics);
     }
 
     /**
@@ -103,7 +98,7 @@ public class ExchangeService {
 
         final List<BidderRequest> bidderRequests = extractBidderRequests(bidRequest, uidsCookie, aliases);
 
-        updateRequestMetric(bidderRequests, uidsCookie, aliases);
+        serviceMetrics.updateRequestMetric(bidderRequests, uidsCookie, aliases);
 
         final ExtRequestTargeting targeting = targeting(requestExt);
 
@@ -126,7 +121,7 @@ public class ExchangeService {
         // produce response from bidder results
         return bidderResults.compose(result -> {
             final List<BidderResponse> bidderResponses = result.list();
-            updateMetricsFromResponses(bidderResponses);
+            serviceMetrics.updateMetricsFromResponses(bidderResponses);
             return toBidResponse(bidderResponses, bidRequest, keywordsCreator, shouldCacheBids, timeout);
         });
     }
@@ -336,25 +331,6 @@ public class ExchangeService {
     }
 
     /**
-     * Updates 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
-     */
-    private void updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
-                                     Map<String, String> aliases) {
-        for (BidderRequest bidderRequest : bidderRequests) {
-            final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
-
-            metrics.forAdapter(bidder).incCounter(MetricName.requests);
-
-            final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
-                    uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
-
-            if (bidderRequest.getBidRequest().getApp() == null && noBuyerId) {
-                metrics.forAdapter(bidder).incCounter(MetricName.no_cookie_requests);
-            }
-        }
-    }
-
-    /**
      * Extracts {@link ExtRequestTargeting} from {@link ExtBidRequest} model.
      */
     private static ExtRequestTargeting targeting(ExtBidRequest requestExt) {
@@ -483,44 +459,6 @@ public class ExchangeService {
         // should be replaced by code which tracks the response time of recent cache calls and adjusts the time
         // dynamically.
         return shouldCacheBids ? timeout.minus(expectedCacheTime) : timeout;
-    }
-
-    /**
-     * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
-     * 'prices' metrics for each {@link BidderResponse}
-     */
-    private void updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
-        for (BidderResponse bidderResponse : bidderResponses) {
-            final String bidder = bidderResponse.getBidder();
-            final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-
-            adapterMetrics.updateTimer(MetricName.request_time, bidderResponse.getResponseTime());
-
-            final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
-            final List<Bid> bids = CollectionUtils.isNotEmpty(bidderBids)
-                    ? bidderBids.stream().map(BidderBid::getBid).collect(Collectors.toList())
-                    : null;
-
-            if (CollectionUtils.isEmpty(bids)) {
-                adapterMetrics.incCounter(MetricName.no_bid_requests);
-            } else {
-                for (Bid bid : bids) {
-                    final long cpmPrice = bid.getPrice() != null
-                            ? bid.getPrice().multiply(THOUSAND).longValue()
-                            : 0L;
-                    adapterMetrics.updateHistogram(MetricName.prices, cpmPrice);
-                }
-            }
-
-            final List<BidderError> errors = bidderResponse.getSeatBid().getErrors();
-            if (CollectionUtils.isNotEmpty(errors)) {
-                for (BidderError error : errors) {
-                    adapterMetrics.incCounter(error.isTimedOut()
-                            ? MetricName.timeout_requests
-                            : MetricName.error_requests);
-                }
-            }
-        }
     }
 
     /**

@@ -32,7 +32,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
-import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.prebid.RequestHandlerMetrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -53,9 +53,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.*;
 
 public class AmpHandlerTest extends VertxTest {
 
@@ -71,11 +69,6 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private Metrics metrics;
-
-    private AmpHandler ampHandler;
-
-    @Mock
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;
@@ -85,6 +78,11 @@ public class AmpHandlerTest extends VertxTest {
     private MultiMap httpRequestHeaders;
     @Mock
     private UidsCookie uidsCookie;
+    @Mock
+    private org.prebid.server.metric.Metrics metrics;
+
+    private AmpHandler ampHandler;
+    private RequestHandlerMetrics handlerMetrics;
 
     @Before
     public void setUp() {
@@ -104,15 +102,18 @@ public class AmpHandlerTest extends VertxTest {
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
+
+        handlerMetrics = spy(new RequestHandlerMetrics(metrics, clock));
+
         ampHandler = new AmpHandler(5000, ampRequestFactory, exchangeService, uidsCookieService,
-                singleton("bidder1"), bidderCatalog, metrics, clock, timeoutFactory);
+                singleton("bidder1"), bidderCatalog, handlerMetrics, clock, timeoutFactory);
     }
 
     @Test
     public void shouldRespondWithBadRequestIfRequestIsInvalid() {
         // given
-        given(ampRequestFactory.fromRequest(any()))
-                .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
+        InvalidRequestException ex = new InvalidRequestException("Request is invalid");
+        given(ampRequestFactory.fromRequest(any())).willReturn(Future.failedFuture(ex));
 
         // when
         ampHandler.handle(routingContext);
@@ -123,13 +124,13 @@ public class AmpHandlerTest extends VertxTest {
         verify(httpResponse).putHeader("AMP-Access-Control-Allow-Source-Origin", StringUtils.EMPTY);
         verify(httpResponse).putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
+        verify(handlerMetrics).updateErrorRequestsMetric(routingContext, ampHandler, ex);
     }
 
     @Test
     public void shouldRespondWithInternalServerErrorIfAuctionFails() {
         // given
         given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(BidRequest.builder().build()));
-
         given(exchangeService.holdAuction(any(), any(), any())).willThrow(new RuntimeException("Unexpected exception"));
 
         // when
@@ -226,7 +227,6 @@ public class AmpHandlerTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder().id("reqId1").test(1).build();
         given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
-
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(givenBidResponseWithExtFuture(
                 mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest), null, null, null))));
 
@@ -241,9 +241,8 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementAmpRequestMetrics() {
         // given
-        given(ampRequestFactory.fromRequest(any()))
-                .willReturn(Future.succeededFuture(BidRequest.builder().app(App.builder().build()).build()));
-
+        final BidRequest bidRequest = BidRequest.builder().app(App.builder().build()).build();
+        given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 givenBidResponseFuture(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, null), null))));
 
@@ -251,6 +250,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
+        verify(handlerMetrics).updateRequestMetrics(routingContext, ampHandler);
         verify(metrics).incCounter(eq(MetricName.amp_requests));
         verify(metrics).incCounter(eq(MetricName.app_requests));
     }
@@ -258,13 +258,14 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementNoCookieMetrics() {
         // given
-        given(ampRequestFactory.fromRequest(any()))
-                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
+        final boolean hasLiveUids = true;
+        BidRequest bidRequest = BidRequest.builder().build();
+        given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 givenBidResponseFuture(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, null), null))));
 
-        given(uidsCookie.hasLiveUids()).willReturn(true);
+        given(uidsCookie.hasLiveUids()).willReturn(hasLiveUids);
 
         httpRequest.headers().add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
                 "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
@@ -273,6 +274,8 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
+        verify(handlerMetrics).updateRequestMetrics(routingContext, ampHandler);
+        verify(handlerMetrics).updateAppAndNoCookieMetrics(routingContext, ampHandler, bidRequest, hasLiveUids, false);
         verify(metrics).incCounter(eq(MetricName.safari_requests));
         verify(metrics).incCounter(eq(MetricName.safari_no_cookie_requests));
         verify(metrics).incCounter(eq(MetricName.amp_no_cookie));
@@ -281,12 +284,15 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrorRequestMetrics() {
         // given
-        given(ampRequestFactory.fromRequest(any())).willReturn(Future.failedFuture(new RuntimeException()));
+        Exception ex = new RuntimeException("boom!");
+        given(ampRequestFactory.fromRequest(any())).willReturn(Future.failedFuture(ex));
 
         // when
         ampHandler.handle(routingContext);
 
         // then
+        verifyZeroInteractions(exchangeService);
+        verify(handlerMetrics).updateErrorRequestsMetric(routingContext, ampHandler, ex);
         verify(metrics).incCounter(eq(MetricName.error_requests));
     }
 
