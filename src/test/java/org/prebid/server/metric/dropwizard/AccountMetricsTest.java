@@ -1,7 +1,8 @@
-package org.prebid.server.metric;
+package org.prebid.server.metric.dropwizard;
 
 import com.codahale.metrics.MetricRegistry;
 import org.junit.Test;
+import org.prebid.server.metric.CounterType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;

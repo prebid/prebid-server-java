@@ -1,4 +1,4 @@
-package org.prebid.server.metric;
+package org.prebid.server.metric.dropwizard;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
@@ -11,6 +11,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.metric.CounterType;
+import org.prebid.server.metric.MetricName;
 
 import java.util.EnumMap;
 import java.util.function.Consumer;
@@ -27,7 +29,7 @@ public class MetricsTest {
 
     private MetricRegistry metricRegistry;
 
-    private Metrics metrics;
+    private org.prebid.server.metric.Metrics metrics;
 
     @Before
     public void setUp() {
@@ -139,7 +141,7 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isEqualTo(1);
     }
 
-    private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
+    private void verifyCreatesConfiguredCounterType(Consumer<org.prebid.server.metric.Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);
         counterTypeClasses.put(CounterType.flushingCounter, ResettingCounter.class);

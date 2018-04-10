@@ -1,4 +1,4 @@
-package org.prebid.server.metric;
+package org.prebid.server.metric.dropwizard;
 
 import org.junit.Test;
 

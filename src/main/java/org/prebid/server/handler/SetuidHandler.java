@@ -14,7 +14,7 @@ import java.util.Objects;
 public class SetuidHandler implements Handler<RoutingContext> {
 
     private final UidsCookieService uidsCookieService;
-    private final Metrics metrics;
+    private final org.prebid.server.metric.Metrics metrics;
 
     public SetuidHandler(UidsCookieService uidsCookieService, Metrics metrics) {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);

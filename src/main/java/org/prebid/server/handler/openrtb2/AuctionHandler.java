@@ -6,7 +6,6 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -14,68 +13,63 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.metric.MetricName;
-import org.prebid.server.metric.Metrics;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.handler.AbstractMeteredHandler;
+import org.prebid.server.metric.prebid.RequestHandlerMetrics;
 
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class AuctionHandler implements Handler<RoutingContext> {
+public class AuctionHandler extends AbstractMeteredHandler<RequestHandlerMetrics> {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
     private final long defaultTimeout;
     private final ExchangeService exchangeService;
-    private final AuctionRequestFactory auctionRequestFactory;
     private final UidsCookieService uidsCookieService;
-    private final Metrics metrics;
-    private final Clock clock;
-    private final TimeoutFactory timeoutFactory;
+    private final AuctionRequestFactory auctionRequestFactory;
 
     public AuctionHandler(long defaultTimeout, ExchangeService exchangeService,
                           AuctionRequestFactory auctionRequestFactory, UidsCookieService uidsCookieService,
-                          Metrics metrics, Clock clock, TimeoutFactory timeoutFactory) {
+                          RequestHandlerMetrics handlerMetrics, Clock clock, TimeoutFactory timeoutFactory) {
+        super(handlerMetrics, clock, timeoutFactory);
         this.defaultTimeout = defaultTimeout;
         this.exchangeService = Objects.requireNonNull(exchangeService);
-        this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.metrics = Objects.requireNonNull(metrics);
-        this.clock = Objects.requireNonNull(clock);
-        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
     }
 
     @Override
     public void handle(RoutingContext context) {
-        // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
-        // for bids. However, tmax may be defined in the Stored Request data.
-        // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
-        // more accurately if we note the real start time, and use it to compute the auction timeout.
-        final long startTime = clock.millis();
+        long startTime = getClock().millis();
+        getHandlerMetrics().updateRequestMetrics(context, this);
 
-        final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
+        UidsCookie uidsCookie = getUidsCookie(context);
 
-        updateRequestMetrics(isSafari);
-
-        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         auctionRequestFactory.fromRequest(context)
-                .recover(this::updateErrorRequestsMetric)
-                .map(bidRequest -> updateAppAndNoCookieMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
-                .compose(bidRequest -> exchangeService.holdAuction(bidRequest, uidsCookie,
-                        timeout(bidRequest, startTime)))
+                .recover(th -> getHandlerMetrics().updateErrorRequestsMetric(context, this, th))
+                .map(bidRequest -> getHandlerMetrics().updateAppAndNoCookieMetrics(context, this, bidRequest,
+                        uidsCookie.hasLiveUids(), bidRequest.getApp() != null))
+                .compose(bidRequest -> timeout(startTime, bidRequest, context)
+                        .compose(timeOut -> Future.succeededFuture(Tuple2.of(bidRequest, timeOut))))
+                .compose((Tuple2<BidRequest, Timeout> tuple2) -> exchangeService.holdAuction(tuple2.getLeft(),
+                        uidsCookie, tuple2.getRight()))
                 .setHandler(responseResult -> handleResult(responseResult, context));
     }
 
-    private Timeout timeout(BidRequest bidRequest, long startTime) {
-        final Long tmax = bidRequest.getTmax();
-        return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
+    private Future<Timeout> timeout(long startTime, BidRequest bidRequest, RoutingContext context) {
+        return super.timeout(startTime, bidRequest.getTmax(), defaultTimeout, context);
+    }
+
+    private UidsCookie getUidsCookie(RoutingContext context) {
+        return uidsCookieService.parseFromRequest(context);
     }
 
     private void handleResult(AsyncResult<BidResponse> responseResult, RoutingContext context) {
@@ -99,31 +93,5 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .end(String.format("Critical error while running the auction: %s", exception.getMessage()));
             }
         }
-    }
-
-    private void updateRequestMetrics(boolean isSafari) {
-        metrics.incCounter(MetricName.requests);
-        metrics.incCounter(MetricName.open_rtb_requests);
-        if (isSafari) {
-            metrics.incCounter(MetricName.safari_requests);
-        }
-    }
-
-    private Future<BidRequest> updateErrorRequestsMetric(Throwable failed) {
-        metrics.incCounter(MetricName.error_requests);
-        return Future.failedFuture(failed);
-    }
-
-    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
-        if (bidRequest.getApp() != null) {
-            metrics.incCounter(MetricName.app_requests);
-        } else if (isLifeSync) {
-            metrics.incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                metrics.incCounter(MetricName.safari_no_cookie_requests);
-            }
-        }
-
-        return bidRequest;
     }
 }

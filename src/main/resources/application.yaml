@@ -5,7 +5,7 @@ vertx:
   worker-pool-size: 20
   uploads-dir: file-uploads
   verticle:
-    deploy-timeout-ms: 5000
+    deploy-timeout-ms: 10000
     instances: 1
 http:
   port: 8080

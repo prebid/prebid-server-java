@@ -17,6 +17,9 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.prebid.AuctionHandlerMetrics;
+import org.prebid.server.metric.prebid.ExchangeServiceMetrics;
+import org.prebid.server.metric.prebid.RequestHandlerMetrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.validation.BidderParamValidator;
@@ -126,10 +129,10 @@ public class ServiceConfiguration {
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog, ResponseBidValidator responseBidValidator,
-            CacheService cacheService, Metrics metrics, Clock clock) {
+            CacheService cacheService, ExchangeServiceMetrics exchangeServiceMetrics, Clock clock) {
 
-        return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock,
-                expectedCacheTimeMs);
+        return new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
+                exchangeServiceMetrics, clock, expectedCacheTimeMs);
     }
 
     @Bean
@@ -174,6 +177,21 @@ public class ServiceConfiguration {
         } catch (IOException | ClassNotFoundException e) {
             throw new IllegalArgumentException("Could not initialize public suffix list", e);
         }
+    }
+
+    @Bean(name = "requestHandlerMetrics")
+    RequestHandlerMetrics requestHandlerMetrics(Metrics metrics, Clock clock) {
+        return new RequestHandlerMetrics(metrics, clock);
+    }
+
+    @Bean(name = "auctionHandlerMetrics")
+    AuctionHandlerMetrics auctionHandlerMetrics(Metrics metrics, Clock clock) {
+        return new AuctionHandlerMetrics(metrics, clock);
+    }
+
+    @Bean
+    ExchangeServiceMetrics exchangeServiceMetrics(Metrics metrics, BidderCatalog bidderCatalog) {
+        return new ExchangeServiceMetrics(metrics, bidderCatalog);
     }
 
     @Bean
