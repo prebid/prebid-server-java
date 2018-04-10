@@ -78,7 +78,8 @@ public class HttpAdapterRequester implements BidderRequester {
                     exception.getMessages().stream().map(BidderError::create).collect(Collectors.toList())));
         }
         return httpAdapterConnector.call(adapter, usersyncer, bidderWithErrors.getValue(), preBidRequestContext)
-                .map(bidderResult -> toBidderSeatBid(bidderResult, bidderWithErrors.getErrors()));
+                .map(bidderResult ->
+                        toBidderSeatBid(bidderResult, bidderWithErrors.getErrors()));
     }
 
     /**

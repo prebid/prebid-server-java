@@ -4,7 +4,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class DisabledBidderRequesterTest {

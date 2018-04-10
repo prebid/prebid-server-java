@@ -174,7 +174,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ext -> Json.mapper.treeToValue(future.result().getExt(), ExtBidRequest.class)).isNotNull()
                 .element(0)
                 .extracting(ExtBidRequest::getPrebid)
-                .containsExactly(ExtRequestPrebid.of(emptyMap(),
+                .containsExactly(ExtRequestPrebid.of(emptyMap(), emptyMap(),
                         ExtRequestTargeting.of(CpmBucket.PriceGranularity.medium.name(), true), null,
                         ExtRequestPrebidCache.of(Json.mapper.createObjectNode())));
     }
@@ -285,7 +285,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         return BidRequest.builder()
                 .imp(singletonList(Imp.builder().build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.of(null, extRequestTargeting, null, extRequestPrebidCache))))
+                        ExtRequestPrebid.of(null, null, extRequestTargeting, null, extRequestPrebidCache))))
                 .build();
     }
 }
