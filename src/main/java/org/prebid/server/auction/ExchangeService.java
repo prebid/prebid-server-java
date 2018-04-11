@@ -12,6 +12,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
+import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
@@ -66,17 +67,18 @@ public class ExchangeService {
 
     private final BidderCatalog bidderCatalog;
     private final ResponseBidValidator responseBidValidator;
+    private final AdServerService adServerService;
     private final CacheService cacheService;
     private final Metrics metrics;
     private final Clock clock;
     private long expectedCacheTime;
 
     public ExchangeService(BidderCatalog bidderCatalog,
-                           ResponseBidValidator responseBidValidator, CacheService cacheService,
-                           Metrics metrics, Clock clock,
-                           long expectedCacheTime) {
+                           ResponseBidValidator responseBidValidator, AdServerService adServerService,
+                           CacheService cacheService, Metrics metrics, Clock clock, long expectedCacheTime) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
+        this.adServerService = Objects.requireNonNull(adServerService);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -90,7 +92,8 @@ public class ExchangeService {
      * Runs an auction: delegates request to applicable bidders, gathers responses from them and constructs final
      * response containing returned bids and additional information in extensions.
      */
-    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout) {
+    public Future<BidResponse> holdAuction(RoutingContext context, BidRequest bidRequest, UidsCookie uidsCookie,
+                                           Timeout timeout) {
         // extract ext from bid request
         final ExtBidRequest requestExt;
         try {
@@ -117,17 +120,25 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
+        // retrieve adServerService key values
+        Future<Map<String, String>> adServerKeyValues = Future.future();
+
         // send all the requests to the bidders and gathers results
         final CompositeFuture bidderResults = CompositeFuture.join(bidderRequests.stream()
                 .map(bidderRequest -> requestBids(bidderRequest, startTime,
                         auctionTimeout(timeout, shouldCacheBids), aliases))
                 .collect(Collectors.toList()));
 
+        CompositeFuture all = CompositeFuture.all(bidderResults,
+                adServerService.buildAdServerKeyValues(context, bidRequest));
+
         // produce response from bidder results
-        return bidderResults.compose(result -> {
-            final List<BidderResponse> bidderResponses = result.list();
+        return all.compose(result -> {
+            final List<BidderResponse> bidderResponses = ((CompositeFuture) result.list().get(0)).list();
             updateMetricsFromResponses(bidderResponses);
-            return toBidResponse(bidderResponses, bidRequest, keywordsCreator, shouldCacheBids, timeout);
+
+            return toBidResponse(bidderResponses, bidRequest, keywordsCreator,
+                    (Map<String, String>) result.list().get(1), shouldCacheBids, timeout);
         });
     }
 
@@ -489,7 +500,8 @@ public class ExchangeService {
      * requester.
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                              TargetingKeywordsCreator keywordsCreator, boolean shouldCacheBids,
+                                              TargetingKeywordsCreator keywordsCreator,
+                                              Map<String, String> adServerKeyValues, boolean shouldCacheBids,
                                               Timeout timeout) {
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
@@ -497,7 +509,7 @@ public class ExchangeService {
 
         return toWinningBidsWithCacheIds(shouldCacheBids, winningBids, keywordsCreator, timeout)
                 .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        winningBidsWithCacheIds, winningBidsByBidder));
+                        winningBidsWithCacheIds, winningBidsByBidder, adServerKeyValues));
     }
 
     /**
@@ -643,14 +655,16 @@ public class ExchangeService {
     private static BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                           TargetingKeywordsCreator keywordsCreator,
                                                           Map<Bid, String> winningBidsWithCacheIds,
-                                                          Set<Bid> winningBidsByBidder) {
+                                                          Set<Bid> winningBidsByBidder,
+                                                          Map<String, String> adServerKeyValues) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
                         toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, keywordsCreator);
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, keywordsCreator,
+                adServerKeyValues);
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -705,7 +719,8 @@ public class ExchangeService {
      * bidders
      */
     private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
-                                                   TargetingKeywordsCreator keywordsCreator) {
+                                                   TargetingKeywordsCreator keywordsCreator,
+                                                   Map<String, String> adServerKeyValues) {
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
@@ -725,7 +740,7 @@ public class ExchangeService {
                 : null;
 
         return ExtBidResponse.of(httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null, errors,
-                responseTimeMillis, null);
+                responseTimeMillis, null, adServerKeyValues);
     }
 
     private static List<String> messages(List<BidderError> errors) {

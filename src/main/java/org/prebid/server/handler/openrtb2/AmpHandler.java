@@ -100,7 +100,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .recover(this::updateErrorRequestsMetric)
                 .map(bidRequest -> updateAppAndNoCookieMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
                 .compose(bidRequest ->
-                        exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime))
+                        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout(bidRequest, startTime))
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
                 .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
                 .setHandler(responseResult -> handleResult(responseResult, context));
@@ -114,7 +114,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
         // fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
-        final Map<String, String> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
+        final Map<String, String> targeting = seatBids == null ? new HashMap<>() : seatBids.stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
@@ -122,21 +122,44 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        // fetch debug information from response if requested
-        final ExtResponseDebug extResponseDebug = Objects.equals(bidRequest.getTest(), 1)
-                ? extResponseDebugFrom(bidResponse) : null;
+        // fetch debug information from response if requested, also add adServer key values
+        ExtResponseDebug extResponseDebug = null;
+        if (Objects.equals(bidRequest.getTest(), 1)) {
+            ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
+            if (extBidResponse != null) {
+                extResponseDebug = extBidResponse.getDebug();
+                addAdServerKeyValuesToTargeting(targeting, extBidResponse.getAdserverkeyvalues());
+            }
+        } else {
+            addAdServerKeyValuesToTargeting(targeting, extResponseAdServerKeyValuesFrom(bidResponse));
+        }
 
         return AmpResponse.of(targeting, extResponseDebug);
     }
 
-    private static ExtResponseDebug extResponseDebugFrom(BidResponse bidResponse) {
+    private static void addAdServerKeyValuesToTargeting(Map<String, String> targeting,
+                                                        Map<String, String> adServerKeyValues) {
+        if (adServerKeyValues != null) targeting.putAll(adServerKeyValues);
+    }
+
+    private static ExtBidResponse extResponseFrom(BidResponse bidResponse) {
         final ExtBidResponse extBidResponse;
         try {
             extBidResponse = Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
-                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
+                    String.format("Critical error while unpacking AMP bid response extension : %s", e.getMessage()), e);
         }
+        return extBidResponse;
+    }
+
+    private static Map<String, String> extResponseAdServerKeyValuesFrom(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
+        return extBidResponse != null ? extBidResponse.getAdserverkeyvalues() : Collections.EMPTY_MAP;
+    }
+
+    private static ExtResponseDebug extResponseDebugFrom(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
         return extBidResponse != null ? extBidResponse.getDebug() : null;
     }
 

@@ -5,10 +5,12 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import org.prebid.server.auction.AdServerService;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
+import org.prebid.server.auction.NoOpAdServerService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
@@ -122,13 +124,18 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    AdServerService adServerService() {
+        return new NoOpAdServerService();
+    }
+
+    @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog, ResponseBidValidator responseBidValidator,
-            CacheService cacheService, Metrics metrics, Clock clock) {
+            AdServerService adServerService, CacheService cacheService, Metrics metrics, Clock clock) {
 
-        return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock,
+        return new ExchangeService(bidderCatalog, responseBidValidator, adServerService, cacheService, metrics, clock,
                 expectedCacheTimeMs);
     }
 

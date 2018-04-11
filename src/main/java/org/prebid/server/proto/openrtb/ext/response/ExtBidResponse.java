@@ -29,4 +29,6 @@ public class ExtBidResponse {
      * Defines the contract for bidresponse.ext.usersync
      */
     Map<String, ExtResponseSyncData> usersync;
+
+    Map<String, String> adserverkeyvalues;
 }

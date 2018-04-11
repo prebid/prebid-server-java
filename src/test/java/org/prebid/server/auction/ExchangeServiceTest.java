@@ -14,6 +14,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,6 +55,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +99,11 @@ public class ExchangeServiceTest extends VertxTest {
     private UidsCookie uidsCookie;
     @Mock
     private BidderRequester bidderRequester;
+    @Mock
+    private RoutingContext context;
+    @Mock
+    private AdServerService adServerService;
+
     private Clock clock;
 
     private ExchangeService exchangeService;
@@ -114,16 +121,19 @@ public class ExchangeServiceTest extends VertxTest {
         given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
 
+        given(adServerService.buildAdServerKeyValues(any(), any()))
+                .willReturn(Future.succeededFuture(Collections.EMPTY_MAP));
+
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
 
-        exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock, 0);
+        exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, adServerService, cacheService, metrics, clock, 0);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock, -1));
+                () -> new ExchangeService(bidderCatalog, responseBidValidator, adServerService, cacheService, metrics, clock, -1));
     }
 
     @Test
@@ -132,7 +142,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(null));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         verifyZeroInteractions(bidderCatalog);
@@ -148,7 +158,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("invalid", 0)));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         verify(bidderCatalog).isValidName(eq("invalid"));
@@ -165,7 +175,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -187,7 +197,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.id("requestId").tmax(500L));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -217,7 +227,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenImp(singletonMap("bidder1", 3), identity())));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final ArgumentCaptor<BidRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidRequest.class);
@@ -246,7 +256,7 @@ public class ExchangeServiceTest extends VertxTest {
                         singletonMap("bidderAlias", "bidder"), null, null, null)))));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
@@ -268,7 +278,7 @@ public class ExchangeServiceTest extends VertxTest {
                         singletonMap("bidderAlias", "bidder"), null, null, null)))));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
@@ -286,7 +296,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(emptyList());
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse).returns(2, BidResponse::getNbr);
@@ -300,7 +310,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).isEmpty();
@@ -319,7 +329,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1).element(0).isEqualTo(SeatBid.builder()
@@ -341,7 +351,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1).element(0).isEqualTo(SeatBid.builder()
@@ -367,7 +377,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(doubleMap("bidder1", 1, "bidder2", 2)));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(2)
@@ -396,7 +406,7 @@ public class ExchangeServiceTest extends VertxTest {
                         singletonMap("bidderAlias", "bidder"), null, null, null)))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         verify(bidderRequester, times(2)).requestBids(any(), any());
@@ -417,7 +427,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(doubleMap("bidder1", 1, "bidder2", 2)));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
@@ -461,7 +471,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.test(1));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
@@ -505,11 +515,40 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder1", 1)));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getDebug()).isNull();
+    }
+
+    @Test
+    public void shouldPopulateBidResponseAdServerKeyValues() throws JsonProcessingException {
+        // given
+        givenHttpConnector(BidderSeatBid.of(
+                singletonList(givenBid(Bid.builder().build())),
+                singletonList(ExtHttpCall.builder()
+                        .uri("bidder1_uri1")
+                        .requestbody("bidder1_requestBody1")
+                        .status(200)
+                        .responsebody("bidder1_responseBody1")
+                        .build()),
+                emptyList()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder1", 1)));
+        Map<String, String> adServerKeyValues = new HashMap<>(2);
+        adServerKeyValues.put("key1", "value1");
+        adServerKeyValues.put("key2", "value2");
+        given(adServerService.buildAdServerKeyValues(context, bidRequest))
+                .willReturn(Future.succeededFuture(adServerKeyValues));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
+
+        // then
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getDebug()).isNull();
+        assertThat(ext.getAdserverkeyvalues()).isEqualTo(adServerKeyValues);
     }
 
     @Test
@@ -519,7 +558,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(mapper.valueToTree(singletonMap("prebid", 1))));
 
         // when
-        final Future<BidResponse> result = exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        final Future<BidResponse> result = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -537,7 +576,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(mapper.valueToTree(singletonMap("someField", 1))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -555,7 +594,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(mapper.valueToTree(singletonMap("prebid", singletonMap("someField", 1)))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -574,7 +613,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, ExtRequestTargeting.of(null, null), null, null)))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -595,7 +634,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, ExtRequestTargeting.of("invalid", null), null, null)))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -622,7 +661,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(ValidationResult.error("bid validation error"));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
@@ -648,7 +687,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, ExtRequestTargeting.of("low", null), null, null)))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -681,7 +720,7 @@ public class ExchangeServiceTest extends VertxTest {
                         ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -714,7 +753,7 @@ public class ExchangeServiceTest extends VertxTest {
                         ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -747,7 +786,7 @@ public class ExchangeServiceTest extends VertxTest {
                         ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -778,7 +817,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, ExtRequestTargeting.of("low", null), null, null)))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -805,7 +844,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, ExtRequestTargeting.of("low", false), null, null)))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        final BidResponse bidResponse = exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -830,7 +869,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.user(user));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -851,7 +890,7 @@ public class ExchangeServiceTest extends VertxTest {
                         ExtUser.of(ExtUserPrebid.of(uids), null, null))).build()));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final User capturedBidRequestUser = captureBidRequest().getUser();
@@ -874,7 +913,7 @@ public class ExchangeServiceTest extends VertxTest {
                         ExtUser.of(ExtUserPrebid.of(uids), null, null))).build()));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final User capturedBidRequestUser = captureBidRequest().getUser();
@@ -893,7 +932,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.user(User.builder().id("userId").build()));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -910,7 +949,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -925,7 +964,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         verify(bidderRequester).requestBids(any(), same(timeout));
@@ -934,7 +973,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
-        exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock, 100);
+        exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, adServerService, cacheService,
+                metrics, clock, 100);
 
         givenHttpConnector(givenSeatBid(singletonList(
                 givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build()))));
@@ -950,7 +990,7 @@ public class ExchangeServiceTest extends VertxTest {
                         ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout).result();
 
         // then
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
@@ -971,7 +1011,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         verify(adapterMetrics).incCounter(eq(MetricName.requests));
@@ -990,7 +1030,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), eq(0L));
@@ -1005,7 +1045,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         verify(adapterMetrics).incCounter(eq(MetricName.no_bid_requests));
@@ -1024,7 +1064,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
 
         // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        exchangeService.holdAuction(context, bidRequest, uidsCookie, timeout);
 
         // then
         verify(adapterMetrics, times(1)).incCounter(eq(MetricName.timeout_requests));
