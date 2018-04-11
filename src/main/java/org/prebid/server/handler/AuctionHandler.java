@@ -84,6 +84,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         updateRequestMetrics(isSafari);
 
         preBidRequestContextFactory.fromRequest(context)
+                .map(this::updateImpsRequestedMetrics)
+                .recover(this::updateImpsRequestedErrorMetrics)
                 .recover(exception ->
                         failWith(String.format("Error parsing request: %s", exception.getMessage()), exception))
 
@@ -113,10 +115,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
                                 .map(response -> Tuple3.of(result.getLeft(), result.getMiddle(), response)))
 
                 .map((Tuple3<PreBidRequestContext, Account, PreBidResponse> result) ->
-                        Tuple2.of(result.getLeft().getPreBidRequest(), addTargetingKeywords(
-                                result.getLeft().getPreBidRequest(), result.getMiddle(), result.getRight())))
+                        addTargetingKeywords(result.getLeft().getPreBidRequest(), result.getMiddle(),
+                                result.getRight()))
 
-                .setHandler(result -> respondWith(bidResponseOrError(result), context));
+                .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
     }
 
     private void updateRequestMetrics(boolean isSafari) {
@@ -124,6 +126,16 @@ public class AuctionHandler implements Handler<RoutingContext> {
         if (isSafari) {
             metrics.incCounter(MetricName.safari_requests);
         }
+    }
+
+    private PreBidRequestContext updateImpsRequestedMetrics(PreBidRequestContext preBidRequestContext) {
+        metrics.incCounter(MetricName.imps_requested, preBidRequestContext.getPreBidRequest().getAdUnits().size());
+        return preBidRequestContext;
+    }
+
+    private Future<PreBidRequestContext> updateImpsRequestedErrorMetrics(Throwable throwable) {
+        metrics.incCounter(MetricName.imps_requested, 0L);
+        return Future.failedFuture(throwable);
     }
 
     private PreBidRequestContext updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext,
@@ -352,17 +364,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now());
     }
 
-    private PreBidResponse bidResponseOrError(AsyncResult<Tuple2<PreBidRequest, PreBidResponse>> asyncResult) {
-        if (asyncResult.succeeded()) {
-            final Tuple2<PreBidRequest, PreBidResponse> result = asyncResult.result();
-            metrics.incCounter(MetricName.imps_requested, result.getLeft().getAdUnits().size());
-
-            return result.getRight();
+    private PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
+        if (responseResult.succeeded()) {
+            return responseResult.result();
         } else {
             metrics.incCounter(MetricName.error_requests);
-            metrics.incCounter(MetricName.imps_requested, 0L);
 
-            final Throwable exception = asyncResult.cause();
+            final Throwable exception = responseResult.cause();
             logger.info("Failed to process /auction request", exception);
             return error(exception instanceof PreBidException
                     ? exception.getMessage()

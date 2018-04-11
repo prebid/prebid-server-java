@@ -97,7 +97,9 @@ public class AmpHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         ampRequestFactory.fromRequest(context)
-                .map(bidRequest -> updateAppAndNoCookieAndImpsMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
+                .map(this::updateImpsRequestedMetrics)
+                .recover(this::updateImpsRequestedErrorMetrics)
+                .map(bidRequest -> updateAppAndNoCookieMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
                 .compose(bidRequest ->
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime))
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
@@ -113,7 +115,17 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
     }
 
-    private BidRequest updateAppAndNoCookieAndImpsMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
+    private BidRequest updateImpsRequestedMetrics(BidRequest bidRequest) {
+        metrics.incCounter(MetricName.imps_requested, bidRequest.getImp().size());
+        return bidRequest;
+    }
+
+    private Future<BidRequest> updateImpsRequestedErrorMetrics(Throwable throwable) {
+        metrics.incCounter(MetricName.imps_requested, 0L);
+        return Future.failedFuture(throwable);
+    }
+
+    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
         if (bidRequest.getApp() != null) {
             metrics.incCounter(MetricName.app_requests);
         } else if (isLifeSync) {
@@ -122,8 +134,6 @@ public class AmpHandler implements Handler<RoutingContext> {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);
             }
         }
-        metrics.incCounter(MetricName.imps_requested, bidRequest.getImp().size());
-
         return bidRequest;
     }
 
@@ -210,8 +220,6 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private Future<AmpResponse> updateErrorRequestsMetric(Throwable failed) {
         metrics.incCounter(MetricName.error_requests);
-        metrics.incCounter(MetricName.imps_requested, 0L);
-
         return Future.failedFuture(failed);
     }
 
