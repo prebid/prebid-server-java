@@ -102,6 +102,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private Future<BidResponse> updateErrorRequestsMetric(Throwable failed) {
         metrics.incCounter(MetricName.error_requests);
+        metrics.incCounter(MetricName.imps_requested, 0L);
+
         return Future.failedFuture(failed);
     }
 

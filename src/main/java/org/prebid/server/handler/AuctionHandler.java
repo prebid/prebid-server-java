@@ -87,7 +87,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .recover(exception ->
                         failWith(String.format("Error parsing request: %s", exception.getMessage()), exception))
 
-                .map(preBidRequestContext -> updateAppAndNoCookieAndImpsMetrics(preBidRequestContext, isSafari))
+                .map(preBidRequestContext -> updateAppAndNoCookieMetrics(preBidRequestContext, isSafari))
 
                 .compose(preBidRequestContext -> applicationSettings.getAccountById(
                         preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
@@ -113,8 +113,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
                                 .map(response -> Tuple3.of(result.getLeft(), result.getMiddle(), response)))
 
                 .map((Tuple3<PreBidRequestContext, Account, PreBidResponse> result) ->
-                        addTargetingKeywords(result.getLeft().getPreBidRequest(), result.getMiddle(),
-                                result.getRight()))
+                        Tuple2.of(result.getLeft().getPreBidRequest(), addTargetingKeywords(
+                                result.getLeft().getPreBidRequest(), result.getMiddle(), result.getRight())))
+
+                .map((Tuple2<PreBidRequest, PreBidResponse> result) ->
+                        updateImpsRequestedMetrics(result.getLeft(), result.getRight()))
 
                 .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
     }
@@ -126,8 +129,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         }
     }
 
-    private PreBidRequestContext updateAppAndNoCookieAndImpsMetrics(PreBidRequestContext preBidRequestContext,
-                                                                    boolean isSafari) {
+    private PreBidRequestContext updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext,
+                                                             boolean isSafari) {
         if (preBidRequestContext.getPreBidRequest().getApp() != null) {
             metrics.incCounter(MetricName.app_requests);
         } else if (preBidRequestContext.isNoLiveUids()) {
@@ -136,7 +139,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);
             }
         }
-        metrics.incCounter(MetricName.imps_requested, preBidRequestContext.getPreBidRequest().getAdUnits().size());
 
         return preBidRequestContext;
     }
@@ -182,7 +184,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                                                  List<AdapterResponse> adapterResponses) {
         adapterResponses.stream()
                 .filter(ar -> StringUtils.isNotBlank(ar.getBidderStatus().getError()))
-                .forEach(ar -> updateErrorMetrics(ar, preBidRequestContext));
+                .forEach(ar -> updateAdapterErrorMetrics(ar, preBidRequestContext));
 
         final List<BidderStatus> bidderStatuses = Stream.concat(
                 adapterResponses.stream()
@@ -205,7 +207,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .build();
     }
 
-    private void updateErrorMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
+    private void updateAdapterErrorMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
         final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
         final String bidder = bidderStatus.getBidder();
 
@@ -342,6 +344,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return left;
     }
 
+    private PreBidResponse updateImpsRequestedMetrics(PreBidRequest preBidRequest, PreBidResponse preBidResponse) {
+        metrics.incCounter(MetricName.imps_requested, preBidRequest.getAdUnits().size());
+
+        return preBidResponse;
+    }
+
     private static void respondWith(PreBidResponse response, RoutingContext context) {
         context.response()
                 .putHeader(HttpHeaders.DATE, date())
@@ -358,6 +366,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             return responseResult.result();
         } else {
             metrics.incCounter(MetricName.error_requests);
+            metrics.incCounter(MetricName.imps_requested, 0L);
 
             final Throwable exception = responseResult.cause();
             logger.info("Failed to process /auction request", exception);

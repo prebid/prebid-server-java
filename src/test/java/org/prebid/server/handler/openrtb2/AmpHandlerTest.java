@@ -308,6 +308,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(metrics).incCounter(eq(MetricName.error_requests));
+        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
     }
 
     private static Future<BidResponse> givenBidResponseFuture(ObjectNode extBid) {

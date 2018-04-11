@@ -535,6 +535,7 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics, never()).incCounter(eq(MetricName.no_cookie_requests));
         verify(metrics, never()).incCounter(eq(MetricName.safari_no_cookie_requests));
         verify(metrics, never()).incCounter(eq(MetricName.error_requests));
+        verify(metrics, never()).incCounter(eq(MetricName.imps_requested), eq(0L));
     }
 
     @SuppressWarnings("unchecked")
@@ -583,6 +584,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).incCounter(eq(MetricName.error_requests));
+        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
     }
 
     @Test
@@ -596,6 +598,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).incCounter(eq(MetricName.error_requests));
+        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
     }
 
     @Test
@@ -642,6 +645,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).incCounter(eq(MetricName.error_requests));
+        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
     }
 
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
