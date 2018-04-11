@@ -122,37 +122,41 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private void handleResult(AsyncResult<BidResponse> responseResult,
                               AuctionEvent.AuctionEventBuilder auctionEventBuilder, RoutingContext context) {
+        final int status;
+        final List<String> errorMessages;
+
         if (responseResult.succeeded()) {
             context.response()
                     .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                     .end(Json.encode(responseResult.result()));
-            auctionEventBuilder.status(HttpResponseStatus.OK.code()).errors(Collections.emptyList());
+
+            status = HttpResponseStatus.OK.code();
+            errorMessages = Collections.emptyList();
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
-                final int code = HttpResponseStatus.BAD_REQUEST.code();
-                final List<String> messages = ((InvalidRequestException) exception).getMessages();
-                logger.info("Invalid request format: {0}", messages);
+                status = HttpResponseStatus.BAD_REQUEST.code();
+                errorMessages = ((InvalidRequestException) exception).getMessages();
+
+                logger.info("Invalid request format: {0}", errorMessages);
+
                 context.response()
-                        .setStatusCode(code)
-                        .end(messages.stream().map(m -> String.format("Invalid request format: %s", m))
+                        .setStatusCode(status)
+                        .end(errorMessages.stream().map(msg -> String.format("Invalid request format: %s", msg))
                                 .collect(Collectors.joining("\n")));
-                auctionEventBuilder
-                        .status(code)
-                        .errors(messages);
             } else {
                 logger.error("Critical error while running the auction", exception);
-                final int code = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+
                 final String message = exception.getMessage();
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+                errorMessages = Collections.singletonList(message);
+
                 context.response()
-                        .setStatusCode(code)
+                        .setStatusCode(status)
                         .end(String.format("Critical error while running the auction: %s", message));
-                auctionEventBuilder
-                        .status(code)
-                        .errors(Collections.singletonList(message));
             }
         }
 
-        analyticsReporter.processEvent(auctionEventBuilder.build());
+        analyticsReporter.processEvent(auctionEventBuilder.status(status).errors(errorMessages).build());
     }
 }

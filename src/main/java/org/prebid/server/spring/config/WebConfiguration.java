@@ -11,6 +11,7 @@ import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.CompositeAnalyticsReporter;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -173,12 +174,14 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             AmpProperties ampProperties,
             BidderCatalog bidderCatalog,
+            AnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
         return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService,
-                ampProperties.getCustomTargetingSet(), bidderCatalog, metrics, clock, timeoutFactory);
+                ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, metrics, clock,
+                timeoutFactory);
     }
 
     @Bean
