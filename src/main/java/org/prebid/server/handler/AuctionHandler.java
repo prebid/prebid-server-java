@@ -116,10 +116,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         Tuple2.of(result.getLeft().getPreBidRequest(), addTargetingKeywords(
                                 result.getLeft().getPreBidRequest(), result.getMiddle(), result.getRight())))
 
-                .map((Tuple2<PreBidRequest, PreBidResponse> result) ->
-                        updateImpsRequestedMetrics(result.getLeft(), result.getRight()))
-
-                .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
+                .setHandler(result -> respondWith(bidResponseOrError(result), context));
     }
 
     private void updateRequestMetrics(boolean isSafari) {
@@ -344,12 +341,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return left;
     }
 
-    private PreBidResponse updateImpsRequestedMetrics(PreBidRequest preBidRequest, PreBidResponse preBidResponse) {
-        metrics.incCounter(MetricName.imps_requested, preBidRequest.getAdUnits().size());
-
-        return preBidResponse;
-    }
-
     private static void respondWith(PreBidResponse response, RoutingContext context) {
         context.response()
                 .putHeader(HttpHeaders.DATE, date())
@@ -361,14 +352,17 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now());
     }
 
-    private PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
-        if (responseResult.succeeded()) {
-            return responseResult.result();
+    private PreBidResponse bidResponseOrError(AsyncResult<Tuple2<PreBidRequest, PreBidResponse>> asyncResult) {
+        if (asyncResult.succeeded()) {
+            final Tuple2<PreBidRequest, PreBidResponse> result = asyncResult.result();
+            metrics.incCounter(MetricName.imps_requested, result.getLeft().getAdUnits().size());
+
+            return result.getRight();
         } else {
             metrics.incCounter(MetricName.error_requests);
             metrics.incCounter(MetricName.imps_requested, 0L);
 
-            final Throwable exception = responseResult.cause();
+            final Throwable exception = asyncResult.cause();
             logger.info("Failed to process /auction request", exception);
             return error(exception instanceof PreBidException
                     ? exception.getMessage()
