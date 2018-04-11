@@ -380,5 +380,4 @@ public class AmpHandlerTest extends VertxTest {
         verify(analyticsReporter).processEvent(ampEventCaptor.capture());
         return ampEventCaptor.getValue();
     }
-
 }
