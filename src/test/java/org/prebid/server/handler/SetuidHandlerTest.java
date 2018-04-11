@@ -139,12 +139,8 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldIgnoreFacebookSentinel() {
         // given
-        // this uids cookie value stands for {"uids":{"audienceNetwork":"facebookUid"}}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7ImF1ZGllbmNlTmV0d29yayI6ImZhY2Vib29rVWlkIn19"));
-        final Map<String, UidWithExpiry> uids = new HashMap<>();
-        uids.put("audienceNetwork", UidWithExpiry.live("facebookUid"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap("audienceNetwork", UidWithExpiry.live("facebookUid"))).build()));
 
         given(httpRequest.getParam("bidder")).willReturn("audienceNetwork");
         given(httpRequest.getParam("uid")).willReturn("0");
