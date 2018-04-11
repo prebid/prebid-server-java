@@ -155,14 +155,13 @@ public class WebConfiguration {
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
-            Vertx vertx,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, exchangeService,
-                auctionRequestFactory, uidsCookieService, vertx, analyticsReporter, metrics, clock, timeoutFactory);
+                auctionRequestFactory, uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory);
     }
 
     @Bean

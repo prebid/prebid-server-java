@@ -7,7 +7,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -41,7 +40,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final ExchangeService exchangeService;
     private final AuctionRequestFactory auctionRequestFactory;
     private final UidsCookieService uidsCookieService;
-    private final Vertx vertx;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final Clock clock;
@@ -49,13 +47,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     public AuctionHandler(long defaultTimeout, ExchangeService exchangeService,
                           AuctionRequestFactory auctionRequestFactory, UidsCookieService uidsCookieService,
-                          Vertx vertx, AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock,
+                          AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock,
                           TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.vertx = Objects.requireNonNull(vertx);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -156,6 +153,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
             }
         }
 
-        vertx.runOnContext(ignored -> analyticsReporter.processEvent(auctionEventBuilder.build()));
+        analyticsReporter.processEvent(auctionEventBuilder.build());
     }
 }

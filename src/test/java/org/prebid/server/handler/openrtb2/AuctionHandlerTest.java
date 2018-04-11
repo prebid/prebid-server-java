@@ -5,8 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -19,7 +17,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -41,7 +38,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.verify;
 
 public class AuctionHandlerTest extends VertxTest {
@@ -55,8 +51,6 @@ public class AuctionHandlerTest extends VertxTest {
     private AuctionRequestFactory auctionRequestFactory;
     @Mock
     private UidsCookieService uidsCookieService;
-    @Mock
-    private Vertx vertx;
     @Mock
     private AnalyticsReporter analyticsReporter;
     @Mock
@@ -87,7 +81,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
 
-        auctionHandler = new AuctionHandler(5000, exchangeService, auctionRequestFactory, uidsCookieService, vertx,
+        auctionHandler = new AuctionHandler(5000, exchangeService, auctionRequestFactory, uidsCookieService,
                 analyticsReporter, metrics, clock, timeoutFactory);
     }
 
@@ -265,8 +259,6 @@ public class AuctionHandlerTest extends VertxTest {
         given(auctionRequestFactory.fromRequest(any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
 
-        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
-
         // when
         auctionHandler.handle(routingContext);
 
@@ -285,8 +277,6 @@ public class AuctionHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidRequest.builder().build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willThrow(new RuntimeException("Unexpected exception"));
-
-        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
 
         // when
         auctionHandler.handle(routingContext);
@@ -309,8 +299,6 @@ public class AuctionHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));
 
-        willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
-
         // when
         auctionHandler.handle(routingContext);
 
@@ -328,14 +316,6 @@ public class AuctionHandlerTest extends VertxTest {
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(exchangeService).holdAuction(any(), any(), timeoutCaptor.capture());
         return timeoutCaptor.getValue();
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Answer<Object> withNullAndInvokeHandler() {
-        return invocation -> {
-            ((Handler<Void>) invocation.getArgument(0)).handle(null);
-            return null;
-        };
     }
 
     private AuctionEvent captureAuctionEvent() {
