@@ -84,6 +84,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         updateRequestMetrics(isSafari);
 
         preBidRequestContextFactory.fromRequest(context)
+                .map(this::updateImpsRequestedMetrics)
+                .recover(this::updateImpsRequestedErrorMetrics)
                 .recover(exception ->
                         failWith(String.format("Error parsing request: %s", exception.getMessage()), exception))
 
@@ -124,6 +126,16 @@ public class AuctionHandler implements Handler<RoutingContext> {
         if (isSafari) {
             metrics.incCounter(MetricName.safari_requests);
         }
+    }
+
+    private PreBidRequestContext updateImpsRequestedMetrics(PreBidRequestContext preBidRequestContext) {
+        metrics.incCounter(MetricName.imps_requested, preBidRequestContext.getPreBidRequest().getAdUnits().size());
+        return preBidRequestContext;
+    }
+
+    private Future<PreBidRequestContext> updateImpsRequestedErrorMetrics(Throwable throwable) {
+        metrics.incCounter(MetricName.imps_requested, 0L);
+        return Future.failedFuture(throwable);
     }
 
     private PreBidRequestContext updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext,
@@ -181,7 +193,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                                                  List<AdapterResponse> adapterResponses) {
         adapterResponses.stream()
                 .filter(ar -> StringUtils.isNotBlank(ar.getBidderStatus().getError()))
-                .forEach(ar -> updateErrorMetrics(ar, preBidRequestContext));
+                .forEach(ar -> updateAdapterErrorMetrics(ar, preBidRequestContext));
 
         final List<BidderStatus> bidderStatuses = Stream.concat(
                 adapterResponses.stream()
@@ -204,7 +216,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .build();
     }
 
-    private void updateErrorMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
+    private void updateAdapterErrorMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
         final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
         final String bidder = bidderStatus.getBidder();
 
@@ -357,6 +369,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             return responseResult.result();
         } else {
             metrics.incCounter(MetricName.error_requests);
+
             final Throwable exception = responseResult.cause();
             logger.info("Failed to process /auction request", exception);
             return error(exception instanceof PreBidException
