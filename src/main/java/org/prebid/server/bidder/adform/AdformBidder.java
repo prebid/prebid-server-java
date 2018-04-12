@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
  */
 public class AdformBidder implements Bidder<Void> {
 
-    private static final String VERSION = "0.1.0";
+    private static final String VERSION = "0.1.1";
     private static final String BANNER = "banner";
     private static final TypeReference<ExtPrebid<?, ExtImpAdform>> ADFORM_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpAdform>>() {

@@ -1,5 +1,7 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
@@ -17,10 +19,18 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.math.BigDecimal;
+
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -218,6 +228,74 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getAt()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldConvertStringPriceGranularityViewToCustom() throws JsonProcessingException {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(new TextNode("low"), null), null, null))))
+                .build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getPricegranularity)
+                .containsOnly(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
+                        BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))));
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWithInvalidRequestExceptionWhenStringPriceGranularityInvalid() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(new TextNode("invalid"), null), null, null))))
+                .build());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
+        assertThat(((InvalidRequestException) future.cause()).getMessages())
+                .containsOnly("Invalid string price granularity with value: invalid");
+    }
+
+    @Test
+    public void shouldSetDefaultPriceGranularityIfPriceGranularityNodeIsMissed() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(null, null), null, null))))
+                .build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getPricegranularity)
+                .containsOnly(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
+                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))));
     }
 
     @Test

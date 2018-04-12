@@ -19,7 +19,7 @@
           }
         }
       },
-      "secure" : 1,
+      "secure": 1,
       "ext": {
         "rp": {
           "zone_id": 7001,
@@ -58,11 +58,30 @@
     "buyeruid": "J5VLCWQP-26-CWFT"
   },
   "tmax": 2000,
-  "at" : 1,
+  "at": 1,
   "ext": {
     "prebid": {
       "targeting": {
-        "pricegranularity": "dense"
+        "pricegranularity": [
+          {
+            "precision": 2,
+            "min": 0,
+            "max": 3,
+            "increment": 0.01
+          },
+          {
+            "precision": 2,
+            "min": 3,
+            "max": 8,
+            "increment": 0.05
+          },
+          {
+            "precision": 2,
+            "min": 8,
+            "max": 20,
+            "increment": 0.5
+          }
+        ]
       },
       "cache": {
         "bids": {}

@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  */
 public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
 
-    private static final String VERSION = "0.1.0";
+    private static final String VERSION = "0.1.1";
 
     private final Usersyncer usersyncer;
     private final String endpointUrl;

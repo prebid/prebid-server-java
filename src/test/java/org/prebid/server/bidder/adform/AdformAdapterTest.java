@@ -101,7 +101,7 @@ public class AdformAdapterTest extends VertxTest {
                         tuple(HttpHeaders.ACCEPT.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpHeaders.USER_AGENT.toString(), "userAgent"),
                         tuple(X_FORWARDED_FOR.toString(), "192.168.0.1"),
-                        tuple(X_REQUEST_AGENT.toString(), "PrebidAdapter 0.1.0"),
+                        tuple(X_REQUEST_AGENT.toString(), "PrebidAdapter 0.1.1"),
                         tuple(HttpHeaders.REFERER.toString(), "www.example.com"),
                         tuple(HttpHeaders.COOKIE.toString(), "uid=buyeruid"));
     }
