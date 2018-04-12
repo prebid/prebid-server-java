@@ -10,7 +10,7 @@ import java.util.Map;
 public class NoOpAdServerService implements AdServerService {
 
     @Override
-    public Future<Map<String, String>> buildAdServerKeyValues(RoutingContext context, BidRequest request) {
+    public Future<Map<String, Object>> buildAdServerKeyValues(RoutingContext context, BidRequest request) {
         return Future.succeededFuture(Collections.EMPTY_MAP);
     }
 

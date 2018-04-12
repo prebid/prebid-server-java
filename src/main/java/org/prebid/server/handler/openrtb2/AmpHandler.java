@@ -114,7 +114,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
         // fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
-        final Map<String, String> targeting = seatBids == null ? new HashMap<>() : seatBids.stream()
+        final Map<String, Object> targeting = seatBids == null ? new HashMap<>() : seatBids.stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
@@ -137,8 +137,8 @@ public class AmpHandler implements Handler<RoutingContext> {
         return AmpResponse.of(targeting, extResponseDebug);
     }
 
-    private static void addAdServerKeyValuesToTargeting(Map<String, String> targeting,
-                                                        Map<String, String> adServerKeyValues) {
+    private static void addAdServerKeyValuesToTargeting(Map<String, Object> targeting,
+                                                        Map<String, Object> adServerKeyValues) {
         if (adServerKeyValues != null) targeting.putAll(adServerKeyValues);
     }
 
@@ -153,7 +153,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         return extBidResponse;
     }
 
-    private static Map<String, String> extResponseAdServerKeyValuesFrom(BidResponse bidResponse) {
+    private static Map<String, Object> extResponseAdServerKeyValuesFrom(BidResponse bidResponse) {
         final ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
         return extBidResponse != null ? extBidResponse.getAdserverkeyvalues() : Collections.EMPTY_MAP;
     }

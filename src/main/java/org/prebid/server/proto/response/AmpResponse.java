@@ -10,7 +10,7 @@ import java.util.Map;
 @Value
 public class AmpResponse {
 
-    Map<String, String> targeting;
+    Map<String, Object> targeting;
 
     ExtResponseDebug debug;
 }

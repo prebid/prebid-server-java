@@ -41,6 +41,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -242,9 +243,9 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithAdServerKeyValuesIncluded() {
         // given
-        Map<String, String> adServerKeyValues = new HashMap<>();
+        Map<String, Object> adServerKeyValues = new HashMap<>();
         adServerKeyValues.put("key1", "value1");
-        adServerKeyValues.put("key2", "value2");
+        adServerKeyValues.put("key2", Arrays.asList("value2", "value3"));
         final BidRequest bidRequest = BidRequest.builder().id("reqId1").build();
         given(ampRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(bidRequest));
 
@@ -256,7 +257,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"targeting\":{\"key1\":\"value1\",\"key2\":\"value2\"}}"));
+                eq("{\"targeting\":{\"key1\":\"value1\",\"key2\":[\"value2\",\"value3\"]}}"));
     }
 
     @Test

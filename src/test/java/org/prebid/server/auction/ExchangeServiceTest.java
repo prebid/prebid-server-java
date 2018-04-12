@@ -55,6 +55,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -536,9 +537,9 @@ public class ExchangeServiceTest extends VertxTest {
                 emptyList()));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder1", 1)));
-        Map<String, String> adServerKeyValues = new HashMap<>(2);
+        Map<String, Object> adServerKeyValues = new HashMap<>(2);
         adServerKeyValues.put("key1", "value1");
-        adServerKeyValues.put("key2", "value2");
+        adServerKeyValues.put("key2", Arrays.asList("value2"));
         given(adServerService.buildAdServerKeyValues(context, bidRequest))
                 .willReturn(Future.succeededFuture(adServerKeyValues));
 

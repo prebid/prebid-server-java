@@ -30,5 +30,5 @@ public class ExtBidResponse {
      */
     Map<String, ExtResponseSyncData> usersync;
 
-    Map<String, String> adserverkeyvalues;
+    Map<String, Object> adserverkeyvalues;
 }

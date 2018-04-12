@@ -138,7 +138,7 @@ public class ExchangeService {
             updateMetricsFromResponses(bidderResponses);
 
             return toBidResponse(bidderResponses, bidRequest, keywordsCreator,
-                    (Map<String, String>) result.list().get(1), shouldCacheBids, timeout);
+                    (Map<String, Object>) result.list().get(1), shouldCacheBids, timeout);
         });
     }
 
@@ -501,7 +501,7 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator,
-                                              Map<String, String> adServerKeyValues, boolean shouldCacheBids,
+                                              Map<String, Object> adServerKeyValues, boolean shouldCacheBids,
                                               Timeout timeout) {
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
@@ -656,7 +656,7 @@ public class ExchangeService {
                                                           TargetingKeywordsCreator keywordsCreator,
                                                           Map<Bid, String> winningBidsWithCacheIds,
                                                           Set<Bid> winningBidsByBidder,
-                                                          Map<String, String> adServerKeyValues) {
+                                                          Map<String, Object> adServerKeyValues) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
@@ -720,7 +720,7 @@ public class ExchangeService {
      */
     private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
                                                    TargetingKeywordsCreator keywordsCreator,
-                                                   Map<String, String> adServerKeyValues) {
+                                                   Map<String, Object> adServerKeyValues) {
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 

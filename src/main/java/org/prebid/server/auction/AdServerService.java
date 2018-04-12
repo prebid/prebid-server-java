@@ -8,6 +8,6 @@ import java.util.Map;
 
 public interface AdServerService {
 
-    Future<Map<String, String>> buildAdServerKeyValues(RoutingContext context, BidRequest request);
+    Future<Map<String, Object>> buildAdServerKeyValues(RoutingContext context, BidRequest request);
 
 }
