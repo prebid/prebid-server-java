@@ -6,7 +6,7 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
 import org.prebid.server.bidder.DisabledAdapter;
-import org.prebid.server.bidder.DisabledBidderRequester;
+import org.prebid.server.bidder.DisabledBidder;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
@@ -23,14 +23,15 @@ public abstract class BidderConfiguration {
         final boolean enabled = metaInfo.info().isEnabled();
 
         final Usersyncer usersyncer = createUsersyncer();
-        final Bidder<?> bidder = createBidder(metaInfo);
+
+        final Bidder<?> bidder = enabled ? createBidder(metaInfo)
+                : new DisabledBidder(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
 
         final Adapter<?, ?> adapter = enabled ? createAdapter(usersyncer)
                 : new DisabledAdapter(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
 
-        final BidderRequester bidderRequester = enabled
-                ? createBidderRequester(httpClient, bidder, adapter, usersyncer, httpAdapterConnector)
-                : new DisabledBidderRequester(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
+        final BidderRequester bidderRequester = createBidderRequester(httpClient, bidder, adapter, usersyncer,
+                httpAdapterConnector);
 
         return BidderDeps.of(bidderName, metaInfo, usersyncer, bidder, adapter, bidderRequester);
     }
