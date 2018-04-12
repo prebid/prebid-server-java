@@ -19,10 +19,12 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -170,12 +172,17 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result().getExt())
-                .extracting(ext -> Json.mapper.treeToValue(future.result().getExt(), ExtBidRequest.class)).isNotNull()
-                .element(0)
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> Json.mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
                 .extracting(ExtBidRequest::getPrebid)
-                .containsExactly(ExtRequestPrebid.of(emptyMap(), emptyMap(),
-                        ExtRequestTargeting.of(CpmBucket.PriceGranularity.medium.name(), true), null,
+                .containsExactly(ExtRequestPrebid.of(emptyMap(),
+                       emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(
+                        singletonList(ExtPriceGranularityBucket.of(2, new BigDecimal(0), new BigDecimal(20),
+                                new BigDecimal("0.1")))), true), null,
                         ExtRequestPrebidCache.of(Json.mapper.createObjectNode())));
     }
 
@@ -196,11 +203,17 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result().getExt())
-                .extracting(ext -> Json.mapper.treeToValue(future.result().getExt(), ExtBidRequest.class)).isNotNull()
-                .element(0)
-                .extracting(extBidRequest -> extBidRequest.getPrebid().getTargeting().getPricegranularity())
-                .containsExactly(CpmBucket.PriceGranularity.medium.name());
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getPricegranularity)
+                .containsExactly(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
+                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))));
     }
 
     private Answer<Object> answerWithFirstArgument() {
@@ -224,9 +237,12 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result().getExt())
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getExt)
                 .extracting(ext -> Json.mapper.treeToValue(future.result().getExt(), ExtBidRequest.class)).isNotNull()
-                .element(0)
                 .extracting(extBidRequest -> extBidRequest.getPrebid().getCache().getBids())
                 .containsExactly(Json.mapper.createObjectNode());
     }

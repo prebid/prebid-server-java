@@ -1,28 +1,33 @@
 {
   "id": "tid",
-  "imp": [{
-    "id": "impId3",
-    "banner": {
-      "format": [{
+  "imp": [
+    {
+      "id": "impId3",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
         "w": 300,
-        "h": 250
-      }, {
-        "w": 300,
-        "h": 600
-      }],
-      "w": 300,
-      "h": 250,
-      "pos": 1
-    },
-    "tagid": "abc",
-    "bidfloor": 1.0,
-    "ext": {
-      "appnexus": {
-        "keywords": "foo=barAlias,foo=bazAlias",
-        "traffic_source_code": "trafficSourceAlias"
+        "h": 250,
+        "pos": 1
+      },
+      "tagid": "abc",
+      "bidfloor": 1.0,
+      "ext": {
+        "appnexus": {
+          "keywords": "foo=barAlias,foo=bazAlias",
+          "traffic_source_code": "trafficSourceAlias"
+        }
       }
     }
-  }],
+  ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
@@ -58,11 +63,18 @@
   "ext": {
     "prebid": {
       "aliases": {
-        "appnexusAlias" : "appnexus",
-        "conversantAlias" : "conversant"
+        "appnexusAlias": "appnexus",
+        "conversantAlias": "conversant"
       },
       "targeting": {
-        "pricegranularity": "med"
+        "pricegranularity": [
+          {
+            "precision": 2,
+            "min": 0,
+            "max": 20,
+            "increment": 0.1
+          }
+        ]
       },
       "cache": {
         "bids": []

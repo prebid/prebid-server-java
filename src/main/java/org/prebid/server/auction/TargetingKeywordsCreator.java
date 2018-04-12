@@ -3,6 +3,8 @@ package org.prebid.server.auction;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
 import org.prebid.server.proto.response.Bid;
 
 import java.math.BigDecimal;
@@ -75,14 +77,11 @@ public class TargetingKeywordsCreator {
      */
     private static final String HB_ENV_APP_VALUE = "mobile-app";
 
-    private final String priceGranularityString;
-    private final CpmBucket.PriceGranularity priceGranularity;
+    private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
     private final boolean isApp;
 
-    private TargetingKeywordsCreator(String priceGranularityString, CpmBucket.PriceGranularity priceGranularity,
-                                     boolean includeWinners, boolean isApp) {
-        this.priceGranularityString = priceGranularityString;
+    private TargetingKeywordsCreator(PriceGranularity priceGranularity, boolean includeWinners, boolean isApp) {
         this.priceGranularity = priceGranularity;
         this.includeWinners = includeWinners;
         this.isApp = isApp;
@@ -91,52 +90,49 @@ public class TargetingKeywordsCreator {
     /**
      * Creates {@link TargetingKeywordsCreator} for the given params.
      */
-    public static TargetingKeywordsCreator create(String priceGranularity, boolean includeWinners, boolean isApp) {
-        return new TargetingKeywordsCreator(priceGranularity, parsePriceGranularity(priceGranularity), includeWinners,
+    public static TargetingKeywordsCreator create(List<ExtPriceGranularityBucket> buckets, boolean includeWinners,
+                                                  boolean isApp) {
+        return new TargetingKeywordsCreator(PriceGranularity.createFromBuckets(buckets), includeWinners,
                 isApp);
     }
 
     /**
-     * Determines the {@link CpmBucket.PriceGranularity} from an input string value.
+     * Creates {@link TargetingKeywordsCreator} for string price granularity representation.
      */
-    private static CpmBucket.PriceGranularity parsePriceGranularity(String priceGranularity) {
-        CpmBucket.PriceGranularity result = null;
-        if (StringUtils.isBlank(priceGranularity)) {
-            result = CpmBucket.PriceGranularity.med;
-        } else {
-            try {
-                result = CpmBucket.PriceGranularity.valueOf(priceGranularity);
-            } catch (IllegalArgumentException e) {
-                logger.error("Price bucket granularity error: ''{0}'' is not a recognized granularity",
-                        priceGranularity);
-            }
-        }
-        return result;
+    public static TargetingKeywordsCreator create(String stringPriceGranularity, boolean includeWinners,
+                                                  boolean isApp) {
+        return new TargetingKeywordsCreator(convertToCustomPriceGranularity(stringPriceGranularity),
+                includeWinners, isApp);
     }
 
     /**
-     * Checks the price granularity is valid.
+     * Converts string price granularity value to custom view.
+     * In case of invalid string value returns null. In case of null, returns default custom value.
      */
-    public boolean isPriceGranularityValid() {
-        return priceGranularity != null;
+    private static PriceGranularity convertToCustomPriceGranularity(String stringPriceGranularity) {
+        if (stringPriceGranularity == null) {
+            return PriceGranularity.DEFAULT;
+        }
+
+        try {
+            return PriceGranularity.createFromString(stringPriceGranularity);
+        } catch (PreBidException ex) {
+            logger.error("Price bucket granularity error: ''{0}'' is not a recognized granularity",
+                    stringPriceGranularity);
+        }
+        return null;
     }
 
     /**
      * Compares given price to computed CPM value according to the price granularity.
      */
     public boolean isNonZeroCpm(BigDecimal price) {
-        if (isPriceGranularityValid()) {
-            final BigDecimal cpm = CpmBucket.fromCpmAsNumber(price, priceGranularity);
-            return cpm != null && cpm.compareTo(BigDecimal.ZERO) != 0;
-        }
-        return false;
+        final BigDecimal cpm = CpmBucket.fromCpmAsNumber(price, priceGranularity);
+        return cpm != null && cpm.compareTo(BigDecimal.ZERO) != 0;
     }
 
-    /**
-     * Returns the price granularity as string value.
-     */
-    public String priceGranularity() {
-        return priceGranularityString;
+    private boolean isPriceGranularityValid() {
+        return priceGranularity != null;
     }
 
     /**

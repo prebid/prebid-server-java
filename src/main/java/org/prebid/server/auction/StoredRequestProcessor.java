@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
 import com.iab.openrtb.request.BidRequest;
@@ -221,9 +222,10 @@ public class StoredRequestProcessor {
      * format throws {@link InvalidRequestException}
      */
     private static ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
-        if (bidRequest.getExt() != null) {
+        final ObjectNode ext = bidRequest.getExt();
+        if (ext != null) {
             try {
-                final ExtBidRequest extBidRequest = Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class);
+                final ExtBidRequest extBidRequest = Json.mapper.treeToValue(ext, ExtBidRequest.class);
                 final ExtRequestPrebid prebid = extBidRequest.getPrebid();
                 if (prebid != null) {
                     return prebid.getStoredrequest();

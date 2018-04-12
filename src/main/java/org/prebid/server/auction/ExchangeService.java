@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -29,6 +30,7 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -41,6 +43,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -63,6 +66,9 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
+    private static final TypeReference<List<ExtPriceGranularityBucket>> GRANULARITY_BUCKETS_LIST_TYPE_REFERENCE =
+            new TypeReference<List<ExtPriceGranularityBucket>>() {
+            };
 
     private final BidderCatalog bidderCatalog;
     private final ResponseBidValidator responseBidValidator;
@@ -371,9 +377,22 @@ public class ExchangeService {
      */
     private static TargetingKeywordsCreator buildKeywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
         return targeting != null
-                ? TargetingKeywordsCreator.create(targeting.getPricegranularity(),
+                ? TargetingKeywordsCreator.create(parsePriceGranularityBuckets(targeting.getPricegranularity()),
                 targeting.getIncludewinners() != null ? targeting.getIncludewinners() : true, isApp)
                 : null;
+    }
+
+    /**
+     * Parse {@link JsonNode} to {@link List} of {@link ExtPriceGranularityBucket}. Throws {@link PreBidException} in
+     * case of errors during decoding pricegranularity.
+     */
+    private static List<ExtPriceGranularityBucket> parsePriceGranularityBuckets(JsonNode priceGranularity) {
+        try {
+            return Json.mapper.readerFor(GRANULARITY_BUCKETS_LIST_TYPE_REFERENCE).readValue(priceGranularity);
+        } catch (IOException e) {
+            throw new PreBidException(String.format("Error decoding bidRequest.prebid.targeting.pricegranularity: %s",
+                    e.getMessage()), e);
+        }
     }
 
     /**
@@ -689,7 +708,7 @@ public class ExchangeService {
                         toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, keywordsCreator);
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest);
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -743,21 +762,12 @@ public class ExchangeService {
      * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
      * bidders
      */
-    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
-                                                   TargetingKeywordsCreator keywordsCreator) {
+    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest) {
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
         final Map<String, List<String>> errors = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, r -> messages(r.getSeatBid().getErrors())));
-        // if price granularity in request is not valid - add corresponding error message for each bidder
-        if (keywordsCreator != null && !keywordsCreator.isPriceGranularityValid()) {
-            final String priceGranularityError = String.format(
-                    "Price bucket granularity error: '%s' is not a recognized granularity",
-                    keywordsCreator.priceGranularity());
-            errors.replaceAll((k, v) -> append(v, priceGranularityError));
-        }
-
         final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, r -> r.getSeatBid().getHttpCalls()))

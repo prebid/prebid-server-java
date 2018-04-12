@@ -1,5 +1,8 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
@@ -16,6 +19,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -72,8 +78,11 @@ public class AuctionRequestFactory {
         final User populatedUser = populateUser(bidRequest.getUser(), context);
         final Integer at = bidRequest.getAt();
         final Boolean setDefaultAt = at == null || at == 0;
+        final ObjectNode ext = bidRequest.getExt();
+        final ObjectNode populatedExt = ext != null ? populateBidRequestExtension(ext) : null;
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || setDefaultAt) {
+        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
+                || setDefaultAt) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
@@ -81,11 +90,11 @@ public class AuctionRequestFactory {
                     // set the auction type to 1 if it wasn't on the request,
                     // since header bidding is generally a first-price auction.
                     .at(setDefaultAt ? Integer.valueOf(1) : at)
+                    .ext(populatedExt != null ? populatedExt : ext)
                     .build();
         } else {
             result = bidRequest;
         }
-
         return result;
     }
 
@@ -98,6 +107,56 @@ public class AuctionRequestFactory {
             throw new InvalidRequestException(validationResult.getErrors());
         }
         return bidRequest;
+    }
+
+    /**
+     * Creates updated bidrequest.ext {@link ExtBidRequest} if required.
+     */
+    private ObjectNode populateBidRequestExtension(ObjectNode ext) {
+        final ExtBidRequest extBidRequest;
+        try {
+            extBidRequest = Json.mapper.treeToValue(ext, ExtBidRequest.class);
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
+        }
+
+        final ExtRequestPrebid prebid = extBidRequest.getPrebid();
+        final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
+
+        if (targeting != null) {
+            return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                    prebid.getAliases(),
+                    prebid.getBidadjustmentfactors(),
+                    ExtRequestTargeting.of(populatePriceGranularity(targeting.getPricegranularity()),
+                            targeting.getIncludewinners()),
+                    prebid.getStoredrequest(),
+                    prebid.getCache())));
+        }
+        return null;
+    }
+
+    /**
+     * Populates priceGranularity with converted value.
+     * <p>
+     * In case of valid string price granularity replaced it with appropriate custom view.
+     * In case of invalid string value throws {@link InvalidRequestException}.
+     * In case of missing Json node sets default custom value.
+     */
+    private JsonNode populatePriceGranularity(JsonNode priceGranularityNode) {
+        if (!priceGranularityNode.isNull()) {
+            if (priceGranularityNode.isTextual()) {
+                final PriceGranularity priceGranularity;
+                try {
+                    priceGranularity = PriceGranularity.createFromString(priceGranularityNode.textValue());
+                } catch (PreBidException ex) {
+                    throw new InvalidRequestException(ex.getMessage());
+                }
+                return Json.mapper.valueToTree(priceGranularity.getBuckets());
+            }
+        } else {
+            return Json.mapper.valueToTree(PriceGranularity.DEFAULT.getBuckets());
+        }
+        return priceGranularityNode;
     }
 
     /**
