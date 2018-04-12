@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -54,6 +55,7 @@ import java.util.stream.Stream;
 public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
+    private static final Locale LOCALE = Locale.US;
 
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
@@ -132,8 +134,8 @@ public class RequestValidator {
             final BigDecimal adjustmentFactor = bidderAdjustment.getValue();
             if (adjustmentFactor.compareTo(BigDecimal.ZERO) <= 0) {
                 throw new ValidationException(
-                        "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %f",
-                        bidder, adjustmentFactor);
+                        "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %s",
+                        bidder, format(adjustmentFactor));
             }
 
         }
@@ -141,6 +143,10 @@ public class RequestValidator {
 
     private boolean isUnknownBidderOrAlias(String bidder, Map<String, String> aliases) {
         return !bidderCatalog.isValidName(bidder) && !aliases.containsKey(bidder);
+    }
+
+    private static String format(BigDecimal value) {
+        return String.format(LOCALE, "%f", value);
     }
 
     private ExtBidRequest parseAndValidateExtBidRequest(BidRequest bidRequest) throws ValidationException {
