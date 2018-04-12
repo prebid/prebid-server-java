@@ -1503,7 +1503,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.of(null, singletonMap("rubicon", BigDecimal.valueOf(-1.1)), null, null, null))))
+                        ExtRequestPrebid.of(
+                                null,
+                                singletonMap("rubicon", BigDecimal.valueOf(-1.1)), null, null, null))))
                 .build();
 
         // when
@@ -1520,7 +1522,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(
-                        ExtRequestPrebid.of(null, singletonMap("unknownBidder", BigDecimal.valueOf(1.1F)), null, null, null))))
+                        ExtRequestPrebid.of(
+                                null,
+                                singletonMap("unknownBidder", BigDecimal.valueOf(1.1F)), null, null, null))))
                 .build();
 
         // when
