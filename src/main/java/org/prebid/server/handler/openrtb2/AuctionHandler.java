@@ -66,16 +66,53 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         auctionRequestFactory.fromRequest(context)
-                .recover(this::updateErrorRequestsMetric)
+                .map(this::updateImpsRequestedMetrics)
+                .recover(this::updateImpsRequestedErrorMetrics)
                 .map(bidRequest -> updateAppAndNoCookieMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
-                .compose(bidRequest -> exchangeService.holdAuction(bidRequest, uidsCookie,
-                        timeout(bidRequest, startTime)))
+                .compose(bidRequest ->
+                        exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime)))
+                .recover(this::updateErrorRequestsMetric)
                 .setHandler(responseResult -> handleResult(responseResult, context));
+    }
+
+    private void updateRequestMetrics(boolean isSafari) {
+        metrics.incCounter(MetricName.requests);
+        metrics.incCounter(MetricName.ortb_requests);
+        if (isSafari) {
+            metrics.incCounter(MetricName.safari_requests);
+        }
+    }
+
+    private BidRequest updateImpsRequestedMetrics(BidRequest bidRequest) {
+        metrics.incCounter(MetricName.imps_requested, bidRequest.getImp().size());
+        return bidRequest;
+    }
+
+    private Future<BidRequest> updateImpsRequestedErrorMetrics(Throwable throwable) {
+        metrics.incCounter(MetricName.imps_requested, 0L);
+        return Future.failedFuture(throwable);
+    }
+
+    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
+        if (bidRequest.getApp() != null) {
+            metrics.incCounter(MetricName.app_requests);
+        } else if (isLifeSync) {
+            metrics.incCounter(MetricName.no_cookie_requests);
+            if (isSafari) {
+                metrics.incCounter(MetricName.safari_no_cookie_requests);
+            }
+        }
+        return bidRequest;
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
         final Long tmax = bidRequest.getTmax();
         return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
+    }
+
+    private Future<BidResponse> updateErrorRequestsMetric(Throwable failed) {
+        metrics.incCounter(MetricName.error_requests);
+        return Future.failedFuture(failed);
     }
 
     private void handleResult(AsyncResult<BidResponse> responseResult, RoutingContext context) {
@@ -99,31 +136,5 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .end(String.format("Critical error while running the auction: %s", exception.getMessage()));
             }
         }
-    }
-
-    private void updateRequestMetrics(boolean isSafari) {
-        metrics.incCounter(MetricName.requests);
-        metrics.incCounter(MetricName.open_rtb_requests);
-        if (isSafari) {
-            metrics.incCounter(MetricName.safari_requests);
-        }
-    }
-
-    private Future<BidRequest> updateErrorRequestsMetric(Throwable failed) {
-        metrics.incCounter(MetricName.error_requests);
-        return Future.failedFuture(failed);
-    }
-
-    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
-        if (bidRequest.getApp() != null) {
-            metrics.incCounter(MetricName.app_requests);
-        } else if (isLifeSync) {
-            metrics.incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                metrics.incCounter(MetricName.safari_no_cookie_requests);
-            }
-        }
-
-        return bidRequest;
     }
 }
