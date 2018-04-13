@@ -65,6 +65,10 @@ adapters:
     enabled: false
     endpoint: http://ap.lijit.com/rtb/bid?src=prebid_server
     usersync-url: //ap.lijit.com/pixel?
+  openx:
+    enabled: false
+    endpoint: http://rtb.openx.net/prebid
+    usersync-url: https://rtb.openx.net/sync/prebid?r=
 metrics:
   metricType: flushingCounter
 settings:

@@ -20,3 +20,4 @@ for review and approval of the ported adapter:
 - pubmatic
 - pulsepoint
 - sovrn
+- openx
