@@ -37,6 +37,7 @@ import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -51,9 +52,13 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 @Configuration
 public class WebConfiguration {
+
+    @Autowired(required = false)
+    Consumer<Router> routesDefinitions = r -> { };
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
@@ -97,7 +102,9 @@ public class WebConfiguration {
         router.get("/info/bidders").handler(biddersHandler);
         router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
         router.get("/static/*").handler(staticHandler);
-        router.get("/").handler(staticHandler); // serves index.html by default
+        router.get("/").last().handler(staticHandler); // serves index.html by default
+
+        routesDefinitions.accept(router);
 
         return router;
     }
