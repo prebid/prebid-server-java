@@ -271,7 +271,7 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 givenBidResponse(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, null), null))));
 
-        given(uidsCookie.hasLiveUids()).willReturn(true);
+        given(uidsCookie.hasLiveUids()).willReturn(false);
 
         httpRequest.headers().add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
                 "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");

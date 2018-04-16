@@ -136,15 +136,16 @@ public class AmpHandler implements Handler<RoutingContext> {
         return Future.failedFuture(throwable);
     }
 
-    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
+    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean liveUidsPresent, boolean isSafari) {
         if (bidRequest.getApp() != null) {
             metrics.incCounter(MetricName.app_requests);
-        } else if (isLifeSync) {
+        } else if (!liveUidsPresent) {
             metrics.incCounter(MetricName.no_cookie_requests);
             if (isSafari) {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);
             }
         }
+
         return bidRequest;
     }
 
