@@ -16,7 +16,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.request.CookieSyncRequest;
-import org.prebid.server.proto.response.BidderStatus;
+import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 
 import java.util.Collection;
@@ -72,7 +72,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Collection<String> biddersToSync = biddersFromRequest == null
                 ? bidderCatalog.names() : biddersFromRequest;
 
-        final List<BidderStatus> bidderStatuses = biddersToSync.stream()
+        final List<BidderUsersyncStatus> bidderStatuses = biddersToSync.stream()
                 .map(bidderName -> bidderStatusFor(bidderName, uidsCookie))
                 .filter(Objects::nonNull) // skip bidder with live Uid
                 .collect(Collectors.toList());
@@ -85,8 +85,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .end(Json.encode(response));
     }
 
-    private BidderStatus bidderStatusFor(String bidderName, UidsCookie uidsCookie) {
-        final BidderStatus result;
+    private BidderUsersyncStatus bidderStatusFor(String bidderName, UidsCookie uidsCookie) {
+        final BidderUsersyncStatus result;
 
         if (!bidderCatalog.isValidName(bidderName)) {
             result = bidderStatusBuilder(bidderName)
@@ -113,7 +113,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private static BidderStatus.BidderStatusBuilder bidderStatusBuilder(String bidderName) {
-        return BidderStatus.builder().bidder(bidderName);
+    private static BidderUsersyncStatus.BidderUsersyncStatusBuilder bidderStatusBuilder(String bidderName) {
+        return BidderUsersyncStatus.builder().bidder(bidderName);
     }
 }

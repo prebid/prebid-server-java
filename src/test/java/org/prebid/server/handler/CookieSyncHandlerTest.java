@@ -23,7 +23,7 @@ import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.request.CookieSyncRequest;
-import org.prebid.server.proto.response.BidderStatus;
+import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 
@@ -176,7 +176,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("ok",
-                singletonList(BidderStatus.builder()
+                singletonList(BidderUsersyncStatus.builder()
                         .bidder(APPNEXUS)
                         .noCookie(true)
                         .usersync(appnexusUsersyncInfo)
@@ -205,9 +205,9 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie",
-                asList(BidderStatus.builder().bidder(APPNEXUS).noCookie(true).usersync(appnexusUsersyncInfo).build(),
-                        BidderStatus.builder().bidder(RUBICON).noCookie(true).usersync(rubiconUsersyncInfo).build())));
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie", asList(
+                BidderUsersyncStatus.builder().bidder(APPNEXUS).noCookie(true).usersync(appnexusUsersyncInfo).build(),
+                BidderUsersyncStatus.builder().bidder(RUBICON).noCookie(true).usersync(rubiconUsersyncInfo).build())));
     }
 
     @Test
@@ -255,7 +255,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
         assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1)
-                .extracting(BidderStatus::getBidder, BidderStatus::getError)
+                .extracting(BidderUsersyncStatus::getBidder, BidderUsersyncStatus::getError)
                 .containsOnly(tuple("unsupported", "Unsupported bidder"));
     }
 
@@ -284,7 +284,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
         assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1)
-                .extracting(BidderStatus::getBidder, BidderStatus::getError)
+                .extracting(BidderUsersyncStatus::getBidder, BidderUsersyncStatus::getError)
                 .containsOnly(tuple("disabled",
                         "disabled is not configured properly on this Prebid Server deploy. "
                                 + "If you believe this should work, contact the company hosting the service and tell "
@@ -314,7 +314,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie",
-                singletonList(BidderStatus.builder()
+                singletonList(BidderUsersyncStatus.builder()
                         .bidder(APPNEXUS)
                         .noCookie(true)
                         .usersync(appnexusUsersyncInfo)
