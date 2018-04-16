@@ -1,6 +1,7 @@
 package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -9,6 +10,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
@@ -30,12 +33,14 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
+    private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
 
     public CookieSyncHandler(UidsCookieService uidsCookieService, BidderCatalog bidderCatalog,
-                             Metrics metrics) {
+                             AnalyticsReporter analyticsReporter, Metrics metrics) {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
     }
 
@@ -45,7 +50,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
-            context.response().setStatusCode(401).setStatusMessage("User has opted out").end();
+            final int status = HttpResponseStatus.UNAUTHORIZED.code();
+            context.response().setStatusCode(status).setStatusMessage("User has opted out").end();
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, "user has opted out"));
             return;
         }
 
@@ -53,7 +60,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         if (body == null) {
             logger.error("Incoming request has no body.");
-            context.response().setStatusCode(400).end();
+            final int status = HttpResponseStatus.BAD_REQUEST.code();
+            context.response().setStatusCode(status).end();
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, "request has no body"));
             return;
         }
 
@@ -62,7 +71,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             cookieSyncRequest = Json.decodeValue(body, CookieSyncRequest.class);
         } catch (DecodeException e) {
             logger.info("Failed to parse /cookie_sync request body", e);
-            context.response().setStatusCode(400).setStatusMessage("JSON parse failed").end();
+            final int status = 400;
+            context.response().setStatusCode(status).setStatusMessage("JSON parse failed").end();
+            analyticsReporter.processEvent(CookieSyncEvent.error(status, "JSON parse failed"));
             return;
         }
 
@@ -83,6 +94,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         context.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .end(Json.encode(response));
+
+        analyticsReporter.processEvent(CookieSyncEvent.builder()
+                .status(HttpResponseStatus.OK.code())
+                .bidderStatus(bidderStatuses)
+                .build());
     }
 
     private BidderUsersyncStatus bidderStatusFor(String bidderName, UidsCookie uidsCookie) {

@@ -1,13 +1,16 @@
 package org.prebid.server.analytics.model;
 
+import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.proto.response.BidderStatus;
+import org.prebid.server.proto.response.BidderUsersyncStatus;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
  * Represents a transaction at /cookie_sync endpoint.
  */
+@Builder
 @Value
 public class CookieSyncEvent {
 
@@ -15,6 +18,9 @@ public class CookieSyncEvent {
 
     List<String> errors;
 
-    // FIXME: extract cookie sync info POJO
-    List<BidderStatus> bidderStatuses;
+    List<BidderUsersyncStatus> bidderStatus;
+
+    public static CookieSyncEvent error(int status, String message) {
+        return builder().status(status).errors(Collections.singletonList(message)).build();
+    }
 }

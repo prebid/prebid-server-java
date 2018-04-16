@@ -192,9 +192,10 @@ public class WebConfiguration {
     CookieSyncHandler cookieSyncHandler(
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
+            CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics) {
 
-        return new CookieSyncHandler(uidsCookieService, bidderCatalog, metrics);
+        return new CookieSyncHandler(uidsCookieService, bidderCatalog, analyticsReporter, metrics);
     }
 
     @Bean
