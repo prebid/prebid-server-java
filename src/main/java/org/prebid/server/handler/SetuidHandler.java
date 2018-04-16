@@ -33,7 +33,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
             context.response().setStatusCode(status).end();
             metrics.cookieSync().incCounter(MetricName.opt_outs);
-            analyticsReporter.processEvent(SetuidEvent.builder().status(status).build());
+            analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
         }
 
@@ -42,7 +42,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             context.response().setStatusCode(status).end();
             metrics.cookieSync().incCounter(MetricName.bad_requests);
-            analyticsReporter.processEvent(SetuidEvent.builder().status(status).build());
+            analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
         }
 

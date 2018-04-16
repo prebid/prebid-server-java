@@ -17,4 +17,8 @@ public class SetuidEvent {
     String uid;
 
     Boolean success;
+
+    public static SetuidEvent error(int status) {
+        return SetuidEvent.builder().status(status).build();
+    }
 }
