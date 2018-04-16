@@ -153,9 +153,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithSomeBidderStatusesIfSomeUidsMissingInCookies() throws IOException {
         // given
-        final Map<String, UidWithExpiry> uids = new HashMap<>();
-        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build()));
 
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, APPNEXUS))));
@@ -258,9 +257,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateDisabledBidder() throws IOException {
         // given
-        final Map<String, UidWithExpiry> uids = new HashMap<>();
-        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build()));
 
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, "disabled"))));
@@ -290,9 +288,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithNoCookieStatusIfNoLiveUids() throws IOException {
         // given
-        final Map<String, UidWithExpiry> uids = new HashMap<>();
-        uids.put(APPNEXUS_COOKIE, UidWithExpiry.expired("12345"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap(APPNEXUS_COOKIE, UidWithExpiry.expired("12345"))).build()));
 
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.of(singletonList(APPNEXUS))));
