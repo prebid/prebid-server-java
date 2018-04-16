@@ -144,4 +144,31 @@ public class BidderCatalogTest {
         // when and then
         assertThat(bidderCatalog.bidderRequesterByName("unknown_bidder")).isNull();
     }
+
+    @Test
+    public void isValidAdapterNameShouldReturnTrueIfNameIsValidAndAdapterIsDefined() {
+        // given
+        bidderDeps = BidderDeps.of(BIDDER, null, null, null, adapter, null);
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        // when and then
+        assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isTrue();
+    }
+
+    @Test
+    public void isValidAdapterNameShouldReturnFalseIfNameIsInvalid() {
+        // given
+        bidderDeps = BidderDeps.of("invalid", null, null, null, adapter, null);
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        // when and then
+        assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isFalse();
+    }
+
+    @Test
+    public void isValidAdapterNameShouldReturnFalseIfAdapterIsNotDefined() {
+        // given
+        bidderDeps = BidderDeps.of(BIDDER, null, null, null, null, null);
+        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        // when and then
+        assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isFalse();
+    }
 }

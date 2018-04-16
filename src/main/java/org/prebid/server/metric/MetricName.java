@@ -14,12 +14,12 @@ public enum MetricName {
     cookie_sync_requests,
     request_time,
     prices,
+    imps_requested,
     bids_received,
 
-    open_rtb_requests,
+    ortb_requests,
 
     amp_requests,
-    amp_no_cookie,
 
     // cookie sync
     opt_outs,

@@ -105,7 +105,8 @@ public class AmpHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         ampRequestFactory.fromRequest(context)
-                .recover(this::updateErrorRequestsMetric)
+                .map(this::updateImpsRequestedMetrics)
+                .recover(this::updateImpsRequestedErrorMetrics)
                 .map(bidRequest -> updateAppAndNoCookieMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
                 .compose(bidRequest ->
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime))
@@ -113,8 +114,38 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map((Tuple2<BidRequest, BidResponse> result) ->
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
                 .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
+                .recover(this::updateErrorRequestsMetric)
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context));
+    }
+
+    private void updateRequestMetrics(boolean isSafari) {
+        metrics.incCounter(MetricName.amp_requests);
+        if (isSafari) {
+            metrics.incCounter(MetricName.safari_requests);
+        }
+    }
+
+    private BidRequest updateImpsRequestedMetrics(BidRequest bidRequest) {
+        metrics.incCounter(MetricName.imps_requested, bidRequest.getImp().size());
+        return bidRequest;
+    }
+
+    private Future<BidRequest> updateImpsRequestedErrorMetrics(Throwable throwable) {
+        metrics.incCounter(MetricName.imps_requested, 0L);
+        return Future.failedFuture(throwable);
+    }
+
+    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
+        if (bidRequest.getApp() != null) {
+            metrics.incCounter(MetricName.app_requests);
+        } else if (isLifeSync) {
+            metrics.incCounter(MetricName.no_cookie_requests);
+            if (isSafari) {
+                metrics.incCounter(MetricName.safari_no_cookie_requests);
+            }
+        }
+        return bidRequest;
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
@@ -143,17 +174,6 @@ public class AmpHandler implements Handler<RoutingContext> {
                 ? extResponseDebugFrom(bidResponse) : null;
 
         return AmpResponse.of(targeting, extResponseDebug);
-    }
-
-    private static ExtResponseDebug extResponseDebugFrom(BidResponse bidResponse) {
-        final ExtBidResponse extBidResponse;
-        try {
-            extBidResponse = Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
-        }
-        return extBidResponse != null ? extBidResponse.getDebug() : null;
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -203,6 +223,22 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
     }
 
+    private static ExtResponseDebug extResponseDebugFrom(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse;
+        try {
+            extBidResponse = Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(
+                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
+        }
+        return extBidResponse != null ? extBidResponse.getDebug() : null;
+    }
+
+    private Future<AmpResponse> updateErrorRequestsMetric(Throwable failed) {
+        metrics.incCounter(MetricName.error_requests);
+        return Future.failedFuture(failed);
+    }
+
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
                               RoutingContext context) {
         final int status;
@@ -216,7 +252,6 @@ public class AmpHandler implements Handler<RoutingContext> {
         context.response()
                 .putHeader("AMP-Access-Control-Allow-Source-Origin", origin)
                 .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
-
         if (responseResult.succeeded()) {
             context.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
             context.response().end(Json.encode(responseResult.result()));
@@ -262,30 +297,5 @@ public class AmpHandler implements Handler<RoutingContext> {
             origin = ObjectUtils.firstNonNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
-    }
-
-    private void updateRequestMetrics(boolean isSafari) {
-        metrics.incCounter(MetricName.amp_requests);
-        if (isSafari) {
-            metrics.incCounter(MetricName.safari_requests);
-        }
-    }
-
-    private Future<BidRequest> updateErrorRequestsMetric(Throwable failed) {
-        metrics.incCounter(MetricName.error_requests);
-        return Future.failedFuture(failed);
-    }
-
-    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
-        if (bidRequest.getApp() != null) {
-            metrics.incCounter(MetricName.app_requests);
-        } else if (isLifeSync) {
-            metrics.incCounter(MetricName.amp_no_cookie);
-            if (isSafari) {
-                metrics.incCounter(MetricName.safari_no_cookie_requests);
-            }
-        }
-
-        return bidRequest;
     }
 }

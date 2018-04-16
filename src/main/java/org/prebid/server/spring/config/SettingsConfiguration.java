@@ -73,9 +73,10 @@ public class SettingsConfiguration {
 
         @Bean
         JDBCClient vertxJdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
-            final String jdbcUrl = String.format("%s//%s/%s?useSSL=false",
+            final String jdbcUrl = String.format("%s//%s:%d/%s?useSSL=false",
                     storedRequestsDatabaseProperties.getType().jdbcUrlPrefix,
                     storedRequestsDatabaseProperties.getHost(),
+                    storedRequestsDatabaseProperties.getPort(),
                     storedRequestsDatabaseProperties.getDbname());
 
             return JDBCClient.createShared(vertx, new JsonObject()
@@ -113,6 +114,8 @@ public class SettingsConfiguration {
         private Integer poolSize;
         @NotBlank
         private String host;
+        @NotNull
+        private Integer port;
         @NotBlank
         private String dbname;
         @NotBlank

@@ -27,6 +27,9 @@ import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
+
+import java.math.BigDecimal;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,13 +39,17 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.function.Function;
@@ -260,7 +267,7 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
-                       + "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
+                        + "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
     }
 
     @Test
@@ -303,7 +310,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -316,7 +323,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -416,7 +423,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly("Request imp[0].banner.format[0] must define "
-                        + "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+                + "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
     }
 
     @Test
@@ -447,7 +454,7 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and "
-                       + "\"hratio\" properties.");
+                        + "\"hratio\" properties.");
     }
 
     @Test
@@ -477,7 +484,7 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and"
-                       + " \"hratio\" properties.");
+                        + " \"hratio\" properties.");
     }
 
     @Test
@@ -708,6 +715,181 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenCantParseTargetingPriceGranularity() throws IOException {
+        // given
+        // TODO rewrite to not valid ObjectNodeCreation
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(null, null,
+                        ExtRequestTargeting.of(mapper.readTree("\"pricegranularity\": 15"), null), null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Error while parsing request.ext.prebid.targeting.pricegranularity");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBucketsAreEmptyList() throws IOException {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(emptyList()), null), null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: empty granularity definition supplied");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBucketsMaxIsNotGreaterThanMin() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
+                                2, BigDecimal.valueOf(2), BigDecimal.valueOf(1), BigDecimal.valueOf(2)))), null),
+                        null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: max must be greater than min");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenIncrementIsZero() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
+                                2, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(0)))), null),
+                        null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: increment must be a nonzero positive number");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenIncrementIsNegative() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
+                                2, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(-1)))), null),
+                        null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: increment must be a nonzero positive number");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenPrecisionIsNegative() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
+                                -2, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(0.01)))), null),
+                        null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: precision must be non-negative");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenPrecisionIsNotConsistent() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(asList(ExtPriceGranularityBucket.of(
+                                1, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(0.01)),
+                                ExtPriceGranularityBucket.of(
+                                        2, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(0.01)))),
+                                null), null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: precision not consistent across entries");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBucketsAreNotOrderedByMaxValue() {
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(asList(ExtPriceGranularityBucket.of(
+                                2, BigDecimal.valueOf(5), BigDecimal.valueOf(10), BigDecimal.valueOf(0.01)),
+                                ExtPriceGranularityBucket.of(
+                                        2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)))),
+                                null), null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: range list must be ordered with increasing \"max\"");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenOverlappingBetweenBucketsRanges() {
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(asList(ExtPriceGranularityBucket.of(
+                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(6), BigDecimal.valueOf(0.01)),
+                                ExtPriceGranularityBucket.of(
+                                        2, BigDecimal.valueOf(4), BigDecimal.valueOf(10), BigDecimal.valueOf(0.01)))),
+                                null), null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: overlapping granularity ranges");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenGappingBetweenBucketsRanges() {
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(asList(ExtPriceGranularityBucket.of(
+                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(6), BigDecimal.valueOf(0.01)),
+                                ExtPriceGranularityBucket.of(
+                                        2, BigDecimal.valueOf(8), BigDecimal.valueOf(16), BigDecimal.valueOf(0.01)))),
+                                null), null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly("Price granularity error: gaps in granularity ranges");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenPrebidBuyerIdsContainsUnknownBidder() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().user(User.builder()
@@ -730,7 +912,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        singletonMap("unknown-bidder", "rubicon"), null, null, null))))
+                        singletonMap("unknown-bidder", "rubicon"), null, null, null, null))))
                 .user(User.builder()
                         .ext(mapper.valueToTree(ExtUser.of(
                                 ExtUserPrebid.of(singletonMap("unknown-bidder", "42")),
@@ -742,7 +924,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -760,7 +942,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -802,7 +984,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenAliasNameEqualsToBidderItPointsOn() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                singletonMap("rubicon", "rubicon"), null, null, null)));
+                singletonMap("rubicon", "rubicon"), null, null, null, null)));
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
@@ -818,7 +1000,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenAliasPointOnNotValidBidderName() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                singletonMap("alias", "fake"), null, null, null)));
+                singletonMap("alias", "fake"), null, null, null, null)));
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
@@ -833,14 +1015,14 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationResultWithoutErrorMessageWhenAliasesWasUsed() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                singletonMap("alias", "rubicon"), null, null, null)));
+                singletonMap("alias", "rubicon"), null, null, null, null)));
         final BidRequest bidRequest = validBidRequestBuilder().ext(ext).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -995,7 +1177,6 @@ public class RequestValidatorTest extends VertxTest {
     }
 
 
-
     @Test
     public void validateShouldReturnValidationResultWithErrorWhenIndividualAssetHasTitleAndData()
             throws JsonProcessingException {
@@ -1056,7 +1237,6 @@ public class RequestValidatorTest extends VertxTest {
                         + " {title, img, video, data}");
 
     }
-
 
 
     @Test
@@ -1278,7 +1458,7 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.imp[0].native.request.assets[0].video.mimes must be an array with at least one"
-                        +" MIME type.");
+                        + " MIME type.");
     }
 
     @Test
@@ -1425,7 +1605,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -1450,7 +1630,7 @@ public class RequestValidatorTest extends VertxTest {
             Function<Native.NativeBuilder, Native.NativeBuilder> nativeCustomizer) {
         return validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
-                    .xNative(nativeCustomizer.apply(Native.builder()).build()).build())).build();
+                        .xNative(nativeCustomizer.apply(Native.builder()).build()).build())).build();
     }
 
     private BidRequest givenBidRequestWithNativeRequest(
@@ -1461,8 +1641,8 @@ public class RequestValidatorTest extends VertxTest {
                         .xNative(Native.builder()
                                 .request(mapper.writeValueAsString(nativeRequestCustomizer.apply(
                                         Request.builder()).build()))
-                        .build())
-                    .build()))
+                                .build())
+                        .build()))
                 .build();
     }
 
@@ -1495,6 +1675,74 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1).element(0)
                 .isEqualTo("request.imp[0].metric[0].value must be in the range [0.0, 1.0]");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAdjustmentFactorNegative() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.of(
+                                null,
+                                singletonMap("rubicon", BigDecimal.valueOf(-1.1)), null, null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.ext.prebid.bidadjustmentfactors.rubicon must be a positive number. Got -1.100000");
+    }
+
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBidderUnknown() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.of(
+                                null,
+                                singletonMap("unknownBidder", BigDecimal.valueOf(1.1F)), null, null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.ext.prebid.bidadjustmentfactors.unknownBidder is not a known bidder or alias");
+    }
+
+    @Test
+    public void validateShouldNotReturnValidationMessageWhenBidderIsKnownAndAdjustmentIsValid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.of(null, singletonMap("rubicon", BigDecimal.valueOf(1.1)), null, null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldNotReturnValidationMessageWhenBidderIsKnownAliasForCoreBidderAndAdjustmentIsValid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(
+                        ExtRequestPrebid.of(singletonMap("rubicon_alias", "rubicon"),
+                                singletonMap("rubicon_alias", BigDecimal.valueOf(1.1)), null, null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
     }
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {

@@ -82,7 +82,7 @@ public class AdformBidderTest extends VertxTest {
                         tuple(HttpHeaders.ACCEPT.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpHeaders.USER_AGENT.toString(), "ua"),
                         tuple(X_FORWARDED_FOR.toString(), "ip"),
-                        tuple(X_REQUEST_AGENT.toString(), "PrebidAdapter 0.1.0"),
+                        tuple(X_REQUEST_AGENT.toString(), "PrebidAdapter 0.1.1"),
                         tuple(HttpHeaders.REFERER.toString(), "www.example.com"),
                         tuple(HttpHeaders.COOKIE.toString(), "uid=buyeruid"));
     }
