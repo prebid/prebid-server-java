@@ -225,7 +225,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toMap(Imp::getId, imp -> imp.getBanner() != null ? BidType.banner : BidType.video));
     }
 
-    private static BidType bidType(Bid bid, Map<String, BidType> impidToBidType) {
-        return impidToBidType.getOrDefault(bid.getImpid(), BidType.banner);
+    private static BidType bidType(Bid bid, Map<String, BidType> impIdToBidType) {
+        return impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner);
     }
 }
