@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
@@ -24,7 +25,7 @@ public class StatusHandlerTest {
     private HttpServerResponse httpResponse;
 
     @Test
-    public void shouldRespondHttp200Ok() {
+    public void shouldRespondReadyAndHttp200Ok() {
         // given
         given(routingContext.response()).willReturn(httpResponse);
 
@@ -32,6 +33,6 @@ public class StatusHandlerTest {
         new StatusHandler().handle(routingContext);
 
         // then
-        verify(httpResponse, only()).end();
+        verify(httpResponse, only()).end(eq("ready"));
     }
 }

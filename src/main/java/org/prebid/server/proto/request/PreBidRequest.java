@@ -8,7 +8,7 @@ import lombok.Value;
 
 import java.util.List;
 
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class PreBidRequest {
 
