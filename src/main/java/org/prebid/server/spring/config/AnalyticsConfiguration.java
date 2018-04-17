@@ -5,6 +5,7 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.CompositeAnalyticsReporter;
 import org.prebid.server.analytics.LogAnalyticsReporter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,6 +23,7 @@ public class AnalyticsConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "analytics.file", name = "enabled", havingValue = "true")
     LogAnalyticsReporter logAnalyticsReporter() {
         return new LogAnalyticsReporter();
     }
