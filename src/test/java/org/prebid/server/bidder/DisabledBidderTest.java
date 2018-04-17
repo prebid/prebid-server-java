@@ -1,6 +1,5 @@
 package org.prebid.server.bidder;
 
-import com.iab.openrtb.request.BidRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.bidder.model.BidderError;
@@ -24,7 +23,7 @@ public class DisabledBidderTest {
     @Test
     public void makeHttpRequestsShouldRespondWithExpectedError() {
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = disabledBidder.makeHttpRequests(null);
+        final Result<List<HttpRequest<Void>>> result = disabledBidder.makeHttpRequests(null);
 
         // then
         assertThat(result.getValue()).isEmpty();

@@ -9,7 +9,10 @@ Docs outlining the motivation and uses will be added sometime in the future.
 Configure your server to read stored requests from the filesystem:
 
 ```yaml
-settings.type: filesystem
+settings:
+  filesystem:
+    settings-filename: sample-app-settings.yml
+    stored-requests-dir: stored_requests
 ```
 
 Choose an ID to reference your stored request data. Throughout this doc, replace {id} with the ID you've chosen.
@@ -193,18 +196,22 @@ Stored Requests do not need to be saved to files. Other backends are supported w
 For PostgreSQL:
 ```yaml
 settings:
-  type: postgres
-  host: localhost:5432
-  user: db-username
-  dbname: database-name
-  stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN (%ID_LIST%)
-  amp-stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN (%ID_LIST%)
+  database:
+    type: postgres
+    host: localhost
+    port: 5432
+    dbname: database-name
+    user: username
+    password: password
+    stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN (%ID_LIST%)
+    amp-stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN (%ID_LIST%)
 ```
 
 For MySQL:
 ```yaml
 settings:
-  type: mysql
+  database:
+    type: mysql
 ```
 
 If you need support for a backend that you don't see, please [contribute it](../contributing.md).

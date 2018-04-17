@@ -20,11 +20,11 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.model.OpenxImpType;
-import org.prebid.server.bidder.openx.proto.ExtImpOpenx;
 import org.prebid.server.bidder.openx.proto.OpenxImpExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -46,8 +46,8 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpOpenx>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpOpenx>>() {
             };
 
     private final String endpointUrl;
@@ -91,9 +91,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 
-    private List<BidRequest> makeRequests(BidRequest bidRequest,
-                                          List<Imp> bannerImps,
-                                          List<Imp> videoImps,
+    private List<BidRequest> makeRequests(BidRequest bidRequest, List<Imp> bannerImps, List<Imp> videoImps,
                                           List<String> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
         // single request for all banner imps
@@ -143,13 +141,11 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest createSingleRequest(List<Imp> imps, BidRequest bidRequest, List<String> errors) {
-
         if (CollectionUtils.isEmpty(imps)) {
             return null;
         }
 
         List<Imp> processedImps = null;
-
         try {
             processedImps = imps.stream().map(this::makeImp).collect(Collectors.toList());
         } catch (PreBidException e) {
@@ -159,7 +155,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return CollectionUtils.isNotEmpty(processedImps)
                 ? bidRequest.toBuilder().imp(processedImps).ext(makeReqExt(imps)).build()
                 : null;
-
     }
 
     private Imp makeImp(Imp imp) {

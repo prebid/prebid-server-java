@@ -33,12 +33,12 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     private final JdbcClient jdbcClient;
     private final String selectStoredRequestsQuery;
-    private final String selectAmpStoreRequestsQuery;
+    private final String selectAmpStoredRequestsQuery;
 
     public JdbcApplicationSettings(JdbcClient jdbcClient, String selectQuery, String selectAmpQuery) {
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
         this.selectStoredRequestsQuery = Objects.requireNonNull(selectQuery);
-        this.selectAmpStoreRequestsQuery = Objects.requireNonNull(selectAmpQuery);
+        this.selectAmpStoredRequestsQuery = Objects.requireNonNull(selectAmpQuery);
     }
 
     @Override
@@ -71,7 +71,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, Timeout timeout) {
-        return fetchStoredRequests(selectAmpStoreRequestsQuery, ids, timeout);
+        return fetchStoredRequests(selectAmpStoredRequestsQuery, ids, timeout);
     }
 
     private <T> T mapToModelOrError(ResultSet result, Function<JsonArray, T> mapper) {

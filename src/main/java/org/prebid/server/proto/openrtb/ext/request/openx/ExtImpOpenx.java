@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.openx.proto;
+package org.prebid.server.proto.openrtb.ext.request.openx;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
