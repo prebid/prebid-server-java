@@ -375,10 +375,10 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void statusShouldReturnHttp200Ok() {
-        given(spec)
-                .when().get("/status")
-                .then().assertThat().statusCode(200);
+    public void statusShouldReturnReadyWithinResponseBodyAndHttp200Ok() {
+        assertThat(given(spec).when().get("/status"))
+                .extracting(Response::getStatusCode, response -> response.getBody().asString())
+                .containsOnly(200, "ready");
     }
 
     @Test

@@ -82,11 +82,13 @@ public class PreBidRequestContextFactory {
             return Future.failedFuture(new PreBidException("No ad units specified"));
         }
 
-        final Timeout timeout = timeoutOrDefault(preBidRequest);
+        final PreBidRequest adjustedRequest = adjustRequestTimeout(preBidRequest);
+        final Timeout timeout = timeout(adjustedRequest);
 
-        return extractBidders(preBidRequest, timeout)
+        return extractBidders(adjustedRequest, timeout)
                 .map(bidders -> PreBidRequestContext.builder().adapterRequests(bidders))
-                .map(builder -> populatePreBidRequestContextBuilder(context, preBidRequest, context.request(), builder))
+                .map(builder ->
+                        populatePreBidRequestContextBuilder(context, adjustedRequest, context.request(), builder))
                 .map(builder -> builder.timeout(timeout))
                 .map(PreBidRequestContext.PreBidRequestContextBuilder::build);
     }
@@ -191,12 +193,15 @@ public class PreBidRequestContextFactory {
         return bidMediaTypes;
     }
 
-    private Timeout timeoutOrDefault(PreBidRequest preBidRequest) {
-        Long value = preBidRequest.getTimeoutMillis();
-        if (value == null || value <= 0 || value > 2000L) {
-            value = defaultHttpRequestTimeout;
-        }
-        return timeoutFactory.create(value);
+    private PreBidRequest adjustRequestTimeout(PreBidRequest preBidRequest) {
+        final Long value = preBidRequest.getTimeoutMillis();
+        return value == null || value <= 0 || value > 2000L
+                ? preBidRequest.toBuilder().timeoutMillis(defaultHttpRequestTimeout).build()
+                : preBidRequest;
+    }
+
+    private Timeout timeout(PreBidRequest preBidRequest) {
+        return timeoutFactory.create(preBidRequest.getTimeoutMillis());
     }
 
     private static boolean isDebug(PreBidRequest preBidRequest, HttpServerRequest httpRequest) {
