@@ -437,6 +437,30 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldUpdateRequestTimeoutWithDefaultValueIfZeroInRequest() {
+        // given
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.timeoutMillis(0L)));
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(HTTP_REQUEST_TIMEOUT);
+    }
+
+    @Test
+    public void shouldUpdateRequestTimeoutIfGreaterThan2000InRequest() {
+        // given
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.timeoutMillis(5000L)));
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(HTTP_REQUEST_TIMEOUT);
+    }
+
+    @Test
     public void shouldSetIsDebugToTrueIfTrueInPreBidRequest() {
         // given
         given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.isDebug(true)));
