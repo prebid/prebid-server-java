@@ -67,13 +67,13 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.groupingBy(OpenxBidder::resolveImpType, Collectors.toList()));
         final List<String> processingErrors = new ArrayList<>();
 
-        final List<BidRequest> ongoingBidRequests = makeRequests(bidRequest,
+        final List<BidRequest> outgoingRequests = makeRequests(bidRequest,
                 differentiatedImps.get(OpenxImpType.banner),
                 differentiatedImps.get(OpenxImpType.video), processingErrors);
 
         final List<BidderError> errors = errors(differentiatedImps.get(OpenxImpType.other), processingErrors);
 
-        return Result.of(createRequests(ongoingBidRequests), errors);
+        return Result.of(createHttpRequests(outgoingRequests), errors);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     @Override
     public Map<String, String> extractTargeting(ObjectNode ext) {
-        return null;
+        return Collections.emptyMap();
     }
 
     private List<BidRequest> makeRequests(BidRequest bidRequest,
@@ -134,7 +134,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private List<HttpRequest<BidRequest>> createRequests(List<BidRequest> bidRequests) {
+    private List<HttpRequest<BidRequest>> createHttpRequests(List<BidRequest> bidRequests) {
         return bidRequests.stream()
                 .filter(Objects::nonNull)
                 .map(singleBidRequest -> HttpRequest.of(HttpMethod.POST, endpointUrl,

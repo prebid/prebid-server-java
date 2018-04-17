@@ -466,7 +466,7 @@ public class OpenxBidderTest extends VertxTest {
 
     @Test
     public void extractTargeting() {
-        assertThat(openxBidder.extractTargeting(mapper.createObjectNode())).isNull();
+        assertThat(openxBidder.extractTargeting(mapper.createObjectNode())).isEmpty();
     }
 
     private static HttpCall givenHttpCall(int statusCode, String body) {
