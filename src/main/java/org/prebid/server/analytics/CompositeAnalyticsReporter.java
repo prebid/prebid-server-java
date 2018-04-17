@@ -5,6 +5,9 @@ import io.vertx.core.Vertx;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Implementation of the Composite design pattern that dispatches event processing to all enabled reporters.
+ */
 public class CompositeAnalyticsReporter implements AnalyticsReporter {
 
     private final List<AnalyticsReporter> delegates;

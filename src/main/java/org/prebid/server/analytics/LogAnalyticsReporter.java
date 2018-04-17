@@ -11,6 +11,9 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 
+/**
+ * {@link AnalyticsReporter} implementation that writes application events to a log file, for illustration purpose only.
+ */
 public class LogAnalyticsReporter implements AnalyticsReporter {
 
     public static final Logger logger = LoggerFactory.getLogger(LogAnalyticsReporter.class);
