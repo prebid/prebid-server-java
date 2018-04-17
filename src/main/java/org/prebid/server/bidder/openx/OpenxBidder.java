@@ -66,7 +66,11 @@ public class OpenxBidder implements Bidder<BidRequest> {
         final Map<OpenxImpType, List<Imp>> differentiatedImps = imps.stream()
                 .collect(Collectors.groupingBy(OpenxBidder::resolveImpType, Collectors.toList()));
         final List<String> processingErrors = new ArrayList<>();
-        final List<BidRequest> ongoingBidRequests = makeRequests(bidRequest, differentiatedImps, processingErrors);
+
+        final List<BidRequest> ongoingBidRequests = makeRequests(bidRequest,
+                differentiatedImps.get(OpenxImpType.banner),
+                differentiatedImps.get(OpenxImpType.video), processingErrors);
+
         final List<BidderError> errors = errors(differentiatedImps.get(OpenxImpType.other), processingErrors);
 
         return Result.of(createRequests(ongoingBidRequests), errors);
@@ -88,13 +92,13 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private List<BidRequest> makeRequests(BidRequest bidRequest,
-                                          Map<OpenxImpType, List<Imp>> differentiatedImps,
+                                          List<Imp> bannerImps,
+                                          List<Imp> videoImps,
                                           List<String> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
         // single request for all banner imps
-        bidRequests.add(createSingleRequest(differentiatedImps.get(OpenxImpType.banner), bidRequest, errors));
+        bidRequests.add(createSingleRequest(bannerImps, bidRequest, errors));
 
-        final List<Imp> videoImps = differentiatedImps.get(OpenxImpType.video);
         if (CollectionUtils.isNotEmpty(videoImps)) {
             // single request for each video imp
             bidRequests.addAll(videoImps.stream()
@@ -102,7 +106,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
                     .map(imps -> createSingleRequest(imps, bidRequest, errors))
                     .collect(Collectors.toList()));
         }
-
         return bidRequests;
     }
 
