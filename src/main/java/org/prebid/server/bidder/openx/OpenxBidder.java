@@ -19,7 +19,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.openx.model.BidRequestWithError;
 import org.prebid.server.bidder.openx.model.OpenxImpType;
 import org.prebid.server.bidder.openx.proto.ExtImpOpenx;
 import org.prebid.server.bidder.openx.proto.OpenxImpExt;
@@ -35,7 +34,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -47,8 +45,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private static final Logger logger = LoggerFactory.getLogger(OpenxBidder.class);
 
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
-    private static final Function<Imp, OpenxImpType> TYPE_RESOLVER = imp -> imp.getBanner() != null
-            ? OpenxImpType.banner : imp.getVideo() != null ? OpenxImpType.video : OpenxImpType.other;
 
     private static final TypeReference<ExtPrebid<?, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpOpenx>>() {
@@ -68,11 +64,12 @@ public class OpenxBidder implements Bidder<BidRequest> {
         }
 
         final Map<OpenxImpType, List<Imp>> differentiatedImps = imps.stream()
-                .collect(Collectors.groupingBy(TYPE_RESOLVER, Collectors.toList()));
-        final List<BidRequestWithError> bidRequestWithErrors = bidRequestsWithErrors(bidRequest, differentiatedImps);
-        final List<BidderError> errors = errors(differentiatedImps.get(OpenxImpType.other), bidRequestWithErrors);
+                .collect(Collectors.groupingBy(OpenxBidder::resolveImpType, Collectors.toList()));
+        final List<String> processingErrors = new ArrayList<>();
+        final List<BidRequest> ongoingBidRequests = makeRequests(bidRequest, differentiatedImps, processingErrors);
+        final List<BidderError> errors = errors(differentiatedImps.get(OpenxImpType.other), processingErrors);
 
-        return Result.of(createRequests(bidRequestWithErrors), errors);
+        return Result.of(createRequests(ongoingBidRequests), errors);
     }
 
     @Override
@@ -90,25 +87,32 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private List<BidRequestWithError> bidRequestsWithErrors(BidRequest bidRequest,
-                                                            Map<OpenxImpType, List<Imp>> differentiatedImps) {
-        final List<BidRequestWithError> bidRequestWithErrors = new ArrayList<>();
+    private List<BidRequest> makeRequests(BidRequest bidRequest,
+                                          Map<OpenxImpType, List<Imp>> differentiatedImps,
+                                          List<String> errors) {
+        final List<BidRequest> bidRequests = new ArrayList<>();
         // single request for all banner imps
-        bidRequestWithErrors.add(createSingleRequest(differentiatedImps.get(OpenxImpType.banner), bidRequest));
+        bidRequests.add(createSingleRequest(differentiatedImps.get(OpenxImpType.banner), bidRequest, errors));
 
         final List<Imp> videoImps = differentiatedImps.get(OpenxImpType.video);
         if (CollectionUtils.isNotEmpty(videoImps)) {
             // single request for each video imp
-            bidRequestWithErrors.addAll(videoImps.stream()
+            bidRequests.addAll(videoImps.stream()
                     .map(Collections::singletonList)
-                    .map(imp -> createSingleRequest(imp, bidRequest))
+                    .map(imps -> createSingleRequest(imps, bidRequest, errors))
                     .collect(Collectors.toList()));
         }
 
-        return bidRequestWithErrors;
+        return bidRequests;
     }
 
-    private List<BidderError> errors(List<Imp> notSupportedImps, List<BidRequestWithError> bidRequestWithErrors) {
+    private static OpenxImpType resolveImpType(Imp imp) {
+        return imp.getBanner() != null
+                ? OpenxImpType.banner
+                : imp.getVideo() != null ? OpenxImpType.video : OpenxImpType.other;
+    }
+
+    private List<BidderError> errors(List<Imp> notSupportedImps, List<String> processingErrors) {
         final List<String> errors = new ArrayList<>();
         // add errors for imps with unsupported media types
         if (CollectionUtils.isNotEmpty(notSupportedImps)) {
@@ -120,33 +124,27 @@ public class OpenxBidder implements Bidder<BidRequest> {
         }
 
         // add errors detected during requests creation
-        errors.addAll(
-                bidRequestWithErrors.stream()
-                        .map(BidRequestWithError::getErrors)
-                        .flatMap(Collection::stream)
-                        .collect(Collectors.toList()));
+        errors.addAll(processingErrors);
 
         return errors.stream()
                 .map(BidderError::create)
                 .collect(Collectors.toList());
     }
 
-    private List<HttpRequest<BidRequest>> createRequests(List<BidRequestWithError> bidRequestWithErrorsAll) {
-        return bidRequestWithErrorsAll.stream()
-                .map(BidRequestWithError::getBidRequest)
+    private List<HttpRequest<BidRequest>> createRequests(List<BidRequest> bidRequests) {
+        return bidRequests.stream()
                 .filter(Objects::nonNull)
                 .map(singleBidRequest -> HttpRequest.of(HttpMethod.POST, endpointUrl,
                         Json.encode(singleBidRequest), BidderUtil.headers(), singleBidRequest))
                 .collect(Collectors.toList());
     }
 
-    private BidRequestWithError createSingleRequest(List<Imp> imps, BidRequest bidRequest) {
+    private BidRequest createSingleRequest(List<Imp> imps, BidRequest bidRequest, List<String> errors) {
 
         if (CollectionUtils.isEmpty(imps)) {
-            return BidRequestWithError.of(null, Collections.emptyList());
+            return null;
         }
 
-        final List<String> errors = new ArrayList<>();
         List<Imp> processedImps = null;
 
         try {
@@ -155,11 +153,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
             errors.add(e.getMessage());
         }
 
-        final BidRequest ongoingRequest = CollectionUtils.isNotEmpty(processedImps)
+        return CollectionUtils.isNotEmpty(processedImps)
                 ? bidRequest.toBuilder().imp(processedImps).ext(makeReqExt(imps)).build()
                 : null;
 
-        return BidRequestWithError.of(ongoingRequest, errors);
     }
 
     private Imp makeImp(Imp imp) {
@@ -178,27 +175,27 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private ExtImpOpenx parseOpenxExt(Imp imp) {
         final ObjectNode impExt = imp.getExt();
         final ExtPrebid<?, ExtImpOpenx> impExtPrebid;
-        final ExtImpOpenx impExtOpenx;
         if (impExt == null) {
             throw new PreBidException("openx parameters section is missing");
         }
 
         try {
             impExtPrebid = Json.mapper.convertValue(impExt, OPENX_EXT_TYPE_REFERENCE);
-            impExtOpenx = impExtPrebid != null ? impExtPrebid.getBidder() : null;
-            if (impExtOpenx == null) {
-                throw new PreBidException("openx parameters section is missing");
-            }
         } catch (IllegalArgumentException e) {
             logger.warn("Error occurred parsing openx parameters", e);
             throw new PreBidException(e.getMessage(), e);
+        }
+
+        final ExtImpOpenx impExtOpenx = impExtPrebid != null ? impExtPrebid.getBidder() : null;
+        if (impExtOpenx == null) {
+            throw new PreBidException("openx parameters section is missing");
         }
         return impExtOpenx;
     }
 
     private ObjectNode makeImpExt(Map<String, String> customParams) {
         return customParams != null
-                ? Json.mapper.valueToTree(OpenxImpExt.of(Collections.unmodifiableMap(customParams)))
+                ? Json.mapper.valueToTree(OpenxImpExt.of(customParams))
                 : null;
     }
 
@@ -209,18 +206,18 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final Map<String, BidType> impidToBidType = impidToBidType(bidRequest);
+        final Map<String, BidType> impIdToBidType = impIdToBidType(bidRequest);
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType(bid, impidToBidType)))
+                .map(bid -> BidderBid.of(bid, bidType(bid, impIdToBidType)))
                 .collect(Collectors.toList());
     }
 
-    private static Map<String, BidType> impidToBidType(BidRequest bidRequest) {
+    private static Map<String, BidType> impIdToBidType(BidRequest bidRequest) {
         return bidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, imp -> imp.getBanner() != null ? BidType.banner : BidType.video));
     }
