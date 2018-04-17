@@ -23,7 +23,7 @@ public class AnalyticsConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "analytics.file", name = "enabled", havingValue = "true")
+    @ConditionalOnProperty(prefix = "analytics.log", name = "enabled", havingValue = "true")
     LogAnalyticsReporter logAnalyticsReporter() {
         return new LogAnalyticsReporter();
     }

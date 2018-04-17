@@ -12,7 +12,7 @@ import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 
 /**
- * {@link AnalyticsReporter} implementation that writes application events to a log file, for illustration purpose only.
+ * {@link AnalyticsReporter} implementation that writes application events to a log, for illustration purpose only.
  */
 public class LogAnalyticsReporter implements AnalyticsReporter {
 

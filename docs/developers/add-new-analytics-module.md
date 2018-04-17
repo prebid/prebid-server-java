@@ -2,18 +2,30 @@
 
 This document describes how to add a new analytics module to Prebid Server.
 
-### 1. Config: 
+### 1. Define config params 
 
-The parameters needed to setup the analytics module are sent through `analytics.{module}` configuration section .
+Analytics modules are enabled through the [Configuration](../config.md).
  
-### 2. Create an implementation
+### 2. Implement your module
 
-The new analytics module `org.prebid.server.analytics.{module}AnalyticsReporter` needs to implement the `org.prebid.server.analytics.AnalyticsReporter` interface. Implementation of `processEvent(event)` method is responsible for completing the logging of event. 
+Your new module `org.prebid.server.analytics.{module}AnalyticsReporter` needs to implement the `org.prebid.server.analytics.AnalyticsReporter` interface. 
   
-### 3. Add implementation to Spring Context
+### 3. Add your implementation to Spring Context
 
 In order to make Prebid Server aware of the new analytics module it needs to be added to the Spring Context in `org.prebid.server.spring.config.AnalyticsConfiguration` as a bean.
 
-An example of such an analytics module is the `org.prebid.server.analytics.LogAnalyticsReporter`.
-
 Note: if the new implementation uses Vert.x `HttpClient` or other services that must not be shared between different verticle instances then `CompositeAnalyticsReporter` and `{module}AnalyticsReporter` in `org.prebid.server.spring.config.AnalyticsConfiguration` must have `prototype` scope. 
+
+### Example
+
+The [log](../../src/main/java/org/prebid/server/analytics/LogAnalyticsReporter.java) module is provided as an example. This module will write dummy messages to a log.
+
+It can be configured with:
+
+```yaml
+analytics:
+  log:
+    enabled: true
+```
+
+Prebid Server will then write sample log messages to the log.
