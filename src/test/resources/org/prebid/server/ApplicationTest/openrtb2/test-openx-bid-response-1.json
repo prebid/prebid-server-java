@@ -1,0 +1,31 @@
+{
+  "id": "bidRequest00",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "600527793",
+          "impid": "impId011",
+          "price": 5.78,
+          "adm": "adm00",
+          "crid": "crid00",
+          "dealid": "dealId00",
+          "w": 300,
+          "h": 250
+        },
+        {
+          "id": "600527793",
+          "impid": "impId02",
+          "price": 5.78,
+          "adm": "adm00",
+          "crid": "crid00",
+          "dealid": "dealId00",
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "seat": "seatId00",
+      "group": 0
+    }
+  ]
+}
