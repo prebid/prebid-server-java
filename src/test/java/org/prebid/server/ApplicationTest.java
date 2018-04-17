@@ -59,6 +59,7 @@ public class ApplicationTest extends VertxTest {
     private static final String CONVERSANT = "conversant";
     private static final String ADFORM = "adform";
     private static final String SOVRN = "sovrn";
+    private static final String OPENX = "openx";
     private static final String ADTELLIGENT = "adtelligent";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
@@ -182,6 +183,21 @@ public class ApplicationTest extends VertxTest {
                 .withQueryParam("aid", WireMock.equalToJson("1000"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-adtelligent-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adtelligent-bid-response-1.json"))));
+
+        // openx bid response for imp 01 and 02
+        wireMockRule.stubFor(post(urlPathEqualTo("/openx-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-openx-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-openx-bid-response-1.json"))));
+
+        // openx bid response for imp 03
+        wireMockRule.stubFor(post(urlPathEqualTo("/openx-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-openx-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-openx-bid-response-2.json"))));
+
+        // openx bid response for imp 04
+        wireMockRule.stubFor(post(urlPathEqualTo("/openx-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-openx-bid-request-3.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-openx-bid-response-3.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
@@ -542,6 +558,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange");
         exchanges.put(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange");
         exchanges.put(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange");
+        exchanges.put(OPENX, "http://localhost:" + WIREMOCK_PORT + "/openx-exchange");
 
         // inputs for aliases
         exchanges.put(APPNEXUS_ALIAS, null);

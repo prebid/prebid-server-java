@@ -1,4 +1,31 @@
 {
+  "adtelligent": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Adtelligent Adapter Params",
+    "description": "A schema which validates params accepted by the Adtelligent adapter",
+    "type": "object",
+    "properties": {
+      "placementId": {
+        "type": "integer",
+        "description": "An ID which identifies this placement of the impression"
+      },
+      "siteId": {
+        "type": "integer",
+        "description": "An ID which identifies the site selling the impression"
+      },
+      "aid": {
+        "type": "integer",
+        "description": "An ID which identifies the channel"
+      },
+      "bidFloor": {
+        "type": "number",
+        "description": "BidFloor, US Dollars"
+      }
+    },
+    "required": [
+      "aid"
+    ]
+  },
   "lifestreet": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Lifestreet Adapter Params",
@@ -358,33 +385,6 @@
       "site_id"
     ]
   },
-  "adtelligent": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Adtelligent Adapter Params",
-    "description": "A schema which validates params accepted by the Adtelligent adapter",
-    "type": "object",
-    "properties": {
-      "placementId": {
-        "type": "integer",
-        "description": "An ID which identifies this placement of the impression"
-      },
-      "siteId": {
-        "type": "integer",
-        "description": "An ID which identifies the site selling the impression"
-      },
-      "aid": {
-        "type": "integer",
-        "description": "An ID which identifies the channel"
-      },
-      "bidFloor": {
-        "type": "number",
-        "description": "BidFloor, US Dollars"
-      }
-    },
-    "required": [
-      "aid"
-    ]
-  },
   "sovrn": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Sovrn Adapter Params",
@@ -402,6 +402,38 @@
     },
     "required": [
       "tagid"
+    ]
+  },
+  "openx": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Openx Adapter Params",
+    "description": "A schema which validates params accepted by the Openx adapter",
+    "type": "object",
+    "properties": {
+      "unit": {
+        "type": "string",
+        "description": "The ad unit id.",
+        "pattern": "^[0-9]+$"
+      },
+      "delDomain": {
+        "type": "string",
+        "description": "The delivery domain for the customer.",
+        "pattern": "\\.[a-zA-Z]{2,3}$",
+        "format": "hostname"
+      },
+      "customFloor": {
+        "type": "number",
+        "description": "The minimum CPM price in USD.",
+        "minimum": 0
+      },
+      "customParams": {
+        "type": "object",
+        "description": "User-defined targeting key-value pairs."
+      }
+    },
+    "required": [
+      "unit",
+      "delDomain"
     ]
   },
   "indexExchange": {

@@ -17,6 +17,7 @@ for review and approval of the ported adapter:
 - conversant
 - indexExchange
 - lifestreet
+- openx
 - pubmatic
 - pulsepoint
 - sovrn

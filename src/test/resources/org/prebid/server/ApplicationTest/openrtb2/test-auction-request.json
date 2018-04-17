@@ -371,6 +371,90 @@
           "placementId": 10
         }
       }
+    },
+    {
+      "id": "impId011",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "openx": {
+          "unit": "539439964",
+          "delDomain": "se-demo-d.openx.net",
+          "customFloor" : 0.1,
+          "customParams" : {
+            "foo" : "bar"
+          }
+        }
+      }
+    },
+    {
+      "id": "impId02",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "openx": {
+          "unit": "539439964",
+          "delDomain": "se-demo-d.openx.net",
+          "customFloor" : 0.1,
+          "customParams" : {
+            "foo" : "bar"
+          }
+        }
+      }
+    },
+    {
+      "id": "impId03",
+      "video": {
+        "w": 900,
+        "h": 250,
+        "mimes": [
+          "video/x-flv",
+          "video/mp4"
+        ]
+      },
+      "ext": {
+        "openx": {
+          "unit": "539439964",
+          "delDomain": "se-demo-d.openx.net",
+          "customFloor" : 0.1,
+          "customParams" : {
+            "foo" : "bar"
+          }
+        }
+      }
+    },
+    {
+      "id": "impId04",
+      "video": {
+        "w": 900,
+        "h": 250,
+        "mimes": [
+          "video/x-flv",
+          "video/mp4"
+        ]
+      },
+      "ext": {
+        "openx": {
+          "unit": "539439964",
+          "delDomain": "se-demo-d.openx.net",
+          "customFloor" : 0.1,
+          "customParams" : {
+            "foo" : "bar"
+          }
+        }
+      }
     }
   ],
   "device": {

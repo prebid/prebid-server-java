@@ -1,0 +1,60 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId03",
+      "video": {
+        "mimes": [
+          "video/x-flv",
+          "video/mp4"
+        ],
+        "w": 900,
+        "h": 250,
+        "skipmin": 0,
+        "skipafter": 0
+      },
+      "tagid": "539439964",
+      "bidfloor": 0.1,
+      "ext": {
+        "customParams": {
+          "foo": "bar"
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "dnt": 2,
+    "ip": "192.168.244.1",
+    "pxratio": 4.2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "user": {
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      }
+    }
+  },
+  "test": 1,
+  "at": 1,
+  "tmax": 1000,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "ext": {
+    "delDomain": "se-demo-d.openx.net",
+    "bc": "hb_pbs_1.0.0"
+  }
+}

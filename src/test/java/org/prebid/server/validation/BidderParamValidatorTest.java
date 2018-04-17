@@ -10,6 +10,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.facebook.proto.ExtImpFacebook;
+import org.prebid.server.bidder.openx.proto.ExtImpOpenx;
 import org.prebid.server.bidder.sovrn.proto.ExtImpSovrn;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
@@ -18,12 +19,13 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static java.util.Arrays.asList;
+import static java.util.Arrays.*;
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.*;
 
 public class BidderParamValidatorTest extends VertxTest {
 
@@ -33,6 +35,7 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String SOVRN = "sovrn";
     private static final String ADTELLIGENT = "adtelligent";
     private static final String FACEBOOK = "audienceNetwork";
+    private static final String OPENX = "openx";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -45,7 +48,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Before
     public void setUp() {
         given(bidderCatalog.names()).willReturn(new HashSet<>(
-                asList(RUBICON, APPNEXUS, ADFORM, SOVRN, ADTELLIGENT, FACEBOOK)));
+                asList(RUBICON, APPNEXUS, ADFORM, SOVRN, ADTELLIGENT, FACEBOOK, OPENX)));
 
         bidderParamValidator = BidderParamValidator.create(bidderCatalog, "static/bidder-params");
     }
@@ -227,6 +230,42 @@ public class BidderParamValidatorTest extends VertxTest {
 
         // when
         final Set<String> messages = bidderParamValidator.validate(FACEBOOK, node);
+
+        // then
+        assertThat(messages.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void validateShouldNotReturnValidationMessagesWhenOpenxImpExtIsOk() {
+        // given
+        final ExtImpOpenx ext = ExtImpOpenx.builder()
+                .customParams(Collections.singletonMap("foo", "bar"))
+                .customFloor(0.2f)
+                .delDomain("se-demo-d.openx.net")
+                .unit("2222")
+                .build();
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(OPENX, node);
+
+        // then
+        assertThat(messages).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessagesWhenOpenxExtNotValid() {
+        // given
+        final ExtImpOpenx ext = ExtImpOpenx.builder()
+                .customParams(Collections.singletonMap("foo", "bar"))
+                .customFloor(0.2f)
+                .delDomain("se-demo-d.openx.net")
+                .unit("not-numeric")
+                .build();
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(OPENX, node);
 
         // then
         assertThat(messages.size()).isEqualTo(1);
