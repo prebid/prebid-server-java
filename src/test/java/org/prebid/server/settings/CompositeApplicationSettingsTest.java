@@ -42,9 +42,9 @@ public class CompositeApplicationSettingsTest {
 
     @Test
     public void creationShouldFailOnEmptyDelegates() {
-        assertThatIllegalStateException()
+        assertThatIllegalArgumentException()
                 .isThrownBy(() -> new CompositeApplicationSettings(emptyList()))
-                .withMessage("At least one application settings required. Please check configuration.");
+                .withMessage("At least one application settings implementation required");
     }
 
     @Test
@@ -151,17 +151,18 @@ public class CompositeApplicationSettingsTest {
     public void getStoredRequestsByIdReturnResultFromFirstDelegateIfPresent() {
         // given
         given(delegate1.getStoredRequestsById(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(singletonMap("k1", "v1"), emptyList())));
+                .willReturn(Future.succeededFuture(
+                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyList())));
 
         // when
         final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsById(singleton("k1"), null);
+                compositeApplicationSettings.getStoredRequestsById(singleton("key1"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
-        assertThat(future.result().getStoredIdToJson()).isNotNull()
-                .containsOnly(entry("k1", "v1"));
+        assertThat(future.result().getStoredIdToJson()).hasSize(1)
+                .containsOnly(entry("key1", "value1"));
 
         verifyZeroInteractions(delegate2);
     }
@@ -173,17 +174,18 @@ public class CompositeApplicationSettingsTest {
                 .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("error1"))));
 
         given(delegate2.getStoredRequestsById(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(singletonMap("k1", "v1"), emptyList())));
+                .willReturn(Future.succeededFuture(
+                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyList())));
 
         // when
         final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsById(singleton("k1"), null);
+                compositeApplicationSettings.getStoredRequestsById(singleton("key1"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
-        assertThat(future.result().getStoredIdToJson()).isNotNull()
-                .containsOnly(entry("k1", "v1"));
+        assertThat(future.result().getStoredIdToJson()).hasSize(1)
+                .containsOnly(entry("key1", "value1"));
     }
 
     @Test
@@ -197,7 +199,7 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsById(singleton("k1"), null);
+                compositeApplicationSettings.getStoredRequestsById(singleton("key1"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -211,34 +213,59 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredRequestsById(anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("k1", "v1"), singletonList("error1"))));
+                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getStoredRequestsById(new HashSet<>(asList("k1", "k2")), null);
+        compositeApplicationSettings.getStoredRequestsById(new HashSet<>(asList("key1", "key2")), null);
 
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> captor = ArgumentCaptor.forClass(Set.class);
         verify(delegate2).getStoredRequestsById(captor.capture(), any());
 
-        assertThat(captor.getValue()).isNotNull()
-                .containsOnly("k2");
+        assertThat(captor.getValue()).hasSize(1)
+                .containsOnly("key2");
+    }
+
+    @Test
+    public void getStoredRequestsByIdShouldReturnResultConsequentlyFromAllDelegates() {
+        // given
+        given(delegate1.getStoredRequestsById(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonList("key2 not found"))));
+
+        given(delegate2.getStoredRequestsById(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredRequestResult.of(singletonMap("key2", "value2"), emptyList())));
+
+        // when
+        final Future<StoredRequestResult> future =
+                compositeApplicationSettings.getStoredRequestsById(new HashSet<>(asList("key1", "key2")), null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result().getErrors()).isEmpty();
+        assertThat(future.result().getStoredIdToJson()).hasSize(2)
+                .containsOnly(
+                        entry("key1", "value1"),
+                        entry("key2", "value2"));
     }
 
     @Test
     public void getStoredRequestsByAmpIdShouldReturnResultFromFirstDelegateIfPresent() {
         // given
         given(delegate1.getStoredRequestsByAmpId(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(singletonMap("k1", "v1"), emptyList())));
+                .willReturn(Future.succeededFuture(
+                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyList())));
 
         // when
         final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsByAmpId(singleton("k1"), null);
+                compositeApplicationSettings.getStoredRequestsByAmpId(singleton("key1"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
-        assertThat(future.result().getStoredIdToJson()).isNotNull()
-                .containsOnly(entry("k1", "v1"));
+        assertThat(future.result().getStoredIdToJson()).hasSize(1)
+                .containsOnly(entry("key1", "value1"));
 
         verifyZeroInteractions(delegate2);
     }
@@ -250,17 +277,18 @@ public class CompositeApplicationSettingsTest {
                 .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("error1"))));
 
         given(delegate2.getStoredRequestsByAmpId(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(singletonMap("k1", "v1"), emptyList())));
+                .willReturn(Future.succeededFuture(
+                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyList())));
 
         // when
         final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsByAmpId(singleton("k1"), null);
+                compositeApplicationSettings.getStoredRequestsByAmpId(singleton("key1"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
-        assertThat(future.result().getStoredIdToJson()).isNotNull()
-                .containsOnly(entry("k1", "v1"));
+        assertThat(future.result().getStoredIdToJson()).hasSize(1)
+                .containsOnly(entry("key1", "value1"));
     }
 
     @Test
@@ -274,7 +302,7 @@ public class CompositeApplicationSettingsTest {
 
         // when
         final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsByAmpId(singleton("k1"), null);
+                compositeApplicationSettings.getStoredRequestsByAmpId(singleton("key1"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -288,16 +316,40 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredRequestsByAmpId(anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("k1", "v1"), singletonList("error1"))));
+                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("k1", "k2")), null);
+        compositeApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("key1", "key2")), null);
 
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> captor = ArgumentCaptor.forClass(Set.class);
         verify(delegate2).getStoredRequestsByAmpId(captor.capture(), any());
 
-        assertThat(captor.getValue()).isNotNull()
-                .containsOnly("k2");
+        assertThat(captor.getValue()).hasSize(1)
+                .containsOnly("key2");
+    }
+
+    @Test
+    public void getStoredRequestsByAmpIdShouldReturnResultConsequentlyFromAllDelegates() {
+        // given
+        given(delegate1.getStoredRequestsByAmpId(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonList("key2 not found"))));
+
+        given(delegate2.getStoredRequestsByAmpId(anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredRequestResult.of(singletonMap("key2", "value2"), emptyList())));
+
+        // when
+        final Future<StoredRequestResult> future =
+                compositeApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("key1", "key2")), null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result().getErrors()).isEmpty();
+        assertThat(future.result().getStoredIdToJson()).hasSize(2)
+                .containsOnly(
+                        entry("key1", "value1"),
+                        entry("key2", "value2"));
     }
 }

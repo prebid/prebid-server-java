@@ -23,7 +23,7 @@ public class CompositeApplicationSettings implements ApplicationSettings {
 
     public CompositeApplicationSettings(List<ApplicationSettings> delegates) {
         if (Objects.requireNonNull(delegates).isEmpty()) {
-            throw new IllegalStateException("At least one application settings required. Please check configuration.");
+            throw new IllegalArgumentException("At least one application settings implementation required");
         }
         proxy = createProxy(delegates);
     }
