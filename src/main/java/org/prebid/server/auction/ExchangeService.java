@@ -780,10 +780,4 @@ public class ExchangeService {
     private static List<String> messages(List<BidderError> errors) {
         return CollectionUtils.emptyIfNull(errors).stream().map(BidderError::getMessage).collect(Collectors.toList());
     }
-
-    private static <T> List<T> append(List<T> originalList, T value) {
-        final List<T> list = new ArrayList<>(originalList);
-        list.add(value);
-        return list;
-    }
 }
