@@ -19,6 +19,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.Tuple2;
@@ -45,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class AmpHandler implements Handler<RoutingContext> {
@@ -64,19 +67,22 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final UidsCookieService uidsCookieService;
     private final Set<String> biddersSupportingCustomTargeting;
     private final BidderCatalog bidderCatalog;
+    private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
     private final Clock clock;
     private final TimeoutFactory timeoutFactory;
 
     public AmpHandler(long defaultTimeout, AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
                       UidsCookieService uidsCookieService, Set<String> biddersSupportingCustomTargeting,
-                      BidderCatalog bidderCatalog, Metrics metrics, Clock clock, TimeoutFactory timeoutFactory) {
+                      BidderCatalog bidderCatalog, AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock,
+                      TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -84,6 +90,8 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
+        final AmpEvent.AmpEventBuilder ampEventBuilder = AmpEvent.builder();
+
         // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
         // for bids. However, tmax may be defined in the Stored Request data.
         // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
@@ -103,9 +111,12 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .compose(bidRequest ->
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime))
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
+                .map((Tuple2<BidRequest, BidResponse> result) ->
+                        addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
                 .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
                 .recover(this::updateErrorRequestsMetric)
-                .setHandler(responseResult -> handleResult(responseResult, context));
+                .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
+                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context));
     }
 
     private void updateRequestMetrics(boolean isSafari) {
@@ -125,21 +136,27 @@ public class AmpHandler implements Handler<RoutingContext> {
         return Future.failedFuture(throwable);
     }
 
-    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean isLifeSync, boolean isSafari) {
+    private BidRequest updateAppAndNoCookieMetrics(BidRequest bidRequest, boolean liveUidsPresent, boolean isSafari) {
         if (bidRequest.getApp() != null) {
             metrics.incCounter(MetricName.app_requests);
-        } else if (isLifeSync) {
+        } else if (!liveUidsPresent) {
             metrics.incCounter(MetricName.no_cookie_requests);
             if (isSafari) {
                 metrics.incCounter(MetricName.safari_no_cookie_requests);
             }
         }
+
         return bidRequest;
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
         final Long tmax = bidRequest.getTmax();
         return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
+    }
+
+    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
+        consumer.accept(field);
+        return result;
     }
 
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
@@ -223,44 +240,63 @@ public class AmpHandler implements Handler<RoutingContext> {
         return Future.failedFuture(failed);
     }
 
-    private static void handleResult(AsyncResult<AmpResponse> responseResult, RoutingContext context) {
-        addCorsHeaders(context);
-        if (responseResult.succeeded()) {
-            context.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
-            context.response().end(Json.encode(responseResult.result()));
-        } else {
-            final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
-                final List<String> messages = ((InvalidRequestException) exception).getMessages();
-                logger.info("Invalid request format: {0}", messages);
-                context.response()
-                        .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                        .end(messages.stream().map(m -> String.format("Invalid request format: %s", m))
-                                .collect(Collectors.joining("\n")));
-            } else {
-                logger.error("Critical error while running the auction", exception);
+    private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
+                              RoutingContext context) {
+        final int status;
+        final List<String> errorMessages;
 
-                context.response()
-                        .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-                        .end(String.format("Critical error while running the auction: %s", exception.getMessage()));
-            }
-        }
-    }
+        final String origin = originFrom(context);
 
-    private static void addCorsHeaders(RoutingContext context) {
-        String origin = null;
-        final List<String> ampSourceOrigin = context.queryParam("__amp_source_origin");
-        if (CollectionUtils.isNotEmpty(ampSourceOrigin)) {
-            origin = ampSourceOrigin.iterator().next();
-        }
-        if (origin == null) {
-            // Just to be safe
-            origin = ObjectUtils.firstNonNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
-        }
+        ampEventBuilder.origin(origin);
 
         // Add AMP headers
         context.response()
                 .putHeader("AMP-Access-Control-Allow-Source-Origin", origin)
                 .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+        if (responseResult.succeeded()) {
+            context.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
+            context.response().end(Json.encode(responseResult.result()));
+
+            status = HttpResponseStatus.OK.code();
+            errorMessages = Collections.emptyList();
+        } else {
+            final Throwable exception = responseResult.cause();
+            if (exception instanceof InvalidRequestException) {
+                status = HttpResponseStatus.BAD_REQUEST.code();
+                errorMessages = ((InvalidRequestException) exception).getMessages();
+
+                logger.info("Invalid request format: {0}", errorMessages);
+
+                context.response()
+                        .setStatusCode(status)
+                        .end(errorMessages.stream().map(msg -> String.format("Invalid request format: %s", msg))
+                                .collect(Collectors.joining("\n")));
+            } else {
+                logger.error("Critical error while running the auction", exception);
+
+                final String message = exception.getMessage();
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+                errorMessages = Collections.singletonList(message);
+
+                context.response()
+                        .setStatusCode(status)
+                        .end(String.format("Critical error while running the auction: %s", message));
+            }
+        }
+
+        analyticsReporter.processEvent(ampEventBuilder.status(status).errors(errorMessages).build());
+    }
+
+    private static String originFrom(RoutingContext context) {
+        String origin = null;
+        final List<String> ampSourceOrigin = context.queryParam("__amp_source_origin");
+        if (CollectionUtils.isNotEmpty(ampSourceOrigin)) {
+            origin = ampSourceOrigin.get(0);
+        }
+        if (origin == null) {
+            // Just to be safe
+            origin = ObjectUtils.firstNonNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
+        }
+        return origin;
     }
 }

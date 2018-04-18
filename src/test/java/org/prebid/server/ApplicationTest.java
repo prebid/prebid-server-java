@@ -13,6 +13,7 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
+import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -20,7 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
-import org.prebid.server.proto.response.BidderStatus;
+import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -41,8 +42,8 @@ import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.*;
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -84,11 +85,11 @@ public class ApplicationTest extends VertxTest {
         // given
         // rubicon bid response for imp 1
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withQueryParam("tk_xint", WireMock.equalTo("rp-pbs"))
+                .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("Accept", WireMock.equalTo("application/json"))
-                .withHeader("User-Agent", WireMock.equalTo("prebid-server/1.0"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("prebid-server/1.0"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-rubicon-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-rubicon-bid-response-1.json"))));
 
@@ -149,32 +150,32 @@ public class ApplicationTest extends VertxTest {
 
         // adform bid response for imp 12
         wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange/"))
-                .withQueryParam("CC", WireMock.equalTo("1"))
-                .withQueryParam("rp", WireMock.equalTo("4"))
-                .withQueryParam("fd", WireMock.equalTo("1"))
-                .withQueryParam("stid", WireMock.equalTo("tid"))
-                .withQueryParam("ip", WireMock.equalTo("192.168.244.1"))
-                .withQueryParam("adid", WireMock.equalTo("ifaId"))
+                .withQueryParam("CC", equalTo("1"))
+                .withQueryParam("rp", equalTo("4"))
+                .withQueryParam("fd", equalTo("1"))
+                .withQueryParam("stid", equalTo("tid"))
+                .withQueryParam("ip", equalTo("192.168.244.1"))
+                .withQueryParam("adid", equalTo("ifaId"))
                 // bWlkPTE1 is Base64 encoded "mid=15"
-                .withQueryParam("bWlkPTE1", WireMock.equalTo(""))
+                .withQueryParam("bWlkPTE1", equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("Accept", WireMock.equalTo("application/json"))
-                .withHeader("User-Agent", WireMock.equalTo("userAgent"))
-                .withHeader("X-Request-Agent", WireMock.equalTo("PrebidAdapter 0.1.1"))
-                .withHeader("X-Forwarded-For", WireMock.equalTo("192.168.244.1"))
-                .withHeader("Cookie", WireMock.equalTo("uid=AF-UID"))
-                .withRequestBody(WireMock.equalTo(""))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.1"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("Cookie", equalTo("uid=AF-UID"))
+                .withRequestBody(equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adform-bid-response-1.json"))));
 
         // sovrn bid response for imp 13
         wireMockRule.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("Accept", WireMock.equalTo("application/json"))
-                .withHeader("User-Agent", WireMock.equalTo("userAgent"))
-                .withHeader("X-Forwarded-For", WireMock.equalTo("192.168.244.1"))
-                .withHeader("DNT", WireMock.equalTo("2"))
-                .withHeader("Accept-Language", WireMock.equalTo("en"))
-                .withCookie("ljt_reader", WireMock.equalTo("990011"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("DNT", equalTo("2"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withCookie("ljt_reader", equalTo("990011"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-sovrn-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-sovrn-bid-response-1.json"))));
 
@@ -264,7 +265,7 @@ public class ApplicationTest extends VertxTest {
                 .get("/openrtb2/amp?tag_id=test-amp-stored-request")
                 .then()
                 .assertThat()
-                .body(equalTo(jsonFrom("amp/test-amp-response.json")));
+                .body(Matchers.equalTo(jsonFrom("amp/test-amp-response.json")));
     }
 
     @Test
@@ -272,11 +273,11 @@ public class ApplicationTest extends VertxTest {
         // given
         // rubicon bid response for ad unit 1
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withQueryParam("tk_xint", WireMock.equalTo("rp-pbs"))
+                .withQueryParam("tk_xint", equalTo("rp-pbs"))
                 .withBasicAuth("rubicon_user", "rubicon_password")
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("Accept", WireMock.equalTo("application/json"))
-                .withHeader("User-Agent", WireMock.equalTo("prebid-server/1.0"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("prebid-server/1.0"))
                 .withRequestBody(equalToJson(jsonFrom("auction/test-rubicon-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/test-rubicon-bid-response-1.json"))));
 
@@ -328,32 +329,32 @@ public class ApplicationTest extends VertxTest {
         // sovrn bid response for ad unit 11
         wireMockRule.stubFor(post(urlPathEqualTo("/sovrn-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("Accept", WireMock.equalTo("application/json"))
-                .withHeader("User-Agent", WireMock.equalTo("userAgent"))
-                .withHeader("X-Forwarded-For", WireMock.equalTo("192.168.244.1"))
-                .withHeader("DNT", WireMock.equalTo("10"))
-                .withHeader("Accept-Language", WireMock.equalTo("en"))
-                .withCookie("ljt_reader", WireMock.equalTo("990011"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("DNT", equalTo("10"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withCookie("ljt_reader", equalTo("990011"))
                 .withRequestBody(equalToJson(jsonFrom("auction/test-sovrn-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/test-sovrn-bid-response-1.json"))));
 
         // adform bid response for ad unit 12
         wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange/"))
-                .withQueryParam("CC", WireMock.equalTo("1"))
-                .withQueryParam("rp", WireMock.equalTo("4"))
-                .withQueryParam("fd", WireMock.equalTo("1"))
-                .withQueryParam("stid", WireMock.equalTo("tid"))
-                .withQueryParam("ip", WireMock.equalTo("192.168.244.1"))
-                .withQueryParam("adid", WireMock.equalTo("ifaId"))
+                .withQueryParam("CC", equalTo("1"))
+                .withQueryParam("rp", equalTo("4"))
+                .withQueryParam("fd", equalTo("1"))
+                .withQueryParam("stid", equalTo("tid"))
+                .withQueryParam("ip", equalTo("192.168.244.1"))
+                .withQueryParam("adid", equalTo("ifaId"))
                 // bWlkPTE1 is Base64 encoded "mid=15"
-                .withQueryParam("bWlkPTE1", WireMock.equalTo(""))
+                .withQueryParam("bWlkPTE1", equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("Accept", WireMock.equalTo("application/json"))
-                .withHeader("User-Agent", WireMock.equalTo("userAgent"))
-                .withHeader("X-Request-Agent", WireMock.equalTo("PrebidAdapter 0.1.1"))
-                .withHeader("X-Forwarded-For", WireMock.equalTo("192.168.244.1"))
-                .withHeader("Cookie", WireMock.equalTo("uid=AF-UID"))
-                .withRequestBody(WireMock.equalTo(""))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.1"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("Cookie", equalTo("uid=AF-UID"))
+                .withRequestBody(equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("auction/test-adform-bid-response-1.json"))));
 
         // pre-bid cache
@@ -399,7 +400,7 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void optoutShouldSetOptOutFlagAndRedirectToOptOutUrl() {
         wireMockRule.stubFor(post("/optout")
-                .withRequestBody(WireMock.equalTo("secret=abc&response=recaptcha1"))
+                .withRequestBody(equalTo("secret=abc&response=recaptcha1"))
                 .willReturn(aResponse().withBody("{\"success\": true}")));
 
         final Response response = given(spec)
@@ -444,7 +445,7 @@ public class ApplicationTest extends VertxTest {
                 .as(CookieSyncResponse.class);
 
         assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie",
-                singletonList(BidderStatus.builder()
+                singletonList(BidderUsersyncStatus.builder()
                         .bidder(RUBICON)
                         .noCookie(true)
                         .usersync(UsersyncInfo.of("http://localhost:" + WIREMOCK_PORT + "/cookie", "redirect", false))
@@ -505,7 +506,7 @@ public class ApplicationTest extends VertxTest {
                 .get("/bidders/params")
                 .then()
                 .assertThat()
-                .body(equalTo(jsonFrom("params/test-bidder-params-schemas.json")));
+                .body(Matchers.equalTo(jsonFrom("params/test-bidder-params-schemas.json")));
     }
 
     @Test
@@ -515,7 +516,7 @@ public class ApplicationTest extends VertxTest {
                 .get("/info/bidders")
                 .then()
                 .assertThat()
-                .body(equalTo(jsonFrom("info-bidders/test-info-bidders-response.json")));
+                .body(Matchers.equalTo(jsonFrom("info-bidders/test-info-bidders-response.json")));
     }
 
     @Test
@@ -525,7 +526,7 @@ public class ApplicationTest extends VertxTest {
                 .get("/info/bidders/rubicon")
                 .then()
                 .assertThat()
-                .body(equalTo(jsonFrom("info-bidders/test-info-bidder-details-response.json")));
+                .body(Matchers.equalTo(jsonFrom("info-bidders/test-info-bidder-details-response.json")));
     }
 
     @Test

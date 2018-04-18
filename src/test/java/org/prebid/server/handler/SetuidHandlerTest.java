@@ -14,6 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
@@ -27,8 +29,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -44,6 +46,8 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Mock
     private UidsCookieService uidsCookieService;
+    @Mock
+    private AnalyticsReporter analyticsReporter;
     @Mock
     private Metrics metrics;
     @Mock
@@ -69,13 +73,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(metrics.cookieSync()).willReturn(cookieSyncMetrics);
         given(cookieSyncMetrics.forBidder(anyString())).willReturn(bidderCookieSyncMetrics);
 
-        setuidHandler = new SetuidHandler(uidsCookieService, metrics);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new SetuidHandler(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new SetuidHandler(uidsCookieService, null));
+        setuidHandler = new SetuidHandler(uidsCookieService, analyticsReporter, metrics);
     }
 
     @Test
@@ -141,12 +139,8 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldIgnoreFacebookSentinel() {
         // given
-        // this uids cookie value stands for {"uids":{"audienceNetwork":"facebookUid"}}
-        given(routingContext.getCookie(eq("uids"))).willReturn(Cookie.cookie("uids",
-                "eyJ1aWRzIjp7ImF1ZGllbmNlTmV0d29yayI6ImZhY2Vib29rVWlkIn19"));
-        final Map<String, UidWithExpiry> uids = new HashMap<>();
-        uids.put("audienceNetwork", UidWithExpiry.live("facebookUid"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap("audienceNetwork", UidWithExpiry.live("facebookUid"))).build()));
 
         given(httpRequest.getParam("bidder")).willReturn("audienceNetwork");
         given(httpRequest.getParam("uid")).willReturn("0");
@@ -245,6 +239,103 @@ public class SetuidHandlerTest extends VertxTest {
         verify(bidderCookieSyncMetrics).incCounter(eq(MetricName.sets));
     }
 
+    @Test
+    public void shouldPassUnauthorizedEventToAnalyticsReporterIfOptedOut() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build()));
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        final SetuidEvent setuidEvent = captureSetuidEvent();
+        assertThat(setuidEvent).isEqualTo(SetuidEvent.builder().status(401).build());
+    }
+
+    @Test
+    public void shouldPassBadRequestEventToAnalyticsReporterIfBidderParamIsMissing() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        final SetuidEvent setuidEvent = captureSetuidEvent();
+        assertThat(setuidEvent).isEqualTo(SetuidEvent.builder().status(400).build());
+    }
+
+    @Test
+    public void shouldPassUnsuccessfulEventToAnalyticsReporterIfUidMissingInRequest() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        final SetuidEvent setuidEvent = captureSetuidEvent();
+        assertThat(setuidEvent).isEqualTo(SetuidEvent.builder()
+                .status(200)
+                .bidder(RUBICON)
+                .success(false)
+                .build());
+    }
+
+    @Test
+    public void shouldPassUnsuccessfulEventToAnalyticsReporterIfFacebookSentinel() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        given(httpRequest.getParam("bidder")).willReturn("audienceNetwork");
+        given(httpRequest.getParam("uid")).willReturn("0");
+
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        final SetuidEvent setuidEvent = captureSetuidEvent();
+        assertThat(setuidEvent).isEqualTo(SetuidEvent.builder()
+                .status(200)
+                .bidder("audienceNetwork")
+                .uid("0")
+                .success(false)
+                .build());
+    }
+
+    @Test
+    public void shouldPassSuccessfulEventToAnalyticsReporter() {
+        // given
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build()));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("updatedUid");
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        final SetuidEvent setuidEvent = captureSetuidEvent();
+        assertThat(setuidEvent).isEqualTo(SetuidEvent.builder()
+                .status(200)
+                .bidder(RUBICON)
+                .uid("updatedUid")
+                .success(true)
+                .build());
+    }
+
     private Cookie captureCookie() {
         final ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
         verify(routingContext).addCookie(cookieCaptor.capture());
@@ -253,5 +344,11 @@ public class SetuidHandlerTest extends VertxTest {
 
     private static Uids decodeUids(String value) {
         return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
+    }
+
+    private SetuidEvent captureSetuidEvent() {
+        final ArgumentCaptor<SetuidEvent> setuidEventCaptor = ArgumentCaptor.forClass(SetuidEvent.class);
+        verify(analyticsReporter).processEvent(setuidEventCaptor.capture());
+        return setuidEventCaptor.getValue();
     }
 }
