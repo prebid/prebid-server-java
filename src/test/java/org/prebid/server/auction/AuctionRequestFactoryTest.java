@@ -28,12 +28,12 @@ import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
 
-import static java.util.Arrays.*;
-import static java.util.Collections.*;
-import static org.assertj.core.api.Assertions.*;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.*;
+import static org.mockito.BDDMockito.given;
 
 public class AuctionRequestFactoryTest extends VertxTest {
 
