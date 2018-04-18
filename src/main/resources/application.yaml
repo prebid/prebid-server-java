@@ -72,10 +72,11 @@ adapters:
 metrics:
   metricType: flushingCounter
 settings:
-  pool-size: 20
-  in-memory-cache:
-    cache-size: 10000
-    ttl-seconds: 360
+  database:
+    pool-size: 20
+    in-memory-cache:
+      cache-size: 10000
+      ttl-seconds: 360
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:
