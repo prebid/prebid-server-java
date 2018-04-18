@@ -11,5 +11,5 @@ public class CookieSyncResponse {
 
     String status;
 
-    List<BidderStatus> bidderStatus;
+    List<BidderUsersyncStatus> bidderStatus;
 }

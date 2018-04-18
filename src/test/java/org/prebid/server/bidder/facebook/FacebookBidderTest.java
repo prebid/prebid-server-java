@@ -16,7 +16,6 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.facebook.proto.ExtImpFacebook;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -25,6 +24,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
@@ -39,9 +39,9 @@ public class FacebookBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "https://facebook.com/openrtb2d";
     private static final String NON_SECURED_ENDPOINT_URL = "http://facebook.com/openrtb2d";
     private static final String PLATFORM_ID = "101";
-    
+
     private FacebookBidder facebookBidder;
-    
+
     @Before
     public void setUp() {
         facebookBidder = new FacebookBidder(ENDPOINT_URL, NON_SECURED_ENDPOINT_URL, PLATFORM_ID);
@@ -92,7 +92,7 @@ public class FacebookBidderTest extends VertxTest {
                 .containsOnly(tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"));
     }
-    
+
     @Test
     public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsNotSupportedAudioMediaType() {
         // given

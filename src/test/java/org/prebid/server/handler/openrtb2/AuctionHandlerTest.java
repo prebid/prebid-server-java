@@ -19,6 +19,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.cookie.UidsCookie;
@@ -51,6 +53,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
+    private AnalyticsReporter analyticsReporter;
+    @Mock
     private Metrics metrics;
     @Mock
     private Clock clock;
@@ -78,8 +82,8 @@ public class AuctionHandlerTest extends VertxTest {
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
 
-        auctionHandler = new AuctionHandler(5000, exchangeService, auctionRequestFactory, uidsCookieService, metrics,
-                clock, timeoutFactory);
+        auctionHandler = new AuctionHandler(5000, exchangeService, auctionRequestFactory, uidsCookieService,
+                analyticsReporter, metrics, clock, timeoutFactory);
     }
 
     @Test
@@ -184,7 +188,11 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementRequestsAndOrtbRequestsMetrics() {
         // given
-        givenMocksForMetricSupport();
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
 
         // when
         auctionHandler.handle(routingContext);
@@ -197,7 +205,9 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementAppRequestMetrics() {
         // given
-        givenMocksForMetricSupport();
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
+
         given(auctionRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(
                         BidRequest.builder().imp(emptyList()).app(App.builder().build()).build()));
@@ -212,8 +222,13 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementNoCookieMetrics() {
         // given
-        givenMocksForMetricSupport();
-        given(uidsCookie.hasLiveUids()).willReturn(true);
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
+
+        given(uidsCookie.hasLiveUids()).willReturn(false);
 
         httpRequest.headers().add(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " +
                 "AppleWebKit/601.7.7 (KHTML, like Gecko) Version/9.1.2 Safari/601.7.7");
@@ -230,10 +245,12 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementImpsRequestedMetrics() {
         // given
-        givenMocksForMetricSupport();
         given(auctionRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(
                         BidRequest.builder().imp(singletonList(Imp.builder().build())).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
 
         // when
         auctionHandler.handle(routingContext);
@@ -256,17 +273,74 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
     }
 
-    private void givenMocksForMetricSupport() {
+    @Test
+    public void shouldPassBadRequestEventToAnalyticsReporterIfBidRequestIsInvalid() {
+        // given
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
+                .status(400)
+                .errors(singletonList("Request is invalid"))
+                .build());
+    }
+
+    @Test
+    public void shouldPassInternalServerErrorEventToAnalyticsReporterIfAuctionFails() {
+        // given
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willThrow(new RuntimeException("Unexpected exception"));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
+                .bidRequest(BidRequest.builder().imp(emptyList()).build())
+                .status(500)
+                .errors(singletonList("Unexpected exception"))
+                .build());
+    }
+
+    @Test
+    public void shouldPassSuccessfulEventToAnalyticsReporter() {
+        // given
         given(auctionRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
+                .bidRequest(BidRequest.builder().imp(emptyList()).build())
+                .bidResponse(BidResponse.builder().build())
+                .status(200)
+                .errors(emptyList())
+                .build());
     }
 
     private Timeout captureTimeout() {
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(exchangeService).holdAuction(any(), any(), timeoutCaptor.capture());
         return timeoutCaptor.getValue();
+    }
+
+    private AuctionEvent captureAuctionEvent() {
+        final ArgumentCaptor<AuctionEvent> auctionEventCaptor = ArgumentCaptor.forClass(AuctionEvent.class);
+        verify(analyticsReporter).processEvent(auctionEventCaptor.capture());
+        return auctionEventCaptor.getValue();
     }
 }
