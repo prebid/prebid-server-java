@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -101,7 +102,10 @@ public class AmpRequestFactory {
             setDefaultTargeting = true;
             setDefaultCache = true;
         } else {
-            setDefaultTargeting = prebid.getTargeting() == null;
+            final ExtRequestTargeting targeting = prebid.getTargeting();
+            setDefaultTargeting = targeting == null
+                    || targeting.getIncludewinners() == null
+                    || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
             final ExtRequestPrebidCache cache = prebid.getCache();
             setDefaultCache = cache == null || cache.getBids().isNull();
         }
@@ -125,19 +129,38 @@ public class AmpRequestFactory {
     private static ObjectNode createExtWithDefaults(BidRequest bidRequest, ExtRequestPrebid prebid,
                                                     boolean setDefaultTargeting, boolean setDefaultCache) {
         final boolean isPrebidNull = prebid == null;
+
         return setDefaultTargeting || setDefaultCache
                 ? Json.mapper.valueToTree(ExtBidRequest.of(
                 ExtRequestPrebid.of(
                         isPrebidNull ? Collections.emptyMap() : prebid.getAliases(),
                         isPrebidNull ? Collections.emptyMap() : prebid.getBidadjustmentfactors(),
-                        setDefaultTargeting
-                                ? ExtRequestTargeting.of(Json.mapper.valueToTree(
-                                PriceGranularity.DEFAULT.getBuckets()), true)
-                                : isPrebidNull ? null : prebid.getTargeting(),
+                        createTargetingWithDefaults(prebid, isPrebidNull),
                         isPrebidNull ? null : prebid.getStoredrequest(),
                         setDefaultCache
                                 ? ExtRequestPrebidCache.of(Json.mapper.createObjectNode())
                                 : isPrebidNull ? null : prebid.getCache())))
                 : bidRequest.getExt();
+    }
+
+    /**
+     * Creates updated with default values bidrequest.ext.targeting {@link ExtRequestTargeting} if at least one of it's
+     * child properties is missed or entire targeting does not exist.
+     */
+    private static ExtRequestTargeting createTargetingWithDefaults(ExtRequestPrebid prebid, boolean isPrebidNull) {
+        final ExtRequestTargeting targeting = !isPrebidNull && prebid.getTargeting() != null
+                ? prebid.getTargeting() : null;
+        final boolean isTargetingNull = isPrebidNull || targeting == null;
+
+        final Boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
+                ? true : targeting.getIncludewinners();
+
+        final JsonNode priceGranularityNode = isTargetingNull ? null : targeting.getPricegranularity();
+        final boolean shouldSetDefaultPriceGranularity = priceGranularityNode == null || priceGranularityNode.isNull();
+        final JsonNode outgoingPriceGranularityNode = shouldSetDefaultPriceGranularity
+                ? Json.mapper.valueToTree(PriceGranularity.DEFAULT.getBuckets())
+                : priceGranularityNode;
+
+        return ExtRequestTargeting.of(outgoingPriceGranularityNode, includeWinners);
     }
 }

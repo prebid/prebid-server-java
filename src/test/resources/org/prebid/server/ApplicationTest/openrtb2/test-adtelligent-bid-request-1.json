@@ -66,7 +66,8 @@
             "max": 20,
             "increment": 0.1
           }
-        ]
+        ],
+        "includewinners" : true
       },
       "cache": {
         "bids": []

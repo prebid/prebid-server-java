@@ -128,7 +128,7 @@ public class AuctionRequestFactory {
                     prebid.getAliases(),
                     prebid.getBidadjustmentfactors(),
                     ExtRequestTargeting.of(populatePriceGranularity(targeting.getPricegranularity()),
-                            targeting.getIncludewinners()),
+                            targeting.getIncludewinners() != null ? targeting.getIncludewinners() : true),
                     prebid.getStoredrequest(),
                     prebid.getCache())));
         }
