@@ -71,7 +71,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             cookieSyncRequest = Json.decodeValue(body, CookieSyncRequest.class);
         } catch (DecodeException e) {
             logger.info("Failed to parse /cookie_sync request body", e);
-            final int status = 400;
+            final int status = HttpResponseStatus.BAD_REQUEST.code();
             context.response().setStatusCode(status).setStatusMessage("JSON parse failed").end();
             analyticsReporter.processEvent(CookieSyncEvent.error(status, "JSON parse failed"));
             return;
