@@ -135,7 +135,7 @@ public class AmpRequestFactory {
                 ExtRequestPrebid.of(
                         isPrebidNull ? Collections.emptyMap() : prebid.getAliases(),
                         isPrebidNull ? Collections.emptyMap() : prebid.getBidadjustmentfactors(),
-                        createTargetingWithDefaults(prebid, isPrebidNull),
+                        createTargetingWithDefaults(prebid),
                         isPrebidNull ? null : prebid.getStoredrequest(),
                         setDefaultCache
                                 ? ExtRequestPrebidCache.of(Json.mapper.createObjectNode())
@@ -147,19 +147,19 @@ public class AmpRequestFactory {
      * Creates updated with default values bidrequest.ext.targeting {@link ExtRequestTargeting} if at least one of it's
      * child properties is missed or entire targeting does not exist.
      */
-    private static ExtRequestTargeting createTargetingWithDefaults(ExtRequestPrebid prebid, boolean isPrebidNull) {
-        final ExtRequestTargeting targeting = !isPrebidNull && prebid.getTargeting() != null
-                ? prebid.getTargeting() : null;
-        final boolean isTargetingNull = isPrebidNull || targeting == null;
+    private static ExtRequestTargeting createTargetingWithDefaults(ExtRequestPrebid prebid) {
+        final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
+        final boolean isTargetingNull = targeting == null;
 
         final Boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
                 ? true : targeting.getIncludewinners();
 
-        final JsonNode priceGranularityNode = isTargetingNull ? null : targeting.getPricegranularity();
-        final boolean shouldSetDefaultPriceGranularity = priceGranularityNode == null || priceGranularityNode.isNull();
-        final JsonNode outgoingPriceGranularityNode = shouldSetDefaultPriceGranularity
+        final JsonNode priceGranularity = isTargetingNull ? null : targeting.getPricegranularity();
+        final boolean isPriceGranularityNull = priceGranularity == null || priceGranularity.isNull();
+
+        final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
                 ? Json.mapper.valueToTree(PriceGranularity.DEFAULT.getBuckets())
-                : priceGranularityNode;
+                : priceGranularity;
 
         return ExtRequestTargeting.of(outgoingPriceGranularityNode, includeWinners);
     }
