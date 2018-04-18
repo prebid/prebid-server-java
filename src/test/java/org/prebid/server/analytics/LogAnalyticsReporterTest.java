@@ -1,12 +1,13 @@
 package org.prebid.server.analytics;
 
 import org.junit.Test;
+import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 
-public class LogAnalyticsReporterTest {
+public class LogAnalyticsReporterTest extends VertxTest {
 
     @Test
     public void shouldLogEvent() {
