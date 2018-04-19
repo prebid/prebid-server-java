@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.util.Collections;
 import java.util.Objects;
 
 public class AuctionRequestFactory {
@@ -32,15 +33,18 @@ public class AuctionRequestFactory {
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
     private final long maxRequestSize;
+    private final String adServerCurrency;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
 
-    public AuctionRequestFactory(long maxRequestSize, StoredRequestProcessor storedRequestProcessor,
+    public AuctionRequestFactory(long maxRequestSize, String adServerCurrency,
+                                 StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor, UidsCookieService uidsCookieService,
                                  RequestValidator requestValidator) {
         this.maxRequestSize = maxRequestSize;
+        this.adServerCurrency = adServerCurrency;
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -80,9 +84,10 @@ public class AuctionRequestFactory {
         final Boolean setDefaultAt = at == null || at == 0;
         final ObjectNode ext = bidRequest.getExt();
         final ObjectNode populatedExt = ext != null ? populateBidRequestExtension(ext) : null;
+        final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
-                || setDefaultAt) {
+                || setDefaultAt || updateCurrency) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
@@ -91,6 +96,7 @@ public class AuctionRequestFactory {
                     // since header bidding is generally a first-price auction.
                     .at(setDefaultAt ? Integer.valueOf(1) : at)
                     .ext(populatedExt != null ? populatedExt : ext)
+                    .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
                     .build();
         } else {
             result = bidRequest;
@@ -128,7 +134,7 @@ public class AuctionRequestFactory {
                     prebid.getAliases(),
                     prebid.getBidadjustmentfactors(),
                     ExtRequestTargeting.of(populatePriceGranularity(targeting.getPricegranularity()),
-                            targeting.getIncludewinners()),
+                            targeting.getCurrency(), targeting.getIncludewinners()),
                     prebid.getStoredrequest(),
                     prebid.getCache())));
         }

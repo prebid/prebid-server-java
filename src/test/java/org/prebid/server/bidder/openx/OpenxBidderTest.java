@@ -401,7 +401,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner));
+                        BidType.banner, null));
     }
 
     @Test
@@ -445,7 +445,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner));
+                        BidType.banner, null));
     }
 
     @Test

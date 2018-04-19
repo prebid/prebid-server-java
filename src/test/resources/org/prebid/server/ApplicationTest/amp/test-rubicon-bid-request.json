@@ -58,6 +58,9 @@
     "buyeruid": "J5VLCWQP-26-CWFT"
   },
   "tmax": 2000,
+  "cur": [
+    "EUR"
+  ],
   "at": 1,
   "ext": {
     "prebid": {
@@ -81,7 +84,18 @@
             "max": 20,
             "increment": 0.5
           }
-        ]
+        ],
+        "currency": {
+          "dataAsOf": "2018-04-16",
+          "conversions": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        }
       },
       "cache": {
         "bids": {}

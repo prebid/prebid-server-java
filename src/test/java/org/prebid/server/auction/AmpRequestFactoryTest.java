@@ -182,7 +182,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .containsExactly(ExtRequestPrebid.of(emptyMap(),
                        emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(
                         singletonList(ExtPriceGranularityBucket.of(2, new BigDecimal(0), new BigDecimal(20),
-                                new BigDecimal("0.1")))), true), null,
+                                new BigDecimal("0.1")))), null, true), null,
                         ExtRequestPrebidCache.of(Json.mapper.createObjectNode())));
     }
 
@@ -273,7 +273,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("debug")).willReturn("1");
 
-        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null),
+        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null, null),
                 ExtRequestPrebidCache.of(mapper.createObjectNode()));
 
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));

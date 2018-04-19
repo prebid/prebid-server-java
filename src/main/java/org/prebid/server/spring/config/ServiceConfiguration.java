@@ -7,8 +7,10 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
+import org.prebid.server.auction.CurrencyService;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
+import org.prebid.server.auction.LatestRatesService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
@@ -69,13 +71,14 @@ public class ServiceConfiguration {
     @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") int maxRequestSize,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator) {
 
-        return new AuctionRequestFactory(maxRequestSize, storedRequestProcessor, implicitParametersExtractor,
-                uidsCookieService, requestValidator);
+        return new AuctionRequestFactory(maxRequestSize, adServerCurrency, storedRequestProcessor,
+                implicitParametersExtractor, uidsCookieService, requestValidator);
     }
 
     @Bean
@@ -122,13 +125,26 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    LatestRatesService latestRatesService(Vertx vertx, HttpClient httpClient) {
+        final LatestRatesService latestRatesService = new LatestRatesService(httpClient);
+        // update currency every 15 minutes
+        vertx.setPeriodic(900000, aLong -> latestRatesService.updateRates());
+        return latestRatesService;
+    }
+
+    @Bean
+    CurrencyService ratesService(LatestRatesService latestRatesService) {
+        return new CurrencyService(latestRatesService);
+    }
+
+    @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog, ResponseBidValidator responseBidValidator,
-            CacheService cacheService, Metrics metrics, Clock clock) {
+            CacheService cacheService, CurrencyService currencyService, Metrics metrics, Clock clock) {
 
-        return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock,
+        return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, currencyService, metrics, clock,
                 expectedCacheTimeMs);
     }
 

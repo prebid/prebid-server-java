@@ -237,7 +237,7 @@ public class AdformBidder implements Bidder<Void> {
                             .h(adformBid.getHeight())
                             .dealid(adformBid.getDealId())
                             .build(),
-                    BidType.banner));
+                    BidType.banner, null));
         }
         return bidderBids;
     }

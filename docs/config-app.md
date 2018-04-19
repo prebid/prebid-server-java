@@ -27,6 +27,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.expected-cache-time-ms` - approximate value in milliseconds for Cache Service interacting. 
+- `ad-server-currency` - default currency for auction, if its value was not specified in request
 This time will be subtracted from global timeout.
 
 ## Amp

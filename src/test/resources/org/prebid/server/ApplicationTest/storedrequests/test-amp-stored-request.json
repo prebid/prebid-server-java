@@ -27,10 +27,24 @@
     "page": "http://www.example.com"
   },
   "tmax": 2000,
+  "cur": [
+    "EUR"
+  ],
   "ext": {
     "prebid": {
       "targeting": {
-        "pricegranularity": "dense"
+        "pricegranularity": "dense",
+        "currency": {
+          "dataAsOf": "2018-04-16",
+          "conversions": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        }
       },
       "cache": {
         "bids": []

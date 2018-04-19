@@ -132,7 +132,7 @@ public class AmpRequestFactory {
                         isPrebidNull ? Collections.emptyMap() : prebid.getBidadjustmentfactors(),
                         setDefaultTargeting
                                 ? ExtRequestTargeting.of(Json.mapper.valueToTree(
-                                PriceGranularity.DEFAULT.getBuckets()), true)
+                                PriceGranularity.DEFAULT.getBuckets()), null, true)
                                 : isPrebidNull ? null : prebid.getTargeting(),
                         isPrebidNull ? null : prebid.getStoredrequest(),
                         setDefaultCache

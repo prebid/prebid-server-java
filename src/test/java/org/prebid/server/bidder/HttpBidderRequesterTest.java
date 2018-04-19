@@ -179,7 +179,7 @@ public class HttpBidderRequesterTest {
 
         givenHttpClientReturnsResponses(200, "responseBody");
 
-        final List<BidderBid> bids = asList(BidderBid.of(null, null), BidderBid.of(null, null));
+        final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
 
         // when
@@ -332,7 +332,8 @@ public class HttpBidderRequesterTest {
                 .willReturn(200);
 
         given(bidder.makeBids(any(), any())).willReturn(
-                Result.of(singletonList(BidderBid.of(null, null)), singletonList(BidderError.create("makeBidsError"))));
+                Result.of(singletonList(BidderBid.of(null, null, null)),
+                        singletonList(BidderError.create("makeBidsError"))));
 
         // when
         final BidderSeatBid bidderSeatBid = bidderHttpConnector
