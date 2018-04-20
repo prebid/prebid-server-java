@@ -255,7 +255,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithDefaultPriceGranularityIfStoredBidRequestExtTargetingHasNoIncludeWinners() {
+    public void shouldReturnBidRequestWithDefaultPriceGranularityIfStoredBidRequestExtTargetingHasNoPriceGranularity() {
         // given
         given(httpRequest.getParam(anyString())).willReturn("tagId");
 
