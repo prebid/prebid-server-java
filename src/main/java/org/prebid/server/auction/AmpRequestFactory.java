@@ -152,7 +152,7 @@ public class AmpRequestFactory {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
         final boolean isTargetingNull = targeting == null;
 
-        final Boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
+        final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
                 ? true : targeting.getIncludewinners();
 
         final JsonNode priceGranularity = isTargetingNull ? null : targeting.getPricegranularity();
