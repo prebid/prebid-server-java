@@ -135,7 +135,8 @@ public class AmpRequestFactory {
                 ExtRequestPrebid.of(
                         isPrebidNull ? Collections.emptyMap() : prebid.getAliases(),
                         isPrebidNull ? Collections.emptyMap() : prebid.getBidadjustmentfactors(),
-                        createTargetingWithDefaults(prebid),
+                        setDefaultTargeting || isPrebidNull
+                                ? createTargetingWithDefaults(prebid) : prebid.getTargeting(),
                         isPrebidNull ? null : prebid.getStoredrequest(),
                         setDefaultCache
                                 ? ExtRequestPrebidCache.of(Json.mapper.createObjectNode())
