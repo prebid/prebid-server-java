@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * Used to indicate disabled bidder. First method call to this bidder should return empty bids and error in result.
  */
-public class DisabledBidder implements Bidder<BidRequest> {
+public class DisabledBidder implements Bidder<Void> {
 
     private String errorMessage;
 
@@ -25,12 +25,12 @@ public class DisabledBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+    public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(errorMessage)));
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         throw new UnsupportedOperationException();
     }
 

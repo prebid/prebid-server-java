@@ -9,9 +9,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
+import org.prebid.server.settings.CompositeApplicationSettings;
 import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.vertx.JdbcClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -24,17 +26,21 @@ import org.springframework.validation.annotation.Validated;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SettingsConfiguration {
 
     @Configuration
-    @ConditionalOnProperty(name = "settings.type", havingValue = "filesystem")
-    public static class FileSettingsConfiguration {
+    @ConditionalOnProperty(prefix = "settings.filesystem", name = {"settings-filename", "stored-requests-dir"})
+    static class FileSettingsConfiguration {
 
-        @Bean(name = "applicationSettings")
-        ApplicationSettings fileApplicationSettings(
-                @Value("${settings.settings-filename}") String settingsFileName,
-                @Value("${settings.stored-requests-dir}") String storedRequestsDir,
+        @Bean
+        FileApplicationSettings fileApplicationSettings(
+                @Value("${settings.filesystem.settings-filename}") String settingsFileName,
+                @Value("${settings.filesystem.stored-requests-dir}") String storedRequestsDir,
                 FileSystem fileSystem) {
 
             return FileApplicationSettings.create(fileSystem, settingsFileName, storedRequestsDir);
@@ -42,12 +48,12 @@ public class SettingsConfiguration {
     }
 
     @Configuration
-    @ConditionalOnExpression("'${settings.type}' == 'postgres' or '${settings.type}' == 'mysql'")
-    public static class DatabaseSettingsConfiguration {
+    @ConditionalOnExpression("'${settings.database.type}' == 'postgres' or '${settings.database.type}' == 'mysql'")
+    static class DatabaseSettingsConfiguration {
 
-        @Bean(name = "applicationSettings")
-        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
-        ApplicationSettings cachingApplicationSettings(
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.database.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+        CachingApplicationSettings cachingJdbcApplicationSettings(
                 JdbcApplicationSettings jdbcApplicationSettings,
                 ApplicationSettingsCacheProperties applicationSettingsCacheProperties) {
 
@@ -59,11 +65,11 @@ public class SettingsConfiguration {
 
         @Bean
         JdbcApplicationSettings jdbcApplicationSettings(
-                @Value("${settings.stored-requests-query}") String storedRequestsQuery,
-                @Value("${settings.amp-stored-requests-query}") String ampStoreRequestsQuery,
+                @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
+                @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
                 JdbcClient jdbcClient) {
 
-            return new JdbcApplicationSettings(jdbcClient, storedRequestsQuery, ampStoreRequestsQuery);
+            return new JdbcApplicationSettings(jdbcClient, storedRequestsQuery, ampStoredRequestsQuery);
         }
 
         @Bean
@@ -100,8 +106,8 @@ public class SettingsConfiguration {
     }
 
     @Component
-    @ConfigurationProperties(prefix = "settings")
-    @ConditionalOnExpression("'${settings.type}' == 'postgres' or '${settings.type}' == 'mysql'")
+    @ConfigurationProperties(prefix = "settings.database")
+    @ConditionalOnExpression("'${settings.database.type}' == 'postgres' or '${settings.database.type}' == 'mysql'")
     @Validated
     @Data
     @NoArgsConstructor
@@ -125,8 +131,8 @@ public class SettingsConfiguration {
     }
 
     @Component
-    @ConfigurationProperties(prefix = "settings.in-memory-cache")
-    @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+    @ConfigurationProperties(prefix = "settings.database.in-memory-cache")
+    @ConditionalOnProperty(prefix = "settings.database.in-memory-cache", name = {"ttl-seconds", "cache-size"})
     @Validated
     @Data
     @NoArgsConstructor
@@ -138,5 +144,29 @@ public class SettingsConfiguration {
         @NotNull
         @Min(1)
         private Integer cacheSize;
+    }
+
+    /**
+     * This configuration defines what type of application settings will take part and its ordering.
+     */
+    @Configuration
+    static class CompositeApplicationSettingsConfiguration {
+
+        @Bean
+        CompositeApplicationSettings compositeApplicationSettings(
+                @Autowired(required = false) FileApplicationSettings fileApplicationSettings,
+                @Autowired(required = false) JdbcApplicationSettings jdbcApplicationSettings,
+                @Autowired(required = false) CachingApplicationSettings cachingJdbcApplicationSettings) {
+
+            final ApplicationSettings databaseApplicationSettings = cachingJdbcApplicationSettings != null
+                    ? cachingJdbcApplicationSettings : jdbcApplicationSettings;
+
+            final List<ApplicationSettings> applicationSettingsList =
+                    Stream.of(fileApplicationSettings, databaseApplicationSettings)
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toList());
+
+            return new CompositeApplicationSettings(applicationSettingsList);
+        }
     }
 }

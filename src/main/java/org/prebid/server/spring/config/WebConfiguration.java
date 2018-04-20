@@ -35,7 +35,7 @@ import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
-import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.CompositeApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.springframework.beans.factory.annotation.Value;
@@ -136,7 +136,7 @@ public class WebConfiguration {
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AuctionHandler auctionHandler(
-            ApplicationSettings applicationSettings,
+            CompositeApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             PreBidRequestContextFactory preBidRequestContextFactory,
             CacheService cacheService,
@@ -144,8 +144,8 @@ public class WebConfiguration {
             HttpAdapterConnector httpAdapterConnector,
             Clock clock) {
 
-        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
-                metrics, httpAdapterConnector, clock);
+        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
+                cacheService, metrics, httpAdapterConnector, clock);
     }
 
     @Bean

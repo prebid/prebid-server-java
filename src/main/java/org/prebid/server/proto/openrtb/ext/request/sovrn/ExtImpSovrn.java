@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.sovrn.proto;
+package org.prebid.server.proto.openrtb.ext.request.sovrn;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
