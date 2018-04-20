@@ -33,6 +33,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -211,9 +212,81 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
                 .extracting(ExtBidRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
-                .extracting(ExtRequestTargeting::getPricegranularity)
-                .containsExactly(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
-                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))));
+                .extracting(ExtRequestTargeting::getPricegranularity, ExtRequestTargeting::getIncludewinners)
+                .containsExactly(
+                        tuple(
+                                // default priceGranularity
+                                mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
+                                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))),
+                                // default includeWinners
+                                true));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithDefaultIncludeWinnersIfStoredBidRequestExtTargetingHasNoIncludeWinners() {
+        // given
+        given(httpRequest.getParam(anyString())).willReturn("tagId");
+
+        final BidRequest bidRequest = givenBidRequestWithExt(
+                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null), null);
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludewinners, ExtRequestTargeting::getPricegranularity)
+                // assert that includeWinners was set with default value and priceGranularity remained unchanged
+                .containsExactly(
+                        tuple(true, mapper.createObjectNode().put("foo", "bar")));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithDefaultPriceGranularityIfStoredBidRequestExtTargetingHasNoPriceGranularity() {
+        // given
+        given(httpRequest.getParam(anyString())).willReturn("tagId");
+
+        final BidRequest bidRequest = givenBidRequestWithExt(
+                ExtRequestTargeting.of(null, false), null);
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludewinners, ExtRequestTargeting::getPricegranularity)
+                // assert that priceGranularity was set with default value and includeWinners remained unchanged
+                .containsExactly(
+                        tuple(
+                                false,
+                                mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
+                                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))));
     }
 
     private Answer<Object> answerWithFirstArgument() {

@@ -119,16 +119,25 @@ public class AuctionRequestFactory {
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()));
         }
-
         final ExtRequestPrebid prebid = extBidRequest.getPrebid();
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
 
-        if (targeting != null) {
+        if (targeting == null) {
+            return null;
+        }
+
+        final boolean isPriceGranularityNull = targeting.getPricegranularity().isNull();
+        final boolean isPriceGranularityTextual = targeting.getPricegranularity().isTextual();
+        final boolean isIncludeWinnersNull = targeting.getIncludewinners() == null;
+
+        if (isIncludeWinnersNull || isPriceGranularityNull || isPriceGranularityTextual) {
             return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                     prebid.getAliases(),
                     prebid.getBidadjustmentfactors(),
-                    ExtRequestTargeting.of(populatePriceGranularity(targeting.getPricegranularity()),
-                            targeting.getIncludewinners()),
+                    ExtRequestTargeting.of(
+                            populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
+                                    isPriceGranularityTextual),
+                            isIncludeWinnersNull ? true : targeting.getIncludewinners()),
                     prebid.getStoredrequest(),
                     prebid.getCache())));
         }
@@ -142,19 +151,19 @@ public class AuctionRequestFactory {
      * In case of invalid string value throws {@link InvalidRequestException}.
      * In case of missing Json node sets default custom value.
      */
-    private JsonNode populatePriceGranularity(JsonNode priceGranularityNode) {
-        if (!priceGranularityNode.isNull()) {
-            if (priceGranularityNode.isTextual()) {
-                final PriceGranularity priceGranularity;
-                try {
-                    priceGranularity = PriceGranularity.createFromString(priceGranularityNode.textValue());
-                } catch (PreBidException ex) {
-                    throw new InvalidRequestException(ex.getMessage());
-                }
-                return Json.mapper.valueToTree(priceGranularity.getBuckets());
-            }
-        } else {
+    private JsonNode populatePriceGranularity(JsonNode priceGranularityNode, boolean isPriceGranularityNull,
+                                              boolean isPriceGranularityTextual) {
+        if (isPriceGranularityNull) {
             return Json.mapper.valueToTree(PriceGranularity.DEFAULT.getBuckets());
+        }
+        if (isPriceGranularityTextual) {
+            final PriceGranularity priceGranularity;
+            try {
+                priceGranularity = PriceGranularity.createFromString(priceGranularityNode.textValue());
+            } catch (PreBidException ex) {
+                throw new InvalidRequestException(ex.getMessage());
+            }
+            return Json.mapper.valueToTree(priceGranularity.getBuckets());
         }
         return priceGranularityNode;
     }

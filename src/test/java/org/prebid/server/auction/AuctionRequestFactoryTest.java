@@ -29,7 +29,6 @@ import org.prebid.server.validation.model.ValidationResult;
 import java.math.BigDecimal;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -296,6 +295,30 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestTargeting::getPricegranularity)
                 .containsOnly(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
                         BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))));
+    }
+
+    @Test
+    public void shouldSetDefaultIncludeWinnersIfIncludeWinnersIsMissed() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(null, null), null, null))))
+                .build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludewinners)
+                .containsOnly(true);
     }
 
     @Test
