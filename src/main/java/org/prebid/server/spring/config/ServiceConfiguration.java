@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Properties;
@@ -68,7 +69,7 @@ public class ServiceConfiguration {
 
     @Bean
     AuctionRequestFactory auctionRequestFactory(
-            @Value("${auction.max-request-size}") int maxRequestSize,
+            @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,

@@ -2,15 +2,18 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
+import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.CompositeApplicationSettings;
 import org.prebid.server.settings.FileApplicationSettings;
+import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.vertx.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,12 +58,12 @@ public class SettingsConfiguration {
         @ConditionalOnProperty(prefix = "settings.database.in-memory-cache", name = {"ttl-seconds", "cache-size"})
         CachingApplicationSettings cachingJdbcApplicationSettings(
                 JdbcApplicationSettings jdbcApplicationSettings,
-                ApplicationSettingsCacheProperties applicationSettingsCacheProperties) {
+                JdbcApplicationSettingsCacheProperties jdbcApplicationSettingsCacheProperties) {
 
             return new CachingApplicationSettings(
                     jdbcApplicationSettings,
-                    applicationSettingsCacheProperties.getTtlSeconds(),
-                    applicationSettingsCacheProperties.getCacheSize());
+                    jdbcApplicationSettingsCacheProperties.getTtlSeconds(),
+                    jdbcApplicationSettingsCacheProperties.getCacheSize());
         }
 
         @Bean
@@ -94,75 +97,118 @@ public class SettingsConfiguration {
                     .put("min_pool_size", storedRequestsDatabaseProperties.getPoolSize())
                     .put("max_pool_size", storedRequestsDatabaseProperties.getPoolSize()));
         }
+
+        @Component
+        @ConfigurationProperties(prefix = "settings.database")
+        @ConditionalOnExpression("'${settings.database.type}' == 'postgres' or '${settings.database.type}' == 'mysql'")
+        @Validated
+        @Data
+        @NoArgsConstructor
+        private static class StoredRequestsDatabaseProperties {
+
+            @NotNull
+            private DbType type;
+            @NotNull
+            @Min(1)
+            private Integer poolSize;
+            @NotBlank
+            private String host;
+            @NotNull
+            private Integer port;
+            @NotBlank
+            private String dbname;
+            @NotBlank
+            private String user;
+            @NotBlank
+            private String password;
+        }
+
+        @AllArgsConstructor
+        private enum DbType {
+            postgres("jdbc:postgresql:", "org.postgresql.Driver"),
+            mysql("jdbc:mysql:", "com.mysql.cj.jdbc.Driver");
+
+            private final String jdbcUrlPrefix;
+            private final String jdbcDriver;
+        }
+
+        @Component
+        @ConfigurationProperties(prefix = "settings.database.in-memory-cache")
+        @ConditionalOnProperty(prefix = "settings.database.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+        @Validated
+        @Data
+        @NoArgsConstructor
+        private static class JdbcApplicationSettingsCacheProperties {
+
+            @NotNull
+            @Min(1)
+            private Integer ttlSeconds;
+            @NotNull
+            @Min(1)
+            private Integer cacheSize;
+        }
     }
 
-    @AllArgsConstructor
-    private enum DbType {
-        postgres("jdbc:postgresql:", "org.postgresql.Driver"),
-        mysql("jdbc:mysql:", "com.mysql.cj.jdbc.Driver");
+    @Configuration
+    @ConditionalOnProperty(prefix = "settings.http", name = {"endpoint", "amp-endpoint"})
+    static class HttpSettingsConfiguration {
 
-        private final String jdbcUrlPrefix;
-        private final String jdbcDriver;
-    }
+        @Bean
+        HttpApplicationSettings httpApplicationSettings(
+                HttpClient httpClient,
+                @Value("${settings.http.endpoint}") String endpoint,
+                @Value("${settings.http.amp-endpoint}") String ampEndpoint) {
 
-    @Component
-    @ConfigurationProperties(prefix = "settings.database")
-    @ConditionalOnExpression("'${settings.database.type}' == 'postgres' or '${settings.database.type}' == 'mysql'")
-    @Validated
-    @Data
-    @NoArgsConstructor
-    private static class StoredRequestsDatabaseProperties {
+            return new HttpApplicationSettings(httpClient, endpoint, ampEndpoint);
+        }
 
-        @NotNull
-        private DbType type;
-        @NotNull
-        @Min(1)
-        private Integer poolSize;
-        @NotBlank
-        private String host;
-        @NotNull
-        private Integer port;
-        @NotBlank
-        private String dbname;
-        @NotBlank
-        private String user;
-        @NotBlank
-        private String password;
-    }
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.http.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+        CachingApplicationSettings cachingHttpApplicationSettings(
+                HttpApplicationSettings httpApplicationSettings,
+                HttpApplicationSettingsCacheProperties httpApplicationSettingsCacheProperties) {
 
-    @Component
-    @ConfigurationProperties(prefix = "settings.database.in-memory-cache")
-    @ConditionalOnProperty(prefix = "settings.database.in-memory-cache", name = {"ttl-seconds", "cache-size"})
-    @Validated
-    @Data
-    @NoArgsConstructor
-    private static class ApplicationSettingsCacheProperties {
+            return new CachingApplicationSettings(
+                    httpApplicationSettings,
+                    httpApplicationSettingsCacheProperties.getTtlSeconds(),
+                    httpApplicationSettingsCacheProperties.getCacheSize());
+        }
 
-        @NotNull
-        @Min(1)
-        private Integer ttlSeconds;
-        @NotNull
-        @Min(1)
-        private Integer cacheSize;
+        @Component
+        @ConfigurationProperties(prefix = "settings.http.in-memory-cache")
+        @ConditionalOnProperty(prefix = "settings.http.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+        @Validated
+        @Data
+        @NoArgsConstructor
+        private static class HttpApplicationSettingsCacheProperties {
+
+            @NotNull
+            @Min(1)
+            private Integer ttlSeconds;
+            @NotNull
+            @Min(1)
+            private Integer cacheSize;
+        }
     }
 
     /**
-     * This configuration defines what type of application settings will take part and its ordering.
+     * This configuration defines a collection of application settings fetchers and its ordering.
      */
     @Configuration
-    static class CompositeApplicationSettingsConfiguration {
+    static class CompositeSettingsConfiguration {
 
         @Bean
         CompositeApplicationSettings compositeApplicationSettings(
                 @Autowired(required = false) FileApplicationSettings fileApplicationSettings,
                 @Autowired(required = false) JdbcApplicationSettings jdbcApplicationSettings,
-                @Autowired(required = false) CachingApplicationSettings cachingJdbcApplicationSettings) {
-
-            final ApplicationSettings databaseApplicationSettings = cachingJdbcApplicationSettings != null
-                    ? cachingJdbcApplicationSettings : jdbcApplicationSettings;
+                @Autowired(required = false) CachingApplicationSettings cachingJdbcApplicationSettings,
+                @Autowired(required = false) HttpApplicationSettings httpApplicationSettings,
+                @Autowired(required = false) CachingApplicationSettings cachingHttpApplicationSettings) {
 
             final List<ApplicationSettings> applicationSettingsList =
-                    Stream.of(fileApplicationSettings, databaseApplicationSettings)
+                    Stream.of(fileApplicationSettings,
+                            ObjectUtils.firstNonNull(cachingJdbcApplicationSettings, jdbcApplicationSettings),
+                            ObjectUtils.firstNonNull(cachingHttpApplicationSettings, httpApplicationSettings))
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
 
