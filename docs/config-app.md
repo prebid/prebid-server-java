@@ -23,6 +23,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.connect-timeout-ms` - set the connect timeout.
 
 ## Auction
+- `auction.update-rates-period` - default default period to update currency rates.
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.

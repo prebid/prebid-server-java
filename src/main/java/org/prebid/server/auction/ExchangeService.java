@@ -487,7 +487,7 @@ public class ExchangeService {
             final String bidCurrency = bidderBid.getBidCurrency();
             final Bid bid = bidderBid.getBid();
             final BigDecimal originPrice = bid.getPrice();
-            BigDecimal convertedPrice;
+            final BigDecimal convertedPrice;
 
             try {
                 convertedPrice = currencyService.convertCurrency(originPrice, currencyRates, adServerCurrency,

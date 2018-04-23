@@ -15,7 +15,6 @@ import java.util.Objects;
  */
 public class CurrencyService {
 
-    private static final Integer SCALE = 5;
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final LatestRatesService latestRatesService;
@@ -50,16 +49,14 @@ public class CurrencyService {
         if (conversionRate == null) {
             final Map<String, Map<String, BigDecimal>> latestRates = latestRatesService.getRates();
 
-            if (latestRates != null) {
-                conversionRate = getConversionRate(latestRates, adServerCurrency, bidCurrency);
-            }
+            conversionRate = getConversionRate(latestRates, adServerCurrency, bidCurrency);
         }
 
         if (conversionRate == null) {
             throw new PreBidException("no currency conversion available");
         }
 
-        return price.divide(conversionRate, SCALE, BigDecimal.ROUND_FLOOR);
+        return price.divide(conversionRate, conversionRate.precision(), BigDecimal.ROUND_HALF_EVEN);
     }
 
     /**
@@ -68,13 +65,13 @@ public class CurrencyService {
      */
     private static BigDecimal getConversionRate(Map<String, Map<String, BigDecimal>> conversions,
                                                 String adServerCurrency, String bidCurrency) {
-        BigDecimal conversionRate;
-        final Map<String, BigDecimal> serverCurrencyRates = conversions.get(adServerCurrency);
-        final Map<String, BigDecimal> bidCurrencyRates = conversions.get(bidCurrency);
-
         if (MapUtils.isEmpty(conversions)) {
             return null;
         }
+
+        BigDecimal conversionRate;
+        final Map<String, BigDecimal> serverCurrencyRates = conversions.get(adServerCurrency);
+        final Map<String, BigDecimal> bidCurrencyRates = conversions.get(bidCurrency);
 
         conversionRate = serverCurrencyRates != null ? serverCurrencyRates.get(bidCurrency) : null;
         if (conversionRate != null) {
@@ -95,10 +92,13 @@ public class CurrencyService {
      */
     private static BigDecimal findReverseConversionRate(Map<String, BigDecimal> bidCurrencyRates,
                                                         String adServerCurrency) {
-        BigDecimal reverseConversionRate = bidCurrencyRates != null ? bidCurrencyRates.get(adServerCurrency) : null;
+        final BigDecimal reverseConversionRate = bidCurrencyRates != null
+                ? bidCurrencyRates.get(adServerCurrency)
+                : null;
 
         return reverseConversionRate != null
-                ? BigDecimal.ONE.divide(reverseConversionRate, SCALE, BigDecimal.ROUND_FLOOR)
+                ? BigDecimal.ONE.divide(reverseConversionRate, reverseConversionRate.precision(),
+                BigDecimal.ROUND_HALF_EVEN)
                 : null;
     }
 
@@ -117,10 +117,14 @@ public class CurrencyService {
             if (!sharedCurrencies.isEmpty()) {
                 // pick any found shared currency
                 final String sharedCurrency = sharedCurrencies.get(0);
-
-                conversionRate = adServerCurrencyRates.get(sharedCurrency).multiply(
-                        BigDecimal.ONE.divide(bidCurrencyRates.get(sharedCurrency), SCALE,
-                                BigDecimal.ROUND_FLOOR));
+                final BigDecimal adServerCurrencyRateIntermediate = adServerCurrencyRates.get(sharedCurrency);
+                final BigDecimal bidCurrencyRateIntermediate = bidCurrencyRates.get(sharedCurrency);
+                conversionRate = adServerCurrencyRateIntermediate.divide(bidCurrencyRateIntermediate,
+                        // chose largest precision among intermediate rates
+                        bidCurrencyRateIntermediate.compareTo(adServerCurrencyRateIntermediate) > 0
+                                ? bidCurrencyRateIntermediate.precision()
+                                : adServerCurrencyRateIntermediate.precision(),
+                        BigDecimal.ROUND_HALF_EVEN);
             }
         }
         return conversionRate;

@@ -125,10 +125,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    LatestRatesService latestRatesService(Vertx vertx, HttpClient httpClient) {
+    LatestRatesService latestRatesService(@Value("${auction.update-rates-period}") long period, Vertx vertx,
+                                          HttpClient httpClient) {
         final LatestRatesService latestRatesService = new LatestRatesService(httpClient);
         // update currency every 15 minutes
-        vertx.setPeriodic(900000, aLong -> latestRatesService.updateRates());
+        vertx.setPeriodic(period, aLong -> latestRatesService.updateRates());
         return latestRatesService;
     }
 

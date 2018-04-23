@@ -57,8 +57,7 @@ public class CurrencyServiceTest {
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestCurrency, "GBP", null);
 
         // then
-        System.out.println(price);
-        assertThat(price.compareTo(BigDecimal.valueOf(0.699))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(0.69901))).isEqualTo(0);
     }
 
     @Test
@@ -71,7 +70,7 @@ public class CurrencyServiceTest {
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestCurrency, "GBP", "EUR");
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(0.86467))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(0.86468))).isEqualTo(0);
     }
 
     @Test
@@ -84,7 +83,7 @@ public class CurrencyServiceTest {
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestCurrency, "EUR", "GBP");
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.15651))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(1.1565))).isEqualTo(0);
     }
 
     @Test
@@ -99,14 +98,14 @@ public class CurrencyServiceTest {
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestCurrency, "EUR", "GBP");
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.16272))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(1.16271))).isEqualTo(0);
     }
 
     @Test
     public void convertCurrencyShouldUseLatestRatesIfRequestRatesIsNull() {
         // given
         final Map<String, Map<String, BigDecimal>> latestRates = singletonMap("GBP",
-                singletonMap("EUR", BigDecimal.valueOf(1.1565)));
+                singletonMap("EUR", BigDecimal.valueOf(1.15)));
 
         given(latestRatesService.getRates()).willReturn(latestRates);
 
@@ -115,7 +114,7 @@ public class CurrencyServiceTest {
 
         // then
         verify(latestRatesService).getRates();
-        assertThat(price.compareTo(BigDecimal.valueOf(1.15651))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(1.149))).isEqualTo(0);
     }
 
     @Test
@@ -134,7 +133,7 @@ public class CurrencyServiceTest {
 
         // then
         verify(latestRatesService).getRates();
-        assertThat(price.compareTo(BigDecimal.valueOf(1.15651))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(1.1565))).isEqualTo(0);
     }
 
     @Test
