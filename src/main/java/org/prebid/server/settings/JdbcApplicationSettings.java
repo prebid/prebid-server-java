@@ -41,6 +41,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         this.selectAmpStoredRequestsQuery = Objects.requireNonNull(selectAmpQuery);
     }
 
+    /**
+     * Runs a process to get account by id from database
+     * and returns {@link Future&lt;{@link Account}&gt;}
+     */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT uuid, price_granularity FROM accounts_account where uuid = ? LIMIT 1",
@@ -49,6 +53,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 timeout);
     }
 
+    /**
+     * Runs a process to get AdUnit config by id from database
+     * and returns {@link Future&lt;{@link String}&gt;}
+     */
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1",
@@ -58,8 +66,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Runs a process to get StoredRequest by ids from database and returns
-     * {@link Future&lt;{@link StoredRequestResult }&gt;}
+     * Runs a process to get stored requests by a collection of ids from database
+     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
      */
     @Override
     public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, Timeout timeout) {
@@ -67,19 +75,22 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Runs a process to get StoredRequest by amp ids from database and returns {@link Future<StoredRequestResult>}
+     * Runs a process to get stored requests by a collection of amp ids from database
+     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
      */
     @Override
     public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, Timeout timeout) {
         return fetchStoredRequests(selectAmpStoredRequestsQuery, ids, timeout);
     }
 
+    /**
+     * Transforms the first row of {@link ResultSet} to required object.
+     */
     private <T> T mapToModelOrError(ResultSet result, Function<JsonArray, T> mapper) {
         if (result == null || result.getResults() == null || result.getResults().isEmpty()) {
             throw new PreBidException("Not found");
-        } else {
-            return mapper.apply(result.getResults().get(0));
         }
+        return mapper.apply(result.getResults().get(0));
     }
 
     /**
@@ -127,6 +138,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
             if (storedIdToJson.size() < ids.size()) {
                 final Set<String> missedIds = new HashSet<>(ids);
                 missedIds.removeAll(storedIdToJson.keySet());
+
                 errors.addAll(missedIds.stream()
                         .map(id -> String.format("No config found for id: %s", id))
                         .collect(Collectors.toList()));
