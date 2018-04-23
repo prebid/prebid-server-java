@@ -19,7 +19,8 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -181,10 +182,9 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ext -> Json.mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
                 .extracting(ExtBidRequest::getPrebid)
                 .containsExactly(ExtRequestPrebid.of(emptyMap(),
-                       emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(
-                        singletonList(ExtPriceGranularityBucket.of(2, new BigDecimal(0), new BigDecimal(20),
-                                new BigDecimal("0.1")))), true), null,
-                        ExtRequestPrebidCache.of(Json.mapper.createObjectNode())));
+                        emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))),
+                                true), null, ExtRequestPrebidCache.of(Json.mapper.createObjectNode())));
     }
 
     @Test
@@ -213,13 +213,12 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtBidRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getPricegranularity, ExtRequestTargeting::getIncludewinners)
-                .containsExactly(
-                        tuple(
-                                // default priceGranularity
-                                mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
-                                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))),
-                                // default includeWinners
-                                true));
+                .containsExactly(tuple(
+                        // default priceGranularity
+                        mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
+                                BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))),
+                        // default includeWinners
+                        true));
     }
 
     @Test
@@ -284,9 +283,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 // assert that priceGranularity was set with default value and includeWinners remained unchanged
                 .containsExactly(
                         tuple(
-                                false,
-                                mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
-                                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))));
+                                false, mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))))));
     }
 
     private Answer<Object> answerWithFirstArgument() {
