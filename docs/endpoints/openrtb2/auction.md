@@ -113,6 +113,20 @@ The only exception here is the top-level `BidResponse`, because it's bidder-inde
 
 Exceptions are made for DigiTrust and GDPR, so that we define `ext` according to the official recommendations.
 
+#### Bid Adjustments
+ 
+Bidders [are encouraged](../../developers/add-new-bidder.md) to make Net bids. However, there's no way for Prebid to enforce this.
+If you find that some bidders use Gross bids, publishers can adjust for it with `request.ext.prebid.bidadjustmentfactors`:
+ 
+ ```
+ {
+   "appnexus: 0.8,
+   "rubicon": 0.7
+ }
+ ```
+ 
+This may also be useful for publishers who want to account for different discrepancies with different bidders.
+
 #### Targeting
 
 Targeting refers to strings which are sent to the adserver to
@@ -125,17 +139,18 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
 
 ```
 {
-  "pricegranularity": [{
-     "precision": 2,
-     "min":0.0,
-     "max":20.0
-     "increment":0.1 }], // Required property.
+  "pricegranularity": {
+       "precision": 2,
+           "ranges": [{
+           "max":20.0
+       "increment":0.1 }], // The default is the "medium" price granularity, same as providing the deprecated "medium" string granularity.
   "includewinners": false // Optional param defaulting to true
 }
 ```
-The list of price granularity ranges must be given in order of increasing `max` values. `max` and `precision` are required. If `precision` is omitted, it will default to `2`. If `min` is omitted, it will default to the previous `max`.
 
-For backwards compatibility the following strings will also be allowed as price granularity definitions. There is no guarantee that these will be honored in the future. "One of ['low', 'med', 'high', 'auto', 'dense']"
+The list of price granularity ranges must be given in order of increasing `max` values. If `precision` is omitted, it will default to `2`. The minimum of a range will be 0 or the previous `max`. Any cmp above the largest `max` will go in the `max` pricebucket.
+
+For backwards compatibility the following strings will also be allowed as price granularity definitions. There is no guarantee that these will be honored in the future. "One of ['low', 'med', 'high', 'auto', 'dense']" See [price granularity definitions](http://prebid.org/prebid-mobile/adops-price-granularity.html)
 
 **Response format** (returned in `bid.ext.prebid.targeting`)
 
