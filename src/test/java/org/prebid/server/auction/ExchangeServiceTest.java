@@ -39,7 +39,8 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -61,7 +62,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
@@ -575,9 +575,9 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), true),
-                        null, null)))));
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
+                                true), null, null)))));
 
         given(responseBidValidator.validate(any()))
                 .willReturn(ValidationResult.error("bid validation error"));
@@ -606,9 +606,9 @@ public class ExchangeServiceTest extends VertxTest {
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1")),
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), null),
-                        null, null)))));
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
+                                null), null, null)))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
@@ -640,9 +640,9 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), null), null,
-                        ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
+                                null), null, ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
@@ -674,9 +674,9 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), null), null,
-                        ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
+                                null), null, ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
@@ -708,9 +708,9 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), null), null,
-                        ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
+                                null), null, ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
@@ -741,9 +741,9 @@ public class ExchangeServiceTest extends VertxTest {
                 givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
                 givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), null), null,
-                        null)))));
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
+                                null), null, null)))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
@@ -770,9 +770,9 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), false),
-                        null, null)))));
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
+                                false), null, null)))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
@@ -916,9 +916,9 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), null),
-                        null, ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
+                                null), null, ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
         // when
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
