@@ -155,7 +155,7 @@ public class AmpRequestFactory {
         return updateBidRequest(bidRequest, updatedSite, updatedImp, updatedTimeout);
     }
 
-    private List<Format> overwriteBannerFormats(HttpServerRequest request) {
+    private static List<Format> overwriteBannerFormats(HttpServerRequest request) {
         final Integer ow = parseIntParam(request, OW_REQUEST_PARAM);
         final Integer oh = parseIntParam(request, OH_REQUEST_PARAM);
         final Integer w = parseIntParam(request, W_REQUEST_PARAM);
@@ -189,7 +189,7 @@ public class AmpRequestFactory {
         return formats;
     }
 
-    private Site overwriteSitePage(Site site, HttpServerRequest request) {
+    private static Site overwriteSitePage(Site site, HttpServerRequest request) {
         final String canonicalURL = canonicalUrl(request);
         if (StringUtils.isNotBlank(canonicalURL) && site != null) {
             return site.toBuilder().page(canonicalURL).build();
@@ -216,7 +216,8 @@ public class AmpRequestFactory {
                 .build();
     }
 
-    private BidRequest updateBidRequest(BidRequest bidRequest, Site outgoingSite, Imp outgoingImp, Integer timeout) {
+    private static BidRequest updateBidRequest(BidRequest bidRequest, Site outgoingSite, Imp outgoingImp,
+                                               Integer timeout) {
         final boolean isValidTimeout = timeout != null && timeout > 0;
         if (outgoingSite != null || outgoingImp != null || isValidTimeout) {
             return bidRequest.toBuilder()
@@ -256,7 +257,7 @@ public class AmpRequestFactory {
         return formats;
     }
 
-    private String canonicalUrl(HttpServerRequest request) {
+    private static String canonicalUrl(HttpServerRequest request) {
         try {
             return HttpUtil.decodeUrl(request.getParam(CURL_REQUEST_PARAM));
         } catch (IllegalArgumentException e) {
