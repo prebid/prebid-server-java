@@ -21,6 +21,7 @@ auction:
   max-request-size: 262144
 amp:
   default-timeout-ms: 900
+  timeout-adjustment-ms: 30
 adapters:
   adform:
     enabled: false

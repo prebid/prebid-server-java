@@ -2,8 +2,11 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.Json;
@@ -59,14 +62,13 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Before
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
-
-        factory = new AmpRequestFactory(storedRequestProcessor, auctionRequestFactory);
+        factory = new AmpRequestFactory(100, storedRequestProcessor, auctionRequestFactory);
     }
 
     @Test
     public void shouldReturnFailedFutureIfRequestHasNoTagId() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn(null);
+        given(httpRequest.getParam("tag_id")).willReturn(null);
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -82,7 +84,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestHasNoImp() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final BidRequest bidRequest = givenBidRequest(identity());
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
@@ -100,7 +102,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestHasMoreThenOneImp() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final Imp imp = Imp.builder().build();
         final BidRequest bidRequest = givenBidRequest(identity(), imp, imp);
@@ -119,7 +121,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestHasNoExt() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final BidRequest bidRequest = givenBidRequest(identity(), Imp.builder().build());
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
@@ -137,7 +139,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestExtCouldNotBeParsed() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final ObjectNode ext = (ObjectNode) mapper.createObjectNode()
                 .set("prebid", new TextNode("non-ExtBidRequest"));
@@ -157,7 +159,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultPrebidValuesIfPrebidIsNull() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final ObjectNode extBidRequest = mapper.valueToTree(ExtBidRequest.of(null));
         final BidRequest bidRequest = givenBidRequest(builder -> builder.ext(extBidRequest),
@@ -190,7 +192,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultTargetingIfStoredBidRequestExtHasNoTargeting() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final BidRequest bidRequest = givenBidRequestWithExt(null, null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
@@ -225,7 +227,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultIncludeWinnersIfStoredBidRequestExtTargetingHasNoIncludeWinners() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final BidRequest bidRequest = givenBidRequestWithExt(
                 ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null), null);
@@ -257,7 +259,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultPriceGranularityIfStoredBidRequestExtTargetingHasNoPriceGranularity() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final BidRequest bidRequest = givenBidRequestWithExt(
                 ExtRequestTargeting.of(null, false), null);
@@ -296,7 +298,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultCachingIfStoredBidRequestExtHasNoCaching() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final BidRequest bidRequest = givenBidRequestWithExt(null, null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
@@ -323,7 +325,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithImpSecureEqualsToOneIfInitiallyItWasNotSecured() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("tagId");
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
 
         final BidRequest bidRequest = givenBidRequestWithExt(null, null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
@@ -359,6 +361,613 @@ public class AmpRequestFactoryTest extends VertxTest {
         verify(auctionRequestFactory).fillImplicitParameters(captor.capture(), any());
 
         assertThat(captor.getValue().getTest()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenTagIdBySlotParamValue() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("slot")).willReturn("overwritten-tagId");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly("overwritten-tagId");
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenSitePageByCurlParamValue() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("curl")).willReturn("overwritten-site-page");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null)))
+                        .site(Site.builder().page("will-be-overwritten").build()),
+                Imp.builder().build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPage)
+                .containsOnly("overwritten-site-page");
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenBannerZeroFormatWidthSizeByWidthParam() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("w")).willReturn("1010");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(10)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW)
+                .containsOnly(1010);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOriginalBannerZeroFormatWidthSizeWhenWidthParamNotNumeric() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("w")).willReturn("invalid");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(10)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW)
+                .containsOnly(10);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenBannerZeroFormatHeightSizeByHeightParam() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("h")).willReturn("2020");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .h(20)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getH)
+                .containsOnly(2020);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOriginalBannerZeroFormatHeightSizeWhenHeightParamNotNumeric() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("h")).willReturn("invalid");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .h(20)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getH)
+                .containsOnly(20);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenBannerZeroFormatWithSizeByOverwriteWidthParam() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        // just for clarity that `w` doesn't make any impact
+        given(httpRequest.getParam("w")).willReturn("1010");
+        given(httpRequest.getParam("ow")).willReturn("100100");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(10)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW)
+                .containsOnly(100100);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOriginalBannerZeroFormatWidthSizeWhenOverwriteWidthParamNotNumeric() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("w")).willReturn("1010");
+        given(httpRequest.getParam("ow")).willReturn("invalid");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(10)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW)
+                .containsOnly(1010);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenBannerZeroFormatOverwriteHeightSizeByHeightParam() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        // just for clarity that `h` doesn't make any impact
+        given(httpRequest.getParam("h")).willReturn("2020");
+        given(httpRequest.getParam("oh")).willReturn("200200");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .h(20)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getH)
+                .containsOnly(200200);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOriginalBannerZeroFormatHeightSizeWhenOverwriteHeightParamNotNumeric() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("h")).willReturn("2020");
+        given(httpRequest.getParam("oh")).willReturn("invalid");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .h(20)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getH)
+                .containsOnly(2020);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenBannerFormatByOverwriteWHParamsRespectingThemOverWidthAndHeight() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("w")).willReturn("10");
+        given(httpRequest.getParam("ow")).willReturn("1000");
+        given(httpRequest.getParam("h")).willReturn("20");
+        given(httpRequest.getParam("oh")).willReturn("2000");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(1)
+                                        .h(2)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW, Format::getH)
+                .containsOnly(tuple(1000, 2000));
+    }
+
+    @Test
+    public void shouldReturnRequestWithOverwrittenBannerFormatByOverwriteWHParamsRespectingThemOverWHAndMSParams() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("w")).willReturn("10");
+        given(httpRequest.getParam("ow")).willReturn("1000");
+        given(httpRequest.getParam("h")).willReturn("20");
+        given(httpRequest.getParam("oh")).willReturn("2000");
+        given(httpRequest.getParam("ms")).willReturn("44x88,66x99");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(1)
+                                        .h(2)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW, Format::getH)
+                .containsOnly(tuple(1000, 2000));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenBannerFormatsByMultiSizeParams() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("ms")).willReturn("44x88,66x99");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(1)
+                                        .h(2)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW, Format::getH)
+                .containsOnly(tuple(44, 88), tuple(66, 99));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenBannerFormatsByMultiSizeAndWidthHeightParams() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("ms")).willReturn("44x88,66x99");
+        given(httpRequest.getParam("w")).willReturn("10");
+        given(httpRequest.getParam("h")).willReturn("20");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(1)
+                                        .h(2)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW, Format::getH)
+                .containsOnly(tuple(10, 20), tuple(44, 88), tuple(66, 99));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOriginalBannerFormatsWhenMultiSizeParamContainsCompletelyInvalidValue() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("ms")).willReturn(",");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(1)
+                                        .h(2)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW, Format::getH)
+                .containsOnly(tuple(1, 2));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenBannerFormatsWhenMultiSizeParamContainsPartiallyInvalidValue() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("ms")).willReturn(",33x,44x77,abc,");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(1)
+                                        .h(2)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW, Format::getH)
+                .containsOnly(tuple(44, 77));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverwrittenTmaxWhenTimeoutParamIsAvailable() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("timeout")).willReturn("1000");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getTmax)
+                .containsOnly(900L);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOriginalTmaxWhenTimeoutParamIsNotSufficient() {
+        // given
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("timeout")).willReturn("99");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .tmax(500L)
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getTmax)
+                .containsOnly(500L);
     }
 
     private static BidRequest givenBidRequest(

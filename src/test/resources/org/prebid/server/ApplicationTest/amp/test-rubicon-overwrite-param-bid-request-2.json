@@ -1,0 +1,108 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 160,
+            "h": 600
+          },
+          {
+            "w": 970,
+            "h": 90
+          },
+          {
+            "w": 320,
+            "h": 320
+          },
+          {
+            "w": 768,
+            "h": 720
+          }
+        ],
+        "w": 300,
+        "h": 600,
+        "ext": {
+          "rp": {
+            "size_id": 9,
+            "alt_size_ids": [
+              55,
+              72
+            ],
+            "mime": "text/html"
+          }
+        }
+      },
+      "secure": 1,
+      "ext": {
+        "rp": {
+          "zone_id": 7001,
+          "track": {
+            "mint": "",
+            "mint_version": ""
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "ext": {
+        "rp": {
+          "account_id": 5001
+        }
+      }
+    },
+    "ext": {
+      "rp": {
+        "site_id": 6001
+      }
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "192.168.244.1",
+    "ext": {
+      "rp": {}
+    }
+  },
+  "user": {
+    "buyeruid": "J5VLCWQP-26-CWFT"
+  },
+  "at": 1,
+  "tmax": 2000,
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": [
+          {
+            "precision": 2,
+            "min": 0,
+            "max": 3,
+            "increment": 0.01
+          },
+          {
+            "precision": 2,
+            "min": 3,
+            "max": 8,
+            "increment": 0.05
+          },
+          {
+            "precision": 2,
+            "min": 8,
+            "max": 20,
+            "increment": 0.5
+          }
+        ],
+        "includewinners": true
+      },
+      "cache": {
+        "bids": []
+      }
+    }
+  }
+}

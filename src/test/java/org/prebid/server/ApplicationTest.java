@@ -269,6 +269,74 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
+    public void ampShouldRequestWithOverwrittenBannerSizesBidRequestTmaxAndSitePageAndImpTagid() throws IOException {
+        // given
+        // rubicon exchange
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("amp/test-rubicon-overwrite-param-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("amp/test-rubicon-bid-response.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("amp/test-cache-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("amp/test-cache-response.json"))));
+
+        // when and then
+        given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
+                .when()
+                .get("/openrtb2/amp" +
+                        "?tag_id=test-amp-stored-request" +
+                        "&ow=980" +
+                        "&oh=120" +
+                        "&timeout=10000000" +
+                        "&slot=overwrite-tagId" +
+                        "&curl=https%3A%2F%2Fgoogle.com")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(jsonFrom("amp/test-amp-response.json")));
+    }
+
+    @Test
+    public void ampShouldRequestWithOverwrittenBannerSizesBidRequestUsingMultiSizeWidthAndHeight() throws IOException {
+        // given
+        // rubicon exchange
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("amp/test-rubicon-overwrite-param-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("amp/test-rubicon-bid-response.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("amp/test-cache-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("amp/test-cache-response.json"))));
+
+        // when and then
+        given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
+                .when()
+                .get("/openrtb2/amp" +
+                        "?tag_id=test-amp-stored-request" +
+                        "&w=160" +
+                        "&h=600" +
+                        "&ms=970x90,320x320,768x720")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(jsonFrom("amp/test-amp-response.json")));
+    }
+
+    @Test
     public void auctionShouldRespondWithBidsFromDifferentExchanges() throws IOException {
         // given
         // rubicon bid response for ad unit 1
