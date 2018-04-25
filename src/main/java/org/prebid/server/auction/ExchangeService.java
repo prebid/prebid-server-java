@@ -463,28 +463,19 @@ public class ExchangeService {
     /**
      * Applies correction to {@link Bid#price}
      * <p>
-     * Should be used when {@link BidderSeatBid} was validated
+     * Should be used after {@link BidderSeatBid} has been validated
      * by {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
      */
     private static BidderSeatBid applyBidPriceAdjustment(BidderSeatBid bidderSeatBid,
                                                          BigDecimal priceAdjustmentFactor) {
-        final List<BidderBid> bidderBids = bidderSeatBid.getBids();
-        return CollectionUtils.isEmpty(bidderBids) || priceAdjustmentFactor == null
-                ? bidderSeatBid
-                : BidderSeatBid.of(adjustBids(bidderBids, priceAdjustmentFactor),
-                bidderSeatBid.getHttpCalls(), bidderSeatBid.getErrors());
-    }
+        if (priceAdjustmentFactor != null) {
+            for (final BidderBid bidderBid : bidderSeatBid.getBids()) {
+                final Bid bid = bidderBid.getBid();
+                bid.setPrice(bid.getPrice().multiply(priceAdjustmentFactor));
+            }
+        }
 
-    private static List<BidderBid> adjustBids(List<BidderBid> bidderBids, BigDecimal priceAdjustmentFactor) {
-        return bidderBids.stream()
-                .map(bidderBid -> adjustBid(bidderBid, priceAdjustmentFactor))
-                .collect(Collectors.toList());
-    }
-
-    private static BidderBid adjustBid(BidderBid bidderBid, BigDecimal priceAdjustmentFactor) {
-        final Bid bid = bidderBid.getBid();
-        return BidderBid.of(bid.toBuilder().price(bid.getPrice().multiply(priceAdjustmentFactor)).build(),
-                bidderBid.getType());
+        return bidderSeatBid;
     }
 
     private int responseTime(long startTime) {
@@ -752,10 +743,11 @@ public class ExchangeService {
                 : null;
 
         final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords);
-
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
 
-        return bid.toBuilder().ext(Json.mapper.valueToTree(bidExt)).build();
+        bid.setExt(Json.mapper.valueToTree(bidExt));
+
+        return bid;
     }
 
     /**
