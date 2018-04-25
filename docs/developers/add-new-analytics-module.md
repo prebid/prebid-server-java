@@ -14,7 +14,7 @@ Your new module `org.prebid.server.analytics.{module}AnalyticsReporter` needs to
 
 In order to make Prebid Server aware of the new analytics module it needs to be added to the Spring Context in `org.prebid.server.spring.config.AnalyticsConfiguration` as a bean.
 
-Note: if the new implementation uses Vert.x `HttpClient` or other services that must not be shared between different verticle instances then `CompositeAnalyticsReporter` and `{module}AnalyticsReporter` in `org.prebid.server.spring.config.AnalyticsConfiguration` must have `prototype` scope. 
+Note: if the new implementation uses Vert.x `HttpClient` or other services that must not be shared between different verticle instances then `{module}AnalyticsReporter` in `org.prebid.server.spring.config.AnalyticsConfiguration` must have `prototype` scope. 
 
 ### Example
 
