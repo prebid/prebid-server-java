@@ -7,6 +7,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
+import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.PreBidRequestContextFactory;
@@ -127,10 +128,11 @@ public class ServiceConfiguration {
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog, ResponseBidValidator responseBidValidator,
-            CacheService cacheService, Metrics metrics, Clock clock) {
+            CacheService cacheService, BidResponsePostProcessor bidResponsePostProcessor, Metrics metrics,
+            Clock clock) {
 
-        return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, metrics, clock,
-                expectedCacheTimeMs);
+        return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, bidResponsePostProcessor,
+                metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean
@@ -184,5 +186,10 @@ public class ServiceConfiguration {
     @Bean
     TimeoutFactory timeoutFactory(Clock clock) {
         return new TimeoutFactory(clock);
+    }
+
+    @Bean
+    BidResponsePostProcessor bidResponsePostProcessor() {
+        return BidResponsePostProcessor.noOp();
     }
 }
