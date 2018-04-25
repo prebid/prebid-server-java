@@ -39,7 +39,7 @@ public class AmpRequestFactory {
     private static final String SLOT_REQUEST_PARAM = "slot";
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
 
-    private final int timeoutAdjustmentMs;
+    private final long timeoutAdjustmentMs;
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
 
@@ -66,7 +66,7 @@ public class AmpRequestFactory {
         return storedRequestProcessor.processAmpRequest(tagId)
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
-                .map(bidRequest -> overwriteParameters(bidRequest, context.request()))
+                .map(bidRequest -> overrideParameters(bidRequest, context.request()))
                 .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context))
                 .map(auctionRequestFactory::validateRequest);
     }
@@ -142,37 +142,40 @@ public class AmpRequestFactory {
                 : bidRequest;
     }
 
-    private BidRequest overwriteParameters(BidRequest bidRequest, HttpServerRequest request) {
-        final List<Format> overwrittenFormats = overwriteBannerFormats(request);
-        final Site updatedSite = overwriteSitePage(bidRequest.getSite(), request);
-        final String tagId = request.getParam(SLOT_REQUEST_PARAM);
-
-        final Imp updatedImp = updateImp(bidRequest.getImp().get(0), overwrittenFormats, tagId);
-
-        final Integer timeout = parseIntParam(request, TIMEOUT_REQUEST_PARAM);
-        final Integer updatedTimeout = timeout != null ? timeout - timeoutAdjustmentMs : null;
+    /**
+     * This method extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
+     */
+    private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
+        final Site updatedSite = overrideSitePage(bidRequest.getSite(), request);
+        final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
+        final Long updatedTimeout = updateTimeout(request);
 
         return updateBidRequest(bidRequest, updatedSite, updatedImp, updatedTimeout);
     }
 
-    private static List<Format> overwriteBannerFormats(HttpServerRequest request) {
+    private Long updateTimeout(HttpServerRequest request) {
+        Long timeout;
+        try {
+            timeout = Long.parseLong(request.getParam(TIMEOUT_REQUEST_PARAM));
+        } catch (NumberFormatException e) {
+            timeout = null;
+        }
+        return timeout != null ? timeout - timeoutAdjustmentMs : null;
+    }
+
+    private static List<Format> overrideBannerFormats(HttpServerRequest request) {
         final Integer ow = parseIntParam(request, OW_REQUEST_PARAM);
+        final Integer formatWidth = ow != null ? ow : parseIntParam(request, W_REQUEST_PARAM);
+
         final Integer oh = parseIntParam(request, OH_REQUEST_PARAM);
-        final Integer w = parseIntParam(request, W_REQUEST_PARAM);
-        final Integer h = parseIntParam(request, H_REQUEST_PARAM);
+        final Integer formatHeight = oh != null ? oh : parseIntParam(request, H_REQUEST_PARAM);
+
+        final Format format = formatWidth != null || formatHeight != null
+                ? Format.builder().w(formatWidth).h(formatHeight).build()
+                : null;
+
         final String ms = request.getParam(MS_REQUEST_PARAM);
-
-        Format format = null;
-        if (ow != null || oh != null || w != null || h != null) {
-            final Integer formatWidth = ow != null ? ow : w;
-            final Integer formatHeight = oh != null ? oh : h;
-            format = Format.builder().w(formatWidth).h(formatHeight).build();
-        }
-
-        List<Format> multiSizeFormats = null;
-        if (StringUtils.isNotBlank(ms)) {
-            multiSizeFormats = parseMultiSizeParam(ms);
-        }
+        final List<Format> multiSizeFormats = StringUtils.isNotBlank(ms) ? parseMultiSizeParam(ms) : null;
 
         List<Format> formats = null;
         if (format != null || CollectionUtils.isNotEmpty(multiSizeFormats)) {
@@ -189,41 +192,43 @@ public class AmpRequestFactory {
         return formats;
     }
 
-    private static Site overwriteSitePage(Site site, HttpServerRequest request) {
-        final String canonicalURL = canonicalUrl(request);
-        if (StringUtils.isNotBlank(canonicalURL) && site != null) {
-            return site.toBuilder().page(canonicalURL).build();
+    private static Site overrideSitePage(Site site, HttpServerRequest request) {
+        final String canonicalUrl = canonicalUrl(request);
+
+        if (StringUtils.isBlank(canonicalUrl)) {
+            return site;
         }
-        return null;
+
+        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
+        return siteBuilder.page(canonicalUrl).build();
     }
 
-    private Imp updateImp(Imp imp, List<Format> formats, String tagId) {
-        if (StringUtils.isNotBlank(tagId) || CollectionUtils.isNotEmpty(formats)) {
+    private Imp overrideImp(Imp imp, HttpServerRequest request) {
+        final String tagId = request.getParam(SLOT_REQUEST_PARAM);
+        final List<Format> overwrittenFormats = overrideBannerFormats(request);
+        if (StringUtils.isNotBlank(tagId) || CollectionUtils.isNotEmpty(overwrittenFormats)) {
             return imp.toBuilder()
                     .tagid(StringUtils.isNotBlank(tagId) ? tagId : imp.getTagid())
-                    .banner(updateBanner(imp.getBanner(), formats))
+                    .banner(overrideBanner(imp.getBanner(), overwrittenFormats))
                     .build();
         }
         return null;
     }
 
-    private static Banner updateBanner(Banner banner, List<Format> formats) {
-        if (banner == null) {
-            return null;
-        }
-        return banner.toBuilder()
-                .format(CollectionUtils.isNotEmpty(formats) ? formats : banner.getFormat())
-                .build();
+    private static Banner overrideBanner(Banner banner, List<Format> formats) {
+        return banner != null && CollectionUtils.isNotEmpty(formats)
+                ? banner.toBuilder().format(formats).build()
+                : banner;
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, Site outgoingSite, Imp outgoingImp,
-                                               Integer timeout) {
+                                               Long timeout) {
         final boolean isValidTimeout = timeout != null && timeout > 0;
         if (outgoingSite != null || outgoingImp != null || isValidTimeout) {
             return bidRequest.toBuilder()
                     .site(outgoingSite != null ? outgoingSite : bidRequest.getSite())
                     .imp(outgoingImp != null ? Collections.singletonList(outgoingImp) : bidRequest.getImp())
-                    .tmax(isValidTimeout ? Long.valueOf(timeout) : bidRequest.getTmax())
+                    .tmax(isValidTimeout ? timeout : bidRequest.getTmax())
                     .build();
         }
         return bidRequest;
@@ -248,10 +253,14 @@ public class AmpRequestFactory {
         for (String format : formatStrings) {
             final String[] widthHeight = format.split("x");
             if (widthHeight.length == 2) {
-                formats.add(Format.builder()
-                        .w(parseInt(widthHeight[0]))
-                        .h(parseInt(widthHeight[1]))
-                        .build());
+                final Integer width = parseInt(widthHeight[0]);
+                final Integer height = parseInt(widthHeight[1]);
+                if (width != null && height != null) {
+                    formats.add(Format.builder()
+                            .w(width)
+                            .h(height)
+                            .build());
+                }
             }
         }
         return formats;

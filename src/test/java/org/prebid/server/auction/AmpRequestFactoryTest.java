@@ -61,6 +61,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(routingContext.request()).willReturn(httpRequest);
         factory = new AmpRequestFactory(100, storedRequestProcessor, auctionRequestFactory);
     }
@@ -84,8 +85,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestHasNoImp() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final BidRequest bidRequest = givenBidRequest(identity());
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
@@ -102,8 +101,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestHasMoreThenOneImp() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final Imp imp = Imp.builder().build();
         final BidRequest bidRequest = givenBidRequest(identity(), imp, imp);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
@@ -121,8 +118,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestHasNoExt() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final BidRequest bidRequest = givenBidRequest(identity(), Imp.builder().build());
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
@@ -139,8 +134,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfStoredBidRequestExtCouldNotBeParsed() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final ObjectNode ext = (ObjectNode) mapper.createObjectNode()
                 .set("prebid", new TextNode("non-ExtBidRequest"));
         final BidRequest bidRequest = givenBidRequest(builder -> builder.ext(ext), Imp.builder().build());
@@ -159,8 +152,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultPrebidValuesIfPrebidIsNull() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final ObjectNode extBidRequest = mapper.valueToTree(ExtBidRequest.of(null));
         final BidRequest bidRequest = givenBidRequest(builder -> builder.ext(extBidRequest),
                 Imp.builder().build());
@@ -192,8 +183,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultTargetingIfStoredBidRequestExtHasNoTargeting() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final BidRequest bidRequest = givenBidRequestWithExt(null, null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
@@ -227,8 +216,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultIncludeWinnersIfStoredBidRequestExtTargetingHasNoIncludeWinners() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final BidRequest bidRequest = givenBidRequestWithExt(
                 ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
@@ -259,8 +246,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultPriceGranularityIfStoredBidRequestExtTargetingHasNoPriceGranularity() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final BidRequest bidRequest = givenBidRequestWithExt(
                 ExtRequestTargeting.of(null, false), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
@@ -298,8 +283,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithDefaultCachingIfStoredBidRequestExtHasNoCaching() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final BidRequest bidRequest = givenBidRequestWithExt(null, null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
@@ -325,8 +308,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithImpSecureEqualsToOneIfInitiallyItWasNotSecured() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-
         final BidRequest bidRequest = givenBidRequestWithExt(null, null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
@@ -345,7 +326,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldRespondWithBidRequestWithTestFlagOn() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("debug")).willReturn("1");
 
         final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null),
@@ -364,16 +344,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenTagIdBySlotParamValue() {
+    public void shouldReturnBidRequestWithOverriddenTagIdBySlotParamValue() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-        given(httpRequest.getParam("slot")).willReturn("overwritten-tagId");
-
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(null))),
-                Imp.builder().build());
-
-        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(httpRequest.getParam("slot")).willReturn("Overridden-tagId");
+        given(storedRequestProcessor.processAmpRequest(anyString()))
+                .willReturn(Future.succeededFuture(givenBidRequestWithExt(null,null)));
         given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
                 .willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
@@ -388,19 +363,18 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(future.result()))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsOnly("overwritten-tagId");
+                .containsOnly("Overridden-tagId");
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenSitePageByCurlParamValue() {
+    public void shouldReturnBidRequestWithOverriddenSitePageByCurlParamValue() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
-        given(httpRequest.getParam("curl")).willReturn("overwritten-site-page");
+        given(httpRequest.getParam("curl")).willReturn("overridden-site-page");
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
                         .ext(mapper.valueToTree(ExtBidRequest.of(null)))
-                        .site(Site.builder().page("will-be-overwritten").build()),
+                        .site(Site.builder().page("will-be-overridden").build()),
                 Imp.builder().build());
 
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
@@ -418,13 +392,41 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(singletonList(future.result()))
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getPage)
-                .containsOnly("overwritten-site-page");
+                .containsOnly("overridden-site-page");
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenBannerZeroFormatWidthSizeByWidthParam() {
+    public void shouldReturnBidRequestWithSitePageContainingCurlParamValueWhenSitePreviouslyNotExistInRequest() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("curl")).willReturn("overridden-site-page");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null)))
+                        .site(null),
+                Imp.builder().build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPage)
+                .containsOnly("overridden-site-page");
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverriddenBannerZeroFormatWidthSizeByWidthParam() {
+        // given
         given(httpRequest.getParam("w")).willReturn("1010");
 
         final BidRequest bidRequest = givenBidRequest(
@@ -460,7 +462,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginalBannerZeroFormatWidthSizeWhenWidthParamNotNumeric() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("w")).willReturn("invalid");
 
         final BidRequest bidRequest = givenBidRequest(
@@ -494,9 +495,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenBannerZeroFormatHeightSizeByHeightParam() {
+    public void shouldReturnBidRequestWithOverriddenBannerZeroFormatHeightSizeByHeightParam() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("h")).willReturn("2020");
 
         final BidRequest bidRequest = givenBidRequest(
@@ -532,7 +532,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginalBannerZeroFormatHeightSizeWhenHeightParamNotNumeric() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("h")).willReturn("invalid");
 
         final BidRequest bidRequest = givenBidRequest(
@@ -566,9 +565,9 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenBannerZeroFormatWithSizeByOverwriteWidthParam() {
+    public void shouldReturnBidRequestWithOverriddenBannerZeroFormatWithSizeByOverwriteWidthParam() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+
         // just for clarity that `w` doesn't make any impact
         given(httpRequest.getParam("w")).willReturn("1010");
         given(httpRequest.getParam("ow")).willReturn("100100");
@@ -603,7 +602,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginalBannerZeroFormatWidthSizeWhenOverwriteWidthParamNotNumeric() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("w")).willReturn("1010");
         given(httpRequest.getParam("ow")).willReturn("invalid");
 
@@ -635,9 +633,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenBannerZeroFormatOverwriteHeightSizeByHeightParam() {
+    public void shouldReturnBidRequestWithOverriddenBannerZeroFormatOverwriteHeightSizeByHeightParam() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         // just for clarity that `h` doesn't make any impact
         given(httpRequest.getParam("h")).willReturn("2020");
         given(httpRequest.getParam("oh")).willReturn("200200");
@@ -672,7 +669,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginalBannerZeroFormatHeightSizeWhenOverwriteHeightParamNotNumeric() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("h")).willReturn("2020");
         given(httpRequest.getParam("oh")).willReturn("invalid");
 
@@ -707,9 +703,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenBannerFormatByOverwriteWHParamsRespectingThemOverWidthAndHeight() {
+    public void shouldReturnBidRequestWithOverriddenBannerFormatByOverwriteWHParamsRespectingThemOverWidthAndHeight() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("w")).willReturn("10");
         given(httpRequest.getParam("ow")).willReturn("1000");
         given(httpRequest.getParam("h")).willReturn("20");
@@ -744,9 +739,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnRequestWithOverwrittenBannerFormatByOverwriteWHParamsRespectingThemOverWHAndMSParams() {
+    public void shouldReturnRequestWithOverriddenBannerFormatByOverwriteWHParamsRespectingThemOverWHAndMSParams() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("w")).willReturn("10");
         given(httpRequest.getParam("ow")).willReturn("1000");
         given(httpRequest.getParam("h")).willReturn("20");
@@ -782,9 +776,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenBannerFormatsByMultiSizeParams() {
+    public void shouldReturnBidRequestWithOverriddenBannerFormatsByMultiSizeParams() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("ms")).willReturn("44x88,66x99");
 
         final BidRequest bidRequest = givenBidRequest(
@@ -816,9 +809,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenBannerFormatsByMultiSizeAndWidthHeightParams() {
+    public void shouldReturnBidRequestWithOverriddenBannerFormatsByMultiSizeAndWidthHeightParams() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("ms")).willReturn("44x88,66x99");
         given(httpRequest.getParam("w")).willReturn("10");
         given(httpRequest.getParam("h")).willReturn("20");
@@ -854,7 +846,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginalBannerFormatsWhenMultiSizeParamContainsCompletelyInvalidValue() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("ms")).willReturn(",");
 
         final BidRequest bidRequest = givenBidRequest(
@@ -886,9 +877,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenBannerFormatsWhenMultiSizeParamContainsPartiallyInvalidValue() {
+    public void shouldReturnBidRequestWithOverriddenBannerFormatsWhenMultiSizeParamContainsPartiallyInvalidValue() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("ms")).willReturn(",33x,44x77,abc,");
 
         final BidRequest bidRequest = givenBidRequest(
@@ -920,9 +910,41 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverwrittenTmaxWhenTimeoutParamIsAvailable() {
+    public void shouldReturnBidRequestReturnOriginalBannerFormatsWhenMsParamContainsSingleSizePairWithOneInvalidSize() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
+        given(httpRequest.getParam("ms")).willReturn("900xZ");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder()
+                                        .w(1)
+                                        .h(2)
+                                        .build()))
+                                .build()).build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), eq(routingContext)))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(singletonList(future.result()))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .extracting(Format::getW, Format::getH)
+                .containsOnly(tuple(1, 2));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithOverriddenTmaxWhenTimeoutParamIsAvailable() {
+        // given
         given(httpRequest.getParam("timeout")).willReturn("1000");
 
         final BidRequest bidRequest = givenBidRequest(
@@ -947,7 +969,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnBidRequestWithOriginalTmaxWhenTimeoutParamIsNotSufficient() {
         // given
-        given(httpRequest.getParam("tag_id")).willReturn("tagId");
         given(httpRequest.getParam("timeout")).willReturn("99");
 
         final BidRequest bidRequest = givenBidRequest(
