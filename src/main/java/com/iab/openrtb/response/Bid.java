@@ -2,7 +2,7 @@ package com.iab.openrtb.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -12,9 +12,15 @@ import java.util.List;
  * relates to a specific impression in the bid request via the {@code impid}
  * attribute and constitutes an offer to buy that impression for a given
  * {@code price}.
+ * <p>
+ * IMPORTANT: unlike other data classes this one is mutable (annotated with {@link Data} instead of
+ * {@link lombok.Value}). Motivation: during the course of processing bids could be altered several times (price
+ * adjustment, post-processing). Creating new instance of the bid in each of these cases seems to cause unnecessary
+ * memory pressure. In order to avoid unnecessary allocations this class is made mutable (as an exception) i.e. this
+ * decision could be seen as a performance optimisation.
  */
-@Builder(toBuilder = true)
-@Value
+@Builder
+@Data
 public class Bid {
 
     /** Bidder generated bid ID to assist with logging/tracking. (required) */
