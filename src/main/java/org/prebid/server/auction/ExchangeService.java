@@ -132,11 +132,10 @@ public class ExchangeService {
                 .collect(Collectors.toList()));
 
         // produce response from bidder results
-        return bidderResults.compose(result -> {
-            final List<BidderResponse> bidderResponses = result.list();
-            updateMetricsFromResponses(bidderResponses);
-            return toBidResponse(bidderResponses, bidRequest, keywordsCreator, shouldCacheBids, timeout);
-        })
+        return bidderResults
+                .map(CompositeFuture::<BidderResponse>list)
+                .map(this::updateMetricsFromResponses)
+                .compose(result -> toBidResponse(result, bidRequest, keywordsCreator, shouldCacheBids, timeout))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, bidResponse));
     }
 
@@ -502,8 +501,8 @@ public class ExchangeService {
      * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
      * 'prices' metrics for each {@link BidderResponse}
      */
-    private void updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
-        for (BidderResponse bidderResponse : bidderResponses) {
+    private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
+        for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
             final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
 
@@ -517,7 +516,7 @@ public class ExchangeService {
             if (CollectionUtils.isEmpty(bids)) {
                 adapterMetrics.incCounter(MetricName.no_bid_requests);
             } else {
-                for (Bid bid : bids) {
+                for (final Bid bid : bids) {
                     final long cpmPrice = bid.getPrice() != null
                             ? bid.getPrice().multiply(THOUSAND).longValue()
                             : 0L;
@@ -527,13 +526,15 @@ public class ExchangeService {
 
             final List<BidderError> errors = bidderResponse.getSeatBid().getErrors();
             if (CollectionUtils.isNotEmpty(errors)) {
-                for (BidderError error : errors) {
+                for (final BidderError error : errors) {
                     adapterMetrics.incCounter(error.isTimedOut()
                             ? MetricName.timeout_requests
                             : MetricName.error_requests);
                 }
             }
         }
+
+        return bidderResponses;
     }
 
     /**
