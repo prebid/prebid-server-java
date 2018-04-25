@@ -44,7 +44,7 @@ public class AmpRequestFactory {
     private final AuctionRequestFactory auctionRequestFactory;
 
     public AmpRequestFactory(
-            int timeoutAdjustmentMs,
+            long timeoutAdjustmentMs,
             StoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory) {
         this.timeoutAdjustmentMs = timeoutAdjustmentMs;
@@ -153,16 +153,6 @@ public class AmpRequestFactory {
         return updateBidRequest(bidRequest, updatedSite, updatedImp, updatedTimeout);
     }
 
-    private Long updateTimeout(HttpServerRequest request) {
-        Long timeout;
-        try {
-            timeout = Long.parseLong(request.getParam(TIMEOUT_REQUEST_PARAM));
-        } catch (NumberFormatException e) {
-            timeout = null;
-        }
-        return timeout != null ? timeout - timeoutAdjustmentMs : null;
-    }
-
     private static List<Format> overrideBannerFormats(HttpServerRequest request) {
         final Integer ow = parseIntParam(request, OW_REQUEST_PARAM);
         final Integer formatWidth = ow != null ? ow : parseIntParam(request, W_REQUEST_PARAM);
@@ -219,6 +209,16 @@ public class AmpRequestFactory {
         return banner != null && CollectionUtils.isNotEmpty(formats)
                 ? banner.toBuilder().format(formats).build()
                 : banner;
+    }
+
+    private Long updateTimeout(HttpServerRequest request) {
+        Long timeout;
+        try {
+            timeout = Long.parseLong(request.getParam(TIMEOUT_REQUEST_PARAM));
+        } catch (NumberFormatException e) {
+            timeout = null;
+        }
+        return timeout != null ? timeout - timeoutAdjustmentMs : null;
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, Site outgoingSite, Imp outgoingImp,

@@ -80,7 +80,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AmpRequestFactory ampRequestFactory(@Value("${amp.timeout-adjustment-ms}") int timeoutAdjustmentMs,
+    AmpRequestFactory ampRequestFactory(@Value("${amp.timeout-adjustment-ms}") long timeoutAdjustmentMs,
                                         StoredRequestProcessor storedRequestProcessor,
                                         AuctionRequestFactory auctionRequestFactory) {
         return new AmpRequestFactory(timeoutAdjustmentMs, storedRequestProcessor, auctionRequestFactory);
