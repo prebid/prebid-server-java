@@ -104,7 +104,8 @@
               "EUR": 0.8110
             }
           }
-        }
+        },
+        "includewinners" : true
       },
       "cache": {
         "bids": []

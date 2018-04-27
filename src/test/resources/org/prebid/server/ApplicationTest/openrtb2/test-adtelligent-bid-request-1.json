@@ -70,6 +70,8 @@
             "increment": 0.1
           }
         ],
+        "includewinners" : true
+        ,
         "currency": {
           "dataAsOf": "2018-04-16",
           "conversions": {

@@ -73,6 +73,7 @@ public class ExchangeService {
     private final BidderCatalog bidderCatalog;
     private final ResponseBidValidator responseBidValidator;
     private final CacheService cacheService;
+    private final BidResponsePostProcessor bidResponsePostProcessor;
     private final CurrencyConversionService currencyService;
     private final Metrics metrics;
     private final Clock clock;
@@ -80,12 +81,15 @@ public class ExchangeService {
 
     public ExchangeService(BidderCatalog bidderCatalog,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
-                           CurrencyConversionService currencyService, Metrics metrics, Clock clock,
+                           BidResponsePostProcessor bidResponsePostProcessor,
+                           CurrencyConversionService currencyService,
+                           Metrics metrics, Clock clock,
                            long expectedCacheTime) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.currencyService = Objects.requireNonNull(currencyService);
+        this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         if (expectedCacheTime < 0) {
@@ -132,11 +136,11 @@ public class ExchangeService {
                 .collect(Collectors.toList()));
 
         // produce response from bidder results
-        return bidderResults.compose(result -> {
-            final List<BidderResponse> bidderResponses = result.list();
-            updateMetricsFromResponses(bidderResponses);
-            return toBidResponse(bidderResponses, bidRequest, keywordsCreator, shouldCacheBids, timeout);
-        });
+        return bidderResults
+                .map(CompositeFuture::<BidderResponse>list)
+                .map(this::updateMetricsFromResponses)
+                .compose(result -> toBidResponse(result, bidRequest, keywordsCreator, shouldCacheBids, timeout))
+                .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, bidResponse));
     }
 
     /**
@@ -484,31 +488,45 @@ public class ExchangeService {
             return bidderSeatBid;
         }
 
-        final List<BidderBid> updatedBids = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>(bidderSeatBid.getErrors());
-        for (BidderBid bidderBid : bidderSeatBid.getBids()) {
-            final String bidCurrency = bidderBid.getBidCurrency();
-            final Bid bid = bidderBid.getBid();
-            final BigDecimal originPrice = bid.getPrice();
-            final BigDecimal convertedPrice;
 
+        final List<BidderBid> updatedBidderBids = bidderSeatBid.getBids().stream()
+                .map(bidderBid -> updateBidderBidPrice(bidderBid, requestCurrencyRates, adServerCurrency,
+                        priceAdjustmentFactor, errors))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        return BidderSeatBid.of(updatedBidderBids, bidderSeatBid.getHttpCalls(), errors);
+    }
+
+    private BidderBid updateBidderBidPrice(BidderBid bidderBid,
+                                           Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+                                           String adServerCurrency,
+                                           BigDecimal priceAdjustmentFactor,
+                                           List<BidderError> errors) {
+        final BigDecimal convertedPrice;
+        final Bid bid = bidderBid != null ? bidderBid.getBid() : null;
+        final String bidCurrency = bidderBid != null ? bidderBid.getBidCurrency() : null;
+        final BigDecimal originalPrice = bid != null ? bid.getPrice() : null;
+
+        if (originalPrice != null) {
             try {
-                convertedPrice = currencyService.convertCurrency(originPrice, requestCurrencyRates, adServerCurrency,
+                convertedPrice = currencyService.convertCurrency(originalPrice, requestCurrencyRates, adServerCurrency,
                         bidCurrency);
 
                 final BigDecimal adjustmentPrice = priceAdjustmentFactor != null
                         ? convertedPrice.multiply(priceAdjustmentFactor)
                         : convertedPrice;
-
-                updatedBids.add(originPrice.compareTo(adjustmentPrice) != 0
-                        ? BidderBid.of(bid.toBuilder().price(adjustmentPrice).build(), bidderBid.getType(), bidCurrency)
-                        : bidderBid);
-
+                if (originalPrice.compareTo(adjustmentPrice) != 0) {
+                    bid.setPrice(adjustmentPrice);
+                }
             } catch (PreBidException ex) {
                 errors.add(BidderError.create(ex.getMessage()));
+                return null;
             }
+            return BidderBid.of(bid, bidderBid.getType(), bidCurrency);
         }
-        return BidderSeatBid.of(updatedBids, bidderSeatBid.getHttpCalls(), errors);
+        return bidderBid;
     }
 
     private int responseTime(long startTime) {
@@ -532,8 +550,8 @@ public class ExchangeService {
      * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
      * 'prices' metrics for each {@link BidderResponse}
      */
-    private void updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
-        for (BidderResponse bidderResponse : bidderResponses) {
+    private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
+        for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
             final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
 
@@ -547,7 +565,7 @@ public class ExchangeService {
             if (CollectionUtils.isEmpty(bids)) {
                 adapterMetrics.incCounter(MetricName.no_bid_requests);
             } else {
-                for (Bid bid : bids) {
+                for (final Bid bid : bids) {
                     final long cpmPrice = bid.getPrice() != null
                             ? bid.getPrice().multiply(THOUSAND).longValue()
                             : 0L;
@@ -557,13 +575,15 @@ public class ExchangeService {
 
             final List<BidderError> errors = bidderResponse.getSeatBid().getErrors();
             if (CollectionUtils.isNotEmpty(errors)) {
-                for (BidderError error : errors) {
+                for (final BidderError error : errors) {
                     adapterMetrics.incCounter(error.isTimedOut()
                             ? MetricName.timeout_requests
                             : MetricName.error_requests);
                 }
             }
         }
+
+        return bidderResponses;
     }
 
     /**
@@ -777,10 +797,11 @@ public class ExchangeService {
                 : null;
 
         final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords);
-
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
 
-        return bid.toBuilder().ext(Json.mapper.valueToTree(bidExt)).build();
+        bid.setExt(Json.mapper.valueToTree(bidExt));
+
+        return bid;
     }
 
     /**

@@ -311,6 +311,30 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldSetDefaultIncludeWinnersIfIncludeWinnersIsMissed() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(null, null, null), null, null))))
+                .build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludewinners)
+                .containsOnly(true);
+    }
+
+    @Test
     public void shouldReturnFailedFutureIfRequestValidationFailed() {
         // given
         given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));

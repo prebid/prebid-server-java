@@ -32,6 +32,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## Amp
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
+- `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
 ## Adapters
@@ -75,6 +76,7 @@ For `influxdb` backend type available next options:
 Preconfigured application settings can be obtained from multiple data sources consequently: 
 1. Try to fetch from filesystem data source (if configured).
 2. Try to fetch from database data source (if configured).
+3. Try to fetch from http data source (if configured).
 
 Warning! Application will not start in case of no one data source is defined and you'll get an exception in logs.
 
@@ -83,17 +85,23 @@ For filesystem data source available next options:
 - `settings.filesystem.stored-requests-dir` - directory with stored requests.
 
 For database data source available next options:
-- `settings.database.type` - type of database to be used: `mysql` or `postgres`
+- `settings.database.type` - type of database to be used: `mysql` or `postgres`.
 - `settings.database.host` - database destination host.
 - `settings.database.port` - database destination port.
 - `settings.database.dbname` - database name.
 - `settings.database.user` - database user.
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
-- `settings.database.in-memory-cache.ttl-seconds` - how log in seconds cache data will be available in LRU cache.
-- `settings.database.in-memory-cache.cache-size` - the size of LRU cache.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
+- `settings.database.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
+- `settings.database.in-memory-cache.cache-size` - the size of LRU cache.
+
+For HTTP data source available next options:
+- `settings.http.endpoint` - the url to fetch stored requests.
+- `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
+- `settings.http.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
+- `settings.http.in-memory-cache.cache-size` - the size of LRU cache.
 
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.

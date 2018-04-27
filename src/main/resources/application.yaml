@@ -22,6 +22,7 @@ auction:
   update-rates-period: 900000
 amp:
   default-timeout-ms: 900
+  timeout-adjustment-ms: 30
 adapters:
   adform:
     enabled: false

@@ -6,19 +6,20 @@
       "banner": {
         "format": [
           {
-            "w": 300,
-            "h": 600
+            "w": 980,
+            "h": 120
           }
         ],
         "w": 300,
         "h": 600,
         "ext": {
           "rp": {
-            "size_id": 10,
+            "size_id": 31,
             "mime": "text/html"
           }
         }
       },
+      "tagid": "overwrite-tagId",
       "secure": 1,
       "ext": {
         "rp": {
@@ -33,7 +34,7 @@
   ],
   "site": {
     "domain": "example.com",
-    "page": "http://www.example.com",
+    "page": "https://google.com",
     "publisher": {
       "ext": {
         "rp": {
@@ -57,11 +58,11 @@
   "user": {
     "buyeruid": "J5VLCWQP-26-CWFT"
   },
-  "tmax": 2000,
+  "at": 1,
+  "tmax": 9999970,
   "cur": [
     "EUR"
   ],
-  "at": 1,
   "ext": {
     "prebid": {
       "targeting": {
@@ -95,7 +96,8 @@
               "EUR": 0.8110
             }
           }
-        }
+        },
+        "includewinners": true
       },
       "cache": {
         "bids": {}
