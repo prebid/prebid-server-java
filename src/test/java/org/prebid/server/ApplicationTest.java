@@ -262,7 +262,13 @@ public class ApplicationTest extends VertxTest {
                 // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
                 .when()
-                .get("/openrtb2/amp?tag_id=test-amp-stored-request")
+                .get("/openrtb2/amp" +
+                        "?tag_id=test-amp-stored-request" +
+                        "&ow=980" +
+                        "&oh=120" +
+                        "&timeout=10000000" +
+                        "&slot=overwrite-tagId" +
+                        "&curl=https%3A%2F%2Fgoogle.com")
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(jsonFrom("amp/test-amp-response.json")));
