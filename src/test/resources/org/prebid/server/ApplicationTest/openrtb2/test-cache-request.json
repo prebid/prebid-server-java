@@ -3,27 +3,12 @@
     {
       "type": "json",
       "value": {
-        "id": "600527793",
-        "impid": "impId13",
-        "price": 4.65903,
-        "adm": "adm13",
-        "crid": "crid13",
-        "dealid": "dealId13",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "600527793",
-        "impid": "impId04",
-        "price": 4.65903,
-        "adm": "adm00",
-        "crid": "crid00",
-        "dealid": "dealId00",
-        "w": 300,
-        "h": 250
+        "id": "impId12",
+        "impid": "impId12",
+        "price": 8.46365,
+        "adm": "banner",
+        "w": 400,
+        "h": 300
       }
     },
     {
@@ -42,46 +27,9 @@
     {
       "type": "json",
       "value": {
-        "id": "impId41",
-        "impid": "impId41",
-        "price": 4.0303,
-        "nurl": "adm41",
-        "crid": "crid41",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "impId4",
-        "impid": "impId4",
-        "price": 4.83636,
-        "adm": "adm4",
-        "crid": "crid4",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "600527793",
-        "impid": "impId02",
-        "price": 4.65903,
-        "adm": "adm00",
-        "crid": "crid00",
-        "dealid": "dealId00",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "600527793",
-        "impid": "impId03",
-        "price": 4.65903,
+        "impid": "impId011",
+        "price": 4.65904,
         "adm": "adm00",
         "crid": "crid00",
         "dealid": "dealId00",
@@ -94,7 +42,7 @@
       "value": {
         "id": "7706636740145184841",
         "impid": "impId3",
-        "price": 4.43333,
+        "price": 4.43334,
         "adm": "some-test-ad",
         "adid": "29681110",
         "adomain": [
@@ -119,37 +67,78 @@
     {
       "type": "json",
       "value": {
-        "id": "880290288",
-        "impid": "impId1",
-        "price": 6.79509,
-        "adm": "adm1",
-        "crid": "crid1",
-        "dealid": "dealId1",
+        "id": "impId4",
+        "impid": "impId4",
+        "price": 4.83637,
+        "adm": "adm4",
+        "crid": "crid4",
         "w": 300,
-        "h": 250,
-        "ext": {
-          "rp": {
-            "targeting": [
-              {
-                "key": "rpfl_1001",
-                "values": [
-                  "2_tier0100"
-                ]
-              }
-            ]
-          }
-        }
+        "h": 600
       }
     },
     {
       "type": "json",
       "value": {
-        "id": "impId12",
-        "impid": "impId12",
-        "price": 8.46364,
-        "adm": "banner",
-        "w": 400,
-        "h": 300
+        "id": "620160380",
+        "impid": "impId14",
+        "price": 6.7951,
+        "adm": "adm14",
+        "crid": "crid14",
+        "dealid": "dealId14",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId03",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId13",
+        "price": 4.65904,
+        "adm": "adm13",
+        "crid": "crid13",
+        "dealid": "dealId13",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId02",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId04",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
       }
     },
     {
@@ -182,14 +171,38 @@
     {
       "type": "json",
       "value": {
-        "id": "620160380",
-        "impid": "impId14",
-        "price": 6.79509,
-        "adm": "adm14",
-        "crid": "crid14",
-        "dealid": "dealId14",
+        "id": "880290288",
+        "impid": "impId1",
+        "price": 6.7951,
+        "adm": "adm1",
+        "crid": "crid1",
+        "dealid": "dealId1",
         "w": 300,
-        "h": 250
+        "h": 250,
+        "ext": {
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId41",
+        "impid": "impId41",
+        "price": 4.03031,
+        "nurl": "adm41",
+        "crid": "crid41",
+        "w": 300,
+        "h": 600
       }
     },
     {
@@ -203,19 +216,6 @@
         "dealid": "dealId5",
         "w": 0,
         "h": 50
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "600527793",
-        "impid": "impId011",
-        "price": 4.65903,
-        "adm": "adm00",
-        "crid": "crid00",
-        "dealid": "dealId00",
-        "w": 300,
-        "h": 250
       }
     }
   ]

@@ -17,7 +17,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.Currency;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -74,14 +73,15 @@ public class ExchangeService {
     private final BidderCatalog bidderCatalog;
     private final ResponseBidValidator responseBidValidator;
     private final CacheService cacheService;
-    private final CurrencyService currencyService;
+    private final CurrencyConversionService currencyService;
     private final Metrics metrics;
     private final Clock clock;
     private long expectedCacheTime;
 
     public ExchangeService(BidderCatalog bidderCatalog,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
-                           CurrencyService currencyService, Metrics metrics, Clock clock, long expectedCacheTime) {
+                           CurrencyConversionService currencyService, Metrics metrics, Clock clock,
+                           long expectedCacheTime) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
@@ -172,8 +172,8 @@ public class ExchangeService {
     /**
      * Extracts currency rates from {@link ExtRequestTargeting}
      */
-    private static Currency currencyRates(ExtRequestTargeting targeting) {
-        return targeting != null ? targeting.getCurrency() : null;
+    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtRequestTargeting targeting) {
+        return targeting != null && targeting.getCurrency() != null ? targeting.getCurrency().getConversions() : null;
     }
 
     /**
@@ -429,8 +429,9 @@ public class ExchangeService {
      * recorded response time.
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, Timeout timeout,
-                                               Map<String, String> aliases, Map<String, BigDecimal> bidAdjustments,
-                                               Currency currencyRates) {
+                                               Map<String, String> aliases,
+                                               Map<String, BigDecimal> bidAdjustments,
+                                               Map<String, Map<String, BigDecimal>> currencyConversionRates) {
         final String bidder = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidder);
         // bidrequest.cur should always have only one currency in list, all other cases discarded by RequestValidator
@@ -438,7 +439,8 @@ public class ExchangeService {
         return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
                 .requestBids(bidderRequest.getBidRequest(), timeout)
                 .map(this::validateAndUpdateResponse)
-                .map(seat -> applyBidPriceChanges(seat, currencyRates, adServerCurrency, bidPriceAdjustmentFactor))
+                .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
+                        bidPriceAdjustmentFactor))
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
     }
 
@@ -475,7 +477,8 @@ public class ExchangeService {
      * Performs changes on {@link Bid}s price depends on different between adServerCurrency and bidCurrency,
      * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
      */
-    private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid, Currency currencyRates,
+    private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
+                                               Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                                String adServerCurrency, BigDecimal priceAdjustmentFactor) {
         if (bidderSeatBid.getBids().isEmpty()) {
             return bidderSeatBid;
@@ -490,7 +493,7 @@ public class ExchangeService {
             final BigDecimal convertedPrice;
 
             try {
-                convertedPrice = currencyService.convertCurrency(originPrice, currencyRates, adServerCurrency,
+                convertedPrice = currencyService.convertCurrency(originPrice, requestCurrencyRates, adServerCurrency,
                         bidCurrency);
 
                 final BigDecimal adjustmentPrice = priceAdjustmentFactor != null

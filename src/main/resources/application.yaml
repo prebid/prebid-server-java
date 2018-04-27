@@ -15,11 +15,11 @@ http-client:
 external-url: http://localhost:8000
 default-timeout-ms: 250
 auction:
-  update-rates-period: 900000
   default-timeout-ms: 2000
   stored-requests-timeout-ms: 50
   expected-cache-time-ms: 10
   max-request-size: 262144
+  update-rates-period: 900000
 amp:
   default-timeout-ms: 900
 adapters:
@@ -84,3 +84,4 @@ host-cookie:
   opt-out-url: http://prebid.org/optout
   opt-in-url: http://prebid.org/optin
   ttl-days: 90
+currency-server-url: http://currency.prebid.org/latest.json

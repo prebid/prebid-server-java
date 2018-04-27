@@ -99,7 +99,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private BidderRequester bidderRequester;
     @Mock
-    private CurrencyService currencyService;
+    private CurrencyConversionService currencyService;
     private Clock clock;
 
     private ExchangeService exchangeService;
@@ -926,7 +926,8 @@ public class ExchangeServiceTest extends VertxTest {
                 // imp ids are not really used for matching, included them here for clarity
                 givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
+                        null, null, ExtRequestTargeting.of(
+                                Json.mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
                                 2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))), null, null),
                         null, ExtRequestPrebidCache.of(mapper.createObjectNode()))))));
 
@@ -938,82 +939,6 @@ public class ExchangeServiceTest extends VertxTest {
         verify(bidderRequester).requestBids(any(), timeoutCaptor.capture());
         assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(400L);
         verify(cacheService).cacheBidsOpenrtb(anyList(), same(timeout));
-    }
-
-    @Test
-    public void shouldIncrementRequestAndNoCookieAndUpdatePriceAndRequestTimeMetrics() {
-        // given
-        given(bidderCatalog.isValidName(anyString())).willReturn(true);
-
-        given(bidderRequester.requestBids(any(), any()))
-                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
-                        givenBid(Bid.builder().price(TEN).build())))));
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
-
-        // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
-
-        // then
-        verify(adapterMetrics).incCounter(eq(MetricName.requests));
-        verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
-        verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
-        verify(adapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
-    }
-
-    @Test
-    public void shouldIncrementNoBidRequestsMetric() {
-        // given
-        given(bidderRequester.requestBids(any(), any()))
-                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
-
-        // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
-
-        // then
-        verify(adapterMetrics).incCounter(eq(MetricName.no_bid_requests));
-    }
-
-    @Test
-    public void shouldReturnBidsWithAdjustedPricesWhenAdjustmentFactorPresent() {
-        // given
-        final BidderRequester bidderRequester = mock(BidderRequester.class);
-        givenHttpConnector("bidder", bidderRequester, givenSeatBid(singletonList(
-                givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
-
-        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(emptyMap(),
-                        singletonMap("bidder", BigDecimal.valueOf(2.468)), null, null, null)))));
-
-        // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
-
-        // then
-        assertThat(bidResponse.getSeatbid())
-                .flatExtracting(SeatBid::getBid)
-                .extracting(Bid::getPrice).containsExactly(BigDecimal.valueOf(4.936));
-    }
-
-    @Test
-    public void shouldReturnBidsWithoutAdjustingPricesWhenAdjustmentFactorNotPresentForBidder() {
-        // given
-        final BidderRequester bidderRequester = mock(BidderRequester.class);
-        givenHttpConnector("bidder", bidderRequester, givenSeatBid(singletonList(
-                givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build()))));
-
-        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(emptyMap(),
-                        singletonMap("some-other-bidder", BigDecimal.TEN), null, null, null)))));
-
-        // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
-
-        // then
-        assertThat(bidResponse.getSeatbid())
-                .flatExtracting(SeatBid::getBid)
-                .extracting(Bid::getPrice).containsExactly(BigDecimal.valueOf(2.0));
     }
 
     @Test
@@ -1131,6 +1056,83 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(ext.getErrors()).hasSize(1).containsOnly(
                 entry("bidder", singletonList("no currency conversion available")));
     }
+
+    @Test
+    public void shouldIncrementRequestAndNoCookieAndUpdatePriceAndRequestTimeMetrics() {
+        // given
+        given(bidderCatalog.isValidName(anyString())).willReturn(true);
+
+        given(bidderRequester.requestBids(any(), any()))
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
+                        givenBid(Bid.builder().price(TEN).build())))));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+
+        // then
+        verify(adapterMetrics).incCounter(eq(MetricName.requests));
+        verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
+        verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
+        verify(adapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
+    }
+
+    @Test
+    public void shouldIncrementNoBidRequestsMetric() {
+        // given
+        given(bidderRequester.requestBids(any(), any()))
+                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+
+        // then
+        verify(adapterMetrics).incCounter(eq(MetricName.no_bid_requests));
+    }
+
+    @Test
+    public void shouldReturnBidsWithAdjustedPricesWhenAdjustmentFactorPresent() {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("bidder", bidderRequester, givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(emptyMap(),
+                        singletonMap("bidder", BigDecimal.valueOf(2.468)), null, null, null)))));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getPrice).containsExactly(BigDecimal.valueOf(4.936));
+    }
+
+    @Test
+    public void shouldReturnBidsWithoutAdjustingPricesWhenAdjustmentFactorNotPresentForBidder() {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("bidder", bidderRequester, givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build()))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(emptyMap(),
+                        singletonMap("some-other-bidder", BigDecimal.TEN), null, null, null)))));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getPrice).containsExactly(BigDecimal.valueOf(2.0));
+    }
+
 
     private BidRequest captureBidRequest() {
         final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);

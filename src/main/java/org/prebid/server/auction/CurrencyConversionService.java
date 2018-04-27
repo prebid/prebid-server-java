@@ -1,9 +1,18 @@
 package org.prebid.server.auction;
 
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.json.Json;
 import org.apache.commons.collections4.MapUtils;
-import org.prebid.server.auction.model.Currency;
+import org.prebid.server.currency.proto.response.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.util.HttpUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,21 +22,80 @@ import java.util.Objects;
 /**
  * Service for price currency conversion between currencies.
  */
-public class CurrencyService {
+public class CurrencyConversionService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CurrencyConversionService.class);
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    private final String currencyServerUrl;
+    private final HttpClient httpClient;
 
-    private final LatestRatesService latestRatesService;
+    private Map<String, Map<String, BigDecimal>> latestCurrencyRates;
 
-    public CurrencyService(LatestRatesService latestRatesService) {
-        this.latestRatesService = latestRatesService;
+    public CurrencyConversionService(String currencyServerUrl, long period, HttpClient httpClient, Vertx vertx) {
+        this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(currencyServerUrl));
+        this.httpClient = Objects.requireNonNull(httpClient);
+        Objects.requireNonNull(vertx).setPeriodic(validatePeriod(period), aLong -> populatesLatestCurrencyRates());
+        populatesLatestCurrencyRates();
+    }
+
+    /**
+     * Validates consumed period value.
+     */
+    private long validatePeriod(long period) {
+        if (period < 1) {
+            throw new IllegalArgumentException("Period for updating rates must be positive value");
+        }
+        return period;
+    }
+
+    /**
+     * Updates latest currency rates by making a call to currency server.
+     */
+    private void populatesLatestCurrencyRates() {
+        httpClient.getAbs(currencyServerUrl, this::handleResponse);
+    }
+
+    private void handleResponse(HttpClientResponse response) {
+        final int statusCode = response.statusCode();
+        if (statusCode != 200) {
+            logger.warn("CurrencyConversionRates server response code is {0}", statusCode);
+            return;
+        }
+        response.bodyHandler(this::handleBody)
+                .exceptionHandler(CurrencyConversionService::handleException);
+    }
+
+    /**
+     * Parses body content and populates latest currency rates.
+     */
+    private void handleBody(Buffer buffer) {
+        try {
+            final Map<String, Map<String, BigDecimal>> receivedCurrencyRates =
+                    Json.mapper.readValue(buffer.toString(), CurrencyConversionRates.class).getConversions();
+            if (receivedCurrencyRates == null) {
+                throw new IllegalArgumentException();
+            }
+            latestCurrencyRates = receivedCurrencyRates;
+        } catch (IllegalArgumentException | IOException e) {
+            logger.warn("Error occurred during parsing response from latest currency service");
+        }
+    }
+
+    /**
+     * Handles an error occurred while request. In our case adds error log.
+     */
+    private static void handleException(Throwable exception) {
+        logger.warn("Error occurred while request to currency service", exception);
     }
 
     /**
      * Converts price from bidCurrency to adServerCurrency using rates defined in request or if absent, from
      * latest service currency. Throws {@link PreBidException} in case conversion is not possible.
      */
-    public BigDecimal convertCurrency(BigDecimal price, Currency requestCurrencyRates, String adServerCurrency,
+    public BigDecimal convertCurrency(BigDecimal price,
+                                      Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+                                      String adServerCurrency,
                                       String bidCurrency) {
         if (Objects.equals(adServerCurrency, bidCurrency)) {
             return price;
@@ -42,14 +110,12 @@ public class CurrencyService {
         // get conversion rate from request currency rates if it is present
         BigDecimal conversionRate = null;
         if (requestCurrencyRates != null) {
-            conversionRate = getConversionRate(requestCurrencyRates.getConversions(), adServerCurrency, bidCurrency);
+            conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, bidCurrency);
         }
 
         // if conversion rate from requestCurrency was not found, try the same from latest currencies
         if (conversionRate == null) {
-            final Map<String, Map<String, BigDecimal>> latestRates = latestRatesService.getRates();
-
-            conversionRate = getConversionRate(latestRates, adServerCurrency, bidCurrency);
+            conversionRate = getConversionRate(latestCurrencyRates, adServerCurrency, bidCurrency);
         }
 
         if (conversionRate == null) {
@@ -63,21 +129,21 @@ public class CurrencyService {
      * Looking for rates for adServerCurrency - bidCurrency pair, using such approaches as straight, reverse and
      * intermediate rates.
      */
-    private static BigDecimal getConversionRate(Map<String, Map<String, BigDecimal>> conversions,
+    private static BigDecimal getConversionRate(Map<String, Map<String, BigDecimal>> currencyConversionRates,
                                                 String adServerCurrency, String bidCurrency) {
-        if (MapUtils.isEmpty(conversions)) {
+        if (MapUtils.isEmpty(currencyConversionRates)) {
             return null;
         }
 
         BigDecimal conversionRate;
-        final Map<String, BigDecimal> serverCurrencyRates = conversions.get(adServerCurrency);
-        final Map<String, BigDecimal> bidCurrencyRates = conversions.get(bidCurrency);
+        final Map<String, BigDecimal> serverCurrencyRates = currencyConversionRates.get(adServerCurrency);
 
         conversionRate = serverCurrencyRates != null ? serverCurrencyRates.get(bidCurrency) : null;
         if (conversionRate != null) {
             return conversionRate;
         }
 
+        final Map<String, BigDecimal> bidCurrencyRates = currencyConversionRates.get(bidCurrency);
         conversionRate = findReverseConversionRate(bidCurrencyRates, adServerCurrency);
         if (conversionRate != null) {
             return conversionRate;

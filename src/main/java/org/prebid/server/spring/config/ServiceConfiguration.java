@@ -7,10 +7,9 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
-import org.prebid.server.auction.CurrencyService;
+import org.prebid.server.auction.CurrencyConversionService;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
-import org.prebid.server.auction.LatestRatesService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
@@ -125,17 +124,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    LatestRatesService latestRatesService(@Value("${auction.update-rates-period}") long period, Vertx vertx,
-                                          HttpClient httpClient) {
-        final LatestRatesService latestRatesService = new LatestRatesService(httpClient);
-        // update currency every 15 minutes
-        vertx.setPeriodic(period, aLong -> latestRatesService.updateRates());
-        return latestRatesService;
-    }
-
-    @Bean
-    CurrencyService ratesService(LatestRatesService latestRatesService) {
-        return new CurrencyService(latestRatesService);
+    CurrencyConversionService currencyConversionRates(@Value("${auction.update-rates-period}") long period,
+                                                      @Value("${currency-server-url}") String currencyServerUrl,
+                                                      Vertx vertx,
+                                                      HttpClient httpClient) {
+        final CurrencyConversionService currencyConversionService =
+                new CurrencyConversionService(currencyServerUrl, period, httpClient, vertx);
+        return currencyConversionService;
     }
 
     @Bean
@@ -143,7 +138,7 @@ public class ServiceConfiguration {
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog, ResponseBidValidator responseBidValidator,
-            CacheService cacheService, CurrencyService currencyService, Metrics metrics, Clock clock) {
+            CacheService cacheService, CurrencyConversionService currencyService, Metrics metrics, Clock clock) {
 
         return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, currencyService, metrics, clock,
                 expectedCacheTimeMs);

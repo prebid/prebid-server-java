@@ -3,7 +3,6 @@ package org.prebid.server.proto.openrtb.ext.request;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.prebid.server.auction.model.Currency;
 
 /**
  * Defines the contract for bidrequest.ext.prebid.targeting
@@ -20,7 +19,7 @@ public class ExtRequestTargeting {
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting.currency
      */
-    Currency currency;
+    ExtCurrency currency;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.targeting.includewinners

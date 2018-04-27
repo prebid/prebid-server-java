@@ -41,10 +41,11 @@ public class AuctionRequestFactory {
 
     public AuctionRequestFactory(long maxRequestSize, String adServerCurrency,
                                  StoredRequestProcessor storedRequestProcessor,
-                                 ImplicitParametersExtractor paramsExtractor, UidsCookieService uidsCookieService,
+                                 ImplicitParametersExtractor paramsExtractor,
+                                 UidsCookieService uidsCookieService,
                                  RequestValidator requestValidator) {
         this.maxRequestSize = maxRequestSize;
-        this.adServerCurrency = adServerCurrency;
+        this.adServerCurrency = StringUtils.isNotBlank(adServerCurrency) ? validateCurrency(adServerCurrency) : null;
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -258,5 +259,18 @@ public class AuctionRequestFactory {
         }
 
         return result;
+    }
+
+    /**
+     * Validates ISO 4217 currency code
+     */
+    private static String validateCurrency(String code) {
+        try {
+            java.util.Currency.getInstance(code);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    String.format("CurrencyConversionRates code supplied is not valid: %s", code), e);
+        }
+        return code;
     }
 }
