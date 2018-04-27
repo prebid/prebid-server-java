@@ -69,7 +69,7 @@ public class CurrencyConversionService {
     /**
      * Parses body content and populates latest currency rates.
      */
-    private void handleBody(Buffer buffer) {
+    private  void handleBody(Buffer buffer) {
         try {
             final Map<String, Map<String, BigDecimal>> receivedCurrencyRates =
                     Json.mapper.readValue(buffer.toString(), CurrencyConversionRates.class).getConversions();

@@ -95,7 +95,7 @@ public class Imp {
     Float bidfloor;
 
     /**
-     * CurrencyConversionRates specified using ISO-4217 alpha codes. This may be different from
+     * Currency specified using ISO-4217 alpha codes. This may be different from
      * bid currency returned by bidder if this is allowed by the exchange.
      */
     String bidfloorcur;

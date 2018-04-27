@@ -143,7 +143,7 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
     {
       "precision": 2,
       "min": 0.0,
-      "max": 20.0
+      "max": 20.0,
       "increment": 0.1      // Required property
     }
   ],

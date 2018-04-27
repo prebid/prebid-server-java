@@ -8,20 +8,14 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * Defines the contract for bidrequest.ext.prebid.targeting.currency
+ * Represents Currency Server response containing currency conversion rates for specific date.
  */
 @AllArgsConstructor(staticName = "of")
 @Value
 public class CurrencyConversionRates {
 
-    /**
-     * Defines the contract for bidrequest.ext.prebid.targeting.dataAsOf
-     */
     @JsonProperty("dataAsOf")
     String dataAsOf;
 
-    /**
-     * Defines the contract for bidrequest.ext.prebid.targeting.conversions
-     */
     Map<String, Map<String, BigDecimal>> conversions;
 }
