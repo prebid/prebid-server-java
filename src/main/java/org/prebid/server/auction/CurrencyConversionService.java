@@ -59,7 +59,7 @@ public class CurrencyConversionService {
     private void handleResponse(HttpClientResponse response) {
         final int statusCode = response.statusCode();
         if (statusCode != 200) {
-            logger.warn("CurrencyConversionRates server response code is {0}", statusCode);
+            logger.warn("Currency server response code is {0}", statusCode);
             return;
         }
         response.bodyHandler(this::handleBody)

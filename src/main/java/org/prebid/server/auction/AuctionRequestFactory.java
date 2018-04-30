@@ -278,7 +278,7 @@ public class AuctionRequestFactory {
             java.util.Currency.getInstance(code);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
-                    String.format("CurrencyConversionRates code supplied is not valid: %s", code), e);
+                    String.format("Currency code supplied is not valid: %s", code), e);
         }
         return code;
     }
