@@ -12,6 +12,5 @@ public class HttpFetcherResponse {
 
     private Map<String, ObjectNode> requests;
 
-    // FIXME: uncomment when will be implemented obtaining by imp id
-    // private Map<String, ObjectNode> imps;
+    private Map<String, ObjectNode> imps;
 }

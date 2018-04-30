@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Executes stored request processing
@@ -58,39 +59,39 @@ public class StoredRequestProcessor {
      * fetched jsons from source. In case any error happen during the process, returns failedFuture with
      * InvalidRequestException {@link InvalidRequestException} as cause.
      */
-    public Future<BidRequest> processStoredRequests(BidRequest bidRequest) {
-        final Map<Imp, String> impsToStoredRequestId;
+    Future<BidRequest> processStoredRequests(BidRequest bidRequest) {
         final Map<BidRequest, String> bidRequestToStoredRequestId;
+        final Map<Imp, String> impToStoredRequestId;
         try {
-            bidRequestToStoredRequestId = mapStoredRequestHolderToStoredRequestId(Collections.singletonList(bidRequest),
-                    StoredRequestProcessor::getStoredRequestFromBidRequest);
-            impsToStoredRequestId = mapStoredRequestHolderToStoredRequestId(bidRequest.getImp(),
-                    StoredRequestProcessor::getStoredRequestFromImp);
-        } catch (InvalidRequestException exception) {
-            return Future.failedFuture(exception);
+            bidRequestToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
+                    Collections.singletonList(bidRequest), StoredRequestProcessor::getStoredRequestFromBidRequest);
+
+            impToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
+                    bidRequest.getImp(), StoredRequestProcessor::getStoredRequestFromImp);
+        } catch (InvalidRequestException e) {
+            return Future.failedFuture(e);
         }
 
-        final Set<String> storedRequestIds = new HashSet<>(impsToStoredRequestId.values());
-        storedRequestIds.addAll(bidRequestToStoredRequestId.values());
-        if (storedRequestIds.isEmpty()) {
+        final Set<String> requestIds = new HashSet<>(bidRequestToStoredRequestId.values());
+        final Set<String> impIds = new HashSet<>(impToStoredRequestId.values());
+        if (requestIds.isEmpty() && impIds.isEmpty()) {
             return Future.succeededFuture(bidRequest);
         }
 
-        return storedRequestsToBidRequest(
-                applicationSettings.getStoredRequestsById(storedRequestIds, timeout(bidRequest)),
-                bidRequest, bidRequestToStoredRequestId.get(bidRequest), impsToStoredRequestId);
+        return storedRequestsToBidRequest(applicationSettings.getStoredData(requestIds, impIds, timeout(bidRequest)),
+                bidRequest, bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId);
     }
 
     /**
      * Fetches AMP request from the source.
      */
-    public Future<BidRequest> processAmpRequest(String ampRequestId) {
-        final BidRequest emptyBidRequest = BidRequest.builder().build();
+    Future<BidRequest> processAmpRequest(String ampRequestId) {
+        final BidRequest bidRequest = BidRequest.builder().build();
 
         return storedRequestsToBidRequest(
-                applicationSettings.getStoredRequestsByAmpId(Collections.singleton(ampRequestId),
-                        timeout(emptyBidRequest)),
-                emptyBidRequest, ampRequestId, Collections.emptyMap());
+                applicationSettings.getAmpStoredData(Collections.singleton(ampRequestId), Collections.emptySet(),
+                        timeout(bidRequest)),
+                bidRequest, ampRequestId, Collections.emptyMap());
     }
 
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredRequestResult> storedRequestsFuture,
@@ -121,10 +122,9 @@ public class StoredRequestProcessor {
      */
     private BidRequest mergeBidRequest(BidRequest bidRequest, String storedRequestId,
                                        StoredRequestResult storedRequestResult) {
-        if (storedRequestId != null) {
-            return merge(bidRequest, storedRequestId, storedRequestResult, BidRequest.class);
-        }
-        return bidRequest;
+        return storedRequestId != null
+                ? merge(bidRequest, storedRequestResult::getStoredIdToRequest, storedRequestId, BidRequest.class)
+                : bidRequest;
     }
 
     /**
@@ -141,28 +141,26 @@ public class StoredRequestProcessor {
             final Imp imp = mergedImps.get(i);
             final String storedRequestId = impToStoredId.get(imp);
             if (storedRequestId != null) {
-                final Imp mergedImp = merge(imp, storedRequestId, storedRequestResult, Imp.class);
+                final Imp mergedImp = merge(imp, storedRequestResult::getStoredIdToImp, storedRequestId, Imp.class);
                 mergedImps.set(i, mergedImp);
             }
         }
         return bidRequest.toBuilder().imp(mergedImps).build();
     }
 
-
     /**
-     * Merges passed object with json retrieved from {@link StoredRequestResult} by storedRequest id
+     * Merges passed object with json retrieved from stored data map by id
      * and cast it to appropriate class. In case of any exception during merging, throws {@link InvalidRequestException}
      * with reason message.
      */
-    private <T> T merge(T originalObject, String storedRequestId, StoredRequestResult storedRequestResult,
-                        Class<T> classToCast) {
+    private <T> T merge(T originalObject, Supplier<Map<String, String>> supplier, String id, Class<T> classToCast) {
         final JsonNode originJsonNode = Json.mapper.valueToTree(originalObject);
         final JsonNode storedRequestJsonNode;
         try {
-            storedRequestJsonNode = Json.mapper.readTree(storedRequestResult.getStoredIdToJson().get(storedRequestId));
+            storedRequestJsonNode = Json.mapper.readTree(supplier.get().get(id));
         } catch (IOException e) {
             throw new InvalidRequestException(
-                    String.format("Can't parse Json for stored request with id %s", storedRequestId));
+                    String.format("Can't parse Json for stored request with id %s", id));
         }
         try {
             // Http request fields have higher priority and will override fields from stored requests
@@ -171,12 +169,12 @@ public class StoredRequestProcessor {
                     classToCast);
         } catch (JsonPatchException e) {
             final String errorMessage = String.format(
-                    "Couldn't create merge patch from origin object node for storedRequestId %s", storedRequestId);
+                    "Couldn't create merge patch from origin object node for id %s", id);
             logger.warn(errorMessage);
             throw new InvalidRequestException(errorMessage);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(
-                    String.format("Can't convert merging result for storedRequestId %s", storedRequestId));
+                    String.format("Can't convert merging result for id %s", id));
         }
     }
 

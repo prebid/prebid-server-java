@@ -10,7 +10,9 @@ import java.util.Map;
 @Value
 public class StoredRequestResult {
 
-    Map<String, String> storedIdToJson;
+    Map<String, String> storedIdToRequest;
+
+    Map<String, String> storedIdToImp;
 
     List<String> errors;
 }

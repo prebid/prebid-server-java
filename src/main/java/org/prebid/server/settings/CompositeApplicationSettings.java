@@ -5,6 +5,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredRequestResult;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,48 +40,77 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         return proxy;
     }
 
+    /**
+     * Runs a process to get account by id from a chain of retrievers
+     * and returns {@link Future&lt;{@link Account}&gt;}
+     */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return proxy.getAccountById(accountId, timeout);
     }
 
+    /**
+     * Runs a process to get AdUnit config by id from a chain of retrievers
+     * and returns {@link Future&lt;{@link String}&gt;}
+     */
     @Override
     public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
         return proxy.getAdUnitConfigById(adUnitConfigId, timeout);
     }
 
+    /**
+     * Runs a process to get stored requests by a collection of ids from a chain of retrievers
+     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, Timeout timeout) {
-        return proxy.getStoredRequestsById(ids, timeout);
+    public Future<StoredRequestResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return proxy.getStoredData(requestIds, impIds, timeout);
     }
 
+    /**
+     * Runs a process to get stored requests by a collection of amp ids from a chain of retrievers
+     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, Timeout timeout) {
-        return proxy.getStoredRequestsByAmpId(ids, timeout);
+    public Future<StoredRequestResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return proxy.getAmpStoredData(requestIds, Collections.emptySet(), timeout);
     }
 
+    /**
+     * Decorates {@link ApplicationSettings} for a chain of retrievers
+     */
     private static class Proxy implements ApplicationSettings {
 
         private ApplicationSettings applicationSettings;
         private Proxy next;
 
-        Proxy(ApplicationSettings applicationSettings, Proxy next) {
+        /**
+         * Interface to satisfy obtaining {@link StoredRequestResult}
+         *
+         * @param <T> set of stored requests id
+         * @param <U> set of stored imps id
+         * @param <V> processing timeout
+         * @param <R> result of fetching stored data
+         */
+        interface TriFunction<T, U, V, R> {
+            R apply(T t, U u, V v);
+        }
+
+        private Proxy(ApplicationSettings applicationSettings, Proxy next) {
             this.applicationSettings = applicationSettings;
             this.next = next;
         }
 
         @Override
         public Future<Account> getAccountById(String accountId, Timeout timeout) {
-            final BiFunction<String, Timeout, Future<Account>> nextRetriever =
-                    next != null ? next::getAccountById : null;
-            return getConfig(accountId, timeout, applicationSettings::getAccountById, nextRetriever);
+            return getConfig(accountId, timeout, applicationSettings::getAccountById,
+                    next != null ? next::getAccountById : null);
         }
 
         @Override
         public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-            final BiFunction<String, Timeout, Future<String>> nextRetriever =
-                    next != null ? next::getAdUnitConfigById : null;
-            return getConfig(adUnitConfigId, timeout, applicationSettings::getAdUnitConfigById, nextRetriever);
+            return getConfig(adUnitConfigId, timeout, applicationSettings::getAdUnitConfigById,
+                    next != null ? next::getAdUnitConfigById : null);
         }
 
         private static <T> Future<T> getConfig(String key, Timeout timeout,
@@ -93,39 +123,45 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         }
 
         @Override
-        public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, Timeout timeout) {
-            final BiFunction<Set<String>, Timeout, Future<StoredRequestResult>> nextRetriever =
-                    next != null ? next::getStoredRequestsById : null;
-            return getStoredRequests(ids, timeout, applicationSettings::getStoredRequestsById, nextRetriever);
+        public Future<StoredRequestResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+            return getStoredRequests(requestIds, impIds, timeout, applicationSettings::getStoredData,
+                    next != null ? next::getStoredData : null);
         }
 
         @Override
-        public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, Timeout timeout) {
-            final BiFunction<Set<String>, Timeout, Future<StoredRequestResult>> nextRetriever =
-                    next != null ? next::getStoredRequestsByAmpId : null;
-            return getStoredRequests(ids, timeout, applicationSettings::getStoredRequestsByAmpId, nextRetriever);
+        public Future<StoredRequestResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds,
+                                                            Timeout timeout) {
+            return getStoredRequests(requestIds, Collections.emptySet(), timeout, applicationSettings::getAmpStoredData,
+                    next != null ? next::getAmpStoredData : null);
         }
 
         private static Future<StoredRequestResult> getStoredRequests(
-                Set<String> ids, Timeout timeout,
-                BiFunction<Set<String>, Timeout, Future<StoredRequestResult>> retriever,
-                BiFunction<Set<String>, Timeout, Future<StoredRequestResult>> nextRetriever) {
+                Set<String> requestIds, Set<String> impIds, Timeout timeout,
+                TriFunction<Set<String>, Set<String>, Timeout, Future<StoredRequestResult>> retriever,
+                TriFunction<Set<String>, Set<String>, Timeout, Future<StoredRequestResult>> nextRetriever) {
 
-            return retriever.apply(ids, timeout)
+            return retriever.apply(requestIds, impIds, timeout)
                     .compose(retrieverResult ->
-                            nextRetriever == null || retrieverResult.getStoredIdToJson().size() == ids.size()
+                            nextRetriever == null || retrieverResult.getErrors().isEmpty()
                                     ? Future.succeededFuture(retrieverResult)
-                                    : getRemainingStoredRequests(ids, timeout, retrieverResult.getStoredIdToJson(),
+                                    : getRemainingStoredRequests(requestIds, impIds, timeout,
+                                    retrieverResult.getStoredIdToRequest(), retrieverResult.getStoredIdToImp(),
                                     nextRetriever));
         }
 
         private static Future<StoredRequestResult> getRemainingStoredRequests(
-                Set<String> ids, Timeout timeout, Map<String, String> fetchedStoredIdToJson,
-                BiFunction<Set<String>, Timeout, Future<StoredRequestResult>> retriever) {
+                Set<String> requestIds, Set<String> impIds, Timeout timeout,
+                Map<String, String> storedIdToRequest, Map<String, String> storedIdToImp,
+                TriFunction<Set<String>, Set<String>, Timeout, Future<StoredRequestResult>> retriever) {
 
-            return retriever.apply(subtractSets(ids, fetchedStoredIdToJson.keySet()), timeout)
+            return retriever.apply(
+                    subtractSets(requestIds, storedIdToRequest.keySet()),
+                    subtractSets(impIds, storedIdToImp.keySet()),
+                    timeout)
                     .compose(result -> Future.succeededFuture(StoredRequestResult.of(
-                            combineMaps(fetchedStoredIdToJson, result.getStoredIdToJson()), result.getErrors())));
+                            combineMaps(storedIdToRequest, result.getStoredIdToRequest()),
+                            combineMaps(storedIdToImp, result.getStoredIdToImp()),
+                            result.getErrors())));
         }
 
         private static <T> Set<T> subtractSets(Set<T> set1, Set<T> set2) {

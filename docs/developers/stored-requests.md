@@ -205,8 +205,8 @@ settings:
     dbname: database-name
     user: username
     password: password
-    stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN (%ID_LIST%)
-    amp-stored-requests-query: SELECT id, requestData FROM stored_requests WHERE id IN (%ID_LIST%)
+    stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)
+    amp-stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)
 ```
 
 For MySQL:
@@ -224,6 +224,8 @@ settings:
     endpoint: http://stored-requests.prebid.com
     amp_endpoint: http://stored-requests.prebid.com?amp=true
 ```
+Notice: HTTP backend implementation always gives an empty result (with "Not supported" error inside)
+for obtaining the `Account` or `AdUnitConfig` by ID for the legacy [auction](../endpoints/auction.md) endpoint.
 
 Full list of application configuration options can be found [here](../config-app.md).
 
