@@ -216,7 +216,7 @@ settings:
     type: mysql
 ```
 
-Note: The result columns of `stored-requests-query` and `amp-stored-requests-query` properties should correspond to the specific format:
+The select query columns of `stored-data-query` and `amp-stored-data-query` properties should correspond to the specific format:
 - first column: ID of stored data item
 - second column: value of stored data item
 - third column: type of stored data item. Can be `request` for stored requests or `imp` for stored impressions.
