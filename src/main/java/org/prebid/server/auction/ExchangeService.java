@@ -511,11 +511,10 @@ public class ExchangeService {
                 if (adjustedPrice.compareTo(price) != 0) {
                     bid.setPrice(adjustedPrice);
                 }
+                updatedBidderBids.add(bidderBid);
             } catch (PreBidException ex) {
                 errors.add(BidderError.create(ex.getMessage()));
-                continue;
             }
-            updatedBidderBids.add(bidderBid);
         }
 
         return BidderSeatBid.of(updatedBidderBids, bidderSeatBid.getHttpCalls(), errors);
