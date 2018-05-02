@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.currency;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -6,7 +6,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.MapUtils;
-import org.prebid.server.currency.proto.response.CurrencyConversionRates;
+import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
 import org.slf4j.Logger;
@@ -27,33 +27,36 @@ public class CurrencyConversionService {
     private static final Logger logger = LoggerFactory.getLogger(CurrencyConversionService.class);
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
+
     private final String currencyServerUrl;
     private final HttpClient httpClient;
 
-    private Map<String, Map<String, BigDecimal>> latestCurrencyRates;
+    private Map<String, Map<String, BigDecimal>> latestCurrencyRates = null;
 
-    public CurrencyConversionService(String currencyServerUrl, long period, HttpClient httpClient, Vertx vertx) {
+    public CurrencyConversionService(String currencyServerUrl, long refreshPeriod, HttpClient httpClient, Vertx vertx) {
         this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(currencyServerUrl));
         this.httpClient = Objects.requireNonNull(httpClient);
-        Objects.requireNonNull(vertx).setPeriodic(validatePeriod(period), aLong -> populatesLatestCurrencyRates());
+        Objects.requireNonNull(vertx).setPeriodic(
+                validateRefreshPeriod(refreshPeriod), aLong -> populatesLatestCurrencyRates());
         populatesLatestCurrencyRates();
     }
 
     /**
-     * Validates consumed period value.
+     * Validates consumed refresh period value.
      */
-    private long validatePeriod(long period) {
-        if (period < 1) {
-            throw new IllegalArgumentException("Period for updating rates must be positive value");
+    private long validateRefreshPeriod(long refreshPeriod) {
+        if (refreshPeriod < 1) {
+            throw new IllegalArgumentException("Refresh period for updating rates must be positive value");
         }
-        return period;
+        return refreshPeriod;
     }
 
     /**
      * Updates latest currency rates by making a call to currency server.
      */
     private void populatesLatestCurrencyRates() {
-        httpClient.getAbs(currencyServerUrl, this::handleResponse);
+        httpClient.getAbs(currencyServerUrl, this::handleResponse)
+                .exceptionHandler(CurrencyConversionService::handleException);
     }
 
     private void handleResponse(HttpClientResponse response) {
@@ -69,16 +72,15 @@ public class CurrencyConversionService {
     /**
      * Parses body content and populates latest currency rates.
      */
-    private  void handleBody(Buffer buffer) {
+    private void handleBody(Buffer buffer) {
         try {
             final Map<String, Map<String, BigDecimal>> receivedCurrencyRates =
                     Json.mapper.readValue(buffer.toString(), CurrencyConversionRates.class).getConversions();
-            if (receivedCurrencyRates == null) {
-                throw new IllegalArgumentException();
+            if (receivedCurrencyRates != null) {
+                latestCurrencyRates = receivedCurrencyRates;
             }
-            latestCurrencyRates = receivedCurrencyRates;
         } catch (IllegalArgumentException | IOException e) {
-            logger.warn("Error occurred during parsing response from latest currency service");
+            logger.warn("Error occurred during parsing response from latest currency service", e);
         }
     }
 
@@ -91,7 +93,7 @@ public class CurrencyConversionService {
 
     /**
      * Converts price from bidCurrency to adServerCurrency using rates defined in request or if absent, from
-     * latest service currency. Throws {@link PreBidException} in case conversion is not possible.
+     * latest currency rates. Throws {@link PreBidException} in case conversion is not possible.
      */
     public BigDecimal convertCurrency(BigDecimal price,
                                       Map<String, Map<String, BigDecimal>> requestCurrencyRates,

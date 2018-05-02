@@ -79,8 +79,7 @@
           }
         ],
         "currency": {
-          "dataAsOf": "2018-04-16",
-          "conversions": {
+          "rates": {
             "EUR": {
               "USD": 1.2406
             },

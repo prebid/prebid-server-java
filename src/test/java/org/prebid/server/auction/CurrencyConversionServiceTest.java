@@ -15,7 +15,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
-import org.prebid.server.currency.proto.response.CurrencyConversionRates;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 
 import java.math.BigDecimal;
@@ -62,13 +63,6 @@ public class CurrencyConversionServiceTest extends VertxTest {
     }
 
     @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new CurrencyConversionService(null, 1L, httpClient, vertx));
-        assertThatNullPointerException().isThrownBy(() -> new CurrencyConversionService(URL, 1, null, vertx));
-        assertThatNullPointerException().isThrownBy(() -> new CurrencyConversionService(URL, 1L, httpClient, null));
-    }
-
-    @Test
     public void creationShouldFailOnInvalidCurrencyServerUrl() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new CurrencyConversionService("invalid-url", 1L, httpClient, vertx))
@@ -79,7 +73,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
     public void creationShouldFailOnInvalidPeriodValue() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new CurrencyConversionService(URL, 0L, httpClient, vertx))
-                .withMessage("Period for updating rates must be positive value");
+                .withMessage("Refresh period for updating rates must be positive value");
     }
 
     @Test
@@ -225,9 +219,12 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
     @Test
     public void createShouldMakeOneInitialRequestAndTwoScheduledWhenUpdatePeriodIs1000MsAndApproximateLifespanIs2100() {
-        // given and when
+        // given
         final HttpClient client = mock(HttpClient.class);
+        given(client.getAbs(anyString(), any())).willReturn(httpClientRequest);
         final Vertx vertx = Vertx.vertx();
+
+        // when
         currencyService = new CurrencyConversionService(URL, 1000, client, vertx);
 
         // then

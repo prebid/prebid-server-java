@@ -1,4 +1,4 @@
-package org.prebid.server.currency.proto.response;
+package org.prebid.server.currency.proto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

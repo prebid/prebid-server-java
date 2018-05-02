@@ -148,8 +148,7 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
     }
   ],
   "currency": {
-    "dataAsOf": "2018-04-16",
-    "conversions": {
+    "rates": {
       "EUR": {
         "USD": 1.2406
       },

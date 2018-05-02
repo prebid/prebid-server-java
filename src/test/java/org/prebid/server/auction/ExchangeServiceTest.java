@@ -32,6 +32,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -1103,22 +1104,6 @@ public class ExchangeServiceTest extends VertxTest {
         verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
         verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
-    }
-
-    @Test
-    public void shouldUpdatePriceMetricWithZeroValueIfBidPriceNull() {
-        // given
-        given(bidderRequester.requestBids(any(), any()))
-                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
-                        givenBid(Bid.builder().price(null).build())))));
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
-
-        // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout).result();
-
-        // then
-        verify(adapterMetrics).updateHistogram(eq(MetricName.prices), eq(0L));
     }
 
     @Test

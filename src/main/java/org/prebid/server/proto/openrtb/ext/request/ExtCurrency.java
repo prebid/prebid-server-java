@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -13,15 +12,8 @@ import java.util.Map;
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtCurrency {
-
     /**
-     * Defines the contract for bidrequest.ext.prebid.targeting.dataAsOf
+     * Defines the contract for bidrequest.ext.prebid.targeting.rates
      */
-    @JsonProperty("dataAsOf")
-    String dataAsOf;
-
-    /**
-     * Defines the contract for bidrequest.ext.prebid.targeting.conversions
-     */
-    Map<String, Map<String, BigDecimal>> conversions;
+    Map<String, Map<String, BigDecimal>> rates;
 }

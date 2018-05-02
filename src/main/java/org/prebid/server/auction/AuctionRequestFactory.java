@@ -45,7 +45,7 @@ public class AuctionRequestFactory {
                                  UidsCookieService uidsCookieService,
                                  RequestValidator requestValidator) {
         this.maxRequestSize = maxRequestSize;
-        this.adServerCurrency = StringUtils.isNotBlank(adServerCurrency) ? validateCurrency(adServerCurrency) : null;
+        this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -274,6 +274,10 @@ public class AuctionRequestFactory {
      * Validates ISO 4217 currency code
      */
     private static String validateCurrency(String code) {
+        if (StringUtils.isBlank(code)) {
+            return code;
+        }
+
         try {
             java.util.Currency.getInstance(code);
         } catch (IllegalArgumentException e) {

@@ -8,7 +8,6 @@ import io.vertx.core.http.HttpClientOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponsePostProcessor;
-import org.prebid.server.auction.CurrencyConversionService;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.PreBidRequestContextFactory;
@@ -17,6 +16,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -200,12 +200,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    CurrencyConversionService currencyConversionRates(@Value("${auction.update-rates-period}") long period,
-                                                      @Value("${currency-server-url}") String currencyServerUrl,
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    CurrencyConversionService currencyConversionRates(@Value("${auction.currency-rates-refresh-period-ms}")
+                                                              long refreshPeriod,
+                                                      @Value("${auction.currency-rates-url}")
+                                                              String currencyServerUrl,
                                                       Vertx vertx,
                                                       HttpClient httpClient) {
-        final CurrencyConversionService currencyConversionService =
-                new CurrencyConversionService(currencyServerUrl, period, httpClient, vertx);
-        return currencyConversionService;
+        return new CurrencyConversionService(currencyServerUrl, refreshPeriod, httpClient, vertx);
     }
 }
