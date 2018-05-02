@@ -364,7 +364,7 @@ public class HttpAdapterRequesterTest {
         // then
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(
-                singletonList(BidderBid.of(com.iab.openrtb.response.Bid.builder().build(), BidType.banner)),
+                singletonList(BidderBid.of(com.iab.openrtb.response.Bid.builder().build(), BidType.banner, null)),
                 singletonList(ExtHttpCall.builder().build()),
                 singletonList(BidderError.create("legacy bidders can only bid on banner and video ad units"))));
     }
@@ -629,7 +629,7 @@ public class HttpAdapterRequesterTest {
         assertThat(futureResult.result()).isEqualTo(BidderSeatBid.of(singletonList(
                 BidderBid.of(com.iab.openrtb.response.Bid.builder()
                         .impid("code").crid("creativeId").price(BigDecimal.ONE).nurl("nurl").adm("adm").w(100).h(200)
-                        .dealid("dealId").build(), BidType.banner)), singletonList(ExtHttpCall.builder()
+                        .dealid("dealId").build(), BidType.banner, null)), singletonList(ExtHttpCall.builder()
                         .responsebody("responseBody").requestbody("requestBody").status(2).uri("requestUri").build()),
                 emptyList()));
     }

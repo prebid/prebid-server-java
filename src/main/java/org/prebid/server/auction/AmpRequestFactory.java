@@ -16,6 +16,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -303,17 +304,18 @@ public class AmpRequestFactory {
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
         final boolean isTargetingNull = targeting == null;
 
-        final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
-                ? true : targeting.getIncludewinners();
-
         final JsonNode priceGranularity = isTargetingNull ? null : targeting.getPricegranularity();
         final boolean isPriceGranularityNull = priceGranularity == null || priceGranularity.isNull();
-
         final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
                 ? Json.mapper.valueToTree(PriceGranularity.DEFAULT.getBuckets())
                 : priceGranularity;
 
-        return ExtRequestTargeting.of(outgoingPriceGranularityNode, includeWinners);
+        final ExtCurrency currency = isTargetingNull ? null : targeting.getCurrency();
+
+        final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
+                ? true : targeting.getIncludewinners();
+
+        return ExtRequestTargeting.of(outgoingPriceGranularityNode, currency, includeWinners);
     }
 
 }

@@ -89,6 +89,8 @@ public class RequestValidator {
                 throw new ValidationException("request.tmax must be nonnegative. Got %s", bidRequest.getTmax());
             }
 
+            validateCur(bidRequest.getCur());
+
             final ExtBidRequest extBidRequest = parseAndValidateExtBidRequest(bidRequest);
 
             final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
@@ -128,6 +130,20 @@ public class RequestValidator {
             return ValidationResult.error(ex.getMessage());
         }
         return ValidationResult.success();
+    }
+
+    /**
+     * Validates request.cur field.
+     */
+    private void validateCur(List<String> currencies) throws ValidationException {
+        if (currencies == null) {
+            throw new ValidationException(
+                    "currency was not defined either in request.cur or in configuration field adServerCurrency");
+        }
+
+        if (currencies.size() != 1) {
+            throw new ValidationException("request.cur can contain exactly one element");
+        }
     }
 
     private void validateBidAdjustmentFactors(Map<String, BigDecimal> adjustmentFactors, Map<String, String> aliases)

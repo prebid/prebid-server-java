@@ -72,6 +72,9 @@
   "test": 1,
   "at": 1,
   "tmax": 1000,
+  "cur": [
+    "EUR"
+  ],
   "source": {
     "fd": 1,
     "tid": "tid"
@@ -91,6 +94,16 @@
             "increment": 0.1
           }
         ],
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        },
         "includewinners" : true
       },
       "cache": {

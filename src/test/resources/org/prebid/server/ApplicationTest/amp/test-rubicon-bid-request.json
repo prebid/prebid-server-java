@@ -60,6 +60,9 @@
   },
   "at": 1,
   "tmax": 9999970,
+  "cur": [
+    "EUR"
+  ],
   "ext": {
     "prebid": {
       "targeting": {
@@ -83,10 +86,20 @@
             "increment": 0.5
           }
         ],
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        },
         "includewinners": true
       },
       "cache": {
-        "bids": []
+        "bids": {}
       }
     }
   }

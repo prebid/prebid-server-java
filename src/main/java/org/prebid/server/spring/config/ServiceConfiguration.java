@@ -16,6 +16,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
@@ -71,13 +72,14 @@ public class ServiceConfiguration {
     @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
+            @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator) {
 
-        return new AuctionRequestFactory(maxRequestSize, storedRequestProcessor, implicitParametersExtractor,
-                uidsCookieService, requestValidator);
+        return new AuctionRequestFactory(maxRequestSize, adServerCurrency, storedRequestProcessor,
+                implicitParametersExtractor, uidsCookieService, requestValidator);
     }
 
     @Bean
@@ -127,12 +129,16 @@ public class ServiceConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
-            BidderCatalog bidderCatalog, ResponseBidValidator responseBidValidator,
-            CacheService cacheService, BidResponsePostProcessor bidResponsePostProcessor, Metrics metrics,
+            BidderCatalog bidderCatalog,
+            ResponseBidValidator responseBidValidator,
+            CacheService cacheService,
+            CurrencyConversionService currencyConversionService,
+            BidResponsePostProcessor bidResponsePostProcessor,
+            Metrics metrics,
             Clock clock) {
 
         return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, bidResponsePostProcessor,
-                metrics, clock, expectedCacheTimeMs);
+                currencyConversionService, metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean
@@ -191,5 +197,16 @@ public class ServiceConfiguration {
     @Bean
     BidResponsePostProcessor bidResponsePostProcessor() {
         return BidResponsePostProcessor.noOp();
+    }
+
+    @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    CurrencyConversionService currencyConversionRates(@Value("${auction.currency-rates-refresh-period-ms}")
+                                                              long refreshPeriod,
+                                                      @Value("${auction.currency-rates-url}")
+                                                              String currencyServerUrl,
+                                                      Vertx vertx,
+                                                      HttpClient httpClient) {
+        return new CurrencyConversionService(currencyServerUrl, refreshPeriod, httpClient, vertx);
     }
 }

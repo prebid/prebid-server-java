@@ -26,8 +26,10 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.expected-cache-time-ms` - approximate value in milliseconds for Cache Service interacting. 
-This time will be subtracted from global timeout.
+- `auction.expected-cache-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
+- `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO 4217 codes for the representation of currencies.
+- `auction.currency-rates-refresh-period-ms` - default refresh period for currency rates updates.
+- `auction.currency-rates-url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 
 ## Amp
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
