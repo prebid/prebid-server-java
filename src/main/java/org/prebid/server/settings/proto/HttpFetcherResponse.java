@@ -1,4 +1,4 @@
-package org.prebid.server.settings.model;
+package org.prebid.server.settings.proto;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
@@ -12,6 +12,5 @@ public class HttpFetcherResponse {
 
     private Map<String, ObjectNode> requests;
 
-    // FIXME: uncomment when will be implemented obtaining by imp id
-    // private Map<String, ObjectNode> imps;
+    private Map<String, ObjectNode> imps;
 }

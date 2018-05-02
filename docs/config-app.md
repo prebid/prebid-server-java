@@ -84,6 +84,7 @@ Warning! Application will not start in case of no one data source is defined and
 For filesystem data source available next options:
 - `settings.filesystem.settings-filename` - location of file settings.
 - `settings.filesystem.stored-requests-dir` - directory with stored requests.
+- `settings.filesystem.stored-imps-dir` - directory with stored imps.
 
 For database data source available next options:
 - `settings.database.type` - type of database to be used: `mysql` or `postgres`.

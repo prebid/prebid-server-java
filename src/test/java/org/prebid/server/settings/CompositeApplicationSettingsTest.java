@@ -10,7 +10,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -148,206 +148,235 @@ public class CompositeApplicationSettingsTest {
     }
 
     @Test
-    public void getStoredRequestsByIdReturnResultFromFirstDelegateIfPresent() {
+    public void getStoredDataShouldReturnResultFromFirstDelegateIfPresent() {
         // given
-        given(delegate1.getStoredRequestsById(anySet(), any()))
+        given(delegate1.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyList())));
+                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
+                                emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsById(singleton("key1"), null);
+        final Future<StoredDataResult> future =
+                compositeApplicationSettings.getStoredData(singleton("key1"), singleton("key2"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
-        assertThat(future.result().getStoredIdToJson()).hasSize(1)
+        assertThat(future.result().getErrors()).isEmpty();
+        assertThat(future.result().getStoredIdToRequest()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
-
+        assertThat(future.result().getStoredIdToImp()).hasSize(1)
+                .containsOnly(entry("key2", "value2"));
         verifyZeroInteractions(delegate2);
     }
 
     @Test
-    public void getStoredRequestsByIdShouldReturnResultFromFromSecondDelegateIfFirstDelegateFails() {
+    public void getStoredDataShouldReturnResultFromFromSecondDelegateIfFirstDelegateFails() {
         // given
-        given(delegate1.getStoredRequestsById(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("error1"))));
-
-        given(delegate2.getStoredRequestsById(anySet(), any()))
+        given(delegate1.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyList())));
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
+
+        given(delegate2.getStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
+                                emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsById(singleton("key1"), null);
+        final Future<StoredDataResult> future =
+                compositeApplicationSettings.getStoredData(singleton("key1"), singleton("key2"), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
-        assertThat(future.result().getStoredIdToJson()).hasSize(1)
+        assertThat(future.result().getErrors()).isEmpty();
+        assertThat(future.result().getStoredIdToRequest()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
+        assertThat(future.result().getStoredIdToImp()).hasSize(1)
+                .containsOnly(entry("key2", "value2"));
     }
 
     @Test
-    public void getStoredRequestsByIdShouldReturnEmptyResultIfAllDelegatesFail() {
+    public void getStoredDataShouldReturnEmptyResultIfAllDelegatesFail() {
         // given
-        given(delegate1.getStoredRequestsById(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("error1"))));
+        given(delegate1.getStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
-        given(delegate2.getStoredRequestsById(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("error2"))));
+        given(delegate2.getStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
 
         // when
-        final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsById(singleton("key1"), null);
+        final Future<StoredDataResult> future =
+                compositeApplicationSettings.getStoredData(singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result().getStoredIdToJson()).isEmpty();
+        assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getErrors()).hasSize(1)
                 .containsOnly("error2");
     }
 
     @Test
-    public void getStoredRequestsByIdShouldPassOnlyMissingIdsToSecondDelegateIfFirstDelegateAlreadyObtainedThey() {
+    public void getStoredDataShouldPassOnlyMissingIdsToSecondDelegateIfFirstDelegateAlreadyObtainedThey() {
         // given
-        given(delegate1.getStoredRequestsById(anySet(), any()))
+        given(delegate1.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonList("error1"))));
+                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
+                                singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getStoredRequestsById(new HashSet<>(asList("key1", "key2")), null);
+        compositeApplicationSettings.getStoredData(new HashSet<>(asList("key1", "key2")),
+                new HashSet<>(asList("key3", "key4")), null);
 
         // then
-        @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> captor = ArgumentCaptor.forClass(Set.class);
-        verify(delegate2).getStoredRequestsById(captor.capture(), any());
+        @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> requestCaptor = ArgumentCaptor.forClass(
+                Set.class);
+        @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> impCaptor = ArgumentCaptor.forClass(Set.class);
+        verify(delegate2).getStoredData(requestCaptor.capture(), impCaptor.capture(), any());
 
-        assertThat(captor.getValue()).hasSize(1)
+        assertThat(requestCaptor.getValue()).hasSize(1)
                 .containsOnly("key2");
+        assertThat(impCaptor.getValue()).hasSize(1)
+                .containsOnly("key4");
     }
 
     @Test
-    public void getStoredRequestsByIdShouldReturnResultConsequentlyFromAllDelegates() {
+    public void getStoredDataShouldReturnResultConsequentlyFromAllDelegates() {
         // given
-        given(delegate1.getStoredRequestsById(anySet(), any()))
+        given(delegate1.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonList("key2 not found"))));
+                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
+                                asList("key2 not found", "key4 not found"))));
 
-        given(delegate2.getStoredRequestsById(anySet(), any()))
+        given(delegate2.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key2", "value2"), emptyList())));
+                        StoredDataResult.of(singletonMap("key2", "value2"), singletonMap("key4", "value4"),
+                                emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsById(new HashSet<>(asList("key1", "key2")), null);
+        final Future<StoredDataResult> future =
+                compositeApplicationSettings.getStoredData(new HashSet<>(asList("key1", "key2")),
+                        new HashSet<>(asList("key3", "key4")), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getErrors()).isEmpty();
-        assertThat(future.result().getStoredIdToJson()).hasSize(2)
+        assertThat(future.result().getStoredIdToRequest()).hasSize(2)
                 .containsOnly(
                         entry("key1", "value1"),
                         entry("key2", "value2"));
+        assertThat(future.result().getStoredIdToImp()).hasSize(2)
+                .containsOnly(
+                        entry("key3", "value3"),
+                        entry("key4", "value4"));
     }
 
     @Test
-    public void getStoredRequestsByAmpIdShouldReturnResultFromFirstDelegateIfPresent() {
+    public void getAmpStoredDataShouldReturnResultFromFirstDelegateIfPresent() {
         // given
-        given(delegate1.getStoredRequestsByAmpId(anySet(), any()))
+        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyList())));
+                        StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsByAmpId(singleton("key1"), null);
+        final Future<StoredDataResult> future =
+                compositeApplicationSettings.getAmpStoredData(singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
-        assertThat(future.result().getStoredIdToJson()).hasSize(1)
+        assertThat(future.result().getErrors()).isEmpty();
+        assertThat(future.result().getStoredIdToRequest()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
-
         verifyZeroInteractions(delegate2);
     }
 
     @Test
-    public void getStoredRequestsByAmpIdShouldReturnResultFromFromSecondDelegateIfFirstDelegateFails() {
+    public void getAmpStoredDataShouldReturnResultFromFromSecondDelegateIfFirstDelegateFails() {
         // given
-        given(delegate1.getStoredRequestsByAmpId(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("error1"))));
-
-        given(delegate2.getStoredRequestsByAmpId(anySet(), any()))
+        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyList())));
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
+
+        given(delegate2.getAmpStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsByAmpId(singleton("key1"), null);
+        final Future<StoredDataResult> future =
+                compositeApplicationSettings.getAmpStoredData(singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isNotNull();
-        assertThat(future.result().getStoredIdToJson()).hasSize(1)
+        assertThat(future.result().getErrors()).isEmpty();
+        assertThat(future.result().getStoredIdToRequest()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
     }
 
     @Test
-    public void getStoredRequestsByAmpIdShouldReturnEmptyResultIfAllDelegatesFail() {
+    public void getAmpStoredDataShouldReturnEmptyResultIfAllDelegatesFail() {
         // given
-        given(delegate1.getStoredRequestsByAmpId(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("error1"))));
+        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
-        given(delegate2.getStoredRequestsByAmpId(anySet(), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(), singletonList("error2"))));
+        given(delegate2.getAmpStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
 
         // when
-        final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsByAmpId(singleton("key1"), null);
+        final Future<StoredDataResult> future =
+                compositeApplicationSettings.getAmpStoredData(singleton("key1"), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result().getStoredIdToJson()).isEmpty();
+        assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getErrors()).hasSize(1)
                 .containsOnly("error2");
     }
 
     @Test
-    public void getStoredRequestsByAmpIdShouldPassOnlyMissingIdsToSecondDelegateIfFirstDelegateAlreadyObtainedThey() {
+    public void getAmpStoredDataShouldPassOnlyMissingIdsToSecondDelegateIfFirstDelegateAlreadyObtainedThey() {
         // given
-        given(delegate1.getStoredRequestsByAmpId(anySet(), any()))
+        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonList("error1"))));
+                        StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("key1", "key2")), null);
+        compositeApplicationSettings.getAmpStoredData(new HashSet<>(asList("key1", "key2")), emptySet(), null);
 
         // then
-        @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> captor = ArgumentCaptor.forClass(Set.class);
-        verify(delegate2).getStoredRequestsByAmpId(captor.capture(), any());
+        @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> requestCaptor = ArgumentCaptor.forClass(
+                Set.class);
+        verify(delegate2).getAmpStoredData(requestCaptor.capture(), anySet(), any());
 
-        assertThat(captor.getValue()).hasSize(1)
+        assertThat(requestCaptor.getValue()).hasSize(1)
                 .containsOnly("key2");
     }
 
     @Test
-    public void getStoredRequestsByAmpIdShouldReturnResultConsequentlyFromAllDelegates() {
+    public void getAmpStoredDataShouldReturnResultConsequentlyFromAllDelegates() {
         // given
-        given(delegate1.getStoredRequestsByAmpId(anySet(), any()))
+        given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonList("key2 not found"))));
+                        StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(),
+                                singletonList("key2 not found"))));
 
-        given(delegate2.getStoredRequestsByAmpId(anySet(), any()))
+        given(delegate2.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key2", "value2"), emptyList())));
+                        StoredDataResult.of(singletonMap("key2", "value2"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
-                compositeApplicationSettings.getStoredRequestsByAmpId(new HashSet<>(asList("key1", "key2")), null);
+        final Future<StoredDataResult> future =
+                compositeApplicationSettings.getAmpStoredData(new HashSet<>(asList("key1", "key2")), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getErrors()).isEmpty();
-        assertThat(future.result().getStoredIdToJson()).hasSize(2)
+        assertThat(future.result().getStoredIdToRequest()).hasSize(2)
                 .containsOnly(
                         entry("key1", "value1"),
                         entry("key2", "value2"));

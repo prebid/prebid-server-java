@@ -12,12 +12,11 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Collections;
 
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,7 +65,7 @@ public class CachingApplicationSettingsTest {
     public void getAccountByIdShouldPropagateFailure() {
         // given
         given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("Not found")));
+                .willReturn(Future.failedFuture(new PreBidException("error")));
 
         // when
         final Future<Account> future =
@@ -74,8 +73,9 @@ public class CachingApplicationSettingsTest {
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(PreBidException.class)
-                .hasMessage("Not found");
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
     }
 
     @Test
@@ -99,7 +99,7 @@ public class CachingApplicationSettingsTest {
     public void getAdUnitConfigByIdShouldPropagateFailure() {
         // given
         given(applicationSettings.getAdUnitConfigById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("Not found")));
+                .willReturn(Future.failedFuture(new PreBidException("error")));
 
         // when
         final Future<String> future =
@@ -107,60 +107,62 @@ public class CachingApplicationSettingsTest {
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(PreBidException.class)
-                .hasMessage("Not found");
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
     }
 
     @Test
-    public void getStoredRequestByIdShouldReturnResultOnSuccessiveCalls() {
+    public void getStoredDataShouldReturnResultOnSuccessiveCalls() {
         // given
-        given(applicationSettings.getStoredRequestsById(eq(singleton("id")), same(timeout)))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(Collections.singletonMap("id", "json"),
-                        emptyList())));
+        given(applicationSettings.getStoredData(eq(singleton("reqid")), eq(singleton("impid")), same(timeout)))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList())));
+
         // when
-        final Future<StoredRequestResult> future =
-                cachingApplicationSettings.getStoredRequestsById(singleton("id"), timeout);
-        cachingApplicationSettings.getStoredRequestsById(singleton("id"), timeout);
+        final Future<StoredDataResult> future =
+                cachingApplicationSettings.getStoredData(singleton("reqid"), singleton("impid"), timeout);
+        cachingApplicationSettings.getStoredData(singleton("reqid"), singleton("impid"), timeout); // second call
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(StoredRequestResult.of(Collections.singletonMap("id", "json"),
-                emptyList()));
-        verify(applicationSettings).getStoredRequestsById(eq(singleton("id")), same(timeout));
+        assertThat(future.result()).isEqualTo(StoredDataResult.of(
+                singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList()));
+        verify(applicationSettings).getStoredData(eq(singleton("reqid")), eq(singleton("impid")), same(timeout));
         verifyNoMoreInteractions(applicationSettings);
     }
 
     @Test
-    public void getStoredRequestByIdShouldPropagateFailure() {
+    public void getStoredDataShouldPropagateFailure() {
         // given
-        given(applicationSettings.getStoredRequestsById(any(), any()))
-                .willReturn(Future.failedFuture(new InvalidRequestException("Not found")));
+        given(applicationSettings.getStoredData(anySet(), anySet(), any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("error")));
 
         // when
-        final Future<StoredRequestResult> future =
-                cachingApplicationSettings.getStoredRequestsById(singleton("id"), timeout);
+        final Future<StoredDataResult> future =
+                cachingApplicationSettings.getStoredData(singleton("id"), emptySet(), timeout);
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Not found");
+        assertThat(future.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("error");
     }
 
     @Test
-    public void getStoredRequestByIdShouldReturnResultWithErrorsOnNotSuccessiveCallToCacheAndErrorInDelegateCall() {
+    public void getStoredDataShouldReturnResultWithErrorsOnNotSuccessiveCallToCacheAndErrorInDelegateCall() {
         // given
-        given(applicationSettings.getStoredRequestsById(eq(singleton("id")), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(emptyMap(),
-                        singletonList("Stored requests for ids id was not found"))));
+        given(applicationSettings.getStoredData(eq(singleton("id")), eq(emptySet()), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        emptyMap(), emptyMap(), singletonList("error"))));
 
         // when
-        final Future<StoredRequestResult> future =
-                cachingApplicationSettings.getStoredRequestsById(singleton("id"), timeout);
+        final Future<StoredDataResult> future =
+                cachingApplicationSettings.getStoredData(singleton("id"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(StoredRequestResult.of(emptyMap(),
-                singletonList("Stored requests for ids id was not found")));
+        assertThat(future.result())
+                .isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error")));
     }
-
 }

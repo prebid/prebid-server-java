@@ -8,9 +8,11 @@ import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class StoredRequestResult {
+public class StoredDataResult {
 
-    Map<String, String> storedIdToJson;
+    Map<String, String> storedIdToRequest;
+
+    Map<String, String> storedIdToImp;
 
     List<String> errors;
 }
