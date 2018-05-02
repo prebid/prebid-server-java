@@ -168,44 +168,49 @@ public class RequestValidator {
             throw new ValidationException("Error while parsing request.ext.prebid.targeting.pricegranularity");
         }
 
-        final List<ExtGranularityRange> ranges = extPriceGranularity.getRanges();
-        if (ranges.isEmpty()) {
-            throw new ValidationException("Price granularity error: empty granularity definition supplied");
-        }
-
         final Integer precision = extPriceGranularity.getPrecision();
         if (precision != null && precision < 0) {
             throw new ValidationException("Price granularity error: precision must be non-negative");
         }
-
-        validateGranularityRanges(ranges);
-    }
-
-    /**
-     * Validates {@link ExtGranularityRange}s increment
-     */
-    private static void validateGranularityRangeIncrement(ExtGranularityRange range) throws ValidationException {
-        if (range.getIncrement().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ValidationException("Price granularity error: increment must be a nonzero positive number");
-        }
+        validateGranularityRanges(extPriceGranularity.getRanges());
     }
 
     /**
      * Validates {@link List<ExtRequestTargeting>} as set of ranges.
      */
     private static void validateGranularityRanges(List<ExtGranularityRange> ranges) throws ValidationException {
-        final Iterator<ExtGranularityRange> rangeIterator = ranges.iterator();
-        ExtGranularityRange range = rangeIterator.next();
-        validateGranularityRangeIncrement(range);
-        while (rangeIterator.hasNext()) {
-            final ExtGranularityRange nextGranularityRange = rangeIterator.next();
-            if (range.getMax().compareTo(nextGranularityRange.getMax()) > 0) {
+        if (CollectionUtils.isEmpty(ranges)) {
+            throw new ValidationException("Price granularity error: empty granularity definition supplied");
+        }
+        if (ranges.size() == 1) {
+            validateGranularityRangeIncrement(ranges.get(0));
+        } else {
+            validateGranularityRangesIncrement(ranges);
+        }
+    }
+
+    private static void validateGranularityRangesIncrement(List<ExtGranularityRange> ranges)
+            throws ValidationException {
+        final int rangesCount = ranges.size();
+        for (int i = 0; i < rangesCount - 1; i++) {
+            final ExtGranularityRange currentRange = validateGranularityRangeIncrement(ranges.get(i));
+            final ExtGranularityRange nextRange = validateGranularityRangeIncrement(ranges.get(i + 1));
+            if (currentRange.getMax().compareTo(nextRange.getMax()) > 0) {
                 throw new ValidationException(
                         "Price granularity error: range list must be ordered with increasing \"max\"");
             }
-
-            validateGranularityRangeIncrement(range);
         }
+    }
+
+    /**
+     * Validates {@link ExtGranularityRange}s increment
+     */
+    private static ExtGranularityRange validateGranularityRangeIncrement(ExtGranularityRange range)
+            throws ValidationException {
+        if (range.getIncrement().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("Price granularity error: increment must be a nonzero positive number");
+        }
+        return range;
     }
 
     private ExtBidRequest parseAndValidateExtBidRequest(BidRequest bidRequest) throws ValidationException {
