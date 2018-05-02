@@ -56,7 +56,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, storedRequestProcessor, paramsExtractor,
+        factory = new AuctionRequestFactory(Integer.MAX_VALUE, "USD", storedRequestProcessor, paramsExtractor,
                 uidsCookieService, requestValidator);
     }
 
@@ -78,7 +78,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(1, storedRequestProcessor, paramsExtractor,
+        factory = new AuctionRequestFactory(1, "USD", storedRequestProcessor, paramsExtractor,
                 uidsCookieService, requestValidator);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
@@ -134,6 +134,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .site(Site.builder().domain("test.com").page("http://test.com").build())
                 .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
                 .user(User.builder().id("userId").build())
+                .cur(singletonList("USD"))
                 .at(1)
                 .build();
 
@@ -230,11 +231,23 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldSetCurrencyIfMissedInRequestAndPresentInAdServerCurrencyConfig(){
+        // given
+        givenBidRequest(BidRequest.builder().cur(null).build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getCur()).isEqualTo(singletonList("USD"));
+    }
+
+    @Test
     public void shouldConvertStringPriceGranularityViewToCustom() throws JsonProcessingException {
         // given
         givenBidRequest(BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(new TextNode("low"), null), null, null))))
+                        null, null, ExtRequestTargeting.of(new TextNode("low"), null, null), null, null))))
                 .build());
 
         // when
@@ -259,7 +272,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(new TextNode("invalid"), null), null, null))))
+                        null, null, ExtRequestTargeting.of(new TextNode("invalid"), null, null), null, null))))
                 .build());
 
         // when
@@ -277,7 +290,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(null, null), null, null))))
+                        null, null, ExtRequestTargeting.of(null, null, null), null, null))))
                 .build());
 
         // when
@@ -302,7 +315,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(null, null), null, null))))
+                        null, null, ExtRequestTargeting.of(null, null, null), null, null))))
                 .build());
 
         // when

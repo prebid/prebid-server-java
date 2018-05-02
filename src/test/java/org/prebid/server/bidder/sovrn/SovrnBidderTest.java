@@ -314,7 +314,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                         .build(),
-                        BidType.banner));
+                        BidType.banner, null));
     }
 
     private static HttpCall givenHttpCall(int statusCode, String body) {

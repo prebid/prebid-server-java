@@ -3,9 +3,33 @@
     {
       "type": "json",
       "value": {
+        "id": "impId12",
+        "impid": "impId12",
+        "price": 8.46365,
+        "adm": "banner",
+        "w": 400,
+        "h": 300
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "466223845",
+        "impid": "impId2",
+        "price": 3.43382,
+        "adm": "adm2",
+        "crid": "crid2",
+        "dealid": "dealId2",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "600527793",
-        "impid": "impId03",
-        "price": 5.78,
+        "impid": "impId011",
+        "price": 4.65904,
         "adm": "adm00",
         "crid": "crid00",
         "dealid": "dealId00",
@@ -16,9 +40,48 @@
     {
       "type": "json",
       "value": {
+        "id": "7706636740145184841",
+        "impid": "impId3",
+        "price": 4.43334,
+        "adm": "some-test-ad",
+        "adid": "29681110",
+        "adomain": [
+          "appnexus.com"
+        ],
+        "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+        "cid": "958",
+        "crid": "29681110",
+        "w": 300,
+        "h": 250,
+        "ext": {
+          "appnexus": {
+            "brand_id": 1,
+            "auction_id": 8189378542222915032,
+            "bidder_id": 2,
+            "bid_ad_type": 0,
+            "ranking_price": 0.0
+          }
+        }
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId4",
+        "impid": "impId4",
+        "price": 4.83637,
+        "adm": "adm4",
+        "crid": "crid4",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "620160380",
         "impid": "impId14",
-        "price": 8.43,
+        "price": 6.7951,
         "adm": "adm14",
         "crid": "crid14",
         "dealid": "dealId14",
@@ -29,9 +92,61 @@
     {
       "type": "json",
       "value": {
+        "id": "600527793",
+        "impid": "impId03",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId13",
+        "price": 4.65904,
+        "adm": "adm13",
+        "crid": "crid13",
+        "dealid": "dealId13",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId02",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId04",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "928185755156387460",
         "impid": "impId131",
-        "price": 1,
+        "price": 0.80606,
         "adm": "{\"assets\":[{\"id\":0,\"img\":{\"url\":\"http://vcdn.adnxs.com/p/creative-image/5e/b6/de/c3/5eb6dec3-4854-4dcd-980a-347f36ab502e.jpg\",\"w\":3000,\"h\":2250,\"ext\":{\"appnexus\":{\"prevent_crop\":0}}}},{\"id\":1,\"title\":{\"text\":\"This is an example Prebid Native creative\"}},{\"id\":2,\"data\":{\"value\":\"Prebid.org\"}},{\"id\":3,\"data\":{\"value\":\"ThisisaPrebidNativeCreative.Therearemanylikeit,butthisoneismine.\"}}],\"link\":{\"url\":\"http://nym1-ib.adnxs.com/click?AAAAAAAA8D8AAAAAAADwPwAAAAAAAAAAAAAAAAAA8D8AAAAAAADwPwhdYz3ZyNFNG3fXpZUyLXNZ0o5aAAAAACrElgC-AwAAvgMAAAIAAAC98iUEeP4QAAAAAABVU0QAVVNEAAEAAQARIAAAAAABAgQCAAAAAAEAhBaSXgAAAAA./pp=${AUCTION_PRICE}/cnd=%21OwwGAQiGmooHEL3llyEY-PxDIAQoADoRZGVmYXVsdCNOWU0yOjQwMjM./bn=75922/test=1/referrer=prebid.org/clickenc=http%3A%2F%2Fprebid.org%2Fdev-docs%2Fshow-native-ads.html\"},\"imptrackers\":[\"http://nym1-ib.adnxs.com/openrtb_win?e=wqT_3QLFBqBFAwAAAwDWAAUBCNmku9QFEIi6jeuTm_LoTRib7t2u2tLMlnMqNgkAAAECCPA_EQEHEAAA8D8ZCQkIAAAhCQkI8D8pEQkAMQkJqAAAMKqI2wQ4vgdAvgdIAlC95ZchWPj8Q2AAaJFAeJLRBIABAYoBA1VTRJIFBvBQmAEBoAEBqAEBsAEAuAECwAEEyAEC0AEJ2AEA4AEB8AEAigI7dWYoJ2EnLCAxMzc2ODYwLCAxNTE5MzA5NDAxKTt1ZigncicsIDY5NTk1ODM3Nh4A8IqSAvUBIXRETkdfUWlHbW9vSEVMM2xseUVZQUNENF9FTXdBRGdBUUFSSXZnZFFxb2piQkZnQVlMTURhQUJ3QUhnQWdBRUFpQUVBa0FFQm1BRUJvQUVCcUFFRHNBRUF1UUVwaTRpREFBRHdQOEVCS1l1SWd3QUE4RF9KQVhfelYzek1zXzBfMlFFQUFBAQMkRHdQLUFCQVBVQgEOLEFKZ0NBS0FDQUxVQwUQBEwwCQjwTE1BQ0FNZ0NBT0FDQU9nQ0FQZ0NBSUFEQVpBREFKZ0RBYWdEaHBxS0I3b0RFV1JsWm1GMWJIUWpUbGxOTWpvME1ESXqaAjkhT3d3R0FRNvgA8E4tUHhESUFRb0FEb1JaR1ZtWVhWc2RDTk9XVTB5T2pRd01qTS7YAugH4ALH0wHqAgpwcmViaWQub3Jn8gIRCgZBRFZfSUQSBzEzNzY4NjDyARQMQ1BHXwEUNDM1MDMwOTjyAhEKBUNQARPwmQgxNDg0NzIzOIADAYgDAZADAJgDFKADAaoDAMADkBzIAwDYAwDgAwDoAwD4AwOABACSBAkvb3BlbnJ0YjKYBACiBAwxNTIuMTkzLjYuNzSoBJrMI7IEDAgAEAAYACAAMAA4ALgEAMAEAMgEANIEEWRlZmF1bHQjTllNMjo0MDIz2gQCCADgBADwBL3llyGIBQGYBQCgBf____8FA1ABqgULc29tZS1yZXEtaWTABQDJBQAFARTwP9IFCQkFC2QAAADYBQHgBQHwBd4C-gUECAAQAJAGAZgGAA..&s=08b1535744639c904684afe46e3c6c0e4786089f&test=1&referrer=prebid.org&pp=${AUCTION_PRICE}\"],\"jstracker\":\"<scriptsrc=\\\"http://www.dummyurl.js\\\"></script>\"}",
         "adid": "69595837",
         "adomain": [
@@ -56,46 +171,9 @@
     {
       "type": "json",
       "value": {
-        "id": "impId4",
-        "impid": "impId4",
-        "price": 6,
-        "adm": "adm4",
-        "crid": "crid4",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "600527793",
-        "impid": "impId011",
-        "price": 5.78,
-        "adm": "adm00",
-        "crid": "crid00",
-        "dealid": "dealId00",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "impId41",
-        "impid": "impId41",
-        "price": 5,
-        "nurl": "adm41",
-        "crid": "crid41",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "880290288",
         "impid": "impId1",
-        "price": 8.43,
+        "price": 6.7951,
         "adm": "adm1",
         "crid": "crid1",
         "dealid": "dealId1",
@@ -118,62 +196,11 @@
     {
       "type": "json",
       "value": {
-        "id": "600527793",
-        "impid": "impId13",
-        "price": 5.78,
-        "adm": "adm13",
-        "crid": "crid13",
-        "dealid": "dealId13",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "600527793",
-        "impid": "impId04",
-        "price": 5.78,
-        "adm": "adm00",
-        "crid": "crid00",
-        "dealid": "dealId00",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "347088686",
-        "impid": "impId5",
-        "price": 9,
-        "adm": "adm5",
-        "crid": "crid5",
-        "dealid": "dealId5",
-        "w": 0,
-        "h": 50
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "impId12",
-        "impid": "impId12",
-        "price": 10.5,
-        "adm": "banner",
-        "w": 400,
-        "h": 300
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "466223845",
-        "impid": "impId2",
-        "price": 4.26,
-        "adm": "adm2",
-        "crid": "crid2",
-        "dealid": "dealId2",
+        "id": "impId41",
+        "impid": "impId41",
+        "price": 4.03031,
+        "nurl": "adm41",
+        "crid": "crid41",
         "w": 300,
         "h": 600
       }
@@ -181,41 +208,14 @@
     {
       "type": "json",
       "value": {
-        "id": "600527793",
-        "impid": "impId02",
-        "price": 5.78,
-        "adm": "adm00",
-        "crid": "crid00",
-        "dealid": "dealId00",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "7706636740145184841",
-        "impid": "impId3",
-        "price": 5.5,
-        "adm": "some-test-ad",
-        "adid": "29681110",
-        "adomain": [
-          "appnexus.com"
-        ],
-        "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
-        "cid": "958",
-        "crid": "29681110",
-        "w": 300,
-        "h": 250,
-        "ext": {
-          "appnexus": {
-            "brand_id": 1,
-            "auction_id": 8189378542222915032,
-            "bidder_id": 2,
-            "bid_ad_type": 0,
-            "ranking_price": 0.0
-          }
-        }
+        "id": "347088686",
+        "impid": "impId5",
+        "price": 7.25455,
+        "adm": "adm5",
+        "crid": "crid5",
+        "dealid": "dealId5",
+        "w": 0,
+        "h": 50
       }
     }
   ]

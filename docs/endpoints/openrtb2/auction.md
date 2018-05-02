@@ -139,17 +139,32 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
 
 ```
 {
-  "pricegranularity": [{
-     "precision": 2,
-     "min":0.0,
-     "max":20.0
-     "increment":0.1 }], // Required property.
-  "includewinners": false // Optional param defaulting to true
+  "pricegranularity": [
+    {
+      "precision": 2,
+      "min": 0.0,
+      "max": 20.0,
+      "increment": 0.1      // Required property
+    }
+  ],
+  "currency": {
+    "rates": {
+      "EUR": {
+        "USD": 1.2406
+      },
+      "USD": {
+        "EUR": 0.8110
+      }
+    }
+  },
+  "includewinners": false   // Optional param defaulting to true
 }
 ```
 The list of price granularity ranges must be given in order of increasing `max` values. `max` and `precision` are required. If `precision` is omitted, it will default to `2`. If `min` is omitted, it will default to the previous `max`.
 
 For backwards compatibility the following strings will also be allowed as price granularity definitions. There is no guarantee that these will be honored in the future. "One of ['low', 'med', 'high', 'auto', 'dense']"
+
+`currency` is used for conversion between bid currency returned by bidder and adServer currency defined in request or prebid server configuration. If AdServer currency was not defined neither in request or config, prebid server will not fire request for bidders in such case. Currency support works in pair with custom price granularity, which should be defined for specific currency in request.  Important note: PBS uses ISO 4217 Codes for the representation of currencies.
 
 **Response format** (returned in `bid.ext.prebid.targeting`)
 

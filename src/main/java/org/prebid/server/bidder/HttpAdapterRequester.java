@@ -324,7 +324,7 @@ public class HttpAdapterRequester implements BidderRequester {
             final Result<BidType> bidTypeResult = toBidType(bid);
             final List<BidderError> bidderErrors = bidTypeResult.getErrors();
             if (bidderErrors.isEmpty()) {
-                bidderBids.add(BidderBid.of(toOrtbBid(bid), bidTypeResult.getValue()));
+                bidderBids.add(BidderBid.of(toOrtbBid(bid), bidTypeResult.getValue(), null));
             } else {
                 errors.addAll(bidderErrors);
             }
