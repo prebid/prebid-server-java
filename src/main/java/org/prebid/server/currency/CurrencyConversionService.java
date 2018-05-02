@@ -79,7 +79,7 @@ public class CurrencyConversionService {
             if (receivedCurrencyRates != null) {
                 latestCurrencyRates = receivedCurrencyRates;
             }
-        } catch (IllegalArgumentException | IOException e) {
+        } catch (IOException e) {
             logger.warn("Error occurred during parsing response from latest currency service", e);
         }
     }
