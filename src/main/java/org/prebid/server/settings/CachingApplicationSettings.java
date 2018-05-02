@@ -4,7 +4,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.TriFunction;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,7 +61,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
      * Retrieves stored data from cache or delegates it to original fetcher.
      */
     @Override
-    public Future<StoredRequestResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return getFromCacheOrDelegate(storedRequestCache, storedImpCache, requestIds, impIds, timeout,
                 delegate::getStoredData);
     }
@@ -69,7 +70,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
      * Retrieves amp stored data from cache or delegates it to original fetcher.
      */
     @Override
-    public Future<StoredRequestResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return getFromCacheOrDelegate(ampStoredRequestCache, storedImpCache, requestIds, impIds, timeout,
                 delegate::getAmpStoredData);
     }
@@ -103,24 +104,24 @@ public class CachingApplicationSettings implements ApplicationSettings {
     /**
      * Retrieves stored data from cache and collects ids which were absent. For absent ids makes look up to original
      * source, combines results and updates cache with missed stored request. In case when origin source returns Failed
-     * {@link Future} propagates its result to caller. In successive call return {@link Future<StoredRequestResult>}
+     * {@link Future} propagates its result to caller. In successive call return {@link Future< StoredDataResult >}
      * with all found stored requests and error from origin source id call was made.
      */
-    private static Future<StoredRequestResult> getFromCacheOrDelegate(
+    private static Future<StoredDataResult> getFromCacheOrDelegate(
             Map<String, String> requestCache, Map<String, String> impCache,
             Set<String> requestIds, Set<String> impIds, Timeout timeout,
-            TriFunction<Set<String>, Set<String>, Timeout, Future<StoredRequestResult>> retriever) {
+            TriFunction<Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
 
         final Set<String> missedRequestIds = new HashSet<>();
-        final Map<String, String> storedIdToRequest = getFromCacheOrAddMissingIds(requestIds, requestCache,
+        final Map<String, String> storedIdToRequest = getFromCacheOrAddMissedIds(requestIds, requestCache,
                 missedRequestIds);
 
         final Set<String> missedImpIds = new HashSet<>();
-        final Map<String, String> storedIdToImp = getFromCacheOrAddMissingIds(impIds, impCache, missedImpIds);
+        final Map<String, String> storedIdToImp = getFromCacheOrAddMissedIds(impIds, impCache, missedImpIds);
 
         if (missedRequestIds.isEmpty() && missedImpIds.isEmpty()) {
             return Future.succeededFuture(
-                    StoredRequestResult.of(storedIdToRequest, storedIdToImp, Collections.emptyList()));
+                    StoredDataResult.of(storedIdToRequest, storedIdToImp, Collections.emptyList()));
         }
 
         // delegate call to original source for missed ids and update cache with it
@@ -133,12 +134,12 @@ public class CachingApplicationSettings implements ApplicationSettings {
             storedIdToImp.putAll(storedIdToImpFromDelegate);
             impCache.putAll(storedIdToImpFromDelegate);
 
-            return Future.succeededFuture(StoredRequestResult.of(storedIdToRequest, storedIdToImp, result.getErrors()));
+            return Future.succeededFuture(StoredDataResult.of(storedIdToRequest, storedIdToImp, result.getErrors()));
         });
     }
 
-    private static Map<String, String> getFromCacheOrAddMissingIds(Set<String> ids, Map<String, String> cache,
-                                                                   Set<String> missedIds) {
+    private static Map<String, String> getFromCacheOrAddMissedIds(Set<String> ids, Map<String, String> cache,
+                                                                  Set<String> missedIds) {
         final Map<String, String> storedIdToJson = new HashMap<>(ids.size());
         for (String id : ids) {
             final String cachedValue = cache.get(id);
@@ -149,17 +150,5 @@ public class CachingApplicationSettings implements ApplicationSettings {
             }
         }
         return storedIdToJson;
-    }
-
-    /**
-     * Interface to satisfy obtaining {@link StoredRequestResult}
-     *
-     * @param <T> set of stored requests id
-     * @param <U> set of stored imps id
-     * @param <V> processing timeout
-     * @param <R> result of fetching stored data
-     */
-    interface TriFunction<T, U, V, R> {
-        R apply(T t, U u, V v);
     }
 }

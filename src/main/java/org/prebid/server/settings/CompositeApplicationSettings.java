@@ -3,7 +3,8 @@ package org.prebid.server.settings;
 import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.TriFunction;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,19 +61,19 @@ public class CompositeApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get stored requests by a collection of ids from a chain of retrievers
-     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredRequestResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return proxy.getStoredData(requestIds, impIds, timeout);
     }
 
     /**
      * Runs a process to get stored requests by a collection of amp ids from a chain of retrievers
-     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredRequestResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return proxy.getAmpStoredData(requestIds, Collections.emptySet(), timeout);
     }
 
@@ -83,18 +84,6 @@ public class CompositeApplicationSettings implements ApplicationSettings {
 
         private ApplicationSettings applicationSettings;
         private Proxy next;
-
-        /**
-         * Interface to satisfy obtaining {@link StoredRequestResult}
-         *
-         * @param <T> set of stored requests id
-         * @param <U> set of stored imps id
-         * @param <V> processing timeout
-         * @param <R> result of fetching stored data
-         */
-        interface TriFunction<T, U, V, R> {
-            R apply(T t, U u, V v);
-        }
 
         private Proxy(ApplicationSettings applicationSettings, Proxy next) {
             this.applicationSettings = applicationSettings;
@@ -123,22 +112,22 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         }
 
         @Override
-        public Future<StoredRequestResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
             return getStoredRequests(requestIds, impIds, timeout, applicationSettings::getStoredData,
                     next != null ? next::getStoredData : null);
         }
 
         @Override
-        public Future<StoredRequestResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds,
-                                                            Timeout timeout) {
+        public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds,
+                                                         Timeout timeout) {
             return getStoredRequests(requestIds, Collections.emptySet(), timeout, applicationSettings::getAmpStoredData,
                     next != null ? next::getAmpStoredData : null);
         }
 
-        private static Future<StoredRequestResult> getStoredRequests(
+        private static Future<StoredDataResult> getStoredRequests(
                 Set<String> requestIds, Set<String> impIds, Timeout timeout,
-                TriFunction<Set<String>, Set<String>, Timeout, Future<StoredRequestResult>> retriever,
-                TriFunction<Set<String>, Set<String>, Timeout, Future<StoredRequestResult>> nextRetriever) {
+                TriFunction<Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever,
+                TriFunction<Set<String>, Set<String>, Timeout, Future<StoredDataResult>> nextRetriever) {
 
             return retriever.apply(requestIds, impIds, timeout)
                     .compose(retrieverResult ->
@@ -149,16 +138,16 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                                     nextRetriever));
         }
 
-        private static Future<StoredRequestResult> getRemainingStoredRequests(
+        private static Future<StoredDataResult> getRemainingStoredRequests(
                 Set<String> requestIds, Set<String> impIds, Timeout timeout,
                 Map<String, String> storedIdToRequest, Map<String, String> storedIdToImp,
-                TriFunction<Set<String>, Set<String>, Timeout, Future<StoredRequestResult>> retriever) {
+                TriFunction<Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
 
             return retriever.apply(
                     subtractSets(requestIds, storedIdToRequest.keySet()),
                     subtractSets(impIds, storedIdToImp.keySet()),
                     timeout)
-                    .compose(result -> Future.succeededFuture(StoredRequestResult.of(
+                    .compose(result -> Future.succeededFuture(StoredDataResult.of(
                             combineMaps(storedIdToRequest, result.getStoredIdToRequest()),
                             combineMaps(storedIdToImp, result.getStoredIdToImp()),
                             result.getErrors())));

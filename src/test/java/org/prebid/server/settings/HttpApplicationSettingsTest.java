@@ -21,8 +21,8 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.HttpFetcherResponse;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.proto.HttpFetcherResponse;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -111,7 +111,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnEmptyResultIfEmptyRequestsIdsGiven() {
         // when
-        final Future<StoredRequestResult> future = httpApplicationSettings.getStoredData(emptySet(), emptySet(), null);
+        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(emptySet(), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -124,7 +124,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfTimeoutAlreadyExpired() {
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), expiredTimeout);
 
         // then
@@ -169,7 +169,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Request exception"));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
 
         // then
@@ -186,7 +186,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponses(500, "ignored");
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
 
         // then
@@ -203,7 +203,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponses(200, "invalid-response");
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
 
         // then
@@ -222,7 +222,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponses(200, malformedStoredRequest);
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
 
         // then
@@ -242,7 +242,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponses(200, malformedStoredRequest);
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 httpApplicationSettings.getStoredData(singleton("id1"), emptySet(), timeout);
 
         // then
@@ -262,7 +262,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponses(200, mapper.writeValueAsString(response));
 
         // when
-        final Future<StoredRequestResult> future = httpApplicationSettings.getStoredData(
+        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(
                 new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")), timeout);
 
         // then
@@ -286,7 +286,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponses(200, mapper.writeValueAsString(response));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);
 
         // then

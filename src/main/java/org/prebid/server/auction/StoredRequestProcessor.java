@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.ApplicationSettings;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Executes stored request processing
@@ -94,26 +93,26 @@ public class StoredRequestProcessor {
                 bidRequest, ampRequestId, Collections.emptyMap());
     }
 
-    private Future<BidRequest> storedRequestsToBidRequest(Future<StoredRequestResult> storedRequestsFuture,
+    private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,
                                                           BidRequest bidRequest, String storedBidRequestId,
                                                           Map<Imp, String> impsToStoredRequestId) {
-        return storedRequestsFuture
+        return storedDataFuture
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed with exception: %s", exception))))
-                .compose(storedRequestResult -> storedRequestResult.getErrors().size() > 0
-                        ? Future.failedFuture(new InvalidRequestException(storedRequestResult.getErrors()))
-                        : Future.succeededFuture(storedRequestResult))
-                .map(storedRequestResult -> mergeBidRequestAndImps(bidRequest, storedBidRequestId,
-                        impsToStoredRequestId, storedRequestResult));
+                .compose(result -> result.getErrors().size() > 0
+                        ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
+                        : Future.succeededFuture(result))
+                .map(result -> mergeBidRequestAndImps(bidRequest, storedBidRequestId,
+                        impsToStoredRequestId, result));
     }
 
     /**
      * Runs {@link BidRequest} and {@link Imp}s merge processes.
      */
     private BidRequest mergeBidRequestAndImps(BidRequest bidRequest, String storedRequestId,
-                                              Map<Imp, String> impToStoredId, StoredRequestResult storedRequestResult) {
-        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedRequestResult), impToStoredId,
-                storedRequestResult);
+                                              Map<Imp, String> impToStoredId, StoredDataResult storedDataResult) {
+        return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult), impToStoredId,
+                storedDataResult);
     }
 
     /**
@@ -121,9 +120,9 @@ public class StoredRequestProcessor {
      * original request has higher priority than stored request values.
      */
     private BidRequest mergeBidRequest(BidRequest bidRequest, String storedRequestId,
-                                       StoredRequestResult storedRequestResult) {
+                                       StoredDataResult storedDataResult) {
         return storedRequestId != null
-                ? merge(bidRequest, storedRequestResult::getStoredIdToRequest, storedRequestId, BidRequest.class)
+                ? merge(bidRequest, storedDataResult.getStoredIdToRequest(), storedRequestId, BidRequest.class)
                 : bidRequest;
     }
 
@@ -132,7 +131,7 @@ public class StoredRequestProcessor {
      * has higher priority than stored request values.
      */
     private BidRequest mergeBidRequestImps(BidRequest bidRequest, Map<Imp, String> impToStoredId,
-                                           StoredRequestResult storedRequestResult) {
+                                           StoredDataResult storedDataResult) {
         if (impToStoredId.isEmpty()) {
             return bidRequest;
         }
@@ -141,7 +140,7 @@ public class StoredRequestProcessor {
             final Imp imp = mergedImps.get(i);
             final String storedRequestId = impToStoredId.get(imp);
             if (storedRequestId != null) {
-                final Imp mergedImp = merge(imp, storedRequestResult::getStoredIdToImp, storedRequestId, Imp.class);
+                final Imp mergedImp = merge(imp, storedDataResult.getStoredIdToImp(), storedRequestId, Imp.class);
                 mergedImps.set(i, mergedImp);
             }
         }
@@ -153,11 +152,11 @@ public class StoredRequestProcessor {
      * and cast it to appropriate class. In case of any exception during merging, throws {@link InvalidRequestException}
      * with reason message.
      */
-    private <T> T merge(T originalObject, Supplier<Map<String, String>> supplier, String id, Class<T> classToCast) {
+    private <T> T merge(T originalObject, Map<String, String> storedData, String id, Class<T> classToCast) {
         final JsonNode originJsonNode = Json.mapper.valueToTree(originalObject);
         final JsonNode storedRequestJsonNode;
         try {
-            storedRequestJsonNode = Json.mapper.readTree(supplier.get().get(id));
+            storedRequestJsonNode = Json.mapper.readTree(storedData.get(id));
         } catch (IOException e) {
             throw new InvalidRequestException(
                     String.format("Can't parse Json for stored request with id %s", id));

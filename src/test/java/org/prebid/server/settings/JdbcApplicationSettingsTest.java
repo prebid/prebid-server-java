@@ -17,7 +17,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.vertx.JdbcClient;
 
 import java.sql.Connection;
@@ -167,7 +167,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnExpectedResult(TestContext context) {
         // when
-        final Future<StoredRequestResult> future = jdbcApplicationSettings.getStoredData(
+        final Future<StoredDataResult> future = jdbcApplicationSettings.getStoredData(
                 new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
 
         // then
@@ -180,7 +180,7 @@ public class JdbcApplicationSettingsTest {
         expectedImps.put("5", "value5");
         future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult)
-                    .isEqualTo(StoredRequestResult.of(expectedRequests, expectedImps, emptyList()));
+                    .isEqualTo(StoredDataResult.of(expectedRequests, expectedImps, emptyList()));
             async.complete();
         }));
     }
@@ -188,7 +188,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldReturnExpectedResult(TestContext context) {
         // when
-        final Future<StoredRequestResult> future = jdbcApplicationSettings.getAmpStoredData(
+        final Future<StoredDataResult> future = jdbcApplicationSettings.getAmpStoredData(
                 new HashSet<>(asList("1", "2")), new HashSet<>(asList("3", "4")), timeout);
 
         // then
@@ -198,7 +198,7 @@ public class JdbcApplicationSettingsTest {
         expectedRequests.put("2", "value2");
         future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult)
-                    .isEqualTo(StoredRequestResult.of(expectedRequests, emptyMap(), emptyList()));
+                    .isEqualTo(StoredDataResult.of(expectedRequests, emptyMap(), emptyList()));
             async.complete();
         }));
     }
@@ -209,7 +209,7 @@ public class JdbcApplicationSettingsTest {
         jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectUnionQuery, selectUnionQuery);
 
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getStoredData(new HashSet<>(asList("1", "2", "3")),
                         new HashSet<>(asList("4", "5", "6")), timeout);
 
@@ -225,7 +225,7 @@ public class JdbcApplicationSettingsTest {
             expectedImps.put("5", "value5");
             expectedImps.put("6", "value6");
             assertThat(storedRequestResult).isEqualTo(
-                    StoredRequestResult.of(expectedRequests, expectedImps, emptyList()));
+                    StoredDataResult.of(expectedRequests, expectedImps, emptyList()));
             async.complete();
         }));
     }
@@ -236,7 +236,7 @@ public class JdbcApplicationSettingsTest {
         jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectUnionQuery, selectUnionQuery);
 
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getAmpStoredData(new HashSet<>(asList("1", "2", "3")),
                         new HashSet<>(asList("4", "5", "6")), timeout);
 
@@ -248,7 +248,7 @@ public class JdbcApplicationSettingsTest {
             expectedRequests.put("2", "value2");
             expectedRequests.put("3", "value3");
             assertThat(storedRequestResult).isEqualTo(
-                    StoredRequestResult.of(expectedRequests, emptyMap(), emptyList()));
+                    StoredDataResult.of(expectedRequests, emptyMap(), emptyList()));
             async.complete();
         }));
     }
@@ -256,13 +256,13 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfNoStoredRequestFound(TestContext context) {
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getStoredData(new HashSet<>(asList("1", "3")), emptySet(), timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(singletonMap("1", "value1"), emptyMap(),
+            assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     singletonList("No stored request found for id: 3")));
             async.complete();
         }));
@@ -271,13 +271,13 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfNoStoredImpFound(TestContext context) {
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getStoredData(emptySet(), new HashSet<>(asList("4", "6")), timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(emptyMap(), singletonMap("4", "value4"),
+            assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), singletonMap("4", "value4"),
                     singletonList("No stored imp found for id: 6")));
             async.complete();
         }));
@@ -286,13 +286,13 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldReturnResultWithErrorIfNoStoredRequestFound(TestContext context) {
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getAmpStoredData(new HashSet<>(asList("1", "3")), emptySet(), timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(singletonMap("1", "value1"), emptyMap(),
+            assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     singletonList("No stored request found for id: 3")));
             async.complete();
         }));
@@ -305,13 +305,13 @@ public class JdbcApplicationSettingsTest {
                 selectFromOneColumnTableQuery);
 
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getStoredData(new HashSet<>(asList("1", "2", "3")), emptySet(), timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(emptyMap(), emptyMap(),
+            assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("Result set column number is less than expected")));
             async.complete();
         }));
@@ -324,13 +324,13 @@ public class JdbcApplicationSettingsTest {
                 selectFromOneColumnTableQuery);
 
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getAmpStoredData(new HashSet<>(asList("1", "2", "3")), emptySet(), timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(emptyMap(), emptyMap(),
+            assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("Result set column number is less than expected")));
             async.complete();
         }));
@@ -339,14 +339,14 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getStoredData(new HashSet<>(asList("3", "4")),
                         new HashSet<>(asList("6", "7")), timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(emptyMap(), emptyMap(),
+            assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("No stored requests for ids [3, 4] and stored imps for ids [6, 7] was found")));
             async.complete();
         }));
@@ -355,13 +355,13 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldReturnErrorAndEmptyResult(TestContext context) {
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getAmpStoredData(new HashSet<>(asList("3", "4")), emptySet(), timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(emptyMap(), emptyMap(),
+            assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("No stored requests for ids [3, 4] was found")));
             async.complete();
         }));
@@ -370,13 +370,13 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAmpStoredDataShouldIgnoreImpIdsArgument(TestContext context) {
         // when
-        final Future<StoredRequestResult> storedRequestResultFuture =
+        final Future<StoredDataResult> storedRequestResultFuture =
                 jdbcApplicationSettings.getAmpStoredData(singleton("1"), singleton("4"), timeout);
 
         // then
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
-            assertThat(storedRequestResult).isEqualTo(StoredRequestResult.of(singletonMap("1", "value1"), emptyMap(),
+            assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     emptyList()));
             async.complete();
         }));

@@ -10,7 +10,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -152,11 +152,11 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
+                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
                                 emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 compositeApplicationSettings.getStoredData(singleton("key1"), singleton("key2"), null);
 
         // then
@@ -175,15 +175,15 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
         given(delegate2.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
+                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
                                 emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 compositeApplicationSettings.getStoredData(singleton("key1"), singleton("key2"), null);
 
         // then
@@ -201,14 +201,14 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
         given(delegate2.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 compositeApplicationSettings.getStoredData(singleton("key1"), emptySet(), null);
 
         // then
@@ -223,7 +223,7 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
+                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
                                 singletonList("error1"))));
 
         // when
@@ -247,16 +247,16 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
+                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
                                 asList("key2 not found", "key4 not found"))));
 
         given(delegate2.getStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key2", "value2"), singletonMap("key4", "value4"),
+                        StoredDataResult.of(singletonMap("key2", "value2"), singletonMap("key4", "value4"),
                                 emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 compositeApplicationSettings.getStoredData(new HashSet<>(asList("key1", "key2")),
                         new HashSet<>(asList("key3", "key4")), null);
 
@@ -278,10 +278,10 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
+                        StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 compositeApplicationSettings.getAmpStoredData(singleton("key1"), emptySet(), null);
 
         // then
@@ -298,14 +298,14 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
         given(delegate2.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
+                        StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 compositeApplicationSettings.getAmpStoredData(singleton("key1"), emptySet(), null);
 
         // then
@@ -321,14 +321,14 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error1"))));
 
         given(delegate2.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 compositeApplicationSettings.getAmpStoredData(singleton("key1"), emptySet(), null);
 
         // then
@@ -343,7 +343,7 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyMap(), singletonList("error1"))));
+                        StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), singletonList("error1"))));
 
         // when
         compositeApplicationSettings.getAmpStoredData(new HashSet<>(asList("key1", "key2")), emptySet(), null);
@@ -362,15 +362,15 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key1", "value1"), emptyMap(),
+                        StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(),
                                 singletonList("key2 not found"))));
 
         given(delegate2.getAmpStoredData(anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredRequestResult.of(singletonMap("key2", "value2"), emptyMap(), emptyList())));
+                        StoredDataResult.of(singletonMap("key2", "value2"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 compositeApplicationSettings.getAmpStoredData(new HashSet<>(asList("key1", "key2")), emptySet(), null);
 
         // then

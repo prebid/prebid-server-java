@@ -2,14 +2,16 @@ package org.prebid.server.settings;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
-import org.prebid.server.settings.model.StoredRequestResult;
 import org.prebid.server.vertx.JdbcClient;
 
 import java.util.ArrayList;
@@ -32,6 +34,8 @@ import java.util.stream.IntStream;
  * can be decorated by {@link CachingApplicationSettings}.
  */
 public class JdbcApplicationSettings implements ApplicationSettings {
+
+    private static final Logger logger = LoggerFactory.getLogger(JdbcApplicationSettings.class);
 
     private static final String REQUEST_ID_PLACEHOLDER = "%REQUEST_ID_LIST%";
     private static final String IMP_ID_PLACEHOLDER = "%IMP_ID_LIST%";
@@ -94,19 +98,19 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get stored requests by a collection of ids from database
-     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredRequestResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(selectQuery, requestIds, impIds, timeout);
     }
 
     /**
      * Runs a process to get stored requests by a collection of amp ids from database
-     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredRequestResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(selectAmpQuery, requestIds, Collections.emptySet(), timeout);
     }
 
@@ -123,13 +127,13 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     /**
      * Fetches stored requests from database for the given query.
      */
-    private Future<StoredRequestResult> fetchStoredData(String query, Set<String> requestIds, Set<String> impIds,
-                                                        Timeout timeout) {
-        final Future<StoredRequestResult> future;
+    private Future<StoredDataResult> fetchStoredData(String query, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        final Future<StoredDataResult> future;
 
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
             future = Future.succeededFuture(
-                    StoredRequestResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
+                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
         } else {
             final List<String> idsQueryParameters = new ArrayList<>();
             IntStream.rangeClosed(1, StringUtils.countMatches(query, REQUEST_ID_PLACEHOLDER))
@@ -166,11 +170,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Maps {@link ResultSet} to {@link StoredRequestResult}. In case of {@link ResultSet} size is less than ids number
+     * Maps {@link ResultSet} to {@link StoredDataResult}. In case of {@link ResultSet} size is less than ids number
      * creates an error for each missing id and add it to result.
      */
-    private static StoredRequestResult mapToStoredRequestResult(ResultSet rs, Set<String> requestIds,
-                                                                Set<String> impIds) {
+    private static StoredDataResult mapToStoredRequestResult(ResultSet rs, Set<String> requestIds,
+                                                             Set<String> impIds) {
         final Map<String, String> storedIdToRequest = new HashMap<>(requestIds.size());
         final Map<String, String> storedIdToImp = new HashMap<>(impIds.size());
         final List<String> errors = new ArrayList<>();
@@ -187,9 +191,18 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 for (JsonArray result : rs.getResults()) {
                     final String id = result.getString(0);
                     final String json = result.getString(1);
-                    final StoredDataType type = StoredDataType.valueOf(result.getString(2));
+                    final String typeAsString = result.getString(2);
 
-                    if (StoredDataType.request.equals(type)) {
+                    final StoredDataType type;
+                    try {
+                        type = StoredDataType.valueOf(typeAsString);
+                    } catch (IllegalArgumentException e) {
+                        logger.error(String.format(
+                                "Result set with id=%s has invalid type: %s. This will be ignored.", id, typeAsString));
+                        continue;
+                    }
+
+                    if (type == StoredDataType.request) {
                         storedIdToRequest.put(id, json);
                     } else {
                         storedIdToImp.put(id, json);
@@ -197,14 +210,14 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 }
             } catch (IndexOutOfBoundsException e) {
                 errors.add("Result set column number is less than expected");
-                return StoredRequestResult.of(Collections.emptyMap(), Collections.emptyMap(), errors);
+                return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), errors);
             }
 
             errors.addAll(errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request));
             errors.addAll(errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp));
         }
 
-        return StoredRequestResult.of(storedIdToRequest, storedIdToImp, errors);
+        return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
     }
 
     /**

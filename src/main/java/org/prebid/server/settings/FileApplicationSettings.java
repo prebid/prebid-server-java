@@ -12,8 +12,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AdUnitConfig;
 import org.prebid.server.settings.model.SettingsFile;
+import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
-import org.prebid.server.settings.model.StoredRequestResult;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,16 +84,16 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Creates {@link StoredRequestResult} by checking if any ids are missed in storedRequest map and adding an error
-     * to list for each missed Id. Returns {@link Future<StoredRequestResult>} with all loaded files and errors list.
+     * Creates {@link StoredDataResult} by checking if any ids are missed in storedRequest map and adding an error
+     * to list for each missed Id. Returns {@link Future< StoredDataResult >} with all loaded files and errors list.
      */
     @Override
-    public Future<StoredRequestResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        final Future<StoredRequestResult> future;
+    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        final Future<StoredDataResult> future;
 
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
             future = Future.succeededFuture(
-                    StoredRequestResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
+                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
         } else {
             final List<String> requestErrors = errorsForMissedIds(requestIds, storedIdToRequest,
                     StoredDataType.request);
@@ -102,14 +102,14 @@ public class FileApplicationSettings implements ApplicationSettings {
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
 
-            future = Future.succeededFuture(StoredRequestResult.of(storedIdToRequest, storedIdToImp, errors));
+            future = Future.succeededFuture(StoredDataResult.of(storedIdToRequest, storedIdToImp, errors));
         }
 
         return future;
     }
 
     @Override
-    public Future<StoredRequestResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return getStoredData(requestIds, Collections.emptySet(), timeout);
     }
 

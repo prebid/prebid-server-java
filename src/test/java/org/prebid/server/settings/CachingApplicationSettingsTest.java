@@ -12,7 +12,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -116,17 +116,17 @@ public class CachingApplicationSettingsTest {
     public void getStoredDataShouldReturnResultOnSuccessiveCalls() {
         // given
         given(applicationSettings.getStoredData(eq(singleton("reqid")), eq(singleton("impid")), same(timeout)))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
                         singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList())));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 cachingApplicationSettings.getStoredData(singleton("reqid"), singleton("impid"), timeout);
         cachingApplicationSettings.getStoredData(singleton("reqid"), singleton("impid"), timeout); // second call
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(StoredRequestResult.of(
+        assertThat(future.result()).isEqualTo(StoredDataResult.of(
                 singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList()));
         verify(applicationSettings).getStoredData(eq(singleton("reqid")), eq(singleton("impid")), same(timeout));
         verifyNoMoreInteractions(applicationSettings);
@@ -139,7 +139,7 @@ public class CachingApplicationSettingsTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("error")));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 cachingApplicationSettings.getStoredData(singleton("id"), emptySet(), timeout);
 
         // then
@@ -153,16 +153,16 @@ public class CachingApplicationSettingsTest {
     public void getStoredDataShouldReturnResultWithErrorsOnNotSuccessiveCallToCacheAndErrorInDelegateCall() {
         // given
         given(applicationSettings.getStoredData(eq(singleton("id")), eq(emptySet()), any()))
-                .willReturn(Future.succeededFuture(StoredRequestResult.of(
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
                         emptyMap(), emptyMap(), singletonList("error"))));
 
         // when
-        final Future<StoredRequestResult> future =
+        final Future<StoredDataResult> future =
                 cachingApplicationSettings.getStoredData(singleton("id"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result())
-                .isEqualTo(StoredRequestResult.of(emptyMap(), emptyMap(), singletonList("error")));
+                .isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error")));
     }
 }

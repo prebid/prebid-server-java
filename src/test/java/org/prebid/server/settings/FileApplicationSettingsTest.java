@@ -9,7 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
 
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -148,7 +148,7 @@ public class FileApplicationSettingsTest {
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
 
         // when
-        final Future<StoredRequestResult> storedRequestResult =
+        final Future<StoredDataResult> storedRequestResult =
                 applicationSettings.getStoredData(singleton("2"), emptySet(), null);
 
         // then
@@ -174,7 +174,7 @@ public class FileApplicationSettingsTest {
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
 
         // when
-        final Future<StoredRequestResult> storedRequestResult =
+        final Future<StoredDataResult> storedRequestResult =
                 applicationSettings.getStoredData(emptySet(), singleton("2"), null);
 
         // then
@@ -200,7 +200,7 @@ public class FileApplicationSettingsTest {
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
 
         // when
-        final Future<StoredRequestResult> storedRequestResult =
+        final Future<StoredDataResult> storedRequestResult =
                 applicationSettings.getStoredData(singleton("1"), singleton("2"), null);
 
         // then
@@ -227,7 +227,7 @@ public class FileApplicationSettingsTest {
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
 
         // when
-        final Future<StoredRequestResult> storedRequestResult =
+        final Future<StoredDataResult> storedRequestResult =
                 applicationSettings.getAmpStoredData(emptySet(), singleton("2"), null);
 
         // then

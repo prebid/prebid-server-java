@@ -13,9 +13,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.HttpFetcherResponse;
+import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.proto.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -88,29 +88,29 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get stored requests by a collection of ids from http service
-     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredRequestResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
     }
 
     /**
      * Runs a process to get stored requests by a collection of amp ids from http service
-     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredRequestResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
         return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
-    private Future<StoredRequestResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,
-                                                        Timeout timeout) {
-        final Future<StoredRequestResult> future = Future.future();
+    private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        final Future<StoredDataResult> future = Future.future();
 
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
             future.complete(
-                    StoredRequestResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
+                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
         } else {
             final long remainingTimeout = timeout.remaining();
             if (remainingTimeout <= 0) {
@@ -149,13 +149,13 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return ids.stream().collect(Collectors.joining(","));
     }
 
-    private static void handleException(Throwable throwable, Future<StoredRequestResult> future,
+    private static void handleException(Throwable throwable, Future<StoredDataResult> future,
                                         Set<String> requestIds, Set<String> impIds) {
         future.complete(failWith(requestIds, impIds, throwable.getMessage()));
     }
 
-    private static StoredRequestResult failWith(Set<String> requestIds, Set<String> impIds, String errorMessageFormat,
-                                                Object... args) {
+    private static StoredDataResult failWith(Set<String> requestIds, Set<String> impIds, String errorMessageFormat,
+                                             Object... args) {
         final String errorRequests = requestIds.isEmpty() ? ""
                 : String.format("stored requests for ids %s", requestIds);
         final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
@@ -165,10 +165,10 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 String.format(errorMessageFormat, args));
 
         logger.info(error);
-        return StoredRequestResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
+        return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
     }
 
-    private static void handleResponse(HttpClientResponse response, Future<StoredRequestResult> future,
+    private static void handleResponse(HttpClientResponse response, Future<StoredDataResult> future,
                                        Set<String> requestIds, Set<String> impIds) {
         response
                 .bodyHandler(buffer -> future.complete(
@@ -176,8 +176,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 .exceptionHandler(exception -> handleException(exception, future, requestIds, impIds));
     }
 
-    private static StoredRequestResult toStoredRequestResult(Set<String> requestIds, Set<String> impIds,
-                                                             int statusCode, String body) {
+    private static StoredDataResult toStoredRequestResult(Set<String> requestIds, Set<String> impIds,
+                                                          int statusCode, String body) {
         if (statusCode != 200) {
             return failWith(requestIds, impIds, "response code was %d", statusCode);
         }
@@ -193,8 +193,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return parseResponse(requestIds, impIds, response);
     }
 
-    private static StoredRequestResult parseResponse(Set<String> requestIds, Set<String> impIds,
-                                                     HttpFetcherResponse response) {
+    private static StoredDataResult parseResponse(Set<String> requestIds, Set<String> impIds,
+                                                  HttpFetcherResponse response) {
         final List<String> errors = new ArrayList<>();
 
         final Map<String, String> storedIdToRequest =
@@ -203,7 +203,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
         final Map<String, String> storedIdToImp =
                 parseStoredDataOrAddError(impIds, response.getImps(), StoredDataType.imp, errors);
 
-        return StoredRequestResult.of(storedIdToRequest, storedIdToImp, errors);
+        return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
     }
 
     private static Map<String, String> parseStoredDataOrAddError(Set<String> ids, Map<String, ObjectNode> storedData,

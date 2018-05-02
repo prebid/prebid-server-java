@@ -216,6 +216,11 @@ settings:
     type: mysql
 ```
 
+Note: The result columns of `stored-requests-query` and `amp-stored-requests-query` properties should corresponds to the specific format:
+- first column: ID of stored data item
+- second column: value of stored data item
+- third column: type of stored data item. Can be `request` for stored requests or `imp` for stored impressions.
+
 ### HTTP backend
 
 ```yaml
@@ -224,7 +229,8 @@ settings:
     endpoint: http://stored-requests.prebid.com
     amp_endpoint: http://stored-requests.prebid.com?amp=true
 ```
-Notice: HTTP backend implementation always gives an empty result (with "Not supported" error inside)
+
+Note: HTTP backend implementation always gives an empty result (with "Not supported" error inside)
 for obtaining the `Account` or `AdUnitConfig` by ID for the legacy [auction](../endpoints/auction.md) endpoint.
 
 Full list of application configuration options can be found [here](../config-app.md).

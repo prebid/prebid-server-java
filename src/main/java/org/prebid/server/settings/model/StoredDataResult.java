@@ -8,7 +8,7 @@ import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class StoredRequestResult {
+public class StoredDataResult {
 
     Map<String, String> storedIdToRequest;
 
