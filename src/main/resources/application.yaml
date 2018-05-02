@@ -19,8 +19,11 @@ auction:
   stored-requests-timeout-ms: 50
   expected-cache-time-ms: 10
   max-request-size: 262144
+  currency-rates-refresh-period-ms: 900000
+  currency-rates-url: http://currency.prebid.org/latest.json
 amp:
   default-timeout-ms: 900
+  timeout-adjustment-ms: 30
 adapters:
   adform:
     enabled: false
@@ -83,3 +86,4 @@ host-cookie:
   opt-out-url: http://prebid.org/optout
   opt-in-url: http://prebid.org/optin
   ttl-days: 90
+

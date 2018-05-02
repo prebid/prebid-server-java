@@ -78,7 +78,6 @@ public class WebConfiguration {
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
-
         router.route().handler(TimeoutHandler.create(10000)); // kick off long processing requests
         router.route().handler(cookieHandler);
         router.route().handler(bodyHandler);

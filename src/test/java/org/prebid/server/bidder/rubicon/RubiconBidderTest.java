@@ -71,7 +71,8 @@ import static org.assertj.core.api.Assertions.*;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class RubiconBidderTest extends VertxTest {
+public class
+RubiconBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=prebid";
     private static final String USERNAME = "username";
@@ -499,7 +500,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
     }
 
     @Test
@@ -515,7 +516,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
     }
 
     @Test

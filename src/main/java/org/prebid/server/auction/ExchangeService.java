@@ -22,6 +22,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.metric.AdapterMetrics;
@@ -68,17 +69,23 @@ public class ExchangeService {
     private final BidderCatalog bidderCatalog;
     private final ResponseBidValidator responseBidValidator;
     private final CacheService cacheService;
+    private final BidResponsePostProcessor bidResponsePostProcessor;
+    private final CurrencyConversionService currencyService;
     private final Metrics metrics;
     private final Clock clock;
     private long expectedCacheTime;
 
     public ExchangeService(BidderCatalog bidderCatalog,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
+                           BidResponsePostProcessor bidResponsePostProcessor,
+                           CurrencyConversionService currencyService,
                            Metrics metrics, Clock clock,
                            long expectedCacheTime) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
+        this.currencyService = Objects.requireNonNull(currencyService);
+        this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         if (expectedCacheTime < 0) {
@@ -121,15 +128,15 @@ public class ExchangeService {
         // send all the requests to the bidders and gathers results
         final CompositeFuture bidderResults = CompositeFuture.join(bidderRequests.stream()
                 .map(bidderRequest -> requestBids(bidderRequest, startTime, auctionTimeout(timeout, shouldCacheBids),
-                        aliases, bidAdjustments(requestExt)))
+                        aliases, bidAdjustments(requestExt), currencyRates(targeting)))
                 .collect(Collectors.toList()));
 
         // produce response from bidder results
-        return bidderResults.compose(result -> {
-            final List<BidderResponse> bidderResponses = result.list();
-            updateMetricsFromResponses(bidderResponses);
-            return toBidResponse(bidderResponses, bidRequest, keywordsCreator, shouldCacheBids, timeout);
-        });
+        return bidderResults
+                .map(CompositeFuture::<BidderResponse>list)
+                .map(this::updateMetricsFromResponses)
+                .compose(result -> toBidResponse(result, bidRequest, keywordsCreator, shouldCacheBids, timeout))
+                .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, bidResponse));
     }
 
     /**
@@ -160,6 +167,13 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, BigDecimal> bidAdjustmentFactors = prebid != null ? prebid.getBidadjustmentfactors() : null;
         return bidAdjustmentFactors != null ? bidAdjustmentFactors : Collections.emptyMap();
+    }
+
+    /**
+     * Extracts currency rates from {@link ExtRequestTargeting}
+     */
+    private static Map<String, Map<String, BigDecimal>> currencyRates(ExtRequestTargeting targeting) {
+        return targeting != null && targeting.getCurrency() != null ? targeting.getCurrency().getRates() : null;
     }
 
     /**
@@ -416,13 +430,17 @@ public class ExchangeService {
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, Timeout timeout,
                                                Map<String, String> aliases,
-                                               Map<String, BigDecimal> bidAdjustments) {
+                                               Map<String, BigDecimal> bidAdjustments,
+                                               Map<String, Map<String, BigDecimal>> currencyConversionRates) {
         final String bidder = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidder);
+        // bidrequest.cur should always have only one currency in list, all other cases discarded by RequestValidator
+        final String adServerCurrency = bidderRequest.getBidRequest().getCur().get(0);
         return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
                 .requestBids(bidderRequest.getBidRequest(), timeout)
                 .map(this::validateAndUpdateResponse)
-                .map(seat -> applyBidPriceAdjustment(seat, bidPriceAdjustmentFactor))
+                .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
+                        bidPriceAdjustmentFactor))
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
     }
 
@@ -456,30 +474,45 @@ public class ExchangeService {
     }
 
     /**
-     * Applies correction to {@link Bid#price}
+     * Performs changes on {@link Bid}s price depends on different between adServerCurrency and bidCurrency,
+     * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
      * <p>
-     * Should be used when {@link BidderSeatBid} was validated
-     * by {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
+     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
+     * to make sure {@link Bid#price} is not empty.
      */
-    private static BidderSeatBid applyBidPriceAdjustment(BidderSeatBid bidderSeatBid,
-                                                         BigDecimal priceAdjustmentFactor) {
-        final List<BidderBid> bidderBids = bidderSeatBid.getBids();
-        return CollectionUtils.isEmpty(bidderBids) || priceAdjustmentFactor == null
-                ? bidderSeatBid
-                : BidderSeatBid.of(adjustBids(bidderBids, priceAdjustmentFactor),
-                bidderSeatBid.getHttpCalls(), bidderSeatBid.getErrors());
-    }
+    private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
+                                               Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+                                               String adServerCurrency, BigDecimal priceAdjustmentFactor) {
+        if (bidderSeatBid.getBids().isEmpty()) {
+            return bidderSeatBid;
+        }
 
-    private static List<BidderBid> adjustBids(List<BidderBid> bidderBids, BigDecimal priceAdjustmentFactor) {
-        return bidderBids.stream()
-                .map(bidderBid -> adjustBid(bidderBid, priceAdjustmentFactor))
-                .collect(Collectors.toList());
-    }
+        final List<BidderError> errors = new ArrayList<>(bidderSeatBid.getErrors());
+        final List<BidderBid> updatedBidderBids = new ArrayList<>();
 
-    private static BidderBid adjustBid(BidderBid bidderBid, BigDecimal priceAdjustmentFactor) {
-        final Bid bid = bidderBid.getBid();
-        return BidderBid.of(bid.toBuilder().price(bid.getPrice().multiply(priceAdjustmentFactor)).build(),
-                bidderBid.getType());
+        for (final BidderBid bidderBid : bidderSeatBid.getBids()) {
+            final Bid bid = bidderBid.getBid();
+            final String bidCurrency = bidderBid.getBidCurrency();
+            final BigDecimal price = bid.getPrice();
+            try {
+                final BigDecimal convertedPrice = currencyService.convertCurrency(price,
+                        requestCurrencyRates, adServerCurrency, bidCurrency);
+
+                final BigDecimal adjustedPrice = priceAdjustmentFactor != null
+                        && priceAdjustmentFactor.compareTo(BigDecimal.ONE) != 0
+                        ? convertedPrice.multiply(priceAdjustmentFactor)
+                        : convertedPrice;
+
+                if (adjustedPrice.compareTo(price) != 0) {
+                    bid.setPrice(adjustedPrice);
+                }
+                updatedBidderBids.add(bidderBid);
+            } catch (PreBidException ex) {
+                errors.add(BidderError.create(ex.getMessage()));
+            }
+        }
+
+        return BidderSeatBid.of(updatedBidderBids, bidderSeatBid.getHttpCalls(), errors);
     }
 
     private int responseTime(long startTime) {
@@ -502,9 +535,11 @@ public class ExchangeService {
     /**
      * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
      * 'prices' metrics for each {@link BidderResponse}
+     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
+     * to make sure {@link Bid#price} is not empty.
      */
-    private void updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
-        for (BidderResponse bidderResponse : bidderResponses) {
+    private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
+        for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
             final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
 
@@ -518,23 +553,22 @@ public class ExchangeService {
             if (CollectionUtils.isEmpty(bids)) {
                 adapterMetrics.incCounter(MetricName.no_bid_requests);
             } else {
-                for (Bid bid : bids) {
-                    final long cpmPrice = bid.getPrice() != null
-                            ? bid.getPrice().multiply(THOUSAND).longValue()
-                            : 0L;
-                    adapterMetrics.updateHistogram(MetricName.prices, cpmPrice);
+                for (final Bid bid : bids) {
+                    adapterMetrics.updateHistogram(MetricName.prices, bid.getPrice().multiply(THOUSAND).longValue());
                 }
             }
 
             final List<BidderError> errors = bidderResponse.getSeatBid().getErrors();
             if (CollectionUtils.isNotEmpty(errors)) {
-                for (BidderError error : errors) {
+                for (final BidderError error : errors) {
                     adapterMetrics.incCounter(error.isTimedOut()
                             ? MetricName.timeout_requests
                             : MetricName.error_requests);
                 }
             }
         }
+
+        return bidderResponses;
     }
 
     /**
@@ -707,6 +741,7 @@ public class ExchangeService {
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
+                .cur(bidRequest.getCur().get(0))
                 // signal "Invalid Request" if no valid bidders.
                 .nbr(bidderResponses.isEmpty() ? 2 : null)
                 .seatbid(seatBids)
@@ -747,10 +782,11 @@ public class ExchangeService {
                 : null;
 
         final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords);
-
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
 
-        return bid.toBuilder().ext(Json.mapper.valueToTree(bidExt)).build();
+        bid.setExt(Json.mapper.valueToTree(bidExt));
+
+        return bid;
     }
 
     /**

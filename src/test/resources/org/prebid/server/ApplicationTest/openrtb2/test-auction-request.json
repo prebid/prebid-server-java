@@ -471,6 +471,9 @@
   "test": 1,
   "at": 1,
   "tmax": 1000,
+  "cur": [
+    "EUR"
+  ],
   "source": {
     "fd": 1,
     "tid": "tid"
@@ -492,6 +495,17 @@
           ]
         }
       },
+      "currency": {
+        "rates": {
+          "EUR": {
+            "USD": 1.2406
+          },
+          "USD": {
+            "EUR": 0.8110
+          }
+        }
+      }
+    },
       "cache": {
         "bids": []
       }

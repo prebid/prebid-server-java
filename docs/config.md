@@ -17,13 +17,15 @@ These properties can be extended/modified with external configuration file.
 For example `prebid-config.yaml`:
 ```yaml
 metrics:
-  type: graphite
-  host: graphite:3003
-  interval: 60
+  graphite:
+    host: graphite
+    port: 3003
+    interval: 60
 settings:
-  type: mysql
-  stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN (%ID_LIST%)
-  amp-stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN (%ID_LIST%)
+  database:
+    type: mysql
+    stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN (%ID_LIST%)
+    amp-stored-requests-query: SELECT uuid, config FROM s2sconfig_config WHERE uuid IN (%ID_LIST%)
 ```
 If some property is missed in `prebid-config.yaml` application will look for it 
 in `src/main/resources/application.yaml` file.
@@ -32,8 +34,6 @@ To use external application configuration just add the following as start up arg
 ```
 --spring.config.location=/path/to/prebid-config.yaml
 ```
-
-Full list of application configuration options can be found [here](config-app.md).
 
 ## Logging properties
 
@@ -57,6 +57,8 @@ To use external logging configuration just add the following as start up argumen
 ```
 -Dlogging.config=/path/to/prebid-logging.xml
 ```
+
+Full list of application configuration options can be found [here](config-app.md).
 
 ### See also
 

@@ -131,7 +131,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenTmaxIsNull() {
+    public void validateShouldNotReturnValidationMessageWhenTmaxIsNull() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().tmax(null).build();
 
@@ -140,6 +140,43 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenCurIsNull() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().cur(null).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly("currency was not defined either in request.cur or in"
+                + " configuration field adServerCurrency");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenCurHasMoreThanOneElement() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().cur(asList("USD", "EUR")).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.cur can contain exactly one element");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenCurIsEmpty() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().cur(emptyList()).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly("request.cur can contain exactly one element");
     }
 
     @Test
@@ -715,10 +752,9 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenCantParseTargetingPriceGranularity() throws IOException {
         // given
-        // TODO rewrite to not valid ObjectNodeCreation
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(null, null,
-                        ExtRequestTargeting.of(mapper.readTree("\"pricegranularity\": 15"), null), null, null))))
+                        ExtRequestTargeting.of(new TextNode("pricegranularity"), null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -734,7 +770,7 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2, emptyList())),
-                                null), null, null))))
+                                null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -751,7 +787,7 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity
                                 .of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                        BigDecimal.valueOf(0))))), null), null, null))))
+                                        BigDecimal.valueOf(0))))), null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -768,7 +804,8 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))),
-                                null), null, null))))
+                                null, null),
+                        null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -785,7 +822,8 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(-1,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                null), null, null))))
+                                null, null),
+                        null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -795,6 +833,7 @@ public class RequestValidatorTest extends VertxTest {
                 "Price granularity error: precision must be non-negative");
     }
 
+
     @Test
     public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValue() {
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -802,7 +841,7 @@ public class RequestValidatorTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
                                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
                                         ExtGranularityRange.of(BigDecimal.valueOf(2), BigDecimal.valueOf(0.05))))),
-                                null), null, null))))
+                                null, null), null, null))))
                 .build();
 
         // when
@@ -1671,6 +1710,7 @@ public class RequestValidatorTest extends VertxTest {
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {
         return BidRequest.builder().id("1").tmax(300L)
+                .cur(singletonList("USD"))
                 .imp(singletonList(validImpBuilder().build()))
                 .site(Site.builder().id("1").page("2").build());
     }

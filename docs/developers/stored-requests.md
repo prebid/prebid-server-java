@@ -193,6 +193,8 @@ then the data for those Stored Imps not be resolved.
 Stored Requests do not need to be saved to files. Other backends are supported with different 
 [configuration options](../config.md).
 
+### Database backend
+
 For PostgreSQL:
 ```yaml
 settings:
@@ -213,5 +215,16 @@ settings:
   database:
     type: mysql
 ```
+
+### HTTP backend
+
+```yaml
+settings:
+  http:
+    endpoint: http://stored-requests.prebid.com
+    amp_endpoint: http://stored-requests.prebid.com?amp=true
+```
+
+Full list of application configuration options can be found [here](../config-app.md).
 
 If you need support for a backend that you don't see, please [contribute it](../contributing.md).
