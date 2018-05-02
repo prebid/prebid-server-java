@@ -92,8 +92,8 @@ public class TargetingKeywordsCreator {
      */
     public static TargetingKeywordsCreator create(ExtPriceGranularity extPriceGranularity, boolean includeWinners,
                                                   boolean isApp) {
-        return new TargetingKeywordsCreator(PriceGranularity.createFromRanges(extPriceGranularity.getPrecision(),
-                extPriceGranularity.getRanges()), includeWinners, isApp);
+        return new TargetingKeywordsCreator(PriceGranularity.createFromExtPriceGranularity(extPriceGranularity),
+                includeWinners, isApp);
     }
 
     /**

@@ -4,6 +4,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -42,10 +43,10 @@ public class PriceGranularity {
      * Creates {@link PriceGranularity} for string representation and puts it to
      * {@link EnumMap<PriceGranularityType, PriceGranularity>}
      */
-    private static void putStringPriceGranularity(PriceGranularityType type, Integer presicion,
+    private static void putStringPriceGranularity(PriceGranularityType type, Integer precision,
                                                   ExtGranularityRange... ranges) {
         STRING_TO_CUSTOM_PRICE_GRANULARITY.put(type,
-                PriceGranularity.createFromRanges(presicion, Arrays.asList(ranges)));
+                PriceGranularity.createFromRanges(precision, Arrays.asList(ranges)));
     }
 
     /**
@@ -69,9 +70,16 @@ public class PriceGranularity {
     }
 
     /**
+     * Creates {@link PriceGranularity} from {@link ExtPriceGranularity}.
+     */
+    public static PriceGranularity createFromExtPriceGranularity(ExtPriceGranularity extPriceGranularity) {
+        return createFromRanges(extPriceGranularity.getPrecision(), extPriceGranularity.getRanges());
+    }
+
+    /**
      * Creates {@link PriceGranularity} from {@link List<ExtGranularityRange>} and validates it.
      */
-    public static PriceGranularity createFromRanges(Integer precision, List<ExtGranularityRange> ranges) {
+    private static PriceGranularity createFromRanges(Integer precision, List<ExtGranularityRange> ranges) {
         if (CollectionUtils.isEmpty(ranges)) {
             throw new IllegalArgumentException("Ranges list cannot be null or empty");
         }

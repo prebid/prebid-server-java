@@ -160,8 +160,7 @@ public class AmpRequestFactory {
         final boolean isPriceGranularityNull = priceGranularity == null || priceGranularity.isNull();
         final PriceGranularity defaultPriceGranularity = PriceGranularity.DEFAULT;
         final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
-                ? Json.mapper.valueToTree(ExtPriceGranularity.of(defaultPriceGranularity.getPrecision(),
-                defaultPriceGranularity.getRanges()))
+                ? Json.mapper.valueToTree(ExtPriceGranularity.from(defaultPriceGranularity))
                 : priceGranularity;
 
         return ExtRequestTargeting.of(outgoingPriceGranularityNode, includeWinners);

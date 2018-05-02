@@ -126,11 +126,15 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
 ```
 {
   "pricegranularity": {
-       "precision": 2,
-           "ranges": [{
-           "max":20.0
-       "increment":0.1 }], // The default is the "medium" price granularity, same as providing the deprecated "medium" string granularity.
-  "includewinners": false // Optional param defaulting to true
+    "precision": 2,
+    "ranges": [
+      {
+        "max": 20.00,
+        "increment": 0.10 // This is equivalent to the deprecated "pricegranularity": "medium"
+      }
+    ],
+    "includewinners": false // Optional param defaulting to true
+  }
 }
 ```
 

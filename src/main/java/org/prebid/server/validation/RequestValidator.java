@@ -182,23 +182,17 @@ public class RequestValidator {
         if (CollectionUtils.isEmpty(ranges)) {
             throw new ValidationException("Price granularity error: empty granularity definition supplied");
         }
-        if (ranges.size() == 1) {
-            validateGranularityRangeIncrement(ranges.get(0));
-        } else {
-            validateGranularityRangesIncrement(ranges);
-        }
-    }
-
-    private static void validateGranularityRangesIncrement(List<ExtGranularityRange> ranges)
-            throws ValidationException {
-        final int rangesCount = ranges.size();
-        for (int i = 0; i < rangesCount - 1; i++) {
-            final ExtGranularityRange currentRange = validateGranularityRangeIncrement(ranges.get(i));
-            final ExtGranularityRange nextRange = validateGranularityRangeIncrement(ranges.get(i + 1));
-            if (currentRange.getMax().compareTo(nextRange.getMax()) > 0) {
+        final Iterator<ExtGranularityRange> rangeIterator = ranges.iterator();
+        ExtGranularityRange range = rangeIterator.next();
+        validateGranularityRangeIncrement(range);
+        while (rangeIterator.hasNext()) {
+            final ExtGranularityRange nextGranularityRange = rangeIterator.next();
+            if (range.getMax().compareTo(nextGranularityRange.getMax()) > 0) {
                 throw new ValidationException(
                         "Price granularity error: range list must be ordered with increasing \"max\"");
             }
+            validateGranularityRangeIncrement(nextGranularityRange);
+            range = nextGranularityRange;
         }
     }
 

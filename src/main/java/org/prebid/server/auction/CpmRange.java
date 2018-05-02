@@ -54,7 +54,7 @@ public class CpmRange {
             }
             min = range.getMax();
         }
-        throw new IllegalArgumentException("Cpm is negative or price granularity ranges are not valid.");
+        return null;
     }
 
     /**

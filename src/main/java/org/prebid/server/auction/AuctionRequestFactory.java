@@ -156,18 +156,15 @@ public class AuctionRequestFactory {
                                               boolean isPriceGranularityTextual) {
         if (isPriceGranularityNull) {
             final PriceGranularity defaultPriceGranularity = PriceGranularity.DEFAULT;
-            return Json.mapper.valueToTree(ExtPriceGranularity.of(defaultPriceGranularity.getPrecision(),
-                    defaultPriceGranularity.getRanges()));
-        }
-        if (isPriceGranularityTextual) {
+            return Json.mapper.valueToTree(ExtPriceGranularity.from(defaultPriceGranularity));
+        } else if (isPriceGranularityTextual) {
             final PriceGranularity priceGranularity;
             try {
                 priceGranularity = PriceGranularity.createFromString(priceGranularityNode.textValue());
             } catch (PreBidException ex) {
                 throw new InvalidRequestException(ex.getMessage());
             }
-            return Json.mapper.valueToTree(ExtPriceGranularity.of(priceGranularity.getPrecision(),
-                    priceGranularity.getRanges()));
+            return Json.mapper.valueToTree(ExtPriceGranularity.from(priceGranularity));
         }
         return priceGranularityNode;
     }

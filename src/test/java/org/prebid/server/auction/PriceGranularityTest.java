@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import org.junit.Test;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 
 import java.math.BigDecimal;
 
@@ -13,13 +14,15 @@ import static org.assertj.core.api.Assertions.*;
 public class PriceGranularityTest {
 
     @Test
-    public void createFromFromRangesShouldThrowIllegalArgumentsExceptionIfRangesListNull() {
-        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromRanges(2, null));
+    public void createFromExtPriceGranularityShouldThrowIllegalArgumentsExceptionIfRangesListNull() {
+        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(2, null)));
     }
 
     @Test
-    public void createFromFromRangesShouldThrowIllegalArgumentsExceptionIfRangesListIsEmpty() {
-        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromRanges(2, emptyList()));
+    public void createFromExtPriceGranularityShouldThrowIllegalArgumentsExceptionIfRangesListIsEmpty() {
+        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(2, emptyList())));
     }
 
     @Test
@@ -97,12 +100,14 @@ public class PriceGranularityTest {
     }
 
     @Test
-    public void createFromRangesShouldReturnCorrectPriceGranularity() {
-
-        //given and when
-        final PriceGranularity priceGranularity = PriceGranularity.createFromRanges(2, asList(
+    public void createFromExtPriceGranularityShouldReturnCorrectPriceGranularity() {
+        // given
+        final ExtPriceGranularity extPriceGranularity = ExtPriceGranularity.of(2, asList(
                 ExtGranularityRange.of(BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
                 ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))));
+
+        //when
+        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(extPriceGranularity);
 
         // then
         assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(8));
