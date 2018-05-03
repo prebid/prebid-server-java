@@ -14,6 +14,12 @@ public class SovrnUsersyncer implements Usersyncer {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
     }
 
+    private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
+        final String redirectUri = HttpUtil.encodeUrl("%s/setuid?bidder=sovrn&uid=", externalUrl);
+
+        return UsersyncInfo.of(String.format("%sredir=%s", usersyncUrl, redirectUri), "redirect", false);
+    }
+
     @Override
     public String cookieFamilyName() {
         return "sovrn";
@@ -23,11 +29,4 @@ public class SovrnUsersyncer implements Usersyncer {
     public UsersyncInfo usersyncInfo() {
         return usersyncInfo;
     }
-
-    private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
-        final String redirectUri = HttpUtil.encodeUrl("%s/setuid?bidder=sovrn&uid=", externalUrl);
-
-        return UsersyncInfo.of(String.format("%sredir=%s", usersyncUrl, redirectUri), "redirect", false);
-    }
-
 }

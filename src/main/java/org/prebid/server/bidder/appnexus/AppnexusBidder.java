@@ -255,7 +255,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -272,7 +271,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final Integer bidAdType = appnexus.getBidAdType();
-
         if (bidAdType == null) {
             throw new PreBidException("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
         }
@@ -289,7 +287,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             default:
                 throw new PreBidException(
                         String.format("Unrecognized bid_ad_type in response from appnexus: %s", bidAdType));
-
         }
     }
 
@@ -307,5 +304,4 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
         return appnexusBidExt;
     }
-
 }

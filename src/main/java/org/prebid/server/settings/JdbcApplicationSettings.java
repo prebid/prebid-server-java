@@ -197,8 +197,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                     try {
                         type = StoredDataType.valueOf(typeAsString);
                     } catch (IllegalArgumentException e) {
-                        logger.error(String.format(
-                                "Result set with id=%s has invalid type: %s. This will be ignored.", id, typeAsString));
+                        logger.error("Result set with id={0} has invalid type: {1}. This will be ignored.", e, id,
+                                typeAsString);
                         continue;
                     }
 

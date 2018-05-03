@@ -82,7 +82,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
             for (final Imp imp : bidRequest.getImp()) {
                 processedImps.add(makeImp(imp, placementId));
             }
-
         } catch (PreBidException e) {
             errors.add(e.getMessage());
         }
