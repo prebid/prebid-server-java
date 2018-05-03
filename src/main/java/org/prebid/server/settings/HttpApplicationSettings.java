@@ -13,8 +13,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.HttpFetcherResponse;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredDataType;
+import org.prebid.server.settings.proto.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 /**
  * Implementation of {@link ApplicationSettings}.
  * <p>
- * Fetches an application settings from another service via HTTP protocol.
+ * Fetches an application settings from the service via HTTP protocol.
  * <p>
  * In order to enable caching and reduce latency for read operations {@link HttpApplicationSettings}
  * can be decorated by {@link CachingApplicationSettings}.
@@ -58,11 +59,6 @@ import java.util.stream.Collectors;
 public class HttpApplicationSettings implements ApplicationSettings {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
-
-    private static final String REQUEST_IDS_PARAM = "request-ids";
-
-    // FIXME: uncomment when will be implemented obtaining by imp id
-    // private static final String IMP_IDS_PARAM = "imp-ids";
 
     private HttpClient httpClient;
     private String endpoint;
@@ -92,35 +88,37 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get stored requests by a collection of ids from http service
-     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, Timeout timeout) {
-        return fetchStoredRequests(endpoint, ids, timeout);
+    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return fetchStoredData(endpoint, requestIds, impIds, timeout);
     }
 
     /**
      * Runs a process to get stored requests by a collection of amp ids from http service
-     * and returns {@link Future&lt;{@link StoredRequestResult}&gt;}
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
      */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, Timeout timeout) {
-        return fetchStoredRequests(ampEndpoint, ids, timeout);
+    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
-    private Future<StoredRequestResult> fetchStoredRequests(String endpoint, Set<String> ids, Timeout timeout) {
-        final Future<StoredRequestResult> future = Future.future();
+    private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,
+                                                     Timeout timeout) {
+        final Future<StoredDataResult> future = Future.future();
 
-        if (CollectionUtils.isEmpty(ids)) {
-            future.complete(StoredRequestResult.of(Collections.emptyMap(), Collections.emptyList()));
+        if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
+            future.complete(
+                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
         } else {
             final long remainingTimeout = timeout.remaining();
             if (remainingTimeout <= 0) {
-                handleException(new TimeoutException("Timeout has been exceeded"), future, ids);
+                handleException(new TimeoutException("Timeout has been exceeded"), future, requestIds, impIds);
             } else {
-                httpClient.getAbs(urlFrom(endpoint, ids),
-                        response -> handleResponse(response, future, ids))
-                        .exceptionHandler(throwable -> handleException(throwable, future, ids))
+                httpClient.getAbs(urlFrom(endpoint, requestIds, impIds),
+                        response -> handleResponse(response, future, requestIds, impIds))
+                        .exceptionHandler(throwable -> handleException(throwable, future, requestIds, requestIds))
                         .setTimeout(remainingTimeout)
                         .end();
             }
@@ -129,82 +127,118 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return future;
     }
 
-    private static String urlFrom(String endpoint, Set<String> ids) {
-        final String joinedIds = ids.stream().collect(Collectors.joining(","));
-        return endpoint + (endpoint.contains("?") ? "&" : "?") + REQUEST_IDS_PARAM + "=" + joinedIds;
+    private static String urlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
+        final StringBuilder url = new StringBuilder(endpoint);
+        url.append(endpoint.contains("?") ? "&" : "?");
+
+        if (!requestIds.isEmpty()) {
+            url.append("request-ids=").append(joinIds(requestIds));
+        }
+
+        if (!impIds.isEmpty()) {
+            if (!requestIds.isEmpty()) {
+                url.append("&");
+            }
+            url.append("imp-ids=").append(joinIds(impIds));
+        }
+
+        return url.toString();
     }
 
-    private static void handleException(Throwable throwable, Future<StoredRequestResult> future, Set<String> ids) {
-        future.complete(
-                failWith("Error fetching stored requests for ids %s via HTTP: %s", ids, throwable.getMessage()));
+    private static String joinIds(Set<String> ids) {
+        return ids.stream().collect(Collectors.joining(","));
     }
 
-    private static StoredRequestResult failWith(String errorMessageFormat, Object... args) {
-        final String error = String.format(errorMessageFormat, args);
-
-        logger.warn(error);
-        return StoredRequestResult.of(Collections.emptyMap(), Collections.singletonList(error));
+    private static void handleException(Throwable throwable, Future<StoredDataResult> future,
+                                        Set<String> requestIds, Set<String> impIds) {
+        future.complete(failWith(requestIds, impIds, throwable.getMessage()));
     }
 
-    private static void handleResponse(HttpClientResponse response, Future<StoredRequestResult> future,
-                                       Set<String> ids) {
+    private static StoredDataResult failWith(Set<String> requestIds, Set<String> impIds, String errorMessageFormat,
+                                             Object... args) {
+        final String errorRequests = requestIds.isEmpty() ? ""
+                : String.format("stored requests for ids %s", requestIds);
+        final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
+        final String errorImps = impIds.isEmpty() ? "" : String.format("stored imps for ids %s", impIds);
+
+        final String error = String.format("Error fetching %s%s%s via HTTP: %s", errorRequests, separator, errorImps,
+                String.format(errorMessageFormat, args));
+
+        logger.info(error);
+        return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
+    }
+
+    private static void handleResponse(HttpClientResponse response, Future<StoredDataResult> future,
+                                       Set<String> requestIds, Set<String> impIds) {
         response
                 .bodyHandler(buffer -> future.complete(
-                        toStoredRequestResult(ids, response.statusCode(), buffer.toString())))
-                .exceptionHandler(exception -> handleException(exception, future, ids));
+                        toStoredRequestResult(requestIds, impIds, response.statusCode(), buffer.toString())))
+                .exceptionHandler(exception -> handleException(exception, future, requestIds, impIds));
     }
 
-    private static StoredRequestResult toStoredRequestResult(Set<String> ids, int statusCode, String body) {
+    private static StoredDataResult toStoredRequestResult(Set<String> requestIds, Set<String> impIds,
+                                                          int statusCode, String body) {
         if (statusCode != 200) {
-            return failWith("Error fetching stored requests for ids %s via HTTP: Response code was %d",
-                    ids, statusCode);
+            return failWith(requestIds, impIds, "response code was %d", statusCode);
         }
 
         final HttpFetcherResponse response;
         try {
             response = Json.decodeValue(body, HttpFetcherResponse.class);
         } catch (DecodeException e) {
-            return failWith(
-                    "Error occurred while parsing stored requests for ids %s from response: %s with message: %s",
-                    ids, body, e.getMessage());
+            return failWith(requestIds, impIds, "parsing json failed for response: %s with message: %s", body,
+                    e.getMessage());
         }
 
-        return parseResponse(ids, response.getRequests());
+        return parseResponse(requestIds, impIds, response);
     }
 
-    private static StoredRequestResult parseResponse(Set<String> ids, Map<String, ObjectNode> requests) {
-        final Map<String, String> storedIdToJson = new HashMap<>(ids.size());
+    private static StoredDataResult parseResponse(Set<String> requestIds, Set<String> impIds,
+                                                  HttpFetcherResponse response) {
         final List<String> errors = new ArrayList<>();
+
+        final Map<String, String> storedIdToRequest =
+                parseStoredDataOrAddError(requestIds, response.getRequests(), StoredDataType.request, errors);
+
+        final Map<String, String> storedIdToImp =
+                parseStoredDataOrAddError(impIds, response.getImps(), StoredDataType.imp, errors);
+
+        return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
+    }
+
+    private static Map<String, String> parseStoredDataOrAddError(Set<String> ids, Map<String, ObjectNode> storedData,
+                                                                 StoredDataType type, List<String> errors) {
+        final Map<String, String> result = new HashMap<>(ids.size());
         final Set<String> notParsedIds = new HashSet<>();
 
-        if (requests != null) {
-            for (Map.Entry<String, ObjectNode> entry : requests.entrySet()) {
+        if (storedData != null) {
+            for (Map.Entry<String, ObjectNode> entry : storedData.entrySet()) {
                 final String id = entry.getKey();
 
                 final String jsonAsString;
                 try {
                     jsonAsString = Json.mapper.writeValueAsString(entry.getValue());
                 } catch (JsonProcessingException e) {
-                    errors.add(
-                            String.format("Error while parsing json for id: %s with message: %s", id, e.getMessage()));
+                    errors.add(String.format("Error parsing %s json for id: %s with message: %s", type, id,
+                            e.getMessage()));
                     notParsedIds.add(id);
                     continue;
                 }
 
-                storedIdToJson.put(id, jsonAsString);
+                result.put(id, jsonAsString);
             }
         }
 
-        if (storedIdToJson.size() < ids.size()) {
+        if (result.size() < ids.size()) {
             final Set<String> missedIds = new HashSet<>(ids);
-            missedIds.removeAll(storedIdToJson.keySet());
+            missedIds.removeAll(result.keySet());
             missedIds.removeAll(notParsedIds);
 
             errors.addAll(missedIds.stream()
-                    .map(id -> String.format("No config found for id: %s", id))
+                    .map(id -> String.format("No stored %s found for id: %s", type, id))
                     .collect(Collectors.toList()));
         }
 
-        return StoredRequestResult.of(storedIdToJson, errors);
+        return result;
     }
 }

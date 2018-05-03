@@ -74,7 +74,7 @@ public class AuctionRequestFactory {
      * If needed creates a new {@link BidRequest} which is a copy of original but with some fields set with values
      * derived from request parameters (headers, cookie etc.).
      */
-    public BidRequest fillImplicitParameters(BidRequest bidRequest, RoutingContext context) {
+    BidRequest fillImplicitParameters(BidRequest bidRequest, RoutingContext context) {
         final BidRequest result;
 
         final HttpServerRequest request = context.request();
@@ -109,7 +109,7 @@ public class AuctionRequestFactory {
     /**
      * Performs thorough validation of fully constructed {@link BidRequest} that is going to be used to hold an auction.
      */
-    public BidRequest validateRequest(BidRequest bidRequest) {
+    BidRequest validateRequest(BidRequest bidRequest) {
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
         if (validationResult.hasErrors()) {
             throw new InvalidRequestException(validationResult.getErrors());

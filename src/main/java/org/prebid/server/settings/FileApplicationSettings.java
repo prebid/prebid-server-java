@@ -4,6 +4,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
@@ -11,10 +12,12 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AdUnitConfig;
 import org.prebid.server.settings.model.SettingsFile;
-import org.prebid.server.settings.model.StoredRequestResult;
+import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredDataType;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +25,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implementation of {@link ApplicationSettings}.
@@ -37,16 +41,19 @@ public class FileApplicationSettings implements ApplicationSettings {
 
     private final Map<String, Account> accounts;
     private final Map<String, String> configs;
-    private final Map<String, String> storedRequests;
+    private final Map<String, String> storedIdToRequest;
+    private final Map<String, String> storedIdToImp;
 
-    private FileApplicationSettings(SettingsFile settingsFile, Map<String, String> storedRequests) {
-        this.accounts = toMap(settingsFile.getAccounts(),
+    private FileApplicationSettings(SettingsFile settingsFile, Map<String, String> storedIdToRequest,
+                                    Map<String, String> storedIdToImp) {
+        accounts = toMap(settingsFile.getAccounts(),
                 Function.identity(),
                 account -> Account.of(account, null));
-        this.configs = toMap(settingsFile.getConfigs(),
+        configs = toMap(settingsFile.getConfigs(),
                 AdUnitConfig::getId,
                 config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));
-        this.storedRequests = Objects.requireNonNull(storedRequests);
+        this.storedIdToRequest = Objects.requireNonNull(storedIdToRequest);
+        this.storedIdToImp = Objects.requireNonNull(storedIdToImp);
     }
 
     /**
@@ -54,14 +61,16 @@ public class FileApplicationSettings implements ApplicationSettings {
      * extension and creates {@link Map} file names without .json extension to file content.
      */
     public static FileApplicationSettings create(FileSystem fileSystem, String settingsFileName,
-                                                 String storedRequestsDir) {
+                                                 String storedRequestsDir, String storedImpsDir) {
         Objects.requireNonNull(fileSystem);
         Objects.requireNonNull(settingsFileName);
         Objects.requireNonNull(storedRequestsDir);
+        Objects.requireNonNull(storedImpsDir);
 
         return new FileApplicationSettings(
                 readSettingsFile(fileSystem, settingsFileName),
-                readStoredRequests(fileSystem, storedRequestsDir));
+                readStoredData(fileSystem, storedRequestsDir),
+                readStoredData(fileSystem, storedImpsDir));
     }
 
     @Override
@@ -75,28 +84,33 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Creates {@link StoredRequestResult} by checking if any ids are missed in storedRequest map and adding an error
-     * to list for each missed Id. Returns {@link Future<StoredRequestResult>} with all loaded files and errors list.
+     * Creates {@link StoredDataResult} by checking if any ids are missed in storedRequest map and adding an error
+     * to list for each missed Id. Returns {@link Future< StoredDataResult >} with all loaded files and errors list.
      */
     @Override
-    public Future<StoredRequestResult> getStoredRequestsById(Set<String> ids, Timeout timeout) {
-        final List<String> errors;
-        final List<String> missedIds = ids.stream()
-                .filter(s -> !storedRequests.containsKey(s))
-                .collect(Collectors.toList());
-        if (missedIds.size() > 0) {
-            errors = missedIds.stream()
-                    .map(id -> String.format("No config found for id: %s", id))
-                    .collect(Collectors.toList());
+    public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        final Future<StoredDataResult> future;
+
+        if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
+            future = Future.succeededFuture(
+                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
         } else {
-            errors = Collections.emptyList();
+            final List<String> requestErrors = errorsForMissedIds(requestIds, storedIdToRequest,
+                    StoredDataType.request);
+            final List<String> impErrors = errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp);
+            final List<String> errors = Stream.of(requestErrors, impErrors)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
+
+            future = Future.succeededFuture(StoredDataResult.of(storedIdToRequest, storedIdToImp, errors));
         }
-        return Future.succeededFuture(StoredRequestResult.of(storedRequests, errors));
+
+        return future;
     }
 
     @Override
-    public Future<StoredRequestResult> getStoredRequestsByAmpId(Set<String> ids, Timeout timeout) {
-        return getStoredRequestsById(ids, timeout);
+    public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
+        return getStoredData(requestIds, Collections.emptySet(), timeout);
     }
 
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {
@@ -119,10 +133,8 @@ public class FileApplicationSettings implements ApplicationSettings {
      * Reads files with .json extension in configured directory and creates {@link Map} where key is a file name
      * without .json extension and value is file content.
      */
-    private static Map<String, String> readStoredRequests(FileSystem fileSystem, String requestsDir) {
-        final List<String> filesPaths = fileSystem.readDirBlocking(requestsDir);
-
-        return filesPaths.stream()
+    private static Map<String, String> readStoredData(FileSystem fileSystem, String dir) {
+        return fileSystem.readDirBlocking(dir).stream()
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
                 .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
                         filename -> fileSystem.readFileBlocking(filename).toString()));
@@ -130,10 +142,22 @@ public class FileApplicationSettings implements ApplicationSettings {
 
     private static <T> Future<T> mapValueToFuture(Map<String, T> map, String key) {
         final T value = map.get(key);
-        if (value != null) {
-            return Future.succeededFuture(value);
-        } else {
-            return Future.failedFuture(new PreBidException("Not found"));
-        }
+        return value != null
+                ? Future.succeededFuture(value)
+                : Future.failedFuture(new PreBidException("Not found"));
+    }
+
+    /**
+     * Returns errors for missed IDs.
+     */
+    private static List<String> errorsForMissedIds(Set<String> ids, Map<String, String> storedIdToJson,
+                                                   StoredDataType type) {
+        final List<String> missedIds = ids.stream()
+                .filter(id -> !storedIdToJson.containsKey(id))
+                .collect(Collectors.toList());
+
+        return missedIds.isEmpty() ? Collections.emptyList() : missedIds.stream()
+                .map(id -> String.format("No stored %s found for id: %s", type, id))
+                .collect(Collectors.toList());
     }
 }
