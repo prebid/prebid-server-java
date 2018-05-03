@@ -293,7 +293,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         if (userExtRp != null || userExtDt != null) {
             result = user.toBuilder()
-                    .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, userExtDt)))
+                    .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, userExtDt, null)))
                     .build();
         }
 

@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.rubicon;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -10,6 +11,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -40,6 +42,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.RubiconParams;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconRegsExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
@@ -50,6 +53,8 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Sdk;
@@ -133,6 +138,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
                         .device(makeDevice(preBidRequestContext))
                         .user(makeUser(rubiconParams, preBidRequestContext))
                         .source(makeSource(preBidRequestContext))
+                        .regs(makeRegs(preBidRequestContext.getPreBidRequest().getRegs()))
                         .build());
     }
 
@@ -316,20 +322,50 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private User makeUser(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {
         User.UserBuilder userBuilder = userBuilder(preBidRequestContext);
+        final User user = preBidRequestContext.getPreBidRequest().getUser();
         if (userBuilder == null) {
-            final User user = preBidRequestContext.getPreBidRequest().getUser();
             userBuilder = user != null ? user.toBuilder() : User.builder();
         }
-
-        final RubiconUserExt userExt = makeUserExt(rubiconParams);
+        final ObjectNode ext = user == null ? null : user.getExt();
+        final String consent = ext == null ? null : getExtUserConsentFromUserExt(ext);
+        final RubiconUserExt userExt = makeUserExt(rubiconParams, consent);
         return userExt != null
                 ? userBuilder.ext(Json.mapper.valueToTree(userExt)).build()
                 : userBuilder.build();
     }
 
-    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams) {
+    private static String getExtUserConsentFromUserExt(ObjectNode extNode) {
+        try {
+            final ExtUser extUser = Json.mapper.treeToValue(extNode, ExtUser.class);
+            return extUser != null ? extUser.getConsent() : null;
+        } catch (JsonProcessingException e) {
+            logger.warn("Error occurred while parsing prebidrequest.user.ext", e);
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private static RubiconUserExt makeUserExt(RubiconParams rubiconParams, String consent) {
         final JsonNode visitor = rubiconParams.getVisitor();
-        return !visitor.isNull() ? RubiconUserExt.of(RubiconUserExtRp.of(visitor), null) : null;
+        final boolean visitorIsNotNull = !visitor.isNull();
+        return visitorIsNotNull || consent != null
+                ? RubiconUserExt.of(visitorIsNotNull ? RubiconUserExtRp.of(visitor) : null, null, consent)
+                : null;
+    }
+
+    private static Regs makeRegs(Regs regs) {
+        final ObjectNode regsExt = regs != null ? regs.getExt() : null;
+        final Integer gdpr = regsExt != null ? getExtRegsGdprFromRegsExt(regsExt) : null;
+        return gdpr != null ? Regs.of(null, Json.mapper.valueToTree(RubiconRegsExt.of(gdpr))) : null;
+    }
+
+    private static Integer getExtRegsGdprFromRegsExt(ObjectNode extNode) {
+        try {
+            final ExtRegs extRegs = Json.mapper.treeToValue(extNode, ExtRegs.class);
+            return extRegs != null ? extRegs.getGdpr() : null;
+        } catch (JsonProcessingException e) {
+            logger.warn("Error occurred while parsing prebidrequest.regs.ext", e);
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     @Override

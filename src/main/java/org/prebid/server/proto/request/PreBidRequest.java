@@ -2,6 +2,7 @@ package org.prebid.server.proto.request;
 
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import lombok.Builder;
 import lombok.Value;
@@ -59,6 +60,8 @@ public class PreBidRequest {
     Device device;
 
     User user;
+
+    Regs regs;
 
     Sdk sdk;
 }

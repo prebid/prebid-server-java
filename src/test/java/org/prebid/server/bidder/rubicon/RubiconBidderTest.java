@@ -260,7 +260,7 @@ RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
                         .ext(mapper.valueToTree(RubiconUserExt.of(RubiconUserExtRp.of(mapper.valueToTree(
-                                Visitor.of(singletonList("new"), singletonList("iphone")))), null)))
+                                Visitor.of(singletonList("new"), singletonList("iphone")))), null, null)))
                         .build());
     }
 
@@ -284,7 +284,7 @@ RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
                         .ext(mapper.valueToTree(
-                                RubiconUserExt.of(null, ExtUserDigiTrust.of("id", 123, 0))))
+                                RubiconUserExt.of(null, ExtUserDigiTrust.of("id", 123, 0), null)))
                         .build());
     }
 
