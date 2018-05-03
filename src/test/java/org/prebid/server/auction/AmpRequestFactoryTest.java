@@ -174,7 +174,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .containsExactly(ExtRequestPrebid.of(emptyMap(),
                        emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(
                         singletonList(ExtPriceGranularityBucket.of(2, new BigDecimal(0), new BigDecimal(20),
-                                new BigDecimal("0.1")))), true), null,
+                                new BigDecimal("0.1")))), null, true), null,
                         ExtRequestPrebidCache.of(Json.mapper.createObjectNode())));
     }
 
@@ -213,7 +213,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithDefaultIncludeWinnersIfStoredBidRequestExtTargetingHasNoIncludeWinners() {
         // given
         final BidRequest bidRequest = givenBidRequestWithExt(
-                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null), null);
+                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null, null), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
@@ -242,7 +242,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithDefaultPriceGranularityIfStoredBidRequestExtTargetingHasNoPriceGranularity() {
         // given
         final BidRequest bidRequest = givenBidRequestWithExt(
-                ExtRequestTargeting.of(null, false), null);
+                ExtRequestTargeting.of(null, null, false), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
@@ -319,7 +319,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         given(httpRequest.getParam("debug")).willReturn("1");
 
-        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null),
+        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null, null),
                 ExtRequestPrebidCache.of(mapper.createObjectNode()));
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 

@@ -22,4 +22,9 @@ public class BidderBid {
      * This will become response.seatbid[i].bid.ext.prebid.type" in the final OpenRTB response
      */
     BidType type;
+
+    /**
+     * Will be used for converting to ad server currency
+     */
+    String bidCurrency;
 }

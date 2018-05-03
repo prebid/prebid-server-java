@@ -37,16 +37,18 @@ import java.util.stream.Stream;
 public class SettingsConfiguration {
 
     @Configuration
-    @ConditionalOnProperty(prefix = "settings.filesystem", name = {"settings-filename", "stored-requests-dir"})
+    @ConditionalOnProperty(prefix = "settings.filesystem",
+            name = {"settings-filename", "stored-requests-dir", "stored-imps-dir"})
     static class FileSettingsConfiguration {
 
         @Bean
         FileApplicationSettings fileApplicationSettings(
                 @Value("${settings.filesystem.settings-filename}") String settingsFileName,
                 @Value("${settings.filesystem.stored-requests-dir}") String storedRequestsDir,
+                @Value("${settings.filesystem.stored-imps-dir}") String storedImpsDir,
                 FileSystem fileSystem) {
 
-            return FileApplicationSettings.create(fileSystem, settingsFileName, storedRequestsDir);
+            return FileApplicationSettings.create(fileSystem, settingsFileName, storedRequestsDir, storedImpsDir);
         }
     }
 

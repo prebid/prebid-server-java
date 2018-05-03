@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.util.Collections;
 import java.util.Objects;
 
 public class AuctionRequestFactory {
@@ -32,15 +33,19 @@ public class AuctionRequestFactory {
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
     private final long maxRequestSize;
+    private final String adServerCurrency;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
 
-    public AuctionRequestFactory(long maxRequestSize, StoredRequestProcessor storedRequestProcessor,
-                                 ImplicitParametersExtractor paramsExtractor, UidsCookieService uidsCookieService,
+    public AuctionRequestFactory(long maxRequestSize, String adServerCurrency,
+                                 StoredRequestProcessor storedRequestProcessor,
+                                 ImplicitParametersExtractor paramsExtractor,
+                                 UidsCookieService uidsCookieService,
                                  RequestValidator requestValidator) {
         this.maxRequestSize = maxRequestSize;
+        this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -68,7 +73,7 @@ public class AuctionRequestFactory {
      * If needed creates a new {@link BidRequest} which is a copy of original but with some fields set with values
      * derived from request parameters (headers, cookie etc.).
      */
-    public BidRequest fillImplicitParameters(BidRequest bidRequest, RoutingContext context) {
+    BidRequest fillImplicitParameters(BidRequest bidRequest, RoutingContext context) {
         final BidRequest result;
 
         final HttpServerRequest request = context.request();
@@ -80,9 +85,10 @@ public class AuctionRequestFactory {
         final Boolean setDefaultAt = at == null || at == 0;
         final ObjectNode ext = bidRequest.getExt();
         final ObjectNode populatedExt = ext != null ? populateBidRequestExtension(ext) : null;
+        final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
-                || setDefaultAt) {
+                || setDefaultAt || updateCurrency) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
@@ -91,6 +97,7 @@ public class AuctionRequestFactory {
                     // since header bidding is generally a first-price auction.
                     .at(setDefaultAt ? Integer.valueOf(1) : at)
                     .ext(populatedExt != null ? populatedExt : ext)
+                    .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
                     .build();
         } else {
             result = bidRequest;
@@ -101,7 +108,7 @@ public class AuctionRequestFactory {
     /**
      * Performs thorough validation of fully constructed {@link BidRequest} that is going to be used to hold an auction.
      */
-    public BidRequest validateRequest(BidRequest bidRequest) {
+    BidRequest validateRequest(BidRequest bidRequest) {
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
         if (validationResult.hasErrors()) {
             throw new InvalidRequestException(validationResult.getErrors());
@@ -137,6 +144,7 @@ public class AuctionRequestFactory {
                     ExtRequestTargeting.of(
                             populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
                                     isPriceGranularityTextual),
+                            targeting.getCurrency(),
                             isIncludeWinnersNull ? true : targeting.getIncludewinners()),
                     prebid.getStoredrequest(),
                     prebid.getCache())));
@@ -211,7 +219,6 @@ public class AuctionRequestFactory {
         } else {
             result = null;
         }
-
         return result;
     }
 
@@ -261,5 +268,22 @@ public class AuctionRequestFactory {
         }
 
         return result;
+    }
+
+    /**
+     * Validates ISO 4217 currency code
+     */
+    private static String validateCurrency(String code) {
+        if (StringUtils.isBlank(code)) {
+            return code;
+        }
+
+        try {
+            java.util.Currency.getInstance(code);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    String.format("Currency code supplied is not valid: %s", code), e);
+        }
+        return code;
     }
 }
