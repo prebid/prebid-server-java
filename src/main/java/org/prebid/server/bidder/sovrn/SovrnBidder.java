@@ -156,7 +156,6 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)

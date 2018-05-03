@@ -222,7 +222,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private RubiconImpExt makeImpExt(ExtImpRubicon rubiconImpExt, Imp imp) {
-
         return RubiconImpExt.of(RubiconImpExtRp.of(rubiconImpExt.getZoneId(), makeInventory(rubiconImpExt),
                 RubiconImpExtRpTrack.of("", "")), mapVendorsNamesToUrls(imp.getMetric()));
     }
@@ -236,7 +235,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (metrics == null) {
             return null;
         }
-        List<String> vendorsUrls = metrics.stream()
+        final List<String> vendorsUrls = metrics.stream()
                 .filter(this::isMetricSupported)
                 .map(metric -> ViewabilityVendors.valueOf(metric.getVendor()).getUrl())
                 .collect(Collectors.toList());

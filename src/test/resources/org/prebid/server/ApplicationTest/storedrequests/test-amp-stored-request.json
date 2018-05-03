@@ -18,6 +18,22 @@
           "accountId": 5001,
           "siteId": 6001,
           "zoneId": 7001
+        },
+        "appnexus": {
+          "invCode": "abc",
+          "keywords": [
+            {
+              "key": "foo",
+              "value": [
+                "bar",
+                "baz"
+              ]
+            }
+          ],
+          "member": "103",
+          "position": "below",
+          "reserve": 1,
+          "trafficSourceCode": "trafficSource"
         }
       }
     }
