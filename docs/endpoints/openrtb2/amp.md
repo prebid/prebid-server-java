@@ -16,7 +16,7 @@ All AMP content must be secure, so this endpoint will enforce that request.imp[0
 
 ### Request
 
-Valid Stored Requests for AMP pages must contain an `imp` array with exactly one element.  It is not necessary to include a `tmax` field in the Stored Request, as Prebid Server will always use the smaller of the AMP default timeout (1000ms) and the value passed via the `timeoutMillis` field of the `amp-ad.rtc-config`.
+Valid Stored Requests for AMP pages must contain an `imp` array with exactly one element.  It is not necessary to include a `tmax` field in the Stored Request, as Prebid Server will always use the smaller of the AMP default timeout (1000ms) and the value passed via the `default-timeout-ms` field of the `amp` config.
  
 An example Stored Request is given below:
  
