@@ -1066,7 +1066,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationResultWithErrorsWhenGdprIsNotOneOrZero() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtRegs.of(2));
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(0, ext)).build();
+        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1079,7 +1079,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationResultWithErrorsWhenRegsExtIsNotValidJson() {
         // given
         final ObjectNode ext = mapper.createObjectNode().put("gdpr", "String");
-        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(0, ext)).build();
+        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, ext)).build();
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);

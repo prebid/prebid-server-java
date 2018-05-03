@@ -11,4 +11,6 @@ public class RubiconUserExt {
     RubiconUserExtRp rp;
 
     ExtUserDigiTrust digitrust;
+
+    String consent;
 }
