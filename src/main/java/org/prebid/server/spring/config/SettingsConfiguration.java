@@ -1,14 +1,21 @@
 package org.prebid.server.spring.config;
 
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.spi.VerticleFactory;
 import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.CompositeApplicationSettings;
@@ -28,6 +35,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -227,5 +235,61 @@ public class SettingsConfiguration {
         @NotNull
         @Min(1)
         private Integer cacheSize;
+    }
+
+    @Configuration
+    // include condition on settings.cache-events-api
+    static class CacheNotificationConfiguration {
+
+        @Autowired
+        private VerticleFactory verticleFactory;
+
+        @Bean
+        CacheNotificationVerticle cacheNotificationVerticle(
+                @Value("${admin.port}") int port,
+                Vertx vertx,
+                SettingsCacheNotificationHandler cacheNotificationHandler,
+                BodyHandler bodyHandler) {
+
+            return new CacheNotificationVerticle(vertx, port, cacheNotificationHandler, bodyHandler);
+        }
+
+        @PostConstruct
+        public void deployVerticle() {
+            // deploy CacheNotificationVerticle
+        }
+    }
+
+    private static class CacheNotificationVerticle extends AbstractVerticle {
+
+        private final Vertx vertx;
+        private final Integer port;
+        private final SettingsCacheNotificationHandler settingsCacheNotificationHandler;
+        private final BodyHandler bodyHandler;
+
+        CacheNotificationVerticle(Vertx vertx, Integer port,
+                                  SettingsCacheNotificationHandler settingsCacheNotificationHandler,
+                                  BodyHandler bodyHandler) {
+            this.vertx = vertx;
+            this.port = port;
+            this.settingsCacheNotificationHandler = settingsCacheNotificationHandler;
+            this.bodyHandler = bodyHandler;
+        }
+
+        @Override
+        public void start(Future<Void> startFuture) {
+            final Router router = Router.router(vertx);
+            router.route().handler(bodyHandler);
+            // just for testing, they could share some code but may be different classes
+            router.route("/storedrequests/openrtb2").handler(settingsCacheNotificationHandler);
+            router.route("/storedrequests/amp").handler(settingsCacheNotificationHandler);
+
+            final Future<HttpServer> httpServerFuture = Future.future();
+            vertx.createHttpServer()
+                    .requestHandler(router::accept)
+                    .listen(port, httpServerFuture);
+
+            httpServerFuture.compose(httpServer -> startFuture.complete(), startFuture);
+        }
     }
 }

@@ -47,7 +47,6 @@ public class Application {
      */
     @EventListener
     public void deployPrebidVerticle(ApplicationReadyEvent event) {
-        vertx.registerVerticleFactory(verticleFactory);
         final CountDownLatch deployLatch = new CountDownLatch(verticleInstances);
         final String verticleName = verticleFactory.prefix() + ":" + PrebidVerticle.class.getName();
         final AtomicBoolean failed = new AtomicBoolean(false);
