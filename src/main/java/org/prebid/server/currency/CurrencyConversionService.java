@@ -99,14 +99,14 @@ public class CurrencyConversionService {
                                       Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                       String adServerCurrency,
                                       String bidCurrency) {
-        if (Objects.equals(adServerCurrency, bidCurrency)) {
-            return price;
-        }
-
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
-        // support it will be changed to throwing PerbidException.
+        // support it will be changed to throwing PrebidException.
         if (bidCurrency == null) {
             bidCurrency = DEFAULT_BID_CURRENCY;
+        }
+
+        if (Objects.equals(adServerCurrency, bidCurrency)) {
+            return price;
         }
 
         // get conversion rate from request currency rates if it is present
