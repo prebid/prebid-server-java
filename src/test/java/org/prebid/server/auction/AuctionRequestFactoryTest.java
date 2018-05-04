@@ -20,7 +20,8 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
@@ -263,8 +264,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtBidRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getPricegranularity)
-                .containsOnly(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
-                        BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)))));
+                .containsOnly(mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
+                        BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))));
     }
 
     @Test
@@ -306,8 +307,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtBidRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getPricegranularity)
-                .containsOnly(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
-                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))));
+                .containsOnly(mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
+                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))));
     }
 
     @Test

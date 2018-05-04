@@ -485,14 +485,15 @@
         "conversantAlias": "conversant"
       },
       "targeting": {
-        "pricegranularity": [
-          {
-            "precision": 2,
-            "min": 0,
-            "max": 20,
-            "increment": 0.1
-          }
-        ],
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
         "currency": {
           "rates": {
             "EUR": {

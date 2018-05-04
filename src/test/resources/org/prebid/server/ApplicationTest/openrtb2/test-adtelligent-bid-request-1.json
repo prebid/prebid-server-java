@@ -62,16 +62,15 @@
         "conversantAlias": "conversant"
       },
       "targeting": {
-        "pricegranularity": [
-          {
-            "precision": 2,
-            "min": 0,
-            "max": 20,
-            "increment": 0.1
-          }
-        ],
-        "includewinners" : true
-        ,
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
         "currency": {
           "rates": {
             "EUR": {
@@ -81,7 +80,8 @@
               "EUR": 0.8110
             }
           }
-        }
+        },
+        "includewinners": true
       },
       "cache": {
         "bids": []
