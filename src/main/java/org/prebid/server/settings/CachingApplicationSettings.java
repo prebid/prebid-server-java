@@ -116,12 +116,12 @@ public class CachingApplicationSettings implements ApplicationSettings {
         // delegate call to original source for missed ids and update cache with it
         return retriever.apply(missedRequestIds, missedImpIds, timeout).compose(result -> {
             final Map<String, String> storedIdToRequestFromDelegate = result.getStoredIdToRequest();
-            storedIdToRequest.putAll(storedIdToRequestFromDelegate);
-            requestCache.putAll(storedIdToRequestFromDelegate);
-
             final Map<String, String> storedIdToImpFromDelegate = result.getStoredIdToImp();
+
+            cache.save(storedIdToRequestFromDelegate, storedIdToImpFromDelegate);
+
+            storedIdToRequest.putAll(storedIdToRequestFromDelegate);
             storedIdToImp.putAll(storedIdToImpFromDelegate);
-            impCache.putAll(storedIdToImpFromDelegate);
 
             return Future.succeededFuture(StoredDataResult.of(storedIdToRequest, storedIdToImp, result.getErrors()));
         });
