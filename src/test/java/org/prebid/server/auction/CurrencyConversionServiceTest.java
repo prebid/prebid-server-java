@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -91,7 +92,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
     @Test
     public void convertCurrencyShouldUseUSDByDefaultIfBidCurrencyIsNull() {
         // given
-        final Map<String, Map<String, BigDecimal>> requestConversionRates = 
+        final Map<String, Map<String, BigDecimal>> requestConversionRates =
                 singletonMap(GBP, singletonMap(USD, BigDecimal.valueOf(1.4306)));
 
         // when
@@ -108,7 +109,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 singletonMap(EUR, BigDecimal.valueOf(1.1565)));
 
         // when
-        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, GBP, 
+        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, GBP,
                 EUR);
 
         // then
@@ -118,11 +119,11 @@ public class CurrencyConversionServiceTest extends VertxTest {
     @Test
     public void convertCurrencyShouldReturnConvertedByInvertedMultiplierPrice() {
         // given
-        final Map<String, Map<String, BigDecimal>> requestConversionRates = singletonMap(GBP, singletonMap(EUR, 
+        final Map<String, Map<String, BigDecimal>> requestConversionRates = singletonMap(GBP, singletonMap(EUR,
                 BigDecimal.valueOf(1.1565)));
 
         // when
-        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR, 
+        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR,
                 GBP);
 
         // then
@@ -164,6 +165,15 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
         // then
         assertThat(price.compareTo(BigDecimal.valueOf(1.1565))).isEqualTo(0);
+    }
+
+    @Test
+    public void convertCurrencyShouldReturnSamePriceIfBidCurrencyIsNullAndServerCurrencyUSD() {
+        // when
+        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, emptyMap(), USD, null);
+
+        // then
+        assertThat(price.compareTo(BigDecimal.ONE)).isEqualTo(0);
     }
 
     @Test

@@ -216,6 +216,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder().impid("impId").build()))
                         .build()))
+                .cur("EUR")
                 .build());
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
@@ -228,7 +229,7 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
     }
 
     @Test

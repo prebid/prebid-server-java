@@ -260,7 +260,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType(bid), null))
+                .map(bid -> BidderBid.of(bid, bidType(bid), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

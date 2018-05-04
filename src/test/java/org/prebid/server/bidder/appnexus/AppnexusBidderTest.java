@@ -463,7 +463,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBidTypeFromResponseIsBanner() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(BANNER_TYPE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(BANNER_TYPE, null));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -476,10 +476,26 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnCurrencyFromResponse() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(BANNER_TYPE, "EUR"));
+
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
+                .ext(mapper.valueToTree(AppnexusBidExt.of(
+                        AppnexusBidExtAppnexus.of(BANNER_TYPE)))).impid("impId").build(), BidType.banner, "EUR"));
+    }
+
+    @Test
     public void makeBidsShouldReturnVideoBidIfBidTypeFromResponseIsVideo() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId").video(Video.builder().build()));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(VIDEO_TYPE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(VIDEO_TYPE, null));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -495,7 +511,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnAudioBidIfBidTypeFromResponseIsAudio() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(AUDIO_TYPE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(AUDIO_TYPE, null));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -511,7 +527,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnNativeBidIfBidTypeFromResponseBidExtIsNative() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(xNATIVE_TYPE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(xNATIVE_TYPE, null));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -527,7 +543,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidTypeValueFromResponseIsNotValid() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(42));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(42, null));
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
@@ -635,8 +651,9 @@ public class AppnexusBidderTest extends VertxTest {
         return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
     }
 
-    private static String givenBidResponse(Integer bidType) throws JsonProcessingException {
+    private static String givenBidResponse(Integer bidType, String currency) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
+                .cur(currency)
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")

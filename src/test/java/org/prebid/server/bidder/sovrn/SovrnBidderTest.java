@@ -297,6 +297,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .adm("<div>This is an Ad</div>")
                                 .build()))
                         .build()))
+                .cur("EUR")
                 .build()));
 
         // when
@@ -314,7 +315,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                         .build(),
-                        BidType.banner, null));
+                        BidType.banner, "EUR"));
     }
 
     private static HttpCall givenHttpCall(int statusCode, String body) {
