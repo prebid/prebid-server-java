@@ -455,7 +455,6 @@ public class FacebookBidderTest extends VertxTest {
                                 .adm("<div>This is an Ad</div>")
                                 .build()))
                         .build()))
-                .cur("EUR")
                 .build()));
 
         // when
@@ -473,7 +472,7 @@ public class FacebookBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, "EUR"));
+                        BidType.banner, null));
     }
 
     private static HttpCall givenHttpCall(int statusCode, String body) {
