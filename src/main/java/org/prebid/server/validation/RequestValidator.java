@@ -198,9 +198,11 @@ public class RequestValidator {
         if (CollectionUtils.isEmpty(ranges)) {
             throw new ValidationException("Price granularity error: empty granularity definition supplied");
         }
+
         final Iterator<ExtGranularityRange> rangeIterator = ranges.iterator();
         ExtGranularityRange range = rangeIterator.next();
         validateGranularityRangeIncrement(range);
+
         while (rangeIterator.hasNext()) {
             final ExtGranularityRange nextGranularityRange = rangeIterator.next();
             if (range.getMax().compareTo(nextGranularityRange.getMax()) > 0) {
@@ -215,12 +217,11 @@ public class RequestValidator {
     /**
      * Validates {@link ExtGranularityRange}s increment
      */
-    private static ExtGranularityRange validateGranularityRangeIncrement(ExtGranularityRange range)
+    private static void validateGranularityRangeIncrement(ExtGranularityRange range)
             throws ValidationException {
         if (range.getIncrement().compareTo(BigDecimal.ZERO) <= 0) {
             throw new ValidationException("Price granularity error: increment must be a nonzero positive number");
         }
-        return range;
     }
 
     private ExtBidRequest parseAndValidateExtBidRequest(BidRequest bidRequest) throws ValidationException {

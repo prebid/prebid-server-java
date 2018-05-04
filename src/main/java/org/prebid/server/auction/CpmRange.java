@@ -38,9 +38,10 @@ public class CpmRange {
         if (cpm.compareTo(rangeMax) > 0) {
             return rangeMax;
         }
-        final BigDecimal increment = findRangeFor(cpm, priceGranularity.getRanges()).getIncrement();
+        final ExtGranularityRange range = findRangeFor(cpm, priceGranularity.getRanges());
+        final BigDecimal increment = range != null ? range.getIncrement() : null;
 
-        return cpm.divide(increment, 0, RoundingMode.FLOOR).multiply(increment);
+        return increment != null ? cpm.divide(increment, 0, RoundingMode.FLOOR).multiply(increment) : null;
     }
 
     /**

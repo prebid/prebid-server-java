@@ -163,8 +163,7 @@ public class AuctionRequestFactory {
     private JsonNode populatePriceGranularity(JsonNode priceGranularityNode, boolean isPriceGranularityNull,
                                               boolean isPriceGranularityTextual) {
         if (isPriceGranularityNull) {
-            final PriceGranularity defaultPriceGranularity = PriceGranularity.DEFAULT;
-            return Json.mapper.valueToTree(ExtPriceGranularity.from(defaultPriceGranularity));
+            return Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
         } else if (isPriceGranularityTextual) {
             final PriceGranularity priceGranularity;
             try {

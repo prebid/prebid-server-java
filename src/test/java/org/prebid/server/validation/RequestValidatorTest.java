@@ -853,6 +853,45 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValueInTheMiddleOfRangeList(){
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.05)),
+                                        ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))))),
+                                null, null), null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: range list must be ordered with increasing \"max\"");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenIncrementIsNegativeInNotLeadingElement(){
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(-0.05))))),
+                                null, null), null, null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: increment must be a nonzero positive number");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenPrebidBuyerIdsContainsUnknownBidder() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().user(User.builder()

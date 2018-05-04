@@ -118,4 +118,18 @@ public class CpmRangeTest {
         // then
         assertThat(result.compareTo(BigDecimal.valueOf(2.33))).isEqualTo(0);
     }
+
+    @Test
+    public void fromCpmAsNumberShouldRetunNullIfPriceDoesNotFitToRange() {
+        // given
+        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(null, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
+                        BigDecimal.valueOf(0.01)))));
+
+        // when
+        final BigDecimal result = CpmRange.fromCpmAsNumber(BigDecimal.valueOf(-2.0), priceGranularity);
+
+        // then
+        assertThat(result).isNull();
+    }
 }
