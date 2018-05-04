@@ -19,7 +19,7 @@ public class Regs {
      * established by the USA FTC, where 0 = no, 1 = yes. Refer to Section 7.5
      * for more information.
      */
-    int coppa;
+    Integer coppa;
 
     /** Placeholder for exchange-specific extensions to OpenRTB. */
     ObjectNode ext;

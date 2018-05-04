@@ -329,7 +329,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static RubiconUserExt makeUserExt(RubiconParams rubiconParams) {
         final JsonNode visitor = rubiconParams.getVisitor();
-        return !visitor.isNull() ? RubiconUserExt.of(RubiconUserExtRp.of(visitor), null) : null;
+        return !visitor.isNull() ? RubiconUserExt.of(RubiconUserExtRp.of(visitor), null, null) : null;
     }
 
     @Override
