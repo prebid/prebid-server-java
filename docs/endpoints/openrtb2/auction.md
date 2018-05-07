@@ -146,19 +146,19 @@ to set these params on the response at `response.seatbid[i].bid[j].ext.prebid.ta
         "max": 20.00,
         "increment": 0.10 // This is equivalent to the deprecated "pricegranularity": "medium"
       }
-    ],
-    "currency": {
-      "rates": {
-        "EUR": {
-          "USD": 1.2406
-        },
-        "USD": {
-          "EUR": 0.8110
-        }
+    ]
+  },
+  "currency": {
+    "rates": {
+      "EUR": {
+        "USD": 1.2406
+      },
+      "USD": {
+        "EUR": 0.8110
       }
-    },
-    "includewinners": false // Optional param defaulting to true
-  }
+    }
+  },
+  "includewinners": false // Optional param defaulting to true
 }
 ```
 
