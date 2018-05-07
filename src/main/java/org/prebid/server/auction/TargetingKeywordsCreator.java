@@ -4,7 +4,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.response.Bid;
 
 import java.math.BigDecimal;
@@ -90,10 +90,10 @@ public class TargetingKeywordsCreator {
     /**
      * Creates {@link TargetingKeywordsCreator} for the given params.
      */
-    public static TargetingKeywordsCreator create(List<ExtPriceGranularityBucket> buckets, boolean includeWinners,
+    public static TargetingKeywordsCreator create(ExtPriceGranularity extPriceGranularity, boolean includeWinners,
                                                   boolean isApp) {
-        return new TargetingKeywordsCreator(PriceGranularity.createFromBuckets(buckets), includeWinners,
-                isApp);
+        return new TargetingKeywordsCreator(PriceGranularity.createFromExtPriceGranularity(extPriceGranularity),
+                includeWinners, isApp);
     }
 
     /**
@@ -117,7 +117,7 @@ public class TargetingKeywordsCreator {
         try {
             return PriceGranularity.createFromString(stringPriceGranularity);
         } catch (PreBidException ex) {
-            logger.error("Price bucket granularity error: ''{0}'' is not a recognized granularity",
+            logger.error("Price range granularity error: ''{0}'' is not a recognized granularity",
                     stringPriceGranularity);
         }
         return null;
@@ -127,7 +127,7 @@ public class TargetingKeywordsCreator {
      * Compares given price to computed CPM value according to the price granularity.
      */
     public boolean isNonZeroCpm(BigDecimal price) {
-        final BigDecimal cpm = CpmBucket.fromCpmAsNumber(price, priceGranularity);
+        final BigDecimal cpm = CpmRange.fromCpmAsNumber(price, priceGranularity);
         return cpm != null && cpm.compareTo(BigDecimal.ZERO) != 0;
     }
 
@@ -157,7 +157,7 @@ public class TargetingKeywordsCreator {
      */
     private Map<String, String> makeFor(String bidder, boolean winningBid, BigDecimal price, String defaultCpm,
                                         Integer width, Integer height, String cacheId, String dealId) {
-        final String roundedCpm = isPriceGranularityValid() ? CpmBucket.fromCpm(price, priceGranularity) : defaultCpm;
+        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
         final String hbSize = sizeFrom(width, height);
 
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners);

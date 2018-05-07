@@ -1,0 +1,81 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 980,
+            "h": 120
+          }
+        ],
+        "w": 300,
+        "h": 600,
+        "pos": 3
+      },
+      "tagid": "abc",
+      "bidfloor": 1.0,
+      "secure": 1,
+      "ext": {
+        "appnexus": {
+          "keywords": "foo=bar,foo=baz",
+          "traffic_source_code": "trafficSource"
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "https://google.com"
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "192.168.244.1"
+  },
+  "at": 1,
+  "tmax": 9999970,
+  "cur": [
+    "EUR"
+  ],
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": [
+          {
+            "precision": 2,
+            "min": 0,
+            "max": 3,
+            "increment": 0.01
+          },
+          {
+            "precision": 2,
+            "min": 3,
+            "max": 8,
+            "increment": 0.05
+          },
+          {
+            "precision": 2,
+            "min": 8,
+            "max": 20,
+            "increment": 0.5
+          }
+        ],
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.811
+            }
+          }
+        },
+        "includewinners": true
+      },
+      "cache": {
+        "bids": []
+      }
+    }
+  }
+}

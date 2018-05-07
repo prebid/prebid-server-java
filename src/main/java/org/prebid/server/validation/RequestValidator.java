@@ -1,7 +1,6 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Asset;
@@ -29,7 +28,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -59,9 +59,6 @@ public class RequestValidator {
 
     private static final String PREBID_EXT = "prebid";
     private static final Locale LOCALE = Locale.US;
-    private static final TypeReference<List<ExtPriceGranularityBucket>> GRANULARITY_BUCKETS_LIST_TYPE_REFERENCE =
-            new TypeReference<List<ExtPriceGranularityBucket>>() {
-            };
 
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
@@ -179,78 +176,51 @@ public class RequestValidator {
      * Validates {@link ExtRequestTargeting}.
      */
     private static void validateTargeting(ExtRequestTargeting extRequestTargeting) throws ValidationException {
-        final List<ExtPriceGranularityBucket> buckets;
+        final ExtPriceGranularity extPriceGranularity;
         try {
-            buckets = Json.mapper.readerFor(GRANULARITY_BUCKETS_LIST_TYPE_REFERENCE)
-                    .readValue(extRequestTargeting.getPricegranularity());
-        } catch (IOException e) {
+            extPriceGranularity = Json.mapper.treeToValue(extRequestTargeting.getPricegranularity(),
+                    ExtPriceGranularity.class);
+        } catch (JsonProcessingException e) {
             throw new ValidationException("Error while parsing request.ext.prebid.targeting.pricegranularity");
         }
 
-        if (buckets.isEmpty()) {
-            throw new ValidationException("Price granularity error: empty granularity definition supplied");
-        }
-
-        for (final ExtPriceGranularityBucket bucket : buckets) {
-            validateGranularityBucket(bucket);
-        }
-        validateGranularityBuckets(buckets);
-    }
-
-    /**
-     * Validates {@link ExtPriceGranularityBucket}.
-     */
-    private static void validateGranularityBucket(ExtPriceGranularityBucket bucket) throws ValidationException {
-        final BigDecimal min = bucket.getMin();
-
-        if (min != null && bucket.getMax().compareTo(min) < 0) {
-            throw new ValidationException("Price granularity error: max must be greater than min");
-        }
-
-        if (bucket.getIncrement().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ValidationException("Price granularity error: increment must be a nonzero positive number");
-        }
-
-        final Integer precision = bucket.getPrecision();
+        final Integer precision = extPriceGranularity.getPrecision();
         if (precision != null && precision < 0) {
             throw new ValidationException("Price granularity error: precision must be non-negative");
         }
-
+        validateGranularityRanges(extPriceGranularity.getRanges());
     }
 
     /**
      * Validates {@link List<ExtRequestTargeting>} as set of ranges.
      */
-    private static void validateGranularityBuckets(List<ExtPriceGranularityBucket> buckets) throws ValidationException {
-        final Iterator<ExtPriceGranularityBucket> bucketIterator = buckets.iterator();
-        ExtPriceGranularityBucket bucket = bucketIterator.next();
-        final Integer precision = bucket.getPrecision();
+    private static void validateGranularityRanges(List<ExtGranularityRange> ranges) throws ValidationException {
+        if (CollectionUtils.isEmpty(ranges)) {
+            throw new ValidationException("Price granularity error: empty granularity definition supplied");
+        }
 
-        while (bucketIterator.hasNext()) {
-            final ExtPriceGranularityBucket nextPriceGranularityBucket = bucketIterator.next();
-            if (!Objects.equals(precision, nextPriceGranularityBucket.getPrecision())) {
-                throw new ValidationException("Price granularity error: precision not consistent across entries");
-            }
+        final Iterator<ExtGranularityRange> rangeIterator = ranges.iterator();
+        ExtGranularityRange range = rangeIterator.next();
+        validateGranularityRangeIncrement(range);
 
-            if (bucket.getMax().compareTo(nextPriceGranularityBucket.getMax()) > 0) {
+        while (rangeIterator.hasNext()) {
+            final ExtGranularityRange nextGranularityRange = rangeIterator.next();
+            if (range.getMax().compareTo(nextGranularityRange.getMax()) > 0) {
                 throw new ValidationException(
                         "Price granularity error: range list must be ordered with increasing \"max\"");
             }
+            validateGranularityRangeIncrement(nextGranularityRange);
+            range = nextGranularityRange;
+        }
+    }
 
-            final BigDecimal prevMax = bucket.getMax();
-
-            // check for ranges overlap considering that min value can be not defined in json, assuming that bucket null
-            // value is equals to previous bucket max value.
-            final BigDecimal nextBucketMin = ObjectUtils.firstNonNull(nextPriceGranularityBucket.getMin(), prevMax);
-            if (nextBucketMin.compareTo(prevMax) < 0) {
-                throw new ValidationException("Price granularity error: overlapping granularity ranges");
-            }
-
-            if (nextBucketMin.compareTo(prevMax) > 0) {
-                throw new ValidationException("Price granularity error: gaps in granularity ranges");
-            }
-
-            bucket = nextPriceGranularityBucket;
+    /**
+     * Validates {@link ExtGranularityRange}s increment
+     */
+    private static void validateGranularityRangeIncrement(ExtGranularityRange range)
+            throws ValidationException {
+        if (range.getIncrement().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("Price granularity error: increment must be a nonzero positive number");
         }
     }
 
