@@ -1,7 +1,6 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -28,9 +27,6 @@ import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
-
-import java.math.BigDecimal;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +36,8 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -768,11 +765,12 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBucketsAreEmptyList() throws IOException {
+    public void validateShouldReturnValidationMessageWhenRangesAreEmptyList() throws IOException {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(mapper.valueToTree(emptyList()), null, null), null, null))))
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2, emptyList())),
+                                null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -783,30 +781,13 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBucketsMaxIsNotGreaterThanMin() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(2), BigDecimal.valueOf(1), BigDecimal.valueOf(2)))), null, null),
-                        null, null))))
-                .build();
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
-                "Price granularity error: max must be greater than min");
-    }
-
-    @Test
     public void validateShouldReturnValidationMessageWhenIncrementIsZero() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(0)))), null, null),
-                        null, null))))
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity
+                                .of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                        BigDecimal.valueOf(0))))), null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -821,8 +802,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(-1)))), null, null),
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))),
+                                null, null),
                         null, null))))
                 .build();
         // when
@@ -838,8 +820,9 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(
-                                -2, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(0.01)))), null, null),
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(-1,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
+                                null, null),
                         null, null))))
                 .build();
         // when
@@ -850,34 +833,14 @@ public class RequestValidatorTest extends VertxTest {
                 "Price granularity error: precision must be non-negative");
     }
 
-    @Test
-    public void validateShouldReturnValidationMessageWhenPrecisionIsNotConsistent() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(mapper.valueToTree(asList(ExtPriceGranularityBucket.of(
-                                1, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(0.01)),
-                                ExtPriceGranularityBucket.of(
-                                        2, BigDecimal.valueOf(1), BigDecimal.valueOf(2), BigDecimal.valueOf(0.01)))),
-                                null, null), null, null))))
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
-                "Price granularity error: precision not consistent across entries");
-    }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBucketsAreNotOrderedByMaxValue() {
+    public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValue() {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(mapper.valueToTree(asList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(5), BigDecimal.valueOf(10), BigDecimal.valueOf(0.01)),
-                                ExtPriceGranularityBucket.of(
-                                        2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)))),
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                                        ExtGranularityRange.of(BigDecimal.valueOf(2), BigDecimal.valueOf(0.05))))),
                                 null, null), null, null))))
                 .build();
 
@@ -890,13 +853,14 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenOverlappingBetweenBucketsRanges() {
+    public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValueInTheMiddleOfRangeList(){
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(mapper.valueToTree(asList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(6), BigDecimal.valueOf(0.01)),
-                                ExtPriceGranularityBucket.of(
-                                        2, BigDecimal.valueOf(4), BigDecimal.valueOf(10), BigDecimal.valueOf(0.01)))),
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.05)),
+                                        ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))))),
                                 null, null), null, null))))
                 .build();
 
@@ -905,17 +869,17 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(
-                "Price granularity error: overlapping granularity ranges");
+                "Price granularity error: range list must be ordered with increasing \"max\"");
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenGappingBetweenBucketsRanges() {
+    public void validateShouldReturnValidationMessageWhenIncrementIsNegativeInNotLeadingElement(){
+        // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(mapper.valueToTree(asList(ExtPriceGranularityBucket.of(
-                                2, BigDecimal.valueOf(0), BigDecimal.valueOf(6), BigDecimal.valueOf(0.01)),
-                                ExtPriceGranularityBucket.of(
-                                        2, BigDecimal.valueOf(8), BigDecimal.valueOf(16), BigDecimal.valueOf(0.01)))),
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
+                                asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
+                                        ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(-0.05))))),
                                 null, null), null, null))))
                 .build();
 
@@ -923,7 +887,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("Price granularity error: gaps in granularity ranges");
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "Price granularity error: increment must be a nonzero positive number");
     }
 
     @Test

@@ -2,21 +2,21 @@ package org.prebid.server.auction;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 /**
  * Class for price operating with rules defined in {@link PriceGranularity}
  */
-public class CpmBucket {
+public class CpmRange {
 
     private static final Locale LOCALE = Locale.US;
 
-    private CpmBucket() {
+    private CpmRange() {
     }
 
     /**
@@ -34,24 +34,28 @@ public class CpmBucket {
      * format
      */
     public static BigDecimal fromCpmAsNumber(BigDecimal cpm, PriceGranularity priceGranularity) {
-        final BigDecimal bucketMax = priceGranularity.getBucketMax();
-        if (cpm.compareTo(bucketMax) > 0) {
-            return bucketMax;
+        final BigDecimal rangeMax = priceGranularity.getRangesMax();
+        if (cpm.compareTo(rangeMax) > 0) {
+            return rangeMax;
         }
-        return findBucketFor(cpm, priceGranularity)
-                .map(ExtPriceGranularityBucket::getIncrement)
-                .map(increment -> cpm.divide(increment, 0, RoundingMode.FLOOR).multiply(increment))
-                .orElse(null);
+        final ExtGranularityRange range = findRangeFor(cpm, priceGranularity.getRanges());
+        final BigDecimal increment = range != null ? range.getIncrement() : null;
+
+        return increment != null ? cpm.divide(increment, 0, RoundingMode.FLOOR).multiply(increment) : null;
     }
 
     /**
-     * Returns bucket cpm fits in.
+     * Returns range cpm fits in.
      */
-    private static Optional<ExtPriceGranularityBucket> findBucketFor(BigDecimal cpm,
-                                                                     PriceGranularity priceGranularity) {
-        return priceGranularity.getBuckets().stream()
-                .filter(bucket -> includes(cpm, bucket.getMin(), bucket.getMax()))
-                .reduce((first, second) -> second);
+    private static ExtGranularityRange findRangeFor(BigDecimal cpm, List<ExtGranularityRange> ranges) {
+        BigDecimal min = BigDecimal.ZERO;
+        for (ExtGranularityRange range : ranges) {
+            if (includes(cpm, min, range.getMax())) {
+                return range;
+            }
+            min = range.getMax();
+        }
+        return null;
     }
 
     /**

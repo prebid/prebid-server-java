@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -307,7 +308,7 @@ public class AmpRequestFactory {
         final JsonNode priceGranularity = isTargetingNull ? null : targeting.getPricegranularity();
         final boolean isPriceGranularityNull = priceGranularity == null || priceGranularity.isNull();
         final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
-                ? Json.mapper.valueToTree(PriceGranularity.DEFAULT.getBuckets())
+                ? Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
                 : priceGranularity;
 
         final ExtCurrency currency = isTargetingNull ? null : targeting.getCurrency();
