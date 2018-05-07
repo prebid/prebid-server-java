@@ -406,7 +406,7 @@ public class ApplicationTest extends VertxTest {
     public void statusShouldReturnReadyWithinResponseBodyAndHttp200Ok() {
         assertThat(given(spec).when().get("/status"))
                 .extracting(Response::getStatusCode, response -> response.getBody().asString())
-                .containsOnly(200, "ready");
+                .containsOnly(200, "ok");
     }
 
     @Test

@@ -1,9 +1,9 @@
-# Status Endpoint
+## `GET /status`
 
-The endpoint just inform you Prebid Server is up and running successfully.
+This endpoint will return a 2xx response whenever Prebid Server is ready to serve requests.
+Its exact response can be [configured](../config.md) with the `status-response`
+config option. For example, in `application.yaml`:
 
-## Sample request
-
-`GET http://prebid.site.com/status`
-
-The response is empty body with `200 OK` HTTP status.
+```yaml
+status-response: "ok"
+```

@@ -183,8 +183,8 @@ public class WebConfiguration {
     }
 
     @Bean
-    StatusHandler statusHandler() {
-        return new StatusHandler();
+    StatusHandler statusHandler(@Value("${status-response:#{null}}") String statusResponse) {
+        return new StatusHandler(statusResponse);
     }
 
     @Bean
