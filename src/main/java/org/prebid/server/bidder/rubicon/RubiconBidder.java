@@ -317,7 +317,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return extNode != null ? Json.mapper.treeToValue(extNode, ExtRegs.class) : null;
         } catch (JsonProcessingException e) {
             logger.warn("Error occurred while parsing bidrequest.regs.ext", e);
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException(e.getMessage(), e);
         }
     }
 
@@ -326,7 +326,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return extNode != null ? Json.mapper.treeToValue(extNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
             logger.warn("Error occurred while parsing bidrequest.user.ext", e);
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException(e.getMessage(), e);
         }
     }
 

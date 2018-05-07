@@ -50,7 +50,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -276,7 +275,7 @@ RubiconBidderTest extends VertxTest {
                                 ExtUserPrebid.of(emptyMap()), null, ExtUserDigiTrust.of("id", 123, 0))))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
-                Function.identity());
+                identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
@@ -299,7 +298,7 @@ RubiconBidderTest extends VertxTest {
                         mapper.valueToTree(ExtUser.of(null, "consentValue", null)))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
-                Function.identity());
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -322,7 +321,7 @@ RubiconBidderTest extends VertxTest {
                 builder -> builder.user(User.builder().ext((ObjectNode) mapper.createObjectNode()
                         .set("consent", mapper.createObjectNode())).build()),
                 builder -> builder.video(Video.builder().build()),
-                Function.identity());
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -359,7 +358,7 @@ RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(50)))),
                 builder -> builder.video(Video.builder().build()),
-                Function.identity());
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -378,7 +377,7 @@ RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.regs(Regs.of(null, mapper.createObjectNode().put("gdpr", "invalid"))),
                 builder -> builder.video(Video.builder().build()),
-                Function.identity());
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -389,8 +388,7 @@ RubiconBidderTest extends VertxTest {
                 .startsWith("Cannot deserialize value of type `java.lang.Integer`");
         assertThat(result.getValue()).hasSize(0);
     }
-
-
+    
     @Test
     public void makeHttpRequestsShouldFillDeviceExtIfDevicePresent() {
         // given
