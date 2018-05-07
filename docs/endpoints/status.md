@@ -5,5 +5,5 @@ Its exact response can be [configured](../developers/configuration.md) with the 
 config option. For example, in `pbs.yaml`:
 
 ```yaml
-status_response: "ok"
+status-response: "ok"
 ```
