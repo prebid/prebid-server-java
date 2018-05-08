@@ -32,8 +32,8 @@
         "rp": {
           "zone_id": 4001,
           "target": {
-            "rating": "5-star",
-            "prodtype": "tech"
+            "rating": ["5-star"],
+            "prodtype": ["tech"]
           },
           "track": {
             "mint": "",
@@ -77,8 +77,8 @@
     "ext": {
       "rp": {
         "target": {
-          "ucat": "new",
-          "search": "iphone"
+          "ucat": ["new"],
+          "search": ["iphone"]
         }
       },
       "consent" : "consentValue",

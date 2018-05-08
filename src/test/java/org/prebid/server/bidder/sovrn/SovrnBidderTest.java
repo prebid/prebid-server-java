@@ -8,11 +8,13 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -22,6 +24,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -135,14 +139,16 @@ public class SovrnBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(
-                    Imp.builder().id("impId")
-                        .banner(Banner.builder()
-                            .format(singletonList(Format.builder().w(200).h(300).build()))
-                            .w(200)
-                            .h(300)
-                            .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null))))
-                            .build()))
+                        Imp.builder().id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(200).h(300).build()))
+                                        .w(200)
+                                        .h(300)
+                                        .build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null))))
+                                .build()))
+                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                .regs(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1))))
                 .build();
 
         // when
@@ -164,6 +170,8 @@ public class SovrnBidderTest extends VertxTest {
                                 .tagid("tagid")
                                 .bidfloor(null)
                                 .build()))
+                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                        .regs(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1))))
                         .build());
     }
 
@@ -313,7 +321,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .w(200)
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
-                        .build(),
+                                .build(),
                         BidType.banner, null));
     }
 

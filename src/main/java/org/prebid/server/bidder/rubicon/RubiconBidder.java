@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -43,7 +42,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
-import org.prebid.server.bidder.rubicon.proto.RubiconRegsExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
@@ -173,7 +171,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .site(makeSite(bidRequest.getSite(), rubiconImpExt))
                 .app(makeApp(bidRequest.getApp(), rubiconImpExt))
                 .imp(Collections.singletonList(makeImp(imp, rubiconImpExt)))
-                .regs(makeRegs(bidRequest.getRegs()))
                 .build();
     }
 
@@ -304,12 +301,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
 
         return result;
-    }
-
-    private static Regs makeRegs(Regs regs) {
-        final ExtRegs extRegs = regs != null ? getExtRegs(regs.getExt()) : null;
-        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
-        return gdpr != null ? Regs.of(null, Json.mapper.valueToTree(RubiconRegsExt.of(gdpr))) : null;
     }
 
     private static ExtRegs getExtRegs(ObjectNode extNode) {
