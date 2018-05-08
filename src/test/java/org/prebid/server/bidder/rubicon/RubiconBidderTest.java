@@ -73,8 +73,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class
-RubiconBidderTest extends VertxTest {
+public class RubiconBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=prebid";
     private static final String USERNAME = "username";
@@ -369,24 +368,6 @@ RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getRegs).doesNotContainNull()
                 .containsOnly(Regs.of(null, mapper.valueToTree(ExtRegs.of(50))));
-    }
-
-    @Test
-    public void makeHttpRequestShouldFailWithPreBidExceptionIfRegsExtCannotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.regs(Regs.of(null, mapper.createObjectNode().put("gdpr", "invalid"))),
-                builder -> builder.video(Video.builder().build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("Cannot deserialize value of type `java.lang.Integer`");
-        assertThat(result.getValue()).hasSize(0);
     }
     
     @Test
