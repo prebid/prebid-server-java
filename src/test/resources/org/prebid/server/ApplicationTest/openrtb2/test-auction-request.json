@@ -27,12 +27,12 @@
           "siteId": 3001,
           "zoneId": 4001,
           "inventory": {
-            "rating": "5-star",
-            "prodtype": "tech"
+            "rating": ["5-star"],
+              "prodtype": ["tech"]
           },
           "visitor": {
-            "ucat": "new",
-            "search": "iphone"
+            "ucat": ["new"],
+            "search": ["iphone"]
           },
           "video": {
             "size_id": 15,
