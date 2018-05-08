@@ -43,7 +43,8 @@
         "id": "id",
         "keyv": 123,
         "pref": 0
-      }
+      },
+      "consent": "consentValue"
     }
   },
   "test": 1,
@@ -55,6 +56,11 @@
   "source": {
     "fd": 1,
     "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
   },
   "ext": {
     "prebid": {
