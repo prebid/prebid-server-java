@@ -110,7 +110,7 @@
         "includewinners": true
       },
       "cache": {
-        "bids": []
+        "bids": {}
       }
     }
   }

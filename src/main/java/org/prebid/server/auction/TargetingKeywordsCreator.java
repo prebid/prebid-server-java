@@ -49,6 +49,11 @@ public class TargetingKeywordsCreator {
      */
     private static final String HB_CACHE_ID_KEY = "hb_cache_id";
     /**
+     * Stores the UUID which can be used to fetch the video XML data from prebid cache.
+     * Callers should *never* assume that this exists, since the call to the cache may always fail.
+     */
+    private static final String HB_VAST_ID_KEY = "hb_uuid";
+    /**
      * Describes the size in format: [Width]x[Height]
      */
     private static final String HB_SIZE_KEY = "hb_size";
@@ -131,32 +136,29 @@ public class TargetingKeywordsCreator {
         return cpm != null && cpm.compareTo(BigDecimal.ZERO) != 0;
     }
 
-    private boolean isPriceGranularityValid() {
-        return priceGranularity != null;
-    }
-
     /**
      * Creates map of keywords for the given {@link Bid}.
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
         return makeFor(bid.getBidder(), winningBid, bid.getPrice(), StringUtils.EMPTY, bid.getWidth(), bid.getHeight(),
-                bid.getCacheId(), bid.getDealId());
+                bid.getCacheId(), null, bid.getDealId());
     }
 
     /**
      * Creates map of keywords for the given {@link com.iab.openrtb.response.Bid}.
      */
     public Map<String, String> makeFor(com.iab.openrtb.response.Bid bid, String bidder, boolean winningBid,
-                                       String cacheId) {
-        return makeFor(bidder, winningBid,
-                bid.getPrice(), "0.0", bid.getW(), bid.getH(), cacheId, bid.getDealid());
+                                       String cacheId, String vastCacheId) {
+        return makeFor(bidder, winningBid, bid.getPrice(), "0.0", bid.getW(), bid.getH(), cacheId, vastCacheId,
+                bid.getDealid());
     }
 
     /**
      * Common method for creating targeting keywords.
      */
     private Map<String, String> makeFor(String bidder, boolean winningBid, BigDecimal price, String defaultCpm,
-                                        Integer width, Integer height, String cacheId, String dealId) {
+                                        Integer width, Integer height, String cacheId, String vastCacheId,
+                                        String dealId) {
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
         final String hbSize = sizeFrom(width, height);
 
@@ -168,6 +170,9 @@ public class TargetingKeywordsCreator {
         }
         if (StringUtils.isNotBlank(cacheId)) {
             keywordMap.put(HB_CACHE_ID_KEY, cacheId);
+        }
+        if (StringUtils.isNotBlank(vastCacheId)) {
+            keywordMap.put(HB_VAST_ID_KEY, vastCacheId);
         }
         if (StringUtils.isNotBlank(dealId)) {
             keywordMap.put(HB_DEAL_KEY, dealId);
@@ -185,6 +190,13 @@ public class TargetingKeywordsCreator {
                             ? HB_CREATIVE_LOADTYPE_DEMAND_SDK_VALUE : HB_CREATIVE_LOADTYPE_HTML_VALUE);
         }
         return keywords;
+    }
+
+    /**
+     * Checks price granularity value is defined.
+     */
+    private boolean isPriceGranularityValid() {
+        return priceGranularity != null;
     }
 
     /**

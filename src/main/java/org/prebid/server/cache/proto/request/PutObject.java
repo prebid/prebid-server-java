@@ -11,4 +11,6 @@ public class PutObject {
     String type;
 
     JsonNode value;
+
+    Integer expiry;
 }
