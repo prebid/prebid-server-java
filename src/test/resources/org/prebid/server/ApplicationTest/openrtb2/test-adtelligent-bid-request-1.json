@@ -43,7 +43,7 @@
         "keyv": 123,
         "pref": 0
       },
-      "consent" : "consentValue"
+      "consent": "consentValue"
     }
   },
   "test": 1,
@@ -90,7 +90,10 @@
         "includewinners": true
       },
       "cache": {
-        "bids": []
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
       }
     }
   }

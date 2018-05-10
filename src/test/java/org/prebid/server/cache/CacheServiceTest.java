@@ -35,6 +35,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
@@ -268,10 +269,10 @@ public class CacheServiceTest extends VertxTest {
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(4)
                 .containsOnly(
-                        PutObject.of("json", mapper.valueToTree(BannerValue.of("adm1", "nurl1", 200, 100))),
-                        PutObject.of("json", mapper.valueToTree(BannerValue.of("adm2", "nurl2", 400, 300))),
-                        PutObject.of("xml", new TextNode(adm3)),
-                        PutObject.of("xml", new TextNode(adm4))
+                        PutObject.of("json", mapper.valueToTree(BannerValue.of("adm1", "nurl1", 200, 100)), null),
+                        PutObject.of("json", mapper.valueToTree(BannerValue.of("adm2", "nurl2", 400, 300)), null),
+                        PutObject.of("xml", new TextNode(adm3), null),
+                        PutObject.of("xml", new TextNode(adm4), null)
                 );
     }
 
@@ -301,7 +302,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .containsOnly(PutObject.of("xml", new TextNode("adm2")));
+                .containsOnly(PutObject.of("xml", new TextNode("adm2"), null));
     }
 
     @Test
@@ -321,31 +322,94 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedBody() throws IOException {
+    public void cacheBidsOpenrtbShouldNeverCallCacheServiceIfNoBidsPassed() {
         // when
-        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(builder -> builder.adm("adm1"));
-        cacheService.cacheBidsOpenrtb(singletonList(bid), timeout);
+        cacheService.cacheBidsOpenrtb(emptyList(), emptyList(), null, null, timeout);
 
         // then
-        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .containsOnly(PutObject.of("json", mapper.valueToTree(bid)));
+        verifyZeroInteractions(httpClient);
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldReturnExpectedResult() throws JsonProcessingException {
+    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtl() throws IOException {
+        // when
+        cacheService.cacheBidsOpenrtb(singletonList(givenBidOpenrtb(identity())),
+                singletonList(givenBidOpenrtb(identity())), 10, 20, timeout);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .extracting(PutObject::getExpiry)
+                .containsOnly(10, 20);
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedBody() throws IOException {
+        // when
+        final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1"));
+        final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.adm("adm1"));
+        cacheService.cacheBidsOpenrtb(singletonList(bid1), singletonList(bid2), null, null, timeout);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .containsOnly(
+                        PutObject.of("json", mapper.valueToTree(bid1), null),
+                        PutObject.of("xml", new TextNode(bid2.getAdm()), null));
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldReturnExpectedResultForBids() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
                 BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
 
         // when
-        final Future<List<String>> future = cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidOpenrtb(identity())), timeout);
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(identity());
+        final Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> future = cacheService.cacheBidsOpenrtb(
+                singletonList(bid), emptyList(), 60, null, timeout);
 
         // then
-        final List<String> result = future.result();
+        final Map<com.iab.openrtb.response.Bid, CacheIdInfo> result = future.result();
         assertThat(result).hasSize(1)
-                .containsOnly("uuid1");
+                .containsEntry(bid, CacheIdInfo.of("uuid1", null));
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldReturnExpectedResultForVideoBids() throws JsonProcessingException {
+        // given
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
+                BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))));
+
+        // when
+        final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(identity());
+        final Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> future = cacheService.cacheBidsOpenrtb(
+                emptyList(), singletonList(bid), null, 60, timeout);
+
+        // then
+        final Map<com.iab.openrtb.response.Bid, CacheIdInfo> result = future.result();
+        assertThat(result).hasSize(1)
+                .containsEntry(bid, CacheIdInfo.of(null, "uuid1"));
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldReturnExpectedResultForBidsAndVideoBids() throws JsonProcessingException {
+        // given
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
+                BidCacheResponse.of(asList(CacheObject.of("uuid1"), CacheObject.of("uuid2"),
+                        CacheObject.of("videoUuid1"), CacheObject.of("videoUuid2")))));
+
+        // when
+        final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1"));
+        final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId2"));
+        final Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> future = cacheService.cacheBidsOpenrtb(
+                asList(bid1, bid2), asList(bid1, bid2), null, null, timeout);
+
+        // then
+        final Map<com.iab.openrtb.response.Bid, CacheIdInfo> result = future.result();
+        assertThat(result).hasSize(2).containsOnly(
+                entry(bid1, CacheIdInfo.of("uuid1", "videoUuid1")),
+                entry(bid2, CacheIdInfo.of("uuid2", "videoUuid2")));
     }
 
     private static List<Bid> singleBidList() {

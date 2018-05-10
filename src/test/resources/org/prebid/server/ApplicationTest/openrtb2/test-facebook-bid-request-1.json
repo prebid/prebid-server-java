@@ -89,7 +89,10 @@
         "includewinners" : true
       },
       "cache": {
-        "bids": []
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
       }
     }
   }

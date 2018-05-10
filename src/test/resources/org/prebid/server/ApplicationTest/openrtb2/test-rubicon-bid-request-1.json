@@ -32,8 +32,12 @@
         "rp": {
           "zone_id": 4001,
           "target": {
-            "rating": ["5-star"],
-            "prodtype": ["tech"]
+            "rating": [
+              "5-star"
+            ],
+            "prodtype": [
+              "tech"
+            ]
           },
           "track": {
             "mint": "",
@@ -77,11 +81,15 @@
     "ext": {
       "rp": {
         "target": {
-          "ucat": ["new"],
-          "search": ["iphone"]
+          "ucat": [
+            "new"
+          ],
+          "search": [
+            "iphone"
+          ]
         }
       },
-      "consent" : "consentValue",
+      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
@@ -130,10 +138,13 @@
             }
           }
         },
-        "includewinners" : true
+        "includewinners": true
       },
       "cache": {
-        "bids": []
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
       }
     }
   }
