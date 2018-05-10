@@ -248,27 +248,21 @@ public class CacheService {
     private static <T> Map<T, CacheIdInfo> toResultMap(List<T> bids, List<T> videoBids, List<String> uuids) {
         final Map<T, CacheIdInfo> result = new HashMap<>(uuids.size());
 
-        for (int i = 0; i < bids.size(); i++) {
-            final T bid = bids.get(i);
-            if (!result.containsKey(bid)) {
-                final String bidUuid = uuids.get(i);
+        // here we assume "videoBids" is a sublist of "bids"
+        // so, no need for a separate loop on "videoBids" if "bids" is not empty
+        if (!bids.isEmpty()) {
+            for (int i = 0; i < bids.size(); i++) {
+                final T bid = bids.get(i);
 
-                final int indexOf = videoBids.indexOf(bid);
-                final String videoBidUuid = indexOf != -1 ? uuids.get(i + indexOf) : null;
+                // determine uuid for video bid
+                final int indexOfVideoBid = videoBids.indexOf(bid);
+                final String videoBidUuid = indexOfVideoBid != -1 ? uuids.get(bids.size() + indexOfVideoBid) : null;
 
-                result.put(bid, CacheIdInfo.of(bidUuid, videoBidUuid));
+                result.put(bid, CacheIdInfo.of(uuids.get(i), videoBidUuid));
             }
-        }
-
-        for (int i = 0; i < videoBids.size(); i++) {
-            final T bid = videoBids.get(i);
-            if (!result.containsKey(bid)) {
-                final String videoBidUuid = uuids.get(bids.size() + i);
-
-                final int indexOf = bids.indexOf(bid);
-                final String bidUuid = indexOf != -1 ? uuids.get(indexOf) : null;
-
-                result.put(bid, CacheIdInfo.of(bidUuid, videoBidUuid));
+        } else {
+            for (int i = 0; i < videoBids.size(); i++) {
+                result.put(videoBids.get(i), CacheIdInfo.of(null, uuids.get(i)));
             }
         }
 

@@ -217,6 +217,26 @@
         "w": 0,
         "h": 50
       }
+    },
+    {
+      "type": "xml",
+      "value": "adm00",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": "adm00",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": "adm1",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": null,
+      "expiry": 120
     }
   ]
 }
