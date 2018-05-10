@@ -225,7 +225,7 @@ public class ApplicationTest extends VertxTest {
         // then
         final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
                 response, "ext.responsetimemillis.%s");
-        System.out.println(response.asString());
+
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
