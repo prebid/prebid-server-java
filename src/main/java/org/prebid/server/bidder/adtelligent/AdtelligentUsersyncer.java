@@ -7,7 +7,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Objects;
 
 /**
- * Describes the behavior for {@link Usersyncer} implementations.
+ * Adtelligent {@link Usersyncer} implementation
  */
 public class AdtelligentUsersyncer implements Usersyncer {
 
@@ -18,7 +18,7 @@ public class AdtelligentUsersyncer implements Usersyncer {
     }
 
     /**
-     * Creates {@link UsersyncInfo} from usersyncUrl and externalUrl.
+     * Creates {@link UsersyncInfo} from usersyncUrl and externalUrl
      */
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
         final String redirectUri = HttpUtil.encodeUrl("%s/setuid?bidder=adtelligent&uid={uid}", externalUrl);
@@ -26,7 +26,7 @@ public class AdtelligentUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns adtelligent cookie family
+     * Returns Adtelligent cookie family
      */
     @Override
     public String cookieFamilyName() {
@@ -34,7 +34,15 @@ public class AdtelligentUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns adtelligent {@link UsersyncInfo}
+     * Returns Adtelligent GDPR vendor ID
+     */
+    @Override
+    public int gdprVendorId() {
+        return 0;
+    }
+
+    /**
+     * Returns Adtelligent {@link UsersyncInfo}
      */
     @Override
     public UsersyncInfo usersyncInfo() {

@@ -21,5 +21,4 @@ public class SovrnUsersyncerTest {
                         "//usersync.org/redir=http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dsovrn%26uid%3D",
                         "redirect", false));
     }
-
 }
