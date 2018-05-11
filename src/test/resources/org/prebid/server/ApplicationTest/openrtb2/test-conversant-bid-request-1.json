@@ -44,13 +44,26 @@
     "language": "en",
     "ifa": "ifaId"
   },
-  "user" : {
-    "buyeruid" : "CV-UID"
+  "user": {
+    "buyeruid": "CV-UID",
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
   },
-  "at" : 1,
-  "tmax" : 1000,
-  "source" : {
-    "fd" : 1,
-    "tid" : "tid"
+  "at": 1,
+  "tmax": 1000,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
   }
 }

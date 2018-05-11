@@ -24,13 +24,21 @@
     "ua": "userAgent",
     "dnt": 10,
     "ip": "192.168.244.1",
-    "pxratio" : 4.2,
+    "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId"
   },
   "user": {
     "id": "12345",
-    "buyeruid": "990011"
+    "buyeruid": "990011",
+    "ext": {
+      "consent": "consent1"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
   },
   "at": 1,
   "tmax": 1000,

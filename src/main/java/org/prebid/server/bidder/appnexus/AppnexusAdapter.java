@@ -90,6 +90,7 @@ public class AppnexusAdapter extends OpenrtbAdapter {
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
+                .regs(preBidRequest.getRegs())
                 .build();
 
         return BidRequestWithUrl.of(bidRequest, endpointUrl(endpointUrl, adUnitBidsWithParams));

@@ -28,7 +28,15 @@
   },
   "user": {
     "id": "12345",
-    "buyeruid": "PM-UID"
+    "buyeruid": "PM-UID",
+    "ext": {
+      "consent": "consent1"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
   },
   "at": 1,
   "tmax": 1000,

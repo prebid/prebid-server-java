@@ -10,6 +10,8 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -30,6 +32,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus.ExtImpAppnexusBuilder;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -381,6 +385,44 @@ public class AppnexusBidderTest extends VertxTest {
                         AppnexusImpExtAppnexus::getTrafficSourceCode,
                         AppnexusImpExtAppnexus::getKeywords)
                 .containsOnly(Tuple.tuple(20, "tsc", "key1=abc,key1=def,key2=123,key2=456"));
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnHttpRequestWithExtUserConsentField() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build()),
+                builder -> builder.banner(Banner.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser)
+                .containsOnly(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build());
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnHttpRequestWithExtRegsGdprField() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))),
+                builder -> builder.banner(Banner.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getRegs)
+                .containsOnly(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))));
     }
 
     @Test

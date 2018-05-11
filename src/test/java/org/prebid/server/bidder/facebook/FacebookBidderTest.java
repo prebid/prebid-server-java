@@ -8,7 +8,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -24,6 +26,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -284,6 +288,8 @@ public class FacebookBidderTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
                         .build()))
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                 .site(Site.builder()
                         .publisher(Publisher.builder().build())
                         .build())
@@ -306,6 +312,8 @@ public class FacebookBidderTest extends VertxTest {
                                         .build())
                                 .tagid("pub1_placement1")
                                 .build()))
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .site(Site.builder()
                                 .publisher(Publisher.builder()
                                         .id("pub1")
@@ -326,6 +334,8 @@ public class FacebookBidderTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFacebook.of("pub1_placement1"))))
                         .build()))
+                .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                 .app(App.builder()
                         .publisher(Publisher.builder().build())
                         .build())
@@ -348,6 +358,8 @@ public class FacebookBidderTest extends VertxTest {
                                         .build())
                                 .tagid("pub1_placement1")
                                 .build()))
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .app(App.builder()
                                 .publisher(Publisher.builder()
                                         .id("pub1")

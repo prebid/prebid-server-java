@@ -96,6 +96,7 @@ public class HttpAdapterRequester implements BidderRequester {
                         .timeoutMillis(bidRequest.getTmax())
                         .app(bidRequest.getApp())
                         .user(bidRequest.getUser())
+                        .regs(bidRequest.getRegs())
                         .build())
                 .uidsCookie(toUidsCookie(bidRequest))
                 .timeout(timeout)
