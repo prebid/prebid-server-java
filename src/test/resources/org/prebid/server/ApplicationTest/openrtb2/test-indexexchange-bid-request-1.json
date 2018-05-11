@@ -47,12 +47,25 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid": "IE-UID"
+    "buyeruid": "IE-UID",
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
   },
   "at": 1,
   "tmax": 1000,
   "source": {
     "fd": 1,
     "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
   }
 }

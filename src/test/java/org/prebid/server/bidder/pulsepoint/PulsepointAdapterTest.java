@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
@@ -35,6 +36,8 @@ import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pulsepoint.proto.PulsepointParams;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.request.Video;
@@ -276,7 +279,9 @@ public class PulsepointAdapterTest extends VertxTest {
                         .ua("userAgent1"),
                 builder -> builder
                         .timeoutMillis(1500L)
-                        .tid("tid1"));
+                        .tid("tid1")
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1)))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid1");
 
@@ -316,7 +321,9 @@ public class PulsepointAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("buyerUid1")
+                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null)))
                                 .build())
+                        .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()
                                 .fd(1)
                                 .tid("tid1")

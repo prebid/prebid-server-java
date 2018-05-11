@@ -61,7 +61,15 @@
   },
   "user": {
     "id": "12345",
-    "buyeruid": "J5VLCWQP-26-CWFT"
+    "buyeruid": "J5VLCWQP-26-CWFT",
+    "ext": {
+      "consent": "consent1"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
   },
   "at": 1,
   "tmax": 1000,

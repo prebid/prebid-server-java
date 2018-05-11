@@ -369,7 +369,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getRegs).doesNotContainNull()
                 .containsOnly(Regs.of(null, mapper.valueToTree(ExtRegs.of(50))));
     }
-    
+
     @Test
     public void makeHttpRequestsShouldFillDeviceExtIfDevicePresent() {
         // given
