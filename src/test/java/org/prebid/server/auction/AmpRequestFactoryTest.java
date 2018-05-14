@@ -22,9 +22,12 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 
 import java.math.BigDecimal;
@@ -172,10 +175,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ext -> Json.mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
                 .extracting(ExtBidRequest::getPrebid)
                 .containsExactly(ExtRequestPrebid.of(emptyMap(),
-                       emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(
-                        singletonList(ExtPriceGranularityBucket.of(2, new BigDecimal(0), new BigDecimal(20),
-                                new BigDecimal("0.1")))), null, true), null,
-                        ExtRequestPrebidCache.of(Json.mapper.createObjectNode())));
+                        emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
+                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
+                                        BigDecimal.valueOf(0.1))))), null, true), null,
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null),
+                                ExtRequestPrebidCacheVastxml.of(null))));
     }
 
     @Test
@@ -200,13 +204,12 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtBidRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getPricegranularity, ExtRequestTargeting::getIncludewinners)
-                .containsExactly(
-                        tuple(
-                                // default priceGranularity
-                                mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
-                                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))),
-                                // default includeWinners
-                                true));
+                .containsExactly(tuple(
+                        // default priceGranularity
+                        mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
+                                BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))),
+                        // default includeWinners
+                        true));
     }
 
     @Test
@@ -264,9 +267,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 // assert that priceGranularity was set with default value and includeWinners remained unchanged
                 .containsExactly(
                         tuple(
-                                false,
-                                mapper.valueToTree(singletonList(ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0),
-                                        BigDecimal.valueOf(20), BigDecimal.valueOf(0.1))))));
+                                false, mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))))));
     }
 
     private Answer<Object> answerWithFirstArgument() {
@@ -294,7 +296,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> Json.mapper.treeToValue(future.result().getExt(), ExtBidRequest.class)).isNotNull()
                 .extracting(extBidRequest -> extBidRequest.getPrebid().getCache().getBids())
-                .containsExactly(Json.mapper.createObjectNode());
+                .containsExactly(ExtRequestPrebidCacheBids.of(null));
     }
 
     @Test
@@ -320,7 +322,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam("debug")).willReturn("1");
 
         final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null, null),
-                ExtRequestPrebidCache.of(mapper.createObjectNode()));
+                ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), ExtRequestPrebidCacheVastxml.of(null)));
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
         // when
@@ -338,7 +340,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         given(httpRequest.getParam("slot")).willReturn("Overridden-tagId");
         given(storedRequestProcessor.processAmpRequest(anyString()))
-                .willReturn(Future.succeededFuture(givenBidRequestWithExt(null,null)));
+                .willReturn(Future.succeededFuture(givenBidRequestWithExt(null, null)));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
         given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());

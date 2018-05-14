@@ -89,7 +89,13 @@
             "iphone"
           ]
         }
-      }
+      },
+      "consent": "consent1"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
     }
   },
   "at": 1,

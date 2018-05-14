@@ -6,6 +6,9 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
 
+/**
+ * Conversant {@link Usersyncer} implementation
+ */
 public class ConversantUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
@@ -14,17 +17,34 @@ public class ConversantUsersyncer implements Usersyncer {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
     }
 
+    /**
+     * Creates {@link UsersyncInfo} from usersyncUrl and externalUrl
+     */
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
         final String redirectUri = HttpUtil.encodeUrl("%s/setuid?bidder=conversant&uid=", externalUrl);
 
         return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), "redirect", false);
     }
 
+    /**
+     * Returns Conversant cookie family
+     */
     @Override
     public String cookieFamilyName() {
         return "conversant";
     }
 
+    /**
+     * Returns Conversant GDPR vendor ID
+     */
+    @Override
+    public int gdprVendorId() {
+        return 24;
+    }
+
+    /**
+     * Returns Conversant {@link UsersyncInfo}
+     */
     @Override
     public UsersyncInfo usersyncInfo() {
         return usersyncInfo;

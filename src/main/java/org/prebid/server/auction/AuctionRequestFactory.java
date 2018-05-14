@@ -20,6 +20,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
@@ -162,16 +163,15 @@ public class AuctionRequestFactory {
     private JsonNode populatePriceGranularity(JsonNode priceGranularityNode, boolean isPriceGranularityNull,
                                               boolean isPriceGranularityTextual) {
         if (isPriceGranularityNull) {
-            return Json.mapper.valueToTree(PriceGranularity.DEFAULT.getBuckets());
-        }
-        if (isPriceGranularityTextual) {
+            return Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT));
+        } else if (isPriceGranularityTextual) {
             final PriceGranularity priceGranularity;
             try {
                 priceGranularity = PriceGranularity.createFromString(priceGranularityNode.textValue());
             } catch (PreBidException ex) {
                 throw new InvalidRequestException(ex.getMessage());
             }
-            return Json.mapper.valueToTree(priceGranularity.getBuckets());
+            return Json.mapper.valueToTree(ExtPriceGranularity.from(priceGranularity));
         }
         return priceGranularityNode;
     }

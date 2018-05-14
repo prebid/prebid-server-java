@@ -13,6 +13,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
@@ -50,6 +51,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -71,8 +73,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class
-RubiconBidderTest extends VertxTest {
+public class RubiconBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=prebid";
     private static final String USERNAME = "username";
@@ -260,7 +261,7 @@ RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
                         .ext(mapper.valueToTree(RubiconUserExt.of(RubiconUserExtRp.of(mapper.valueToTree(
-                                Visitor.of(singletonList("new"), singletonList("iphone")))), null)))
+                                Visitor.of(singletonList("new"), singletonList("iphone")))), null, null)))
                         .build());
     }
 
@@ -270,10 +271,10 @@ RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(
                         mapper.valueToTree(ExtUser.of(
-                                ExtUserPrebid.of(emptyMap()), "", ExtUserDigiTrust.of("id", 123, 0))))
+                                ExtUserPrebid.of(emptyMap()), null, ExtUserDigiTrust.of("id", 123, 0))))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
-                Function.identity());
+                identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
@@ -284,8 +285,51 @@ RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
                         .ext(mapper.valueToTree(
-                                RubiconUserExt.of(null, ExtUserDigiTrust.of("id", 123, 0))))
+                                RubiconUserExt.of(null, null, ExtUserDigiTrust.of("id", 123, 0))))
                         .build());
+    }
+
+    @Test
+    public void makeHttpRequestShouldFillUserIfUserAndConsentArePresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().ext(
+                        mapper.valueToTree(ExtUser.of(null, "consentValue", null)))
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .containsOnly(User.builder()
+                        .ext(mapper.valueToTree(
+                                RubiconUserExt.of(null, "consentValue", null)))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestShouldFailWithPreBidExceptionIfUserExtCannotBeParsed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().ext((ObjectNode) mapper.createObjectNode()
+                        .set("consent", mapper.createObjectNode())).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage())
+                .startsWith("Cannot deserialize instance of `java.lang.String`");
+        assertThat(result.getValue()).hasSize(0);
     }
 
     @Test
@@ -305,6 +349,25 @@ RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder().build());
+    }
+
+    @Test
+    public void makeHttpRequestShouldFillRegsIfRegsAndGdprArePresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(50)))),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getRegs).doesNotContainNull()
+                .containsOnly(Regs.of(null, mapper.valueToTree(ExtRegs.of(50))));
     }
 
     @Test

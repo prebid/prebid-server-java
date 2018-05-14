@@ -33,7 +33,15 @@
   },
   "user": {
     "id": "12345",
-    "buyeruid": "PP-UID"
+    "buyeruid": "PP-UID",
+    "ext": {
+      "consent": "consent1"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
   },
   "at": 1,
   "tmax": 1000,

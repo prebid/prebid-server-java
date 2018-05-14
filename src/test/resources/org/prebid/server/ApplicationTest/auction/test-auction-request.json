@@ -357,6 +357,16 @@
     "dnt": 10,
     "ifa": "ifaId"
   },
+  "user": {
+    "ext": {
+      "consent": "consent1"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
+  },
   "sdk": {
     "version": "version1",
     "source": "source1",

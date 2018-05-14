@@ -53,6 +53,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
@@ -287,26 +288,36 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 ? RubiconUserExtRp.of(visitor)
                 : null;
 
-        final ExtUserDigiTrust userExtDt = user != null && user.getExt() != null
-                ? getExtUserDigiTrustFromUserExt(user.getExt())
-                : null;
+        final ExtUser extUser = user != null ? getExtUser(user.getExt()) : null;
 
-        if (userExtRp != null || userExtDt != null) {
+        final ExtUserDigiTrust userExtDt = extUser != null ? extUser.getDigitrust() : null;
+
+        final String consent = extUser != null ? extUser.getConsent() : null;
+
+        if (userExtRp != null || userExtDt != null || consent != null) {
             result = user.toBuilder()
-                    .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, userExtDt)))
+                    .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, consent, userExtDt)))
                     .build();
         }
 
         return result;
     }
 
-    private static ExtUserDigiTrust getExtUserDigiTrustFromUserExt(ObjectNode extNode) {
+    private static ExtRegs getExtRegs(ObjectNode extNode) {
         try {
-            final ExtUser extUser = Json.mapper.treeToValue(extNode, ExtUser.class);
-            return extUser != null ? extUser.getDigitrust() : null;
+            return extNode != null ? Json.mapper.treeToValue(extNode, ExtRegs.class) : null;
+        } catch (JsonProcessingException e) {
+            logger.warn("Error occurred while parsing bidrequest.regs.ext", e);
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
+    private static ExtUser getExtUser(ObjectNode extNode) {
+        try {
+            return extNode != null ? Json.mapper.treeToValue(extNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
             logger.warn("Error occurred while parsing bidrequest.user.ext", e);
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException(e.getMessage(), e);
         }
     }
 

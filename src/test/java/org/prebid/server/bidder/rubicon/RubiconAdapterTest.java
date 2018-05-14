@@ -12,12 +12,14 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,13 +44,17 @@ import org.prebid.server.bidder.rubicon.proto.RubiconParams;
 import org.prebid.server.bidder.rubicon.proto.RubiconParams.RubiconParamsBuilder;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconPubExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconRegsExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconSiteExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargeting;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconTargetingExtRp;
+import org.prebid.server.bidder.rubicon.proto.RubiconUserExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.Sdk;
 import org.prebid.server.proto.request.Video;
@@ -520,6 +526,61 @@ public class RubiconAdapterTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(r -> r.getPayload().getUser()).isNotNull()
                 .extracting(user -> user.getExt().at("/rp/target")).containsOnly(visitor);
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnBidRequestWithConsentFromPreBidRequestUserExt() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
+                builder -> builder
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null)))
+                                .build()));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests)
+                .extracting(r -> r.getPayload().getUser()).isNotNull()
+                .extracting(User::getExt).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconUserExt.class))
+                .extracting(RubiconUserExt::getConsent)
+                .containsOnly("consent");
+    }
+
+    @Test
+    public void makeHttpRequestShouldFailWithPreBidExceptionIfUserExtIsNotValidJson() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
+                builder -> builder
+                        .user(User.builder().ext((ObjectNode) mapper.createObjectNode()
+                                .set("consent", mapper.createObjectNode())).build()));
+
+        // when
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
+                .isExactlyInstanceOf(PreBidException.class)
+                .hasMessageStartingWith("Cannot deserialize instance of `java.lang.String`");
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnBidRequestWithGdprFromPreBidRequestRegsExt() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(),
+                builder -> builder
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(5)))));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests)
+                .extracting(r -> r.getPayload().getRegs()).isNotNull()
+                .extracting(Regs::getExt).isNotNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconRegsExt.class))
+                .extracting(RubiconRegsExt::getGdpr)
+                .containsOnly(5);
     }
 
     @Test

@@ -27,12 +27,20 @@
           "siteId": 3001,
           "zoneId": 4001,
           "inventory": {
-            "rating": "5-star",
-            "prodtype": "tech"
+            "rating": [
+              "5-star"
+            ],
+            "prodtype": [
+              "tech"
+            ]
           },
           "visitor": {
-            "ucat": "new",
-            "search": "iphone"
+            "ucat": [
+              "new"
+            ],
+            "search": [
+              "iphone"
+            ]
           },
           "video": {
             "size_id": 15,
@@ -485,14 +493,15 @@
         "conversantAlias": "conversant"
       },
       "targeting": {
-        "pricegranularity": [
-          {
-            "precision": 2,
-            "min": 0,
-            "max": 20,
-            "increment": 0.1
-          }
-        ],
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
         "currency": {
           "rates": {
             "EUR": {
@@ -505,7 +514,10 @@
         }
       },
       "cache": {
-        "bids": []
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
       }
     }
   },
@@ -515,7 +527,13 @@
         "id": "id",
         "keyv": 123,
         "pref": 0
-      }
+      },
+      "consent": "consentValue"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
     }
   }
 }

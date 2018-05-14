@@ -43,7 +43,8 @@
         "id": "id",
         "keyv": 123,
         "pref": 0
-      }
+      },
+      "consent": "consentValue"
     }
   },
   "test": 1,
@@ -56,6 +57,11 @@
     "fd": 1,
     "tid": "tid"
   },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
+  },
   "ext": {
     "prebid": {
       "aliases": {
@@ -63,14 +69,15 @@
         "conversantAlias": "conversant"
       },
       "targeting": {
-        "pricegranularity": [
-          {
-            "precision": 2,
-            "min": 0,
-            "max": 20,
-            "increment": 0.1
-          }
-        ],
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
         "currency": {
           "rates": {
             "EUR": {
@@ -84,7 +91,10 @@
         "includewinners": true
       },
       "cache": {
-        "bids": []
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
       }
     }
   }

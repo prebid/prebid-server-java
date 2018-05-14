@@ -7,7 +7,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Objects;
 
 /**
- * Describes the behavior for {@link Usersyncer} implementations.
+ * Adform {@link Usersyncer} implementation
  */
 public class AdformUsersyncer implements Usersyncer {
 
@@ -18,7 +18,7 @@ public class AdformUsersyncer implements Usersyncer {
     }
 
     /**
-     * Creates {@link UsersyncInfo} from usersyncUrl and externalUrl.
+     * Creates {@link UsersyncInfo} from usersyncUrl and externalUrl
      */
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
         final String redirectUri = HttpUtil.encodeUrl("%s/setuid?bidder=adform&uid=$UID", externalUrl);
@@ -34,7 +34,15 @@ public class AdformUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns adform {@link UsersyncInfo}
+     * Returns Adform GDPR vendor ID
+     */
+    @Override
+    public int gdprVendorId() {
+        return 50;
+    }
+
+    /**
+     * Returns Adform {@link UsersyncInfo}
      */
     @Override
     public UsersyncInfo usersyncInfo() {

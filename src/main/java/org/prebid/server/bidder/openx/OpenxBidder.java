@@ -64,7 +64,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         }
 
         final Map<OpenxImpType, List<Imp>> differentiatedImps = imps.stream()
-                .collect(Collectors.groupingBy(OpenxBidder::resolveImpType, Collectors.toList()));
+                .collect(Collectors.groupingBy(OpenxBidder::resolveImpType));
         final List<String> processingErrors = new ArrayList<>();
 
         final List<BidRequest> outgoingRequests = makeRequests(bidRequest,

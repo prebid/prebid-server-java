@@ -157,6 +157,7 @@ public class FacebookAdapter extends OpenrtbAdapter {
                         .device(deviceBuilder(preBidRequestContext).build())
                         .user(makeUser(preBidRequestContext))
                         .source(makeSource(preBidRequestContext))
+                        .regs(preBidRequest.getRegs())
                         .ext(platformJson)
                         .build());
     }

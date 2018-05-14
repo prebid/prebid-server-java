@@ -223,7 +223,7 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         // then
-        String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
+        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/test-auction-response.json"),
                 response, "ext.responsetimemillis.%s");
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -406,7 +406,7 @@ public class ApplicationTest extends VertxTest {
     public void statusShouldReturnReadyWithinResponseBodyAndHttp200Ok() {
         assertThat(given(spec).when().get("/status"))
                 .extracting(Response::getStatusCode, response -> response.getBody().asString())
-                .containsOnly(200, "ready");
+                .containsOnly(200, "ok");
     }
 
     @Test

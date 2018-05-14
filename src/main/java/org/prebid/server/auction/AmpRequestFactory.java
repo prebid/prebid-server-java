@@ -17,8 +17,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.util.HttpUtil;
 
@@ -59,7 +62,6 @@ public class AmpRequestFactory {
      */
     public Future<BidRequest> fromRequest(RoutingContext context) {
         final String tagId = context.request().getParam(TAG_ID_REQUEST_PARAM);
-
         if (StringUtils.isBlank(tagId)) {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
         }
@@ -82,8 +84,8 @@ public class AmpRequestFactory {
         final int impSize = imps.size();
         if (impSize > 1) {
             throw new InvalidRequestException(
-                    String.format("data for tag_id '%s' includes %d imp elements. Only one is allowed",
-                            tagId, impSize));
+                    String.format("data for tag_id '%s' includes %d imp elements. Only one is allowed", tagId,
+                            impSize));
         }
 
         if (bidRequest.getExt() == null) {
@@ -127,7 +129,7 @@ public class AmpRequestFactory {
                     || targeting.getIncludewinners() == null
                     || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
             final ExtRequestPrebidCache cache = prebid.getCache();
-            setDefaultCache = cache == null || cache.getBids().isNull();
+            setDefaultCache = cache == null || (cache.getBids() == null && cache.getVastxml() == null);
         }
 
         final String debugQueryParam = context.request().getParam(DEBUG_REQUEST_PARAM);
@@ -185,7 +187,6 @@ public class AmpRequestFactory {
 
     private static Site overrideSitePage(Site site, HttpServerRequest request) {
         final String canonicalUrl = canonicalUrl(request);
-
         if (StringUtils.isBlank(canonicalUrl)) {
             return site;
         }
@@ -213,13 +214,11 @@ public class AmpRequestFactory {
     }
 
     private Long updateTimeout(HttpServerRequest request) {
-        Long timeout;
         try {
-            timeout = Long.parseLong(request.getParam(TIMEOUT_REQUEST_PARAM));
+            return Long.parseLong(request.getParam(TIMEOUT_REQUEST_PARAM)) - timeoutAdjustmentMs;
         } catch (NumberFormatException e) {
-            timeout = null;
+            return null;
         }
-        return timeout != null ? timeout - timeoutAdjustmentMs : null;
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, Site outgoingSite, Imp outgoingImp,
@@ -291,7 +290,8 @@ public class AmpRequestFactory {
                                 ? createTargetingWithDefaults(prebid) : prebid.getTargeting(),
                         isPrebidNull ? null : prebid.getStoredrequest(),
                         setDefaultCache
-                                ? ExtRequestPrebidCache.of(Json.mapper.createObjectNode())
+                                ? ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null),
+                                ExtRequestPrebidCacheVastxml.of(null))
                                 : isPrebidNull ? null : prebid.getCache())))
                 : bidRequest.getExt();
     }
@@ -307,7 +307,7 @@ public class AmpRequestFactory {
         final JsonNode priceGranularity = isTargetingNull ? null : targeting.getPricegranularity();
         final boolean isPriceGranularityNull = priceGranularity == null || priceGranularity.isNull();
         final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
-                ? Json.mapper.valueToTree(PriceGranularity.DEFAULT.getBuckets())
+                ? Json.mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
                 : priceGranularity;
 
         final ExtCurrency currency = isTargetingNull ? null : targeting.getCurrency();
@@ -317,5 +317,4 @@ public class AmpRequestFactory {
 
         return ExtRequestTargeting.of(outgoingPriceGranularityNode, currency, includeWinners);
     }
-
 }

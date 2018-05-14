@@ -2,57 +2,32 @@ package org.prebid.server.auction;
 
 import org.junit.Test;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularityBucket;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 
 import java.math.BigDecimal;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.*;
 
 public class PriceGranularityTest {
 
     @Test
-    public void createFromFromBucketsShouldThrowIllegalArgumentsExceptionIfBucketsListNull() {
-        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromBuckets(null));
+    public void createFromExtPriceGranularityShouldThrowIllegalArgumentsExceptionIfRangesListNull() {
+        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(2, null)));
     }
 
     @Test
-    public void createFromFromBucketsShouldThrowIllegalArgumentsExceptionIfBucketsListIsEmpty() {
-        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromBuckets(emptyList()));
+    public void createFromExtPriceGranularityShouldThrowIllegalArgumentsExceptionIfRangesListIsEmpty() {
+        assertThatIllegalArgumentException().isThrownBy(() -> PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(2, emptyList())));
     }
 
     @Test
     public void createFromStringShouldThrowPrebidExceptionIfInvalidStringType() {
-        assertThatExceptionOfType(PreBidException.class).isThrownBy(()-> PriceGranularity.createFromString("invalid"));
-    }
-
-    @Test
-    public void createFromBucketsShouldReplaceFirstBucketMinNullValueWithZero() {
-        // given and when
-        final PriceGranularity priceGranularity = PriceGranularity.createFromBuckets(singletonList(
-                ExtPriceGranularityBucket.of(0, null, BigDecimal.valueOf(3), BigDecimal.valueOf(0.01))));
-
-        // then
-        assertThat(priceGranularity.getBuckets()).containsExactly(
-                ExtPriceGranularityBucket.of(0, BigDecimal.ZERO, BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)));
-    }
-
-    @Test
-    public void createFromBucketsShouldReplaceNullMinValuesWithPrevBucketMaxValues() {
-        // given and when
-        final PriceGranularity priceGranularity = PriceGranularity.createFromBuckets(asList(
-                ExtPriceGranularityBucket.of(0, null, BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
-                ExtPriceGranularityBucket.of(0, null, BigDecimal.valueOf(6), BigDecimal.valueOf(0.01)),
-                ExtPriceGranularityBucket.of(0, null, BigDecimal.valueOf(10), BigDecimal.valueOf(0.01))));
-
-        // then
-        assertThat(priceGranularity.getBuckets()).containsExactly(
-                ExtPriceGranularityBucket.of(0, BigDecimal.ZERO, BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
-                ExtPriceGranularityBucket.of(0, BigDecimal.valueOf(3), BigDecimal.valueOf(6), BigDecimal.valueOf(0.01)),
-                ExtPriceGranularityBucket.of(0, BigDecimal.valueOf(6), BigDecimal.valueOf(10),
-                        BigDecimal.valueOf(0.01)));
+        assertThatExceptionOfType(PreBidException.class).isThrownBy(() -> PriceGranularity.createFromString("invalid"));
     }
 
     @Test
@@ -61,9 +36,10 @@ public class PriceGranularityTest {
         final PriceGranularity priceGranularity = PriceGranularity.createFromString("low");
 
         // then
-        assertThat(priceGranularity.getBucketMax()).isEqualByComparingTo(BigDecimal.valueOf(5));
-        assertThat(priceGranularity.getBuckets()).containsOnly(
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)));
+        assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(5));
+        assertThat(priceGranularity.getPrecision()).isEqualTo(2);
+        assertThat(priceGranularity.getRanges()).containsOnly(
+                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5)));
     }
 
     @Test
@@ -73,12 +49,14 @@ public class PriceGranularityTest {
         final PriceGranularity priceGranularityMedium = PriceGranularity.createFromString("medium");
 
         // then
-        assertThat(priceGranularityMed.getBucketMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
-        assertThat(priceGranularityMedium.getBucketMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
-        assertThat(priceGranularityMed.getBuckets()).containsOnly(
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0), BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)));
-        assertThat(priceGranularityMedium.getBuckets()).containsOnly(
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0), BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)));
+        assertThat(priceGranularityMed.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
+        assertThat(priceGranularityMedium.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
+        assertThat(priceGranularityMed.getPrecision()).isEqualTo(2);
+        assertThat(priceGranularityMedium.getPrecision()).isEqualTo(2);
+        assertThat(priceGranularityMed.getRanges()).containsOnly(
+                ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)));
+        assertThat(priceGranularityMedium.getRanges()).containsOnly(
+                ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)));
     }
 
     @Test
@@ -87,9 +65,10 @@ public class PriceGranularityTest {
         final PriceGranularity priceGranularity = PriceGranularity.createFromString("high");
 
         // then
-        assertThat(priceGranularity.getBucketMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
-        assertThat(priceGranularity.getBuckets()).containsOnly(
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0), BigDecimal.valueOf(20), BigDecimal.valueOf(0.01)));
+        assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
+        assertThat(priceGranularity.getPrecision()).isEqualTo(2);
+        assertThat(priceGranularity.getRanges()).containsOnly(
+                ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.01)));
     }
 
     @Test
@@ -98,11 +77,12 @@ public class PriceGranularityTest {
         final PriceGranularity priceGranularity = PriceGranularity.createFromString("auto");
 
         // then
-        assertThat(priceGranularity.getBucketMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
-        assertThat(priceGranularity.getBuckets()).containsExactly(
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0), BigDecimal.valueOf(5), BigDecimal.valueOf(0.05)),
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(5), BigDecimal.valueOf(10), BigDecimal.valueOf(0.1)),
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(10), BigDecimal.valueOf(20), BigDecimal.valueOf(0.5))
+        assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
+        assertThat(priceGranularity.getPrecision()).isEqualTo(2);
+        assertThat(priceGranularity.getRanges()).containsExactly(
+                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.05)),
+                ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.1)),
+                ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.5))
         );
     }
 
@@ -112,25 +92,27 @@ public class PriceGranularityTest {
         final PriceGranularity priceGranularity = PriceGranularity.createFromString("dense");
 
         // then
-        assertThat(priceGranularity.getBucketMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
-        assertThat(priceGranularity.getBuckets()).containsExactly(
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0), BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(3), BigDecimal.valueOf(8), BigDecimal.valueOf(0.05)),
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(8), BigDecimal.valueOf(20), BigDecimal.valueOf(0.5)));
+        assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
+        assertThat(priceGranularity.getRanges()).containsExactly(
+                ExtGranularityRange.of(BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
+                ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05)),
+                ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.5)));
     }
 
     @Test
-    public void createFromBucketsShouldReturnCorrectPriceGranularity() {
+    public void createFromExtPriceGranularityShouldReturnCorrectPriceGranularity() {
+        // given
+        final ExtPriceGranularity extPriceGranularity = ExtPriceGranularity.of(2, asList(
+                ExtGranularityRange.of(BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
+                ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))));
 
-        //given and when
-        final PriceGranularity priceGranularity = PriceGranularity.createFromBuckets(asList(
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0), BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(3), BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))));
+        //when
+        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(extPriceGranularity);
 
         // then
-        assertThat(priceGranularity.getBucketMax()).isEqualByComparingTo(BigDecimal.valueOf(8));
-        assertThat(priceGranularity.getBuckets()).containsExactly(
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(0), BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
-                ExtPriceGranularityBucket.of(2, BigDecimal.valueOf(3), BigDecimal.valueOf(8), BigDecimal.valueOf(0.05)));
+        assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(8));
+        assertThat(priceGranularity.getRanges()).containsExactly(
+                ExtGranularityRange.of(BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
+                ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05)));
     }
 }
