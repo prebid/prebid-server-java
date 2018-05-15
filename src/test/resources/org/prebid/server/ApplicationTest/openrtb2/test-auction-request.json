@@ -463,6 +463,22 @@
           }
         }
       }
+    },
+    {
+      "id": "impId15",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "eplanning": {
+          "exchange_id": "exchangeId1"
+        }
+      }
     }
   ],
   "device": {

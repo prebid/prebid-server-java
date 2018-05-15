@@ -45,7 +45,6 @@ public class AdtelligentBidderTest extends VertxTest {
             + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
     private static final String ENDPOINT_URL = "http://adtelligent.com";
 
-
     private AdtelligentBidder adtelligentBidder;
 
     @Before

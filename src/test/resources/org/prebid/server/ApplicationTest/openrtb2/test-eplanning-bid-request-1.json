@@ -1,0 +1,98 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId15",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "bidder": {
+          "exchange_id" : "exchangeId1"
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "dnt": 2,
+    "ip": "192.168.244.1",
+    "pxratio": 4.2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "user": {
+    "buyeruid": "EP-UID",
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
+  },
+  "test": 1,
+  "at": 1,
+  "tmax": 1000,
+  "cur": [
+    "EUR"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
+  },
+  "ext": {
+    "prebid": {
+      "aliases": {
+        "appnexusAlias": "appnexus",
+        "conversantAlias": "conversant"
+      },
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        },
+        "includewinners": true
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      }
+    }
+  }
+}
