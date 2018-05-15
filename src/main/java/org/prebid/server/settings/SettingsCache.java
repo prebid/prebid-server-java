@@ -30,11 +30,11 @@ public class SettingsCache implements CacheNotificationListener {
                 .asMap();
     }
 
-    public Map<String, String> getRequestCache() {
+    Map<String, String> getRequestCache() {
         return requestCache;
     }
 
-    public Map<String, String> getImpCache() {
+    Map<String, String> getImpCache() {
         return impCache;
     }
 

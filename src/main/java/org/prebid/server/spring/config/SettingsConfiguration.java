@@ -1,15 +1,10 @@
 package org.prebid.server.spring.config;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.spi.VerticleFactory;
 import io.vertx.ext.jdbc.JDBCClient;
-import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,15 +22,16 @@ import org.prebid.server.vertx.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
-import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -65,22 +61,6 @@ public class SettingsConfiguration {
     @Configuration
     @ConditionalOnExpression("'${settings.database.type}' == 'postgres' or '${settings.database.type}' == 'mysql'")
     static class DatabaseSettingsConfiguration {
-
-        @Bean
-        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
-        CachingApplicationSettings cachingJdbcApplicationSettings(
-                JdbcApplicationSettings jdbcApplicationSettings,
-                ApplicationSettingsCacheProperties cacheProperties,
-                @Qualifier("settingsCache") SettingsCache cache,
-                @Qualifier("ampSettingsCache") SettingsCache ampCache) {
-
-            return new CachingApplicationSettings(
-                    jdbcApplicationSettings,
-                    cache,
-                    ampCache,
-                    cacheProperties.getTtlSeconds(),
-                    cacheProperties.getCacheSize());
-        }
 
         @Bean
         JdbcApplicationSettings jdbcApplicationSettings(
@@ -161,22 +141,6 @@ public class SettingsConfiguration {
 
             return new HttpApplicationSettings(httpClient, endpoint, ampEndpoint);
         }
-
-        @Bean
-        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
-        CachingApplicationSettings cachingHttpApplicationSettings(
-                HttpApplicationSettings httpApplicationSettings,
-                ApplicationSettingsCacheProperties cacheProperties,
-                @Qualifier("settingsCache") SettingsCache cache,
-                @Qualifier("ampSettingsCache") SettingsCache ampCache) {
-
-            return new CachingApplicationSettings(
-                    httpApplicationSettings,
-                    cache,
-                    ampCache,
-                    cacheProperties.getTtlSeconds(),
-                    cacheProperties.getCacheSize());
-        }
     }
 
     /**
@@ -189,18 +153,47 @@ public class SettingsConfiguration {
         CompositeApplicationSettings compositeApplicationSettings(
                 @Autowired(required = false) FileApplicationSettings fileApplicationSettings,
                 @Autowired(required = false) JdbcApplicationSettings jdbcApplicationSettings,
-                @Autowired(required = false) CachingApplicationSettings cachingJdbcApplicationSettings,
-                @Autowired(required = false) HttpApplicationSettings httpApplicationSettings,
-                @Autowired(required = false) CachingApplicationSettings cachingHttpApplicationSettings) {
+                @Autowired(required = false) HttpApplicationSettings httpApplicationSettings) {
 
             final List<ApplicationSettings> applicationSettingsList =
                     Stream.of(fileApplicationSettings,
-                            ObjectUtils.firstNonNull(cachingJdbcApplicationSettings, jdbcApplicationSettings),
-                            ObjectUtils.firstNonNull(cachingHttpApplicationSettings, httpApplicationSettings))
+                            jdbcApplicationSettings,
+                            httpApplicationSettings)
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
 
             return new CompositeApplicationSettings(applicationSettingsList);
+        }
+    }
+
+    @Configuration
+    static class CachingSettingsConfiguration {
+
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+        CachingApplicationSettings cachingApplicationSettings(
+                CompositeApplicationSettings compositeApplicationSettings,
+                ApplicationSettingsCacheProperties cacheProperties,
+                @Qualifier("settingsCache") SettingsCache cache,
+                @Qualifier("ampSettingsCache") SettingsCache ampCache) {
+
+            return new CachingApplicationSettings(
+                    compositeApplicationSettings,
+                    cache,
+                    ampCache,
+                    cacheProperties.getTtlSeconds(),
+                    cacheProperties.getCacheSize());
+        }
+    }
+
+    @Configuration
+    static class ApplicationSettingsConfiguration {
+
+        @Bean
+        ApplicationSettings applicationSettings(
+                @Autowired(required = false) CachingApplicationSettings cachingApplicationSettings,
+                @Autowired(required = false) CompositeApplicationSettings compositeApplicationSettings) {
+            return ObjectUtils.firstNonNull(cachingApplicationSettings, compositeApplicationSettings);
         }
     }
 
@@ -238,58 +231,30 @@ public class SettingsConfiguration {
     }
 
     @Configuration
-    // include condition on settings.cache-events-api
-    static class CacheNotificationConfiguration {
-
-        @Autowired
-        private VerticleFactory verticleFactory;
+    @ConditionalOnProperty(prefix = "settings", name = "cache-events-api", havingValue = "true")
+    public static class CacheNotificationConfiguration {
 
         @Bean
+        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache) {
+            return new SettingsCacheNotificationHandler(settingsCache);
+        }
+
+        @Bean
+        SettingsCacheNotificationHandler ampCacheNotificationHandler(SettingsCache ampSettingsCache) {
+            return new SettingsCacheNotificationHandler(ampSettingsCache);
+        }
+
+        @Bean
+        @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
         CacheNotificationVerticle cacheNotificationVerticle(
                 @Value("${admin.port}") int port,
                 Vertx vertx,
                 SettingsCacheNotificationHandler cacheNotificationHandler,
+                SettingsCacheNotificationHandler ampCacheNotificationHandler,
                 BodyHandler bodyHandler) {
 
-            return new CacheNotificationVerticle(vertx, port, cacheNotificationHandler, bodyHandler);
-        }
-
-        @PostConstruct
-        public void deployVerticle() {
-            // deploy CacheNotificationVerticle
-        }
-    }
-
-    private static class CacheNotificationVerticle extends AbstractVerticle {
-
-        private final Vertx vertx;
-        private final Integer port;
-        private final SettingsCacheNotificationHandler settingsCacheNotificationHandler;
-        private final BodyHandler bodyHandler;
-
-        CacheNotificationVerticle(Vertx vertx, Integer port,
-                                  SettingsCacheNotificationHandler settingsCacheNotificationHandler,
-                                  BodyHandler bodyHandler) {
-            this.vertx = vertx;
-            this.port = port;
-            this.settingsCacheNotificationHandler = settingsCacheNotificationHandler;
-            this.bodyHandler = bodyHandler;
-        }
-
-        @Override
-        public void start(Future<Void> startFuture) {
-            final Router router = Router.router(vertx);
-            router.route().handler(bodyHandler);
-            // just for testing, they could share some code but may be different classes
-            router.route("/storedrequests/openrtb2").handler(settingsCacheNotificationHandler);
-            router.route("/storedrequests/amp").handler(settingsCacheNotificationHandler);
-
-            final Future<HttpServer> httpServerFuture = Future.future();
-            vertx.createHttpServer()
-                    .requestHandler(router::accept)
-                    .listen(port, httpServerFuture);
-
-            httpServerFuture.compose(httpServer -> startFuture.complete(), startFuture);
+            return new CacheNotificationVerticle(vertx, port, cacheNotificationHandler, ampCacheNotificationHandler,
+                    bodyHandler);
         }
     }
 }
