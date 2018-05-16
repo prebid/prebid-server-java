@@ -1,4 +1,4 @@
-package org.prebid.server.spring.config;
+package org.prebid.server;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -16,7 +16,7 @@ public class CacheNotificationVerticle extends AbstractVerticle {
     private final SettingsCacheNotificationHandler ampCacheNotificationHandler;
     private final BodyHandler bodyHandler;
 
-    CacheNotificationVerticle(Vertx vertx, Integer port,
+    public CacheNotificationVerticle(Vertx vertx, Integer port,
                               SettingsCacheNotificationHandler cacheNotificationHandler,
                               SettingsCacheNotificationHandler ampCacheNotificationHandler,
                               BodyHandler bodyHandler) {

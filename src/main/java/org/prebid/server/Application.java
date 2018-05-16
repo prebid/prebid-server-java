@@ -3,7 +3,6 @@ package org.prebid.server;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.prebid.server.spring.config.CacheNotificationVerticle;
 import org.prebid.server.spring.config.DeployVerticleException;
 import org.prebid.server.spring.config.SettingsConfiguration;
 import org.prebid.server.spring.config.SpringVerticleFactory;
