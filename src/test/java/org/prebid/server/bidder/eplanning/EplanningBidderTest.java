@@ -94,7 +94,7 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnRequestWithoutDeviceHeadersIfDeviceIsNull() {
+    public void makeHttpRequestsShouldReturnRequestWithoutDeviceHeadersIfDeviceIsNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
@@ -112,7 +112,7 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnRequestWithoutDeviceHeadersIfDeviceFieldsAreNull() {
+    public void makeHttpRequestsShouldReturnRequestWithoutDeviceHeadersIfDeviceFieldsAreNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
@@ -131,7 +131,7 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnErrorMessageWhenMediaTypeWasNotDefined() {
+    public void makeHttpRequestsShouldReturnErrorMessageWhenMediaTypeWasNotDefined() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId").build()))
@@ -147,7 +147,7 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnErrorMessageWhenImpExtBidderINull() throws JsonProcessingException {
+    public void makeHttpRequestsShouldReturnErrorMessageWhenImpExtBidderINull() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -166,18 +166,27 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnErrorMessageWhenExtImpIsNotValidJson() {
+    public void makeHttpRequestsShouldReturnErrorMessageWhenExtImpIsNotValidJson() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("impId")
                         .banner(Banner.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, null))).build()))
+                        .ext(Json.mapper.createObjectNode().put("bidder", 4)).build()))
                 .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).element(0).asString()
+                .startsWith(
+                        "Ignoring imp id=impId, error while decoding extImpBidder, err: Cannot construct instance of ");
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestShouldReturnHttpRequestWithErrorMessage() {
+    public void makeHttpRequestsShouldReturnHttpRequestWithErrorMessage() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
@@ -206,7 +215,7 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnHttpRequestWithDefaultExchangeIdInUrlIfMissedInExtBidder() {
+    public void makeHttpRequestsShouldReturnHttpRequestWithDefaultExchangeIdInUrlIfMissedInExtBidder() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -226,7 +235,7 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnTwoHttpRequestsWhenTwoImpsHasDifferentExchangeIds() {
+    public void makeHttpRequestsShouldReturnTwoHttpRequestsWhenTwoImpsHasDifferentExchangeIds() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
@@ -250,7 +259,7 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnOneHttpRequestForTowImpsWhenImpsHasSameSourceId() {
+    public void makeHttpRequestsShouldReturnOneHttpRequestForTowImpsWhenImpsHasSameSourceId() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
@@ -283,7 +292,7 @@ public class EplanningBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
@@ -297,7 +306,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidderBidAndErrorListsIfResponseStatusIsNoContent() {
         // given
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.NO_CONTENT.code(), null);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.NO_CONTENT.code(), null);
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -310,7 +319,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidderBidAndErrorMessageIsResponseStatusIsNotOk() {
         // given
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), null);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), null);
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -327,7 +336,7 @@ public class EplanningBidderTest extends VertxTest {
             throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder().build());
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -340,7 +349,7 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCantBeParsed() {
         // given
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), "{");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), "{");
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -357,7 +366,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(eplanningBidder.extractTargeting(Json.mapper.createObjectNode())).hasSize(0);
     }
 
-    private static HttpCall givenHttpCall(int statusCode, String body) {
+    private static HttpCall<BidRequest> givenHttpCall(int statusCode, String body) {
         return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
     }
 }

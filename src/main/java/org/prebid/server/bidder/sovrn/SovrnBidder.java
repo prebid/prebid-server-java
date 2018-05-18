@@ -3,7 +3,6 @@ package org.prebid.server.bidder.sovrn;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
@@ -45,9 +44,6 @@ public class SovrnBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(SovrnBidder.class);
 
-    private static final String DNT_HEADER = "DNT";
-    private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
-    private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
     private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpSovrn>>() {
             };
@@ -127,26 +123,15 @@ public class SovrnBidder implements Bidder<BidRequest> {
     private MultiMap headers(BidRequest bidRequest) {
         final MultiMap headers = BidderUtil.headers();
 
-        final Device device = bidRequest.getDevice();
-        if (device != null) {
-            addHeaderIfValueIsNotBlank(headers, HttpHeaders.USER_AGENT.toString(), device.getUa());
-            addHeaderIfValueIsNotBlank(headers, HttpHeaders.ACCEPT_LANGUAGE.toString(), device.getLanguage());
-            addHeaderIfValueIsNotBlank(headers, X_FORWARDED_FOR_HEADER, device.getIp());
-            addHeaderIfValueIsNotBlank(headers, DNT_HEADER, Objects.toString(device.getDnt(), null));
-        }
+        HttpUtil.addDeviceHeaders(headers, bidRequest.getDevice());
 
         final User user = bidRequest.getUser();
         final String buyeruid = user != null ? StringUtils.trimToNull(user.getBuyeruid()) : null;
         if (buyeruid != null) {
-            headers.add(HttpHeaders.COOKIE.toString(), Cookie.cookie(LJT_READER_COOKIE_NAME, buyeruid).encode());
+            headers.add(HttpHeaders.COOKIE.toString(), Cookie.cookie(HttpUtil.LJT_READER_COOKIE_NAME,
+                    buyeruid).encode());
         }
         return headers;
-    }
-
-    private static void addHeaderIfValueIsNotBlank(MultiMap headers, String name, String value) {
-        if (StringUtils.isNotBlank(value)) {
-            headers.add(name, value);
-        }
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse) {

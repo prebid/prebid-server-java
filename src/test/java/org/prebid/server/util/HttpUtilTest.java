@@ -1,9 +1,12 @@
 package org.prebid.server.util;
 
+import com.iab.openrtb.request.Device;
+import io.vertx.core.MultiMap;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.*;
 
 public class HttpUtilTest {
 
@@ -44,5 +47,73 @@ public class HttpUtilTest {
         // then
         assertThat(url).isNotNull();
         assertThat(url).isEqualTo("%2F%2Fdomain.org%2Fquery-string%3Fa%3D1");
+    }
+
+    @Test
+    public void addHeaderIfValueIsNotEmptyShouldAddHeaderIfValueIsNotEmptyAndNotNull() {
+        // given
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+
+        // when
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "header", "value");
+
+        // then
+        assertThat(headers)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(tuple("header", "value"));
+    }
+
+    @Test
+    public void addHeaderIfValueIsNotEmptyShouldNotAddHeaderIfValueIsEmpty() {
+        // given
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+
+        // when
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "header", "");
+
+        // then
+        assertThat(headers).hasSize(0);
+    }
+
+    @Test
+    public void addHeaderIfValueIsNotEmptyShouldNotAddHeaderIfValueIsNull() {
+        // given
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+
+        // when
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "header", null);
+
+        // then
+        assertThat(headers).hasSize(0);
+    }
+
+    @Test
+    public void addDeviceHeadersShouldAddHeadersIfDeviceAndItsPropertiesAreNotNullOrEmpty() {
+        // given
+        final Device device = Device.builder().ua("ua").ip("ip").language("en").dnt(2).build();
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+
+        // when
+        HttpUtil.addDeviceHeaders(headers, device);
+
+        // then
+        assertThat(headers)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactly(tuple("User-Agent", "ua"),
+                        tuple("Accept-Language", "en"),
+                        tuple("X-Forwarded-For", "ip"),
+                        tuple("DNT", "2"));
+    }
+
+    @Test
+    public void addDeviceHeadersShouldNotAddHeadersIfDeviceIsNull() {
+        // given
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+
+        // when
+        HttpUtil.addDeviceHeaders(headers, null);
+
+        // then
+        assertThat(headers).hasSize(0);
     }
 }

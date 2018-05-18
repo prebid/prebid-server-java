@@ -120,7 +120,7 @@ For HTTP data source available next options:
 - `recaptcha-secret` - Google Recaptcha secret string given to certain domain account.
 
 ## Server status
-- `status-response` - message returned by /status endpoint when server is ready to serve requests 
+- `status-response` - message returned by /status endpoint when server is ready to serve requests. If not defined in config, endpoint will respond with 'No Content' (204) status with empty body.
 
 ## General settings
 - `external-url` - the setting stands for external URL prebid server is reachable by, 

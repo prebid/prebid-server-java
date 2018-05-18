@@ -4,6 +4,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Base64;
 import java.util.List;
@@ -17,8 +18,6 @@ public class AdformHttpUtil {
 
     private static final String APPLICATION_JSON =
             HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
-    private static final CharSequence X_REQUEST_AGENT = HttpHeaders.createOptimized("X-Request-Agent");
-    private static final CharSequence X_FORWARDED_FOR = HttpHeaders.createOptimized("X-Forwarded-For");
 
     private AdformHttpUtil() {
     }
@@ -32,8 +31,8 @@ public class AdformHttpUtil {
                 .add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
                 .add(HttpHeaders.USER_AGENT, userAgent)
-                .add(X_FORWARDED_FOR, ip)
-                .add(X_REQUEST_AGENT, String.format("PrebidAdapter %s", version));
+                .add(HttpUtil.X_FORWARDED_FOR_HEADER, ip)
+                .add(HttpUtil.X_REQUEST_AGENT_HEADER, String.format("PrebidAdapter %s", version));
 
         if (StringUtils.isNotEmpty(referer)) {
             headers.add(HttpHeaders.REFERER, referer);

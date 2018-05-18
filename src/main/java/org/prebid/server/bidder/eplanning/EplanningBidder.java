@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
@@ -35,7 +34,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Adtelligent {@link Bidder} implementation.
+ * Eplanning {@link Bidder} implementation.
  */
 public class EplanningBidder implements Bidder<BidRequest> {
 
@@ -43,8 +42,6 @@ public class EplanningBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpEplanning>> EPLANNING_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpEplanning>>() {
             };
-    private static final String X_FORWARDED_FOR = "X-Forwarded-For";
-    private static final String DNT = "DNT";
 
     private final String endpointUrlTemplate;
 
@@ -61,7 +58,7 @@ public class EplanningBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<String> errors = new ArrayList<>();
         final Map<String, List<Imp>> exchangeIdsToImps = mapExchangeIdsToImps(request.getImp(), errors);
-        final MultiMap headers = addHeaders(request.getDevice());
+        final MultiMap headers = HttpUtil.addDeviceHeaders(BidderUtil.headers(), request.getDevice());
         return createHttpRequests(request, exchangeIdsToImps, headers, errors);
     }
 
@@ -72,10 +69,7 @@ public class EplanningBidder implements Bidder<BidRequest> {
     private Result<List<HttpRequest<BidRequest>>> createHttpRequests(BidRequest bidRequest,
                                                                      Map<String, List<Imp>> exchangeIdsToImps,
                                                                      MultiMap headers, List<String> errors) {
-        if (exchangeIdsToImps.size() == 0) {
-            return Result.of(Collections.emptyList(), BidderUtil.errors(errors));
-        }
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>(exchangeIdsToImps.size());
         for (final Map.Entry<String, List<Imp>> exchangeIdToImps : exchangeIdsToImps.entrySet()) {
             final BidRequest exchangeBidRequest = bidRequest.toBuilder().imp(exchangeIdToImps.getValue()).build();
             final String bidRequestBody;
@@ -131,30 +125,6 @@ public class EplanningBidder implements Bidder<BidRequest> {
             }
         }
         return exchangeIdsToImp;
-    }
-
-    /**
-     * Crates http headers from {@link Device} properties.
-     */
-    private static MultiMap addHeaders(Device device) {
-        final MultiMap headers = BidderUtil.headers();
-        if (device != null) {
-            addHeaderIfNotEmpty(headers, HttpHeaders.USER_AGENT.toString(), device.getUa());
-            addHeaderIfNotEmpty(headers, HttpHeaders.ACCEPT_LANGUAGE.toString(), device.getLanguage());
-            addHeaderIfNotEmpty(headers, X_FORWARDED_FOR, device.getIp());
-            final Integer dnt = device.getDnt();
-            addHeaderIfNotEmpty(headers, DNT, dnt != null ? String.valueOf(dnt) : null);
-        }
-        return headers;
-    }
-
-    /**
-     * Creates header from name and value, when value is not null or empty string.
-     */
-    private static void addHeaderIfNotEmpty(MultiMap headers, String headerName, String headerValue) {
-        if (StringUtils.isNotEmpty(headerValue)) {
-            headers.add(headerName, headerValue);
-        }
     }
 
     /**
