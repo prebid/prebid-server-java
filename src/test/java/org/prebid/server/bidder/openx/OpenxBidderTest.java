@@ -12,6 +12,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,10 +86,9 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(2)
-                .extracting(BidderError::getMessage)
                 .containsExactly(
-                        "OpenX only supports banner and video imps. Ignoring imp id=impId1",
-                        "OpenX only supports banner and video imps. Ignoring imp id=impId2");
+                        BidderError.createBadInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
+                        BidderError.createBadInput("OpenX only supports banner and video imps. Ignoring imp id=impId2"));
     }
 
     @Test
@@ -106,10 +106,9 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(2)
-                .extracting(BidderError::getMessage)
                 .containsExactly(
-                        "OpenX only supports banner and video imps. Ignoring imp id=impId1",
-                        "OpenX only supports banner and video imps. Ignoring imp id=impId2");
+                        BidderError.createBadInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
+                        BidderError.createBadInput("OpenX only supports banner and video imps. Ignoring imp id=impId2"));
     }
 
     @Test
@@ -128,8 +127,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("openx parameters section is missing");
+                .containsExactly(BidderError.createBadInput("openx parameters section is missing"));
     }
 
     @Test
@@ -149,8 +147,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("openx parameters section is missing");
+                .containsExactly(BidderError.createBadInput("openx parameters section is missing"));
     }
 
     @Test
@@ -170,8 +167,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("openx parameters section is missing");
+                .containsExactly(BidderError.createBadInput("openx parameters section is missing"));
     }
 
     @Test
@@ -253,8 +249,8 @@ public class OpenxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("OpenX only supports banner and video imps. Ignoring imp id=impId1");
+                .containsExactly(BidderError.createBadInput(
+                        "OpenX only supports banner and video imps. Ignoring imp id=impId1"));
 
         assertThat(result.getValue()).hasSize(3)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -354,8 +350,23 @@ public class OpenxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .extracting(BidderError::getMessage)
-                .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
+                .containsOnly(BidderError.createBadServerResponse(
+                        "Unexpected status code: 302. Run with request.test = 1 for more info"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.BAD_REQUEST.code(), null);
+
+        // when
+        final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly(BidderError.createBadInput(
+                        "Unexpected status code: 400. Run with request.test = 1 for more info"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -368,9 +379,9 @@ public class OpenxBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).containsOnly(
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.createBadServerResponse(
                 "Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
-                        " at [Source: (String)\"invalid\"; line: 1, column: 15]");
+                        " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
     }
 

@@ -81,8 +81,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
         try {
             return Result.of(extractBids(bidRequest, BidderUtil.parseResponse(httpCall.getResponse())),
                     Collections.emptyList());
-        } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+        } catch (BidderUtil.BadServerResponseException | PreBidException e) {
+            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badServerResponse, e.getMessage());
+        } catch (BidderUtil.BadInputRequestException e) {
+            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badInput, e.getMessage());
         }
     }
 
@@ -127,9 +129,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         // add errors detected during requests creation
         errors.addAll(processingErrors);
 
-        return errors.stream()
-                .map(BidderError::create)
-                .collect(Collectors.toList());
+        return BidderUtil.createBidderErrors(BidderError.ErrorType.badInput, errors);
     }
 
     private List<HttpRequest<BidRequest>> createHttpRequests(List<BidRequest> bidRequests) {

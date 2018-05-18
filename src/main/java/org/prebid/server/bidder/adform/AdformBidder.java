@@ -69,7 +69,8 @@ public class AdformBidder implements Bidder<Void> {
         final List<String> errors = extImpAdformsResult.errors;
 
         if (extImpAdforms.size() == 0) {
-            return Result.of(Collections.emptyList(), BidderUtil.errors(errors));
+            return Result.of(Collections.emptyList(), BidderUtil.createBidderErrors(BidderError.ErrorType.badInput,
+                    errors));
         }
         final Device device = request.getDevice();
         final String url = AdformHttpUtil.buildAdformUrl(
@@ -89,7 +90,7 @@ public class AdformBidder implements Bidder<Void> {
 
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers, null)),
-                BidderUtil.errors(errors));
+                BidderUtil.createBidderErrors(BidderError.ErrorType.badInput, errors));
     }
 
     /**
@@ -101,20 +102,27 @@ public class AdformBidder implements Bidder<Void> {
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
         final int responseStatusCode = httpResponse.getStatusCode();
+
         if (responseStatusCode == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
+
+        if (responseStatusCode == HttpResponseStatus.BAD_REQUEST.code()) {
+            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badInput, String.format(
+                    "unexpected status code: %d. Run with request.debug = 1 for more info", responseStatusCode));
+        }
+
         if (responseStatusCode != HttpResponseStatus.OK.code()) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(
-                    String.format("unexpected status code: %d. Run with request.debug = 1 for more info",
-                            responseStatusCode))));
+            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badServerResponse, String.format(
+                    "unexpected status code: %d. Run with request.debug = 1 for more info", responseStatusCode));
         }
         final List<AdformBid> adformBids;
         try {
             adformBids = Json.mapper.readValue(httpResponse.getBody(),
                     Json.mapper.getTypeFactory().constructCollectionType(List.class, AdformBid.class));
         } catch (IOException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+            return Result.of(Collections.emptyList(), BidderUtil.createBidderErrors(BidderError.ErrorType.badInput,
+                    Collections.singletonList(e.getMessage())));
         }
         return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());
     }

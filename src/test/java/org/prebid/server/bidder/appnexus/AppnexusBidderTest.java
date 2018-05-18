@@ -16,6 +16,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Test;
@@ -89,8 +90,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Appnexus doesn't support audio Imps. Ignoring Imp ID=23");
+                .containsExactly(BidderError.createBadInput("Appnexus doesn't support audio Imps. Ignoring Imp ID=23"));
     }
 
     @Test
@@ -126,8 +126,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("No placement or member+invcode provided");
+                .containsExactly(BidderError.createBadInput("No placement or member+invcode provided"));
     }
 
     @Test
@@ -147,9 +146,8 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("All request.imp[i].ext.appnexus.member params must match. "
-                        + "Request contained: member2, member1");
+                .containsExactly(BidderError.createBadInput("All request.imp[i].ext.appnexus.member params must match. "
+                        + "Request contained: member2, member1"));
     }
 
     @Test
@@ -200,8 +198,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("No placement or member+invcode provided");
+                .containsExactly(BidderError.createBadInput("No placement or member+invcode provided"));
     }
 
     @Test
@@ -222,8 +219,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .isEmpty();
 
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("No placement or member+invcode provided");
+                .containsExactly(BidderError.createBadInput("No placement or member+invcode provided"));
     }
 
     @Test
@@ -480,8 +476,23 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .extracting(BidderError::getMessage)
-                .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
+                .containsOnly(BidderError.createBadServerResponse(
+                        "Unexpected status code: 302. Run with request.test = 1 for more info"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.BAD_REQUEST.code(), null);
+
+        // when
+        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly(BidderError.createBadInput(
+                        "Unexpected status code: 400. Run with request.test = 1 for more info"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -495,9 +506,9 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).containsOnly(
-                "Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
-                        " at [Source: (String)\"invalid\"; line: 1, column: 15]");
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                BidderError.createBadServerResponse("Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
+                        " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -575,8 +586,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsOnly("Unrecognized bid_ad_type in response from appnexus: 42");
+                .containsOnly(BidderError.createBadServerResponse("Unrecognized bid_ad_type in response from appnexus: 42"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -597,8 +607,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsOnly("bidResponse.bid.ext should be defined for appnexus");
+                .containsOnly(BidderError.createBadServerResponse("bidResponse.bid.ext should be defined for appnexus"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -619,8 +628,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsOnly("bidResponse.bid.ext.appnexus should be defined");
+                .containsOnly(BidderError.createBadServerResponse("bidResponse.bid.ext.appnexus should be defined"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -641,8 +649,8 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsOnly("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
+                .containsOnly(BidderError.createBadServerResponse(
+                        "bidResponse.bid.ext.appnexus.bid_ad_type should be defined"));
         assertThat(result.getValue()).isEmpty();
     }
 

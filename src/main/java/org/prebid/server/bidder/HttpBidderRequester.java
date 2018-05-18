@@ -162,7 +162,9 @@ public class HttpBidderRequester<T> implements BidderRequester {
                 Stream.concat(
                         createdBids.stream().flatMap(bidResult -> bidResult.getErrors().stream()),
                         calls.stream().filter(call -> StringUtils.isNotBlank(call.getError()))
-                                .map(call -> BidderError.of(call.getError(), call.isTimedOut())))
+                                .map(call -> call.isTimedOut()
+                                        ? BidderError.createTimedOut(call.getError())
+                                        : BidderError.createBadServerResponse(call.getError())))
                         .collect(Collectors.toList()));
 
         return bidderErrors;

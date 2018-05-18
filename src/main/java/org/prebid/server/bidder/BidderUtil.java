@@ -2,16 +2,20 @@ package org.prebid.server.bidder;
 
 import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpResponse;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,12 +38,17 @@ public class BidderUtil {
     public static BidResponse parseResponse(HttpResponse httpResponse) {
         final int statusCode = httpResponse.getStatusCode();
 
-        if (statusCode == 204) {
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             return null;
         }
 
-        if (statusCode != 200) {
-            throw new PreBidException(
+        if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
+            throw new BadInputRequestException(String.format(
+                    "Unexpected status code: %d. Run with request.test = 1 for more info", statusCode));
+        }
+
+        if (statusCode != HttpResponseStatus.OK.code()) {
+            throw new BadServerResponseException(
                     String.format("Unexpected status code: %d. Run with request.test = 1 for more info", statusCode));
         }
 
@@ -61,9 +70,31 @@ public class BidderUtil {
     }
 
     /**
-     * Converts {@link List} of errors to {@link BidderError} format
+     * Creates {@link List<BidderError>} from list of errors with defined error type
      */
-    public static List<BidderError> errors(List<String> errors) {
-        return errors.stream().map(BidderError::create).collect(Collectors.toList());
+    public static List<BidderError> createBidderErrors(BidderError.ErrorType errorsType, List<String> errors) {
+        return errors.stream().map(error -> BidderError.create(error, errorsType)).collect(Collectors.toList());
+    }
+
+    /**
+     * Creates {@link Result<List<BidderBid>>} with empty {@link List<BidderBid>} and error message with defined error
+     * type
+     */
+    public static Result<List<BidderBid>> createEmptyResultWithError(BidderError.ErrorType errorType,
+                                                                     String error) {
+        return Result.of(Collections.emptyList(), createBidderErrors(errorType, Collections.singletonList(error)));
+    }
+
+    public static class BadServerResponseException extends RuntimeException {
+
+        public BadServerResponseException(String message) {
+            super(message);
+        }
+    }
+
+    public static class BadInputRequestException extends RuntimeException {
+        public BadInputRequestException(String message) {
+            super(message);
+        }
     }
 }

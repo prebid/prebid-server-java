@@ -102,8 +102,8 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Adform adapter supports only banner Imps for now. Ignoring Imp ID=Imp12");
+                .containsExactly(BidderError.createBadInput(
+                        "Adform adapter supports only banner Imps for now. Ignoring Imp ID=Imp12"));
     }
 
     @Test
@@ -124,8 +124,7 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .contains("master tag(placement) id is invalid=0");
+                .contains(BidderError.createBadInput("master tag(placement) id is invalid=0"));
     }
 
     @Test
@@ -189,8 +188,24 @@ public class AdformBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adformBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).containsExactly(
-                "unexpected status code: 500. Run with request.debug = 1 for more info");
+        assertThat(result.getErrors()).hasSize(1).containsExactly(
+                BidderError.createBadServerResponse(
+                        "unexpected status code: 500. Run with request.debug = 1 for more info"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
+        // given
+        final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.BAD_REQUEST.code(), null);
+
+        // when
+        final Result<List<BidderBid>> result = adformBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly(BidderError.createBadInput(
+                        "unexpected status code: 400. Run with request.debug = 1 for more info"));
         assertThat(result.getValue()).isEmpty();
     }
 
