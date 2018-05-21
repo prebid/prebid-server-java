@@ -86,34 +86,4 @@ public class HttpUtilTest {
         // then
         assertThat(headers).hasSize(0);
     }
-
-    @Test
-    public void addDeviceHeadersShouldAddHeadersIfDeviceAndItsPropertiesAreNotNullOrEmpty() {
-        // given
-        final Device device = Device.builder().ua("ua").ip("ip").language("en").dnt(2).build();
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-
-        // when
-        HttpUtil.addDeviceHeaders(headers, device);
-
-        // then
-        assertThat(headers)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsExactly(tuple("User-Agent", "ua"),
-                        tuple("Accept-Language", "en"),
-                        tuple("X-Forwarded-For", "ip"),
-                        tuple("DNT", "2"));
-    }
-
-    @Test
-    public void addDeviceHeadersShouldNotAddHeadersIfDeviceIsNull() {
-        // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-
-        // when
-        HttpUtil.addDeviceHeaders(headers, null);
-
-        // then
-        assertThat(headers).hasSize(0);
-    }
 }

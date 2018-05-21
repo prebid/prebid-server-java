@@ -1,6 +1,5 @@
 package org.prebid.server.util;
 
-import com.iab.openrtb.request.Device;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import org.apache.commons.lang3.StringUtils;
@@ -10,7 +9,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.Objects;
 
 /**
  * This class consists of {@code static} utility methods for operating HTTP requests.
@@ -85,19 +83,5 @@ public final class HttpUtil {
         if (StringUtils.isNotEmpty(headerValue)) {
             headers.add(headerName, headerValue);
         }
-    }
-
-    /**
-     * Crates http headers from {@link Device} properties.
-     */
-    public static MultiMap addDeviceHeaders(MultiMap headers, Device device) {
-        if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.USER_AGENT.toString(), device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.ACCEPT_LANGUAGE.toString(), device.getLanguage());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
-                    Objects.toString(device.getDnt(), null));
-        }
-        return headers;
     }
 }

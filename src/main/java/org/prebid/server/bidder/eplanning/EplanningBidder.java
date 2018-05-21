@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
@@ -58,7 +59,7 @@ public class EplanningBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<String> errors = new ArrayList<>();
         final Map<String, List<Imp>> exchangeIdsToImps = mapExchangeIdsToImps(request.getImp(), errors);
-        final MultiMap headers = HttpUtil.addDeviceHeaders(BidderUtil.headers(), request.getDevice());
+        final MultiMap headers = createHeaders(request.getDevice());
         return createHttpRequests(request, exchangeIdsToImps, headers, errors);
     }
 
@@ -125,6 +126,21 @@ public class EplanningBidder implements Bidder<BidRequest> {
             }
         }
         return exchangeIdsToImp;
+    }
+
+    /**
+     * Crates http headers from {@link Device} properties.
+     */
+    private static MultiMap createHeaders(Device device) {
+        final MultiMap headers = BidderUtil.headers();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.USER_AGENT.toString(), device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.ACCEPT_LANGUAGE.toString(), device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
+                    Objects.toString(device.getDnt(), null));
+        }
+        return headers;
     }
 
     /**

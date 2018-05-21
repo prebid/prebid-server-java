@@ -3,6 +3,7 @@ package org.prebid.server.bidder.sovrn;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
@@ -123,7 +124,14 @@ public class SovrnBidder implements Bidder<BidRequest> {
     private MultiMap headers(BidRequest bidRequest) {
         final MultiMap headers = BidderUtil.headers();
 
-        HttpUtil.addDeviceHeaders(headers, bidRequest.getDevice());
+        final Device device = bidRequest.getDevice();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.USER_AGENT.toString(), device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.ACCEPT_LANGUAGE.toString(), device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
+                    Objects.toString(device.getDnt(), null));
+        }
 
         final User user = bidRequest.getUser();
         final String buyeruid = user != null ? StringUtils.trimToNull(user.getBuyeruid()) : null;
