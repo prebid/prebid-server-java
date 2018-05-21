@@ -269,10 +269,6 @@ public class RequestValidator {
                 final ExtUserDigiTrust digitrust = extUser.getDigitrust();
                 final ExtUserPrebid prebid = extUser.getPrebid();
 
-                if (digitrust == null && prebid == null) {
-                    throw new ValidationException("request.user.ext should not be an empty object.");
-                }
-
                 if (digitrust != null && digitrust.getPref() != 0) {
                     throw new ValidationException("request.user contains a digitrust object that is not valid.");
                 }
