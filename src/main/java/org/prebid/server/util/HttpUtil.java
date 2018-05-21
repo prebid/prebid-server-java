@@ -1,5 +1,7 @@
 package org.prebid.server.util;
 
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -12,6 +14,11 @@ import java.net.URLEncoder;
  * This class consists of {@code static} utility methods for operating HTTP requests.
  */
 public final class HttpUtil {
+
+    public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
+    public static final CharSequence DNT_HEADER = HttpHeaders.createOptimized("DNT");
+    public static final CharSequence X_REQUEST_AGENT_HEADER = HttpHeaders.createOptimized("X-Request-Agent");
+    public static final String LJT_READER_COOKIE_NAME = "ljt_reader";
 
     private HttpUtil() {
     }
@@ -66,6 +73,15 @@ public final class HttpUtil {
             return URLDecoder.decode(input, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new IllegalArgumentException(String.format("Cannot decode input: %s", input));
+        }
+    }
+
+    /**
+     * Creates header from name and value, when value is not null or empty string.
+     */
+    public static void addHeaderIfValueIsNotEmpty(MultiMap headers, String headerName, String headerValue) {
+        if (StringUtils.isNotEmpty(headerValue)) {
+            headers.add(headerName, headerValue);
         }
     }
 }

@@ -39,9 +39,6 @@ import java.util.stream.Collectors;
  */
 public class SovrnAdapter extends OpenrtbAdapter {
 
-    private static final String DNT_HEADER = "DNT";
-    private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
-    private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
     private final String endpointUrl;
 
     public SovrnAdapter(Usersyncer usersyncer, String endpointUrl) {
@@ -133,24 +130,20 @@ public class SovrnAdapter extends OpenrtbAdapter {
 
         final Device device = bidRequest.getDevice();
         if (device != null) {
-            addHeaderIfValueIsNotBlank(headers, HttpHeaders.USER_AGENT.toString(), device.getUa());
-            addHeaderIfValueIsNotBlank(headers, HttpHeaders.ACCEPT_LANGUAGE.toString(), device.getLanguage());
-            addHeaderIfValueIsNotBlank(headers, X_FORWARDED_FOR_HEADER, device.getIp());
-            addHeaderIfValueIsNotBlank(headers, DNT_HEADER, Objects.toString(device.getDnt(), null));
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.USER_AGENT.toString(), device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.ACCEPT_LANGUAGE.toString(), device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
+                    Objects.toString(device.getDnt(), null));
         }
 
         final User user = bidRequest.getUser();
         final String buyeruid = user != null ? StringUtils.trimToNull(user.getBuyeruid()) : null;
         if (buyeruid != null) {
-            headers.add(HttpHeaders.COOKIE.toString(), Cookie.cookie(LJT_READER_COOKIE_NAME, buyeruid).encode());
+            headers.add(HttpHeaders.COOKIE.toString(), Cookie.cookie(HttpUtil.LJT_READER_COOKIE_NAME, buyeruid)
+                    .encode());
         }
         return headers;
-    }
-
-    private static void addHeaderIfValueIsNotBlank(MultiMap headers, String name, String value) {
-        if (StringUtils.isNotBlank(value)) {
-            headers.add(name, value);
-        }
     }
 
     @Override
