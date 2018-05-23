@@ -3,17 +3,6 @@
     {
       "type": "json",
       "value": {
-        "id": "impId12",
-        "impid": "impId12",
-        "price": 8.46365,
-        "adm": "banner",
-        "w": 400,
-        "h": 300
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "466223845",
         "impid": "impId2",
         "price": 3.43382,
@@ -87,6 +76,18 @@
         "dealid": "dealId14",
         "w": 300,
         "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId12",
+        "impid": "impId12",
+        "price": 8.46365,
+        "adm": "banner",
+        "crid": "crid12",
+        "w": 400,
+        "h": 300
       }
     },
     {

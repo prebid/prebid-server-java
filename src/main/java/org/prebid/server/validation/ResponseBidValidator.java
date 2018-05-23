@@ -37,8 +37,12 @@ public class ResponseBidValidator {
         }
 
         final BigDecimal price = bid.getPrice();
-        if (price == null || price.compareTo(BigDecimal.ZERO) == 0) {
-            throw new ValidationException("Bid \"%s\" missing required field 'price'", bidId);
+        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("Bid \"%s\" does not contain a positive 'price'", bidId);
+        }
+
+        if (StringUtils.isEmpty(bid.getCrid())) {
+            throw new ValidationException("Bid \"%s\" missing creative ID", bidId);
         }
     }
 }

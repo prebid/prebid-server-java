@@ -16,4 +16,7 @@ public class ExtImpAdform {
      */
     @JsonProperty("mid")
     Long masterTagId;
+
+    @JsonProperty("priceType")
+    String priceType;
 }

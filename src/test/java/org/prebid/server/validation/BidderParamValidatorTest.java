@@ -136,7 +136,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenAdformImpExtIsOk() {
         // given
-        final ExtImpAdform ext = ExtImpAdform.of(15L);
+        final ExtImpAdform ext = ExtImpAdform.of(15L, "gross");
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
