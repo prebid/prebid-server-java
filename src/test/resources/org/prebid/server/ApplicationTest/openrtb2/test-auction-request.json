@@ -339,7 +339,8 @@
       },
       "ext": {
         "adform": {
-          "mid": 15
+          "mid": 15,
+          "priceType": "gross"
         }
       }
     },

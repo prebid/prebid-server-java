@@ -342,7 +342,8 @@
           "bid_id": "bidId12",
           "bidder": "adform",
           "params": {
-            "mid": 15
+            "mid": 15,
+            "priceType": "gross"
           }
         }
       ],

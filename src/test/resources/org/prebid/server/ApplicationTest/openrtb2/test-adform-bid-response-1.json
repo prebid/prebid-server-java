@@ -5,5 +5,6 @@
   "currency": "currency",
   "width": 400,
   "height": 300,
-  "dealId": "dealId"
+  "dealId": "dealId",
+  "win_crid": "crid12"
 }
