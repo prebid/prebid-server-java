@@ -25,8 +25,6 @@ public class ResponseBidValidator {
             throw new ValidationException("Empty bid object submitted.");
         }
 
-        // These are the three required fields for bids
-
         final String bidId = bid.getId();
         if (StringUtils.isBlank(bidId)) {
             throw new ValidationException("Bid missing required field 'id'");

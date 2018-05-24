@@ -50,10 +50,20 @@ public class AdformHttpUtil {
     }
 
     /**
-     * Checks if price type is valid value
+     * Creates url with parameters for adform request
      */
-    private static boolean isPriceTypeValid(String priceType) {
-        return priceType != null && (priceType.equals(PRICE_TYPE_GROSS) || priceType.equals(PRICE_TYPE_NET));
+    public static String buildAdformUrl(UrlParameters parameters) {
+        final String mids = parameters.getMasterTagIds().stream()
+                .map(masterTagId -> String.format("mid=%s", masterTagId))
+                .map(mid -> Base64.getUrlEncoder().withoutPadding().encodeToString(mid.getBytes()))
+                .collect(Collectors.joining("&"));
+        final String advertisingId = parameters.getAdvertisingId();
+        final String adid = StringUtils.isNotEmpty(advertisingId) ? String.format("&adid=%s", advertisingId) : "";
+        final String endpointUrl = parameters.getEndpointUrl();
+        final String priceTypeParameter = getValidPriceTypeParameter(parameters.getPriceTypes());
+        final String uri = parameters.isSecure() ? endpointUrl.replaceFirst("http://", "https://") : endpointUrl;
+        return String.format("%s/?CC=1&rp=4&fd=1&stid=%s&ip=%s%s%s&%s", uri, parameters.getTid(), parameters.getIp(),
+                adid, priceTypeParameter, mids);
     }
 
     /**
@@ -76,19 +86,9 @@ public class AdformHttpUtil {
     }
 
     /**
-     * Creates url with parameters for adform request
+     * Checks if price type is valid value
      */
-    public static String buildAdformUrl(UrlParameters parameters) {
-        final String mids = parameters.getMasterTagIds().stream()
-                .map(masterTagId -> String.format("mid=%s", masterTagId))
-                .map(mid -> Base64.getUrlEncoder().withoutPadding().encodeToString(mid.getBytes()))
-                .collect(Collectors.joining("&"));
-        final String advertisingId = parameters.getAdvertisingId();
-        final String adid = StringUtils.isNotEmpty(advertisingId) ? String.format("&adid=%s", advertisingId) : "";
-        final String endpointUrl = parameters.getEndpointUrl();
-        final String priceTypeParameter = getValidPriceTypeParameter(parameters.getPriceTypes());
-        final String uri = parameters.isSecure() ? endpointUrl.replaceFirst("http://", "https://") : endpointUrl;
-        return String.format("%s/?CC=1&rp=4&fd=1&stid=%s&ip=%s%s%s&%s", uri, parameters.getTid(), parameters.getIp(),
-                adid, priceTypeParameter, mids);
+    private static boolean isPriceTypeValid(String priceType) {
+        return priceType != null && (priceType.equals(PRICE_TYPE_GROSS) || priceType.equals(PRICE_TYPE_NET));
     }
 }

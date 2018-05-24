@@ -115,7 +115,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .endpointUrl(endpointUrl)
                         .tid(ObjectUtils.firstNonNull(preBidRequestContext.getPreBidRequest().getTid(), ""))
                         .ip(ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""))
-                        .advertisingId(ObjectUtils.firstNonNull(device != null ? device.getIfa() : ""))
+                        .advertisingId(device != null ? device.getIfa() : "")
                         .secure(secure != null && secure == 1)
                         .build());
     }

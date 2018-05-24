@@ -142,7 +142,7 @@ public class AdformBidderTest extends VertxTest {
         // when
         final Result<List<HttpRequest<Void>>> result = adformBidder.makeHttpRequests(bidRequest);
 
-        // thentpU
+        // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1);
     }
