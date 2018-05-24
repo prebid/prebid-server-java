@@ -16,6 +16,7 @@ import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.adform.model.AdformBid;
 import org.prebid.server.bidder.adform.model.AdformParams;
+import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
@@ -50,13 +51,13 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     @Override
     public List<AdapterHttpRequest<Void>> makeHttpRequests(AdapterRequest adapterRequest,
                                                            PreBidRequestContext preBidRequestContext) {
-        final List<String> masterTagIds = adapterRequest.getAdUnitBids().stream()
-                .map(this::toMasterTagId)
+        final List<AdformParams> adformParams = adapterRequest.getAdUnitBids().stream()
+                .map(this::toAdformParams)
                 .collect(Collectors.toList());
 
         return Collections.singletonList(AdapterHttpRequest.of(
                 HttpMethod.GET,
-                getUrl(preBidRequestContext, masterTagIds),
+                getUrl(preBidRequestContext, adformParams),
                 null,
                 headers(preBidRequestContext)));
     }
@@ -82,7 +83,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
      * Converts {@link AdUnitBid} to masterTagId. In case of any problem to retrieve or validate masterTagId, throws
      * {@link PreBidException}
      */
-    private String toMasterTagId(AdUnitBid adUnitBid) {
+    private AdformParams toAdformParams(AdUnitBid adUnitBid) {
         final ObjectNode params = adUnitBid.getParams();
         if (params == null) {
             throw new PreBidException("Adform params section is missing");
@@ -95,7 +96,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
         }
         final Long masterTagId = adformParams.getMid();
         if (masterTagId != null && masterTagId > 0) {
-            return masterTagId.toString();
+            return adformParams;
         } else {
             throw new PreBidException(String.format("master tag(placement) id is invalid=%s", masterTagId));
         }
@@ -104,17 +105,35 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     /**
      * Creates adform url with parameters
      */
-    private String getUrl(PreBidRequestContext preBidRequestContext, List<String> masterTagIds) {
+    private String getUrl(PreBidRequestContext preBidRequestContext, List<AdformParams> adformParams) {
         final Integer secure = preBidRequestContext.getSecure();
         final Device device = preBidRequestContext.getPreBidRequest().getDevice();
         return AdformHttpUtil.buildAdformUrl(
-                masterTagIds,
-                endpointUrl,
-                ObjectUtils.firstNonNull(preBidRequestContext.getPreBidRequest().getTid(), ""),
-                ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""),
-                ObjectUtils.firstNonNull(device != null ? device.getIfa() : ""),
-                secure != null && secure == 1);
+                UrlParameters.builder()
+                        .masterTagIds(getMasterIds(adformParams))
+                        .priceTypes(getPriceTypes(adformParams))
+                        .endpointUrl(endpointUrl)
+                        .tid(ObjectUtils.firstNonNull(preBidRequestContext.getPreBidRequest().getTid(), ""))
+                        .ip(ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""))
+                        .advertisingId(device != null ? device.getIfa() : "")
+                        .secure(secure != null && secure == 1)
+                        .build());
     }
+
+    /**
+     * Converts {@link AdformParams} {@link List} to master ids {@link List}
+     */
+    private List<Long> getMasterIds(List<AdformParams> adformParams) {
+        return adformParams.stream().map(AdformParams::getMid).collect(Collectors.toList());
+    }
+
+    /**
+     * Converts {@link AdformParams} {@link List} to price types {@link List}
+     */
+    private List<String> getPriceTypes(List<AdformParams> adformParams) {
+        return adformParams.stream().map(AdformParams::getPriceType).collect(Collectors.toList());
+    }
+
 
     /**
      * Creates adform headers, which stores adform request parameters
@@ -148,7 +167,8 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .width(adformBid.getWidth())
                         .height(adformBid.getHeight())
                         .dealId(adformBid.getDealId())
-                        .creativeId(MediaType.banner.name())
+                        .creativeId(adformBid.getWinCrid())
+                        .mediaType(MediaType.banner)
                 );
             }
         }

@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.adform.model.AdformBid;
+import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -73,12 +74,15 @@ public class AdformBidder implements Bidder<Void> {
         }
         final Device device = request.getDevice();
         final String url = AdformHttpUtil.buildAdformUrl(
-                getMasterTagIds(extImpAdforms),
-                endpointUrl,
-                getTid(request.getSource()),
-                getIp(device),
-                getIfa(device),
-                getSecure(imps));
+                UrlParameters.builder()
+                        .masterTagIds(getMasterTagIds(extImpAdforms))
+                        .priceTypes(getPriceType(extImpAdforms))
+                        .endpointUrl(endpointUrl)
+                        .tid(getTid(request.getSource()))
+                        .ip(getIp(device))
+                        .advertisingId(getIfa(device))
+                        .secure(getSecure(imps))
+                        .build());
 
         final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
                 VERSION,
@@ -159,10 +163,15 @@ public class AdformBidder implements Bidder<Void> {
     /**
      * Converts {@link ExtImpAdform} {@link List} to master tag {@link List}
      */
-    private List<String> getMasterTagIds(List<ExtImpAdform> extImpAdforms) {
-        return extImpAdforms.stream()
-                .map(extImpAdform -> extImpAdform.getMasterTagId().toString())
-                .collect(Collectors.toList());
+    private List<Long> getMasterTagIds(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getMasterTagId).collect(Collectors.toList());
+    }
+
+    /**
+     * Converts {@link ExtImpAdform} {@link List} to price types {@link List}
+     */
+    private List<String> getPriceType(List<ExtImpAdform> extImpAdforms) {
+        return extImpAdforms.stream().map(ExtImpAdform::getPriceType).collect(Collectors.toList());
     }
 
     /**
@@ -235,6 +244,7 @@ public class AdformBidder implements Bidder<Void> {
                             .w(adformBid.getWidth())
                             .h(adformBid.getHeight())
                             .dealid(adformBid.getDealId())
+                            .crid(adformBid.getWinCrid())
                             .build(),
                     BidType.banner, null));
         }

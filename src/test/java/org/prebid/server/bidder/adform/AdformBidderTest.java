@@ -57,7 +57,7 @@ public class AdformBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpAdform.of(15L)))).build()))
+                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpAdform.of(15L, "gross")))).build()))
                 .site(Site.builder().page("www.example.com").build())
                 .user(User.builder().buyeruid("buyeruid").build())
                 .device(Device.builder().ua("ua").ip("ip").ifa("ifaId").build())
@@ -72,7 +72,8 @@ public class AdformBidderTest extends VertxTest {
         // bWlkPTE1 is Base64 encoded "mid=15" value
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("http://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=ifaId&bWlkPTE1");
+                .containsExactly(
+                        "http://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=ifaId&pt=gross&bWlkPTE1");
         assertThat(result.getValue()).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.GET);
 
         assertThat(result.getValue()).
@@ -114,7 +115,7 @@ public class AdformBidderTest extends VertxTest {
                         .id("Imp12")
                         .banner(Banner.builder().build())
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpAdform.of(0L))))
+                                null, ExtImpAdform.of(0L, null))))
                         .build()))
                 .build();
 
@@ -134,7 +135,7 @@ public class AdformBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpAdform.of(15L)))).build(),
+                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpAdform.of(15L, null)))).build(),
                         Imp.builder().build()))
                 .build();
 
@@ -153,7 +154,7 @@ public class AdformBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .secure(1)
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpAdform.of(15L)))).build(),
+                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpAdform.of(15L, null)))).build(),
                         Imp.builder().build()))
                 .source(Source.builder().tid("tid").build())
                 .build();
@@ -243,7 +244,7 @@ public class AdformBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidderBid() throws JsonProcessingException {
         // given
         final String adformResponse = mapper.writeValueAsString(AdformBid.builder().banner("admBanner")
-                .response("banner").winCur("currency").dealId("dealId").height(300).width(400)
+                .response("banner").winCur("currency").dealId("dealId").height(300).width(400).winCrid("gross")
                 .winBid(BigDecimal.ONE).build());
 
         final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), adformResponse);
@@ -256,7 +257,7 @@ public class AdformBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).containsOnly(BidderBid.of(
                 Bid.builder().id("id").impid("id").price(BigDecimal.ONE).adm("admBanner").w(400).h(300).dealid("dealId")
-                        .build(), BidType.banner, null));
+                        .crid("gross").build(), BidType.banner, null));
     }
 
     @Test
