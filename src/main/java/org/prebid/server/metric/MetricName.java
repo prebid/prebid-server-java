@@ -17,6 +17,9 @@ public enum MetricName {
     imps_requested,
     bids_received,
 
+    adm_bids_received,
+    nurl_bids_received,
+
     ortb_requests,
 
     amp_requests,

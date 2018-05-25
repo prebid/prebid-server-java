@@ -26,9 +26,11 @@ import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderStatus;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -263,6 +265,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
             adapterMetrics.updateHistogram(MetricName.prices, cpm);
             accountMetrics.updateHistogram(MetricName.prices, cpm);
             accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
+
+            updateAdapterMarkupMetrics(adapterMetrics, bid);
         }
 
         final Integer numBids = bidderStatus.getNumBids();
@@ -277,6 +281,18 @@ public class AuctionHandler implements Handler<RoutingContext> {
         if (Objects.equals(bidderStatus.getNoCookie(), Boolean.TRUE)) {
             adapterMetrics.incCounter(MetricName.no_cookie_requests);
             accountAdapterMetrics.incCounter(MetricName.no_cookie_requests);
+        }
+    }
+
+    private static void updateAdapterMarkupMetrics(AdapterMetrics adapterMetrics, Bid bid) {
+        final MetricName markupMetricName = bid.getAdm() != null
+                ? MetricName.adm_bids_received : MetricName.nurl_bids_received;
+
+        final MediaType mediaType = bid.getMediaType();
+        if (mediaType == MediaType.banner) {
+            adapterMetrics.forBidType(BidType.banner).incCounter(markupMetricName);
+        } else if (mediaType == MediaType.video) {
+            adapterMetrics.forBidType(BidType.video).incCounter(markupMetricName);
         }
     }
 
