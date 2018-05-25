@@ -52,6 +52,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
@@ -106,6 +107,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private AdapterMetrics adapterMetrics;
     @Mock
+    private AdapterMetrics.MarkupMetrics adapterMarkupMetrics;
+    @Mock
     private UidsCookie uidsCookie;
     @Mock
     private BidderRequester bidderRequester;
@@ -126,6 +129,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
         given(bidResponsePostProcessor.postProcess(any(), any())).willCallRealMethod();
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
+        given(metrics.forAdapter(anyString()).forBidType(any())).willReturn(adapterMarkupMetrics);
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
@@ -1139,6 +1143,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
         verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
+        verify(adapterMarkupMetrics).incCounter(eq(MetricName.nurl_bids_received));
     }
 
     @Test
@@ -1255,7 +1260,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static BidderBid givenBid(Bid bid) {
-        return BidderBid.of(bid, null, null);
+        return BidderBid.of(bid, BidType.banner, null);
     }
 
     private static <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {

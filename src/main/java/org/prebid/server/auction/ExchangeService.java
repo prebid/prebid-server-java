@@ -560,15 +560,17 @@ public class ExchangeService {
             adapterMetrics.updateTimer(MetricName.request_time, bidderResponse.getResponseTime());
 
             final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
-            final List<Bid> bids = CollectionUtils.isNotEmpty(bidderBids)
-                    ? bidderBids.stream().map(BidderBid::getBid).collect(Collectors.toList())
-                    : null;
-
-            if (CollectionUtils.isEmpty(bids)) {
+            if (CollectionUtils.isEmpty(bidderBids)) {
                 adapterMetrics.incCounter(MetricName.no_bid_requests);
             } else {
-                for (final Bid bid : bids) {
+                for (final BidderBid bidderBid : bidderBids) {
+                    final Bid bid = bidderBid.getBid();
+
                     adapterMetrics.updateHistogram(MetricName.prices, bid.getPrice().multiply(THOUSAND).longValue());
+
+                    final MetricName markupMetricName = bid.getAdm() != null
+                            ? MetricName.adm_bids_received : MetricName.nurl_bids_received;
+                    adapterMetrics.forBidType(bidderBid.getType()).incCounter(markupMetricName);
                 }
             }
 
