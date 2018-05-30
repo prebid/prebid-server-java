@@ -41,26 +41,23 @@
   "ext": {
     "prebid": {
       "targeting": {
-        "pricegranularity": [
-          {
-            "precision": 2,
-            "min": 0,
-            "max": 3,
-            "increment": 0.01
-          },
-          {
-            "precision": 2,
-            "min": 3,
-            "max": 8,
-            "increment": 0.05
-          },
-          {
-            "precision": 2,
-            "min": 8,
-            "max": 20,
-            "increment": 0.5
-          }
-        ],
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 3,
+              "increment": 0.01
+            },
+            {
+              "max": 8,
+              "increment": 0.05
+            },
+            {
+              "max": 20,
+              "increment": 0.5
+            }
+          ]
+        },
         "currency": {
           "rates": {
             "EUR": {
