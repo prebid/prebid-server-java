@@ -719,7 +719,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenPrebidAndDigiTrustOfUserExtMissed() {
+    public void validateShouldNotReturnValidationMessageIfUserExtIsEmptyJsonObject() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().user(User.builder()
                 .ext(mapper.valueToTree(ExtUser.of(null, null, null))).build())
@@ -729,7 +729,20 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.user.ext should not be an empty object.");
+        assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void validateShouldNotReturnErrorMessageWhenRegsExtIsEmptyJsonObject() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(null))))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
     }
 
     @Test
@@ -853,7 +866,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValueInTheMiddleOfRangeList(){
+    public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValueInTheMiddleOfRangeList() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
@@ -873,7 +886,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenIncrementIsNegativeInNotLeadingElement(){
+    public void validateShouldReturnValidationMessageWhenIncrementIsNegativeInNotLeadingElement() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(

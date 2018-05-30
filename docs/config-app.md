@@ -115,11 +115,14 @@ available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and 
 - `host-cookie.family` - set the family name value for host cookie.
 - `host-cookie.cookie-name` - set the name value for host cookie.
 - `host-cookie.domain` - set the domain value for host cookie.
-- `host-cookie.ttl-days` - set the cookie ttl in days
+- `host-cookie.ttl-days` - set the cookie ttl in days.
 
 ## Google Recaptcha
 - `recaptcha-url` - the url for Google Recaptcha service to submit user verification.
 - `recaptcha-secret` - Google Recaptcha secret string given to certain domain account.
+
+## Server status
+- `status-response` - message returned by /status endpoint when server is ready to serve requests. If not defined in config, endpoint will respond with 'No Content' (204) status with empty body.
 
 ## General settings
 - `external-url` - the setting stands for external URL prebid server is reachable by, 

@@ -49,7 +49,24 @@ public class ResponseBidValidatorTest {
         final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.price(null)));
 
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid \"bidId1\" missing required field 'price'");
+                .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
+    }
+
+    @Test
+    public void validateShouldFailedIfBidHasNegativePrice() {
+        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.price(
+                BigDecimal.valueOf(-1))));
+
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
+    }
+
+    @Test
+    public void validateShouldFailedIfBidHasNoCrid() {
+        final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.crid(null)));
+
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Bid \"bidId1\" missing creative ID");
     }
 
     @Test
@@ -63,6 +80,7 @@ public class ResponseBidValidatorTest {
         final Bid.BidBuilder bidBuilder = Bid.builder()
                 .id("bidId1")
                 .impid("impId1")
+                .crid("crid1")
                 .price(BigDecimal.ONE);
         return bidCustomizer.apply(bidBuilder).build();
     }

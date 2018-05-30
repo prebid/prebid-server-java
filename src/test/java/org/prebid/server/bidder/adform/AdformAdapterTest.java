@@ -33,9 +33,7 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
 
 public class AdformAdapterTest extends VertxTest {
@@ -70,7 +68,7 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder().bidId("bidId").adUnitCode("AdUnitCode")
-                        .params(Json.mapper.valueToTree(AdformParams.of(15L))).build()));
+                        .params(Json.mapper.valueToTree(AdformParams.of(15L, "gross"))).build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().preBidRequest(
                 PreBidRequest.builder().tid("tid").device(Device.builder().ifa("ifaId").build()).build())
                 .secure(0).ua("userAgent").ip("192.168.0.1").referer("www.example.com").uidsCookie(uidsCookie).build();
@@ -85,7 +83,7 @@ public class AdformAdapterTest extends VertxTest {
         assertThat(adapterHttpRequests).hasSize(1)
                 .extracting(AdapterHttpRequest::getUri)
                 .containsExactly(
-                        "http://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&ip=192.168.0.1&adid=ifaId&bWlkPTE1");
+                        "http://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&ip=192.168.0.1&adid=ifaId&pt=gross&bWlkPTE1");
 
         assertThat(adapterHttpRequests)
                 .extracting(AdapterHttpRequest::getMethod)
@@ -111,7 +109,7 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder()
-                        .params(Json.mapper.valueToTree(AdformParams.of(0L))).build()));
+                        .params(Json.mapper.valueToTree(AdformParams.of(0L, null))).build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().build();
 
         // when and then
@@ -154,7 +152,7 @@ public class AdformAdapterTest extends VertxTest {
         // given
         final AdapterRequest adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 AdUnitBid.builder()
-                        .params(Json.mapper.valueToTree(AdformParams.of(15L))).build()));
+                        .params(Json.mapper.valueToTree(AdformParams.of(15L, null))).build()));
         final PreBidRequestContext preBidRequestContext = PreBidRequestContext.builder().secure(1)
                 .uidsCookie(uidsCookie)
                 .preBidRequest(PreBidRequest.builder().build()).build();
@@ -178,7 +176,7 @@ public class AdformAdapterTest extends VertxTest {
                 .bidId("bidId").adUnitCode("adUnitCode").build()));
         final ExchangeCall<Void, List<AdformBid>> exchangeCall = ExchangeCall.success(null,
                 singletonList(AdformBid.builder().winBid(BigDecimal.ONE).banner("banner").response("banner")
-                        .width(300).height(250).dealId("dealId").build()), null);
+                        .width(300).height(250).dealId("dealId").winCrid("gross").build()), null);
 
         // when
         final List<Bid> result = adformAdapter.extractBids(adapterRequest, exchangeCall).stream()
@@ -187,7 +185,7 @@ public class AdformAdapterTest extends VertxTest {
         // then
         assertThat(result).hasSize(1).containsExactly(Bid.builder().bidId("bidId").code("adUnitCode").bidder(BIDDER)
                 .price(BigDecimal.ONE).adm("banner").width(300).height(250).dealId("dealId")
-                .creativeId(MediaType.banner.name()).build());
+                .creativeId("gross").mediaType(MediaType.banner).build());
     }
 
     @Test

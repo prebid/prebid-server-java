@@ -26,10 +26,10 @@
                 "hb_size": "300x250",
                 "hb_bidder_appnexus": "appnexus",
                 "hb_bidder": "appnexus",
-                "hb_cache_id": "e3c415a7-700e-4d90-927b-7be6b622cd6f",
+                "hb_cache_id": "117431c9-807a-41e1-82a7-dcd8f8875493",
                 "hb_creative_loadtype": "html",
                 "hb_size_appnexus": "300x250",
-                "hb_cache_id_appnexus": "e3c415a7-700e-4d90-927b-7be6b622cd6f"
+                "hb_cache_id_appnexus": "117431c9-807a-41e1-82a7-dcd8f8875493"
               }
             },
             "bidder": {
@@ -132,6 +132,7 @@
           "impid": "impId12",
           "price": 8.46365,
           "adm": "banner",
+          "crid": "crid12",
           "w": 400,
           "h": 300,
           "ext": {
@@ -142,8 +143,8 @@
                 "hb_size_adform": "400x300",
                 "hb_size": "400x300",
                 "hb_bidder": "adform",
-                "hb_cache_id_adform": "675b817e-f9a9-4578-bbc8-775b981de3a7",
-                "hb_cache_id": "675b817e-f9a9-4578-bbc8-775b981de3a7",
+                "hb_cache_id_adform": "81bc3e9d-5b73-4b34-9626-59f352514167",
+                "hb_cache_id": "81bc3e9d-5b73-4b34-9626-59f352514167",
                 "hb_bidder_adform": "adform",
                 "hb_creative_loadtype": "html",
                 "hb_pb_adform": "8.40"
@@ -209,10 +210,10 @@
                 "hb_bidder_openx": "openx",
                 "hb_pb_openx": "4.60",
                 "hb_bidder": "openx",
-                "hb_cache_id": "117431c9-807a-41e1-82a7-dcd8f8875493",
+                "hb_cache_id": "92c39b22-48d8-43e6-bd79-ffea57ce0196",
                 "hb_deal_openx": "dealId00",
                 "hb_creative_loadtype": "html",
-                "hb_cache_id_openx": "117431c9-807a-41e1-82a7-dcd8f8875493",
+                "hb_cache_id_openx": "92c39b22-48d8-43e6-bd79-ffea57ce0196",
                 "hb_deal": "dealId00",
                 "hb_size_openx": "300x250"
               }
@@ -314,6 +315,40 @@
     {
       "bid": [
         {
+          "id": "620160388",
+          "impid": "impId15",
+          "price": 6.79510,
+          "adm": "adm15",
+          "crid": "crid15",
+          "dealid": "dealId15",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "6.70",
+                "hb_pb_eplanning": "6.70",
+                "hb_size": "300x250",
+                "hb_cache_id_eplanning": "16ba7cad-b7d0-436f-b185-c2a725b020b7",
+                "hb_deal_eplanning": "dealId15",
+                "hb_bidder_eplanning": "eplanning",
+                "hb_bidder": "eplanning",
+                "hb_cache_id": "16ba7cad-b7d0-436f-b185-c2a725b020b7",
+                "hb_creative_loadtype": "html",
+                "hb_size_eplanning": "300x250",
+                "hb_deal": "dealId15"
+              }
+            }
+          }
+        }
+      ],
+      "seat": "eplanning",
+      "group": 0
+    },
+    {
+      "bid": [
+        {
           "id": "impId4",
           "impid": "impId4",
           "price": 4.03031,
@@ -351,12 +386,12 @@
               "type": "banner",
               "targeting": {
                 "hb_pb": "4.80",
-                "hb_cache_id_conversant": "683fe79f-6df7-4971-ac70-820e0486992d",
+                "hb_cache_id_conversant": "e3c415a7-700e-4d90-927b-7be6b622cd6f",
                 "hb_size": "300x600",
                 "hb_pb_conversant": "4.80",
                 "hb_bidder_conversant": "conversant",
                 "hb_bidder": "conversant",
-                "hb_cache_id": "683fe79f-6df7-4971-ac70-820e0486992d",
+                "hb_cache_id": "e3c415a7-700e-4d90-927b-7be6b622cd6f",
                 "hb_creative_loadtype": "html",
                 "hb_size_conversant": "300x600"
               }
@@ -485,13 +520,13 @@
               "targeting": {
                 "hb_pb": "3.40",
                 "hb_pb_rubicon": "3.40",
-                "hb_cache_id_rubicon": "92c39b22-48d8-43e6-bd79-ffea57ce0196",
+                "hb_cache_id_rubicon": "675b817e-f9a9-4578-bbc8-775b981de3a7",
                 "hb_deal_rubicon": "dealId2",
                 "hb_size": "300x600",
                 "hb_bidder": "rubicon",
                 "hb_size_rubicon": "300x600",
                 "hb_bidder_rubicon": "rubicon",
-                "hb_cache_id": "92c39b22-48d8-43e6-bd79-ffea57ce0196",
+                "hb_cache_id": "675b817e-f9a9-4578-bbc8-775b981de3a7",
                 "hb_creative_loadtype": "html",
                 "hb_deal": "dealId2"
               }
@@ -523,8 +558,8 @@
                 "hb_size": "300x250",
                 "hb_pb_adtelligent": "6.70",
                 "hb_bidder": "adtelligent",
-                "hb_cache_id": "81bc3e9d-5b73-4b34-9626-59f352514167",
-                "hb_cache_id_adtelligent": "81bc3e9d-5b73-4b34-9626-59f352514167",
+                "hb_cache_id": "683fe79f-6df7-4971-ac70-820e0486992d",
+                "hb_cache_id_adtelligent": "683fe79f-6df7-4971-ac70-820e0486992d",
                 "hb_creative_loadtype": "html",
                 "hb_deal_adtelligent": "dealId14",
                 "hb_deal": "dealId14"
@@ -557,6 +592,14 @@
             "status": 200
           }
         ],
+        "eplanning": [
+          {
+            "uri": "{{ eplanning.exchange_uri }}/exchangeId1",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId15\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"ext\":{\"bidder\":{\"exchange_id\":\"exchangeId1\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"EP-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"EUR\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":1}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"620160388\",\"impid\":\"impId15\",\"price\":8.43,\"adm\":\"adm15\",\"crid\":\"crid15\",\"dealid\":\"dealId15\",\"w\":300,\"h\":250}],\"seat\":\"seatId15\",\"group\":0}]}",
+            "status": 200
+          }
+        ],
         "lifestreet": [
           {
             "uri": "{{ lifestreet.exchange_uri }}",
@@ -573,8 +616,8 @@
         ],
         "adform": [
           {
-            "uri": "{{ adform.exchange_uri }}/?CC=1&rp=4&fd=1&stid=tid&ip=192.168.244.1&adid=ifaId&bWlkPTE1",
-            "responsebody": "{\"response\":\"banner\",\"banner\":\"banner\",\"win_bid\":\"10.5\",\"currency\":\"currency\",\"width\":400,\"height\":300,\"dealId\":\"dealId\"}",
+            "uri": "{{ adform.exchange_uri }}/?CC=1&rp=4&fd=1&stid=tid&ip=192.168.244.1&adid=ifaId&pt=gross&bWlkPTE1",
+            "responsebody": "{\"response\":\"banner\",\"banner\":\"banner\",\"win_bid\":\"10.5\",\"currency\":\"currency\",\"width\":400,\"height\":300,\"dealId\":\"dealId\",\"win_crid\":\"crid12\"}",
             "status": 200
           }
         ],
@@ -1044,7 +1087,8 @@
             },
             "ext": {
               "adform": {
-                "mid": 15
+                "mid": 15,
+                "priceType": "gross"
               }
             }
           },
@@ -1172,6 +1216,22 @@
                 }
               }
             }
+          },
+          {
+            "id": "impId15",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "ext": {
+              "eplanning": {
+                "exchange_id": "exchangeId1"
+              }
+            }
           }
         ],
         "site": {
@@ -1277,6 +1337,7 @@
       "conversant": [],
       "sovrn": [],
       "openx": [],
+      "eplanning": [],
       "indexExchange": [
         "Media Type is not defined for Bid",
         "Media Type is not defined for Bid"
@@ -1296,7 +1357,8 @@
       "adform": "{{ adform.response_time_ms }}",
       "sovrn": "{{ sovrn.response_time_ms }}",
       "adtelligent": "{{ adtelligent.response_time_ms }}",
-      "openx": "{{ openx.response_time_ms }}"
+      "openx": "{{ openx.response_time_ms }}",
+      "eplanning": "{{ eplanning.response_time_ms }}"
     }
   }
 }

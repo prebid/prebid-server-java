@@ -94,6 +94,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private AdapterMetrics adapterMetrics;
     @Mock
+    private AdapterMetrics.MarkupMetrics adapterMarkupMetrics;
+    @Mock
     private AccountMetrics accountMetrics;
     @Mock
     private AdapterMetrics accountAdapterMetrics;
@@ -126,6 +128,7 @@ public class AuctionHandlerTest extends VertxTest {
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
 
         given(metrics.forAdapter(any())).willReturn(adapterMetrics);
+        given(metrics.forAdapter(anyString()).forBidType(any())).willReturn(adapterMarkupMetrics);
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(accountMetrics.forAdapter(any())).willReturn(accountAdapterMetrics);
 
@@ -529,6 +532,7 @@ public class AuctionHandlerTest extends VertxTest {
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
         verify(accountMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
         verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
+        verify(adapterMarkupMetrics).incCounter(eq(MetricName.nurl_bids_received));
         verify(accountMetrics, never()).incCounter(eq(MetricName.no_bid_requests));
         verify(accountAdapterMetrics, never()).incCounter(eq(MetricName.no_bid_requests));
         verify(metrics, never()).incCounter(eq(MetricName.safari_requests));
@@ -695,6 +699,7 @@ public class AuctionHandlerTest extends VertxTest {
                                 .map(id -> org.prebid.server.proto.response.Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
+                                        .mediaType(MediaType.banner)
                                         .build())
                                 .collect(Collectors.toList()),
                         false)));

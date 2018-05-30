@@ -339,7 +339,8 @@
       },
       "ext": {
         "adform": {
-          "mid": 15
+          "mid": 15,
+          "priceType": "gross"
         }
       }
     },
@@ -461,6 +462,22 @@
           "customParams": {
             "foo": "bar"
           }
+        }
+      }
+    },
+    {
+      "id": "impId15",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "eplanning": {
+          "exchange_id": "exchangeId1"
         }
       }
     }

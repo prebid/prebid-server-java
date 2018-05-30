@@ -22,4 +22,6 @@ public class AdformBid {
     Integer height;
 
     String dealId;
+
+    String winCrid;
 }

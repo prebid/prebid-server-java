@@ -62,6 +62,7 @@ public class ApplicationTest extends VertxTest {
     private static final String SOVRN = "sovrn";
     private static final String OPENX = "openx";
     private static final String ADTELLIGENT = "adtelligent";
+    private static final String EPLANNING = "eplanning";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
 
@@ -208,6 +209,17 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-openx-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-openx-bid-response-3.json"))));
 
+        // eplanning bid response for imp
+        wireMockRule.stubFor(post(urlPathEqualTo("/eplanning-exchange/exchangeId1"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("DNT", equalTo("2"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-eplanning-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-eplanning-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-cache-request.json")))
@@ -220,13 +232,14 @@ public class ApplicationTest extends VertxTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for
-                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
-                // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
-                // "conversant":"CV-UID","sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbm"
-                        + "NlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwi"
-                        + "bGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdn"
-                        + "JuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJBRi1VSUQifX0=")
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID","pulsepoint":"PP-UID",
+                // "indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID","conversant":"CV-UID",
+                // "sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID","eplanning":"EP-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF"
+                        + "1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdl"
+                        + "IjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc"
+                        + "2FudCI6IkNWLVVJRCIsInNvdnJuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJ"
+                        + "BRi1VSUQiLCJlcGxhbm5pbmciOiJFUC1VSUQifX0=")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
@@ -651,6 +664,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange");
         exchanges.put(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange");
         exchanges.put(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange");
+        exchanges.put(EPLANNING, "http://localhost:" + WIREMOCK_PORT + "/eplanning-exchange");
         exchanges.put(OPENX, "http://localhost:" + WIREMOCK_PORT + "/openx-exchange");
 
         // inputs for aliases
