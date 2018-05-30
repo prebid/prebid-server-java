@@ -20,7 +20,7 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
-import org.prebid.server.settings.CompositeApplicationSettings;
+import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -61,7 +61,7 @@ public class ServiceConfiguration {
     PreBidRequestContextFactory preBidRequestContextFactory(
             @Value("${default-timeout-ms}") long defaultTimeoutMs,
             ImplicitParametersExtractor implicitParametersExtractor,
-            CompositeApplicationSettings applicationSettings,
+            ApplicationSettings applicationSettings,
             UidsCookieService uidsCookieService,
             TimeoutFactory timeoutFactory) {
 
@@ -144,7 +144,8 @@ public class ServiceConfiguration {
     @Bean
     StoredRequestProcessor storedRequestProcessor(
             @Value("${auction.stored-requests-timeout-ms}") long defaultTimeoutMs,
-            CompositeApplicationSettings applicationSettings, TimeoutFactory timeoutFactory) {
+            ApplicationSettings applicationSettings,
+            TimeoutFactory timeoutFactory) {
 
         return new StoredRequestProcessor(applicationSettings, timeoutFactory, defaultTimeoutMs);
     }

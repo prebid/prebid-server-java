@@ -96,14 +96,16 @@ For database data source available next options:
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
-- `settings.database.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
-- `settings.database.in-memory-cache.cache-size` - the size of LRU cache.
 
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
-- `settings.http.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
-- `settings.http.in-memory-cache.cache-size` - the size of LRU cache.
+
+For caching available next options:
+- `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
+- `settings.in-memory-cache.cache-size` - the size of LRU cache.
+- `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
+available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
 
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.
@@ -126,3 +128,4 @@ For HTTP data source available next options:
 - `external-url` - the setting stands for external URL prebid server is reachable by, 
 for example address of the load-balancer e.g. http://prebid.host.com.
 - `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
+- `admin.port` - the port to listen on administration requests.

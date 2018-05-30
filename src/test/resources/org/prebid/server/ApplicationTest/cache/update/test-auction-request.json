@@ -1,0 +1,45 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "ext": {
+        "prebid": {
+          "storedrequest": {
+            "id": "test-rubicon-stored-imp-cache-update"
+          }
+        }
+      }
+    }
+  ],
+  "test": 1,
+  "at": 1,
+  "tmax": 1900,
+  "cur": [
+    "EUR"
+  ],
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        }
+      }
+    }
+  }
+}
