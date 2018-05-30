@@ -2,39 +2,63 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId1",
+      "id": "impId-cache-update",
       "banner": {
         "format": [
           {
-            "w": 980,
-            "h": 120
+            "w": 120,
+            "h": 600
           }
         ],
-        "w": 300,
+        "w": 120,
         "h": 600,
-        "pos": 3
+        "ext": {
+          "rp": {
+            "size_id": 8,
+            "mime": "text/html"
+          }
+        }
       },
-      "tagid": "abc",
-      "bidfloor": 1.0,
-      "secure": 1,
       "ext": {
-        "appnexus": {
-          "keywords": "foo=bar,foo=baz",
-          "traffic_source_code": "trafficSource"
+        "rp": {
+          "zone_id": 7001,
+          "track": {
+            "mint": "",
+            "mint_version": ""
+          }
         }
       }
     }
   ],
   "site": {
     "domain": "example.com",
-    "page": "https://google.com"
+    "page": "http://www.example.com",
+    "publisher": {
+      "ext": {
+        "rp": {
+          "account_id": 5001
+        }
+      }
+    },
+    "ext": {
+      "rp": {
+        "site_id": 6001
+      }
+    }
   },
   "device": {
     "ua": "userAgent",
-    "ip": "192.168.244.1"
+    "ip": "192.168.244.1",
+    "ext": {
+      "rp": {}
+    }
   },
+  "user": {
+    "buyeruid": "J5VLCWQP-26-CWFT"
+  },
+  "test": 1,
   "at": 1,
-  "tmax": 9999970,
+  "tmax": 1900,
   "cur": [
     "EUR"
   ],
@@ -45,16 +69,8 @@
           "precision": 2,
           "ranges": [
             {
-              "max": 3,
-              "increment": 0.01
-            },
-            {
-              "max": 8,
-              "increment": 0.05
-            },
-            {
               "max": 20,
-              "increment": 0.5
+              "increment": 0.1
             }
           ]
         },
@@ -69,9 +85,6 @@
           }
         },
         "includewinners": true
-      },
-      "cache": {
-        "bids": {}
       }
     }
   }

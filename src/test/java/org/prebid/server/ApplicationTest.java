@@ -68,6 +68,7 @@ public class ApplicationTest extends VertxTest {
 
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
+    private static final int ADMIN_PORT = 8060;
 
     @ClassRule
     public static final WireMockClassRule wireMockRule = new WireMockClassRule(WIREMOCK_PORT);
@@ -77,6 +78,13 @@ public class ApplicationTest extends VertxTest {
     private static final RequestSpecification spec = new RequestSpecBuilder()
             .setBaseUri("http://localhost")
             .setPort(APP_PORT)
+            .setConfig(RestAssuredConfig.config()
+                    .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
+            .build();
+
+    private static final RequestSpecification adminSpec = new RequestSpecBuilder()
+            .setBaseUri("http://localhost")
+            .setPort(ADMIN_PORT)
             .setConfig(RestAssuredConfig.config()
                     .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
             .build();
@@ -563,6 +571,78 @@ public class ApplicationTest extends VertxTest {
 
         assertThat(response.asString()).isEqualTo("$.ad_units[0].video.protocols: array found, integer expected\n" +
                 "$.ad_units[3].video.protocols: array found, integer expected");
+    }
+
+    @Test
+    public void shouldAskExchangeWithUpdatedSettingsFromCache() throws IOException, JSONException {
+        // update stored settings cache
+        given(adminSpec)
+                .body(jsonFrom("cache/update/test-update-settings-request.json"))
+                .when()
+                .post("/storedrequests/openrtb2")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(""))
+                .statusCode(200);
+
+        // rubicon bid response
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
+                .body(jsonFrom("cache/update/test-auction-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("cache/update/test-auction-response.json"),
+                response, "ext.responsetimemillis.%s");
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
+    public void invalidateSettingsCacheShouldReturnExpectedResponse() {
+        given(adminSpec)
+                .body("{\"requests\":[],\"imps\":[]}")
+                .when()
+                .delete("/storedrequests/openrtb2")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(""))
+                .statusCode(200);
+    }
+
+    @Test
+    public void updateAmpSettingsCacheShouldReturnExpectedResponse() {
+        given(adminSpec)
+                .body("{\"requests\":{},\"imps\":{}}")
+                .when()
+                .post("/storedrequests/amp")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(""))
+                .statusCode(200);
+    }
+
+    @Test
+    public void invalidateAmpSettingsCacheShouldReturnExpectedResponse() {
+        given(adminSpec)
+                .body("{\"requests\":[],\"imps\":[]}")
+                .when()
+                .delete("/storedrequests/amp")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(""))
+                .statusCode(200);
     }
 
     private String jsonFrom(String file) throws IOException {

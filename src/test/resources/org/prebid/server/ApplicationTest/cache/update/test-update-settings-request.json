@@ -1,0 +1,6 @@
+{
+  "requests": {},
+  "imps": {
+    "test-rubicon-stored-imp-cache-update": "{\r\n  \"id\": \"impId-cache-update\",\r\n  \"banner\": {\r\n    \"format\": [\r\n      {\r\n        \"w\": 120,\r\n        \"h\": 600\r\n      }\r\n    ],\r\n    \"w\": 120,\r\n    \"h\": 600\r\n  },\r\n  \"ext\": {\r\n    \"rubicon\": {\r\n      \"accountId\": 5001,\r\n      \"siteId\": 6001,\r\n      \"zoneId\": 7001\r\n    }\r\n  }\r\n}"
+  }
+}

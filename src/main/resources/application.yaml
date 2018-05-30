@@ -9,6 +9,8 @@ vertx:
     instances: 1
 http:
   port: 8080
+admin:
+  port: 8060
 http-client:
   max-pool-size: 1000
   connect-timeout-ms: 2500
@@ -81,9 +83,10 @@ metrics:
 settings:
   database:
     pool-size: 20
-    in-memory-cache:
-      cache-size: 10000
-      ttl-seconds: 360
+  in-memory-cache:
+    cache-size: 10000
+    ttl-seconds: 360
+    notification-endpoints-enabled: false
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:

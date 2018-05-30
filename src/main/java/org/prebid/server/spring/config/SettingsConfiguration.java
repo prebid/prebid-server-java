@@ -5,24 +5,31 @@ import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.web.handler.BodyHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.CacheNotificationVerticle;
+import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.CompositeApplicationSettings;
 import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
+import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.vertx.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
@@ -55,18 +62,6 @@ public class SettingsConfiguration {
     @Configuration
     @ConditionalOnExpression("'${settings.database.type}' == 'postgres' or '${settings.database.type}' == 'mysql'")
     static class DatabaseSettingsConfiguration {
-
-        @Bean
-        @ConditionalOnProperty(prefix = "settings.database.in-memory-cache", name = {"ttl-seconds", "cache-size"})
-        CachingApplicationSettings cachingJdbcApplicationSettings(
-                JdbcApplicationSettings jdbcApplicationSettings,
-                JdbcApplicationSettingsCacheProperties jdbcApplicationSettingsCacheProperties) {
-
-            return new CachingApplicationSettings(
-                    jdbcApplicationSettings,
-                    jdbcApplicationSettingsCacheProperties.getTtlSeconds(),
-                    jdbcApplicationSettingsCacheProperties.getCacheSize());
-        }
 
         @Bean
         JdbcApplicationSettings jdbcApplicationSettings(
@@ -133,22 +128,6 @@ public class SettingsConfiguration {
             private final String jdbcUrlPrefix;
             private final String jdbcDriver;
         }
-
-        @Component
-        @ConfigurationProperties(prefix = "settings.database.in-memory-cache")
-        @ConditionalOnProperty(prefix = "settings.database.in-memory-cache", name = {"ttl-seconds", "cache-size"})
-        @Validated
-        @Data
-        @NoArgsConstructor
-        private static class JdbcApplicationSettingsCacheProperties {
-
-            @NotNull
-            @Min(1)
-            private Integer ttlSeconds;
-            @NotNull
-            @Min(1)
-            private Integer cacheSize;
-        }
     }
 
     @Configuration
@@ -163,34 +142,6 @@ public class SettingsConfiguration {
 
             return new HttpApplicationSettings(httpClient, endpoint, ampEndpoint);
         }
-
-        @Bean
-        @ConditionalOnProperty(prefix = "settings.http.in-memory-cache", name = {"ttl-seconds", "cache-size"})
-        CachingApplicationSettings cachingHttpApplicationSettings(
-                HttpApplicationSettings httpApplicationSettings,
-                HttpApplicationSettingsCacheProperties httpApplicationSettingsCacheProperties) {
-
-            return new CachingApplicationSettings(
-                    httpApplicationSettings,
-                    httpApplicationSettingsCacheProperties.getTtlSeconds(),
-                    httpApplicationSettingsCacheProperties.getCacheSize());
-        }
-
-        @Component
-        @ConfigurationProperties(prefix = "settings.http.in-memory-cache")
-        @ConditionalOnProperty(prefix = "settings.http.in-memory-cache", name = {"ttl-seconds", "cache-size"})
-        @Validated
-        @Data
-        @NoArgsConstructor
-        private static class HttpApplicationSettingsCacheProperties {
-
-            @NotNull
-            @Min(1)
-            private Integer ttlSeconds;
-            @NotNull
-            @Min(1)
-            private Integer cacheSize;
-        }
     }
 
     /**
@@ -203,18 +154,109 @@ public class SettingsConfiguration {
         CompositeApplicationSettings compositeApplicationSettings(
                 @Autowired(required = false) FileApplicationSettings fileApplicationSettings,
                 @Autowired(required = false) JdbcApplicationSettings jdbcApplicationSettings,
-                @Autowired(required = false) CachingApplicationSettings cachingJdbcApplicationSettings,
-                @Autowired(required = false) HttpApplicationSettings httpApplicationSettings,
-                @Autowired(required = false) CachingApplicationSettings cachingHttpApplicationSettings) {
+                @Autowired(required = false) HttpApplicationSettings httpApplicationSettings) {
 
             final List<ApplicationSettings> applicationSettingsList =
                     Stream.of(fileApplicationSettings,
-                            ObjectUtils.firstNonNull(cachingJdbcApplicationSettings, jdbcApplicationSettings),
-                            ObjectUtils.firstNonNull(cachingHttpApplicationSettings, httpApplicationSettings))
+                            jdbcApplicationSettings,
+                            httpApplicationSettings)
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
 
             return new CompositeApplicationSettings(applicationSettingsList);
+        }
+    }
+
+    @Configuration
+    static class CachingSettingsConfiguration {
+
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+        CachingApplicationSettings cachingApplicationSettings(
+                CompositeApplicationSettings compositeApplicationSettings,
+                ApplicationSettingsCacheProperties cacheProperties,
+                @Qualifier("settingsCache") SettingsCache cache,
+                @Qualifier("ampSettingsCache") SettingsCache ampCache) {
+
+            return new CachingApplicationSettings(
+                    compositeApplicationSettings,
+                    cache,
+                    ampCache,
+                    cacheProperties.getTtlSeconds(),
+                    cacheProperties.getCacheSize());
+        }
+    }
+
+    @Configuration
+    static class ApplicationSettingsConfiguration {
+
+        @Bean
+        ApplicationSettings applicationSettings(
+                @Autowired(required = false) CachingApplicationSettings cachingApplicationSettings,
+                @Autowired(required = false) CompositeApplicationSettings compositeApplicationSettings) {
+            return ObjectUtils.firstNonNull(cachingApplicationSettings, compositeApplicationSettings);
+        }
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+    static class CacheConfiguration {
+
+        @Bean
+        @Qualifier("settingsCache")
+        SettingsCache settingsCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache(cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize());
+        }
+
+        @Bean
+        @Qualifier("ampSettingsCache")
+        SettingsCache ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache(cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize());
+        }
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "settings.in-memory-cache")
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = {"ttl-seconds", "cache-size"})
+    @Validated
+    @Data
+    @NoArgsConstructor
+    private static class ApplicationSettingsCacheProperties {
+
+        @NotNull
+        @Min(1)
+        private Integer ttlSeconds;
+        @NotNull
+        @Min(1)
+        private Integer cacheSize;
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+            havingValue = "true")
+    public static class CacheNotificationConfiguration {
+
+        @Bean
+        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache) {
+            return new SettingsCacheNotificationHandler(settingsCache);
+        }
+
+        @Bean
+        SettingsCacheNotificationHandler ampCacheNotificationHandler(SettingsCache ampSettingsCache) {
+            return new SettingsCacheNotificationHandler(ampSettingsCache);
+        }
+
+        @Bean
+        @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+        CacheNotificationVerticle cacheNotificationVerticle(
+                @Value("${admin.port}") int port,
+                Vertx vertx,
+                SettingsCacheNotificationHandler cacheNotificationHandler,
+                SettingsCacheNotificationHandler ampCacheNotificationHandler,
+                BodyHandler bodyHandler) {
+
+            return new CacheNotificationVerticle(vertx, port, cacheNotificationHandler, ampCacheNotificationHandler,
+                    bodyHandler);
         }
     }
 }

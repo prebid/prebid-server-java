@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.spring.config.DeployVerticleException;
+import org.prebid.server.spring.config.SettingsConfiguration;
 import org.prebid.server.spring.config.SpringVerticleFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,7 +48,6 @@ public class Application {
      */
     @EventListener
     public void deployPrebidVerticle(ApplicationReadyEvent event) {
-        vertx.registerVerticleFactory(verticleFactory);
         final CountDownLatch deployLatch = new CountDownLatch(verticleInstances);
         final String verticleName = verticleFactory.prefix() + ":" + PrebidVerticle.class.getName();
         final AtomicBoolean failed = new AtomicBoolean(false);
@@ -70,8 +70,38 @@ public class Application {
         }
     }
 
-    private void deployVerticle(CountDownLatch deployLatch, AtomicBoolean failed,
-                                String verticle, int verticleInstance) {
+    @EventListener
+    public void deployCacheNotificationVerticle(ApplicationReadyEvent event) {
+        // skip deploy if bean doesn't exist in application context
+        final Class<SettingsConfiguration.CacheNotificationConfiguration> clazz
+                = SettingsConfiguration.CacheNotificationConfiguration.class;
+        if (event.getApplicationContext().getBeansOfType(clazz).isEmpty()) {
+            return;
+        }
+
+        logger.info("Prebid-server started deploying cache notification verticle.");
+
+        final int verticleInstances = 1;
+        final CountDownLatch deployLatch = new CountDownLatch(verticleInstances);
+        final AtomicBoolean failed = new AtomicBoolean(false);
+        final String verticleName = verticleFactory.prefix() + ":" + CacheNotificationVerticle.class.getName();
+
+        deployVerticle(deployLatch, failed, verticleName, verticleInstances);
+
+        try {
+            if (!deployLatch.await(verticleDeployTimeout, TimeUnit.MILLISECONDS)) {
+                throw new DeployVerticleException(
+                        "Prebid-server failed due to timeout while waiting for cache notification verticle deployment");
+            } else if (failed.get()) {
+                throw new DeployVerticleException("Prebid-server failed while deploying cache notification verticle");
+            }
+        } catch (InterruptedException e) {
+            throw new DeployVerticleException(e);
+        }
+    }
+
+    private void deployVerticle(CountDownLatch deployLatch, AtomicBoolean failed, String verticle,
+                                int verticleInstance) {
         vertx.deployVerticle(verticle, ar -> {
             if (ar.failed()) {
                 logger.error("{0} # {1} - Failed to deploy", ar.cause(), verticle, verticleInstance);

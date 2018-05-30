@@ -1,0 +1,20 @@
+{
+  "id": "impId-cache-update",
+  "banner": {
+    "format": [
+      {
+        "w": 300,
+        "h": 600
+      }
+    ],
+    "w": 300,
+    "h": 600
+  },
+  "ext": {
+    "rubicon": {
+      "accountId": 5001,
+      "siteId": 6001,
+      "zoneId": 7001
+    }
+  }
+}
