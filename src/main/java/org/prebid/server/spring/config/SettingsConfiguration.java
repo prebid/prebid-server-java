@@ -232,7 +232,8 @@ public class SettingsConfiguration {
     }
 
     @Configuration
-    @ConditionalOnProperty(prefix = "settings", name = "cache-events-api", havingValue = "true")
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+            havingValue = "true")
     public static class CacheNotificationConfiguration {
 
         @Bean

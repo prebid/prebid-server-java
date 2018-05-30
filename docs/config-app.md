@@ -102,10 +102,10 @@ For HTTP data source available next options:
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
 
 For caching available next options:
-- `settings.cache-events-api` - if equals to `true` two additional endpoints will be
-available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/openrtb2](endpoints/storedrequests/amp.md).
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
+- `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
+available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
 
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.
