@@ -93,4 +93,9 @@ host-cookie:
   opt-out-url: http://prebid.org/optout
   opt-in-url: http://prebid.org/optin
   ttl-days: 90
-
+gdpr:
+  default-value: 1
+  eea-countries: AT,DE,NL,BG,GR,PL,BE,HU,PT,CY,IE,RO,CZ,IT,SK,DK,LV,SI,EE,LT,ES,FI,LU,SE,FR,MT,GB,IS,NO,LI,AI,KY,AN,BQ,CW,SX,AW,FK,NC,RE,MQ,GP,GF,YT,PN,BM,PF,SH,AQ,TF,PM,IO,GL,GS,VG,TC,IC,MS,WF
+geolocation:
+  endpoints:
+    setuid: false

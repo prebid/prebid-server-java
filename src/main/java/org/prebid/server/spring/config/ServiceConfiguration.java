@@ -18,6 +18,7 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -33,6 +34,7 @@ import org.springframework.context.annotation.Scope;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
+import java.util.Arrays;
 import java.util.Properties;
 
 @Configuration
@@ -123,6 +125,19 @@ public class ServiceConfiguration {
 
         return new UidsCookieService(optOutCookieName, optOutCookieValue, hostCookieFamily, hostCookieName,
                 hostCookieDomain, ttlDays);
+    }
+
+    /**
+     * Geo location service is not implemented and passed as NULL argument.
+     * It can be provided by vendor (host company) itself.
+     */
+    @Bean
+    GdprService gdprService(
+            @Value("${gdpr.eea-countries}") String eeaCountries,
+            @Value("${gdpr.default-value}") String defaultValue,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId) {
+
+        return new GdprService(null, Arrays.asList(eeaCountries.trim().split(",")), defaultValue, hostVendorId);
     }
 
     @Bean

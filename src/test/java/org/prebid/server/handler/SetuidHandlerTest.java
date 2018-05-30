@@ -1,5 +1,6 @@
 package org.prebid.server.handler;
 
+import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -20,6 +21,9 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.gdpr.model.GdprResponse;
+import org.prebid.server.gdpr.model.GdprResult;
 import org.prebid.server.metric.CookieSyncMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -47,6 +51,8 @@ public class SetuidHandlerTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
+    private GdprService gdprService;
+    @Mock
     private AnalyticsReporter analyticsReporter;
     @Mock
     private Metrics metrics;
@@ -66,6 +72,9 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(gdprService.analyze(any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(GdprResult.allowed)));
+
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
         given(routingContext.addCookie(any())).willReturn(routingContext);
@@ -73,7 +82,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(metrics.cookieSync()).willReturn(cookieSyncMetrics);
         given(cookieSyncMetrics.forBidder(anyString())).willReturn(bidderCookieSyncMetrics);
 
-        setuidHandler = new SetuidHandler(uidsCookieService, analyticsReporter, metrics);
+        setuidHandler = new SetuidHandler(uidsCookieService, gdprService, false, analyticsReporter, metrics);
     }
 
     @Test
@@ -106,7 +115,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end();
+        verify(httpResponse).end("\"bidder\" query param is required");
         verifyNoMoreInteractions(httpResponse);
     }
 

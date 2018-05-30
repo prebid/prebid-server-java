@@ -122,7 +122,16 @@ available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and 
 - `recaptcha-secret` - Google Recaptcha secret string given to certain domain account.
 
 ## Server status
-- `status-response` - message returned by /status endpoint when server is ready to serve requests. If not defined in config, endpoint will respond with 'No Content' (204) status with empty body.
+- `status-response` - message returned by /status endpoint when server is ready to serve requests.
+If not defined in config, endpoint will respond with 'No Content' (204) status with empty body.
+
+## GDPR
+- `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).
+- `gdpr.default-value` - determines GDPR in scope default value (if no information in request and no geolocation data).
+- `gdpr.host-vendor-id` - the organization running a cluster of Prebid Servers.
+
+## Geo location
+- `geolocation.endpoints.setuid` - allows to use geo location service in `/setuid` endpoint processing.
 
 ## General settings
 - `external-url` - the setting stands for external URL prebid server is reachable by, 

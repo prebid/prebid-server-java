@@ -13,11 +13,12 @@ settings:
   filesystem:
     settings-filename: sample-app-settings.yml
     stored-requests-dir: stored_requests
+    stored-imps-dir: stored_imps
 ```
 
 Choose an ID to reference your stored request data. Throughout this doc, replace {id} with the ID you've chosen.
 
-Add the file `stored_requests/data/by_id/{id}.json` and populate it with some [Imp](https://www.iab.com/wp-content/uploads/2016/03/OpenRTB-API-Specification-Version-2-5-FINAL.pdf#page=17) data.
+Add the file `stored_requests/data/by_id/stored_imps/{id}.json` and populate it with some [Imp](https://www.iab.com/wp-content/uploads/2016/03/OpenRTB-API-Specification-Version-2-5-FINAL.pdf#page=17) data.
 
 ```json
 {

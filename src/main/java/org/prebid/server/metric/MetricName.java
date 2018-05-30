@@ -27,5 +27,6 @@ public enum MetricName {
     // cookie sync
     opt_outs,
     bad_requests,
-    sets
+    sets,
+    gdpr_prevent
 }
