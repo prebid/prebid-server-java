@@ -131,7 +131,7 @@ If not defined in config, endpoint will respond with 'No Content' (204) status w
 - `gdpr.host-vendor-id` - the organization running a cluster of Prebid Servers.
 
 ## Geo location
-- `geolocation.endpoints.setuid` - allows to use geo location service in `/setuid` endpoint processing.
+- `geolocation.cookie-sync-enabled` - if equals to `true` geo location service will be used in `/setuid` and `/cookie_sync` endpoints handling.
 
 ## General settings
 - `external-url` - the setting stands for external URL prebid server is reachable by, 

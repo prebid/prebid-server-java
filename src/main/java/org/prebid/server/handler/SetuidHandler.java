@@ -11,26 +11,34 @@ import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.model.GdprResponse;
-import org.prebid.server.gdpr.model.GdprResult;
+import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class SetuidHandler implements Handler<RoutingContext> {
 
+    private static final Set<GdprPurpose> GDPR_PURPOSES =
+            Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
+
     private final UidsCookieService uidsCookieService;
     private final GdprService gdprService;
+    private final Set<Integer> gdprVendorIds;
     private final boolean useGeoLocation;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
 
-    public SetuidHandler(UidsCookieService uidsCookieService, GdprService gdprService, boolean useGeoLocation,
-                         AnalyticsReporter analyticsReporter, Metrics metrics) {
+    public SetuidHandler(UidsCookieService uidsCookieService, GdprService gdprService, Integer gdprHostVendorId,
+                         boolean useGeoLocation, AnalyticsReporter analyticsReporter, Metrics metrics) {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.gdprService = Objects.requireNonNull(gdprService);
+        this.gdprVendorIds = Collections.singleton(gdprHostVendorId);
         this.useGeoLocation = useGeoLocation;
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
@@ -59,47 +67,31 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String gdpr = context.request().getParam("gdpr");
         final String gdprConsent = context.request().getParam("gdpr_consent");
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
-        gdprService.analyze(gdpr, gdprConsent, ip)
-                .setHandler(result -> handleResult(result, context, uidsCookie, bidder, gdpr, gdprConsent));
+        gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip)
+                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, bidder));
     }
 
-    private void handleResult(AsyncResult<GdprResponse> result, RoutingContext context, UidsCookie uidsCookie,
-                              String bidder, String gdpr, String gdprConsent) {
-        final GdprResult gdprResult = result.result().getGdprResult();
+    private void handleResult(AsyncResult<Map<Integer, Boolean>> asyncResult, RoutingContext context,
+                              UidsCookie uidsCookie, String bidder) {
+        final boolean gdprProcessingFailed = asyncResult.failed();
+        final boolean allowedCookie = !gdprProcessingFailed && asyncResult.result().values().iterator().next();
 
-        if (gdprResult == GdprResult.allowed) {
+        if (allowedCookie) {
             respondWithCookie(context, bidder, uidsCookie);
         } else {
-            respondWithoutCookie(gdprResult, context, bidder, gdpr, gdprConsent);
-        }
-    }
+            final int status;
+            final String body;
 
-    private void respondWithoutCookie(GdprResult gdprResult, RoutingContext context, String bidder, String gdpr,
-                                      String gdprConsent) {
-        final int status;
-        final String body;
-
-        switch (gdprResult) {
-            case error_invalid_gdpr:
+            if (gdprProcessingFailed) {
                 status = HttpResponseStatus.BAD_REQUEST.code();
-                body = String.format("The gdpr query param must be either 0 or 1. You gave %s", gdpr);
-                break;
-            case error_missing_consent:
-                status = HttpResponseStatus.BAD_REQUEST.code();
-                body = "The gdpr_consent is required when gdpr=1";
-                break;
-            case error_invalid_consent:
-                status = HttpResponseStatus.BAD_REQUEST.code();
-                body = String.format("The gdpr_consent is invalid. You gave %s", gdprConsent);
-                break;
-            default: // don't save any cookie
+                body = asyncResult.cause().getMessage();
+            } else {
                 status = HttpResponseStatus.OK.code();
-                body = "The gdpr_consent prevents cookies from being saved";
-        }
+                body = "The gdpr_consent param prevents cookies from being saved";
+            }
 
-        context.response().setStatusCode(status).end(body);
-        metrics.cookieSync().forBidder(bidder).incCounter(MetricName.gdpr_prevent);
-        analyticsReporter.processEvent(SetuidEvent.error(status));
+            respondWithoutCookie(context, status, body, bidder);
+        }
     }
 
     private void respondWithCookie(RoutingContext context, String bidder, UidsCookie uidsCookie) {
@@ -128,5 +120,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .uid(uid)
                 .success(successfullyUpdated)
                 .build());
+    }
+
+    private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder) {
+        context.response().setStatusCode(status).end(body);
+        metrics.cookieSync().forBidder(bidder).incCounter(MetricName.gdpr_prevent);
+        analyticsReporter.processEvent(SetuidEvent.error(status));
     }
 }

@@ -134,10 +134,9 @@ public class ServiceConfiguration {
     @Bean
     GdprService gdprService(
             @Value("${gdpr.eea-countries}") String eeaCountries,
-            @Value("${gdpr.default-value}") String defaultValue,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId) {
+            @Value("${gdpr.default-value}") String defaultValue) {
 
-        return new GdprService(null, Arrays.asList(eeaCountries.trim().split(",")), defaultValue, hostVendorId);
+        return new GdprService(null, Arrays.asList(eeaCountries.trim().split(",")), defaultValue);
     }
 
     @Bean

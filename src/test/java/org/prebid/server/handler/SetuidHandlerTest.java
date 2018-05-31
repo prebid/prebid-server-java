@@ -22,8 +22,6 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.model.GdprResponse;
-import org.prebid.server.gdpr.model.GdprResult;
 import org.prebid.server.metric.CookieSyncMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -72,8 +70,8 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(gdprService.analyze(any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(GdprResult.allowed)));
+        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonMap(null, true)));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -82,7 +80,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(metrics.cookieSync()).willReturn(cookieSyncMetrics);
         given(cookieSyncMetrics.forBidder(anyString())).willReturn(bidderCookieSyncMetrics);
 
-        setuidHandler = new SetuidHandler(uidsCookieService, gdprService, false, analyticsReporter, metrics);
+        setuidHandler = new SetuidHandler(uidsCookieService, gdprService, null, false, analyticsReporter, metrics);
     }
 
     @Test

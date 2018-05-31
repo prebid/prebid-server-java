@@ -95,7 +95,6 @@ host-cookie:
   ttl-days: 90
 gdpr:
   default-value: 1
-  eea-countries: AT,DE,NL,BG,GR,PL,BE,HU,PT,CY,IE,RO,CZ,IT,SK,DK,LV,SI,EE,LT,ES,FI,LU,SE,FR,MT,GB,IS,NO,LI,AI,KY,AN,BQ,CW,SX,AW,FK,NC,RE,MQ,GP,GF,YT,PN,BM,PF,SH,AQ,TF,PM,IO,GL,GS,VG,TC,IC,MS,WF
+  eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
 geolocation:
-  endpoints:
-    setuid: false
+  cookie-sync-enabled: false
