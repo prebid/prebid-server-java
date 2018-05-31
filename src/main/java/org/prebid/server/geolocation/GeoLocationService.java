@@ -1,6 +1,7 @@
 package org.prebid.server.geolocation;
 
 import io.vertx.core.Future;
+import org.prebid.server.geolocation.model.GeoInfo;
 
 /**
  * Retrieves geolocation information by IP address.
@@ -13,7 +14,7 @@ import io.vertx.core.Future;
 public interface GeoLocationService {
 
     /**
-     * Returns country code in ISO-3166 (https://www.iso.org/glossary-for-iso-3166.html) by IP address.
+     * Returns geo location data by IP address.
      */
-    Future<String> lookup(String ip);
+    Future<GeoInfo> lookup(String ip);
 }

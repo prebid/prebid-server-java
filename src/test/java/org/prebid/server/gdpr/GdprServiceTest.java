@@ -10,6 +10,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.gdpr.model.GdprResult;
 import org.prebid.server.geolocation.GeoLocationService;
+import org.prebid.server.geolocation.model.GeoInfo;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -126,9 +127,23 @@ public class GdprServiceTest {
     }
 
     @Test
+    public void shouldReturnSuccessResultIfNoGdprParamAndCountryIsNotFoundButDefaultGdprIsZero() {
+        // given
+        given(geoLocationService.lookup(anyString())).willReturn(Future.failedFuture("country not found"));
+        gdprService = new GdprService(geoLocationService, emptyList(), "0", 1);
+
+        // when
+        final Future<GdprResponse> future = gdprService.analyze(null, null, "ip");
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result().getGdprResult()).isEqualTo(GdprResult.allowed);
+    }
+
+    @Test
     public void shouldReturnSuccessResultIfNoGdprParamAndCountryIsNotInEEA() {
         // given
-        given(geoLocationService.lookup(anyString())).willReturn(Future.succeededFuture("country1"));
+        given(geoLocationService.lookup(anyString())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
         gdprService = new GdprService(geoLocationService, emptyList(), "1", 1);
 
         // when
@@ -142,7 +157,7 @@ public class GdprServiceTest {
     @Test
     public void shouldReturnSuccessResultIfNoGdprParamAndConsentParamIsValidAndCountryIsInEEA() {
         // given
-        given(geoLocationService.lookup(anyString())).willReturn(Future.succeededFuture("country1"));
+        given(geoLocationService.lookup(anyString())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
         gdprService = new GdprService(geoLocationService, singletonList("country1"), "1", 1);
 
         // when

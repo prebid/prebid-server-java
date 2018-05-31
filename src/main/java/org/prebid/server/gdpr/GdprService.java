@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.gdpr.model.GdprResult;
 import org.prebid.server.geolocation.GeoLocationService;
+import org.prebid.server.geolocation.model.GeoInfo;
 
 import java.text.ParseException;
 import java.util.List;
@@ -45,7 +46,8 @@ public class GdprService {
             result = Future.succeededFuture(gdprFromRequest);
         } else if (ip != null && geoLocationService != null) {
             result = geoLocationService.lookup(ip)
-                    .map(country -> eeaCountries.contains(country) ? "1" : "0")
+                    .map(GeoInfo::getCountry)
+                    .map(country -> country == null ? gdprDefaultValue : eeaCountries.contains(country) ? "1" : "0")
                     .otherwise(gdprDefaultValue);
         } else {
             result = Future.succeededFuture(gdprDefaultValue);
