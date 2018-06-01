@@ -17,4 +17,4 @@ and not the other for an interim period. This page tracks known differences that
 - Facebook AudienceNetwork adapter has been ported to use OpenRTB directly in PBS-Java. Other adapters will be ported in the near future. PBS-Go [Issue 211](https://github.com/prebid/prebid-server/issues/211)
 - Java and Go adapters return currency in different ways:
   - in PBS-Go, the adapter sets BidResponse.currency, which is outside of each TypedBid.
-  - in PBS-Java, they set TypedBid[N].currency
+  - in PBS-Java, they set BidderBid[N].currency
