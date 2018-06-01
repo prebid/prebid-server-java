@@ -495,6 +495,8 @@ public class ApplicationTest extends VertxTest {
                 // this constant is ok to use as long as it coincides with family name
                 .queryParam("bidder", RUBICON)
                 .queryParam("uid", "updatedUid")
+                .queryParam("gdpr", "1")
+                .queryParam("gdpr_consent", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA")
                 .when()
                 .get("/setuid")
                 .then()

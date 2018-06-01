@@ -2,6 +2,7 @@ package org.prebid.server.util;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -83,5 +84,23 @@ public final class HttpUtil {
         if (StringUtils.isNotEmpty(headerValue)) {
             headers.add(headerName, headerValue);
         }
+    }
+
+    /**
+     * Determines IP-Address by checking "X-Forwarded-For", "X-Real-IP" http headers or remote host address
+     * if both are empty.
+     */
+    public static String ipFrom(HttpServerRequest request) {
+        // X-Forwarded-For: client1, proxy1, proxy2
+        String ip = StringUtils.trimToNull(
+                StringUtils.substringBefore(request.headers().get("X-Forwarded-For"), ","));
+        if (ip == null) {
+            ip = StringUtils.trimToNull(request.headers().get("X-Real-IP"));
+        }
+        if (ip == null) {
+            ip = StringUtils.trimToNull(request.remoteAddress().host());
+        }
+
+        return ip;
     }
 }
