@@ -21,6 +21,7 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -198,9 +199,15 @@ public class WebConfiguration {
     }
 
     @Bean
-    SetuidHandler setuidHandler(UidsCookieService uidsCookieService, CompositeAnalyticsReporter analyticsReporter,
+    SetuidHandler setuidHandler(UidsCookieService uidsCookieService,
+                                GdprService gdprService,
+                                @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+                                @Value("${geolocation.cookie-sync-enabled}") boolean useGeoLocation,
+                                CompositeAnalyticsReporter analyticsReporter,
                                 Metrics metrics) {
-        return new SetuidHandler(uidsCookieService, analyticsReporter, metrics);
+
+        return new SetuidHandler(uidsCookieService, gdprService, hostVendorId, useGeoLocation, analyticsReporter,
+                metrics);
     }
 
     @Bean
