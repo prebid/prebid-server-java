@@ -1,6 +1,7 @@
 package org.prebid.server.handler;
 
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -113,8 +114,77 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end("\"bidder\" query param is required");
+        verify(httpResponse).end(eq("\"bidder\" query param is required"));
         verifyNoMoreInteractions(httpResponse);
+    }
+
+    @Test
+    public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
+        // given
+        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonMap(null, false)));
+
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(routingContext, never()).addCookie(any());
+        verify(httpResponse).setStatusCode(eq(200));
+        verify(httpResponse).end(eq("The gdpr_consent param prevents cookies from being saved"));
+        verifyNoMoreInteractions(httpResponse);
+    }
+
+    @Test
+    public void shouldRespondWithErrorIfGdprProcessingFails() {
+        // given
+        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any()))
+                .willReturn(Future.failedFuture("gdpr exception"));
+
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(routingContext, never()).addCookie(any());
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("gdpr exception"));
+        verifyNoMoreInteractions(httpResponse);
+    }
+
+    @Test
+    public void shouldPassIpAddressToGdprServiceIfGeoLocationEnabled() {
+        // given
+        setuidHandler = new SetuidHandler(uidsCookieService, gdprService, null, true, analyticsReporter, metrics);
+
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        final MultiMap headers = mock(MultiMap.class);
+        given(httpRequest.headers()).willReturn(headers);
+        given(headers.get("X-Forwarded-For")).willReturn("192.168.144.1");
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(gdprService).resultByVendor(anySet(), anySet(), any(), any(), eq("192.168.144.1"));
     }
 
     @Test
