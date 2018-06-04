@@ -6,9 +6,7 @@ import lombok.Value;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.Month;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,8 +19,7 @@ public class ZonedDateTimeModuleTest {
     @Test
     public void shouldEncodeSuccessfully() throws IOException {
         // given
-        final ZonedDateTime VALUE = ZonedDateTime.of(LocalDateTime.of(2017, Month.DECEMBER, 10, 15, 45, 55, 237018349),
-                ZoneId.of("UTC"));
+        final ZonedDateTime VALUE = ZonedDateTime.of(2017, 12, 10, 15, 45, 55, 237018349, ZoneOffset.UTC);
         final Model model = new Model(VALUE);
 
         // when
@@ -30,6 +27,19 @@ public class ZonedDateTimeModuleTest {
 
         // then
         assertThat(modelAsString).isEqualTo("{\"value\":\"2017-12-10T15:45:55.237018349Z\"}");
+    }
+
+    @Test
+    public void shouldEncodeVariableNumberOfNanos() throws IOException {
+        // given
+        final ZonedDateTime VALUE = ZonedDateTime.of(2017, 12, 10, 15, 45, 55, 237018000, ZoneOffset.UTC);
+        final Model model = new Model(VALUE);
+
+        // when
+        final String modelAsString = MAPPER.writeValueAsString(model);
+
+        // then
+        assertThat(modelAsString).isEqualTo("{\"value\":\"2017-12-10T15:45:55.237018Z\"}");
     }
 
     @Test
@@ -41,13 +51,19 @@ public class ZonedDateTimeModuleTest {
         final Model model = MAPPER.readValue(modelAsString, Model.class);
 
         // then
-        assertThat(model.value.getYear()).isEqualTo(2017);
-        assertThat(model.value.getMonth()).isEqualTo(Month.DECEMBER);
-        assertThat(model.value.getDayOfMonth()).isEqualTo(10);
-        assertThat(model.value.getHour()).isEqualTo(15);
-        assertThat(model.value.getMinute()).isEqualTo(45);
-        assertThat(model.value.getSecond()).isEqualTo(55);
-        assertThat(model.value.getNano()).isEqualTo(237018349);
+        assertThat(model.value).isEqualTo(ZonedDateTime.of(2017, 12, 10, 15, 45, 55, 237018349, ZoneOffset.UTC));
+    }
+
+    @Test
+    public void shouldDecodeVariableNumberOfNanos() throws IOException {
+        // given
+        final String modelAsString = "{\"value\":\"2017-12-10T15:45:55.237018Z\"}";
+
+        // when
+        final Model model = MAPPER.readValue(modelAsString, Model.class);
+
+        // then
+        assertThat(model.value).isEqualTo(ZonedDateTime.of(2017, 12, 10, 15, 45, 55, 237018000, ZoneOffset.UTC));
     }
 
     @Test
