@@ -4,6 +4,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 
@@ -15,7 +16,7 @@ import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-public class UidsCookieTest {
+public class UidsCookieTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String ADNXS = "adnxs";
@@ -233,7 +234,7 @@ public class UidsCookieTest {
     public void toJsonShouldReturnCookieInValidJsonFormat() {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
-        uids.put(RUBICON, new UidWithExpiry("J5VLCWQP-26-CWFT", ZonedDateTime.parse("2017-12-30T12:30:40Z[GMT]")));
+        uids.put(RUBICON, new UidWithExpiry("J5VLCWQP-26-CWFT", ZonedDateTime.parse("2017-12-30T12:30:40.123456789Z")));
 
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder()
                 .uids(uids)
@@ -242,6 +243,6 @@ public class UidsCookieTest {
 
         // when and then
         assertThat(uidsCookie.toJson()).isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\"," +
-                "\"expires\":\"2017-12-30T12:30:40.000000000Z\"}},\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
+                "\"expires\":\"2017-12-30T12:30:40.123456789Z\"}},\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
     }
 }
