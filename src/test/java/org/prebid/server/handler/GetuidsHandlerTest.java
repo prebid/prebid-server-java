@@ -64,7 +64,7 @@ public class GetuidsHandlerTest extends VertxTest {
     public void shouldReturnEncodedLegacyCookieAndDecodedJsonAsResponseBody() {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
-        uids.put(RUBICON, new UidWithExpiry("J5VLCWQP-26-CWFT", ZonedDateTime.parse("2017-12-30T12:30:40Z[GMT]")));
+        uids.put(RUBICON, new UidWithExpiry("J5VLCWQP-26-CWFT", ZonedDateTime.parse("2017-12-30T12:30:40.123456789Z")));
 
         given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder()
                 .uids(uids)
@@ -73,11 +73,11 @@ public class GetuidsHandlerTest extends VertxTest {
         given(routingContext.addCookie(any())).willReturn(routingContext);
 
         // this uids cookie stands for {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT",
-        // "expires":"2017-12-30T12:30:40.000000000Z"}},"bday":"2017-08-15T19:47:59.523908376Z"}
+        // "expires":"2017-12-30T12:30:40.123456789Z"}},"bday":"2017-08-15T19:47:59.523908376Z"}
         given(uidsCookieService.toCookie(any())).willReturn(Cookie
-                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQiLCJleHBpcmVzIjoiMjAx"
-                        + "Ny0xMi0zMFQxMjozMDo0MC4wMDAwMDAwMDBaIn19LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZ"
-                        + "aIn0="));
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQiLCJleHBpcmVzIjoi" +
+                        "MjAxNy0xMi0zMFQxMjozMDo0MC4xMjM0NTY3ODlaIn19LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgz" +
+                        "NzZaIn0="));
 
         // when
         getuidsHandler.handle(routingContext);
@@ -88,14 +88,14 @@ public class GetuidsHandlerTest extends VertxTest {
 
         assertThat(responseBody).isNotNull()
                 .isEqualTo("{\"tempUIDs\":{\"rubicon\":{\"uid\":\"J5VLCWQP-26-CWFT\"," +
-                        "\"expires\":\"2017-12-30T12:30:40.000000000Z\"}}," +
+                        "\"expires\":\"2017-12-30T12:30:40.123456789Z\"}}," +
                         "\"bday\":\"2017-08-15T19:47:59.523908376Z\"}");
         assertThat(cookie.getName()).isNotNull().isEqualTo("uids");
         // this uids cookie stands for {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT",
-        // "expires":"2017-12-30T12:30:40.000000000Z"}},"bday":"2017-08-15T19:47:59.523908376Z"}
-        assertThat(cookie.getValue()).isNotNull().isEqualTo("eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2" +
-                "LUNXRlQiLCJleHBpcmVzIjoiMjAxNy0xMi0zMFQxMjozMDo0MC4wMDAwMDAwMDBaIn19LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0N" +
-                "zo1OS41MjM5MDgzNzZaIn0=");
+        // "expires":"2017-12-30T12:30:40.123456789Z"}},"bday":"2017-08-15T19:47:59.523908376Z"}
+        assertThat(cookie.getValue()).isNotNull().isEqualTo("eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI" +
+                "2LUNXRlQiLCJleHBpcmVzIjoiMjAxNy0xMi0zMFQxMjozMDo0MC4xMjM0NTY3ODlaIn19LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo" +
+                "0Nzo1OS41MjM5MDgzNzZaIn0=");
     }
 
     @Test
