@@ -333,10 +333,34 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotChangeUserVisitorIsNotPresent() {
+    public void makeHttpRequestsShouldCreateUserIfVisitorPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder().build()),
+                identity(),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder.visitor(mapper.valueToTree(
+                        Visitor.of(singletonList("new"), singletonList("iphone")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .containsOnly(User.builder()
+                        .ext(mapper.valueToTree(
+                                RubiconUserExt.of(RubiconUserExtRp.of(mapper.valueToTree(
+                                        Visitor.of(singletonList("new"), singletonList("iphone")))), null, null)))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotCreateUserIfVisitorAndDigiTrustAndConsentNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
                 builder -> builder.video(Video.builder().build()),
                 identity());
 
@@ -347,8 +371,8 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getUser).doesNotContainNull()
-                .containsOnly(User.builder().build());
+                .extracting(BidRequest::getUser)
+                .containsOnly((User) null);
     }
 
     @Test

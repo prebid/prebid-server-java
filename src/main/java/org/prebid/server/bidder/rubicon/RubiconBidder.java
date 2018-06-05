@@ -53,7 +53,6 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
@@ -284,9 +283,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         User result = user;
 
         final JsonNode visitor = rubiconImpExt.getVisitor();
-        final RubiconUserExtRp userExtRp = user != null && !visitor.isNull()
-                ? RubiconUserExtRp.of(visitor)
-                : null;
+        final RubiconUserExtRp userExtRp = !visitor.isNull() ? RubiconUserExtRp.of(visitor) : null;
 
         final ExtUser extUser = user != null ? getExtUser(user.getExt()) : null;
 
@@ -295,21 +292,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String consent = extUser != null ? extUser.getConsent() : null;
 
         if (userExtRp != null || userExtDt != null || consent != null) {
-            result = user.toBuilder()
+            final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
+            result = userBuilder
                     .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, consent, userExtDt)))
                     .build();
         }
 
         return result;
-    }
-
-    private static ExtRegs getExtRegs(ObjectNode extNode) {
-        try {
-            return extNode != null ? Json.mapper.treeToValue(extNode, ExtRegs.class) : null;
-        } catch (JsonProcessingException e) {
-            logger.warn("Error occurred while parsing bidrequest.regs.ext", e);
-            throw new PreBidException(e.getMessage(), e);
-        }
     }
 
     private static ExtUser getExtUser(ObjectNode extNode) {
