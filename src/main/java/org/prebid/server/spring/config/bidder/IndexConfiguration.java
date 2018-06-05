@@ -33,6 +33,9 @@ public class IndexConfiguration extends BidderConfiguration {
     @Value("${adapters.indexexchange.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.indexexchange.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps indexexchangeBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -56,7 +59,7 @@ public class IndexConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new IndexUsersyncer(usersyncUrl);
+        return new IndexUsersyncer(usersyncUrl, pbsEnforcesGdpr);
     }
 
     @Override

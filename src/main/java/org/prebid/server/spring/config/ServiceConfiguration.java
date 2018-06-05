@@ -147,12 +147,13 @@ public class ServiceConfiguration {
             ResponseBidValidator responseBidValidator,
             CacheService cacheService,
             CurrencyConversionService currencyConversionService,
+            GdprService gdprService,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
             Clock clock) {
 
         return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, bidResponsePostProcessor,
-                currencyConversionService, metrics, clock, expectedCacheTimeMs);
+                currencyConversionService, gdprService, metrics, clock, expectedCacheTimeMs);
     }
 
     @Bean

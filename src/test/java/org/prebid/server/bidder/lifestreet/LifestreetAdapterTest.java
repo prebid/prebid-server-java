@@ -79,7 +79,7 @@ public class LifestreetAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new LifestreetUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new LifestreetUsersyncer(USERSYNC_URL, EXTERNAL_URL, false);
         adapter = new LifestreetAdapter(usersyncer, ENDPOINT_URL);
     }
 

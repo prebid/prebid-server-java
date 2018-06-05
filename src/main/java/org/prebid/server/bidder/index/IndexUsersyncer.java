@@ -11,9 +11,11 @@ import java.util.Objects;
 public class IndexUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
+    private final boolean pbsEnforcesGdpr;
 
-    public IndexUsersyncer(String usersyncUrl) {
+    public IndexUsersyncer(String usersyncUrl, boolean pbsEnforcesGdpr) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl));
+        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -37,6 +39,14 @@ public class IndexUsersyncer implements Usersyncer {
     @Override
     public int gdprVendorId() {
         return 10;
+    }
+
+    /**
+     * Returns if Index enforced to gdpr by pbs
+     */
+    @Override
+    public boolean pbsEnforcesGdpr() {
+        return pbsEnforcesGdpr;
     }
 
     /**

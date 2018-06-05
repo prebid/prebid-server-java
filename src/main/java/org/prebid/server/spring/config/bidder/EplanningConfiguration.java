@@ -32,6 +32,9 @@ public class EplanningConfiguration extends BidderConfiguration {
     @Value("${adapters.eplanning.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.eplanning.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -53,7 +56,7 @@ public class EplanningConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new EplanningUsersyncer(usersyncUrl, externalUrl);
+        return new EplanningUsersyncer(usersyncUrl, externalUrl, pbsEnforcesGdpr);
     }
 
     @Override

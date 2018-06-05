@@ -82,7 +82,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new AppnexusUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new AppnexusUsersyncer(USERSYNC_URL, EXTERNAL_URL, false);
         adapter = new AppnexusAdapter(usersyncer, ENDPOINT_URL);
     }
 

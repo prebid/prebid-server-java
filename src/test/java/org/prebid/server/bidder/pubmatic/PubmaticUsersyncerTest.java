@@ -10,12 +10,12 @@ public class PubmaticUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new PubmaticUsersyncer(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new PubmaticUsersyncer(null, null, false));
     }
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(new PubmaticUsersyncer("//usersync.org/", "http://external.org/").usersyncInfo())
+        assertThat(new PubmaticUsersyncer("//usersync.org/", "http://external.org/", false).usersyncInfo())
                 .isEqualTo(UsersyncInfo.of(
                         "//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dpubmatic%26uid%3D", "iframe",
                         false));
