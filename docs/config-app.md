@@ -36,6 +36,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
+## Setuid
+- `setuid.default-timeout-ms` - default operation timeout for `/setuid` requests.
+
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
 
@@ -129,6 +132,9 @@ If not defined in config, endpoint will respond with 'No Content' (204) status w
 - `gdpr.eea-countries` - comma separated list of countries in European Economic Area (EEA).
 - `gdpr.default-value` - determines GDPR in scope default value (if no information in request and no geolocation data).
 - `gdpr.host-vendor-id` - the organization running a cluster of Prebid Servers.
+- `gdpr.vendorlist.http-endpoint-template` - template string for vendor list url ('%s' used as version number placeholder).
+- `gdpr.vendorlist.filesystem-cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
+- `gdpr.vendorlist.in-memory-cache-size` - the number of cached versions of vendor list.
 
 ## Geo location
 - `geolocation.cookie-sync-enabled` - if equals to `true` geo location service will be used in `/setuid` and `/cookie_sync` endpoints handling.
