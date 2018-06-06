@@ -67,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -251,22 +252,26 @@ public class ExchangeService {
         // - bidrequest.user.buyeruid will be set to that Bidder's ID.
 
         return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases)
-                .map(vendorToPermission -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie, userExtNode,
-                        aliases, imps, vendorToPermission));
+                .map(vendorToGdprPermission -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
+                        userExtNode, aliases, imps, vendorToGdprPermission));
     }
 
     private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,
                                                    Map<String, String> uidsBody, UidsCookie uidsCookie,
                                                    ObjectNode userExtNode, Map<String, String> aliases,
                                                    List<Imp> imps, Map<Integer, Boolean> vendorsToGdpr) {
+
+        final Map<String, Boolean> bidderToMaskingRequired = bidders.stream()
+                .collect(Collectors.toMap(Function.identity(),
+                        bidder -> isMaskingRequiredBidder(vendorsToGdpr, bidder, aliases)));
+
         final List<BidderRequest> bidderRequests = bidders.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid and imp
                 // extensions
                 .map(bidder -> BidderRequest.of(bidder, bidRequest.toBuilder()
                         .user(prepareUser(bidder, bidRequest, uidsBody, uidsCookie, userExtNode, aliases,
-                                isGdprDisabledForBidder(vendorsToGdpr, bidder, aliases)))
-                        .device(prepareDevice(bidRequest.getDevice(),
-                                isGdprDisabledForBidder(vendorsToGdpr, bidder, aliases)))
+                                bidderToMaskingRequired.get(bidder)))
+                        .device(prepareDevice(bidRequest.getDevice(), bidderToMaskingRequired.get(bidder)))
                         .imp(prepareImps(bidder, imps))
                         .build()))
                 .collect(Collectors.toList());
@@ -306,15 +311,22 @@ public class ExchangeService {
     }
 
     /**
-     * Returns flag if gdpr is enabled or disabled for bidder.
+     * Returns flag if masking in required for bidder.
      */
-    private Boolean isGdprDisabledForBidder(Map<Integer, Boolean> vendorToPermission, String bidder,
+    private Boolean isMaskingRequiredBidder(Map<Integer, Boolean> vendorToGdprPermission, String bidder,
                                             Map<String, String> aliases) {
-        final Boolean gdprDisabled = vendorToPermission.get(
-                bidderCatalog.usersyncerByName(resolveBidder(bidder, aliases)).gdprVendorId());
-        // if bidder was not found in vendorToPermission, it means that it was not pbs enforced for gdpr, so request
+        final String resolvedBidderName = resolveBidder(bidder, aliases);
+        final Boolean gdprDisabled = vendorToGdprPermission.get(
+                bidderCatalog.usersyncerByName(resolvedBidderName).gdprVendorId());
+
+        // if bidder was not found in vendorToGdprPermission, it means that it was not pbs enforced for gdpr, so request
         // for this bidder should be sent without changes
-        return gdprDisabled == null || gdprDisabled;
+        final Boolean maskingRequired = gdprDisabled != null && !gdprDisabled;
+
+        if (maskingRequired) {
+            metrics.forAdapter(resolvedBidderName).incCounter(MetricName.gdpr_masked);
+        }
+        return maskingRequired;
     }
 
     /**
@@ -396,13 +408,13 @@ public class ExchangeService {
      * (which means request contains 'explicit' buyeruid in 'request.user.ext.buyerids' or uidsCookie).
      */
     private User prepareUser(String bidder, BidRequest bidRequest, Map<String, String> uidsBody, UidsCookie uidsCookie,
-                             ObjectNode updatedUserExt, Map<String, String> aliases, Boolean gdprDisabled) {
+                             ObjectNode updatedUserExt, Map<String, String> aliases, Boolean maskingRequired) {
 
         final User user = bidRequest.getUser();
         final User.UserBuilder builder = user != null ? user.toBuilder() : User.builder();
 
         // clean buyeruid from user and user.ext.prebid
-        if (!gdprDisabled) {
+        if (maskingRequired) {
             return User.builder().buyeruid(null).ext(updatedUserExt).build();
         }
 
@@ -426,8 +438,8 @@ public class ExchangeService {
     /**
      * Prepared device for each bidder depends on gdpr enabling.
      */
-    private Device prepareDevice(Device device, Boolean gdprDisabled) {
-        return device != null && !gdprDisabled
+    private Device prepareDevice(Device device, Boolean maskingRequired) {
+        return device != null && maskingRequired
                 ? device.toBuilder().ip(maskIp(device.getIp(), '.')).ipv6(maskIp(device.getIpv6(), ':'))
                 .geo(maskGeo(device.getGeo()))
                 .build()

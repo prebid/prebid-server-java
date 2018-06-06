@@ -471,6 +471,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
         verify(bidderRequester, times(3)).requestBids(bidRequestCaptor.capture(), any());
+        verify(adapterMetrics).incCounter(eq(MetricName.gdpr_masked));
         assertThat(bidRequestCaptor.getAllValues())
                 .extracting(BidRequest::getUser)
                 .extracting(User::getBuyeruid).containsExactlyInAnyOrder(null, "uid1", "uid2");

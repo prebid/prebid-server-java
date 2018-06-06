@@ -28,5 +28,6 @@ public enum MetricName {
     opt_outs,
     bad_requests,
     sets,
-    gdpr_prevent
+    gdpr_prevent,
+    gdpr_masked
 }
