@@ -306,6 +306,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0000")
                 .geo(Geo.builder().lon(-85.34F).lat(189.34F).build()).build());
+        assertThat(capturedBidRequest.getRegs()).isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
     }
 
     @Test
@@ -503,7 +504,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureWithPrebidExceptionIfExtRegsCannotBeParsed() {
+    public void shouldThrowPrebidExceptionIfExtRegsCannotBeParsed() {
         // given
         final BidderRequester bidderRequester = mock(BidderRequester.class);
         givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
@@ -512,13 +513,10 @@ public class ExchangeServiceTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder
                         .regs(Regs.of(null, mapper.createObjectNode().put("gdpr", "invalid"))));
 
-        // when
-        final Future<BidResponse> result = exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
-
-        // then
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause()).isInstanceOf(PreBidException.class)
-                .hasMessageStartingWith("Error decoding bidRequest.regs.ext: ");
+        // when and then
+        assertThatThrownBy(() -> exchangeService.holdAuction(bidRequest, uidsCookie, timeout))
+                .isExactlyInstanceOf(PreBidException.class)
+                .hasMessageStartingWith("Error decoding bidRequest.regs.ext:");
     }
 
     @Test

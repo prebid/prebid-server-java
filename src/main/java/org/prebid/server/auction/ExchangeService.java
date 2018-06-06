@@ -245,20 +245,21 @@ public class ExchangeService {
         // set empty ext.prebid.buyerids attr to avoid leaking of buyerids across bidders
         final ObjectNode userExtNode = !uidsBody.isEmpty() && extUser != null
                 ? removeBuyersidsFromUserExtPrebid(extUser) : null;
+        final ExtRegs extRegs = extRegs(bidRequest.getRegs());
 
         // Splits the input request into requests which are sanitized for each bidder. Intended behavior is:
         // - bidrequest.imp[].ext will only contain the "prebid" field and a "bidder" field which has the params for
         // the intended Bidder.
         // - bidrequest.user.buyeruid will be set to that Bidder's ID.
 
-        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases)
+        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs)
                 .map(vendorToGdprPermission -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
-                        userExtNode, aliases, imps, vendorToGdprPermission));
+                        userExtNode, extRegs, aliases, imps, vendorToGdprPermission));
     }
 
     private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,
                                                    Map<String, String> uidsBody, UidsCookie uidsCookie,
-                                                   ObjectNode userExtNode, Map<String, String> aliases,
+                                                   ObjectNode userExtNode, ExtRegs extRegs, Map<String, String> aliases,
                                                    List<Imp> imps, Map<Integer, Boolean> vendorsToGdpr) {
 
         final Map<String, Boolean> bidderToMaskingRequired = bidders.stream()
@@ -272,6 +273,7 @@ public class ExchangeService {
                         .user(prepareUser(bidder, bidRequest, uidsBody, uidsCookie, userExtNode, aliases,
                                 bidderToMaskingRequired.get(bidder)))
                         .device(prepareDevice(bidRequest.getDevice(), bidderToMaskingRequired.get(bidder)))
+                        .regs(prepareRegs(bidRequest.getRegs(), extRegs, bidderToMaskingRequired.get(bidder)))
                         .imp(prepareImps(bidder, imps))
                         .build()))
                 .collect(Collectors.toList());
@@ -286,13 +288,9 @@ public class ExchangeService {
      * to follow pbs gdpr procedure.
      */
     private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
-                                                                     ExtUser extUser, Map<String, String> aliases) {
-        final Integer gdpr;
-        try {
-            gdpr = extractGdpr(bidRequest.getRegs());
-        } catch (PreBidException e) {
-            return Future.failedFuture(e);
-        }
+                                                                     ExtUser extUser, Map<String, String> aliases,
+                                                                     ExtRegs extRegs) {
+        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
 
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
         final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
@@ -330,19 +328,18 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts gdpr value from {@link Regs}.
+     * Extracts {@link ExtRegs} from {@link Regs}.
      */
-    private static Integer extractGdpr(Regs regs) {
+    private static ExtRegs extRegs(Regs regs) {
         final ObjectNode regsExt = regs != null ? regs.getExt() : null;
-        ExtRegs extRegs = null;
         if (regsExt != null) {
             try {
-                extRegs = Json.mapper.treeToValue(regs.getExt(), ExtRegs.class);
+                return Json.mapper.treeToValue(regs.getExt(), ExtRegs.class);
             } catch (JsonProcessingException e) {
                 throw new PreBidException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()), e);
             }
         }
-        return extRegs != null ? extRegs.getGdpr() : null;
+        return null;
     }
 
     /**
@@ -438,12 +435,26 @@ public class ExchangeService {
     /**
      * Prepared device for each bidder depends on gdpr enabling.
      */
-    private Device prepareDevice(Device device, Boolean maskingRequired) {
+    private static Device prepareDevice(Device device, Boolean maskingRequired) {
         return device != null && maskingRequired
                 ? device.toBuilder().ip(maskIp(device.getIp(), '.')).ipv6(maskIp(device.getIpv6(), ':'))
                 .geo(maskGeo(device.getGeo()))
                 .build()
                 : device;
+    }
+
+    /**
+     * Sets gdpr value 1, if bidder required gdpr masking, but gdpr value in regs extension is not defined
+     */
+    private static Regs prepareRegs(Regs regs, ExtRegs extRegs, Boolean maskingRequired) {
+        if (maskingRequired) {
+            if (extRegs == null) {
+                return Regs.of(regs != null ? regs.getCoppa() : null, Json.mapper.valueToTree(ExtRegs.of(1)));
+            } else {
+                return Regs.of(regs.getCoppa(), Json.mapper.valueToTree(ExtRegs.of(1)));
+            }
+        }
+        return regs;
     }
 
     /**
