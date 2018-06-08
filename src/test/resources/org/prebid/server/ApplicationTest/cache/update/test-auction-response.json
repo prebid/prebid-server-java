@@ -123,6 +123,9 @@
     },
     "responsetimemillis": {
       "rubicon": "{{ rubicon.response_time_ms }}"
+    },
+    "usersync" : {
+      "rubicon": { "status": "expired" }
     }
   }
 }
