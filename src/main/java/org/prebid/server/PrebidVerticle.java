@@ -44,7 +44,13 @@ public class PrebidVerticle extends AbstractVerticle {
 
     private Future<HttpServer> startHttpServer() {
         final Future<HttpServer> httpServerFuture = Future.future();
-        vertx.createHttpServer(new HttpServerOptions().setHandle100ContinueAutomatically(true))
+
+        final HttpServerOptions httpServerOptions = new HttpServerOptions()
+                .setHandle100ContinueAutomatically(true)
+                .setCompressionSupported(true);
+
+        vertx.createHttpServer(
+                httpServerOptions)
                 .requestHandler(router::accept)
                 .listen(port, httpServerFuture);
 
