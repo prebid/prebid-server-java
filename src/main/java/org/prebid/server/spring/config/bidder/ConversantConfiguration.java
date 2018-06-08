@@ -33,6 +33,9 @@ public class ConversantConfiguration extends BidderConfiguration {
     @Value("${adapters.conversant.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.conversant.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -54,7 +57,7 @@ public class ConversantConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new ConversantUsersyncer(usersyncUrl, externalUrl);
+        return new ConversantUsersyncer(usersyncUrl, externalUrl, pbsEnforcesGdpr);
     }
 
     @Override

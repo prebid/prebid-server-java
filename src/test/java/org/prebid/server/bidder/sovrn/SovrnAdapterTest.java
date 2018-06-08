@@ -74,7 +74,7 @@ public class SovrnAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new SovrnUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new SovrnUsersyncer(USERSYNC_URL, EXTERNAL_URL, false);
         adapter = new SovrnAdapter(usersyncer, ENDPOINT_URL);
     }
 
