@@ -255,6 +255,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
         given(httpClient.getAbs(anyString(), any()))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
+        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
         return httpClientResponse;
     }
