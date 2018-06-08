@@ -56,6 +56,7 @@ import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,6 +65,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -82,7 +84,8 @@ public class ExchangeService {
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess,
                     GdprPurpose.adSelectionAndDeliveryAndReporting));
-    private static final DecimalFormat ROUND_TWO_DECIMALS = new DecimalFormat("###.##");
+    private static final DecimalFormat ROUND_TWO_DECIMALS =
+            new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
     private final BidderCatalog bidderCatalog;
     private final ResponseBidValidator responseBidValidator;
@@ -321,8 +324,8 @@ public class ExchangeService {
             final Boolean gdprAllowsUserData = vendorToGdprPermission.get(
                     bidderCatalog.usersyncerByName(resolvedBidderName).gdprVendorId());
 
-            // if bidder was not found in vendorToGdprPermission, it means that it was not pbs enforced for gdpr, so request
-            // for this bidder should be sent without changes
+            // if bidder was not found in vendorToGdprPermission, it means that it was not pbs enforced for gdpr, so
+            // request for this bidder should be sent without changes
             maskingRequired = gdprAllowsUserData != null && !gdprAllowsUserData;
 
             if (maskingRequired) {
