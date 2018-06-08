@@ -27,6 +27,12 @@ public interface Usersyncer {
     int gdprVendorId();
 
     /**
+     * Returns a flag, which true value means that pbs will keep gdpr logic for bidder, otherwise bidder will keep
+     * gdpr support and request should be sent without gspr changes.
+     */
+    boolean pbsEnforcesGdpr();
+
+    /**
      * Returns basic info the browser needs in order to run a user sync.
      * The returned object must not be mutated by callers.
      * <p>

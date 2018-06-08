@@ -43,6 +43,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
 - `adapters.<BIDDER_NAME>.usersync-url` - the url for synchronizing UIDs cookie.
+- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
 
 But feel free to add additional bidder's specific options.
 

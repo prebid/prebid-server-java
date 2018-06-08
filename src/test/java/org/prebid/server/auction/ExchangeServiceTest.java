@@ -6,9 +6,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -38,6 +41,8 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.gdpr.GdprException;
+import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -45,6 +50,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
@@ -80,6 +86,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.*;
@@ -98,6 +105,8 @@ public class ExchangeServiceTest extends VertxTest {
     private CacheService cacheService;
     @Mock
     private CurrencyConversionService currencyService;
+    @Mock
+    private GdprService gdprService;
     @Spy
     private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
     @Mock
@@ -112,6 +121,7 @@ public class ExchangeServiceTest extends VertxTest {
     private UidsCookie uidsCookie;
     @Mock
     private BidderRequester bidderRequester;
+
     private Clock clock;
 
     private ExchangeService exchangeService;
@@ -132,19 +142,21 @@ public class ExchangeServiceTest extends VertxTest {
         given(metrics.forAdapter(anyString()).forBidType(any())).willReturn(adapterMarkupMetrics);
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonMap(1, true)));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
 
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, metrics, clock, 0);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, 0);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
-                        bidResponsePostProcessor, currencyService, metrics, clock, -1));
+                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, -1));
     }
 
     @Test
@@ -254,6 +266,254 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest capturedBidRequest2 = bidRequest2Captor.getValue();
         assertThat(capturedBidRequest2.getImp()).hasSize(1)
                 .element(0).returns(2, imp -> imp.getExt().get("bidder").asInt());
+    }
+
+    @Test
+    public void shouldMaskUserAndDevicePropertiesIfGdprIsEnforcedForBidderAndGdprServiceRespondThatGdprIsEnabled() {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
+
+        final Map<String, String> uids = singletonMap("someBidder", "uidval");
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonMap(15, false)));
+        given(usersyncer.gdprVendorId()).willReturn(15);
+        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(ExtUserPrebid.of(uids), null, null))).build())
+                        .device(Device.builder()
+                                .ip("192.168.0.1")
+                                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+                                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                                .build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
+        assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
+                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+        assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
+                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0000")
+                .geo(Geo.builder().lon(-85.34F).lat(189.34F).build()).build());
+        assertThat(capturedBidRequest.getRegs()).isEqualTo(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))));
+    }
+
+    @Test
+    public void shouldNotChangeRequestIfEnforcedForBidderIsTrueAndGdprServiceRespondThatGdprIsNotEnabled() {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
+
+        given(usersyncer.gdprVendorId()).willReturn(15);
+        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
+
+        final Map<Integer, Boolean> vendorToGdpr = singletonMap(15, true);
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(vendorToGdpr));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(ExtUserPrebid.of(singletonMap("someBidder", "uidval")), null, null))).build())
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
+        assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid("uidval")
+                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+    }
+
+
+    @Test
+    public void shouldNotChangeRequestIfEnforcedForBidderIsFalseAndGdprEqualsToOne() {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
+
+        given(usersyncer.gdprVendorId()).willReturn(15);
+        given(usersyncer.pbsEnforcesGdpr()).willReturn(false);
+
+        final Map<Integer, Boolean> vendorToGdpr = singletonMap(15, false);
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(vendorToGdpr));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(ExtUserPrebid.of(singletonMap("someBidder", "uidval")), null, null))).build())
+                        .device(Device.builder()
+                                .ip("192.168.0.1")
+                                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+                                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                                .build())
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
+        assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid("uidval")
+                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+        assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.1")
+                .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build()).build());
+        verifyZeroInteractions(gdprService);
+    }
+
+    @Test
+    public void shouldSupportBidderAliasConversionInGdprLookup() {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
+
+        given(usersyncer.gdprVendorId()).willReturn(15);
+        given(bidderCatalog.usersyncerByName("someBidder")).willReturn(usersyncer);
+        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
+
+        final Map<Integer, Boolean> vendorToGdpr = singletonMap(15, false);
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(vendorToGdpr));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidderAlias", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(ExtUserPrebid.of(singletonMap("bidderAlias", "uidval")), null, null))).build())
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))))
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                                singletonMap("bidderAlias", "someBidder"), null, null, null, null)))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
+        assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
+                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+    }
+
+    @Test
+    public void shouldApplyGdprMaskingRulesForBiddersWithDifferentPbsEnforcesGdprAndGdprServiceResponse() {
+        // given
+        final BidderRequester bidderRequester1 = mock(BidderRequester.class);
+        final BidderRequester bidderRequester2 = mock(BidderRequester.class);
+        final BidderRequester bidderRequester3 = mock(BidderRequester.class);
+
+        givenHttpConnector("bidder1", bidderRequester1, givenEmptySeatBid());
+        givenHttpConnector("bidder2", bidderRequester2, givenEmptySeatBid());
+        givenHttpConnector("bidder3", bidderRequester3, givenEmptySeatBid());
+
+
+        final Usersyncer usersyncer1 = mock(Usersyncer.class);
+        final Usersyncer usersyncer2 = mock(Usersyncer.class);
+        final Usersyncer usersyncer3 = mock(Usersyncer.class);
+
+        givenHttpConnector("bidder1", bidderRequester, givenEmptySeatBid());
+        givenHttpConnector("bidder2", bidderRequester, givenEmptySeatBid());
+        givenHttpConnector("bidder3", bidderRequester, givenEmptySeatBid());
+
+        given(bidderCatalog.usersyncerByName("bidder1")).willReturn(usersyncer1);
+        given(bidderCatalog.usersyncerByName("bidder2")).willReturn(usersyncer2);
+        given(bidderCatalog.usersyncerByName("bidder3")).willReturn(usersyncer3);
+
+        given(usersyncer1.gdprVendorId()).willReturn(1);
+        given(usersyncer2.gdprVendorId()).willReturn(2);
+        given(usersyncer3.gdprVendorId()).willReturn(3);
+
+        given(usersyncer1.pbsEnforcesGdpr()).willReturn(false);
+        given(usersyncer2.pbsEnforcesGdpr()).willReturn(true);
+        given(usersyncer3.pbsEnforcesGdpr()).willReturn(true);
+
+        final Map<Integer, Boolean> vendorToGdpr = doubleMap(2, true, 3, false);
+
+        final Map<String, String> uids = new HashMap<>();
+        uids.put("bidder1", "uid1");
+        uids.put("bidder2", "uid2");
+        uids.put("bidder3", "uid3");
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(vendorToGdpr));
+
+        final BidRequest bidRequest = givenBidRequest(asList(
+                givenImp(singletonMap("bidder1", 1), identity()),
+                givenImp(singletonMap("bidder2", 2), identity()),
+                givenImp(singletonMap("bidder3", 3), identity())),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(ExtUserPrebid.of(uids), null, null))).build())
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(bidderRequester, times(3)).requestBids(bidRequestCaptor.capture(), any());
+        verify(adapterMetrics).incCounter(eq(MetricName.gdpr_masked));
+        assertThat(bidRequestCaptor.getAllValues())
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid).containsExactlyInAnyOrder(null, "uid1", "uid2");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureWithPrebidExceptionAsCauseIfGdprServiceThrowsGdprException() {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
+
+        given(usersyncer.gdprVendorId()).willReturn(15);
+        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willThrow(new GdprException("The gdpr param must be either 0 or 1, given: -1"));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
+
+        // when
+        final Future<BidResponse> result = exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("The gdpr param must be either 0 or 1, given: -1");
+    }
+
+    @Test
+    public void shouldThrowPrebidExceptionIfExtRegsCannotBeParsed() {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .regs(Regs.of(null, mapper.createObjectNode().put("gdpr", "invalid"))));
+
+        // when and then
+        assertThatThrownBy(() -> exchangeService.holdAuction(bidRequest, uidsCookie, timeout))
+                .isExactlyInstanceOf(PreBidException.class)
+                .hasMessageStartingWith("Error decoding bidRequest.regs.ext:");
     }
 
     @Test
@@ -981,7 +1241,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, metrics, clock, 100);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, 100);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenHttpConnector(givenSeatBid(singletonList(givenBid(bid))));

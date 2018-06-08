@@ -1,12 +1,12 @@
 package org.prebid.server.gdpr;
 
-class GdprException extends RuntimeException {
+public class GdprException extends RuntimeException {
 
-    GdprException(String message) {
+    public GdprException(String message) {
         super(message);
     }
 
-    GdprException(String message, Throwable cause) {
+    public GdprException(String message, Throwable cause) {
         super(message, cause);
     }
 }

@@ -37,6 +37,9 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Value("${adapters.facebook.usersync-url:#{null}}")
     private String usersyncUrl;
 
+    @Value("${adapters.facebook.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${adapters.facebook.platformId:#{null}}")
     private String platformId;
 
@@ -63,7 +66,8 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new FacebookUsersyncer(enabled && usersyncUrl != null ? usersyncUrl : StringUtils.EMPTY);
+        return new FacebookUsersyncer(enabled && usersyncUrl != null ? usersyncUrl : StringUtils.EMPTY,
+                pbsEnforcesGdpr);
     }
 
     @Override

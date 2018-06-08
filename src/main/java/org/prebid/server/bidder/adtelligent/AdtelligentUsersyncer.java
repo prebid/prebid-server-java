@@ -12,9 +12,11 @@ import java.util.Objects;
 public class AdtelligentUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
+    private final boolean pbsEnforcesGdpr;
 
-    public AdtelligentUsersyncer(String usersyncUrl, String externalUrl) {
+    public AdtelligentUsersyncer(String usersyncUrl, String externalUrl, boolean pbsEnforcesGdpr) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
+        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -39,6 +41,14 @@ public class AdtelligentUsersyncer implements Usersyncer {
     @Override
     public int gdprVendorId() {
         return 0;
+    }
+
+    /**
+     * Returns if Adtelligent enforced to gdpr by pbs
+     */
+    @Override
+    public boolean pbsEnforcesGdpr() {
+        return pbsEnforcesGdpr;
     }
 
     /**
