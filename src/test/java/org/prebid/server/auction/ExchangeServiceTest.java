@@ -121,8 +121,6 @@ public class ExchangeServiceTest extends VertxTest {
     private UidsCookie uidsCookie;
     @Mock
     private BidderRequester bidderRequester;
-    @Mock
-    private Map<Integer, Boolean> vendorToGdpr;
 
     private Clock clock;
 
@@ -145,8 +143,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(vendorToGdpr));
-        given(vendorToGdpr.get(anyInt())).willReturn(Boolean.TRUE);
+                .willReturn(Future.succeededFuture(singletonMap(1, true)));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);

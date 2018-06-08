@@ -130,9 +130,6 @@ public class ExchangeService {
 
         final Map<String, String> aliases = getAliases(requestExt);
 
-        final Future<List<BidderRequest>> bidderRequestsFuture = extractBidderRequests(bidRequest, uidsCookie, aliases)
-                .map(bidderRequests -> updateRequestMetric(bidderRequests, uidsCookie, aliases));
-
         final ExtRequestTargeting targeting = targeting(requestExt);
 
         // build cache specific params holder
@@ -143,11 +140,13 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        return bidderRequestsFuture.compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
-                .map(bidderRequest -> requestBids(bidderRequest, startTime,
-                        auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
-                        currencyRates(targeting)))
-                .collect(Collectors.toList())))
+        return extractBidderRequests(bidRequest, uidsCookie, aliases)
+                .map(bidderRequests -> updateRequestMetric(bidderRequests, uidsCookie, aliases))
+                .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
+                        .map(bidderRequest -> requestBids(bidderRequest, startTime,
+                                auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
+                                currencyRates(targeting)))
+                        .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 // produce response from bidder results
@@ -257,6 +256,33 @@ public class ExchangeService {
                         userExtNode, extRegs, aliases, imps, vendorToGdprPermission));
     }
 
+
+    /**
+     * Returns {@link Future&lt;{@link Map}&lt;{@link Integer}, {@link Boolean}&gt;&gt;}, where bidders vendor id mapped
+     * to enabling or disabling gdpr in scope of pbs server. If bidder vendor id is not present in map, it means that
+     * pbs not enforced particular bidder to follow pbs gdpr procedure.
+     */
+    private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
+                                                                     ExtUser extUser, Map<String, String> aliases,
+                                                                     ExtRegs extRegs) {
+        final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
+        if (gdprEnforcedVendorIds.isEmpty()) {
+            return Future.succeededFuture(Collections.emptyMap());
+        }
+
+        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final String gdprConsent = extUser != null ? extUser.getConsent() : null;
+        final Device device = bidRequest.getDevice();
+
+        final String ipAddress = device != null ? device.getIp() : null;
+        try {
+            return gdprService.resultByVendor(GDPR_PURPOSES,
+                    gdprEnforcedVendorIds, String.valueOf(gdpr), gdprConsent, ipAddress);
+        } catch (GdprException ex) {
+            return Future.failedFuture(new PreBidException(ex.getMessage()));
+        }
+    }
+
     private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,
                                                    Map<String, String> uidsBody, UidsCookie uidsCookie,
                                                    ObjectNode userExtNode, ExtRegs extRegs, Map<String, String> aliases,
@@ -283,46 +309,25 @@ public class ExchangeService {
     }
 
     /**
-     * Returns {@link Future<Map<Integer, Boolean>>}, where bidders vendor id mapped to enabling or disabling gdpr in
-     * scope of pbs server. If bidder vendor id is not present in map, it means that pbs not enforced particular bidder
-     * to follow pbs gdpr procedure.
+     * Returns flag if masking is required for bidder.
      */
-    private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
-                                                                     ExtUser extUser, Map<String, String> aliases,
-                                                                     ExtRegs extRegs) {
-        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
-
-        final String gdprConsent = extUser != null ? extUser.getConsent() : null;
-        final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
-        if (gdprEnforcedVendorIds.isEmpty()) {
-            return Future.succeededFuture(Collections.emptyMap());
-        }
-
-        final Device device = bidRequest.getDevice();
-        final String ipAddress = device != null ? device.getIp() : null;
-        try {
-            return gdprService.resultByVendor(GDPR_PURPOSES,
-                    gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null, gdprConsent, ipAddress);
-        } catch (GdprException ex) {
-            return Future.failedFuture(new PreBidException(ex.getMessage()));
-        }
-    }
-
-    /**
-     * Returns flag if masking in required for bidder.
-     */
-    private Boolean isMaskingRequiredBidder(Map<Integer, Boolean> vendorToGdprPermission, String bidder,
+    private boolean isMaskingRequiredBidder(Map<Integer, Boolean> vendorToGdprPermission, String bidder,
                                             Map<String, String> aliases) {
-        final String resolvedBidderName = resolveBidder(bidder, aliases);
-        final Boolean gdprDisabled = vendorToGdprPermission.get(
-                bidderCatalog.usersyncerByName(resolvedBidderName).gdprVendorId());
+        final boolean maskingRequired;
+        if (vendorToGdprPermission.isEmpty()) {
+            maskingRequired = false;
+        } else {
+            final String resolvedBidderName = resolveBidder(bidder, aliases);
+            final Boolean gdprAllowsUserData = vendorToGdprPermission.get(
+                    bidderCatalog.usersyncerByName(resolvedBidderName).gdprVendorId());
 
-        // if bidder was not found in vendorToGdprPermission, it means that it was not pbs enforced for gdpr, so request
-        // for this bidder should be sent without changes
-        final Boolean maskingRequired = gdprDisabled != null && !gdprDisabled;
+            // if bidder was not found in vendorToGdprPermission, it means that it was not pbs enforced for gdpr, so request
+            // for this bidder should be sent without changes
+            maskingRequired = gdprAllowsUserData != null && !gdprAllowsUserData;
 
-        if (maskingRequired) {
-            metrics.forAdapter(resolvedBidderName).incCounter(MetricName.gdpr_masked);
+            if (maskingRequired) {
+                metrics.forAdapter(resolvedBidderName).incCounter(MetricName.gdpr_masked);
+            }
         }
         return maskingRequired;
     }
@@ -412,7 +417,7 @@ public class ExchangeService {
 
         // clean buyeruid from user and user.ext.prebid
         if (maskingRequired) {
-            return User.builder().buyeruid(null).ext(updatedUserExt).build();
+            return builder.buyeruid(null).ext(updatedUserExt).build();
         }
 
         final String resolvedBidder = resolveBidder(bidder, aliases);
