@@ -56,7 +56,8 @@ public class CurrencyConversionService {
      */
     private void populatesLatestCurrencyRates() {
         httpClient.getAbs(currencyServerUrl, this::handleResponse)
-                .exceptionHandler(CurrencyConversionService::handleException);
+                .exceptionHandler(CurrencyConversionService::handleException)
+                .end();
     }
 
     private void handleResponse(HttpClientResponse response) {
