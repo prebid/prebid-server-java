@@ -279,10 +279,10 @@ public class ExchangeService {
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
         final Device device = bidRequest.getDevice();
 
-        final String ipAddress = device != null ? device.getIp() : null;
+        final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
         try {
             return gdprService.resultByVendor(GDPR_PURPOSES,
-                    gdprEnforcedVendorIds, String.valueOf(gdpr), gdprConsent, useGeoLocation ? ipAddress : null);
+                    gdprEnforcedVendorIds, String.valueOf(gdpr), gdprConsent, ipAddress);
         } catch (GdprException ex) {
             return Future.failedFuture(new PreBidException(ex.getMessage()));
         }
