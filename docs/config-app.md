@@ -133,6 +133,7 @@ If not defined in config, endpoint will respond with 'No Content' (204) status w
 
 ## Geo location
 - `geolocation.cookie-sync-enabled` - if equals to `true` geo location service will be used in `/setuid` and `/cookie_sync` endpoints handling.
+- `geolocation.openrtb2-auctions-enabled` - if equals to `true` geo location service will be used in `/openrtb2/auction` and `/openrtb2/amp` endpoints handling.
 
 ## General settings
 - `external-url` - the setting stands for external URL prebid server is reachable by, 
