@@ -95,7 +95,8 @@ public class ExchangeService {
     private final GdprService gdprService;
     private final Metrics metrics;
     private final Clock clock;
-    private long expectedCacheTime;
+    private final long expectedCacheTime;
+    private final boolean useGeoLocation;
 
     public ExchangeService(BidderCatalog bidderCatalog,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
@@ -103,7 +104,7 @@ public class ExchangeService {
                            CurrencyConversionService currencyService,
                            GdprService gdprService,
                            Metrics metrics, Clock clock,
-                           long expectedCacheTime) {
+                           long expectedCacheTime, boolean useGeoLocation) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
@@ -116,6 +117,7 @@ public class ExchangeService {
             throw new IllegalArgumentException("Expected cache time could not be negative");
         }
         this.expectedCacheTime = expectedCacheTime;
+        this.useGeoLocation = useGeoLocation;
     }
 
     /**
@@ -277,7 +279,7 @@ public class ExchangeService {
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
         final Device device = bidRequest.getDevice();
 
-        final String ipAddress = device != null ? device.getIp() : null;
+        final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
         try {
             return gdprService.resultByVendor(GDPR_PURPOSES,
                     gdprEnforcedVendorIds, String.valueOf(gdpr), gdprConsent, ipAddress);
