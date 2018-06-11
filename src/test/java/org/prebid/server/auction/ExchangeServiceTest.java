@@ -86,7 +86,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.*;
@@ -149,14 +148,14 @@ public class ExchangeServiceTest extends VertxTest {
         timeout = new TimeoutFactory(clock).create(500);
 
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, 0);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, 0, false);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
-                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, -1));
+                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, -1, false));
     }
 
     @Test
@@ -1241,7 +1240,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, 100);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, 100, false);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenHttpConnector(givenSeatBid(singletonList(givenBid(bid))));

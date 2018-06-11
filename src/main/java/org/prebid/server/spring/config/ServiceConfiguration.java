@@ -143,6 +143,7 @@ public class ServiceConfiguration {
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
+            @Value("${geolocation.openrtb2-auctions-enabled}") boolean useGeoLocation,
             BidderCatalog bidderCatalog,
             ResponseBidValidator responseBidValidator,
             CacheService cacheService,
@@ -153,7 +154,7 @@ public class ServiceConfiguration {
             Clock clock) {
 
         return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, bidResponsePostProcessor,
-                currencyConversionService, gdprService, metrics, clock, expectedCacheTimeMs);
+                currencyConversionService, gdprService, metrics, clock, expectedCacheTimeMs, useGeoLocation);
     }
 
     @Bean
