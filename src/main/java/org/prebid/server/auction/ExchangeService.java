@@ -282,7 +282,7 @@ public class ExchangeService {
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
         try {
             return gdprService.resultByVendor(GDPR_PURPOSES,
-                    gdprEnforcedVendorIds, String.valueOf(gdpr), gdprConsent, ipAddress);
+                    gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null, gdprConsent, ipAddress);
         } catch (GdprException ex) {
             return Future.failedFuture(new PreBidException(ex.getMessage()));
         }

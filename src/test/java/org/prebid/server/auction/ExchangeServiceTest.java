@@ -322,7 +322,8 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(User.builder().ext(mapper.valueToTree(
-                                ExtUser.of(ExtUserPrebid.of(singletonMap("someBidder", "uidval")), null, null))).build())
+                                ExtUser.of(ExtUserPrebid.of(singletonMap("someBidder", "uidval")), null,
+                                        null))).build())
                         .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
 
         // when
@@ -336,6 +337,26 @@ public class ExchangeServiceTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
     }
 
+    @Test
+    public void shouldAskGdprServiceWithNullGdprIfAbsentInRequest() {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
+
+        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .regs(Regs.of(null, null))); // no ext
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+
+        // then
+        final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(gdprService).resultByVendor(any(), any(), captor.capture(), any(), any());
+        assertThat(captor.getValue()).isNull();
+    }
 
     @Test
     public void shouldNotChangeRequestIfEnforcedForBidderIsFalseAndGdprEqualsToOne() {
@@ -354,7 +375,8 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(User.builder().ext(mapper.valueToTree(
-                                ExtUser.of(ExtUserPrebid.of(singletonMap("someBidder", "uidval")), null, null))).build())
+                                ExtUser.of(ExtUserPrebid.of(singletonMap("someBidder", "uidval")), null,
+                                        null))).build())
                         .device(Device.builder()
                                 .ip("192.168.0.1")
                                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
@@ -395,7 +417,8 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidderAlias", 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(User.builder().ext(mapper.valueToTree(
-                                ExtUser.of(ExtUserPrebid.of(singletonMap("bidderAlias", "uidval")), null, null))).build())
+                                ExtUser.of(ExtUserPrebid.of(singletonMap("bidderAlias", "uidval")), null,
+                                        null))).build())
                         .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))))
                         .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                                 singletonMap("bidderAlias", "someBidder"), null, null, null, null)))));
