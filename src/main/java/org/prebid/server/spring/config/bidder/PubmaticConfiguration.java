@@ -14,10 +14,8 @@ import org.prebid.server.bidder.pubmatic.PubmaticBidder;
 import org.prebid.server.bidder.pubmatic.PubmaticMetaInfo;
 import org.prebid.server.bidder.pubmatic.PubmaticUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class PubmaticConfiguration extends BidderConfiguration {
@@ -40,7 +38,6 @@ public class PubmaticConfiguration extends BidderConfiguration {
     private String externalUrl;
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps pubmaticBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
     }

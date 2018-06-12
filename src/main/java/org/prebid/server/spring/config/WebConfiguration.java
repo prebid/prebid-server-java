@@ -40,11 +40,9 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -58,7 +56,6 @@ import java.util.Set;
 public class WebConfiguration {
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     Router router(Vertx vertx,
                   CookieHandler cookieHandler,
                   BodyHandler bodyHandler,
@@ -134,7 +131,6 @@ public class WebConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AuctionHandler auctionHandler(
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
@@ -149,7 +145,6 @@ public class WebConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
             ExchangeService exchangeService,
@@ -165,7 +160,6 @@ public class WebConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AmpHandler openrtbAmpHandler(
             @Value("${amp.default-timeout-ms}") int defaultTimeoutMs,
             AmpRequestFactory ampRequestFactory,

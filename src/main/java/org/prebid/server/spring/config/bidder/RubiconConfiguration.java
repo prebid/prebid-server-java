@@ -14,10 +14,8 @@ import org.prebid.server.bidder.rubicon.RubiconBidder;
 import org.prebid.server.bidder.rubicon.RubiconMetaInfo;
 import org.prebid.server.bidder.rubicon.RubiconUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class RubiconConfiguration extends BidderConfiguration {
@@ -43,7 +41,6 @@ public class RubiconConfiguration extends BidderConfiguration {
     private String password;
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps rubiconBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
     }

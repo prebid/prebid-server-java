@@ -14,10 +14,8 @@ import org.prebid.server.bidder.appnexus.AppnexusBidder;
 import org.prebid.server.bidder.appnexus.AppnexusMetaInfo;
 import org.prebid.server.bidder.appnexus.AppnexusUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class AppnexusConfiguration extends BidderConfiguration {
@@ -40,7 +38,6 @@ public class AppnexusConfiguration extends BidderConfiguration {
     private String externalUrl;
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps appnexusBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
     }
