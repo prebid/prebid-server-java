@@ -4,6 +4,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
@@ -43,7 +44,13 @@ public class PrebidVerticle extends AbstractVerticle {
 
     private Future<HttpServer> startHttpServer() {
         final Future<HttpServer> httpServerFuture = Future.future();
-        vertx.createHttpServer()
+
+        final HttpServerOptions httpServerOptions = new HttpServerOptions()
+                .setHandle100ContinueAutomatically(true)
+                .setCompressionSupported(true);
+
+        vertx.createHttpServer(
+                httpServerOptions)
                 .requestHandler(router::accept)
                 .listen(port, httpServerFuture);
 

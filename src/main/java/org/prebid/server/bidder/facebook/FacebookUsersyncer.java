@@ -11,9 +11,11 @@ import java.util.Objects;
 public class FacebookUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
+    private final boolean pbsEnforcesGdpr;
 
-    public FacebookUsersyncer(String usersyncUrl) {
+    public FacebookUsersyncer(String usersyncUrl, boolean pbsEnforcesGdpr) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl));
+        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -37,6 +39,14 @@ public class FacebookUsersyncer implements Usersyncer {
     @Override
     public int gdprVendorId() {
         return 0;
+    }
+
+    /**
+     * Returns if Facebook enforced to gdpr by pbs
+     */
+    @Override
+    public boolean pbsEnforcesGdpr() {
+        return pbsEnforcesGdpr;
     }
 
     /**

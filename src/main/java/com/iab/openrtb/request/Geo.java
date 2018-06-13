@@ -1,6 +1,7 @@
 package com.iab.openrtb.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 /**
@@ -13,6 +14,7 @@ import lombok.Value;
  * conform to the accuracy depicted in the {@code type} attribute. For example,
  * the centroid of a geographic region such as postal code should not be passed.
  */
+@Builder(toBuilder = true)
 @Value
 public class Geo {
 

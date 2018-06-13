@@ -46,6 +46,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
 - `adapters.<BIDDER_NAME>.usersync-url` - the url for synchronizing UIDs cookie.
+- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
 
 But feel free to add additional bidder's specific options.
 
@@ -137,6 +138,7 @@ If not defined in config, endpoint will respond with 'No Content' (204) status w
 
 ## Geo location
 - `geolocation.cookie-sync-enabled` - if equals to `true` geo location service will be used in `/setuid` and `/cookie_sync` endpoints handling.
+- `geolocation.openrtb2-auctions-enabled` - if equals to `true` geo location service will be used in `/openrtb2/auction` and `/openrtb2/amp` endpoints handling.
 
 ## General settings
 - `external-url` - the setting stands for external URL prebid server is reachable by, 
