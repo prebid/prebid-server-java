@@ -13,6 +13,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+/**
+ * Component that manages Vertx contexts and provides interface to run arbitrary code on them.
+ * <p>
+ * Needed mostly to replace verticle deployment model provided by Vertx because it doesn't play nicely when using
+ * Vertx in embedded mode within Spring application.
+ */
 public class ContextRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(ContextRunner.class);
@@ -29,10 +35,17 @@ public class ContextRunner {
         this.serviceContext = vertx.getOrCreateContext();
     }
 
+    /**
+     * Runs provided action specified number of times each in a new context. This method is handy for
+     * running several instances of {@link io.vertx.core.http.HttpServer} on different event loop threads.
+     */
     public <T> void runOnNewContext(int times, Handler<Future<T>> action) {
         runOnContext(vertx::getOrCreateContext, times, action);
     }
 
+    /**
+     * Runs provided action on a dedicated service context.
+     */
     public <T> void runOnServiceContext(Handler<Future<T>> action) {
         runOnContext(() -> serviceContext, 1, action);
     }
