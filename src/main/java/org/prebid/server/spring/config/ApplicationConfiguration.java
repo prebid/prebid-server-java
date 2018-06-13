@@ -1,8 +1,6 @@
 package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
-import io.vertx.core.file.FileSystem;
 import io.vertx.ext.web.Router;
 import org.prebid.server.PrebidVerticle;
 import org.prebid.server.json.ObjectMapperConfigurer;
@@ -39,16 +37,6 @@ public class ApplicationConfiguration {
 
         configurer.setScopes(scopes);
         return configurer;
-    }
-
-    @Bean
-    Vertx vertx(@Value("${vertx.worker-pool-size}") Integer workerPoolSize) {
-        return Vertx.vertx(new VertxOptions().setWorkerPoolSize(workerPoolSize));
-    }
-
-    @Bean
-    FileSystem fileSystem(Vertx vertx) {
-        return vertx.fileSystem();
     }
 
     @Bean
