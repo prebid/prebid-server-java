@@ -6,8 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 
 @Configuration
 public class SpringConfiguration {
@@ -20,11 +19,7 @@ public class SpringConfiguration {
     @Bean
     static CustomScopeConfigurer customScopeConfigurer() {
         final CustomScopeConfigurer configurer = new CustomScopeConfigurer();
-
-        final Map<String, Object> scopes = new HashMap<>();
-        scopes.put(VertxContextScope.NAME, new VertxContextScope());
-
-        configurer.setScopes(scopes);
+        configurer.setScopes(Collections.singletonMap(VertxContextScope.NAME, new VertxContextScope()));
         return configurer;
     }
 }
