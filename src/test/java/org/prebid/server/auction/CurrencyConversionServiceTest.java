@@ -60,20 +60,20 @@ public class CurrencyConversionServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(httpClient, 200,
                 mapper.writeValueAsString(CurrencyConversionRates.of(null, currencyRates)));
 
-        currencyService = new CurrencyConversionService(URL, 1L, httpClient, vertx);
+        currencyService = new CurrencyConversionService(URL, 1L, vertx, httpClient);
     }
 
     @Test
     public void creationShouldFailOnInvalidCurrencyServerUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new CurrencyConversionService("invalid-url", 1L, httpClient, vertx))
+                .isThrownBy(() -> new CurrencyConversionService("invalid-url", 1L, vertx, httpClient))
                 .withMessage("URL supplied is not valid: invalid-url");
     }
 
     @Test
     public void creationShouldFailOnInvalidPeriodValue() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new CurrencyConversionService(URL, 0L, httpClient, vertx))
+                .isThrownBy(() -> new CurrencyConversionService(URL, 0L, vertx, httpClient))
                 .withMessage("Refresh period for updating rates must be positive value");
     }
 
@@ -203,7 +203,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(client, 503, "server unavailable");
 
         // when
-        currencyService = new CurrencyConversionService(URL, 1L, client, vertx);
+        currencyService = new CurrencyConversionService(URL, 1L, vertx, client);
 
         // then
         assertThatExceptionOfType(PreBidException.class)
@@ -219,7 +219,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(client, 200, "{\"foo\": \"bar\"}");
 
         // when
-        currencyService = new CurrencyConversionService(URL, 1L, client, vertx);
+        currencyService = new CurrencyConversionService(URL, 1L, vertx, client);
 
         // then
         assertThatExceptionOfType(PreBidException.class)
@@ -235,7 +235,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         final Vertx vertx = Vertx.vertx();
 
         // when
-        currencyService = new CurrencyConversionService(URL, 1000, client, vertx);
+        currencyService = new CurrencyConversionService(URL, 1000, vertx, client);
 
         // then
         verify(client, after(2100).times(3)).getAbs(anyString(), any());

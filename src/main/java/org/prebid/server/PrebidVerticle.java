@@ -8,7 +8,6 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
-import org.prebid.server.vertx.JdbcClient;
 
 public class PrebidVerticle extends AbstractVerticle {
 
@@ -17,12 +16,10 @@ public class PrebidVerticle extends AbstractVerticle {
     private final Integer port;
     private final Vertx vertx;
     private final Router router;
-    private final JdbcClient jdbcClient;
 
-    public PrebidVerticle(Vertx vertx, Router router, JdbcClient jdbcClient, Integer port) {
+    public PrebidVerticle(Vertx vertx, Router router, Integer port) {
         this.vertx = vertx;
         this.router = router;
-        this.jdbcClient = jdbcClient;
         this.port = port;
     }
 
@@ -31,15 +28,7 @@ public class PrebidVerticle extends AbstractVerticle {
      */
     @Override
     public void start(Future<Void> startFuture) {
-        final Future<Void> jdbcClientFuture = jdbcClient != null ? jdbcClient.initialize() : Future.succeededFuture();
-        jdbcClientFuture
-                .compose(ignored -> startHttpServer())
-                .compose(
-                        httpServer -> {
-                            logger.debug("Prebid verticle has been started successfully");
-                            startFuture.complete();
-                        },
-                        startFuture);
+        startHttpServer().compose(httpServer -> startFuture.complete(), startFuture);
     }
 
     private Future<HttpServer> startHttpServer() {

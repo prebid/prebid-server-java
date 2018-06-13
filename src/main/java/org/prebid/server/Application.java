@@ -19,16 +19,13 @@ public class Application {
     private final PrebidVerticle prebidVerticle;
     private final ContextRunner contextRunner;
     private final int verticleInstances;
-    private final long verticleDeployTimeout;
 
     @Autowired
     public Application(PrebidVerticle prebidVerticle, ContextRunner contextRunner,
-                       @Value("${vertx.verticle.instances}") int verticleInstances,
-                       @Value("${vertx.verticle.deploy-timeout-ms}") long verticleDeployTimeout) {
+                       @Value("${vertx.verticle.instances}") int verticleInstances) {
         this.prebidVerticle = prebidVerticle;
         this.contextRunner = contextRunner;
         this.verticleInstances = verticleInstances;
-        this.verticleDeployTimeout = verticleDeployTimeout;
     }
 
     public static void main(String[] args) {
@@ -57,7 +54,7 @@ public class Application {
             } catch (Exception e) {
                 // should never happen
             }
-        }, verticleDeployTimeout);
+        });
 
         logger.info("Prebid-server successfully started {0} instances of {1}", numInstances, verticleName);
     }

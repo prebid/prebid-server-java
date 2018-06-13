@@ -22,7 +22,7 @@ public class VertxConfiguration {
     }
 
     @Bean
-    ContextRunner contextRunner(Vertx vertx) {
-        return new ContextRunner(vertx);
+    ContextRunner contextRunner(Vertx vertx, @Value("${vertx.verticle.deploy-timeout-ms}") long initTimeoutMs) {
+        return new ContextRunner(vertx, initTimeoutMs);
     }
 }

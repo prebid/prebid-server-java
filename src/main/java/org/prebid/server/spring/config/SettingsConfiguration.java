@@ -19,6 +19,7 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -61,6 +62,9 @@ public class SettingsConfiguration {
     @ConditionalOnExpression("'${settings.database.type}' == 'postgres' or '${settings.database.type}' == 'mysql'")
     static class DatabaseSettingsConfiguration {
 
+        @Autowired
+        private ContextRunner contextRunner;
+
         @Bean
         JdbcApplicationSettings jdbcApplicationSettings(
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
@@ -72,7 +76,12 @@ public class SettingsConfiguration {
 
         @Bean
         JdbcClient jdbcClient(Vertx vertx, JDBCClient vertxJdbcClient) {
-            return new JdbcClient(vertx, vertxJdbcClient);
+            final JdbcClient jdbcClient = new JdbcClient(vertx, vertxJdbcClient);
+
+            contextRunner.runOnServiceContext(
+                    future -> jdbcClient.initialize().compose(ignored -> future.complete(), future));
+
+            return jdbcClient;
         }
 
         @Bean

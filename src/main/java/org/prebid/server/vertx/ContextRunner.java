@@ -18,25 +18,26 @@ public class ContextRunner {
     private static final Logger logger = LoggerFactory.getLogger(ContextRunner.class);
 
     private final Vertx vertx;
+    private final long timeoutMs;
 
     private final Context serviceContext;
 
-    public ContextRunner(Vertx vertx) {
+    public ContextRunner(Vertx vertx, long timeoutMs) {
         this.vertx = Objects.requireNonNull(vertx);
+        this.timeoutMs = timeoutMs;
 
         this.serviceContext = vertx.getOrCreateContext();
     }
 
-    public void runOnNewContext(int times, Handler<Future<Void>> action, long timeoutMs) {
-        runOnContext(vertx::getOrCreateContext, times, action, timeoutMs);
+    public void runOnNewContext(int times, Handler<Future<Void>> action) {
+        runOnContext(vertx::getOrCreateContext, times, action);
     }
 
-    public <T> void runOnServiceContext(Handler<Future<T>> action, long timeoutMs) {
-        runOnContext(() -> serviceContext, 1, action, timeoutMs);
+    public <T> void runOnServiceContext(Handler<Future<T>> action) {
+        runOnContext(() -> serviceContext, 1, action);
     }
 
-    private <T> void runOnContext(Supplier<Context> contextFactory, int times, Handler<Future<T>> action,
-                                  long timeoutMs) {
+    private <T> void runOnContext(Supplier<Context> contextFactory, int times, Handler<Future<T>> action) {
         final CountDownLatch completionLatch = new CountDownLatch(times);
         final AtomicBoolean actionFailed = new AtomicBoolean(false);
 
