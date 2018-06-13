@@ -3,10 +3,10 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.spi.VerticleFactory;
 import io.vertx.ext.web.Router;
 import org.prebid.server.PrebidVerticle;
 import org.prebid.server.json.ObjectMapperConfigurer;
+import org.prebid.server.spring.VertxContextScope;
 import org.prebid.server.vertx.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,20 +43,13 @@ public class ApplicationConfiguration {
     }
 
     @Bean
-    Vertx vertx(@Value("${vertx.worker-pool-size}") Integer workerPoolSize, VerticleFactory verticleFactory) {
-        final Vertx vertx = Vertx.vertx(new VertxOptions().setWorkerPoolSize(workerPoolSize));
-        vertx.registerVerticleFactory(verticleFactory);
-        return vertx;
+    Vertx vertx(@Value("${vertx.worker-pool-size}") Integer workerPoolSize) {
+        return Vertx.vertx(new VertxOptions().setWorkerPoolSize(workerPoolSize));
     }
 
     @Bean
     FileSystem fileSystem(Vertx vertx) {
         return vertx.fileSystem();
-    }
-
-    @Bean
-    SpringVerticleFactory springVerticleFactory() {
-        return new SpringVerticleFactory();
     }
 
     @Bean
