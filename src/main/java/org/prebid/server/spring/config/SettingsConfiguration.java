@@ -3,14 +3,17 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.CacheNotificationVerticle;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
@@ -32,6 +35,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -240,6 +244,26 @@ public class SettingsConfiguration {
             havingValue = "true")
     public static class CacheNotificationConfiguration {
 
+        private static final Logger logger = LoggerFactory.getLogger(CacheNotificationConfiguration.class);
+
+        @Autowired
+        private ContextRunner contextRunner;
+
+        @Autowired
+        private Vertx vertx;
+
+        @Autowired
+        private BodyHandler bodyHandler;
+
+        @Autowired
+        private SettingsCacheNotificationHandler cacheNotificationHandler;
+
+        @Autowired
+        private SettingsCacheNotificationHandler ampCacheNotificationHandler;
+
+        @Value("${admin.port}")
+        private int adminPort;
+
         @Bean
         SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache) {
             return new SettingsCacheNotificationHandler(settingsCache);
@@ -250,16 +274,19 @@ public class SettingsConfiguration {
             return new SettingsCacheNotificationHandler(ampSettingsCache);
         }
 
-        @Bean
-        CacheNotificationVerticle cacheNotificationVerticle(
-                @Value("${admin.port}") int port,
-                Vertx vertx,
-                SettingsCacheNotificationHandler cacheNotificationHandler,
-                SettingsCacheNotificationHandler ampCacheNotificationHandler,
-                BodyHandler bodyHandler) {
+        @PostConstruct
+        public void startAdminServer() {
+            logger.info("Starting Admin Server to serve requests on port {0,number,#}", adminPort);
 
-            return new CacheNotificationVerticle(vertx, port, cacheNotificationHandler, ampCacheNotificationHandler,
-                    bodyHandler);
+            final Router router = Router.router(vertx);
+            router.route().handler(bodyHandler);
+            router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
+            router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+
+            contextRunner.<HttpServer>runOnServiceContext(future ->
+                    vertx.createHttpServer().requestHandler(router::accept).listen(adminPort, future));
+
+            logger.info("Successfully started Admin Server");
         }
     }
 }

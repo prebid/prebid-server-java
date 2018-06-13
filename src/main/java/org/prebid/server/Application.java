@@ -10,10 +10,4 @@ public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
-
-    // skip deploy if bean doesn't exist in application context
-    //        if (!prebidVerticle.getBeansOfType(SettingsConfiguration.CacheNotificationConfiguration.class)
-    // .isEmpty()) {
-    //            deployVerticle(1, CacheNotificationVerticle.class);
-    //        }
 }

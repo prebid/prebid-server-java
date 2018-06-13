@@ -82,7 +82,6 @@ public class WebConfiguration {
     @Value("${http.port}")
     private int httpPort;
 
-
     @PostConstruct
     public void startHttpServer() {
         logger.info("Starting {0} instances of Http Server to serve requests on port {1,number,#}", httpServerNum,
@@ -91,7 +90,7 @@ public class WebConfiguration {
         contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
                 vertx.createHttpServer(httpServerOptions).requestHandler(router::accept).listen(httpPort, future));
 
-        logger.info("Successfully started {0} instances of http server", httpServerNum);
+        logger.info("Successfully started {0} instances of Http Server", httpServerNum);
     }
 
     @Bean
@@ -148,11 +147,6 @@ public class WebConfiguration {
     @Bean
     CookieHandler cookieHandler() {
         return CookieHandler.create();
-    }
-
-    @Bean
-    BodyHandler bodyHandler(@Value("${vertx.uploads-dir}") String uploadsDir) {
-        return BodyHandler.create(uploadsDir);
     }
 
     @Bean
