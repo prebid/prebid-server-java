@@ -12,7 +12,7 @@ import java.util.List;
 public class VendorListInfo {
 
     @JsonProperty("vendorListVersion")
-    int vendorListVersion;
+    Integer vendorListVersion;
 
     @JsonProperty("lastUpdated")
     Date lastUpdated;

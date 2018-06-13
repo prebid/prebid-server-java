@@ -5,9 +5,7 @@ import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.model.GdprPurpose;
-import org.prebid.server.gdpr.vendorlist.VendorList;
-import org.prebid.server.gdpr.vendorlist.proto.Vendor;
-import org.prebid.server.gdpr.vendorlist.proto.VendorListInfo;
+import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 
@@ -29,14 +27,14 @@ public class GdprService {
 
     private final GeoLocationService geoLocationService;
     private final List<String> eeaCountries;
-    private final VendorList vendorList;
+    private final VendorListService vendorListService;
     private final String gdprDefaultValue;
 
-    public GdprService(GeoLocationService geoLocationService, List<String> eeaCountries, VendorList vendorList,
-                       String gdprDefaultValue) {
+    public GdprService(GeoLocationService geoLocationService, List<String> eeaCountries,
+                       VendorListService vendorListService, String gdprDefaultValue) {
         this.geoLocationService = geoLocationService;
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
-        this.vendorList = Objects.requireNonNull(vendorList);
+        this.vendorListService = Objects.requireNonNull(vendorListService);
         this.gdprDefaultValue = Objects.requireNonNull(gdprDefaultValue);
     }
 
@@ -107,15 +105,12 @@ public class GdprService {
             return sameResultFor(vendorIds, false);
         }
 
-        return vendorList.forVersion(parser.getVendorListVersion(), timeout)
-                .map(vendorListInfo -> toResult(vendorListInfo, vendorIds, purposeIds, parser));
+        return vendorListService.forVersion(parser.getVendorListVersion(), timeout)
+                .map(vendorIdToPurposes -> toResult(vendorIdToPurposes, vendorIds, purposeIds, parser));
     }
 
-    private static Map<Integer, Boolean> toResult(VendorListInfo vendorListInfo, Set<Integer> vendorIds,
+    private static Map<Integer, Boolean> toResult(Map<Integer, Set<Integer>> vendorIdToPurposes, Set<Integer> vendorIds,
                                                   Set<Integer> purposeIds, ConsentStringParser parser) {
-        final Map<Integer, Vendor> idToVendor = vendorListInfo.getVendors().stream()
-                .collect(Collectors.toMap(Vendor::getId, Function.identity()));
-
         final Map<Integer, Boolean> result = new HashMap<>(vendorIds.size());
         for (Integer vendorId : vendorIds) {
             // consent string confirms Vendor is allowed
@@ -124,8 +119,7 @@ public class GdprService {
             // vendorlist lookup confirms Vendor has all purposes
             final boolean vendorHasAllPurposes;
             if (vendorIsAllowed) {
-                final Vendor vendor = idToVendor.get(vendorId);
-                final List<Integer> vendorPurposeIds = vendor != null ? vendor.getPurposeIds() : null;
+                final Set<Integer> vendorPurposeIds = vendorIdToPurposes.get(vendorId);
                 vendorHasAllPurposes = vendorPurposeIds != null && vendorPurposeIds.containsAll(purposeIds);
             } else {
                 vendorHasAllPurposes = false;
