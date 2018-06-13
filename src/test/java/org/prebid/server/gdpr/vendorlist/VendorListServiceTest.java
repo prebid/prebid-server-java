@@ -20,14 +20,9 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
-import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.gdpr.vendorlist.proto.VendorListInfo;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -61,9 +56,6 @@ public class VendorListServiceTest extends VertxTest {
 
     private VendorListService vendorListService;
 
-    private Timeout timeout;
-    private Timeout expiredTimeout;
-
     @Before
     public void setUp() {
         given(httpClient.getAbs(anyString(), any())).willReturn(httpClientRequest);
@@ -74,13 +66,8 @@ public class VendorListServiceTest extends VertxTest {
         given(bidderCatalog.usersyncerByName(any())).willReturn(usersyncer);
         given(usersyncer.gdprVendorId()).willReturn(52);
 
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        timeout = timeoutFactory.create(500L);
-        expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
-
         vendorListService = VendorListService.create(fileSystem, "/cache/dir", httpClient, "http://vendorlist/%s",
-                null, bidderCatalog);
+                0, null, bidderCatalog);
     }
 
     // Creation related tests
@@ -92,7 +79,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         assertThatThrownBy(() -> VendorListService.create(fileSystem, "/cache/dir", httpClient, "http://vendorlist/%s",
-                null, bidderCatalog))
+                0, null, bidderCatalog))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -105,7 +92,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         assertThatThrownBy(() -> VendorListService.create(fileSystem, "/cache/dir", httpClient, "http://vendorlist/%s",
-                null, bidderCatalog))
+                0, null, bidderCatalog))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -118,7 +105,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         assertThatThrownBy(() -> VendorListService.create(fileSystem, "/cache/dir", httpClient, "http://vendorlist/%s",
-                null, bidderCatalog))
+                0, null, bidderCatalog))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Cannot parse vendor list from: invalid");
     }
@@ -126,18 +113,9 @@ public class VendorListServiceTest extends VertxTest {
     // Http related tests
 
     @Test
-    public void shouldNotPerformHttpRequestIfTimeoutExceeded() {
-        // when
-        vendorListService.forVersion(1, expiredTimeout);
-
-        // then
-        verifyZeroInteractions(httpClient);
-    }
-
-    @Test
     public void shouldPerformHttpRequestWithExpectedQueryIfVendorListNotFound() {
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
@@ -152,7 +130,7 @@ public class VendorListServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception"), 0));
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(httpClient).getAbs(any(), any());
@@ -165,7 +143,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(httpClient).getAbs(any(), any());
@@ -178,7 +156,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(503, "response");
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(httpClient).getAbs(any(), any());
@@ -191,7 +169,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "response");
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(httpClient).getAbs(any(), any());
@@ -205,7 +183,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(httpClient).getAbs(any(), any());
@@ -219,7 +197,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(httpClient).getAbs(any(), any());
@@ -233,7 +211,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(httpClient).getAbs(any(), any());
@@ -247,7 +225,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(httpClient).getAbs(any(), any());
@@ -261,7 +239,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(httpClient).getAbs(any(), any());
@@ -277,7 +255,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, vendorListAsString);
 
         // when
-        vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1);
 
         // then
         verify(fileSystem).writeFile(eq("/cache/dir/1.json"), eq(Buffer.buffer(vendorListAsString)), any());
@@ -288,7 +266,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldFailIfVendorListNotFound() {
         // when
-        final Future<?> future = vendorListService.forVersion(1, timeout);
+        final Future<?> future = vendorListService.forVersion(1);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -305,8 +283,8 @@ public class VendorListServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 2));
 
         // when
-        vendorListService.forVersion(1, timeout); // populate cache
-        final Future<Map<Integer, Set<Integer>>> future = vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1); // populate cache
+        final Future<Map<Integer, Set<Integer>>> future = vendorListService.forVersion(1);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -325,8 +303,8 @@ public class VendorListServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 2));
 
         // when
-        vendorListService.forVersion(1, timeout); // populate cache
-        final Future<Map<Integer, Set<Integer>>> future = vendorListService.forVersion(1, timeout);
+        vendorListService.forVersion(1); // populate cache
+        final Future<Map<Integer, Set<Integer>>> future = vendorListService.forVersion(1);
 
         // then
         assertThat(future.succeeded()).isTrue();

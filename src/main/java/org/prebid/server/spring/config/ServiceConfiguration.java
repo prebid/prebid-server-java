@@ -136,11 +136,12 @@ public class ServiceConfiguration {
             @Value("${gdpr.vendorlist.filesystem-cache-dir}") String cacheDir,
             HttpClient httpClient,
             @Value("${gdpr.vendorlist.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.http-default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             BidderCatalog bidderCatalog) {
 
-        return VendorListService.create(fileSystem, cacheDir, httpClient, endpointTemplate, hostVendorId,
-                bidderCatalog);
+        return VendorListService.create(fileSystem, cacheDir, httpClient, endpointTemplate, defaultTimeoutMs,
+                hostVendorId, bidderCatalog);
     }
 
     /**

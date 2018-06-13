@@ -3,7 +3,6 @@ package org.prebid.server.gdpr;
 import com.iab.gdpr.ConsentStringParser;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
@@ -42,9 +41,9 @@ public class GdprService {
      * Returns a map with Vendor ID as a key and GDPR result [true/false] as a value.
      */
     public Future<Map<Integer, Boolean>> resultByVendor(Set<GdprPurpose> purposes, Set<Integer> vendorIds, String gdpr,
-                                                        String gdprConsent, String ipAddress, Timeout timeout) {
+                                                        String gdprConsent, String ipAddress) {
         return resolveGdprValue(gdpr, ipAddress)
-                .compose(gdprValue -> toResultMap(gdprValue, gdprConsent, purposes, vendorIds, timeout));
+                .compose(gdprValue -> toResultMap(gdprValue, gdprConsent, purposes, vendorIds));
     }
 
     /**
@@ -71,12 +70,12 @@ public class GdprService {
      * Analyzes GDPR params and returns a map with GDPR result for each vendor.
      */
     private Future<Map<Integer, Boolean>> toResultMap(String gdpr, String gdprConsent, Set<GdprPurpose> purposes,
-                                                      Set<Integer> vendorIds, Timeout timeout) {
+                                                      Set<Integer> vendorIds) {
         switch (gdpr) {
             case "0":
                 return sameResultFor(vendorIds, true);
             case "1":
-                return fromConsent(gdprConsent, purposes, vendorIds, timeout);
+                return fromConsent(gdprConsent, purposes, vendorIds);
             default:
                 return failWith("The gdpr param must be either 0 or 1, given: %s", gdpr);
         }
@@ -86,8 +85,8 @@ public class GdprService {
         return Future.succeededFuture(vendorIds.stream().collect(Collectors.toMap(Function.identity(), id -> result)));
     }
 
-    private Future<Map<Integer, Boolean>> fromConsent(String consent, Set<GdprPurpose> purposes, Set<Integer> vendorIds,
-                                                      Timeout timeout) {
+    private Future<Map<Integer, Boolean>> fromConsent(String consent, Set<GdprPurpose> purposes,
+                                                      Set<Integer> vendorIds) {
         if (StringUtils.isEmpty(consent)) {
             return failWith("The gdpr_consent param is required when gdpr=1");
         }
@@ -105,7 +104,7 @@ public class GdprService {
             return sameResultFor(vendorIds, false);
         }
 
-        return vendorListService.forVersion(parser.getVendorListVersion(), timeout)
+        return vendorListService.forVersion(parser.getVendorListVersion())
                 .map(vendorIdToPurposes -> toResult(vendorIdToPurposes, vendorIds, purposeIds, parser));
     }
 

@@ -16,7 +16,8 @@ import java.util.Map;
 
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
 public class GdprServiceTest {
@@ -33,7 +34,7 @@ public class GdprServiceTest {
 
     @Before
     public void setUp() {
-        given(vendorListService.forVersion(anyInt(), any())).willReturn(Future.succeededFuture(
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
                 singletonMap(1, singleton(GdprPurpose.informationStorageAndAccess.getId()))));
 
         gdprService = new GdprService(null, emptyList(), vendorListService, "1");
@@ -43,7 +44,7 @@ public class GdprServiceTest {
     public void shouldFailIfGdprParamIsNeitherZeroNorOne() {
         // when
         final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), emptySet(), "invalid-gdpr", null, null, null);
+                gdprService.resultByVendor(emptySet(), emptySet(), "invalid-gdpr", null, null);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -54,7 +55,7 @@ public class GdprServiceTest {
     public void shouldReturnSuccessResultIfGdprParamIsZero() {
         // when
         final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), "0", null, null, null);
+                gdprService.resultByVendor(emptySet(), singleton(1), "0", null, null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -66,7 +67,7 @@ public class GdprServiceTest {
     public void shouldFailIfGdprParamIsOneAndNoConsentParam() {
         // when
         final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), emptySet(), "1", null, null, null);
+                gdprService.resultByVendor(emptySet(), emptySet(), "1", null, null);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -77,7 +78,7 @@ public class GdprServiceTest {
     public void shouldFailIfGdprParamIsOneButConsentParamIsInvalid() {
         // when
         final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), emptySet(), "1", "invalid-consent", null, null);
+                gdprService.resultByVendor(emptySet(), emptySet(), "1", "invalid-consent", null);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -90,7 +91,7 @@ public class GdprServiceTest {
         // when
         final Future<Map<Integer, Boolean>> future =
                 gdprService.resultByVendor(singleton(GdprPurpose.adSelectionAndDeliveryAndReporting), singleton(1), "1",
-                        "BN5lERiOMYEdiAKAWXEND1HoSBE6CAFAApAMgBkIDIgM0AgOJxAnQA", null, null);
+                        "BN5lERiOMYEdiAKAWXEND1HoSBE6CAFAApAMgBkIDIgM0AgOJxAnQA", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -103,7 +104,7 @@ public class GdprServiceTest {
         // when
         final Future<Map<Integer, Boolean>> future =
                 gdprService.resultByVendor(emptySet(), singleton(null), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA",
-                        null, null);
+                        null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -115,8 +116,7 @@ public class GdprServiceTest {
     public void shouldReturnRestrictedResultIfVendorIdIsNotAllowed() {
         // when
         final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), singleton(9), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null,
-                        null);
+                gdprService.resultByVendor(emptySet(), singleton(9), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -129,7 +129,7 @@ public class GdprServiceTest {
         // when
         final Future<Map<Integer, Boolean>> future =
                 gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "1",
-                        "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null);
+                        "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -145,7 +145,7 @@ public class GdprServiceTest {
 
         // when
         final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), null, null, "ip", null);
+                gdprService.resultByVendor(emptySet(), singleton(1), null, null, "ip");
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -161,7 +161,7 @@ public class GdprServiceTest {
 
         // when
         final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), null, null, "ip", null);
+                gdprService.resultByVendor(emptySet(), singleton(1), null, null, "ip");
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -178,7 +178,7 @@ public class GdprServiceTest {
         // when
         final Future<Map<Integer, Boolean>> future =
                 gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), null,
-                        "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", "ip", null);
+                        "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", "ip");
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -193,7 +193,7 @@ public class GdprServiceTest {
 
         // when
         final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), null, null, null, null);
+                gdprService.resultByVendor(emptySet(), singleton(1), null, null, null);
 
         // then
         assertThat(future.succeeded()).isTrue();

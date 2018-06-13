@@ -14,7 +14,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.gdpr.vendorlist.proto.VendorListInfo;
 
@@ -26,7 +25,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +49,7 @@ public class VendorListService {
 
     private final HttpClient httpClient;
     private final String endpointTemplate;
+    private final int defaultTimeoutMs;
 
     private final Set<Integer> knownVendorIds;
     /**
@@ -60,21 +59,22 @@ public class VendorListService {
     private final Map<Integer, Map<Integer, Set<Integer>>> cache;
 
     private VendorListService(FileSystem fileSystem, String cacheDir,
-                              HttpClient httpClient, String endpointTemplate,
+                              HttpClient httpClient, String endpointTemplate, int defaultTimeoutMs,
                               Set<Integer> knownVendorIds, Map<Integer, Map<Integer, Set<Integer>>> cache) {
         this.fileSystem = fileSystem;
         this.cacheDir = cacheDir;
 
         this.httpClient = httpClient;
         this.endpointTemplate = endpointTemplate;
+        this.defaultTimeoutMs = defaultTimeoutMs;
 
         this.knownVendorIds = knownVendorIds;
         this.cache = cache;
     }
 
-    public static VendorListService create(FileSystem fileSystem, String cacheDir,
-                                           HttpClient httpClient, String endpointTemplate,
-                                           Integer gdprHostVendorId, BidderCatalog bidderCatalog) {
+    public static VendorListService create(FileSystem fileSystem, String cacheDir, HttpClient httpClient,
+                                           String endpointTemplate, int defaultTimeoutMs, Integer gdprHostVendorId,
+                                           BidderCatalog bidderCatalog) {
         Objects.requireNonNull(fileSystem);
         Objects.requireNonNull(cacheDir);
         Objects.requireNonNull(httpClient);
@@ -84,7 +84,8 @@ public class VendorListService {
         final Set<Integer> knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
         final Map<Integer, Map<Integer, Set<Integer>>> cache = createCache(fileSystem, cacheDir, knownVendorIds);
 
-        return new VendorListService(fileSystem, cacheDir, httpClient, endpointTemplate, knownVendorIds, cache);
+        return new VendorListService(fileSystem, cacheDir, httpClient, endpointTemplate, defaultTimeoutMs,
+                knownVendorIds, cache);
     }
 
     /**
@@ -159,12 +160,12 @@ public class VendorListService {
     /**
      * Returns a map with vendor ID as a key and a set of purposes as a value for given vendor list version.
      */
-    public Future<Map<Integer, Set<Integer>>> forVersion(int version, Timeout timeout) {
+    public Future<Map<Integer, Set<Integer>>> forVersion(int version) {
         final Map<Integer, Set<Integer>> vendorIdToPurposes = cache.get(version);
         if (vendorIdToPurposes != null) {
             return Future.succeededFuture(vendorIdToPurposes);
         } else {
-            fetchNewVendorListFor(version, timeout);
+            fetchNewVendorListFor(version);
 
             return Future.failedFuture(String.format("Vendor list of version %d not found. Try again later.", version));
         }
@@ -173,17 +174,12 @@ public class VendorListService {
     /**
      * Proceeds obtaining new vendor list from HTTP resource.
      */
-    private void fetchNewVendorListFor(int version, Timeout timeout) {
-        final long remainingTimeout = timeout.remaining();
-        if (remainingTimeout <= 0) {
-            handleException(version, new TimeoutException("Timeout has been exceeded"));
-        } else {
-            httpClient.getAbs(String.format(endpointTemplate, version),
-                    response -> handleResponse(response, version))
-                    .exceptionHandler(throwable -> handleException(version, throwable))
-                    .setTimeout(remainingTimeout)
-                    .end();
-        }
+    private void fetchNewVendorListFor(int version) {
+        httpClient.getAbs(String.format(endpointTemplate, version),
+                response -> handleResponse(response, version))
+                .exceptionHandler(throwable -> handleException(version, throwable))
+                .setTimeout(defaultTimeoutMs)
+                .end();
     }
 
     private static void handleException(int version, Throwable throwable) {

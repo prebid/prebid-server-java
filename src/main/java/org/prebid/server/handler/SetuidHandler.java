@@ -56,8 +56,6 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        final long startTime = clock.millis();
-
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
@@ -79,7 +77,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String gdpr = context.request().getParam("gdpr");
         final String gdprConsent = context.request().getParam("gdpr_consent");
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
-        gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip, timeout(startTime))
+        gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip)
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, bidder));
     }
 

@@ -75,7 +75,7 @@ public class SetuidHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
+        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(singletonMap(null, true)));
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -128,7 +128,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
         // given
-        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
+        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(singletonMap(null, false)));
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -151,7 +151,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorIfGdprProcessingFails() {
         // given
-        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
+        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any()))
                 .willReturn(Future.failedFuture("gdpr exception"));
 
         given(uidsCookieService.parseFromRequest(any()))
@@ -194,7 +194,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(gdprService).resultByVendor(anySet(), anySet(), any(), any(), eq("192.168.144.1"), any());
+        verify(gdprService).resultByVendor(anySet(), anySet(), any(), any(), eq("192.168.144.1"));
     }
 
     @Test
