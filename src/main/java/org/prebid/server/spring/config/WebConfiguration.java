@@ -67,7 +67,7 @@ public class WebConfiguration {
     @Autowired
     private ContextRunner contextRunner;
 
-    @Value("${vertx.verticle.instances}")
+    @Value("${vertx.http-server-instances}")
     private int httpServerNum;
 
     @Autowired

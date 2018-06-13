@@ -11,9 +11,9 @@ This section can be extended against standard [Spring configuration](https://doc
 - `vertx.worker-pool-size` - set the maximum number of worker threads to be used by the Vert.x instance.
 - `vertx.uploads-dir` - directory that Vert.x [BodyHandler](http://vertx.io/docs/apidocs/io/vertx/ext/web/handler/BodyHandler.html) will use to store multi-part file uploads. 
 This parameter exists to allow to change the location of the directory Vert.x will create because it will and there is no way to make it not.
-- `vertx.verticle.instances` - how many verticles should be started. 
-This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one verticle instance will keep 1 CPU core busy.
-- `vertx.verticle.deploy-timeout-ms` - waiting time before Vert.x starts one verticle instance. If time exceeds - exception will be thrown and Prebid Server stops.
+- `vertx.http-server-instances` - how many http server instances should be created. 
+This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
+- `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
 
 ## HTTP
 - `http.port` - the port to listen on.

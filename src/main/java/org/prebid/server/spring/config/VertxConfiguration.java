@@ -33,7 +33,7 @@ public class VertxConfiguration {
     }
 
     @Bean
-    ContextRunner contextRunner(Vertx vertx, @Value("${vertx.verticle.deploy-timeout-ms}") long initTimeoutMs) {
+    ContextRunner contextRunner(Vertx vertx, @Value("${vertx.init-timeout-ms}") long initTimeoutMs) {
         return new ContextRunner(vertx, initTimeoutMs);
     }
 }
