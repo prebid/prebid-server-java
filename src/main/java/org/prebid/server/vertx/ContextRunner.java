@@ -29,7 +29,7 @@ public class ContextRunner {
         this.serviceContext = vertx.getOrCreateContext();
     }
 
-    public void runOnNewContext(int times, Handler<Future<Void>> action) {
+    public <T> void runOnNewContext(int times, Handler<Future<T>> action) {
         runOnContext(vertx::getOrCreateContext, times, action);
     }
 

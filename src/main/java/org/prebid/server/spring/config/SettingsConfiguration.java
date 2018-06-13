@@ -62,9 +62,6 @@ public class SettingsConfiguration {
     @ConditionalOnExpression("'${settings.database.type}' == 'postgres' or '${settings.database.type}' == 'mysql'")
     static class DatabaseSettingsConfiguration {
 
-        @Autowired
-        private ContextRunner contextRunner;
-
         @Bean
         JdbcApplicationSettings jdbcApplicationSettings(
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
@@ -75,7 +72,7 @@ public class SettingsConfiguration {
         }
 
         @Bean
-        JdbcClient jdbcClient(Vertx vertx, JDBCClient vertxJdbcClient) {
+        JdbcClient jdbcClient(Vertx vertx, JDBCClient vertxJdbcClient, ContextRunner contextRunner) {
             final JdbcClient jdbcClient = new JdbcClient(vertx, vertxJdbcClient);
 
             contextRunner.runOnServiceContext(

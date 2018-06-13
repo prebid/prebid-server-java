@@ -26,7 +26,6 @@ import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.vertx.ContextRunner;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,9 +40,6 @@ import java.util.Properties;
 
 @Configuration
 public class ServiceConfiguration {
-
-    @Autowired
-    private ContextRunner contextRunner;
 
     @Bean
     CacheService cacheService(
@@ -222,7 +218,8 @@ public class ServiceConfiguration {
             @Value("${auction.currency-rates-refresh-period-ms}") long refreshPeriod,
             @Value("${auction.currency-rates-url}") String currencyServerUrl,
             Vertx vertx,
-            HttpClient httpClient) {
+            HttpClient httpClient,
+            ContextRunner contextRunner) {
 
         final CurrencyConversionService service = new CurrencyConversionService(currencyServerUrl, refreshPeriod,
                 vertx, httpClient);

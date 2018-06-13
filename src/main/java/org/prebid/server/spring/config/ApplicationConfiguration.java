@@ -1,10 +1,6 @@
 package org.prebid.server.spring.config;
 
-import io.vertx.core.Vertx;
-import io.vertx.ext.web.Router;
-import org.prebid.server.PrebidVerticle;
 import org.prebid.server.json.ObjectMapperConfigurer;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.CustomScopeConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,14 +31,5 @@ public class ApplicationConfiguration {
 
         configurer.setScopes(scopes);
         return configurer;
-    }
-
-    @Bean
-    PrebidVerticle prebidVerticle(
-            @Value("${http.port}") int port,
-            Vertx vertx,
-            Router router) {
-
-        return new PrebidVerticle(vertx, router, port);
     }
 }

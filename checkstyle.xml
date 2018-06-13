@@ -19,6 +19,7 @@
     <module name="RegexpMultiline">
         <property name="format" value="System\.(out|err)\.print"/>
     </module>
+    <module name="SuppressWarningsFilter" />
     <module name="TreeWalker">
         <module name="Indentation">
             <property name="lineWrappingIndentation" value="8" />
@@ -127,5 +128,6 @@
         <module name="SingleSpaceSeparator"/>
         <module name="StringLiteralEquality" />
         <module name="UnnecessaryParentheses"/>
+        <module name="SuppressWarningsHolder" />
     </module>
 </module>
