@@ -22,15 +22,11 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
-import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.metric.CookieSyncMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -85,10 +81,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(metrics.cookieSync()).willReturn(cookieSyncMetrics);
         given(cookieSyncMetrics.forBidder(anyString())).willReturn(bidderCookieSyncMetrics);
 
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(5000, uidsCookieService, gdprService, null, false, analyticsReporter, metrics,
-                clock, timeoutFactory);
+        setuidHandler = new SetuidHandler(uidsCookieService, gdprService, null, false, analyticsReporter, metrics);
     }
 
     @Test
@@ -174,10 +167,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldPassIpAddressToGdprServiceIfGeoLocationEnabled() {
         // given
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        setuidHandler = new SetuidHandler(5000, uidsCookieService, gdprService, null, true, analyticsReporter, metrics,
-                clock, timeoutFactory);
+        setuidHandler = new SetuidHandler(uidsCookieService, gdprService, null, true, analyticsReporter, metrics);
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
