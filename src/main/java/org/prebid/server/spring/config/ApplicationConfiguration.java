@@ -6,7 +6,6 @@ import io.vertx.core.file.FileSystem;
 import io.vertx.ext.web.Router;
 import org.prebid.server.PrebidVerticle;
 import org.prebid.server.json.ObjectMapperConfigurer;
-import org.prebid.server.spring.VertxContextScope;
 import org.prebid.server.vertx.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

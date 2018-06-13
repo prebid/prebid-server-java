@@ -1,4 +1,4 @@
-package org.prebid.server.spring;
+package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
