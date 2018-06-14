@@ -9,6 +9,7 @@ import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.model.GdprResponse;
+import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 
@@ -32,11 +33,14 @@ public class GdprService {
 
     private final GeoLocationService geoLocationService;
     private final List<String> eeaCountries;
+    private final VendorListService vendorListService;
     private final String gdprDefaultValue;
 
-    public GdprService(GeoLocationService geoLocationService, List<String> eeaCountries, String gdprDefaultValue) {
+    public GdprService(GeoLocationService geoLocationService, List<String> eeaCountries,
+                       VendorListService vendorListService, String gdprDefaultValue) {
         this.geoLocationService = geoLocationService;
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
+        this.vendorListService = Objects.requireNonNull(vendorListService);
         this.gdprDefaultValue = Objects.requireNonNull(gdprDefaultValue);
     }
 
@@ -47,12 +51,12 @@ public class GdprService {
     public Future<GdprResponse> resultByVendor(Set<GdprPurpose> purposes, Set<Integer> vendorIds, String gdpr,
                                                String gdprConsent, String ipAddress) {
         return resolveGdprWithCountryValue(gdpr, ipAddress)
-                .map(gdprWithCountry -> toGdprResponse(gdprWithCountry.getGdpr(), gdprConsent, purposes, vendorIds,
+                .compose(gdprWithCountry -> toGdprResponse(gdprWithCountry.getGdpr(), gdprConsent, purposes, vendorIds,
                         gdprWithCountry.getCountry()));
     }
 
     /**
-     * Determines GDPR and country values from external GDPR param, geo location or default.
+     * Determines GDPR value from external GDPR param, geo location or default.
      */
     private Future<GdprWithCountry> resolveGdprWithCountryValue(String gdpr, String ipAddress) {
         final String gdprFromRequest = StringUtils.stripToNull(gdpr);
@@ -90,27 +94,28 @@ public class GdprService {
     }
 
     /**
-     * Analyzes GDPR value and returns a {@link GdprResponse} with map of gdpr result for each vendor
-     * or throws {@link GdprException} in case of unexpected GDPR value.
+     * Analyzes GDPR params and returns a {@link GdprResponse} with map of gdpr result for each vendor.
      */
-    private GdprResponse toGdprResponse(String gdpr, String gdprConsent, Set<GdprPurpose> purposes,
-                                        Set<Integer> vendorIds, String country) throws GdprException {
+    private Future<GdprResponse> toGdprResponse(String gdpr, String gdprConsent, Set<GdprPurpose> purposes,
+                                        Set<Integer> vendorIds, String country) {
         switch (gdpr) {
             case "0":
-                return GdprResponse.of(sameResultFor(vendorIds, true), country);
+                return sameResultFor(vendorIds, true)
+                        .map(vendorIdsToGdpr -> GdprResponse.of(vendorIdsToGdpr, country));
             case "1":
-                return GdprResponse.of(fromConsent(gdprConsent, purposes, vendorIds), country);
+                return fromConsent(gdprConsent, purposes, vendorIds)
+                        .map(vendorIdsToGdpr -> GdprResponse.of(vendorIdsToGdpr, country));
             default:
-                throw new GdprException(String.format("The gdpr param must be either 0 or 1, given: %s", gdpr));
+                return failWith("The gdpr param must be either 0 or 1, given: %s", gdpr);
         }
     }
 
-    private static Map<Integer, Boolean> sameResultFor(Set<Integer> vendorIds, boolean result) {
-        return vendorIds.stream().collect(Collectors.toMap(Function.identity(), id -> result));
+    private static Future<Map<Integer, Boolean>> sameResultFor(Set<Integer> vendorIds, boolean result) {
+        return Future.succeededFuture(vendorIds.stream().collect(Collectors.toMap(Function.identity(), id -> result)));
     }
 
-    private static Map<Integer, Boolean> fromConsent(String consent, Set<GdprPurpose> purposes,
-                                                     Set<Integer> vendorIds) {
+    private Future<Map<Integer, Boolean>> fromConsent(String consent, Set<GdprPurpose> purposes,
+                                                      Set<Integer> vendorIds) {
         if (StringUtils.isEmpty(consent)) {
             return sameResultFor(vendorIds, false);
         }
@@ -124,19 +129,32 @@ public class GdprService {
         }
 
         // consent string confirms user has allowed all purposes
-        final List<Integer> purposeIds = purposes.stream().map(GdprPurpose::getId).collect(Collectors.toList());
+        final Set<Integer> purposeIds = purposes.stream().map(GdprPurpose::getId).collect(Collectors.toSet());
         if (!parser.getAllowedPurposes().containsAll(purposeIds)) {
             return sameResultFor(vendorIds, false);
         }
 
+        return vendorListService.forVersion(parser.getVendorListVersion())
+                .map(vendorIdToPurposes -> toResult(vendorIdToPurposes, vendorIds, purposeIds, parser));
+    }
+
+    private static Map<Integer, Boolean> toResult(Map<Integer, Set<Integer>> vendorIdToPurposes, Set<Integer> vendorIds,
+                                                  Set<Integer> purposeIds, ConsentStringParser parser) {
         final Map<Integer, Boolean> result = new HashMap<>(vendorIds.size());
         for (Integer vendorId : vendorIds) {
             // consent string confirms Vendor is allowed
-            final boolean allowedVendor = vendorId != null && parser.isVendorAllowed(vendorId);
+            final boolean vendorIsAllowed = vendorId != null && parser.isVendorAllowed(vendorId);
 
-            // FIXME: vendorlist lookup confirms Vendor has all purposes
+            // vendorlist lookup confirms Vendor has all purposes
+            final boolean vendorHasAllPurposes;
+            if (vendorIsAllowed) {
+                final Set<Integer> vendorPurposeIds = vendorIdToPurposes.get(vendorId);
+                vendorHasAllPurposes = vendorPurposeIds != null && vendorPurposeIds.containsAll(purposeIds);
+            } else {
+                vendorHasAllPurposes = false;
+            }
 
-            result.put(vendorId, allowedVendor);
+            result.put(vendorId, vendorIsAllowed && vendorHasAllPurposes);
         }
         return result;
     }
@@ -149,5 +167,9 @@ public class GdprService {
     static class GdprWithCountry {
         String gdpr;
         String country;
+    }
+
+    private static Future<Map<Integer, Boolean>> failWith(String errorMessageFormat, Object... args) {
+        return Future.failedFuture(String.format(errorMessageFormat, args));
     }
 }

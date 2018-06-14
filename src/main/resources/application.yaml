@@ -109,6 +109,9 @@ host-cookie:
 gdpr:
   default-value: 1
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
+  vendorlist:
+    http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
+    http-default-timeout-ms: 2000
 geolocation:
   cookie-sync-enabled: false
   openrtb2-auctions-enabled: false

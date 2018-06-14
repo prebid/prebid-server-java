@@ -41,7 +41,6 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.gdpr.GdprException;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.AdapterMetrics;
@@ -491,7 +490,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureWithPrebidExceptionAsCauseIfGdprServiceThrowsGdprException() {
+    public void shouldReturnFailedFutureWithPrebidExceptionAsCauseIfGdprServiceFails() {
         // given
         final BidderRequester bidderRequester = mock(BidderRequester.class);
         givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
@@ -500,7 +499,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
 
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willThrow(new GdprException("The gdpr param must be either 0 or 1, given: -1"));
+                .willReturn(Future.failedFuture("The gdpr param must be either 0 or 1, given: -1"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
@@ -511,8 +510,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         assertThat(result.failed()).isTrue();
-        assertThat(result.cause()).isInstanceOf(PreBidException.class)
-                .hasMessage("The gdpr param must be either 0 or 1, given: -1");
+        assertThat(result.cause()).hasMessage("The gdpr param must be either 0 or 1, given: -1");
     }
 
     @Test

@@ -106,6 +106,10 @@ public class PreBidRequestContextFactory {
 
         if (preBidRequest.getApp() == null) {
             final String referer = paramsExtractor.refererFrom(httpRequest);
+            if (StringUtils.isBlank(referer)) {
+                throw new PreBidException("Referer cannot be null or empty");
+            }
+
             final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
             builder.uidsCookie(uidsCookie)
