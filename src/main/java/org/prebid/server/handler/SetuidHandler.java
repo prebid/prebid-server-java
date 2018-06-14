@@ -12,13 +12,13 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
+import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -71,10 +71,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, bidder));
     }
 
-    private void handleResult(AsyncResult<Map<Integer, Boolean>> asyncResult, RoutingContext context,
+    private void handleResult(AsyncResult<GdprResponse> asyncResult, RoutingContext context,
                               UidsCookie uidsCookie, String bidder) {
         final boolean gdprProcessingFailed = asyncResult.failed();
-        final boolean allowedCookie = !gdprProcessingFailed && asyncResult.result().values().iterator().next();
+        final boolean allowedCookie = !gdprProcessingFailed && asyncResult.result().getVendorsToGdpr().values()
+                .iterator().next();
 
         if (allowedCookie) {
             respondWithCookie(context, bidder, uidsCookie);
