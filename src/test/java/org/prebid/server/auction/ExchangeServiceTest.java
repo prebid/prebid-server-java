@@ -43,6 +43,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprException;
 import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -142,7 +143,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(1, true)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(1, true), null)));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
@@ -276,7 +277,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Map<String, String> uids = singletonMap("someBidder", "uidval");
 
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(15, false)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(15, false), null)));
         given(usersyncer.gdprVendorId()).willReturn(15);
         given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
 
@@ -314,10 +315,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(usersyncer.gdprVendorId()).willReturn(15);
         given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
 
-        final Map<Integer, Boolean> vendorToGdpr = singletonMap(15, true);
-
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(vendorToGdpr));
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(15, true), null)));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
@@ -367,10 +366,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(usersyncer.gdprVendorId()).willReturn(15);
         given(usersyncer.pbsEnforcesGdpr()).willReturn(false);
 
-        final Map<Integer, Boolean> vendorToGdpr = singletonMap(15, false);
-
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(vendorToGdpr));
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(15, false), null)));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
@@ -409,10 +406,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.usersyncerByName("someBidder")).willReturn(usersyncer);
         given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
 
-        final Map<Integer, Boolean> vendorToGdpr = singletonMap(15, false);
-
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(vendorToGdpr));
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(15, false), null)));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidderAlias", 1)),
                 bidRequestBuilder -> bidRequestBuilder
@@ -466,15 +461,13 @@ public class ExchangeServiceTest extends VertxTest {
         given(usersyncer2.pbsEnforcesGdpr()).willReturn(true);
         given(usersyncer3.pbsEnforcesGdpr()).willReturn(true);
 
-        final Map<Integer, Boolean> vendorToGdpr = doubleMap(2, true, 3, false);
-
         final Map<String, String> uids = new HashMap<>();
         uids.put("bidder1", "uid1");
         uids.put("bidder2", "uid2");
         uids.put("bidder3", "uid3");
 
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(vendorToGdpr));
+                .willReturn(Future.succeededFuture(GdprResponse.of(doubleMap(2, true, 3, false), null)));
 
         final BidRequest bidRequest = givenBidRequest(asList(
                 givenImp(singletonMap("bidder1", 1), identity()),

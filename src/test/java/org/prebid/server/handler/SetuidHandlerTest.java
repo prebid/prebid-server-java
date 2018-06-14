@@ -23,6 +23,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.CookieSyncMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -72,7 +73,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Before
     public void setUp() {
         given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(null, true)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(null, true), null)));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -122,7 +123,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
         // given
         given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(singletonMap(null, false)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(null, false), null)));
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));

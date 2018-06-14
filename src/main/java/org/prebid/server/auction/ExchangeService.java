@@ -35,6 +35,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.GdprException;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
+import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -257,8 +258,8 @@ public class ExchangeService {
         // - bidrequest.user.buyeruid will be set to that Bidder's ID.
 
         return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs)
-                .map(vendorToGdprPermission -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
-                        userExtNode, extRegs, aliases, imps, vendorToGdprPermission));
+                .map(gdprResponse -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
+                        userExtNode, extRegs, aliases, imps, gdprResponse));
     }
 
 
@@ -267,12 +268,12 @@ public class ExchangeService {
      * to enabling or disabling gdpr in scope of pbs server. If bidder vendor id is not present in map, it means that
      * pbs not enforced particular bidder to follow pbs gdpr procedure.
      */
-    private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
-                                                                     ExtUser extUser, Map<String, String> aliases,
-                                                                     ExtRegs extRegs) {
+    private Future<GdprResponse> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
+                                                            ExtUser extUser, Map<String, String> aliases,
+                                                            ExtRegs extRegs) {
         final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
         if (gdprEnforcedVendorIds.isEmpty()) {
-            return Future.succeededFuture(Collections.emptyMap());
+            return Future.succeededFuture(GdprResponse.of(Collections.emptyMap(), null));
         }
 
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
@@ -291,11 +292,11 @@ public class ExchangeService {
     private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,
                                                    Map<String, String> uidsBody, UidsCookie uidsCookie,
                                                    ObjectNode userExtNode, ExtRegs extRegs, Map<String, String> aliases,
-                                                   List<Imp> imps, Map<Integer, Boolean> vendorsToGdpr) {
+                                                   List<Imp> imps, GdprResponse gdprResponse) {
 
         final Map<String, Boolean> bidderToMaskingRequired = bidders.stream()
                 .collect(Collectors.toMap(Function.identity(),
-                        bidder -> isMaskingRequiredBidder(vendorsToGdpr, bidder, aliases)));
+                        bidder -> isMaskingRequiredBidder(gdprResponse.getVendorsToGdpr(), bidder, aliases)));
 
         final List<BidderRequest> bidderRequests = bidders.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid and imp

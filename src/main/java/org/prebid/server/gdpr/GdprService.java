@@ -2,8 +2,13 @@ package org.prebid.server.gdpr;
 
 import com.iab.gdpr.ConsentStringParser;
 import io.vertx.core.Future;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.gdpr.model.GdprPurpose;
+import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 
@@ -23,6 +28,8 @@ import java.util.stream.Collectors;
  */
 public class GdprService {
 
+    public static final Logger logger = LoggerFactory.getLogger(GdprService.class);
+
     private final GeoLocationService geoLocationService;
     private final List<String> eeaCountries;
     private final String gdprDefaultValue;
@@ -34,45 +41,62 @@ public class GdprService {
     }
 
     /**
-     * Returns a map with Vendor ID as a key and GDPR result [true/false] as a value.
+     * Returns {@link GdprResponse} which handles information about a map with Vendor ID as a key and GDPR result
+     * [true/false] and country user comes from.
      */
-    public Future<Map<Integer, Boolean>> resultByVendor(Set<GdprPurpose> purposes, Set<Integer> vendorIds, String gdpr,
-                                                        String gdprConsent, String ipAddress) {
-        return resolveGdprValue(gdpr, ipAddress)
-                .map(gdprValue -> toResultMap(gdprValue, gdprConsent, purposes, vendorIds));
+    public Future<GdprResponse> resultByVendor(Set<GdprPurpose> purposes, Set<Integer> vendorIds, String gdpr,
+                                               String gdprConsent, String ipAddress) {
+        return resolveGdprWithCountryValue(gdpr, ipAddress)
+                .map(gdprWithCountry -> toGdprResponse(gdprWithCountry.getGdpr(), gdprConsent, purposes, vendorIds,
+                        gdprWithCountry.getCountry()));
     }
 
     /**
-     * Determines GDPR value from external GDPR param, geo location or default.
+     * Determines GDPR and country values from external GDPR param, geo location or default.
      */
-    private Future<String> resolveGdprValue(String gdpr, String ipAddress) {
+    private Future<GdprWithCountry> resolveGdprWithCountryValue(String gdpr, String ipAddress) {
         final String gdprFromRequest = StringUtils.stripToNull(gdpr);
 
-        final Future<String> result;
-        if (gdprFromRequest != null) {
-            result = Future.succeededFuture(gdprFromRequest);
+        final Future<GdprWithCountry> result;
+        if (isValidGdpr(gdprFromRequest)) {
+            result = Future.succeededFuture(GdprWithCountry.of(gdprFromRequest, null));
         } else if (ipAddress != null && geoLocationService != null) {
             result = geoLocationService.lookup(ipAddress)
                     .map(GeoInfo::getCountry)
-                    .map(country -> country == null ? gdprDefaultValue : eeaCountries.contains(country) ? "1" : "0")
-                    .otherwise(gdprDefaultValue);
+                    .map(this::createGdprWithCountry)
+                    .otherwise(GdprWithCountry.of(gdprDefaultValue, null));
         } else {
-            result = Future.succeededFuture(gdprDefaultValue);
+            result = Future.succeededFuture(GdprWithCountry.of(gdprDefaultValue, null));
         }
         return result;
     }
 
+    private boolean isValidGdpr(String gdprFromRequest) {
+        return gdprFromRequest != null && (gdprFromRequest.equals("0") || gdprFromRequest.equals("1"));
+    }
+
     /**
-     * Analyzes GDPR value and returns a map with GDPR result for each vendor
+     * Creates {@link GdprWithCountry} which gdpr value depends on if country is in eea list.
+     */
+    private GdprWithCountry createGdprWithCountry(String country) {
+        return country == null
+                ? GdprWithCountry.of(gdprDefaultValue, null)
+                : eeaCountries.contains(country)
+                ? GdprWithCountry.of("1", country)
+                : GdprWithCountry.of("0", country);
+    }
+
+    /**
+     * Analyzes GDPR value and returns a {@link GdprResponse} with map of gdpr result for each vendor
      * or throws {@link GdprException} in case of unexpected GDPR value.
      */
-    private Map<Integer, Boolean> toResultMap(String gdpr, String gdprConsent, Set<GdprPurpose> purposes,
-                                              Set<Integer> vendorIds) throws GdprException {
+    private GdprResponse toGdprResponse(String gdpr, String gdprConsent, Set<GdprPurpose> purposes,
+                                        Set<Integer> vendorIds, String country) throws GdprException {
         switch (gdpr) {
             case "0":
-                return sameResultFor(vendorIds, true);
+                return GdprResponse.of(sameResultFor(vendorIds, true), country);
             case "1":
-                return fromConsent(gdprConsent, purposes, vendorIds);
+                return GdprResponse.of(fromConsent(gdprConsent, purposes, vendorIds), country);
             default:
                 throw new GdprException(String.format("The gdpr param must be either 0 or 1, given: %s", gdpr));
         }
@@ -85,14 +109,15 @@ public class GdprService {
     private static Map<Integer, Boolean> fromConsent(String consent, Set<GdprPurpose> purposes,
                                                      Set<Integer> vendorIds) {
         if (StringUtils.isEmpty(consent)) {
-            throw new GdprException("The gdpr_consent param is required when gdpr=1");
+            return sameResultFor(vendorIds, false);
         }
 
         final ConsentStringParser parser;
         try {
             parser = new ConsentStringParser(consent);
         } catch (ParseException e) {
-            throw new GdprException(String.format("The gdpr_consent param is invalid: %s", consent), e);
+            logger.warn("Error occurred during parsing consent string {0}", e.getMessage());
+            return sameResultFor(vendorIds, false);
         }
 
         // consent string confirms user has allowed all purposes
@@ -111,5 +136,15 @@ public class GdprService {
             result.put(vendorId, allowedVendor);
         }
         return result;
+    }
+
+    /**
+     * Internal class for holding gdpr and country values.
+     */
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    static class GdprWithCountry {
+        String gdpr;
+        String country;
     }
 }

@@ -8,10 +8,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.gdpr.model.GdprPurpose;
+import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
-
-import java.util.Map;
 
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,100 +32,98 @@ public class GdprServiceTest {
         gdprService = new GdprService(null, emptyList(), "1");
     }
 
+
     @Test
-    public void shouldFailIfGdprParamIsNeitherZeroNorOne() {
+    public void shouldReturnGdprFromGeoLocationServiceIfGdprFromRequestIsNotValid() {
+        // given
+        given(geoLocationService.lookup(anyString())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
+        gdprService = new GdprService(geoLocationService, singletonList("country1"), "1");
+
         // when
-        final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), emptySet(), "invalid-gdpr", null, null);
+        final Future<?> future =
+                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "15",
+                        null, "ip");
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("The gdpr param must be either 0 or 1, given: invalid-gdpr");
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), "country1"));
     }
 
     @Test
     public void shouldReturnSuccessResultIfGdprParamIsZero() {
         // when
-        final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), singleton(1), "0", null, null);
+        final Future<?> future = gdprService.resultByVendor(emptySet(), singleton(1), "0", null, null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(1, true);
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
     }
 
     @Test
-    public void shouldFailIfGdprParamIsOneAndNoConsentParam() {
+    public void shouldReturnFalseForAllVendorIdsIfGdprParamIsOneAndNoConsentParam() {
         // when
-        final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), emptySet(), "1", null, null);
+        final Future<?> future = gdprService.resultByVendor(emptySet(), singleton(1), "1", null, null);
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("The gdpr_consent param is required when gdpr=1");
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), null));
     }
 
     @Test
-    public void shouldFailIfGdprParamIsOneButConsentParamIsInvalid() {
+    public void shouldReturnFalseForAllVendorsIfGdprParamIsOneButConsentParamIsInvalid() {
         // when
-        final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), emptySet(), "1", "invalid-consent", null);
+        final Future<?> future = gdprService.resultByVendor(emptySet(), singleton(1), "1", "invalid-consent", null);
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("The gdpr_consent param is invalid: invalid-consent");
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), null));
     }
 
     @Test
     public void shouldReturnRestrictedResultIfPurposeIsNotAllowed() {
         // when
-        final Future<Map<Integer, Boolean>> future =
+        final Future<?> future =
                 gdprService.resultByVendor(singleton(GdprPurpose.adSelectionAndDeliveryAndReporting), singleton(1), "1",
                         "BN5lERiOMYEdiAKAWXEND1HoSBE6CAFAApAMgBkIDIgM0AgOJxAnQA", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(1, false);
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), null));
     }
 
     @Test
     public void shouldReturnRestrictedResultIfVendorIdIsNull() {
         // when
-        final Future<Map<Integer, Boolean>> future =
+        final Future<?> future =
                 gdprService.resultByVendor(emptySet(), singleton(null), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA",
                         null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(null, false);
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(null, false), null));
     }
 
     @Test
     public void shouldReturnRestrictedResultIfVendorIdIsNotAllowed() {
         // when
-        final Future<Map<Integer, Boolean>> future =
+        final Future<?> future =
                 gdprService.resultByVendor(emptySet(), singleton(9), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(9, false);
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(9, false), null));
     }
 
     @Test
     public void shouldReturnAllowedResultIfGdprParamIsOneAndConsentParamIsValid() {
         // when
-        final Future<Map<Integer, Boolean>> future =
+        final Future<?> future =
                 gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "1",
                         "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(1, true);
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
     }
 
     @Test
@@ -136,13 +133,12 @@ public class GdprServiceTest {
         gdprService = new GdprService(geoLocationService, emptyList(), "0");
 
         // when
-        final Future<Map<Integer, Boolean>> future =
+        final Future<?> future =
                 gdprService.resultByVendor(emptySet(), singleton(1), null, null, "ip");
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(1, true);
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
     }
 
     @Test
@@ -152,13 +148,12 @@ public class GdprServiceTest {
         gdprService = new GdprService(geoLocationService, emptyList(), "1");
 
         // when
-        final Future<Map<Integer, Boolean>> future =
+        final Future<?> future =
                 gdprService.resultByVendor(emptySet(), singleton(1), null, null, "ip");
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(1, true);
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), "country1"));
     }
 
     @Test
@@ -168,14 +163,13 @@ public class GdprServiceTest {
         gdprService = new GdprService(geoLocationService, singletonList("country1"), "1");
 
         // when
-        final Future<Map<Integer, Boolean>> future =
+        final Future<?> future =
                 gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), null,
                         "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", "ip");
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(1, true);
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), "country1"));
     }
 
     @Test
@@ -184,12 +178,11 @@ public class GdprServiceTest {
         gdprService = new GdprService(null, emptyList(), "0");
 
         // when
-        final Future<Map<Integer, Boolean>> future =
+        final Future<?> future =
                 gdprService.resultByVendor(emptySet(), singleton(1), null, null, null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).hasSize(1)
-                .containsEntry(1, true);
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
     }
 }
