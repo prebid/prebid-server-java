@@ -259,7 +259,7 @@ public class ExchangeService {
 
         return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs)
                 .map(gdprResponse -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
-                        userExtNode, extRegs, aliases, imps, gdprResponse));
+                        userExtNode, extRegs, aliases, imps, gdprResponse.getVendorsToGdpr()));
     }
 
 
@@ -288,11 +288,11 @@ public class ExchangeService {
     private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,
                                                    Map<String, String> uidsBody, UidsCookie uidsCookie,
                                                    ObjectNode userExtNode, ExtRegs extRegs, Map<String, String> aliases,
-                                                   List<Imp> imps, GdprResponse gdprResponse) {
+                                                   List<Imp> imps, Map<Integer, Boolean> vendorsToGdpr) {
 
         final Map<String, Boolean> bidderToMaskingRequired = bidders.stream()
                 .collect(Collectors.toMap(Function.identity(),
-                        bidder -> isMaskingRequiredBidder(gdprResponse.getVendorsToGdpr(), bidder, aliases)));
+                        bidder -> isMaskingRequiredBidder(vendorsToGdpr, bidder, aliases)));
 
         final List<BidderRequest> bidderRequests = bidders.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid and imp

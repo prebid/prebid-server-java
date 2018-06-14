@@ -81,17 +81,36 @@ public class GdprServiceTest {
     }
 
     @Test
-    public void shouldFailIfGdprParamIsOneButConsentParamIsInvalid() {
+    public void shouldReturnTrueForAllVendorIdsIfGdprParamIsZeroAndNoConsentParam() {
         // when
-        final Future<Map<Integer, Boolean>> future =
-                gdprService.resultByVendor(emptySet(), emptySet(), "1", "invalid-consent", null);
+        final Future<?> future = gdprService.resultByVendor(emptySet(), singleton(1), "0", null, null);
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("The gdpr_consent param 'invalid-consent' is malformed, "
-                + "parsing error: requesting bit beyond bit string length");
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
     }
 
+    @Test
+    public void shouldReturnFalseForAllVendorIdsIfGdprIsOneButConsentParamIsInvalid() {
+        // when
+        final Future<GdprResponse> future =
+                gdprService.resultByVendor(emptySet(), singleton(1), "1", "invalid-consent", null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), null));
+    }
+
+    @Test
+    public void shouldReturnTrueForAllVendorIdsIfGdprIsZeroButConsentParamIsInvalid() {
+        // when
+        final Future<GdprResponse> future =
+                gdprService.resultByVendor(emptySet(), singleton(1), "0", "invalid-consent", null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+    }
 
     @Test
     public void shouldReturnRestrictedResultIfPurposeIsNotAllowed() {

@@ -86,28 +86,27 @@ public class GdprService {
      * Creates {@link GdprWithCountry} which gdpr value depends on if country is in eea list.
      */
     private GdprWithCountry createGdprWithCountry(String country) {
-        return country == null
-                ? GdprWithCountry.of(gdprDefaultValue, null)
-                : eeaCountries.contains(country)
-                ? GdprWithCountry.of("1", country)
-                : GdprWithCountry.of("0", country);
+        final String gdpr = country == null ? gdprDefaultValue : eeaCountries.contains(country) ? "1" : "0";
+        return GdprWithCountry.of(gdpr, country);
     }
 
     /**
      * Analyzes GDPR params and returns a {@link GdprResponse} with map of gdpr result for each vendor.
      */
     private Future<GdprResponse> toGdprResponse(String gdpr, String gdprConsent, Set<GdprPurpose> purposes,
-                                        Set<Integer> vendorIds, String country) {
+                                                Set<Integer> vendorIds, String country) {
+        final Future<Map<Integer, Boolean>> vendorIdsToGdpr;
         switch (gdpr) {
             case "0":
-                return sameResultFor(vendorIds, true)
-                        .map(vendorIdsToGdpr -> GdprResponse.of(vendorIdsToGdpr, country));
+                vendorIdsToGdpr = sameResultFor(vendorIds, true);
+                break;
             case "1":
-                return fromConsent(gdprConsent, purposes, vendorIds)
-                        .map(vendorIdsToGdpr -> GdprResponse.of(vendorIdsToGdpr, country));
+                vendorIdsToGdpr = fromConsent(gdprConsent, purposes, vendorIds);
+                break;
             default:
                 return failWith("The gdpr param must be either 0 or 1, given: %s", gdpr);
         }
+        return vendorIdsToGdpr.map(vendorsToGdpr -> GdprResponse.of(vendorsToGdpr, country));
     }
 
     private static Future<Map<Integer, Boolean>> sameResultFor(Set<Integer> vendorIds, boolean result) {
@@ -164,12 +163,12 @@ public class GdprService {
      */
     @AllArgsConstructor(staticName = "of")
     @Value
-    static class GdprWithCountry {
+    private static class GdprWithCountry {
         String gdpr;
         String country;
     }
 
-    private static Future<Map<Integer, Boolean>> failWith(String errorMessageFormat, Object... args) {
+    private static Future<GdprResponse> failWith(String errorMessageFormat, Object... args) {
         return Future.failedFuture(String.format(errorMessageFormat, args));
     }
 }
