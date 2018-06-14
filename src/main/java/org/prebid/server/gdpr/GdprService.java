@@ -104,7 +104,7 @@ public class GdprService {
                 vendorIdsToGdpr = fromConsent(gdprConsent, purposes, vendorIds);
                 break;
             default:
-                return failWith("The gdpr param must be either 0 or 1, given: %s", gdpr);
+                return Future.failedFuture(String.format("The gdpr param must be either 0 or 1, given: %s", gdpr));
         }
         return vendorIdsToGdpr.map(vendorsToGdpr -> GdprResponse.of(vendorsToGdpr, country));
     }
@@ -166,9 +166,5 @@ public class GdprService {
     private static class GdprWithCountry {
         String gdpr;
         String country;
-    }
-
-    private static Future<GdprResponse> failWith(String errorMessageFormat, Object... args) {
-        return Future.failedFuture(String.format(errorMessageFormat, args));
     }
 }
