@@ -9,7 +9,7 @@ import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class VendorListInfo {
+public class VendorList {
 
     @JsonProperty("vendorListVersion")
     Integer vendorListVersion;

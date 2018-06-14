@@ -15,7 +15,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
-import org.prebid.server.gdpr.vendorlist.proto.VendorListInfo;
+import org.prebid.server.gdpr.vendorlist.proto.VendorList;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,13 +36,15 @@ import java.util.stream.Collectors;
  * - remote web resource (original source);
  * <p>
  * So, on service creation we initialize in-memory cache from previously loaded vendor list on file system.
- * If request has version that is absent in cache, we respond with failed result but start background process
+ * If request asks version that is absent in cache, we respond with failed result but start background process
  * to download new version and then put it to cache.
  */
 public class VendorListService {
 
     private static final Logger logger = LoggerFactory.getLogger(VendorListService.class);
+
     private static final String JSON_SUFFIX = ".json";
+    private static final String VERSION_PLACEHOLDER = "{VERSION}";
 
     private final FileSystem fileSystem;
     private final String cacheDir;
@@ -53,7 +55,7 @@ public class VendorListService {
 
     private final Set<Integer> knownVendorIds;
     /**
-     * This is memory/performance optimized {@link VendorListInfo} model slice:
+     * This is memory/performance optimized {@link VendorList} model slice:
      * map of vendor list version -> map of vendor ID -> set of purposes
      */
     private final Map<Integer, Map<Integer, Set<Integer>>> cache;
@@ -114,8 +116,8 @@ public class VendorListService {
 
         final Map<Integer, Map<Integer, Set<Integer>>> cache = new ConcurrentHashMap<>(versionToFileContent.size());
         for (Map.Entry<String, String> entry : versionToFileContent.entrySet()) {
-            final VendorListInfo vendorListInfo = toVendorListInfo(entry.getValue());
-            final Map<Integer, Set<Integer>> vendorIdToPurposes = mapVendorIdToPurposes(vendorListInfo.getVendors(),
+            final VendorList vendorList = toVendorList(entry.getValue());
+            final Map<Integer, Set<Integer>> vendorIdToPurposes = mapVendorIdToPurposes(vendorList.getVendors(),
                     knownVendorIds);
 
             cache.put(Integer.valueOf(entry.getKey()), vendorIdToPurposes);
@@ -135,11 +137,11 @@ public class VendorListService {
     }
 
     /**
-     * Creates {@link VendorListInfo} object from string content or throw {@link PreBidException}.
+     * Creates {@link VendorList} object from string content or throw {@link PreBidException}.
      */
-    private static VendorListInfo toVendorListInfo(String content) {
+    private static VendorList toVendorList(String content) {
         try {
-            return Json.mapper.readValue(content, VendorListInfo.class);
+            return Json.mapper.readValue(content, VendorList.class);
         } catch (IOException e) {
             final String message = String.format("Cannot parse vendor list from: %s", content);
 
@@ -175,20 +177,16 @@ public class VendorListService {
      * Proceeds obtaining new vendor list from HTTP resource.
      */
     private void fetchNewVendorListFor(int version) {
-        httpClient.getAbs(String.format(endpointTemplate, version),
-                response -> handleResponse(response, version))
+        final String url = endpointTemplate.replace(VERSION_PLACEHOLDER, String.valueOf(version));
+
+        httpClient.getAbs(url, response -> handleResponse(response, version))
                 .exceptionHandler(throwable -> handleException(version, throwable))
                 .setTimeout(defaultTimeoutMs)
                 .end();
     }
 
     private static void handleException(int version, Throwable throwable) {
-        fail(version, throwable.getMessage());
-    }
-
-    private static void fail(int version, String errorMessageFormat, Object... args) {
-        logger.info(String.format("Error fetching vendor list via HTTP for version %d with error: %s",
-                version, String.format(errorMessageFormat, args)));
+        logError(version, throwable.getMessage());
     }
 
     private void handleResponse(HttpClientResponse response, int version) {
@@ -199,13 +197,13 @@ public class VendorListService {
 
     private void handleBody(int version, int statusCode, String body) {
         if (statusCode != 200) {
-            fail(version, "response code was %d", statusCode);
+            logError(version, "response code was %d", statusCode);
         } else {
-            final VendorListInfo vendorList;
+            final VendorList vendorList;
             try {
-                vendorList = Json.decodeValue(body, VendorListInfo.class);
+                vendorList = Json.decodeValue(body, VendorList.class);
             } catch (DecodeException e) {
-                fail(version, "parsing json failed for response: %s with message: %s", body, e.getMessage());
+                logError(version, "parsing json failed for response: %s with message: %s", body, e.getMessage());
                 return;
             }
 
@@ -215,15 +213,15 @@ public class VendorListService {
                         // add new entry to in-memory cache
                         .map(r -> cache.put(version, mapVendorIdToPurposes(vendorList.getVendors(), knownVendorIds)));
             } else {
-                fail(version, "fetched vendor list parsed but has invalid data: %s", body);
+                logError(version, "fetched vendor list parsed but has invalid data: %s", body);
             }
         }
     }
 
     /**
-     * Verifies all significant fields of given {@link VendorListInfo} object.
+     * Verifies all significant fields of given {@link VendorList} object.
      */
-    private static boolean isVendorListValid(VendorListInfo vendorList) {
+    private static boolean isVendorListValid(VendorList vendorList) {
         return vendorList.getVendorListVersion() != null
                 && vendorList.getLastUpdated() != null
                 && CollectionUtils.isNotEmpty(vendorList.getVendors())
@@ -240,14 +238,19 @@ public class VendorListService {
 
         fileSystem.writeFile(filepath, Buffer.buffer(content), result -> {
             if (result.succeeded()) {
-                logger.info("Created new vendor list file {0}: ", filepath);
+                logError(version, "Created new vendor list file %s: ", filepath);
                 future.complete();
             } else {
-                logger.info("Could not create new vendor list file: {0}", result.cause(), filepath);
+                logError(version, "Could not create new vendor list file: %s", filepath);
                 future.fail(result.cause());
             }
         });
 
         return future;
+    }
+
+    private static void logError(int version, String errorMessageFormat, Object... args) {
+        logger.info(String.format("Error fetching vendor list via HTTP for version %d with error: %s",
+                version, String.format(errorMessageFormat, args)));
     }
 }

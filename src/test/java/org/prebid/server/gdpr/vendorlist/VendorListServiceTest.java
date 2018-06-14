@@ -21,7 +21,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
-import org.prebid.server.gdpr.vendorlist.proto.VendorListInfo;
+import org.prebid.server.gdpr.vendorlist.proto.VendorList;
 
 import java.util.Date;
 import java.util.Map;
@@ -66,8 +66,8 @@ public class VendorListServiceTest extends VertxTest {
         given(bidderCatalog.usersyncerByName(any())).willReturn(usersyncer);
         given(usersyncer.gdprVendorId()).willReturn(52);
 
-        vendorListService = VendorListService.create(fileSystem, "/cache/dir", httpClient, "http://vendorlist/%s",
-                0, null, bidderCatalog);
+        vendorListService = VendorListService.create(fileSystem, "/cache/dir", httpClient,
+                "http://vendorlist/{VERSION}", 0, null, bidderCatalog);
     }
 
     // Creation related tests
@@ -179,7 +179,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidVendorListVersion() throws JsonProcessingException {
         // given
-        final VendorListInfo vendorList = VendorListInfo.of(null, null, null);
+        final VendorList vendorList = VendorList.of(null, null, null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -193,7 +193,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidLastUpdated() throws JsonProcessingException {
         // given
-        final VendorListInfo vendorList = VendorListInfo.of(1, null, null);
+        final VendorList vendorList = VendorList.of(1, null, null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -207,7 +207,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasNoVendors() throws JsonProcessingException {
         // given
-        final VendorListInfo vendorList = VendorListInfo.of(1, new Date(), null);
+        final VendorList vendorList = VendorList.of(1, new Date(), null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -221,7 +221,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasEmptyVendors() throws JsonProcessingException {
         // given
-        final VendorListInfo vendorList = VendorListInfo.of(1, new Date(), emptyList());
+        final VendorList vendorList = VendorList.of(1, new Date(), emptyList());
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -235,7 +235,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasAtLeastOneInvalidVendor() throws JsonProcessingException {
         // given
-        final VendorListInfo vendorList = VendorListInfo.of(1, new Date(), singletonList(Vendor.of(null, null)));
+        final VendorList vendorList = VendorList.of(1, new Date(), singletonList(Vendor.of(null, null)));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -295,7 +295,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldKeepPurposesOnlyForKnownVendors() throws JsonProcessingException {
         // given
-        final VendorListInfo vendorList = VendorListInfo.of(1, new Date(),
+        final VendorList vendorList = VendorList.of(1, new Date(),
                 asList(Vendor.of(52, singleton(1)), Vendor.of(42, singleton(1))));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
@@ -312,9 +312,9 @@ public class VendorListServiceTest extends VertxTest {
                 .containsEntry(52, singleton(1));
     }
 
-    private static VendorListInfo givenVendorList() {
+    private static VendorList givenVendorList() {
         final Vendor vendor = Vendor.of(52, singleton(1));
-        return VendorListInfo.of(1, new Date(), singletonList(vendor));
+        return VendorList.of(1, new Date(), singletonList(vendor));
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
