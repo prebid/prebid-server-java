@@ -2,8 +2,13 @@ package org.prebid.server.gdpr;
 
 import com.iab.gdpr.ConsentStringParser;
 import io.vertx.core.Future;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.gdpr.model.GdprPurpose;
+import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
@@ -24,6 +29,8 @@ import java.util.stream.Collectors;
  */
 public class GdprService {
 
+    public static final Logger logger = LoggerFactory.getLogger(GdprService.class);
+
     private final GeoLocationService geoLocationService;
     private final List<String> eeaCountries;
     private final VendorListService vendorListService;
@@ -38,47 +45,68 @@ public class GdprService {
     }
 
     /**
-     * Returns a map with Vendor ID as a key and GDPR result [true/false] as a value.
+     * Returns {@link GdprResponse} which handles information about a map with Vendor ID as a key and GDPR result
+     * [true/false] and country user comes from.
      */
-    public Future<Map<Integer, Boolean>> resultByVendor(Set<GdprPurpose> purposes, Set<Integer> vendorIds, String gdpr,
-                                                        String gdprConsent, String ipAddress) {
-        return resolveGdprValue(gdpr, ipAddress)
-                .compose(gdprValue -> toResultMap(gdprValue, gdprConsent, purposes, vendorIds));
+    public Future<GdprResponse> resultByVendor(Set<GdprPurpose> purposes, Set<Integer> vendorIds, String gdpr,
+                                               String gdprConsent, String ipAddress) {
+        return resolveGdprWithCountryValue(gdpr, ipAddress)
+                .compose(gdprWithCountry -> toGdprResponse(gdprWithCountry.getGdpr(), gdprConsent, purposes, vendorIds,
+                        gdprWithCountry.getCountry()));
     }
 
     /**
      * Determines GDPR value from external GDPR param, geo location or default.
      */
-    private Future<String> resolveGdprValue(String gdpr, String ipAddress) {
+    private Future<GdprWithCountry> resolveGdprWithCountryValue(String gdpr, String ipAddress) {
         final String gdprFromRequest = StringUtils.stripToNull(gdpr);
 
-        final Future<String> result;
-        if (gdprFromRequest != null) {
-            result = Future.succeededFuture(gdprFromRequest);
+        final Future<GdprWithCountry> result;
+        if (isValidGdpr(gdprFromRequest)) {
+            result = Future.succeededFuture(GdprWithCountry.of(gdprFromRequest, null));
         } else if (ipAddress != null && geoLocationService != null) {
             result = geoLocationService.lookup(ipAddress)
                     .map(GeoInfo::getCountry)
-                    .map(country -> country == null ? gdprDefaultValue : eeaCountries.contains(country) ? "1" : "0")
-                    .otherwise(gdprDefaultValue);
+                    .map(this::createGdprWithCountry)
+                    .otherwise(GdprWithCountry.of(gdprDefaultValue, null));
         } else {
-            result = Future.succeededFuture(gdprDefaultValue);
+            result = Future.succeededFuture(GdprWithCountry.of(gdprDefaultValue, null));
         }
         return result;
     }
 
     /**
-     * Analyzes GDPR params and returns a map with GDPR result for each vendor.
+     * Returns flag if gdpr has valid value '0' or '1'.
      */
-    private Future<Map<Integer, Boolean>> toResultMap(String gdpr, String gdprConsent, Set<GdprPurpose> purposes,
-                                                      Set<Integer> vendorIds) {
+    private boolean isValidGdpr(String gdprFromRequest) {
+        return gdprFromRequest != null && (gdprFromRequest.equals("0") || gdprFromRequest.equals("1"));
+    }
+
+    /**
+     * Creates {@link GdprWithCountry} which gdpr value depends on if country is in eea list.
+     */
+    private GdprWithCountry createGdprWithCountry(String country) {
+        final String gdpr = country == null ? gdprDefaultValue : eeaCountries.contains(country) ? "1" : "0";
+        return GdprWithCountry.of(gdpr, country);
+    }
+
+    /**
+     * Analyzes GDPR params and returns a {@link GdprResponse} with map of gdpr result for each vendor.
+     */
+    private Future<GdprResponse> toGdprResponse(String gdpr, String gdprConsent, Set<GdprPurpose> purposes,
+                                                Set<Integer> vendorIds, String country) {
+        final Future<Map<Integer, Boolean>> vendorIdsToGdpr;
         switch (gdpr) {
             case "0":
-                return sameResultFor(vendorIds, true);
+                vendorIdsToGdpr = sameResultFor(vendorIds, true);
+                break;
             case "1":
-                return fromConsent(gdprConsent, purposes, vendorIds);
+                vendorIdsToGdpr = fromConsent(gdprConsent, purposes, vendorIds);
+                break;
             default:
-                return failWith("The gdpr param must be either 0 or 1, given: %s", gdpr);
+                return Future.failedFuture(String.format("The gdpr param must be either 0 or 1, given: %s", gdpr));
         }
+        return vendorIdsToGdpr.map(vendorsToGdpr -> GdprResponse.of(vendorsToGdpr, country));
     }
 
     private static Future<Map<Integer, Boolean>> sameResultFor(Set<Integer> vendorIds, boolean result) {
@@ -88,14 +116,15 @@ public class GdprService {
     private Future<Map<Integer, Boolean>> fromConsent(String consent, Set<GdprPurpose> purposes,
                                                       Set<Integer> vendorIds) {
         if (StringUtils.isEmpty(consent)) {
-            return failWith("The gdpr_consent param is required when gdpr=1");
+            return sameResultFor(vendorIds, false);
         }
 
         final ConsentStringParser parser;
         try {
             parser = new ConsentStringParser(consent);
         } catch (ParseException e) {
-            return failWith("The gdpr_consent param '%s' is malformed, parsing error: %s", consent, e.getMessage());
+            logger.warn("Error occurred during parsing consent string {0}", e.getMessage());
+            return sameResultFor(vendorIds, false);
         }
 
         // consent string confirms user has allowed all purposes
@@ -129,7 +158,13 @@ public class GdprService {
         return result;
     }
 
-    private static Future<Map<Integer, Boolean>> failWith(String errorMessageFormat, Object... args) {
-        return Future.failedFuture(String.format(errorMessageFormat, args));
+    /**
+     * Internal class for holding gdpr and country values.
+     */
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    private static class GdprWithCountry {
+        String gdpr;
+        String country;
     }
 }

@@ -34,6 +34,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
+import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -256,9 +257,9 @@ public class ExchangeService {
         // the intended Bidder.
         // - bidrequest.user.buyeruid will be set to that Bidder's ID.
 
-        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
-                .map(vendorToGdprPermission -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
-                        userExtNode, extRegs, aliases, imps, vendorToGdprPermission));
+        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs)
+                .map(gdprResponse -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
+                        userExtNode, extRegs, aliases, imps, gdprResponse.getVendorsToGdpr()));
     }
 
 
@@ -267,13 +268,12 @@ public class ExchangeService {
      * to enabling or disabling gdpr in scope of pbs server. If bidder vendor id is not present in map, it means that
      * pbs not enforced particular bidder to follow pbs gdpr procedure.
      */
-    private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
-                                                                     ExtUser extUser, Map<String, String> aliases,
-                                                                     ExtRegs extRegs,
-                                                                     Timeout timeout) {
+    private Future<GdprResponse> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
+                                                            ExtUser extUser, Map<String, String> aliases,
+                                                            ExtRegs extRegs) {
         final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
         if (gdprEnforcedVendorIds.isEmpty()) {
-            return Future.succeededFuture(Collections.emptyMap());
+            return Future.succeededFuture(GdprResponse.of(Collections.emptyMap(), null));
         }
 
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
