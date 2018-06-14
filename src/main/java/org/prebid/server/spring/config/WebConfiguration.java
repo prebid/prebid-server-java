@@ -232,15 +232,16 @@ public class WebConfiguration {
     }
 
     @Bean
-    SetuidHandler setuidHandler(UidsCookieService uidsCookieService,
-                                GdprService gdprService,
-                                @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-                                @Value("${geolocation.cookie-sync-enabled}") boolean useGeoLocation,
-                                CompositeAnalyticsReporter analyticsReporter,
-                                Metrics metrics) {
+    SetuidHandler setuidHandler(
+            UidsCookieService uidsCookieService,
+            GdprService gdprService,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${geolocation.cookie-sync-enabled}") boolean useGeoLocation,
+            CompositeAnalyticsReporter analyticsReporter,
+            Metrics metrics) {
 
-        return new SetuidHandler(uidsCookieService, gdprService, hostVendorId, useGeoLocation, analyticsReporter,
-                metrics);
+        return new SetuidHandler(uidsCookieService, gdprService, hostVendorId, useGeoLocation,
+                analyticsReporter, metrics);
     }
 
     @Bean

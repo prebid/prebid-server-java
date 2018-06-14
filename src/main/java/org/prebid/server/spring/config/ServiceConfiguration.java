@@ -3,6 +3,7 @@ package org.prebid.server.spring.config;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import org.prebid.server.auction.AmpRequestFactory;
@@ -19,6 +20,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -126,6 +128,21 @@ public class ServiceConfiguration {
                 hostCookieDomain, ttlDays);
     }
 
+    @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    VendorListService vendorListService(
+            FileSystem fileSystem,
+            @Value("${gdpr.vendorlist.filesystem-cache-dir}") String cacheDir,
+            HttpClient httpClient,
+            @Value("${gdpr.vendorlist.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.http-default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            BidderCatalog bidderCatalog) {
+
+        return VendorListService.create(fileSystem, cacheDir, httpClient, endpointTemplate, defaultTimeoutMs,
+                hostVendorId, bidderCatalog);
+    }
+
     /**
      * Geo location service is not implemented and passed as NULL argument.
      * It can be provided by vendor (host company) itself.
@@ -133,9 +150,10 @@ public class ServiceConfiguration {
     @Bean
     GdprService gdprService(
             @Value("${gdpr.eea-countries}") String eeaCountries,
+            VendorListService vendorListService,
             @Value("${gdpr.default-value}") String defaultValue) {
 
-        return new GdprService(null, Arrays.asList(eeaCountries.trim().split(",")), defaultValue);
+        return new GdprService(null, Arrays.asList(eeaCountries.trim().split(",")), vendorListService, defaultValue);
     }
 
     @Bean
