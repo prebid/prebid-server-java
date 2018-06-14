@@ -129,7 +129,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     VendorListService vendorListService(
             FileSystem fileSystem,
             @Value("${gdpr.vendorlist.filesystem-cache-dir}") String cacheDir,
