@@ -71,6 +71,9 @@ public class GdprService {
         return result;
     }
 
+    /**
+     * Returns flag if gdpr has valid value '0' or '1'.
+     */
     private boolean isValidGdpr(String gdprFromRequest) {
         return gdprFromRequest != null && (gdprFromRequest.equals("0") || gdprFromRequest.equals("1"));
     }

@@ -14,8 +14,11 @@ import org.prebid.server.geolocation.model.GeoInfo;
 
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class GdprServiceTest {
 
@@ -184,5 +187,17 @@ public class GdprServiceTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+    }
+
+    @Test
+    public void shouldNotCallGeoLocationServiceIfValidGdprAndIpAddressAreInRequest() {
+        // when
+        final Future<?> future =
+                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "1",
+                        null, "ip");
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        verifyZeroInteractions(geoLocationService);
     }
 }
