@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.gdpr.model.GdprPurpose;
+import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 
@@ -15,6 +16,7 @@ import java.util.Map;
 
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
@@ -25,12 +27,17 @@ public class GdprServiceTest {
 
     @Mock
     private GeoLocationService geoLocationService;
+    @Mock
+    private VendorListService vendorListService;
 
     private GdprService gdprService;
 
     @Before
     public void setUp() {
-        gdprService = new GdprService(null, emptyList(), "1");
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
+                singletonMap(1, singleton(GdprPurpose.informationStorageAndAccess.getId()))));
+
+        gdprService = new GdprService(null, emptyList(), vendorListService, "1");
     }
 
     @Test
@@ -75,7 +82,8 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("The gdpr_consent param is invalid: invalid-consent");
+        assertThat(future.cause().getMessage()).isEqualTo("The gdpr_consent param 'invalid-consent' is malformed, "
+                + "parsing error: requesting bit beyond bit string length");
     }
 
     @Test
@@ -133,7 +141,7 @@ public class GdprServiceTest {
     public void shouldReturnAllowedResultIfNoGdprParamAndCountryIsNotFoundButDefaultGdprIsZero() {
         // given
         given(geoLocationService.lookup(anyString())).willReturn(Future.failedFuture("country not found"));
-        gdprService = new GdprService(geoLocationService, emptyList(), "0");
+        gdprService = new GdprService(geoLocationService, emptyList(), vendorListService, "0");
 
         // when
         final Future<Map<Integer, Boolean>> future =
@@ -149,7 +157,7 @@ public class GdprServiceTest {
     public void shouldReturnAllowedResultIfNoGdprParamAndCountryIsNotInEEA() {
         // given
         given(geoLocationService.lookup(anyString())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
-        gdprService = new GdprService(geoLocationService, emptyList(), "1");
+        gdprService = new GdprService(geoLocationService, emptyList(), vendorListService, "1");
 
         // when
         final Future<Map<Integer, Boolean>> future =
@@ -165,7 +173,7 @@ public class GdprServiceTest {
     public void shouldReturnAllowedResultIfNoGdprParamAndConsentParamIsValidAndCountryIsInEEA() {
         // given
         given(geoLocationService.lookup(anyString())).willReturn(Future.succeededFuture(GeoInfo.of("country1")));
-        gdprService = new GdprService(geoLocationService, singletonList("country1"), "1");
+        gdprService = new GdprService(geoLocationService, singletonList("country1"), vendorListService, "1");
 
         // when
         final Future<Map<Integer, Boolean>> future =
@@ -181,7 +189,7 @@ public class GdprServiceTest {
     @Test
     public void shouldReturnAllowedResultIfNoGdprParamAndNoIpButGdprDefaultValueIsZero() {
         // given
-        gdprService = new GdprService(null, emptyList(), "0");
+        gdprService = new GdprService(null, emptyList(), vendorListService, "0");
 
         // when
         final Future<Map<Integer, Boolean>> future =

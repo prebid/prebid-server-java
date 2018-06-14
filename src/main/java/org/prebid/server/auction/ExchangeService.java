@@ -32,7 +32,6 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.gdpr.GdprException;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.metric.AdapterMetrics;
@@ -145,7 +144,7 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        return extractBidderRequests(bidRequest, uidsCookie, aliases)
+        return extractBidderRequests(bidRequest, uidsCookie, aliases, timeout)
                 .map(bidderRequests -> updateRequestMetric(bidderRequests, uidsCookie, aliases))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
                         .map(bidderRequest -> requestBids(bidderRequest, startTime,
@@ -228,7 +227,8 @@ public class ExchangeService {
      */
     private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest,
                                                               UidsCookie uidsCookie,
-                                                              Map<String, String> aliases) {
+                                                              Map<String, String> aliases,
+                                                              Timeout timeout) {
         // sanity check: discard imps without extension
         final List<Imp> imps = bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
@@ -256,7 +256,7 @@ public class ExchangeService {
         // the intended Bidder.
         // - bidrequest.user.buyeruid will be set to that Bidder's ID.
 
-        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs)
+        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
                 .map(vendorToGdprPermission -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
                         userExtNode, extRegs, aliases, imps, vendorToGdprPermission));
     }
@@ -269,7 +269,8 @@ public class ExchangeService {
      */
     private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
                                                                      ExtUser extUser, Map<String, String> aliases,
-                                                                     ExtRegs extRegs) {
+                                                                     ExtRegs extRegs,
+                                                                     Timeout timeout) {
         final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
         if (gdprEnforcedVendorIds.isEmpty()) {
             return Future.succeededFuture(Collections.emptyMap());
@@ -278,14 +279,10 @@ public class ExchangeService {
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
         final Device device = bidRequest.getDevice();
-
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
-        try {
-            return gdprService.resultByVendor(GDPR_PURPOSES,
-                    gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null, gdprConsent, ipAddress);
-        } catch (GdprException ex) {
-            return Future.failedFuture(new PreBidException(ex.getMessage()));
-        }
+
+        return gdprService.resultByVendor(GDPR_PURPOSES, gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null,
+                gdprConsent, ipAddress);
     }
 
     private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,
@@ -308,8 +305,10 @@ public class ExchangeService {
                         .imp(prepareImps(bidder, imps))
                         .build()))
                 .collect(Collectors.toList());
+
         // randomize the list to make the auction more fair
         Collections.shuffle(bidderRequests);
+
         return bidderRequests;
     }
 
