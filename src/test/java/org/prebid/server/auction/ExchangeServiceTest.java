@@ -136,7 +136,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
         given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
-        given(bidResponsePostProcessor.postProcess(any(), any())).willCallRealMethod();
+        given(bidResponsePostProcessor.postProcess(any(), any(), any())).willCallRealMethod();
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
         given(metrics.forAdapter(anyString()).forBidType(any())).willReturn(adapterMarkupMetrics);
         given(currencyService.convertCurrency(any(), any(), any(), any()))
@@ -1444,7 +1444,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
 
         // then
-        verify(bidResponsePostProcessor).postProcess(same(bidRequest), any());
+        verify(bidResponsePostProcessor).postProcess(same(bidRequest), same(uidsCookie), any());
     }
 
     @Test
