@@ -20,7 +20,7 @@ public class AmpEvent {
 
     BidResponse bidResponse;
 
-    Map<String, String> targeting;
+    Map<String, Object> targeting;
 
     String origin;
 }
