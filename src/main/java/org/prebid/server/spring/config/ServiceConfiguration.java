@@ -34,6 +34,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 import javax.validation.constraints.Min;
+import java.io.File;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
@@ -140,7 +141,7 @@ public class ServiceConfiguration {
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             BidderCatalog bidderCatalog) {
 
-        return VendorListService.create(fileSystem, cacheDir, httpClient, endpointTemplate, defaultTimeoutMs,
+        return VendorListService.create(fileSystem, new File(cacheDir), httpClient, endpointTemplate, defaultTimeoutMs,
                 hostVendorId, bidderCatalog);
     }
 

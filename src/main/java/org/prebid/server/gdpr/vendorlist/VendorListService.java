@@ -74,7 +74,7 @@ public class VendorListService {
         this.cache = cache;
     }
 
-    public static VendorListService create(FileSystem fileSystem, String cacheDir, HttpClient httpClient,
+    public static VendorListService create(FileSystem fileSystem, File cacheDir, HttpClient httpClient,
                                            String endpointTemplate, int defaultTimeoutMs, Integer gdprHostVendorId,
                                            BidderCatalog bidderCatalog) {
         Objects.requireNonNull(fileSystem);
@@ -83,11 +83,28 @@ public class VendorListService {
         Objects.requireNonNull(endpointTemplate);
         Objects.requireNonNull(bidderCatalog);
 
-        final Set<Integer> knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
-        final Map<Integer, Map<Integer, Set<Integer>>> cache = createCache(fileSystem, cacheDir, knownVendorIds);
+        createAndCheckWritePermissionsFor(cacheDir);
 
-        return new VendorListService(fileSystem, cacheDir, httpClient, endpointTemplate, defaultTimeoutMs,
+        final Set<Integer> knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
+        final Map<Integer, Map<Integer, Set<Integer>>> cache = createCache(fileSystem, cacheDir.getPath(),
+                knownVendorIds);
+
+        return new VendorListService(fileSystem, cacheDir.getPath(), httpClient, endpointTemplate, defaultTimeoutMs,
                 knownVendorIds, cache);
+    }
+
+    /**
+     * Creates if doesn't exists and checks write permissions for the given directory.
+     */
+    private static void createAndCheckWritePermissionsFor(File dir) {
+        if (!dir.exists() || !dir.isDirectory()) {
+            if (!dir.mkdirs()) {
+                throw new PreBidException(String.format("Cannot create directory: %s", dir.getPath()));
+            }
+        }
+        if (!dir.canWrite()) {
+            throw new PreBidException(String.format("No write permissions for directory: %s", dir.getPath()));
+        }
     }
 
     /**
