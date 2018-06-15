@@ -1,7 +1,9 @@
 package org.prebid.server.handler.openrtb2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -170,23 +172,21 @@ public class AmpHandler implements Handler<RoutingContext> {
     private Tuple3<BidRequest, BidResponse, AmpResponse> toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
         // fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
-        ObjectNode targetingNode = Json.mapper.createObjectNode();
 
-        if (seatBids != null) {
-            seatBids.stream()
-                    .filter(Objects::nonNull)
-                    .filter(seatBid -> seatBid.getBid() != null)
-                    .flatMap(seatBid -> seatBid.getBid().stream()
-                            .filter(Objects::nonNull)
-                            .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
-                    .forEach(entry -> targetingNode.put(entry.getKey(), entry.getValue()));
-        }
+        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
+                .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
+                .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight));
 
         // fetch debug information from response if requested
         final ExtResponseDebug extResponseDebug = Objects.equals(bidRequest.getTest(), 1)
                 ? extResponseDebugFrom(bidResponse) : null;
 
-        return Tuple3.of(bidRequest, bidResponse, AmpResponse.of(targetingNode, extResponseDebug));
+        return Tuple3.of(bidRequest, bidResponse, AmpResponse.of(targeting, extResponseDebug));
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
