@@ -22,7 +22,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
-import org.prebid.server.settings.proto.HttpFetcherResponse;
+import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 
 import java.time.Clock;
 import java.time.Instant;
