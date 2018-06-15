@@ -120,10 +120,10 @@ public class AmpHandler implements Handler<RoutingContext> {
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
                 .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
                 .recover(this::updateErrorRequestsMetric)
-                .compose(result ->
+                .compose((Tuple3<BidRequest, BidResponse, AmpResponse> result) ->
                   ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
-                           context.queryParams())
-                   .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse)))
+                           context.queryParams()))
+                .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context));
     }
 
@@ -170,19 +170,23 @@ public class AmpHandler implements Handler<RoutingContext> {
     private Tuple3<BidRequest, BidResponse, AmpResponse> toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
         // fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
-        final Map<String, Object> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
-                .filter(Objects::nonNull)
-                .filter(seatBid -> seatBid.getBid() != null)
-                .flatMap(seatBid -> seatBid.getBid().stream()
-                        .filter(Objects::nonNull)
-                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        ObjectNode targetingNode = Json.mapper.createObjectNode();
+
+        if (seatBids != null) {
+            seatBids.stream()
+                    .filter(Objects::nonNull)
+                    .filter(seatBid -> seatBid.getBid() != null)
+                    .flatMap(seatBid -> seatBid.getBid().stream()
+                            .filter(Objects::nonNull)
+                            .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
+                    .forEach(entry -> targetingNode.put(entry.getKey(), entry.getValue()));
+        }
 
         // fetch debug information from response if requested
         final ExtResponseDebug extResponseDebug = Objects.equals(bidRequest.getTest(), 1)
                 ? extResponseDebugFrom(bidResponse) : null;
 
-        return Tuple3.of(bidRequest, bidResponse, AmpResponse.of(targeting, extResponseDebug));
+        return Tuple3.of(bidRequest, bidResponse, AmpResponse.of(targetingNode, extResponseDebug));
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {

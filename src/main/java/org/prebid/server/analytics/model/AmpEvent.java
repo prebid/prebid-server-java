@@ -1,11 +1,11 @@
 package org.prebid.server.analytics.model;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Represents a transaction at /openrtb2/amp endpoint.
@@ -20,7 +20,7 @@ public class AmpEvent {
 
     BidResponse bidResponse;
 
-    Map<String, Object> targeting;
+    ObjectNode targeting;
 
     String origin;
 }

@@ -14,6 +14,7 @@ import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -378,7 +379,7 @@ public class AmpHandlerTest extends VertxTest {
                                 .build()))
                         .build()))
                         .build())
-                .targeting(singletonMap("hb_cache_id_bidder1", "value1"))
+                .targeting(Json.mapper.createObjectNode().put("hb_cache_id_bidder1", "value1"))
                 .origin("http://example.com")
                 .status(200)
                 .errors(emptyList())
