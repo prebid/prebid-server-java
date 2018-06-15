@@ -2,7 +2,9 @@ package org.prebid.server.gdpr.vendorlist;
 
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
+import io.vertx.core.file.FileSystemException;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.DecodeException;
@@ -19,6 +21,8 @@ import org.prebid.server.gdpr.vendorlist.proto.VendorList;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +78,7 @@ public class VendorListService {
         this.cache = cache;
     }
 
-    public static VendorListService create(FileSystem fileSystem, File cacheDir, HttpClient httpClient,
+    public static VendorListService create(FileSystem fileSystem, String cacheDir, HttpClient httpClient,
                                            String endpointTemplate, int defaultTimeoutMs, Integer gdprHostVendorId,
                                            BidderCatalog bidderCatalog) {
         Objects.requireNonNull(fileSystem);
@@ -83,27 +87,28 @@ public class VendorListService {
         Objects.requireNonNull(endpointTemplate);
         Objects.requireNonNull(bidderCatalog);
 
-        createAndCheckWritePermissionsFor(cacheDir);
+        createAndCheckWritePermissionsFor(fileSystem, cacheDir);
 
         final Set<Integer> knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
-        final Map<Integer, Map<Integer, Set<Integer>>> cache = createCache(fileSystem, cacheDir.getPath(),
-                knownVendorIds);
+        final Map<Integer, Map<Integer, Set<Integer>>> cache = createCache(fileSystem, cacheDir, knownVendorIds);
 
-        return new VendorListService(fileSystem, cacheDir.getPath(), httpClient, endpointTemplate, defaultTimeoutMs,
+        return new VendorListService(fileSystem, cacheDir, httpClient, endpointTemplate, defaultTimeoutMs,
                 knownVendorIds, cache);
     }
 
     /**
      * Creates if doesn't exists and checks write permissions for the given directory.
      */
-    private static void createAndCheckWritePermissionsFor(File dir) {
-        if (!dir.exists() || !dir.isDirectory()) {
-            if (!dir.mkdirs()) {
-                throw new PreBidException(String.format("Cannot create directory: %s", dir.getPath()));
+    private static void createAndCheckWritePermissionsFor(FileSystem fileSystem, String dir) {
+        final FileProps props = fileSystem.existsBlocking(dir) ? fileSystem.propsBlocking(dir) : null;
+        if (props == null || !props.isDirectory()) {
+            try {
+                fileSystem.mkdirsBlocking(dir);
+            } catch (FileSystemException e) {
+                throw new PreBidException(String.format("Cannot create directory: %s", dir), e);
             }
-        }
-        if (!dir.canWrite()) {
-            throw new PreBidException(String.format("No write permissions for directory: %s", dir.getPath()));
+        } else if (!Files.isWritable(Paths.get(dir))) {
+            throw new PreBidException(String.format("No write permissions for directory: %s", dir));
         }
     }
 
