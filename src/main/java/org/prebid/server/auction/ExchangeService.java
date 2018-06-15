@@ -51,6 +51,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseSyncData;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -157,7 +158,7 @@ public class ExchangeService {
                 // produce response from bidder results
                 .map(this::updateMetricsFromResponses)
                 .compose(result ->
-                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout))
+                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout, uidsCookie, aliases))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, bidResponse));
     }
 
@@ -513,7 +514,11 @@ public class ExchangeService {
         final String uid = uidsBody.get(bidder);
         return StringUtils.isNotBlank(uid)
                 ? uid
-                : uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName());
+                : uidsCookie.uidFrom(bidderCookieFamilyName(bidder));
+    }
+
+    private String bidderCookieFamilyName(String bidder) {
+        return bidderCatalog.usersyncerByName(bidder).cookieFamilyName();
     }
 
     /**
@@ -534,7 +539,7 @@ public class ExchangeService {
             metrics.forAdapter(bidder).incCounter(MetricName.requests);
 
             final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
-                    uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
+                    uidsCookie.uidFrom(bidderCookieFamilyName(bidder)));
 
             if (bidderRequest.getBidRequest().getApp() == null && noBuyerId) {
                 metrics.forAdapter(bidder).incCounter(MetricName.no_cookie_requests);
@@ -767,14 +772,14 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, BidRequestCacheInfo cacheInfo,
-                                              Timeout timeout) {
+                                              Timeout timeout, UidsCookie uidsCookie, Map<String, String> aliases) {
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, winningBids, winningBidsByBidder);
 
         return toWinningBidsWithCacheIds(winningBids, bidRequest.getImp(), keywordsCreator, cacheInfo, timeout)
                 .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        winningBidsWithCacheIds, winningBidsByBidder));
+                        winningBidsWithCacheIds, winningBidsByBidder, uidsCookie, aliases));
     }
 
     /**
@@ -926,17 +931,18 @@ public class ExchangeService {
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    private static BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
+    private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                           TargetingKeywordsCreator keywordsCreator,
                                                           Map<Bid, CacheIdInfo> winningBidsWithCacheIds,
-                                                          Set<Bid> winningBidsByBidder) {
+                                                          Set<Bid> winningBidsByBidder, UidsCookie uidsCookie,
+                                                          Map<String, String> aliases) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
                         toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest);
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, uidsCookie, aliases);
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -999,7 +1005,8 @@ public class ExchangeService {
      * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
      * bidders
      */
-    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest) {
+    private ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
+                                                   UidsCookie uidsCookie, Map<String, String> aliases) {
         final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream().collect(
                 Collectors.toMap(BidderResponse::getBidder, r -> r.getSeatBid().getHttpCalls()))
@@ -1012,7 +1019,17 @@ public class ExchangeService {
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
-        return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
+        final Map<String, ExtResponseSyncData> userSync = results.stream()
+                .collect(Collectors.toMap(BidderResponse::getBidder, br -> {
+                    String bidderCfm = bidderCookieFamilyName(resolveBidder(br.getBidder(), aliases));
+                    return ExtResponseSyncData.of(uidsCookie.hasLiveUidFrom(bidderCfm)
+                            ? ExtResponseSyncData.CookieStatus.available
+                                : (StringUtils.isNotBlank(uidsCookie.uidFrom(bidderCfm))
+                                    ? ExtResponseSyncData.CookieStatus.expired
+                                        : ExtResponseSyncData.CookieStatus.none), null);
+                }));
+
+        return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, userSync);
     }
 
     private static List<String> messages(List<BidderError> errors) {

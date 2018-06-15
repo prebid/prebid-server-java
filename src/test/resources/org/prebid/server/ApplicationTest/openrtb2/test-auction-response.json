@@ -1359,6 +1359,23 @@
       "adtelligent": "{{ adtelligent.response_time_ms }}",
       "openx": "{{ openx.response_time_ms }}",
       "eplanning": "{{ eplanning.response_time_ms }}"
+    },
+    "usersync" : {
+      "rubicon": { "status": "expired" },
+      "audienceNetwork": { "status": "expired" },
+      "pulsepoint": { "status": "expired" },
+      "indexExchange": { "status": "expired" },
+      "lifestreet": { "status": "expired" },
+      "pubmatic": { "status": "expired" },
+      "appnexus": { "status": "expired" },
+      "appnexusAlias": { "status": "expired" },
+      "conversant": { "status": "expired" },
+      "conversantAlias": { "status": "expired" },
+      "sovrn": { "status": "expired" },
+      "adtelligent": { "status": "expired" },
+      "adform": { "status": "expired" },
+      "openx": { "status": "none" },
+      "eplanning": { "status": "expired" }
     }
   }
 }

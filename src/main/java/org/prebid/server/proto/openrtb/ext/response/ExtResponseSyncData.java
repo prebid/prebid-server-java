@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.List;
@@ -7,8 +8,9 @@ import java.util.List;
 /**
  * Defines the contract for bidresponse.ext.usersync.{bidder}
  */
+@AllArgsConstructor(staticName = "of")
 @Value
-final class ExtResponseSyncData {
+public final class ExtResponseSyncData {
 
     CookieStatus status;
 
