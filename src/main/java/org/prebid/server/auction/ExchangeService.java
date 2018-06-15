@@ -158,7 +158,7 @@ public class ExchangeService {
                 .map(this::updateMetricsFromResponses)
                 .compose(result ->
                         toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout))
-                .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, bidResponse));
+                .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
     }
 
     /**

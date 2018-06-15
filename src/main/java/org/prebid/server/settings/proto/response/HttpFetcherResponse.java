@@ -1,4 +1,4 @@
-package org.prebid.server.settings.proto;
+package org.prebid.server.settings.proto.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
