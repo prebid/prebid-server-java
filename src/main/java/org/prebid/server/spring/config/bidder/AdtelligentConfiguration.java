@@ -13,10 +13,8 @@ import org.prebid.server.bidder.adtelligent.AdtelligentBidder;
 import org.prebid.server.bidder.adtelligent.AdtelligentMetaInfo;
 import org.prebid.server.bidder.adtelligent.AdtelligentUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class AdtelligentConfiguration extends BidderConfiguration {
@@ -44,7 +42,6 @@ public class AdtelligentConfiguration extends BidderConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps adtelligentBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
     }

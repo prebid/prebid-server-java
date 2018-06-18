@@ -60,20 +60,20 @@ public class CurrencyConversionServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(httpClient, 200,
                 mapper.writeValueAsString(CurrencyConversionRates.of(null, currencyRates)));
 
-        currencyService = new CurrencyConversionService(URL, 1L, httpClient, vertx);
+        currencyService = createAndInitService(URL, 1L, vertx, httpClient);
     }
 
     @Test
     public void creationShouldFailOnInvalidCurrencyServerUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new CurrencyConversionService("invalid-url", 1L, httpClient, vertx))
+                .isThrownBy(() -> createAndInitService("invalid-url", 1L, vertx, httpClient))
                 .withMessage("URL supplied is not valid: invalid-url");
     }
 
     @Test
     public void creationShouldFailOnInvalidPeriodValue() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new CurrencyConversionService(URL, 0L, httpClient, vertx))
+                .isThrownBy(() -> createAndInitService(URL, 0L, vertx, httpClient))
                 .withMessage("Refresh period for updating rates must be positive value");
     }
 
@@ -196,14 +196,13 @@ public class CurrencyConversionServiceTest extends VertxTest {
     }
 
     @Test
-    public void convertCurrencyShouldThrowExceptionWhenCurrencyServerResponseStatusNot200()
-            throws JsonProcessingException {
+    public void convertCurrencyShouldThrowExceptionWhenCurrencyServerResponseStatusNot200() {
         // given
         final HttpClient client = mock(HttpClient.class);
         givenHttpClientReturnsResponse(client, 503, "server unavailable");
 
         // when
-        currencyService = new CurrencyConversionService(URL, 1L, client, vertx);
+        currencyService = createAndInitService(URL, 1L, vertx, client);
 
         // then
         assertThatExceptionOfType(PreBidException.class)
@@ -212,14 +211,13 @@ public class CurrencyConversionServiceTest extends VertxTest {
     }
 
     @Test
-    public void convertCurrencyShouldThrowExceptionWhenCurrencyServerResponseContainsMalformedBody()
-            throws JsonProcessingException {
+    public void convertCurrencyShouldThrowExceptionWhenCurrencyServerResponseContainsMalformedBody() {
         // given
         final HttpClient client = mock(HttpClient.class);
         givenHttpClientReturnsResponse(client, 200, "{\"foo\": \"bar\"}");
 
         // when
-        currencyService = new CurrencyConversionService(URL, 1L, client, vertx);
+        currencyService = createAndInitService(URL, 1L, vertx, client);
 
         // then
         assertThatExceptionOfType(PreBidException.class)
@@ -228,22 +226,21 @@ public class CurrencyConversionServiceTest extends VertxTest {
     }
 
     @Test
-    public void createShouldMakeOneInitialRequestAndTwoScheduledWhenUpdatePeriodIs1000MsAndApproximateLifespanIs2100() {
+    public void initializeShouldMakeOneInitialRequestAndTwoScheduled() {
         // given
         final HttpClient client = mock(HttpClient.class);
         given(client.getAbs(anyString(), any())).willReturn(httpClientRequest);
         final Vertx vertx = Vertx.vertx();
 
         // when
-        currencyService = new CurrencyConversionService(URL, 1000, client, vertx);
+        currencyService = createAndInitService(URL, 1000, vertx, client);
 
         // then
         verify(client, after(2100).times(3)).getAbs(anyString(), any());
         vertx.close();
     }
 
-    private void givenHttpClientReturnsResponse(HttpClient httpClient, int statusCode, String body)
-            throws JsonProcessingException {
+    private void givenHttpClientReturnsResponse(HttpClient httpClient, int statusCode, String body) {
 
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(httpClient, statusCode);
         given(httpClientResponse.bodyHandler(any()))
@@ -258,6 +255,14 @@ public class CurrencyConversionServiceTest extends VertxTest {
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
         return httpClientResponse;
+    }
+
+    private CurrencyConversionService createAndInitService(String url, long refreshPeriod, Vertx vertx,
+                                                           HttpClient httpClient) {
+        final CurrencyConversionService currencyService =
+                new CurrencyConversionService(url, refreshPeriod, vertx, httpClient);
+        currencyService.initialize();
+        return currencyService;
     }
 
     @SuppressWarnings("unchecked")

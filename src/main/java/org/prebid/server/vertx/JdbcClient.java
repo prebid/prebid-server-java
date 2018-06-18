@@ -29,6 +29,8 @@ public class JdbcClient {
     /**
      * Triggers connection creation. Should be called during application initialization to detect connection issues as
      * early as possible.
+     * <p>
+     * Must be called on Vertx event loop thread.
      */
     public Future<Void> initialize() {
         final Future<SQLConnection> result = Future.future();
