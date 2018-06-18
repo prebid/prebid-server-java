@@ -1,7 +1,9 @@
 package org.prebid.server.handler.openrtb2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -22,8 +24,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.auction.AmpRequestFactory;
+import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -68,13 +72,15 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final Set<String> biddersSupportingCustomTargeting;
     private final BidderCatalog bidderCatalog;
     private final AnalyticsReporter analyticsReporter;
+    private final AmpResponsePostProcessor ampResponsePostProcessor;
     private final Metrics metrics;
     private final Clock clock;
     private final TimeoutFactory timeoutFactory;
 
     public AmpHandler(long defaultTimeout, AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
                       UidsCookieService uidsCookieService, Set<String> biddersSupportingCustomTargeting,
-                      BidderCatalog bidderCatalog, AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock,
+                      BidderCatalog bidderCatalog, AnalyticsReporter analyticsReporter,
+                      AmpResponsePostProcessor ampResponsePostProcessor, Metrics metrics, Clock clock,
                       TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
@@ -83,6 +89,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -115,6 +122,9 @@ public class AmpHandler implements Handler<RoutingContext> {
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
                 .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
                 .recover(this::updateErrorRequestsMetric)
+                .compose((Tuple3<BidRequest, BidResponse, AmpResponse> result) ->
+                  ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
+                           context.queryParams()))
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context));
     }
@@ -159,22 +169,24 @@ public class AmpHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private Tuple3<BidRequest, BidResponse, AmpResponse> toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
         // fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
-        final Map<String, String> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
+
+        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                         .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight));
 
         // fetch debug information from response if requested
         final ExtResponseDebug extResponseDebug = Objects.equals(bidRequest.getTest(), 1)
                 ? extResponseDebugFrom(bidResponse) : null;
 
-        return AmpResponse.of(targeting, extResponseDebug);
+        return Tuple3.of(bidRequest, bidResponse, AmpResponse.of(targeting, extResponseDebug));
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -235,7 +247,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         return extBidResponse != null ? extBidResponse.getDebug() : null;
     }
 
-    private Future<AmpResponse> updateErrorRequestsMetric(Throwable failed) {
+    private Future<Tuple3<BidRequest, BidResponse, AmpResponse>> updateErrorRequestsMetric(Throwable failed) {
         metrics.incCounter(MetricName.error_requests);
         return Future.failedFuture(failed);
     }

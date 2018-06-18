@@ -26,6 +26,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.auction.AmpRequestFactory;
+import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -107,7 +108,8 @@ public class AmpHandlerTest extends VertxTest {
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         ampHandler = new AmpHandler(5000, ampRequestFactory, exchangeService, uidsCookieService,
-                singleton("bidder1"), bidderCatalog, analyticsReporter, metrics, clock, timeoutFactory);
+                singleton("bidder1"), bidderCatalog, analyticsReporter, new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(), metrics, clock,
+                timeoutFactory);
     }
 
     @Test
@@ -376,7 +378,7 @@ public class AmpHandlerTest extends VertxTest {
                                 .build()))
                         .build()))
                         .build())
-                .targeting(singletonMap("hb_cache_id_bidder1", "value1"))
+                .targeting(singletonMap("hb_cache_id_bidder1", TextNode.valueOf("value1")))
                 .origin("http://example.com")
                 .status(200)
                 .errors(emptyList())

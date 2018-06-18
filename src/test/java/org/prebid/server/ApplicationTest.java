@@ -262,7 +262,7 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void ampShouldReturnTargeting() throws IOException {
+    public void ampShouldReturnTargeting() throws IOException, JSONException {
         // given
         // rubicon exchange
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
@@ -280,7 +280,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("amp/test-cache-response.json"))));
 
         // when and then
-        given(spec)
+        Response response = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -295,10 +295,8 @@ public class ApplicationTest extends VertxTest {
                         "&oh=120" +
                         "&timeout=10000000" +
                         "&slot=overwrite-tagId" +
-                        "&curl=https%3A%2F%2Fgoogle.com")
-                .then()
-                .assertThat()
-                .body(Matchers.equalTo(jsonFrom("amp/test-amp-response.json")));
+                        "&curl=https%3A%2F%2Fgoogle.com");
+        JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
