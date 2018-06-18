@@ -15,10 +15,8 @@ import org.prebid.server.bidder.facebook.FacebookBidder;
 import org.prebid.server.bidder.facebook.FacebookMetaInfo;
 import org.prebid.server.bidder.facebook.FacebookUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class FacebookConfiguration extends BidderConfiguration {
@@ -44,7 +42,6 @@ public class FacebookConfiguration extends BidderConfiguration {
     private String platformId;
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps facebookBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && (usersyncUrl == null || platformId == null)) {
             throw new IllegalStateException(

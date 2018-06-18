@@ -13,10 +13,8 @@ import org.prebid.server.bidder.eplanning.EplanningBidder;
 import org.prebid.server.bidder.eplanning.EplanningMetaInfo;
 import org.prebid.server.bidder.eplanning.EplanningUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class EplanningConfiguration extends BidderConfiguration {
@@ -44,7 +42,6 @@ public class EplanningConfiguration extends BidderConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps eplanningBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
     }

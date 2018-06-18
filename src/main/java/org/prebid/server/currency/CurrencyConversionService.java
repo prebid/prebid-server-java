@@ -29,15 +29,26 @@ public class CurrencyConversionService {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String currencyServerUrl;
+    private final long refreshPeriod;
+    private final Vertx vertx;
     private final HttpClient httpClient;
 
     private Map<String, Map<String, BigDecimal>> latestCurrencyRates = null;
 
-    public CurrencyConversionService(String currencyServerUrl, long refreshPeriod, HttpClient httpClient, Vertx vertx) {
+    public CurrencyConversionService(String currencyServerUrl, long refreshPeriod, Vertx vertx, HttpClient httpClient) {
         this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(currencyServerUrl));
+        this.refreshPeriod = validateRefreshPeriod(refreshPeriod);
+        this.vertx = Objects.requireNonNull(vertx);
         this.httpClient = Objects.requireNonNull(httpClient);
-        Objects.requireNonNull(vertx).setPeriodic(
-                validateRefreshPeriod(refreshPeriod), aLong -> populatesLatestCurrencyRates());
+    }
+
+    /**
+     * Sets timer for periodic currency rates updates and starts initial population.
+     * <p>
+     * Must be called on Vertx event loop thread.
+     */
+    public void initialize() {
+        vertx.setPeriodic(refreshPeriod, aLong -> populatesLatestCurrencyRates());
         populatesLatestCurrencyRates();
     }
 

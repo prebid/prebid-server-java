@@ -14,10 +14,8 @@ import org.prebid.server.bidder.sovrn.SovrnBidder;
 import org.prebid.server.bidder.sovrn.SovrnMetaInfo;
 import org.prebid.server.bidder.sovrn.SovrnUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class SovrnConfiguration extends BidderConfiguration {
@@ -40,7 +38,6 @@ public class SovrnConfiguration extends BidderConfiguration {
     private String externalUrl;
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps sovrnBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
     }

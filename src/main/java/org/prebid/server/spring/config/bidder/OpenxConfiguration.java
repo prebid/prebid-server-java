@@ -13,10 +13,8 @@ import org.prebid.server.bidder.openx.OpenxBidder;
 import org.prebid.server.bidder.openx.OpenxMetaInfo;
 import org.prebid.server.bidder.openx.OpenxUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class OpenxConfiguration extends BidderConfiguration {
@@ -39,7 +37,6 @@ public class OpenxConfiguration extends BidderConfiguration {
     private String externalUrl;
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps openxBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
     }

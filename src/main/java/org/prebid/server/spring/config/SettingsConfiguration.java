@@ -3,14 +3,17 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.CacheNotificationVerticle;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
@@ -19,20 +22,20 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -73,8 +76,13 @@ public class SettingsConfiguration {
         }
 
         @Bean
-        JdbcClient jdbcClient(Vertx vertx, JDBCClient vertxJdbcClient) {
-            return new JdbcClient(vertx, vertxJdbcClient);
+        JdbcClient jdbcClient(Vertx vertx, JDBCClient vertxJdbcClient, ContextRunner contextRunner) {
+            final JdbcClient jdbcClient = new JdbcClient(vertx, vertxJdbcClient);
+
+            contextRunner.runOnServiceContext(
+                    future -> jdbcClient.initialize().compose(ignored -> future.complete(), future));
+
+            return jdbcClient;
         }
 
         @Bean
@@ -236,6 +244,26 @@ public class SettingsConfiguration {
             havingValue = "true")
     public static class CacheNotificationConfiguration {
 
+        private static final Logger logger = LoggerFactory.getLogger(CacheNotificationConfiguration.class);
+
+        @Autowired
+        private ContextRunner contextRunner;
+
+        @Autowired
+        private Vertx vertx;
+
+        @Autowired
+        private BodyHandler bodyHandler;
+
+        @Autowired
+        private SettingsCacheNotificationHandler cacheNotificationHandler;
+
+        @Autowired
+        private SettingsCacheNotificationHandler ampCacheNotificationHandler;
+
+        @Value("${admin.port}")
+        private int adminPort;
+
         @Bean
         SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache) {
             return new SettingsCacheNotificationHandler(settingsCache);
@@ -246,17 +274,19 @@ public class SettingsConfiguration {
             return new SettingsCacheNotificationHandler(ampSettingsCache);
         }
 
-        @Bean
-        @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-        CacheNotificationVerticle cacheNotificationVerticle(
-                @Value("${admin.port}") int port,
-                Vertx vertx,
-                SettingsCacheNotificationHandler cacheNotificationHandler,
-                SettingsCacheNotificationHandler ampCacheNotificationHandler,
-                BodyHandler bodyHandler) {
+        @PostConstruct
+        public void startAdminServer() {
+            logger.info("Starting Admin Server to serve requests on port {0,number,#}", adminPort);
 
-            return new CacheNotificationVerticle(vertx, port, cacheNotificationHandler, ampCacheNotificationHandler,
-                    bodyHandler);
+            final Router router = Router.router(vertx);
+            router.route().handler(bodyHandler);
+            router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
+            router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+
+            contextRunner.<HttpServer>runOnServiceContext(future ->
+                    vertx.createHttpServer().requestHandler(router::accept).listen(adminPort, future));
+
+            logger.info("Successfully started Admin Server");
         }
     }
 }

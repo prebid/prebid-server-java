@@ -4,9 +4,8 @@ spring:
 vertx:
   worker-pool-size: 20
   uploads-dir: file-uploads
-  verticle:
-    deploy-timeout-ms: 5000
-    instances: 1
+  init-timeout-ms: 5000
+  http-server-instances: 1
 http:
   port: 8080
 admin:

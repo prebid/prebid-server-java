@@ -14,10 +14,8 @@ import org.prebid.server.bidder.index.IndexBidder;
 import org.prebid.server.bidder.index.IndexMetaInfo;
 import org.prebid.server.bidder.index.IndexUsersyncer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class IndexConfiguration extends BidderConfiguration {
@@ -37,7 +35,6 @@ public class IndexConfiguration extends BidderConfiguration {
     private boolean pbsEnforcesGdpr;
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     BidderDeps indexexchangeBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && endpoint == null) {
             throw new IllegalStateException(

@@ -28,11 +28,12 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
+import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 
 import javax.validation.constraints.Min;
 import java.io.IOException;
@@ -44,7 +45,6 @@ import java.util.Properties;
 public class ServiceConfiguration {
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     CacheService cacheService(
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
@@ -95,7 +95,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     GoogleRecaptchaVerifier googleRecaptchaVerifier(
             @Value("${recaptcha-url}") String recaptchaUrl,
             @Value("${recaptcha-secret}") String recaptchaSecret,
@@ -105,7 +104,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    @Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
     HttpClient httpClient(
             @Value("${http-client.max-pool-size}") int maxPoolSize,
             @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs,
@@ -131,7 +130,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     VendorListService vendorListService(
             FileSystem fileSystem,
             @Value("${gdpr.vendorlist.filesystem-cache-dir}") String cacheDir,
@@ -159,7 +157,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
             @Value("${geolocation.openrtb2-auctions-enabled}") boolean useGeoLocation,
@@ -186,7 +183,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     HttpAdapterConnector httpAdapterConnector(HttpClient httpClient, Clock clock) {
         return new HttpAdapterConnector(httpClient, clock);
     }
@@ -241,13 +237,21 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    CurrencyConversionService currencyConversionRates(@Value("${auction.currency-rates-refresh-period-ms}")
-                                                              long refreshPeriod,
-                                                      @Value("${auction.currency-rates-url}")
-                                                              String currencyServerUrl,
-                                                      Vertx vertx,
-                                                      HttpClient httpClient) {
-        return new CurrencyConversionService(currencyServerUrl, refreshPeriod, httpClient, vertx);
+    CurrencyConversionService currencyConversionRates(
+            @Value("${auction.currency-rates-refresh-period-ms}") long refreshPeriod,
+            @Value("${auction.currency-rates-url}") String currencyServerUrl,
+            Vertx vertx,
+            HttpClient httpClient,
+            ContextRunner contextRunner) {
+
+        final CurrencyConversionService service = new CurrencyConversionService(currencyServerUrl, refreshPeriod,
+                vertx, httpClient);
+
+        contextRunner.runOnServiceContext(future -> {
+            service.initialize();
+            future.complete();
+        });
+
+        return service;
     }
 }
