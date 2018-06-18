@@ -13,6 +13,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.analytics.CompositeAnalyticsReporter;
 import org.prebid.server.auction.AmpRequestFactory;
+import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
@@ -174,13 +175,14 @@ public class WebConfiguration {
             AmpProperties ampProperties,
             BidderCatalog bidderCatalog,
             CompositeAnalyticsReporter analyticsReporter,
+            AmpResponsePostProcessor ampResponsePostProcessor,
             Metrics metrics,
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
         return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService,
-                ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, metrics, clock,
-                timeoutFactory);
+                ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, ampResponsePostProcessor,
+                metrics, clock, timeoutFactory);
     }
 
     @Bean
