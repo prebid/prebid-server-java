@@ -7,6 +7,7 @@ import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import org.prebid.server.auction.AmpRequestFactory;
+import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
@@ -228,6 +229,11 @@ public class ServiceConfiguration {
     @Bean
     BidResponsePostProcessor bidResponsePostProcessor() {
         return BidResponsePostProcessor.noOp();
+    }
+
+    @Bean
+    AmpResponsePostProcessor ampResponsePostProcessor() {
+        return AmpResponsePostProcessor.noOp();
     }
 
     @Bean
