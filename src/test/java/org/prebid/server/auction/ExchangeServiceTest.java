@@ -118,6 +118,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private AdapterMetrics adapterMetrics;
     @Mock
+    private AdapterMetrics accountAdapterMetrics;
+    @Mock
     private AdapterMetrics.MarkupMetrics adapterMarkupMetrics;
     @Mock
     private UidsCookie uidsCookie;
@@ -143,6 +145,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
         given(adapterMetrics.forBidType(any())).willReturn(adapterMarkupMetrics);
+        given(accountMetrics.forAdapter(anyString())).willReturn(accountAdapterMetrics);
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
@@ -1418,10 +1421,14 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(accountMetrics).incCounter(eq(MetricName.requests));
         verify(adapterMetrics).incCounter(eq(MetricName.requests));
+        verify(accountAdapterMetrics).incCounter(eq(MetricName.requests));
         verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
         verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
+        verify(accountAdapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
+        verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
         verify(adapterMetrics).incCounter(eq(MetricName.bids_received));
+        verify(accountAdapterMetrics).incCounter(eq(MetricName.bids_received));
         verify(adapterMarkupMetrics).incCounter(eq(MetricName.nurl_bids_received));
     }
 

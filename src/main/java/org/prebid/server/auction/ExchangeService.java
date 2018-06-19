@@ -552,14 +552,17 @@ public class ExchangeService {
 
         for (BidderRequest bidderRequest : bidderRequests) {
             final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
+            final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
+            final AdapterMetrics accountAdapterMetrics = metrics.forAccount(publisherId).forAdapter(bidder);
 
-            metrics.forAdapter(bidder).incCounter(MetricName.requests);
+            adapterMetrics.incCounter(MetricName.requests);
+            accountAdapterMetrics.incCounter(MetricName.requests);
 
             final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
                     uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
 
             if (bidderRequest.getBidRequest().getApp() == null && noBuyerId) {
-                metrics.forAdapter(bidder).incCounter(MetricName.no_cookie_requests);
+                adapterMetrics.incCounter(MetricName.no_cookie_requests);
             }
         }
         return bidderRequests;
@@ -752,8 +755,11 @@ public class ExchangeService {
         for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
             final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
+            final AdapterMetrics accountAdapterMetrics = metrics.forAccount(publisherId).forAdapter(bidder);
 
-            adapterMetrics.updateTimer(MetricName.request_time, bidderResponse.getResponseTime());
+            final int responseTime = bidderResponse.getResponseTime();
+            adapterMetrics.updateTimer(MetricName.request_time, responseTime);
+            accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
 
             final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
             if (CollectionUtils.isEmpty(bidderBids)) {
@@ -762,9 +768,12 @@ public class ExchangeService {
                 for (final BidderBid bidderBid : bidderBids) {
                     final Bid bid = bidderBid.getBid();
 
-                    adapterMetrics.updateHistogram(MetricName.prices, bid.getPrice().multiply(THOUSAND).longValue());
+                    final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
+                    adapterMetrics.updateHistogram(MetricName.prices, cpm);
+                    accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
 
                     adapterMetrics.incCounter(MetricName.bids_received);
+                    accountAdapterMetrics.incCounter(MetricName.bids_received);
 
                     final MetricName markupMetricName = bid.getAdm() != null
                             ? MetricName.adm_bids_received : MetricName.nurl_bids_received;
