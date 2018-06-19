@@ -120,7 +120,8 @@ public class AmpHandler implements Handler<RoutingContext> {
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
                 .map((Tuple2<BidRequest, BidResponse> result) ->
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
-                .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
+                .map((Tuple2<BidRequest, BidResponse> result) -> Tuple3.of(result.getLeft(), result.getRight(),
+                        toAmpResponse(result.getLeft(), result.getRight())))
                 .recover(this::updateErrorRequestsMetric)
                 .compose((Tuple3<BidRequest, BidResponse, AmpResponse> result) ->
                         ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
@@ -170,7 +171,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private Tuple3<BidRequest, BidResponse, AmpResponse> toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
         // fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
@@ -187,7 +188,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         final ExtResponseDebug extResponseDebug = Objects.equals(bidRequest.getTest(), 1)
                 ? extResponseDebugFrom(bidResponse) : null;
 
-        return Tuple3.of(bidRequest, bidResponse, AmpResponse.of(targeting, extResponseDebug));
+        return AmpResponse.of(targeting, extResponseDebug);
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -248,7 +249,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         return extBidResponse != null ? extBidResponse.getDebug() : null;
     }
 
-    private Future<Tuple3<BidRequest, BidResponse, AmpResponse>> updateErrorRequestsMetric(Throwable failed) {
+    private <T> Future<T> updateErrorRequestsMetric(Throwable failed) {
         metrics.incCounter(MetricName.error_requests);
         return Future.failedFuture(failed);
     }
