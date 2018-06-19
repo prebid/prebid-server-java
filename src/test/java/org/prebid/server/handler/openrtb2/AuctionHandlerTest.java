@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -39,6 +40,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 public class AuctionHandlerTest extends VertxTest {
@@ -189,7 +191,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldIncrementRequestsAndOrtbRequestsMetrics() {
         // given
         given(auctionRequestFactory.fromRequest(any()))
-                .willReturn(Future.succeededFuture(BidRequest.builder().build()));
+                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
 
         given(exchangeService.holdAuction(any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().build()));
@@ -271,6 +273,46 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         verify(metrics).incCounter(eq(MetricName.error_requests));
         verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldUpdateRequestTimeMetric() {
+        // given
+
+        // set up clock mock to check that request_time metric has been updated with expected value
+        given(clock.millis()).willReturn(5000L).willReturn(5500L);
+
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
+
+        // simulate calling end handler that is supposed to update request_time timer value
+        given(httpResponse.endHandler(any())).willAnswer(inv -> {
+            ((Handler<Void>) inv.getArgument(0)).handle(null);
+            return null;
+        });
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateTimer(eq(MetricName.request_time), eq(500L));
+    }
+
+    @Test
+    public void shouldNotUpdateRequestTimeMetricIfRequestFails() {
+        // given
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse, never()).endHandler(any());
     }
 
     @Test

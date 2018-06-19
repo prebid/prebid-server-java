@@ -83,6 +83,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime)))
                 .recover(this::updateErrorRequestsMetric)
                 .map(bidResponse -> addToEvent(bidResponse, auctionEventBuilder::bidResponse))
+                .map(bidResponse -> setupRequestTimeMetricUpdater(bidResponse, context, startTime))
                 .setHandler(responseResult -> handleResult(responseResult, auctionEventBuilder, context));
     }
 
@@ -129,6 +130,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private Future<BidResponse> updateErrorRequestsMetric(Throwable failed) {
         metrics.incCounter(MetricName.error_requests);
         return Future.failedFuture(failed);
+    }
+
+    private <T> T setupRequestTimeMetricUpdater(T returnValue, RoutingContext context, long startTime) {
+        // set up handler to update request time metric when response is sent back to a client
+        context.response().endHandler(ignored ->
+                metrics.updateTimer(MetricName.request_time, clock.millis() - startTime));
+        return returnValue;
     }
 
     private void handleResult(AsyncResult<BidResponse> responseResult,
