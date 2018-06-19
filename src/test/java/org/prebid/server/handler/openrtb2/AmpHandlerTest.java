@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -43,7 +44,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -75,6 +75,8 @@ public class AmpHandlerTest extends VertxTest {
     private AnalyticsReporter analyticsReporter;
     @Mock
     private Metrics metrics;
+    @Mock
+    private Clock clock;
 
     private AmpHandler ampHandler;
 
@@ -105,11 +107,11 @@ public class AmpHandlerTest extends VertxTest {
 
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        given(clock.millis()).willReturn(Instant.now().toEpochMilli());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         ampHandler = new AmpHandler(5000, ampRequestFactory, exchangeService, uidsCookieService,
-                singleton("bidder1"), bidderCatalog, analyticsReporter, new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(), metrics, clock,
-                timeoutFactory);
+                singleton("bidder1"), bidderCatalog, analyticsReporter,
+                new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(), metrics, clock, timeoutFactory);
     }
 
     @Test
@@ -315,6 +317,46 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verify(metrics).incCounter(eq(MetricName.error_requests));
         verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldUpdateRequestTimeMetric() {
+        // given
+
+        // set up clock mock to check that request_time metric has been updated with expected value
+        given(clock.millis()).willReturn(5000L).willReturn(5500L);
+
+        given(ampRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
+
+        // simulate calling end handler that is supposed to update request_time timer value
+        given(httpResponse.endHandler(any())).willAnswer(inv -> {
+            ((Handler<Void>) inv.getArgument(0)).handle(null);
+            return null;
+        });
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateTimer(eq(MetricName.request_time), eq(500L));
+    }
+
+    @Test
+    public void shouldNotUpdateRequestTimeMetricIfRequestFails() {
+        // given
+        given(ampRequestFactory.fromRequest(any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse, never()).endHandler(any());
     }
 
     @Test

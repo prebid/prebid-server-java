@@ -123,9 +123,10 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map((Tuple2<BidRequest, BidResponse> result) -> toAmpResponse(result.getLeft(), result.getRight()))
                 .recover(this::updateErrorRequestsMetric)
                 .compose((Tuple3<BidRequest, BidResponse, AmpResponse> result) ->
-                  ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
-                           context.queryParams()))
+                        ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
+                                context.queryParams()))
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
+                .map(ampResponse -> setupRequestTimeMetricUpdater(ampResponse, context, startTime))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context));
     }
 
@@ -250,6 +251,13 @@ public class AmpHandler implements Handler<RoutingContext> {
     private Future<Tuple3<BidRequest, BidResponse, AmpResponse>> updateErrorRequestsMetric(Throwable failed) {
         metrics.incCounter(MetricName.error_requests);
         return Future.failedFuture(failed);
+    }
+
+    private <T> T setupRequestTimeMetricUpdater(T returnValue, RoutingContext context, long startTime) {
+        // set up handler to update request time metric when response is sent back to a client
+        context.response().endHandler(ignored ->
+                metrics.updateTimer(MetricName.request_time, clock.millis() - startTime));
+        return returnValue;
     }
 
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
