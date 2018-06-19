@@ -742,6 +742,8 @@ public class ExchangeService {
 
                     adapterMetrics.updateHistogram(MetricName.prices, bid.getPrice().multiply(THOUSAND).longValue());
 
+                    adapterMetrics.incCounter(MetricName.bids_received);
+
                     final MetricName markupMetricName = bid.getAdm() != null
                             ? MetricName.adm_bids_received : MetricName.nurl_bids_received;
                     adapterMetrics.forBidType(bidderBid.getType()).incCounter(markupMetricName);

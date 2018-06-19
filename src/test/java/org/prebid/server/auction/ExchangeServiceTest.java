@@ -1416,6 +1416,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
         verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
+        verify(adapterMetrics).incCounter(eq(MetricName.bids_received));
         verify(adapterMarkupMetrics).incCounter(eq(MetricName.nurl_bids_received));
     }
 
