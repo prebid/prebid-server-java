@@ -180,8 +180,8 @@ public class WebConfiguration {
             HttpAdapterConnector httpAdapterConnector,
             Clock clock) {
 
-        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, metrics, httpAdapterConnector, clock);
+        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
+                metrics, httpAdapterConnector, clock);
     }
 
     @Bean
@@ -238,12 +238,12 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${geolocation.cookie-sync-enabled}") boolean useGeoLocation,
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics) {
 
-        return new SetuidHandler(uidsCookieService, gdprService, hostVendorId, useGeoLocation,
-                analyticsReporter, metrics);
+        return new SetuidHandler(uidsCookieService, gdprService, hostVendorId, useGeoLocation, analyticsReporter,
+                metrics);
     }
 
     @Bean
@@ -259,12 +259,9 @@ public class WebConfiguration {
             GoogleRecaptchaVerifier googleRecaptchaVerifier,
             UidsCookieService uidsCookieService) {
 
-        return new OptoutHandler(googleRecaptchaVerifier,
-                uidsCookieService,
-                OptoutHandler.getOptoutRedirectUrl(externalUrl),
-                HttpUtil.validateUrl(optoutUrl),
-                HttpUtil.validateUrl(optinUrl)
-        );
+        return new OptoutHandler(googleRecaptchaVerifier, uidsCookieService,
+                OptoutHandler.getOptoutRedirectUrl(externalUrl), HttpUtil.validateUrl(optoutUrl),
+                HttpUtil.validateUrl(optinUrl));
     }
 
     @Bean
