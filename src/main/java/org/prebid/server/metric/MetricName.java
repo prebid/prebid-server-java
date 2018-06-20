@@ -20,10 +20,6 @@ public enum MetricName {
     adm_bids_received,
     nurl_bids_received,
 
-    ortb_requests,
-
-    amp_requests,
-
     // request types
     openrtb2,
     amp,

@@ -37,6 +37,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.RequestMetrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -76,6 +77,8 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private Metrics metrics;
     @Mock
+    private RequestMetrics requestMetrics;
+    @Mock
     private Clock clock;
 
     private AmpHandler ampHandler;
@@ -91,6 +94,8 @@ public class AmpHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(metrics.forRequestType(any())).willReturn(requestMetrics);
+
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
 
@@ -249,7 +254,25 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldIncrementAmpRequestMetrics() {
+    public void shouldIncrementOkAmpRequestMetrics() {
+        // given
+        given(ampRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(
+                        BidRequest.builder().imp(emptyList()).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                givenBidResponse(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, null), null))));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).forRequestType(eq(MetricName.amp));
+        verify(requestMetrics).incCounter(eq(MetricName.ok));
+    }
+
+    @Test
+    public void shouldIncrementAppRequestMetrics() {
         // given
         given(ampRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(
@@ -262,7 +285,6 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.amp_requests));
         verify(metrics).incCounter(eq(MetricName.app_requests));
     }
 
@@ -307,7 +329,21 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldIncrementErrorRequestMetrics() {
+    public void shouldIncrementBadinputAmpRequestMetrics() {
+        // given
+        given(ampRequestFactory.fromRequest(any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).forRequestType(eq(MetricName.amp));
+        verify(requestMetrics).incCounter(eq(MetricName.badinput));
+    }
+
+    @Test
+    public void shouldIncrementErrAmpRequestMetrics() {
         // given
         given(ampRequestFactory.fromRequest(any())).willReturn(Future.failedFuture(new RuntimeException()));
 
@@ -315,8 +351,8 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.error_requests));
-        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
+        verify(metrics).forRequestType(eq(MetricName.amp));
+        verify(requestMetrics).incCounter(eq(MetricName.err));
     }
 
     @SuppressWarnings("unchecked")

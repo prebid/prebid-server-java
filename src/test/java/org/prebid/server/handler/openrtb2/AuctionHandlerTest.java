@@ -283,8 +283,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldIncrementErrOpenrtb2RequestMetrics() {
         // given
-        given(auctionRequestFactory.fromRequest(any()))
-                .willReturn(Future.failedFuture(new RuntimeException()));
+        given(auctionRequestFactory.fromRequest(any())).willReturn(Future.failedFuture(new RuntimeException()));
 
         // when
         auctionHandler.handle(routingContext);
