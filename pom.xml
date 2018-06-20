@@ -210,9 +210,9 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.triplelift.gdpr</groupId>
-            <artifactId>consent-string-parser</artifactId>
-            <version>${consent-string-parser.version}</version>
+            <groupId>com.conversantmedia.gdpr</groupId>
+            <artifactId>consent-string-sdk-java</artifactId>
+            <version>2.0.2</version>
         </dependency>
         <!-- Test -->
         <dependency>
