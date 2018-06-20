@@ -1,6 +1,7 @@
 package org.prebid.server.gdpr;
 
-import com.iab.gdpr.ConsentStringParser;
+import com.iab.gdpr.consent.VendorConsent;
+import com.iab.gdpr.consent.VendorConsentDecoder;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -13,7 +14,6 @@ import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 
-import java.text.ParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,36 +113,36 @@ public class GdprService {
         return Future.succeededFuture(vendorIds.stream().collect(Collectors.toMap(Function.identity(), id -> result)));
     }
 
-    private Future<Map<Integer, Boolean>> fromConsent(String consent, Set<GdprPurpose> purposes,
+    private Future<Map<Integer, Boolean>> fromConsent(String consentString, Set<GdprPurpose> purposes,
                                                       Set<Integer> vendorIds) {
-        if (StringUtils.isEmpty(consent)) {
+        if (StringUtils.isEmpty(consentString)) {
             return sameResultFor(vendorIds, false);
         }
 
-        final ConsentStringParser parser;
+        final VendorConsent vendorConsent;
         try {
-            parser = new ConsentStringParser(consent);
-        } catch (ParseException e) {
+            vendorConsent = VendorConsentDecoder.fromBase64String(consentString);
+        } catch (IllegalArgumentException | IllegalStateException e) {
             logger.warn("Error occurred during parsing consent string {0}", e.getMessage());
             return sameResultFor(vendorIds, false);
         }
 
         // consent string confirms user has allowed all purposes
         final Set<Integer> purposeIds = purposes.stream().map(GdprPurpose::getId).collect(Collectors.toSet());
-        if (!parser.getAllowedPurposes().containsAll(purposeIds)) {
+        if (!vendorConsent.getAllowedPurposeIds().containsAll(purposeIds)) {
             return sameResultFor(vendorIds, false);
         }
 
-        return vendorListService.forVersion(parser.getVendorListVersion())
-                .map(vendorIdToPurposes -> toResult(vendorIdToPurposes, vendorIds, purposeIds, parser));
+        return vendorListService.forVersion(vendorConsent.getVendorListVersion())
+                .map(vendorIdToPurposes -> toResult(vendorIdToPurposes, vendorIds, purposeIds, vendorConsent));
     }
 
     private static Map<Integer, Boolean> toResult(Map<Integer, Set<Integer>> vendorIdToPurposes, Set<Integer> vendorIds,
-                                                  Set<Integer> purposeIds, ConsentStringParser parser) {
+                                                  Set<Integer> purposeIds, VendorConsent vendorConsent) {
         final Map<Integer, Boolean> result = new HashMap<>(vendorIds.size());
         for (Integer vendorId : vendorIds) {
             // consent string confirms Vendor is allowed
-            final boolean vendorIsAllowed = vendorId != null && parser.isVendorAllowed(vendorId);
+            final boolean vendorIsAllowed = vendorId != null && vendorConsent.isVendorAllowed(vendorId);
 
             // vendorlist lookup confirms Vendor has all purposes
             final boolean vendorHasAllPurposes;
