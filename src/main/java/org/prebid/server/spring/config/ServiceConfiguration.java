@@ -159,7 +159,7 @@ public class ServiceConfiguration {
     @Bean
     ExchangeService exchangeService(
             @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
-            @Value("${geolocation.openrtb2-auctions-enabled}") boolean useGeoLocation,
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             BidderCatalog bidderCatalog,
             ResponseBidValidator responseBidValidator,
             CacheService cacheService,
