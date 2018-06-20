@@ -24,6 +24,16 @@ public enum MetricName {
 
     amp_requests,
 
+    // request types
+    openrtb2,
+    amp,
+    legacy,
+
+    // request statuses
+    ok,
+    badinput,
+    err,
+
     // cookie sync
     opt_outs,
     bad_requests,
