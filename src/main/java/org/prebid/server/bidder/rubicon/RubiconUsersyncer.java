@@ -11,11 +11,9 @@ import java.util.Objects;
 public class RubiconUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
-    private final boolean pbsEnforcesGdpr;
 
-    public RubiconUsersyncer(String usersyncUrl, boolean pbsEnforcesGdpr) {
+    public RubiconUsersyncer(String usersyncUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl));
-        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -42,11 +40,11 @@ public class RubiconUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns if Rubicon enforced to gdpr by pbs
+     * Returns if Rubicon enforced to GDPR
      */
     @Override
     public boolean pbsEnforcesGdpr() {
-        return pbsEnforcesGdpr;
+        return true;
     }
 
     /**

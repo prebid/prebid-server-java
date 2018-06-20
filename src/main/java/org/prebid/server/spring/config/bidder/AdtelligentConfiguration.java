@@ -30,9 +30,6 @@ public class AdtelligentConfiguration extends BidderConfiguration {
     @Value("${adapters.adtelligent.usersync-url}")
     private String usersyncUrl;
 
-    @Value("${adapters.adtelligent.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
     @Value("${external-url}")
     private String externalUrl;
 
@@ -53,7 +50,7 @@ public class AdtelligentConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new AdtelligentUsersyncer(usersyncUrl, externalUrl, pbsEnforcesGdpr);
+        return new AdtelligentUsersyncer(usersyncUrl, externalUrl);
     }
 
     @Override

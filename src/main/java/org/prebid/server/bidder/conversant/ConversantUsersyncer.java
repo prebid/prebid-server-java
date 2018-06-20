@@ -12,11 +12,9 @@ import java.util.Objects;
 public class ConversantUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
-    private final boolean pbsEnforcesGdpr;
 
-    public ConversantUsersyncer(String usersyncUrl, String externalUrl, boolean pbsEnforcesGdpr) {
+    public ConversantUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
-        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -45,11 +43,11 @@ public class ConversantUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns if Conversant enforced to gdpr by pbs
+     * Returns if Conversant enforced to GDPR
      */
     @Override
     public boolean pbsEnforcesGdpr() {
-        return pbsEnforcesGdpr;
+        return true;
     }
 
     /**

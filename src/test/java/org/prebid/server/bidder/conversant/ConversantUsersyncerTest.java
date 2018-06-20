@@ -10,13 +10,13 @@ public class ConversantUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new ConversantUsersyncer(null, null, false));
-        assertThatNullPointerException().isThrownBy(() -> new ConversantUsersyncer("", null, false));
+        assertThatNullPointerException().isThrownBy(() -> new ConversantUsersyncer(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new ConversantUsersyncer("", null));
     }
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(new ConversantUsersyncer("//usersync.org/", "http://external.org/", false).usersyncInfo())
+        assertThat(new ConversantUsersyncer("//usersync.org/", "http://external.org/").usersyncInfo())
                 .isEqualTo(UsersyncInfo.of(
                         "//usersync.org/http%3A%2F%2Fexternal.org%2F%2Fsetuid%3Fbidder%3Dconversant%26uid%3D",
                         "redirect",

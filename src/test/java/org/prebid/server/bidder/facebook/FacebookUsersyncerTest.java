@@ -10,12 +10,12 @@ public class FacebookUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new FacebookUsersyncer(null, false));
+        assertThatNullPointerException().isThrownBy(() -> new FacebookUsersyncer(null));
     }
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(new FacebookUsersyncer("//usersync.org/", false).usersyncInfo())
+        assertThat(new FacebookUsersyncer("//usersync.org/").usersyncInfo())
                 .isEqualTo(UsersyncInfo.of("//usersync.org/", "redirect", false));
     }
 }

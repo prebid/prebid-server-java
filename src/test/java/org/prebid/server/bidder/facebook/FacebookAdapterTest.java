@@ -84,7 +84,7 @@ public class FacebookAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new FacebookUsersyncer(USERSYNC_URL, false);
+        usersyncer = new FacebookUsersyncer(USERSYNC_URL);
         adapter = new FacebookAdapter(usersyncer, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, PLATFORM_ID);
     }
 

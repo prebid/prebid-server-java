@@ -12,11 +12,9 @@ import java.util.Objects;
 public class PulsepointUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
-    private final boolean pbsEnforcesGdpr;
 
-    public PulsepointUsersyncer(String usersyncUrl, String externalUrl, boolean pbsEnforcesGdpr) {
+    public PulsepointUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
-        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -45,11 +43,11 @@ public class PulsepointUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns if Pulsepoint enforced to gdpr by pbs
+     * Returns if Pulsepoint enforced to GDPR
      */
     @Override
     public boolean pbsEnforcesGdpr() {
-        return pbsEnforcesGdpr;
+        return true;
     }
 
     /**
