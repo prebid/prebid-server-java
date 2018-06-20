@@ -21,6 +21,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
@@ -81,25 +82,27 @@ public class AuctionHandler implements Handler<RoutingContext> {
      */
     @Override
     public void handle(RoutingContext context) {
+        final long startTime = clock.millis();
+
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
 
-        updateRequestMetrics(isSafari);
+        updateSafariMetrics(isSafari);
 
         preBidRequestContextFactory.fromRequest(context)
+                .recover(exception -> failWithInvalidRequest(
+                        String.format("Error parsing request: %s", exception.getMessage()), exception))
+
                 .map(this::updateImpsRequestedMetrics)
-                .recover(this::updateImpsRequestedErrorMetrics)
-                .recover(exception ->
-                        failWith(String.format("Error parsing request: %s", exception.getMessage()), exception))
 
                 .map(preBidRequestContext -> updateAppAndNoCookieMetrics(preBidRequestContext, isSafari))
 
                 .compose(preBidRequestContext -> applicationSettings.getAccountById(
                         preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
                         .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
-                        .recover(exception -> failWith("Unknown account id: Unknown account", exception)))
+                        .recover(exception -> failWithInvalidRequest("Unknown account id: Unknown account", exception)))
 
                 .map((Tuple2<PreBidRequestContext, Account> result) ->
-                        updateAccountRequestAndRequestTimeMetric(result, context))
+                        updateAccountRequestAndRequestTimeMetric(result, context, startTime))
 
                 .compose((Tuple2<PreBidRequestContext, Account> result) ->
                         CompositeFuture.join(submitRequestsToAdapters(result.getLeft()))
@@ -123,8 +126,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
     }
 
-    private void updateRequestMetrics(boolean isSafari) {
-        metrics.incCounter(MetricName.requests);
+    private void updateSafariMetrics(boolean isSafari) {
         if (isSafari) {
             metrics.incCounter(MetricName.safari_requests);
         }
@@ -133,11 +135,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private PreBidRequestContext updateImpsRequestedMetrics(PreBidRequestContext preBidRequestContext) {
         metrics.incCounter(MetricName.imps_requested, preBidRequestContext.getPreBidRequest().getAdUnits().size());
         return preBidRequestContext;
-    }
-
-    private Future<PreBidRequestContext> updateImpsRequestedErrorMetrics(Throwable throwable) {
-        metrics.incCounter(MetricName.imps_requested, 0L);
-        return Future.failedFuture(throwable);
     }
 
     private PreBidRequestContext updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext,
@@ -155,21 +152,25 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private Tuple2<PreBidRequestContext, Account> updateAccountRequestAndRequestTimeMetric(
-            Tuple2<PreBidRequestContext, Account> preBidRequestContextAccount, RoutingContext context) {
+            Tuple2<PreBidRequestContext, Account> preBidRequestContextAccount, RoutingContext context,
+            long startTime) {
 
         final String accountId = preBidRequestContextAccount.getLeft().getPreBidRequest().getAccountId();
         metrics.forAccount(accountId).incCounter(MetricName.requests);
 
-        setupRequestTimeUpdater(context);
+        setupRequestTimeUpdater(context, startTime);
 
         return preBidRequestContextAccount;
     }
 
-    private void setupRequestTimeUpdater(RoutingContext context) {
+    private void setupRequestTimeUpdater(RoutingContext context, long startTime) {
         // set up handler to update request time metric when response is sent back to a client
-        final long requestStarted = clock.millis();
         context.response().endHandler(ignoredVoid -> metrics.updateTimer(MetricName.request_time,
-                clock.millis() - requestStarted));
+                clock.millis() - startTime));
+    }
+
+    private static <T> Future<T> failWithInvalidRequest(String message, Throwable exception) {
+        return Future.failedFuture(new InvalidRequestException(message, exception));
     }
 
     private static <T> Future<T> failWith(String message, Throwable exception) {
@@ -381,17 +382,31 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private PreBidResponse bidResponseOrError(AsyncResult<PreBidResponse> responseResult) {
-        if (responseResult.succeeded()) {
-            return responseResult.result();
-        } else {
-            metrics.incCounter(MetricName.error_requests);
+        final MetricName responseStatus;
 
+        final PreBidResponse result;
+
+        if (responseResult.succeeded()) {
+            responseStatus = MetricName.ok;
+            result = responseResult.result();
+        } else {
             final Throwable exception = responseResult.cause();
+
+            responseStatus = exception instanceof InvalidRequestException ? MetricName.badinput : MetricName.err;
+
             logger.info("Failed to process /auction request", exception);
-            return error(exception instanceof PreBidException
+            result = error(exception instanceof InvalidRequestException || exception instanceof PreBidException
                     ? exception.getMessage()
                     : "Unexpected server error");
         }
+
+        updateRequestMetric(responseStatus);
+
+        return result;
+    }
+
+    private void updateRequestMetric(MetricName requestStatus) {
+        metrics.forRequestType(MetricName.legacy).incCounter(requestStatus);
     }
 
     private static PreBidResponse error(String status) {

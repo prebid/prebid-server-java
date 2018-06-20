@@ -37,6 +37,7 @@ import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.RequestMetrics;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
@@ -100,6 +101,8 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private AdapterMetrics accountAdapterMetrics;
     @Mock
+    private RequestMetrics requestMetrics;
+    @Mock
     private HttpAdapterConnector httpAdapterConnector;
     private Clock clock;
 
@@ -131,6 +134,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(metrics.forAdapter(anyString()).forBidType(any())).willReturn(adapterMarkupMetrics);
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(accountMetrics.forAdapter(any())).willReturn(accountAdapterMetrics);
+        given(metrics.forRequestType(any())).willReturn(requestMetrics);
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -516,7 +520,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.requests));
+        verify(metrics).forRequestType(eq(MetricName.legacy));
+        verify(requestMetrics).incCounter(eq(MetricName.ok));
         verify(metrics).incCounter(eq(MetricName.app_requests));
         verify(metrics).incCounter(eq(MetricName.imps_requested), eq(1L));
         verify(accountMetrics).incCounter(eq(MetricName.requests));
@@ -538,8 +543,6 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics, never()).incCounter(eq(MetricName.safari_requests));
         verify(metrics, never()).incCounter(eq(MetricName.no_cookie_requests));
         verify(metrics, never()).incCounter(eq(MetricName.safari_no_cookie_requests));
-        verify(metrics, never()).incCounter(eq(MetricName.error_requests));
-        verify(metrics, never()).incCounter(eq(MetricName.imps_requested), eq(0L));
     }
 
     @SuppressWarnings("unchecked")
@@ -587,8 +590,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.error_requests));
-        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
+        verify(metrics).forRequestType(eq(MetricName.legacy));
+        verify(requestMetrics).incCounter(eq(MetricName.badinput));
     }
 
     @Test
@@ -601,8 +604,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.error_requests));
-        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
+        verify(metrics).forRequestType(eq(MetricName.legacy));
+        verify(requestMetrics).incCounter(eq(MetricName.badinput));
     }
 
     @Test
@@ -648,8 +651,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.error_requests));
-        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
+        verify(metrics).forRequestType(eq(MetricName.legacy));
+        verify(requestMetrics).incCounter(eq(MetricName.err));
     }
 
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
