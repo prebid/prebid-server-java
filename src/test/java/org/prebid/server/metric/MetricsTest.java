@@ -7,23 +7,16 @@ import com.codahale.metrics.MetricRegistry;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.EnumMap;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 public class MetricsTest {
 
     private static final String RUBICON = "rubicon";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private MetricRegistry metricRegistry;
 
@@ -33,12 +26,6 @@ public class MetricsTest {
     public void setUp() {
         metricRegistry = new MetricRegistry();
         metrics = new Metrics(metricRegistry, CounterType.counter);
-    }
-
-    @Test
-    public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new Metrics(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new Metrics(metricRegistry, null));
     }
 
     @Test

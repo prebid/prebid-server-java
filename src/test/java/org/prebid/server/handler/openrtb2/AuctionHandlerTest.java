@@ -193,7 +193,7 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldIncrementOkOpenrtb2RequestMetrics() {
+    public void shouldIncrementOkOpenrtb2WebRequestMetrics() {
         // given
         given(auctionRequestFactory.fromRequest(any()))
                 .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
@@ -205,7 +205,24 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.openrtb2));
+        verify(metrics).forRequestType(eq(MetricName.openrtb2web));
+        verify(requestMetrics).incCounter(eq(MetricName.ok));
+    }
+
+    @Test
+    public void shouldIncrementOkOpenrtb2AppRequestMetrics() {
+        // given
+        given(auctionRequestFactory.fromRequest(any())).willReturn(Future.succeededFuture(
+                BidRequest.builder().imp(emptyList()).app(App.builder().build()).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().build()));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(metrics).forRequestType(eq(MetricName.openrtb2app));
         verify(requestMetrics).incCounter(eq(MetricName.ok));
     }
 
@@ -267,7 +284,7 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldIncrementBadinputOpenrtb2RequestMetrics() {
+    public void shouldIncrementBadinputOpenrtb2WebRequestMetrics() {
         // given
         given(auctionRequestFactory.fromRequest(any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("Request is invalid")));
@@ -276,12 +293,12 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.openrtb2));
+        verify(metrics).forRequestType(eq(MetricName.openrtb2web));
         verify(requestMetrics).incCounter(eq(MetricName.badinput));
     }
 
     @Test
-    public void shouldIncrementErrOpenrtb2RequestMetrics() {
+    public void shouldIncrementErrOpenrtb2WebRequestMetrics() {
         // given
         given(auctionRequestFactory.fromRequest(any())).willReturn(Future.failedFuture(new RuntimeException()));
 
@@ -289,7 +306,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.openrtb2));
+        verify(metrics).forRequestType(eq(MetricName.openrtb2web));
         verify(requestMetrics).incCounter(eq(MetricName.err));
     }
 

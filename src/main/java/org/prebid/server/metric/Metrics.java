@@ -23,7 +23,7 @@ public class Metrics extends UpdatableMetrics {
     private final CookieSyncMetrics cookieSyncMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType) {
-        super(metricRegistry, counterType, Enum::name);
+        super(metricRegistry, counterType, MetricName::toString);
 
         requestMetricsCreator = requestType -> new RequestMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);

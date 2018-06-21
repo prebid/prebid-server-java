@@ -26,7 +26,7 @@ public class AccountMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String account) {
-        return metricName -> String.format("account.%s.%s", account, metricName.name());
+        return metricName -> String.format("account.%s.%s", account, metricName.toString());
     }
 
     /**

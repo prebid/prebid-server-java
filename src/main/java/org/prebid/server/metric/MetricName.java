@@ -20,7 +20,8 @@ public enum MetricName {
     nurl_bids_received,
 
     // request types
-    openrtb2,
+    openrtb2web("openrtb2-web"),
+    openrtb2app("openrtb2-app"),
     amp,
     legacy,
 
@@ -34,5 +35,20 @@ public enum MetricName {
     bad_requests,
     sets,
     gdpr_prevent,
-    gdpr_masked
+    gdpr_masked;
+
+    private final String name;
+
+    MetricName(String name) {
+        this.name = name;
+    }
+
+    MetricName() {
+        this.name = name();
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

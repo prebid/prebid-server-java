@@ -36,7 +36,7 @@ public class AdapterMetrics extends UpdatableMetrics {
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.name());
+        return metricName -> String.format("%s.%s", prefix, metricName.toString());
     }
 
     public MarkupMetrics forBidType(BidType bidType) {
@@ -53,7 +53,7 @@ public class AdapterMetrics extends UpdatableMetrics {
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {
-            return metricName -> String.format("%s.%s", prefix, metricName.name());
+            return metricName -> String.format("%s.%s", prefix, metricName.toString());
         }
     }
 }
