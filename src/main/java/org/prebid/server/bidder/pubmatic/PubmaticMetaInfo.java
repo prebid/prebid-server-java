@@ -12,7 +12,7 @@ public class PubmaticMetaInfo implements MetaInfo {
 
     public PubmaticMetaInfo(boolean enabled) {
         bidderInfo = BidderInfo.create(enabled, "header-bidding@pubmatic.com",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 76, true);
     }
 
     @Override

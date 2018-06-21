@@ -81,7 +81,7 @@ public class PulsepointAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new PulsepointUsersyncer(USERSYNC_URL, EXTERNAL_URL, false);
+        usersyncer = new PulsepointUsersyncer(USERSYNC_URL, EXTERNAL_URL);
         adapter = new PulsepointAdapter(usersyncer, ENDPOINT_URL);
     }
 

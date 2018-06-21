@@ -14,7 +14,6 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.gdpr.vendorlist.proto.VendorList;
@@ -117,8 +116,8 @@ public class VendorListService {
      */
     private static Set<Integer> knownVendorIds(Integer gdprHostVendorId, BidderCatalog bidderCatalog) {
         final Set<Integer> vendorIds = bidderCatalog.names().stream()
-                .map(bidderCatalog::usersyncerByName)
-                .map(Usersyncer::gdprVendorId)
+                .map(bidderCatalog::metaInfoByName)
+                .map(metaInfo -> metaInfo.info().getGdpr().getVendorId())
                 .collect(Collectors.toSet());
 
         // add host vendor ID (used in /setuid and /cookie_sync endpoint handlers)

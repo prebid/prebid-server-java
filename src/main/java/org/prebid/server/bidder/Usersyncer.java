@@ -15,24 +15,6 @@ public interface Usersyncer {
     String cookieFamilyName();
 
     /**
-     * Determines GDPR vendor ID in the IAB Global Vendor List which refers to this Bidder.
-     * <p>
-     * The Global Vendor list can be found here: https://vendorlist.consensu.org/vendorlist.json
-     * Bidders can register for the list here: https://register.consensu.org/
-     * <p>
-     * If you're not on the list, this should return 0. If cookie sync requests have GDPR consent info,
-     * or the Prebid Server host company configures its deploy to be "cautious" when no GDPR info exists
-     * in the request, it will _not_ sync user IDs with you.
-     */
-    int gdprVendorId();
-
-    /**
-     * Returns a flag, which true value means that pbs will keep gdpr logic for bidder, otherwise bidder will keep
-     * gdpr support and request should be sent without gspr changes.
-     */
-    boolean pbsEnforcesGdpr();
-
-    /**
      * Returns basic info the browser needs in order to run a user sync.
      * The returned object must not be mutated by callers.
      * <p>

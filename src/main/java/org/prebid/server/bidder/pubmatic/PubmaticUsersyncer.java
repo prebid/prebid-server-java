@@ -12,11 +12,9 @@ import java.util.Objects;
 public class PubmaticUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
-    private final boolean pbsEnforcesGdpr;
 
-    public PubmaticUsersyncer(String usersyncUrl, String externalUrl, boolean pbsEnforcesGdpr) {
+    public PubmaticUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
-        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -33,22 +31,6 @@ public class PubmaticUsersyncer implements Usersyncer {
     @Override
     public String cookieFamilyName() {
         return "pubmatic";
-    }
-
-    /**
-     * Returns Pubmatic GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 76;
-    }
-
-    /**
-     * Returns if Pubmatic enforced to gdpr by pbs
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return pbsEnforcesGdpr;
     }
 
     /**

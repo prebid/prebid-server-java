@@ -11,11 +11,9 @@ import java.util.Objects;
  */
 public class OpenxUsersyncer implements Usersyncer {
     private final UsersyncInfo usersyncInfo;
-    private final boolean pbsEnforcesGdpr;
 
-    public OpenxUsersyncer(String usersyncUrl, String externalUrl, boolean pbsEnforcesGdpr) {
+    public OpenxUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
-        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -33,22 +31,6 @@ public class OpenxUsersyncer implements Usersyncer {
     @Override
     public String cookieFamilyName() {
         return "openx";
-    }
-
-    /**
-     * Returns OpenX GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 69;
-    }
-
-    /**
-     * Returns if Openx enforced to gdpr by pbs
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return pbsEnforcesGdpr;
     }
 
     /**

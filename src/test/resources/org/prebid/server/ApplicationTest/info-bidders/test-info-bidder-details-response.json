@@ -25,5 +25,9 @@
     "moat",
     "sizemek",
     "whiteops"
-  ]
+  ],
+  "gdpr": {
+    "vendorId": 52,
+    "enforced": true
+  }
 }

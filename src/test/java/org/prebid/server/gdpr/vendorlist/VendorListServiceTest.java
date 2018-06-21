@@ -18,10 +18,11 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.Usersyncer;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.gdpr.vendorlist.proto.VendorList;
+import org.prebid.server.proto.response.BidderInfo;
 
 import java.util.Date;
 import java.util.Map;
@@ -54,7 +55,7 @@ public class VendorListServiceTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private Usersyncer usersyncer;
+    private MetaInfo metaInfo;
 
     private VendorListService vendorListService;
 
@@ -67,8 +68,8 @@ public class VendorListServiceTest extends VertxTest {
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
 
         given(bidderCatalog.names()).willReturn(singleton(null));
-        given(bidderCatalog.usersyncerByName(any())).willReturn(usersyncer);
-        given(usersyncer.gdprVendorId()).willReturn(52);
+        given(bidderCatalog.metaInfoByName(any())).willReturn(metaInfo);
+        given(metaInfo.info()).willReturn(new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(52, true)));
 
         vendorListService = VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/{VERSION}",
                 0,

@@ -31,9 +31,6 @@ public class PulsepointConfiguration extends BidderConfiguration {
     @Value("${adapters.pulsepoint.usersync-url}")
     private String usersyncUrl;
 
-    @Value("${adapters.pulsepoint.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
     @Value("${external-url}")
     private String externalUrl;
 
@@ -54,7 +51,7 @@ public class PulsepointConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new PulsepointUsersyncer(usersyncUrl, externalUrl, pbsEnforcesGdpr);
+        return new PulsepointUsersyncer(usersyncUrl, externalUrl);
     }
 
     @Override

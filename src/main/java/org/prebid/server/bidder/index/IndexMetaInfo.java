@@ -12,7 +12,7 @@ public class IndexMetaInfo implements MetaInfo {
 
     public IndexMetaInfo(boolean enabled) {
         bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 10, true);
     }
 
     @Override

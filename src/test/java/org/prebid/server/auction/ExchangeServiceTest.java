@@ -30,6 +30,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderRequester;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -62,6 +63,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -113,6 +115,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private Usersyncer usersyncer;
     @Mock
+    private MetaInfo metaInfo;
+    @Mock
     private AdapterMetrics adapterMetrics;
     @Mock
     private AdapterMetrics.MarkupMetrics adapterMarkupMetrics;
@@ -133,6 +137,9 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.bidderRequesterByName(anyString())).willReturn(bidderRequester);
         given(bidderCatalog.usersyncerByName(anyString())).willReturn(usersyncer);
+
+        given(bidderCatalog.metaInfoByName(anyString())).willReturn(metaInfo);
+        given(metaInfo.info()).willReturn(givenBidderInfo(15, true));
 
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
         given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
@@ -277,8 +284,6 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(15, false), null)));
-        given(usersyncer.gdprVendorId()).willReturn(15);
-        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
@@ -311,9 +316,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderRequester bidderRequester = mock(BidderRequester.class);
         givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
 
-        given(usersyncer.gdprVendorId()).willReturn(15);
-        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
-
+        given(metaInfo.info()).willReturn(givenBidderInfo(15, true));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(15, true), null)));
 
@@ -341,8 +344,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderRequester bidderRequester = mock(BidderRequester.class);
         givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
 
-        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
-
+        given(metaInfo.info()).willReturn(givenBidderInfo(15, true));
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .regs(Regs.of(null, null))); // no ext
@@ -362,9 +364,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderRequester bidderRequester = mock(BidderRequester.class);
         givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
 
-        given(usersyncer.gdprVendorId()).willReturn(15);
-        given(usersyncer.pbsEnforcesGdpr()).willReturn(false);
-
+        given(metaInfo.info()).willReturn(givenBidderInfo(15, false));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(15, false), null)));
 
@@ -401,10 +401,6 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderRequester bidderRequester = mock(BidderRequester.class);
         givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
 
-        given(usersyncer.gdprVendorId()).willReturn(15);
-        given(bidderCatalog.usersyncerByName("someBidder")).willReturn(usersyncer);
-        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
-
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(15, false), null)));
 
@@ -431,42 +427,29 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldApplyGdprMaskingRulesForBiddersWithDifferentPbsEnforcesGdprAndGdprServiceResponse() {
         // given
-        final BidderRequester bidderRequester1 = mock(BidderRequester.class);
-        final BidderRequester bidderRequester2 = mock(BidderRequester.class);
-        final BidderRequester bidderRequester3 = mock(BidderRequester.class);
-
-        givenHttpConnector("bidder1", bidderRequester1, givenEmptySeatBid());
-        givenHttpConnector("bidder2", bidderRequester2, givenEmptySeatBid());
-        givenHttpConnector("bidder3", bidderRequester3, givenEmptySeatBid());
-
-
-        final Usersyncer usersyncer1 = mock(Usersyncer.class);
-        final Usersyncer usersyncer2 = mock(Usersyncer.class);
-        final Usersyncer usersyncer3 = mock(Usersyncer.class);
-
         givenHttpConnector("bidder1", bidderRequester, givenEmptySeatBid());
         givenHttpConnector("bidder2", bidderRequester, givenEmptySeatBid());
         givenHttpConnector("bidder3", bidderRequester, givenEmptySeatBid());
 
-        given(bidderCatalog.usersyncerByName("bidder1")).willReturn(usersyncer1);
-        given(bidderCatalog.usersyncerByName("bidder2")).willReturn(usersyncer2);
-        given(bidderCatalog.usersyncerByName("bidder3")).willReturn(usersyncer3);
+        final MetaInfo metaInfo1 = mock(MetaInfo.class);
+        final MetaInfo metaInfo2 = mock(MetaInfo.class);
+        final MetaInfo metaInfo3 = mock(MetaInfo.class);
 
-        given(usersyncer1.gdprVendorId()).willReturn(1);
-        given(usersyncer2.gdprVendorId()).willReturn(2);
-        given(usersyncer3.gdprVendorId()).willReturn(3);
+        given(metaInfo1.info()).willReturn(givenBidderInfo(1, false));
+        given(metaInfo2.info()).willReturn(givenBidderInfo(2, true));
+        given(metaInfo3.info()).willReturn(givenBidderInfo(3, true));
 
-        given(usersyncer1.pbsEnforcesGdpr()).willReturn(false);
-        given(usersyncer2.pbsEnforcesGdpr()).willReturn(true);
-        given(usersyncer3.pbsEnforcesGdpr()).willReturn(true);
+        given(bidderCatalog.metaInfoByName("bidder1")).willReturn(metaInfo1);
+        given(bidderCatalog.metaInfoByName("bidder2")).willReturn(metaInfo2);
+        given(bidderCatalog.metaInfoByName("bidder3")).willReturn(metaInfo3);
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(doubleMap(2, true, 3, false), null)));
 
         final Map<String, String> uids = new HashMap<>();
         uids.put("bidder1", "uid1");
         uids.put("bidder2", "uid2");
         uids.put("bidder3", "uid3");
-
-        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(doubleMap(2, true, 3, false), null)));
 
         final BidRequest bidRequest = givenBidRequest(asList(
                 givenImp(singletonMap("bidder1", 1), identity()),
@@ -495,9 +478,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderRequester bidderRequester = mock(BidderRequester.class);
         givenHttpConnector("someBidder", bidderRequester, givenEmptySeatBid());
 
-        given(usersyncer.gdprVendorId()).willReturn(15);
-        given(usersyncer.pbsEnforcesGdpr()).willReturn(true);
-
+        given(metaInfo.info()).willReturn(givenBidderInfo(15, true));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("The gdpr param must be either 0 or 1, given: -1"));
 
@@ -506,7 +487,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
 
         // when
-        final Future<BidResponse> result = exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
+        final Future<?> result = exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -1555,5 +1536,9 @@ public class ExchangeServiceTest extends VertxTest {
     private static String toTargetingByKey(Bid bid, String targetingKey) {
         final Map<String, String> targeting = toExtPrebid(bid.getExt()).getPrebid().getTargeting();
         return targeting != null ? targeting.get(targetingKey) : null;
+    }
+
+    private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
+        return new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr));
     }
 }

@@ -24,7 +24,7 @@ public class RubiconMetaInfo implements MetaInfo {
                         ViewabilityVendors.moat,
                         ViewabilityVendors.sizemek,
                         ViewabilityVendors.whiteops)
-                        .map(ViewabilityVendors::name).collect(Collectors.toList()));
+                        .map(ViewabilityVendors::name).collect(Collectors.toList()), 52, true);
     }
 
     @Override
