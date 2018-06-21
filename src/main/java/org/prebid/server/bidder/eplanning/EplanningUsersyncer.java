@@ -34,22 +34,6 @@ public class EplanningUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Eplanning GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 0;
-    }
-
-    /**
-     * Returns if Eplanning enforced to GDPR
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return true;
-    }
-
-    /**
      * Returns Eplanning {@link UsersyncInfo}
      */
     @Override

@@ -34,22 +34,6 @@ public class OpenxUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns OpenX GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 69;
-    }
-
-    /**
-     * Returns if OpenX enforced to GDPR
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return true;
-    }
-
-    /**
      * Returns OpenX {@link UsersyncInfo}
      */
     @Override

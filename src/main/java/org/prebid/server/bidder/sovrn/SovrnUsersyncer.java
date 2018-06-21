@@ -35,22 +35,6 @@ public class SovrnUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Sovrn GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 13;
-    }
-
-    /**
-     * Returns if Sovrn enforced to GDPR
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return true;
-    }
-
-    /**
      * Returns Sovrn {@link UsersyncInfo}
      */
     @Override

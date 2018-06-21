@@ -35,22 +35,6 @@ public class ConversantUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Conversant GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 24;
-    }
-
-    /**
-     * Returns if Conversant enforced to GDPR
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return true;
-    }
-
-    /**
      * Returns Conversant {@link UsersyncInfo}
      */
     @Override

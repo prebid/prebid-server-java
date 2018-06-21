@@ -34,22 +34,6 @@ public class PubmaticUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Pubmatic GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 76;
-    }
-
-    /**
-     * Returns if Pubmatic enforced to GDPR
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return true;
-    }
-
-    /**
      * Returns Pubmatic {@link UsersyncInfo}
      */
     @Override

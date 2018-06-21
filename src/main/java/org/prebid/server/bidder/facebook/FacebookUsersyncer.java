@@ -32,22 +32,6 @@ public class FacebookUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Facebook GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 0;
-    }
-
-    /**
-     * Returns if Facebook enforced to GDPR
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return true;
-    }
-
-    /**
      * Returns Facebook {@link UsersyncInfo}
      */
     @Override

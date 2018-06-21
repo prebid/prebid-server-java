@@ -11,7 +11,7 @@ public class AppnexusMetaInfo implements MetaInfo {
 
     public AppnexusMetaInfo(boolean enabled) {
         bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
-                Arrays.asList("banner", "native"), Arrays.asList("banner", "video"), null);
+                Arrays.asList("banner", "native"), Arrays.asList("banner", "video"), null, 32, true);
     }
 
     @Override

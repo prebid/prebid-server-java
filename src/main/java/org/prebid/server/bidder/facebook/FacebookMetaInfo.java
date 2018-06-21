@@ -12,7 +12,7 @@ public class FacebookMetaInfo implements MetaInfo {
 
     public FacebookMetaInfo(boolean enabled) {
         bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 0, true);
     }
 
     @Override

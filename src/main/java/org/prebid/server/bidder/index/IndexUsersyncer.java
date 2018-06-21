@@ -32,22 +32,6 @@ public class IndexUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns IndexExchange GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 10;
-    }
-
-    /**
-     * Returns if IndexExchange enforced to GDPR
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return true;
-    }
-
-    /**
      * Returns IndexExchange {@link UsersyncInfo}
      */
     @Override
