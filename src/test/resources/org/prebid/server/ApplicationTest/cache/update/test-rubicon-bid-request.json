@@ -87,5 +87,10 @@
         "includewinners": true
       }
     }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
   }
 }

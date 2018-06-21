@@ -80,7 +80,7 @@ public class IndexAdapterTest extends VertxTest {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         exchangeCall = givenExchangeCall(identity(), identity());
-        usersyncer = new IndexUsersyncer(USERSYNC_URL, false);
+        usersyncer = new IndexUsersyncer(USERSYNC_URL);
         adapter = new IndexAdapter(usersyncer, ENDPOINT_URL);
     }
 

@@ -12,11 +12,9 @@ import java.util.Objects;
 public class AppnexusUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
-    private final boolean pbsEnforcesGdpr;
 
-    public AppnexusUsersyncer(String usersyncUrl, String externalUrl, boolean pbsEnforcesGdpr) {
+    public AppnexusUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
-        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -34,22 +32,6 @@ public class AppnexusUsersyncer implements Usersyncer {
     @Override
     public String cookieFamilyName() {
         return "adnxs";
-    }
-
-    /**
-     * Returns Appnexus GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 32;
-    }
-
-    /**
-     * Returns if Appnexus enforced to gdpr by pbs
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return pbsEnforcesGdpr;
     }
 
     /**

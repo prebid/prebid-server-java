@@ -12,11 +12,9 @@ import java.util.Objects;
 public class AdformUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
-    private final boolean pbsEnforcesGdpr;
 
-    public AdformUsersyncer(String usersyncUrl, String externalUrl, boolean pbsEnforcesGdpr) {
+    public AdformUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
-        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -33,22 +31,6 @@ public class AdformUsersyncer implements Usersyncer {
     @Override
     public String cookieFamilyName() {
         return "adform";
-    }
-
-    /**
-     * Returns Adform GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 50;
-    }
-
-    /**
-     * Returns if Adform enforced to gdpr by pbs
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return pbsEnforcesGdpr;
     }
 
     /**

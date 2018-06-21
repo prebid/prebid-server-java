@@ -30,9 +30,6 @@ public class OpenxConfiguration extends BidderConfiguration {
     @Value("${adapters.openx.usersync-url}")
     private String usersyncUrl;
 
-    @Value("${adapters.openx.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
     @Value("${external-url}")
     private String externalUrl;
 
@@ -53,7 +50,7 @@ public class OpenxConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new OpenxUsersyncer(usersyncUrl, externalUrl, pbsEnforcesGdpr);
+        return new OpenxUsersyncer(usersyncUrl, externalUrl);
     }
 
     @Override
