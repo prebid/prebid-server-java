@@ -10,12 +10,12 @@ public class RubiconUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new RubiconUsersyncer(null, false));
+        assertThatNullPointerException().isThrownBy(() -> new RubiconUsersyncer(null));
     }
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(new RubiconUsersyncer("//usersync.org/", false).usersyncInfo())
+        assertThat(new RubiconUsersyncer("//usersync.org/").usersyncInfo())
                 .isEqualTo(UsersyncInfo.of("//usersync.org/", "redirect", false));
     }
 }

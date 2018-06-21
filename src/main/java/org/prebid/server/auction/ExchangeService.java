@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -55,6 +54,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -343,7 +343,7 @@ public class ExchangeService {
         } else {
             final String resolvedBidderName = resolveBidder(bidder, aliases);
             final Boolean gdprAllowsUserData = vendorToGdprPermission.get(
-                    bidderCatalog.usersyncerByName(resolvedBidderName).gdprVendorId());
+                    bidderCatalog.metaInfoByName(resolvedBidderName).info().getGdpr().getVendorId());
 
             // if bidder was not found in vendorToGdprPermission, it means that it was not pbs enforced for gdpr, so
             // request for this bidder should be sent without changes
@@ -376,9 +376,9 @@ public class ExchangeService {
      */
     private Set<Integer> extractGdprEnforcedVendors(List<String> bidders, Map<String, String> aliases) {
         return bidders.stream()
-                .map(bidder -> bidderCatalog.usersyncerByName(resolveBidder(bidder, aliases)))
-                .filter(Usersyncer::pbsEnforcesGdpr)
-                .map(Usersyncer::gdprVendorId)
+                .map(bidder -> bidderCatalog.metaInfoByName(resolveBidder(bidder, aliases)).info().getGdpr())
+                .filter(BidderInfo.GdprInfo::isEnforced)
+                .map(BidderInfo.GdprInfo::getVendorId)
                 .collect(Collectors.toSet());
     }
 

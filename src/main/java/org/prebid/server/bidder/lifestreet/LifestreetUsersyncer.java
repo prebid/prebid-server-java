@@ -12,11 +12,9 @@ import java.util.Objects;
 public class LifestreetUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
-    private final boolean pbsEnforcesGdpr;
 
-    public LifestreetUsersyncer(String usersyncUrl, String externalUrl, boolean pbsEnforcesGdpr) {
+    public LifestreetUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
-        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -34,22 +32,6 @@ public class LifestreetUsersyncer implements Usersyncer {
     @Override
     public String cookieFamilyName() {
         return "lifestreet";
-    }
-
-    /**
-     * Returns Lifestreet GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 67;
-    }
-
-    /**
-     * Returns if Lifestreet enforced to gdpr by pbs
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return pbsEnforcesGdpr;
     }
 
     /**

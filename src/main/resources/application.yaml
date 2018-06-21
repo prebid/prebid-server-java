@@ -30,66 +30,53 @@ adapters:
     enabled: false
     endpoint: http://adx.adform.net/adx
     usersync-url: //cm.adform.net/cookie?redirect_url=
-    pbs-enforces-gdpr: true
   adtelligent:
     enabled: false
     endpoint: http://hb.adtelligent.com/auction
     usersync-url: //sync.adtelligent.com/csync?t=p&ep=0&redir=
-    pbs-enforces-gdpr: true
   appnexus:
     enabled: false
     endpoint: http://ib.adnxs.com/openrtb2
     usersync-url: //ib.adnxs.com/getuid?
-    pbs-enforces-gdpr: true
   conversant:
     enabled: false
     endpoint: http://media.msg.dotomi.com/s2s/header/24
     usersync-url: http://prebid-match.dotomi.com/prebid/match?rurl=
-    pbs-enforces-gdpr: true
   eplanning:
     enabled: false
     endpoint: http://ads.us.e-planning.net/dsp/obr/1
     usersync-url: http://sync.e-planning.net/um?uid
-    pbs-enforces-gdpr: true
   facebook:
     enabled: false
     endpoint: https://an.facebook.com/placementbid.ortb
     nonSecureEndpoint: http://an.facebook.com/placementbid.ortb
-    pbs-enforces-gdpr: true
   indexexchange:
     enabled: false
     usersync-url: //ssum-sec.casalemedia.com/usermatchredir?s=184932&cb=https%3A%2F%2Fprebid.adnxs.com%2Fpbs%2Fv1%2Fsetuid%3Fbidder%3DindexExchange%26uid%3D
-    pbs-enforces-gdpr: true
   lifestreet:
     enabled: false
     endpoint: https://prebid.s2s.lfstmedia.com/adrequest
     usersync-url: //ads.lfstmedia.com/idsync/137062?synced=1&ttl=1s&rurl=
-    pbs-enforces-gdpr: true
   openx:
     enabled: false
     endpoint: http://rtb.openx.net/prebid
     usersync-url: https://rtb.openx.net/sync/prebid?r=
-    pbs-enforces-gdpr: true
   pubmatic:
     enabled: false
     endpoint: http://openbid.pubmatic.com/translator?source=prebid-server
     usersync-url: //ads.pubmatic.com/AdServer/js/user_sync.html?predirect=
-    pbs-enforces-gdpr: true
   pulsepoint:
     enabled: false
     endpoint: http://bid.contextweb.com/header/s/ortb/prebid-s2s
     usersync-url: //bh.contextweb.com/rtset?pid=561205&ev=1&rurl=
-    pbs-enforces-gdpr: true
   rubicon:
     enabled: false
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
     usersync-url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid
-    pbs-enforces-gdpr: true
   sovrn:
     enabled: false
     endpoint: http://ap.lijit.com/rtb/bid?src=prebid_server
     usersync-url: //ap.lijit.com/pixel?
-    pbs-enforces-gdpr: true
 metrics:
   metricType: flushingCounter
 settings:
@@ -111,6 +98,5 @@ gdpr:
   vendorlist:
     http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
     http-default-timeout-ms: 2000
-geolocation:
-  cookie-sync-enabled: false
-  openrtb2-auctions-enabled: false
+  geolocation:
+    enabled: false

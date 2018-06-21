@@ -12,11 +12,9 @@ import java.util.Objects;
 public class SovrnUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
-    private final boolean pbsEnforcesGdpr;
 
-    public SovrnUsersyncer(String usersyncUrl, String externalUrl, boolean pbsEnforcesGdpr) {
+    public SovrnUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
-        this.pbsEnforcesGdpr = pbsEnforcesGdpr;
     }
 
     /**
@@ -34,22 +32,6 @@ public class SovrnUsersyncer implements Usersyncer {
     @Override
     public String cookieFamilyName() {
         return "sovrn";
-    }
-
-    /**
-     * Returns Sovrn GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 13;
-    }
-
-    /**
-     * Returns if Sovrn enforced to gdpr by pbs
-     */
-    @Override
-    public boolean pbsEnforcesGdpr() {
-        return pbsEnforcesGdpr;
     }
 
     /**

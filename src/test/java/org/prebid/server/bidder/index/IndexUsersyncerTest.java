@@ -11,12 +11,12 @@ public class IndexUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new IndexUsersyncer(null, false));
+        assertThatNullPointerException().isThrownBy(() -> new IndexUsersyncer(null));
     }
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(new IndexUsersyncer("//usersync.org/", false).usersyncInfo())
+        assertThat(new IndexUsersyncer("//usersync.org/").usersyncInfo())
                 .isEqualTo(UsersyncInfo.of("//usersync.org/", "redirect", false));
     }
 }

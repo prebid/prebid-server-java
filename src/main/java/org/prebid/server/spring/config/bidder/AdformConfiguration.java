@@ -31,9 +31,6 @@ public class AdformConfiguration extends BidderConfiguration {
     @Value("${adapters.adform.usersync-url}")
     private String usersyncUrl;
 
-    @Value("${adapters.adform.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
     @Value("${external-url}")
     private String externalUrl;
 
@@ -54,7 +51,7 @@ public class AdformConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new AdformUsersyncer(usersyncUrl, externalUrl, pbsEnforcesGdpr);
+        return new AdformUsersyncer(usersyncUrl, externalUrl);
     }
 
     @Override

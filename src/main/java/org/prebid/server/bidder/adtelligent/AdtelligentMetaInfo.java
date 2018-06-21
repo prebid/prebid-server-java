@@ -15,7 +15,7 @@ public class AdtelligentMetaInfo implements MetaInfo {
 
     public AdtelligentMetaInfo(boolean enabled) {
         bidderInfo = BidderInfo.create(enabled, "hb@adtelligent.com",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 0, true);
     }
 
     /**

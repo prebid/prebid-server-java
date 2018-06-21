@@ -73,7 +73,7 @@ public class PubmaticAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        usersyncer = new PubmaticUsersyncer(USERSYNC_URL, EXTERNAL_URL, false);
+        usersyncer = new PubmaticUsersyncer(USERSYNC_URL, EXTERNAL_URL);
         adapter = new PubmaticAdapter(usersyncer, ENDPOINT_URL);
     }
 

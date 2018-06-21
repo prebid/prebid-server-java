@@ -12,7 +12,7 @@ public class PulsepointMetaInfo implements MetaInfo {
 
     public PulsepointMetaInfo(boolean enabled) {
         bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 81, true);
     }
 
     @Override
