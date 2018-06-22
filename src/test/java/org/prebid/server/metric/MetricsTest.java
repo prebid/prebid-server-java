@@ -73,6 +73,35 @@ public class MetricsTest {
     }
 
     @Test
+    public void shouldReturnSameAdapterRequestTypeMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forAdapter(RUBICON).requestType())
+                .isSameAs(metrics.forAdapter(RUBICON).requestType());
+    }
+
+    @Test
+    public void shouldReturnAdapterRequestTypeMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .forAdapter(RUBICON)
+                .requestType()
+                .incCounter(MetricName.openrtb2app));
+    }
+
+    @Test
+    public void shouldReturnAdapterRequestTypeMetricsConfiguredWithAdapterType() {
+        // when
+        metrics.forAdapter(RUBICON).requestType().incCounter(MetricName.openrtb2web);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.requests.type.openrtb2-web").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldReturnSameAccountAdapterMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forAccount("accountId").forAdapter(RUBICON))
+                .isSameAs(metrics.forAccount("accountId").forAdapter(RUBICON));
+    }
+
+    @Test
     public void shouldReturnAccountAdapterMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAccount("accountId")
@@ -87,6 +116,29 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("account.accountId.rubicon.requests").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldReturnSameAccountRequestTypeMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forAccount("accountId").requestType())
+                .isSameAs(metrics.forAccount("accountId").requestType());
+    }
+
+    @Test
+    public void shouldReturnAccountRequestTypeMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .forAccount("accountId")
+                .requestType()
+                .incCounter(MetricName.openrtb2app));
+    }
+
+    @Test
+    public void shouldReturnAccountRequestTypeMetricsConfiguredWithAccount() {
+        // when
+        metrics.forAccount("accountId").requestType().incCounter(MetricName.openrtb2web);
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isEqualTo(1);
     }
 
     @Test

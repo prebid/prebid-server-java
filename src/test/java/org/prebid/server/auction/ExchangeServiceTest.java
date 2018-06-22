@@ -46,6 +46,7 @@ import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
+import org.prebid.server.metric.BidTypeMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -124,7 +125,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private AdapterMetrics accountAdapterMetrics;
     @Mock
-    private AdapterMetrics.MarkupMetrics adapterMarkupMetrics;
+    private BidTypeMetrics adapterBidTypeMetrics;
     @Mock
     private UidsCookie uidsCookie;
     @Mock
@@ -151,7 +152,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidResponsePostProcessor.postProcess(any(), any(), any())).willCallRealMethod();
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
-        given(adapterMetrics.forBidType(any())).willReturn(adapterMarkupMetrics);
+        given(adapterMetrics.forBidType(any())).willReturn(adapterBidTypeMetrics);
         given(accountMetrics.forAdapter(anyString())).willReturn(accountAdapterMetrics);
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -1410,7 +1411,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
         verify(adapterMetrics).incCounter(eq(MetricName.bids_received));
         verify(accountAdapterMetrics).incCounter(eq(MetricName.bids_received));
-        verify(adapterMarkupMetrics).incCounter(eq(MetricName.nurl_bids_received));
+        verify(adapterBidTypeMetrics).incCounter(eq(MetricName.nurl_bids_received));
     }
 
     @Test
