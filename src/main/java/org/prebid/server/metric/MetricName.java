@@ -8,7 +8,6 @@ public enum MetricName {
     no_bid_requests,
     timeout_requests,
     error_requests,
-    invalid_requests,
     safari_requests,
     safari_no_cookie_requests,
     cookie_sync_requests,
@@ -20,9 +19,15 @@ public enum MetricName {
     adm_bids_received,
     nurl_bids_received,
 
-    ortb_requests,
+    // request types
+    openrtb2,
+    amp,
+    legacy,
 
-    amp_requests,
+    // request statuses
+    ok,
+    badinput,
+    err,
 
     // cookie sync
     opt_outs,
