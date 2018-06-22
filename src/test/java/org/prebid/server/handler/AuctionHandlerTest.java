@@ -39,6 +39,7 @@ import org.prebid.server.metric.BidTypeMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.RequestStatusMetrics;
+import org.prebid.server.metric.RequestTypeMetrics;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
@@ -96,11 +97,15 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private AdapterMetrics adapterMetrics;
     @Mock
+    private RequestTypeMetrics adapterRequestTypeMetrics;
+    @Mock
     private BidTypeMetrics adapterBidTypeMetrics;
     @Mock
     private AccountMetrics accountMetrics;
     @Mock
     private AdapterMetrics accountAdapterMetrics;
+    @Mock
+    private RequestTypeMetrics accountRequestTypeMetrics;
     @Mock
     private RequestStatusMetrics requestStatusMetrics;
     @Mock
@@ -132,9 +137,11 @@ public class AuctionHandlerTest extends VertxTest {
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
 
         given(metrics.forAdapter(any())).willReturn(adapterMetrics);
-        given(metrics.forAdapter(anyString()).forBidType(any())).willReturn(adapterBidTypeMetrics);
+        given(adapterMetrics.requestType()).willReturn(adapterRequestTypeMetrics);
+        given(adapterMetrics.forBidType(any())).willReturn(adapterBidTypeMetrics);
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(accountMetrics.forAdapter(any())).willReturn(accountAdapterMetrics);
+        given(accountMetrics.requestType()).willReturn(accountRequestTypeMetrics);
         given(metrics.forRequestType(any())).willReturn(requestStatusMetrics);
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -526,8 +533,10 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics).incCounter(eq(MetricName.app_requests));
         verify(metrics).incCounter(eq(MetricName.imps_requested), eq(1L));
         verify(accountMetrics).incCounter(eq(MetricName.requests));
+        verify(accountRequestTypeMetrics).incCounter(MetricName.legacy);
         verify(metrics).updateTimer(eq(MetricName.request_time), anyLong());
         verify(adapterMetrics).incCounter(eq(MetricName.requests));
+        verify(adapterRequestTypeMetrics).incCounter(MetricName.legacy);
         verify(accountAdapterMetrics).incCounter(eq(MetricName.requests));
         verify(adapterMetrics).updateTimer(eq(MetricName.request_time), eq(100L));
         verify(accountAdapterMetrics).updateTimer(eq(MetricName.request_time), eq(100L));
