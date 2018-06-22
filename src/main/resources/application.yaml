@@ -25,6 +25,8 @@ auction:
 amp:
   default-timeout-ms: 900
   timeout-adjustment-ms: 30
+setuid:
+  default-timeout-ms: 2000
 adapters:
   adform:
     enabled: false
