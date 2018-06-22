@@ -8,6 +8,7 @@ import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
@@ -49,8 +50,8 @@ public class GdprService {
      * [true/false] and country user comes from.
      */
     public Future<GdprResponse> resultByVendor(Set<GdprPurpose> purposes, Set<Integer> vendorIds, String gdpr,
-                                               String gdprConsent, String ipAddress) {
-        return resolveGdprWithCountryValue(gdpr, ipAddress)
+                                               String gdprConsent, String ipAddress, Timeout timeout) {
+        return resolveGdprWithCountryValue(gdpr, ipAddress, timeout)
                 .compose(gdprWithCountry -> toGdprResponse(gdprWithCountry.getGdpr(), gdprConsent, purposes, vendorIds,
                         gdprWithCountry.getCountry()));
     }
@@ -58,14 +59,14 @@ public class GdprService {
     /**
      * Determines GDPR value from external GDPR param, geo location or default.
      */
-    private Future<GdprWithCountry> resolveGdprWithCountryValue(String gdpr, String ipAddress) {
+    private Future<GdprWithCountry> resolveGdprWithCountryValue(String gdpr, String ipAddress, Timeout timeout) {
         final String gdprFromRequest = StringUtils.stripToNull(gdpr);
 
         final Future<GdprWithCountry> result;
         if (isValidGdpr(gdprFromRequest)) {
             result = Future.succeededFuture(GdprWithCountry.of(gdprFromRequest, null));
         } else if (ipAddress != null && geoLocationService != null) {
-            result = geoLocationService.lookup(ipAddress)
+            result = geoLocationService.lookup(ipAddress, timeout)
                     .map(GeoInfo::getCountry)
                     .map(this::createGdprWithCountry)
                     .otherwise(GdprWithCountry.of(gdprDefaultValue, null));
