@@ -35,9 +35,10 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
+import org.prebid.server.metric.BidTypeMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.RequestMetrics;
+import org.prebid.server.metric.RequestStatusMetrics;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
@@ -95,13 +96,13 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private AdapterMetrics adapterMetrics;
     @Mock
-    private AdapterMetrics.MarkupMetrics adapterMarkupMetrics;
+    private BidTypeMetrics adapterBidTypeMetrics;
     @Mock
     private AccountMetrics accountMetrics;
     @Mock
     private AdapterMetrics accountAdapterMetrics;
     @Mock
-    private RequestMetrics requestMetrics;
+    private RequestStatusMetrics requestStatusMetrics;
     @Mock
     private HttpAdapterConnector httpAdapterConnector;
     private Clock clock;
@@ -131,10 +132,10 @@ public class AuctionHandlerTest extends VertxTest {
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
 
         given(metrics.forAdapter(any())).willReturn(adapterMetrics);
-        given(metrics.forAdapter(anyString()).forBidType(any())).willReturn(adapterMarkupMetrics);
+        given(metrics.forAdapter(anyString()).forBidType(any())).willReturn(adapterBidTypeMetrics);
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(accountMetrics.forAdapter(any())).willReturn(accountAdapterMetrics);
-        given(metrics.forRequestType(any())).willReturn(requestMetrics);
+        given(metrics.forRequestType(any())).willReturn(requestStatusMetrics);
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -521,7 +522,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.legacy));
-        verify(requestMetrics).incCounter(eq(MetricName.ok));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.ok));
         verify(metrics).incCounter(eq(MetricName.app_requests));
         verify(metrics).incCounter(eq(MetricName.imps_requested), eq(1L));
         verify(accountMetrics).incCounter(eq(MetricName.requests));
@@ -537,7 +538,7 @@ public class AuctionHandlerTest extends VertxTest {
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
         verify(accountMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
         verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
-        verify(adapterMarkupMetrics).incCounter(eq(MetricName.nurl_bids_received));
+        verify(adapterBidTypeMetrics).incCounter(eq(MetricName.nurl_bids_received));
         verify(accountMetrics, never()).incCounter(eq(MetricName.no_bid_requests));
         verify(accountAdapterMetrics, never()).incCounter(eq(MetricName.no_bid_requests));
         verify(metrics, never()).incCounter(eq(MetricName.safari_requests));
@@ -591,7 +592,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.legacy));
-        verify(requestMetrics).incCounter(eq(MetricName.badinput));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.badinput));
     }
 
     @Test
@@ -605,7 +606,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.legacy));
-        verify(requestMetrics).incCounter(eq(MetricName.badinput));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.badinput));
     }
 
     @Test
@@ -652,7 +653,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.legacy));
-        verify(requestMetrics).incCounter(eq(MetricName.err));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.err));
     }
 
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(

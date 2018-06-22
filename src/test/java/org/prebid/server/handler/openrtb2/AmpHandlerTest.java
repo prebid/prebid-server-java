@@ -37,7 +37,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.RequestMetrics;
+import org.prebid.server.metric.RequestStatusMetrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -77,7 +77,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private Metrics metrics;
     @Mock
-    private RequestMetrics requestMetrics;
+    private RequestStatusMetrics requestStatusMetrics;
     @Mock
     private Clock clock;
 
@@ -94,7 +94,7 @@ public class AmpHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(metrics.forRequestType(any())).willReturn(requestMetrics);
+        given(metrics.forRequestType(any())).willReturn(requestStatusMetrics);
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -268,7 +268,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.amp));
-        verify(requestMetrics).incCounter(eq(MetricName.ok));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.ok));
     }
 
     @Test
@@ -339,7 +339,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.amp));
-        verify(requestMetrics).incCounter(eq(MetricName.badinput));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.badinput));
     }
 
     @Test
@@ -352,7 +352,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.amp));
-        verify(requestMetrics).incCounter(eq(MetricName.err));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.err));
     }
 
     @SuppressWarnings("unchecked")

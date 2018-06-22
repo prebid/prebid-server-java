@@ -31,7 +31,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.RequestMetrics;
+import org.prebid.server.metric.RequestStatusMetrics;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -60,7 +60,7 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private Metrics metrics;
     @Mock
-    private RequestMetrics requestMetrics;
+    private RequestStatusMetrics requestStatusMetrics;
     @Mock
     private Clock clock;
 
@@ -77,7 +77,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(metrics.forRequestType(any())).willReturn(requestMetrics);
+        given(metrics.forRequestType(any())).willReturn(requestStatusMetrics);
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -206,7 +206,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.openrtb2web));
-        verify(requestMetrics).incCounter(eq(MetricName.ok));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.ok));
     }
 
     @Test
@@ -223,7 +223,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.openrtb2app));
-        verify(requestMetrics).incCounter(eq(MetricName.ok));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.ok));
     }
 
     @Test
@@ -294,7 +294,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.openrtb2web));
-        verify(requestMetrics).incCounter(eq(MetricName.badinput));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.badinput));
     }
 
     @Test
@@ -307,7 +307,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(metrics).forRequestType(eq(MetricName.openrtb2web));
-        verify(requestMetrics).incCounter(eq(MetricName.err));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.err));
     }
 
     @SuppressWarnings("unchecked")

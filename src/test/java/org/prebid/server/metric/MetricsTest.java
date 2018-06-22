@@ -110,6 +110,11 @@ public class MetricsTest {
     }
 
     @Test
+    public void shouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
+        assertThat(metrics.cookieSync().forBidder(RUBICON)).isSameAs(metrics.cookieSync().forBidder(RUBICON));
+    }
+
+    @Test
     public void shouldReturnBidderCookieSyncMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .cookieSync()
@@ -124,6 +129,28 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void forRequestTypeShouldReturnSameRequestStatusMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forRequestType(MetricName.openrtb2web))
+                .isSameAs(metrics.forRequestType(MetricName.openrtb2web));
+    }
+
+    @Test
+    public void forRequestTypeShouldReturnRequestStatusMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .forRequestType(MetricName.openrtb2web)
+                .incCounter(MetricName.ok));
+    }
+
+    @Test
+    public void forRequestTypeShouldReturnRequestStatusMetricsConfiguredWithRequestType() {
+        // when
+        metrics.forRequestType(MetricName.openrtb2web).incCounter(MetricName.ok);
+
+        // then
+        assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
