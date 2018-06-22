@@ -242,11 +242,10 @@ public class WebConfiguration {
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
             Metrics metrics,
-            Clock clock,
             TimeoutFactory timeoutFactory) {
 
         return new SetuidHandler(defaultTimeoutMs, uidsCookieService, gdprService, hostVendorId, useGeoLocation,
-                analyticsReporter, metrics, clock, timeoutFactory);
+                analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean

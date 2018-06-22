@@ -10,7 +10,6 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
@@ -19,7 +18,6 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
 
-import java.time.Clock;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Objects;
@@ -37,12 +35,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final boolean useGeoLocation;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
-    private final Clock clock;
     private final TimeoutFactory timeoutFactory;
 
     public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, GdprService gdprService,
                          Integer gdprHostVendorId, boolean useGeoLocation, AnalyticsReporter analyticsReporter,
-                         Metrics metrics, Clock clock, TimeoutFactory timeoutFactory) {
+                         Metrics metrics, TimeoutFactory timeoutFactory) {
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.gdprService = Objects.requireNonNull(gdprService);
@@ -50,14 +47,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.useGeoLocation = useGeoLocation;
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
-        this.clock = Objects.requireNonNull(clock);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
     }
 
     @Override
     public void handle(RoutingContext context) {
-        final long startTime = clock.millis();
-
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
@@ -79,12 +73,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String gdpr = context.request().getParam("gdpr");
         final String gdprConsent = context.request().getParam("gdpr_consent");
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
-        gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip, timeout(startTime))
+        gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip,
+                timeoutFactory.create(defaultTimeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, bidder));
-    }
-
-    private Timeout timeout(long startTime) {
-        return timeoutFactory.create(startTime, defaultTimeout);
     }
 
     private void handleResult(AsyncResult<GdprResponse> asyncResult, RoutingContext context,
