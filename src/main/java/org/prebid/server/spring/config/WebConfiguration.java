@@ -235,15 +235,17 @@ public class WebConfiguration {
 
     @Bean
     SetuidHandler setuidHandler(
+            @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             GdprService gdprService,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
-            Metrics metrics) {
+            Metrics metrics,
+            TimeoutFactory timeoutFactory) {
 
-        return new SetuidHandler(uidsCookieService, gdprService, hostVendorId, useGeoLocation, analyticsReporter,
-                metrics);
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, gdprService, hostVendorId, useGeoLocation,
+                analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean

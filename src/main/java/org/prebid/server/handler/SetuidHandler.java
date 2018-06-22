@@ -10,6 +10,7 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.model.GdprResponse;
@@ -27,21 +28,26 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
 
+    private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final GdprService gdprService;
     private final Set<Integer> gdprVendorIds;
     private final boolean useGeoLocation;
     private final AnalyticsReporter analyticsReporter;
     private final Metrics metrics;
+    private final TimeoutFactory timeoutFactory;
 
-    public SetuidHandler(UidsCookieService uidsCookieService, GdprService gdprService, Integer gdprHostVendorId,
-                         boolean useGeoLocation, AnalyticsReporter analyticsReporter, Metrics metrics) {
+    public SetuidHandler(long defaultTimeout, UidsCookieService uidsCookieService, GdprService gdprService,
+                         Integer gdprHostVendorId, boolean useGeoLocation, AnalyticsReporter analyticsReporter,
+                         Metrics metrics, TimeoutFactory timeoutFactory) {
+        this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.gdprService = Objects.requireNonNull(gdprService);
         this.gdprVendorIds = Collections.singleton(gdprHostVendorId);
         this.useGeoLocation = useGeoLocation;
         this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
         this.metrics = Objects.requireNonNull(metrics);
+        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
     }
 
     @Override
@@ -67,7 +73,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final String gdpr = context.request().getParam("gdpr");
         final String gdprConsent = context.request().getParam("gdpr_consent");
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
-        gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip)
+        gdprService.resultByVendor(GDPR_PURPOSES, gdprVendorIds, gdpr, gdprConsent, ip,
+                timeoutFactory.create(defaultTimeout))
                 .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, bidder));
     }
 

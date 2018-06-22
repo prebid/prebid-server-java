@@ -257,7 +257,7 @@ public class ExchangeService {
         // the intended Bidder.
         // - bidrequest.user.buyeruid will be set to that Bidder's ID.
 
-        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs)
+        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
                 .map(gdprResponse -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
                         userExtNode, extRegs, aliases, imps, gdprResponse.getVendorsToGdpr()));
     }
@@ -270,7 +270,7 @@ public class ExchangeService {
      */
     private Future<GdprResponse> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
                                                             ExtUser extUser, Map<String, String> aliases,
-                                                            ExtRegs extRegs) {
+                                                            ExtRegs extRegs, Timeout timeout) {
         final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
         if (gdprEnforcedVendorIds.isEmpty()) {
             return Future.succeededFuture(GdprResponse.of(Collections.emptyMap(), null));
@@ -282,7 +282,7 @@ public class ExchangeService {
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
 
         return gdprService.resultByVendor(GDPR_PURPOSES, gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null,
-                gdprConsent, ipAddress);
+                gdprConsent, ipAddress, timeout);
     }
 
     private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,

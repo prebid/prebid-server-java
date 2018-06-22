@@ -36,6 +36,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
+## Setuid
+- `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
+
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
 
