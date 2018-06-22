@@ -151,7 +151,7 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        return extractBidderRequests(bidRequest, uidsCookie, aliases)
+        return extractBidderRequests(bidRequest, uidsCookie, aliases, timeout)
                 .map(bidderRequests -> updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
                         .map(bidderRequest -> requestBids(bidderRequest, startTime,
@@ -249,7 +249,8 @@ public class ExchangeService {
      */
     private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest,
                                                               UidsCookie uidsCookie,
-                                                              Map<String, String> aliases) {
+                                                              Map<String, String> aliases,
+                                                              Timeout timeout) {
         // sanity check: discard imps without extension
         final List<Imp> imps = bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
