@@ -12,6 +12,11 @@ public class InvalidRequestException extends RuntimeException {
         this.messages = Collections.singletonList(message);
     }
 
+    public InvalidRequestException(String message, Throwable cause) {
+        super(message, cause);
+        this.messages = Collections.singletonList(message);
+    }
+
     public InvalidRequestException(List<String> messages) {
         super(messages.stream().collect(Collectors.joining("\n")));
         this.messages = messages;

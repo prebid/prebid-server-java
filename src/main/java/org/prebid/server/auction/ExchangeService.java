@@ -3,11 +3,14 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -18,6 +21,7 @@ import io.vertx.core.json.Json;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
@@ -114,7 +118,7 @@ public class ExchangeService {
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         if (expectedCacheTime < 0) {
-            throw new IllegalArgumentException("Expected cache time could not be negative");
+            throw new IllegalArgumentException("Expected cache time should be positive");
         }
         this.expectedCacheTime = expectedCacheTime;
         this.useGeoLocation = useGeoLocation;
@@ -143,10 +147,12 @@ public class ExchangeService {
         // build targeting keywords creator
         final TargetingKeywordsCreator keywordsCreator = buildKeywordsCreator(targeting, bidRequest.getApp() != null);
 
+        final String publisherId = publisherId(bidRequest);
+
         final long startTime = clock.millis();
 
         return extractBidderRequests(bidRequest, uidsCookie, aliases, timeout)
-                .map(bidderRequests -> updateRequestMetric(bidderRequests, uidsCookie, aliases))
+                .map(bidderRequests -> updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
                         .map(bidderRequest -> requestBids(bidderRequest, startTime,
                                 auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
@@ -155,7 +161,7 @@ public class ExchangeService {
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 // produce response from bidder results
-                .map(this::updateMetricsFromResponses)
+                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
                         toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
@@ -180,6 +186,21 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         return aliases != null ? aliases : Collections.emptyMap();
+    }
+
+    /**
+     * Extracts publisher id either from {@link BidRequest}.app.publisher.id or {@link BidRequest}.site.publisher.id.
+     * If neither is present returns empty string.
+     */
+    private static String publisherId(BidRequest bidRequest) {
+        final App app = bidRequest.getApp();
+        final Publisher appPublisher = app != null ? app.getPublisher() : null;
+        final Site site = bidRequest.getSite();
+        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
+
+        return publisher != null ? publisher.getId() : StringUtils.EMPTY;
     }
 
     /**
@@ -524,20 +545,25 @@ public class ExchangeService {
     }
 
     /**
-     * Updates 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
+     * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
      */
     private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
-                                                    Map<String, String> aliases) {
+                                                    Map<String, String> aliases, String publisherId) {
+        metrics.forAccount(publisherId).incCounter(MetricName.requests);
+
         for (BidderRequest bidderRequest : bidderRequests) {
             final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
+            final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
+            final AdapterMetrics accountAdapterMetrics = metrics.forAccount(publisherId).forAdapter(bidder);
 
-            metrics.forAdapter(bidder).incCounter(MetricName.requests);
+            adapterMetrics.incCounter(MetricName.requests);
+            accountAdapterMetrics.incCounter(MetricName.requests);
 
             final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
                     uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
 
             if (bidderRequest.getBidRequest().getApp() == null && noBuyerId) {
-                metrics.forAdapter(bidder).incCounter(MetricName.no_cookie_requests);
+                adapterMetrics.incCounter(MetricName.no_cookie_requests);
             }
         }
         return bidderRequests;
@@ -726,12 +752,15 @@ public class ExchangeService {
      * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
      * to make sure {@link Bid#price} is not empty.
      */
-    private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
+    private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
         for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
             final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
+            final AdapterMetrics accountAdapterMetrics = metrics.forAccount(publisherId).forAdapter(bidder);
 
-            adapterMetrics.updateTimer(MetricName.request_time, bidderResponse.getResponseTime());
+            final int responseTime = bidderResponse.getResponseTime();
+            adapterMetrics.updateTimer(MetricName.request_time, responseTime);
+            accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
 
             final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
             if (CollectionUtils.isEmpty(bidderBids)) {
@@ -740,7 +769,12 @@ public class ExchangeService {
                 for (final BidderBid bidderBid : bidderBids) {
                     final Bid bid = bidderBid.getBid();
 
-                    adapterMetrics.updateHistogram(MetricName.prices, bid.getPrice().multiply(THOUSAND).longValue());
+                    final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
+                    adapterMetrics.updateHistogram(MetricName.prices, cpm);
+                    accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
+
+                    adapterMetrics.incCounter(MetricName.bids_received);
+                    accountAdapterMetrics.incCounter(MetricName.bids_received);
 
                     final MetricName markupMetricName = bid.getAdm() != null
                             ? MetricName.adm_bids_received : MetricName.nurl_bids_received;

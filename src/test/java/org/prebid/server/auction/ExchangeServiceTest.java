@@ -44,6 +44,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprResponse;
+import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -111,13 +112,17 @@ public class ExchangeServiceTest extends VertxTest {
     @Spy
     private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
     @Mock
-    private Metrics metrics;
-    @Mock
     private Usersyncer usersyncer;
     @Mock
     private MetaInfo metaInfo;
     @Mock
+    private Metrics metrics;
+    @Mock
+    private AccountMetrics accountMetrics;
+    @Mock
     private AdapterMetrics adapterMetrics;
+    @Mock
+    private AdapterMetrics accountAdapterMetrics;
     @Mock
     private AdapterMetrics.MarkupMetrics adapterMarkupMetrics;
     @Mock
@@ -144,8 +149,10 @@ public class ExchangeServiceTest extends VertxTest {
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
         given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
         given(bidResponsePostProcessor.postProcess(any(), any(), any())).willCallRealMethod();
+        given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
-        given(metrics.forAdapter(anyString()).forBidType(any())).willReturn(adapterMarkupMetrics);
+        given(adapterMetrics.forBidType(any())).willReturn(adapterMarkupMetrics);
+        given(accountMetrics.forAdapter(anyString())).willReturn(accountAdapterMetrics);
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
@@ -1379,7 +1386,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldIncrementRequestAndNoCookieAndUpdatePriceAndRequestTimeMetrics() {
+    public void shouldIncrementCommonMetrics() {
         // given
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
 
@@ -1393,10 +1400,16 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout);
 
         // then
+        verify(accountMetrics).incCounter(eq(MetricName.requests));
         verify(adapterMetrics).incCounter(eq(MetricName.requests));
+        verify(accountAdapterMetrics).incCounter(eq(MetricName.requests));
         verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
         verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
+        verify(accountAdapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
+        verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
+        verify(adapterMetrics).incCounter(eq(MetricName.bids_received));
+        verify(accountAdapterMetrics).incCounter(eq(MetricName.bids_received));
         verify(adapterMarkupMetrics).incCounter(eq(MetricName.nurl_bids_received));
     }
 
