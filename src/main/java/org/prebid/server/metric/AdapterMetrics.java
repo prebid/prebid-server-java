@@ -13,16 +13,18 @@ import java.util.function.Function;
  */
 public class AdapterMetrics extends UpdatableMetrics {
 
-    private final Function<BidType, MarkupMetrics> markupMetricsCreator;
-    private final Map<BidType, MarkupMetrics> markupMetrics;
+    private final RequestTypeMetrics requestTypeMetrics;
+    private final Function<BidType, BidTypeMetrics> bidTypeMetricsCreator;
+    private final Map<BidType, BidTypeMetrics> bidTypeMetrics;
 
     AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String adapterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                nameCreator(String.format("adapter.%s", Objects.requireNonNull(adapterType))));
+                nameCreator(createPrefix(Objects.requireNonNull(adapterType))));
 
-        markupMetricsCreator = bidType -> new MarkupMetrics(metricRegistry, counterType,
-                String.format("adapter.%s.%s", Objects.requireNonNull(adapterType), bidType.name()));
-        markupMetrics = new HashMap<>();
+        bidTypeMetricsCreator = bidType ->
+                new BidTypeMetrics(metricRegistry, counterType, createPrefix(adapterType), bidType);
+        requestTypeMetrics = new RequestTypeMetrics(metricRegistry, counterType, createPrefix(adapterType));
+        bidTypeMetrics = new HashMap<>();
     }
 
     AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String account, String adapterType) {
@@ -31,29 +33,24 @@ public class AdapterMetrics extends UpdatableMetrics {
                         Objects.requireNonNull(adapterType))));
 
         // not used for account.adapter metrics
-        markupMetricsCreator = null;
-        markupMetrics = null;
+        bidTypeMetricsCreator = null;
+        requestTypeMetrics = null;
+        bidTypeMetrics = null;
+    }
+
+    private static String createPrefix(String adapterType) {
+        return String.format("adapter.%s", adapterType);
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.name());
+        return metricName -> String.format("%s.%s", prefix, metricName.toString());
     }
 
-    public MarkupMetrics forBidType(BidType bidType) {
-        return markupMetrics.computeIfAbsent(bidType, markupMetricsCreator);
+    public RequestTypeMetrics requestType() {
+        return requestTypeMetrics;
     }
 
-    /**
-     * Markup delivery metrics for reporting on certain bid type
-     */
-    public static class MarkupMetrics extends UpdatableMetrics {
-
-        MarkupMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
-            super(metricRegistry, counterType, nameCreator(prefix));
-        }
-
-        private static Function<MetricName, String> nameCreator(String prefix) {
-            return metricName -> String.format("%s.%s", prefix, metricName.name());
-        }
+    public BidTypeMetrics forBidType(BidType bidType) {
+        return bidTypeMetrics.computeIfAbsent(bidType, bidTypeMetricsCreator);
     }
 }

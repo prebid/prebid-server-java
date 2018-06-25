@@ -36,6 +36,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -63,6 +64,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
             new TypeReference<ExtBidResponse>() {
             };
+    private static final MetricsContext METRICS_CONTEXT = MetricsContext.of(MetricName.amp);
 
     private final long defaultTimeout;
     private final AmpRequestFactory ampRequestFactory;
@@ -114,7 +116,8 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(bidRequest ->
                         updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
                 .compose(bidRequest ->
-                        exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime))
+                        exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime),
+                                METRICS_CONTEXT)
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
                 .map((Tuple2<BidRequest, BidResponse> result) ->
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
@@ -291,12 +294,12 @@ public class AmpHandler implements Handler<RoutingContext> {
             }
         }
 
-        updateRequestMetric(requestStatus);
+        updateRequestMetric(METRICS_CONTEXT.getRequestType(), requestStatus);
         analyticsReporter.processEvent(ampEventBuilder.status(status).errors(errorMessages).build());
     }
 
-    private void updateRequestMetric(MetricName requestStatus) {
-        metrics.forRequestType(MetricName.amp).incCounter(requestStatus);
+    private void updateRequestMetric(MetricName requestType, MetricName requestStatus) {
+        metrics.forRequestType(requestType).incCounter(requestStatus);
     }
 
     private static String originFrom(RoutingContext context) {

@@ -17,16 +17,22 @@ public class AccountMetrics extends UpdatableMetrics {
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
     private final Map<String, AdapterMetrics> adapterMetrics;
+    private final RequestTypeMetrics requestTypeMetrics;
 
     AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                nameCreator(Objects.requireNonNull(account)));
+                nameCreator(createPrefix(Objects.requireNonNull(account))));
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, account, adapterType);
         adapterMetrics = new HashMap<>();
+        requestTypeMetrics = new RequestTypeMetrics(metricRegistry, counterType, createPrefix(account));
     }
 
-    private static Function<MetricName, String> nameCreator(String account) {
-        return metricName -> String.format("account.%s.%s", account, metricName.name());
+    private static String createPrefix(String account) {
+        return String.format("account.%s", account);
+    }
+
+    private static Function<MetricName, String> nameCreator(String prefix) {
+        return metricName -> String.format("%s.%s", prefix, metricName.toString());
     }
 
     /**
@@ -34,5 +40,12 @@ public class AccountMetrics extends UpdatableMetrics {
      */
     public AdapterMetrics forAdapter(String adapterType) {
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
+    }
+
+    /**
+     * Returns {@link RequestTypeMetrics}.
+     */
+    public RequestTypeMetrics requestType() {
+        return requestTypeMetrics;
     }
 }

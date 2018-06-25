@@ -7,23 +7,16 @@ import com.codahale.metrics.MetricRegistry;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import java.util.EnumMap;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 public class MetricsTest {
 
     private static final String RUBICON = "rubicon";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private MetricRegistry metricRegistry;
 
@@ -33,12 +26,6 @@ public class MetricsTest {
     public void setUp() {
         metricRegistry = new MetricRegistry();
         metrics = new Metrics(metricRegistry, CounterType.counter);
-    }
-
-    @Test
-    public void createShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new Metrics(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new Metrics(metricRegistry, null));
     }
 
     @Test
@@ -86,6 +73,35 @@ public class MetricsTest {
     }
 
     @Test
+    public void shouldReturnSameAdapterRequestTypeMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forAdapter(RUBICON).requestType())
+                .isSameAs(metrics.forAdapter(RUBICON).requestType());
+    }
+
+    @Test
+    public void shouldReturnAdapterRequestTypeMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .forAdapter(RUBICON)
+                .requestType()
+                .incCounter(MetricName.openrtb2app));
+    }
+
+    @Test
+    public void shouldReturnAdapterRequestTypeMetricsConfiguredWithAdapterType() {
+        // when
+        metrics.forAdapter(RUBICON).requestType().incCounter(MetricName.openrtb2web);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.requests.type.openrtb2-web").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldReturnSameAccountAdapterMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forAccount("accountId").forAdapter(RUBICON))
+                .isSameAs(metrics.forAccount("accountId").forAdapter(RUBICON));
+    }
+
+    @Test
     public void shouldReturnAccountAdapterMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAccount("accountId")
@@ -100,6 +116,29 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("account.accountId.rubicon.requests").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldReturnSameAccountRequestTypeMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forAccount("accountId").requestType())
+                .isSameAs(metrics.forAccount("accountId").requestType());
+    }
+
+    @Test
+    public void shouldReturnAccountRequestTypeMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .forAccount("accountId")
+                .requestType()
+                .incCounter(MetricName.openrtb2app));
+    }
+
+    @Test
+    public void shouldReturnAccountRequestTypeMetricsConfiguredWithAccount() {
+        // when
+        metrics.forAccount("accountId").requestType().incCounter(MetricName.openrtb2web);
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -123,6 +162,11 @@ public class MetricsTest {
     }
 
     @Test
+    public void shouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
+        assertThat(metrics.cookieSync().forBidder(RUBICON)).isSameAs(metrics.cookieSync().forBidder(RUBICON));
+    }
+
+    @Test
     public void shouldReturnBidderCookieSyncMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .cookieSync()
@@ -137,6 +181,28 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void forRequestTypeShouldReturnSameRequestStatusMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forRequestType(MetricName.openrtb2web))
+                .isSameAs(metrics.forRequestType(MetricName.openrtb2web));
+    }
+
+    @Test
+    public void forRequestTypeShouldReturnRequestStatusMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .forRequestType(MetricName.openrtb2web)
+                .incCounter(MetricName.ok));
+    }
+
+    @Test
+    public void forRequestTypeShouldReturnRequestStatusMetricsConfiguredWithRequestType() {
+        // when
+        metrics.forRequestType(MetricName.openrtb2web).incCounter(MetricName.ok);
+
+        // then
+        assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {

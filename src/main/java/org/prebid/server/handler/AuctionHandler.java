@@ -52,6 +52,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
+    private static final MetricName REQUEST_TYPE_METRIC = MetricName.legacy;
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final ApplicationSettings applicationSettings;
@@ -156,7 +157,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
             long startTime) {
 
         final String accountId = preBidRequestContextAccount.getLeft().getPreBidRequest().getAccountId();
-        metrics.forAccount(accountId).incCounter(MetricName.requests);
+        final AccountMetrics accountMetrics = metrics.forAccount(accountId);
+
+        accountMetrics.incCounter(MetricName.requests);
+        accountMetrics.requestType().incCounter(REQUEST_TYPE_METRIC);
 
         setupRequestTimeUpdater(context, startTime);
 
@@ -188,7 +192,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private void updateAdapterRequestMetrics(String bidder, String accountId) {
-        metrics.forAdapter(bidder).incCounter(MetricName.requests);
+        final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
+
+        adapterMetrics.incCounter(MetricName.requests);
+        adapterMetrics.requestType().incCounter(REQUEST_TYPE_METRIC);
         metrics.forAccount(accountId).forAdapter(bidder).incCounter(MetricName.requests);
     }
 
@@ -406,7 +413,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private void updateRequestMetric(MetricName requestStatus) {
-        metrics.forRequestType(MetricName.legacy).incCounter(requestStatus);
+        metrics.forRequestType(REQUEST_TYPE_METRIC).incCounter(requestStatus);
     }
 
     private static PreBidResponse error(String status) {
