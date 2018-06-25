@@ -105,7 +105,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.POST, url, body, BidderUtil.headers(),
-                        outgoingRequest)), BidderUtil.createBidderErrors(BidderError.ErrorType.badInput, errors));
+                        outgoingRequest)), BidderUtil.createBidderErrors(BidderError.Type.bad_input, errors));
     }
 
     /**
@@ -239,9 +239,9 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         try {
             return Result.of(extractBids(BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (BidderUtil.BadServerResponseException | PreBidException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badServerResponse, e.getMessage());
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_server_response, e.getMessage());
         } catch (BidderUtil.BadInputRequestException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badInput, e.getMessage());
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_input, e.getMessage());
         }
     }
 

@@ -76,7 +76,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
 
         return Result.of(Collections.singletonList(
                 HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers(bidRequest), outgoingRequest)),
-                BidderUtil.createBidderErrors(BidderError.ErrorType.badInput, errors));
+                BidderUtil.createBidderErrors(BidderError.Type.bad_input, errors));
     }
 
     @Override
@@ -84,9 +84,9 @@ public class SovrnBidder implements Bidder<BidRequest> {
         try {
             return Result.of(extractBids(BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (BidderUtil.BadServerResponseException | PreBidException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badServerResponse, e.getMessage());
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_server_response, e.getMessage());
         } catch (BidderUtil.BadInputRequestException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badInput, e.getMessage());
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_input, e.getMessage());
         }
     }
 

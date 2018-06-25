@@ -685,7 +685,7 @@ public class ExchangeService {
             final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
             if (validationResult.hasErrors()) {
                 for (String error : validationResult.getErrors()) {
-                    errors.add(BidderError.create(error, null));
+                    errors.add(BidderError.create(error));
                 }
             } else {
                 validBids.add(bid);
@@ -733,7 +733,7 @@ public class ExchangeService {
                 }
                 updatedBidderBids.add(bidderBid);
             } catch (PreBidException ex) {
-                errors.add(BidderError.create(ex.getMessage(), null));
+                errors.add(BidderError.create(ex.getMessage()));
             }
         }
 
@@ -796,7 +796,7 @@ public class ExchangeService {
             final List<BidderError> errors = bidderResponse.getSeatBid().getErrors();
             if (CollectionUtils.isNotEmpty(errors)) {
                 for (final BidderError error : errors) {
-                    adapterMetrics.incCounter(error.getErrorType() == BidderError.ErrorType.timedOut
+                    adapterMetrics.incCounter(error.getType() == BidderError.Type.timeout
                             ? MetricName.timeout_requests
                             : MetricName.error_requests);
                 }
