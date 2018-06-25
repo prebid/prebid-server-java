@@ -95,7 +95,7 @@ public class HttpBidderRequesterTest {
     public void shouldTolerateBidderReturningErrorsAndNoHttpRequests() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(emptyList(),
-                asList(BidderError.createBadInput("error1"), BidderError.createBadInput("error2"))));
+                asList(BidderError.badInput("error1"), BidderError.badInput("error2"))));
 
         // when
         final BidderSeatBid bidderSeatBid = bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout)
@@ -299,7 +299,7 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
                 // finally this request will succeed
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)),
-                singletonList(BidderError.createBadInput("makeHttpRequestsError"))));
+                singletonList(BidderError.badInput("makeHttpRequestsError"))));
 
         given(httpClientRequest.exceptionHandler(any()))
                 // simulate request error for the first request
@@ -333,7 +333,7 @@ public class HttpBidderRequesterTest {
 
         given(bidder.makeBids(any(), any())).willReturn(
                 Result.of(singletonList(BidderBid.of(null, null, null)),
-                        singletonList(BidderError.createBadServerResponse("makeBidsError"))));
+                        singletonList(BidderError.badServerResponse("makeBidsError"))));
 
         // when
         final BidderSeatBid bidderSeatBid = bidderHttpConnector
@@ -345,12 +345,12 @@ public class HttpBidderRequesterTest {
         verify(bidder).makeBids(any(), any());
         assertThat(bidderSeatBid.getBids()).hasSize(1);
         assertThat(bidderSeatBid.getErrors()).hasSize(5).containsOnly(
-                BidderError.createBadInput("makeHttpRequestsError"),
-                BidderError.createBadServerResponse("Request exception"),
-                BidderError.createBadServerResponse("Response exception"),
-                BidderError.createBadServerResponse(
+                BidderError.badInput("makeHttpRequestsError"),
+                BidderError.badServerResponse("Request exception"),
+                BidderError.badServerResponse("Response exception"),
+                BidderError.badServerResponse(
                         "Server responded with failure status: 500. Set request.test = 1 for debugging info."),
-                BidderError.createBadServerResponse("makeBidsError"));
+                BidderError.badServerResponse("makeBidsError"));
     }
 
     private void givenHttpClientReturnsResponses(int statusCode, String... bidResponses) {

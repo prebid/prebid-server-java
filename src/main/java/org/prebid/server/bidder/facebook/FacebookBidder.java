@@ -84,7 +84,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 processedImps.add(makeImp(imp, placementId));
             }
         } catch (PreBidException e) {
-            errors.add(BidderError.createBadInput(e.getMessage()));
+            errors.add(BidderError.badInput(e.getMessage()));
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder()
@@ -105,7 +105,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

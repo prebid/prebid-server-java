@@ -103,7 +103,7 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput(
+                .containsExactly(BidderError.badInput(
                         "Adform adapter supports only banner Imps for now. Ignoring Imp ID=Imp12"));
     }
 
@@ -125,7 +125,7 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .contains(BidderError.createBadInput("master tag(placement) id is invalid=0"));
+                .contains(BidderError.badInput("master tag(placement) id is invalid=0"));
     }
 
     @Test

@@ -22,15 +22,15 @@ public class BidderError {
         return BidderError.of(message, Type.unknown);
     }
 
-    public static BidderError createBadInput(String message) {
+    public static BidderError badInput(String message) {
         return BidderError.of(message, Type.bad_input);
     }
 
-    public static BidderError createBadServerResponse(String message) {
+    public static BidderError badServerResponse(String message) {
         return BidderError.of(message, Type.bad_server_response);
     }
 
-    public static BidderError createTimeout(String message) {
+    public static BidderError timeout(String message) {
         return BidderError.of(message, Type.timeout);
     }
 

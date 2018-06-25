@@ -89,7 +89,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("Appnexus doesn't support audio Imps. Ignoring Imp ID=23"));
+                .containsExactly(BidderError.badInput("Appnexus doesn't support audio Imps. Ignoring Imp ID=23"));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("No placement or member+invcode provided"));
+                .containsExactly(BidderError.badInput("No placement or member+invcode provided"));
     }
 
     @Test
@@ -145,7 +145,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("All request.imp[i].ext.appnexus.member params must match. "
+                .containsExactly(BidderError.badInput("All request.imp[i].ext.appnexus.member params must match. "
                         + "Request contained: member2, member1"));
     }
 
@@ -197,7 +197,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("No placement or member+invcode provided"));
+                .containsExactly(BidderError.badInput("No placement or member+invcode provided"));
     }
 
     @Test
@@ -218,7 +218,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .isEmpty();
 
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("No placement or member+invcode provided"));
+                .containsExactly(BidderError.badInput("No placement or member+invcode provided"));
     }
 
     @Test
@@ -460,7 +460,7 @@ public class AppnexusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.createBadServerResponse(
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
                 "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n at " +
                         "[Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
@@ -540,7 +540,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.createBadServerResponse(
+                .containsOnly(BidderError.badServerResponse(
                         "Unrecognized bid_ad_type in response from appnexus: 42"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -562,7 +562,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.createBadServerResponse(
+                .containsOnly(BidderError.badServerResponse(
                         "bidResponse.bid.ext should be defined for appnexus"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -584,7 +584,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.createBadServerResponse("bidResponse.bid.ext.appnexus should be defined"));
+                .containsOnly(BidderError.badServerResponse("bidResponse.bid.ext.appnexus should be defined"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -605,7 +605,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.createBadServerResponse(
+                .containsOnly(BidderError.badServerResponse(
                         "bidResponse.bid.ext.appnexus.bid_ad_type should be defined"));
         assertThat(result.getValue()).isEmpty();
     }

@@ -68,7 +68,7 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput(
+                .containsExactly(BidderError.badInput(
                         "Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId"));
     }
 
@@ -89,7 +89,7 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput(
+                .containsExactly(BidderError.badInput(
                         "Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId"));
     }
 
@@ -110,7 +110,7 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput(
+                .containsExactly(BidderError.badInput(
                         "Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=23"));
     }
 
@@ -130,7 +130,7 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("Sovrn parameters section is missing"));
+                .containsExactly(BidderError.badInput("Sovrn parameters section is missing"));
     }
 
     @Test
@@ -256,7 +256,7 @@ public class SovrnBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.createBadServerResponse(
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
                 "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
                         " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();

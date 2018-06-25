@@ -68,7 +68,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
             try {
                 processedImps.add(makeImp(imp));
             } catch (PreBidException e) {
-                errors.add(BidderError.createBadInput(e.getMessage()));
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -85,7 +85,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

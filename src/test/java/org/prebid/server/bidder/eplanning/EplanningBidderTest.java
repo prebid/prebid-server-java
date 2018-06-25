@@ -141,7 +141,7 @@ public class EplanningBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsOnly(BidderError.createBadInput(
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
                 "EPlanning only supports banner Imps. Ignoring Imp ID=impId"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -159,7 +159,7 @@ public class EplanningBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsOnly(BidderError.createBadInput(
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
                 "Ignoring imp id=impId, error while decoding extImpBidder, err: bidder property is not present"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -204,7 +204,7 @@ public class EplanningBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsOnly(BidderError.createBadInput(
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
                 "Ignoring imp id=impId, error while decoding extImpBidder, err: bidder property is not present"));
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly("http://eplanning.com/exchangeId");
@@ -327,7 +327,7 @@ public class EplanningBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).containsOnly(BidderError.createBadServerResponse(
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
                 "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at " +
                         "[Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, column: " +
                         "3]"));
