@@ -83,7 +83,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidRequest, bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -122,7 +122,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                     notSupportedImps.stream()
                             .map(imp -> String.format(
                                     "OpenX only supports banner and video imps. Ignoring imp id=%s", imp.getId()))
-                            .map(BidderError::createBadInput)
+                            .map(BidderError::badInput)
                             .collect(Collectors.toList()));
         }
 
@@ -149,7 +149,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         try {
             processedImps = imps.stream().map(this::makeImp).collect(Collectors.toList());
         } catch (PreBidException e) {
-            errors.add(BidderError.createBadInput(e.getMessage()));
+            errors.add(BidderError.badInput(e.getMessage()));
         }
 
         return CollectionUtils.isNotEmpty(processedImps)

@@ -112,7 +112,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 final String body = Json.encode(singleRequest);
                 httpRequests.add(HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers, singleRequest));
             } catch (PreBidException e) {
-                errors.add(BidderError.createBadInput(e.getMessage()));
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -125,7 +125,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

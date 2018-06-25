@@ -106,7 +106,7 @@ public class AdformBidder implements Bidder<Void> {
             adformBids = Json.mapper.readValue(httpResponse.getBody(),
                     Json.mapper.getTypeFactory().constructCollectionType(List.class, AdformBid.class));
         } catch (IOException e) {
-            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
         return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());
     }
@@ -124,7 +124,7 @@ public class AdformBidder implements Bidder<Void> {
         final List<ExtImpAdform> extImpAdforms = new ArrayList<>();
         for (final Imp imp : imps) {
             if (imp.getBanner() == null) {
-                errors.add(BidderError.createBadInput(String.format(
+                errors.add(BidderError.badInput(String.format(
                         "Adform adapter supports only banner Imps for now. Ignoring Imp ID=%s", imp.getId())));
                 continue;
             }
@@ -133,14 +133,14 @@ public class AdformBidder implements Bidder<Void> {
                 extImpAdform = Json.mapper.<ExtPrebid<?, ExtImpAdform>>convertValue(imp.getExt(),
                         ADFORM_EXT_TYPE_REFERENCE).getBidder();
             } catch (IllegalArgumentException e) {
-                errors.add(BidderError.createBadInput(String.format("Error occurred parsing adform parameters %s",
+                errors.add(BidderError.badInput(String.format("Error occurred parsing adform parameters %s",
                         e.getMessage())));
                 continue;
             }
 
             final Long mid = extImpAdform.getMasterTagId();
             if (mid == null || mid <= 0) {
-                errors.add(BidderError.createBadInput(String.format("master tag(placement) id is invalid=%s", mid)));
+                errors.add(BidderError.badInput(String.format("master tag(placement) id is invalid=%s", mid)));
                 continue;
             }
             extImpAdforms.add(extImpAdform);

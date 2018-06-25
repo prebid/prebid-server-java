@@ -73,7 +73,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse, bidRequest.getImp());
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -94,7 +94,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                 validateImpression(imp);
                 extImpAdtelligent = getExtImpAdtelligent(imp);
             } catch (PreBidException ex) {
-                errors.add(BidderError.createBadInput(ex.getMessage()));
+                errors.add(BidderError.badInput(ex.getMessage()));
                 continue;
             }
             final Imp updatedImp = updateImp(imp, extImpAdtelligent);
@@ -123,7 +123,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
             try {
                 bidRequestBody = Json.encode(bidRequest);
             } catch (EncodeException e) {
-                errors.add(BidderError.createBadInput(String.format("error while encoding bidRequest, err: %s",
+                errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s",
                         e.getMessage())));
                 return Result.of(Collections.emptyList(), errors);
             }
@@ -213,7 +213,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
             final Video video = idToImps.get(bidImpId).getVideo();
             bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner, null));
         } else {
-            errors.add(BidderError.createBadServerResponse(String.format(
+            errors.add(BidderError.badServerResponse(String.format(
                     "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));
         }
     }

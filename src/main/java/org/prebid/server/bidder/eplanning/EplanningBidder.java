@@ -77,7 +77,7 @@ public class EplanningBidder implements Bidder<BidRequest> {
             try {
                 bidRequestBody = Json.encode(exchangeBidRequest);
             } catch (EncodeException e) {
-                errors.add(BidderError.createBadInput(String.format("error while encoding bidRequest, err: %s",
+                errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s",
                         e.getMessage())));
                 return Result.of(Collections.emptyList(), errors);
             }
@@ -96,7 +96,7 @@ public class EplanningBidder implements Bidder<BidRequest> {
 
         for (final Imp imp : imps) {
             if (imp.getBanner() == null) {
-                errors.add(BidderError.createBadInput(String.format(
+                errors.add(BidderError.badInput(String.format(
                         "EPlanning only supports banner Imps. Ignoring Imp ID=%s", imp.getId())));
                 continue;
             }
@@ -106,14 +106,14 @@ public class EplanningBidder implements Bidder<BidRequest> {
                 extImpEplanning = Json.mapper.<ExtPrebid<?, ExtImpEplanning>>convertValue(imp.getExt(),
                         EPLANNING_EXT_TYPE_REFERENCE).getBidder();
             } catch (IllegalArgumentException ex) {
-                errors.add(BidderError.createBadInput(String.format(
+                errors.add(BidderError.badInput(String.format(
                         "Ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(),
                         ex.getMessage())));
                 continue;
             }
 
             if (extImpEplanning == null) {
-                errors.add(BidderError.createBadInput(String.format(
+                errors.add(BidderError.badInput(String.format(
                         "Ignoring imp id=%s, error while decoding extImpBidder, err: bidder property is not present",
                         imp.getId())));
                 continue;
@@ -157,7 +157,7 @@ public class EplanningBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse);
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

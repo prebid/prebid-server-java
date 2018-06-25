@@ -81,7 +81,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 processedImps.add(impWithMemberId.getImp());
                 memberIds.add(impWithMemberId.getMemberId());
             } catch (PreBidException e) {
-                errors.add(BidderError.createBadInput(e.getMessage()));
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -95,7 +95,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             try {
                 validateMemberId(uniqueIds);
             } catch (PreBidException e) {
-                errors.add(BidderError.createBadInput(e.getMessage()));
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         } else {
             url = endpointUrl;
@@ -241,7 +241,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
-            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

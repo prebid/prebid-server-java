@@ -530,7 +530,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).containsOnly(BidderError.createBadInput("No valid sizes"));
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput("No valid sizes"));
         assertThat(result.getValue()).hasSize(1);
     }
 

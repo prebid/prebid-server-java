@@ -99,7 +99,7 @@ public class AdtelligentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput(
+                .containsExactly(BidderError.badInput(
                         "ignoring imp id=impId, Adtelligent supports only Video and Banner"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -118,7 +118,7 @@ public class AdtelligentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("ignoring imp id=impId, extImpBidder is empty"));
+                .containsExactly(BidderError.badInput("ignoring imp id=impId, extImpBidder is empty"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -142,7 +142,7 @@ public class AdtelligentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("ignoring imp id=impId, extImpBidder is empty"));
+                .containsExactly(BidderError.badInput("ignoring imp id=impId, extImpBidder is empty"));
         assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("http://adtelligent.com?aid=15");
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> Json.mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -256,7 +256,7 @@ public class AdtelligentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadServerResponse(
+                .containsExactly(BidderError.badServerResponse(
                         "ignoring bid id=bidId, request doesn't contain any impression with id=invalidId"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -280,7 +280,7 @@ public class AdtelligentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadServerResponse(
+                .containsExactly(BidderError.badServerResponse(
                         "ignoring bid id=bidId1, request doesn't contain any impression with id=invalidId"));
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
@@ -386,7 +386,7 @@ public class AdtelligentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadServerResponse(
+                .containsExactly(BidderError.badServerResponse(
                         "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at" +
                                 " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, " +
                                 "column: 3]"));

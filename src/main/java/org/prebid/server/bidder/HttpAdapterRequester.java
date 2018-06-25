@@ -76,7 +76,7 @@ public class HttpAdapterRequester implements BidderRequester {
         } catch (InvalidRequestException exception) {
             return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(),
                     exception.getMessages().stream()
-                            .map(BidderError::createBadInput)
+                            .map(BidderError::badInput)
                             .collect(Collectors.toList())));
         }
         return httpAdapterConnector.call(adapter, usersyncer, bidderWithErrors.getValue(), preBidRequestContext)
@@ -217,7 +217,7 @@ public class HttpAdapterRequester implements BidderRequester {
                 adUnitBids.add(toAdUnitBid(imp));
             } catch (InvalidRequestException exception) {
                 errors.addAll(exception.getMessages().stream()
-                        .map(BidderError::createBadInput)
+                        .map(BidderError::badInput)
                         .collect(Collectors.toList()));
             }
         }
@@ -343,7 +343,7 @@ public class HttpAdapterRequester implements BidderRequester {
     private static Result<BidType> toBidType(org.prebid.server.proto.response.Bid bid) {
         final MediaType mediaType = bid.getMediaType();
         if (mediaType == null) {
-            return Result.of(null, Collections.singletonList(BidderError.createBadServerResponse(
+            return Result.of(null, Collections.singletonList(BidderError.badServerResponse(
                     "Media Type is not defined for Bid")));
         }
         switch (mediaType) {
@@ -353,7 +353,7 @@ public class HttpAdapterRequester implements BidderRequester {
                 return Result.of(BidType.banner, Collections.emptyList());
             default:
                 return Result.of(null, Collections.singletonList(
-                        BidderError.createBadServerResponse(
+                        BidderError.badServerResponse(
                                 "legacy bidders can only bid on banner and video ad units")));
         }
     }

@@ -86,8 +86,8 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(2)
                 .containsExactly(
-                        BidderError.createBadInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
-                        BidderError.createBadInput(
+                        BidderError.badInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
+                        BidderError.badInput(
                                 "OpenX only supports banner and video imps. Ignoring imp id=impId2"));
     }
 
@@ -107,8 +107,8 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(2)
                 .containsExactly(
-                        BidderError.createBadInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
-                        BidderError.createBadInput(
+                        BidderError.badInput("OpenX only supports banner and video imps. Ignoring imp id=impId1"),
+                        BidderError.badInput(
                                 "OpenX only supports banner and video imps. Ignoring imp id=impId2"));
     }
 
@@ -128,7 +128,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("openx parameters section is missing"));
     }
 
     @Test
@@ -148,7 +148,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("openx parameters section is missing"));
     }
 
     @Test
@@ -168,7 +168,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("openx parameters section is missing"));
     }
 
     @Test
@@ -250,7 +250,7 @@ public class OpenxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput(
+                .containsExactly(BidderError.badInput(
                         "OpenX only supports banner and video imps. Ignoring imp id=impId1"));
 
         assertThat(result.getValue()).hasSize(3)
@@ -343,7 +343,7 @@ public class OpenxBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = openxBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.createBadServerResponse(
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
                 "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
                         " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
