@@ -14,7 +14,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,10 +24,10 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
@@ -249,59 +248,16 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultIfResponseStatusIs204() {
-        // given
-        final HttpCall httpCall = givenHttpCall(204, null);
-
-        // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseStatusIsNot200Or204() {
-        // given
-        final HttpCall httpCall = givenHttpCall(302, null);
-
-        // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly(BidderError.createBadServerResponse(
-                        "Unexpected status code: 302. Run with request.test = 1 for more info"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.BAD_REQUEST.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly(BidderError.createBadInput(
-                        "Unexpected status code: 400. Run with request.test = 1 for more info"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall httpCall = givenHttpCall(200, "invalid");
+        final HttpCall httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.createBadServerResponse(
-                "Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
+                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
                         " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -309,7 +265,7 @@ public class SovrnBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
-        final HttpCall httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .w(200)
@@ -340,7 +296,7 @@ public class SovrnBidderTest extends VertxTest {
                         BidType.banner, null));
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(int statusCode, String body) {
-        return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
+    private static HttpCall<BidRequest> givenHttpCall(String body) {
+        return HttpCall.full(null, HttpResponse.of(200, null, body), null);
     }
 }

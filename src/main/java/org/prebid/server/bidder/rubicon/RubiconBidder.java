@@ -21,11 +21,11 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.ViewabilityVendors;
 import org.prebid.server.bidder.model.BidderBid;
@@ -104,7 +104,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
         for (final Imp imp : bidRequest.getImp()) {
             try {
@@ -112,22 +112,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 final String body = Json.encode(singleRequest);
                 httpRequests.add(HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers, singleRequest));
             } catch (PreBidException e) {
-                errors.add(e.getMessage());
+                errors.add(BidderError.createBadInput(e.getMessage()));
             }
         }
 
-        return Result.of(httpRequests, BidderUtil.createBidderErrors(BidderError.Type.bad_input, errors));
+        return Result.of(httpRequests, errors);
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(httpCall.getRequest().getPayload(),
-                    BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
-        } catch (BidderUtil.BadServerResponseException | PreBidException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_server_response, e.getMessage());
-        } catch (BidderUtil.BadInputRequestException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_input, e.getMessage());
+            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+        } catch (DecodeException e) {
+            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
         }
     }
 

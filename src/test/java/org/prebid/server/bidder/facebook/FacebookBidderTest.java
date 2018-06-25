@@ -15,7 +15,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -165,8 +164,8 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadInput("audienceNetwork doesn't support video type with no video data"));
+        assertThat(result.getErrors()).containsOnly(BidderError.createBadInput(
+                "audienceNetwork doesn't support video type with no video data"));
     }
 
     @Test
@@ -407,49 +406,6 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultIfResponseStatusIs204() {
-        // given
-        final HttpCall httpCall = givenHttpCall(204, null);
-
-        // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseStatusIsNot200Or204() {
-        // given
-        final HttpCall httpCall = givenHttpCall(302, null);
-
-        // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly(BidderError.createBadServerResponse(
-                        "Unexpected status code: 302. Run with request.test = 1 for more info"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.BAD_REQUEST.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly(BidderError.createBadInput(
-                        "Unexpected status code: 400. Run with request.test = 1 for more info"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall httpCall = givenHttpCall(200, "invalid");
@@ -459,7 +415,7 @@ public class FacebookBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.createBadServerResponse(
-                "Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
+                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
                         " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
     }

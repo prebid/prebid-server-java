@@ -20,7 +20,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
@@ -536,59 +535,16 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultIfResponseStatusIs204() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, 204, null);
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseStatusIsNot200Or204() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, 302, null);
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly(BidderError.createBadServerResponse(
-                        "Unexpected status code: 302. Run with request.test = 1 for more info"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, HttpResponseStatus.BAD_REQUEST.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly(BidderError.createBadInput(
-                        "Unexpected status code: 400. Run with request.test = 1 for more info"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, 200, "invalid");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unrecognized token");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
@@ -597,7 +553,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfRequestImpHasNoVideo() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                200, givenBidResponse(ONE));
+                givenBidResponse(ONE));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
@@ -613,7 +569,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(builder -> builder.video(Video.builder().build())),
-                200, givenBidResponse(ONE));
+                givenBidResponse(ONE));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
@@ -628,7 +584,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldNotReturnImpIfPriceLessOrEqualToZero() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                200, givenBidResponse(ZERO));
+                givenBidResponse(ZERO));
 
         // when
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
@@ -745,10 +701,10 @@ public class RubiconBidderTest extends VertxTest {
         return givenImp(impCustomizer, identity());
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, int statusCode, String body) {
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return HttpCall.full(
                 HttpRequest.of(null, null, null, null, bidRequest),
-                HttpResponse.of(statusCode, null, body),
+                HttpResponse.of(200, null, body),
                 null);
     }
 

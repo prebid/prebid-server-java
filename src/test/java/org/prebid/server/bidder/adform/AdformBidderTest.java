@@ -168,49 +168,6 @@ public class AdformBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyBidderBidsAndEmptyErrorsIfResponseStatusIsNoContent() {
-        // given
-        final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.NO_CONTENT.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = adformBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyBidderBidsAndErrorMessageIfResponseStatusIsNotOk() {
-        // given
-        final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = adformBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsExactly(
-                BidderError.createBadServerResponse(
-                        "unexpected status code: 500. Run with request.debug = 1 for more info"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
-        // given
-        final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.BAD_REQUEST.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = adformBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly(BidderError.createBadInput(
-                        "unexpected status code: 400. Run with request.debug = 1 for more info"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCantBeParsed() {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), "{");
