@@ -15,6 +15,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -117,8 +118,8 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId");
+                .containsExactly(BidderError.createBadInput(
+                        "audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId"));
     }
 
     @Test
@@ -141,8 +142,8 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId");
+                .containsExactly(BidderError.createBadInput(
+                        "audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId"));
     }
 
     @Test
@@ -165,8 +166,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("audienceNetwork doesn't support video type with no video data");
+                .containsExactly(BidderError.createBadInput("audienceNetwork doesn't support video type with no video data"));
     }
 
     @Test
@@ -191,8 +191,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("audienceNetwork parameters section is missing");
+                .containsExactly(BidderError.createBadInput("audienceNetwork parameters section is missing"));
     }
 
     @Test
@@ -218,8 +217,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Missing placementId param");
+                .containsExactly(BidderError.createBadInput("Missing placementId param"));
     }
 
     @Test
@@ -245,8 +243,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Missing placementId param");
+                .containsExactly(BidderError.createBadInput("Missing placementId param"));
     }
 
     @Test
@@ -272,8 +269,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Invalid placementId param '~malformed'");
+                .containsExactly(BidderError.createBadInput("Invalid placementId param '~malformed'"));
     }
 
     @Test
@@ -433,8 +429,23 @@ public class FacebookBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .extracting(BidderError::getMessage)
-                .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
+                .containsOnly(BidderError.createBadServerResponse(
+                        "Unexpected status code: 302. Run with request.test = 1 for more info"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.BAD_REQUEST.code(), null);
+
+        // when
+        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly(BidderError.createBadInput(
+                        "Unexpected status code: 400. Run with request.test = 1 for more info"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -447,9 +458,9 @@ public class FacebookBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).containsOnly(
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.createBadServerResponse(
                 "Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
-                        " at [Source: (String)\"invalid\"; line: 1, column: 15]");
+                        " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
     }
 

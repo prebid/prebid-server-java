@@ -11,14 +11,39 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 public class BidderError {
 
+    public enum ErrorType {
+        badInput, badServerResponse, timedOut
+    }
+
     String message;
 
-    boolean timedOut;
+    ErrorType errorType;
 
     /**
-     * Helper method to create non timeout errors.
+     *
      */
-    public static BidderError create(String message) {
-        return BidderError.of(message, false);
+    public static BidderError create(String message, ErrorType errorType) {
+        return BidderError.of(message, errorType);
+    }
+
+    /**
+     * Helper method to create bad input error
+     */
+    public static BidderError createBadInput(String message) {
+        return BidderError.of(message, ErrorType.badInput);
+    }
+
+    /**
+     * Helper method to create bad server response error
+     */
+    public static BidderError createBadServerResponse(String message) {
+        return BidderError.of(message, ErrorType.badServerResponse);
+    }
+
+    /**
+     * Helper method to create timed out error
+     */
+    public static BidderError createTimedOut(String message) {
+        return BidderError.of(message, ErrorType.timedOut);
     }
 }

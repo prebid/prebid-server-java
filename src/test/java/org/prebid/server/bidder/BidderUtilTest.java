@@ -20,7 +20,7 @@ public class BidderUtilTest extends VertxTest {
 
     @Test
     public void parseResponseShouldThrowExceptionWhenStatusCodeIsNot200() {
-        assertThatExceptionOfType(PreBidException.class)
+        assertThatExceptionOfType(BidderUtil.BadServerResponseException.class)
                 .isThrownBy(() -> BidderUtil.parseResponse(HttpResponse.of(404, null, null)))
                 .withMessage("Unexpected status code: 404. Run with request.test = 1 for more info");
     }

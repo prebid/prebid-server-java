@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.channel.ConnectTimeoutException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -163,11 +164,15 @@ public class HttpAdapterConnector {
                                                       BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
         final BidderDebug bidderDebug = completeBidderDebug(bidderDebugBuilder, statusCode, body);
 
-        if (statusCode == 204) {
+        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             return ExchangeCall.empty(bidderDebug);
         }
 
-        if (statusCode != 200) {
+        if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
+            return ExchangeCall.error(bidderDebug, String.format("HTTP status %d; body: %s", statusCode, body));
+        }
+
+        if (statusCode != HttpResponseStatus.OK.code()) {
             logger.warn("Bid response code is {0}, body: {1}", statusCode, body);
             return ExchangeCall.error(bidderDebug, String.format("HTTP status %d; body: %s", statusCode, body));
         }
@@ -255,6 +260,8 @@ public class HttpAdapterConnector {
                     .collect(Collectors.toList());
             return BidsWithError.of(bids, null, false);
         } catch (PreBidException e) {
+            logger.warn("Error from bidder {0}. Ignoring all bids: {1}", adapterRequest.getBidderCode(),
+                    e.getMessage());
             return BidsWithError.of(Collections.emptyList(), e.getMessage(), false);
         }
     }
@@ -310,7 +317,6 @@ public class HttpAdapterConnector {
     }
 
     private AdapterResponse errorBidderResult(Exception exception, long bidderStarted, String bidder) {
-        logger.warn("Error occurred while constructing bid requests", exception);
         return AdapterResponse.of(BidderStatus.builder()
                 .bidder(bidder)
                 .error(exception.getMessage())

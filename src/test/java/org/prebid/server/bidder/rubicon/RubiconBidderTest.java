@@ -20,6 +20,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
@@ -530,7 +531,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).extracting(BidderError::getMessage).containsOnly("No valid sizes");
+        assertThat(result.getErrors()).containsOnly(BidderError.createBadInput("No valid sizes"));
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -556,8 +557,24 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).extracting(BidderError::getMessage)
-                .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
+        assertThat(result.getErrors())
+                .containsOnly(BidderError.createBadServerResponse(
+                        "Unexpected status code: 302. Run with request.test = 1 for more info"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, HttpResponseStatus.BAD_REQUEST.code(), null);
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly(BidderError.createBadInput(
+                        "Unexpected status code: 400. Run with request.test = 1 for more info"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -572,6 +589,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Unrecognized token");
+        assertThat(result.getErrors().get(0).getErrorType()).isEqualTo(BidderError.ErrorType.badServerResponse);
         assertThat(result.getValue()).isEmpty();
     }
 

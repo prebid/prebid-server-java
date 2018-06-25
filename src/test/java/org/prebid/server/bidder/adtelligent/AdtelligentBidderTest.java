@@ -99,8 +99,9 @@ public class AdtelligentBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adtelligentBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage)
-                .containsExactly("ignoring imp id=impId, Adtelligent supports only Video and Banner");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.createBadInput(
+                        "ignoring imp id=impId, Adtelligent supports only Video and Banner"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -117,8 +118,8 @@ public class AdtelligentBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adtelligentBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage)
-                .containsExactly("ignoring imp id=impId, extImpBidder is empty");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.createBadInput("ignoring imp id=impId, extImpBidder is empty"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -141,8 +142,8 @@ public class AdtelligentBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adtelligentBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage)
-                .containsExactly("ignoring imp id=impId, extImpBidder is empty");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.createBadInput("ignoring imp id=impId, extImpBidder is empty"));
         assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("http://adtelligent.com?aid=15");
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> Json.mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -255,9 +256,24 @@ public class AdtelligentBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).
-                extracting(BidderError::getMessage)
-                .containsExactly("ignoring bid id=bidId, request doesn't contain any impression with id=invalidId");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.createBadServerResponse(
+                        "ignoring bid id=bidId, request doesn't contain any impression with id=invalidId"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.BAD_REQUEST.code(), null);
+
+        // when
+        final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly(BidderError.createBadInput(
+                        "Unexpected status code: 400. Run with request.test = 1 for more info"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -279,9 +295,9 @@ public class AdtelligentBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).
-                extracting(BidderError::getMessage)
-                .containsExactly("ignoring bid id=bidId1, request doesn't contain any impression with id=invalidId");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.createBadServerResponse(
+                        "ignoring bid id=bidId1, request doesn't contain any impression with id=invalidId"));
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getId).containsExactly("bidId2");
@@ -384,8 +400,8 @@ public class AdtelligentBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Unexpected status code: 500. Run with request.test = 1 for more info");
+                .containsExactly(BidderError.createBadServerResponse(
+                        "Unexpected status code: 500. Run with request.test = 1 for more info"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -413,9 +429,10 @@ public class AdtelligentBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage)
-                .containsExactly("Unexpected end-of-input: expected close marker for Object (start marker at [Source:" +
-                        " (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, column: 3]");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.createBadServerResponse(
+                        "Unexpected end-of-input: expected close marker for Object (start marker at [Source:" +
+                                " (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, column: 3]"));
     }
 
     private static HttpCall givenHttpCall(int statusCode, String body) {
