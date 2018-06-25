@@ -38,9 +38,11 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.model.GdprResponse;
+import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -128,7 +130,8 @@ public class ExchangeService {
      * Runs an auction: delegates request to applicable bidders, gathers responses from them and constructs final
      * response containing returned bids and additional information in extensions.
      */
-    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout) {
+    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout,
+                                           MetricsContext metricsContext) {
         // extract ext from bid request
         final ExtBidRequest requestExt;
         try {
@@ -152,7 +155,8 @@ public class ExchangeService {
         final long startTime = clock.millis();
 
         return extractBidderRequests(bidRequest, uidsCookie, aliases, timeout)
-                .map(bidderRequests -> updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId))
+                .map(bidderRequests ->
+                        updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, metricsContext))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
                         .map(bidderRequest -> requestBids(bidderRequest, startTime,
                                 auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
@@ -548,15 +552,22 @@ public class ExchangeService {
      * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
      */
     private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
-                                                    Map<String, String> aliases, String publisherId) {
-        metrics.forAccount(publisherId).incCounter(MetricName.requests);
+                                                    Map<String, String> aliases, String publisherId,
+                                                    MetricsContext metricsContext) {
+        final AccountMetrics accountMetrics = metrics.forAccount(publisherId);
+
+        final MetricName requestType = metricsContext.getRequestType();
+
+        accountMetrics.incCounter(MetricName.requests);
+        accountMetrics.requestType().incCounter(requestType);
 
         for (BidderRequest bidderRequest : bidderRequests) {
             final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
             final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-            final AdapterMetrics accountAdapterMetrics = metrics.forAccount(publisherId).forAdapter(bidder);
+            final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(bidder);
 
             adapterMetrics.incCounter(MetricName.requests);
+            adapterMetrics.requestType().incCounter(requestType);
             accountAdapterMetrics.incCounter(MetricName.requests);
 
             final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(

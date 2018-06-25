@@ -20,7 +20,7 @@ public class CookieSyncMetrics extends UpdatableMetrics {
 
     CookieSyncMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                metricName -> String.format("usersync.%s", metricName.name()));
+                metricName -> String.format("usersync.%s", metricName.toString()));
         bidderCookieSyncMetricsCreator = bidder -> new BidderCookieSyncMetrics(metricRegistry, counterType, bidder);
         bidderCookieSyncMetrics = new HashMap<>();
     }
@@ -40,7 +40,7 @@ public class CookieSyncMetrics extends UpdatableMetrics {
         }
 
         private static Function<MetricName, String> nameCreator(String bidder) {
-            return metricName -> String.format("usersync.%s.%s", bidder, metricName.name());
+            return metricName -> String.format("usersync.%s.%s", bidder, metricName.toString());
         }
     }
 }

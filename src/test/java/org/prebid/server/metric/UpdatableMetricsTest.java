@@ -32,7 +32,7 @@ public class UpdatableMetricsTest {
     public void incCounterShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
-                metricName -> "someprefix." + metricName.name());
+                metricName -> "someprefix." + metricName.toString());
 
         // when
         updatableMetrics.incCounter(MetricName.requests, 5);
@@ -61,7 +61,7 @@ public class UpdatableMetricsTest {
     @Test
     public void incCounterShouldIncrementByOne() {
         // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, Enum::name);
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, MetricName::toString);
 
         // when
         updatableMetrics.incCounter(MetricName.requests);
@@ -74,7 +74,7 @@ public class UpdatableMetricsTest {
     public void updateTimerShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
-                metricName -> "someprefix." + metricName.name());
+                metricName -> "someprefix." + metricName.toString());
 
         // when
         updatableMetrics.updateTimer(MetricName.request_time, 1000L);
@@ -103,7 +103,7 @@ public class UpdatableMetricsTest {
     @Test
     public void updateTimerShouldConvertToNanos() {
         // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, Enum::name);
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, MetricName::toString);
 
         // when
         updatableMetrics.updateTimer(MetricName.request_time, 1000L);
@@ -116,7 +116,7 @@ public class UpdatableMetricsTest {
     public void updateHistogramShouldCreateMetricNameUsingProvidedCreator() {
         // given
         updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
-                metricName -> "someprefix." + metricName.name());
+                metricName -> "someprefix." + metricName.toString());
 
         // when
         updatableMetrics.updateHistogram(MetricName.prices, 1000L);
@@ -143,6 +143,6 @@ public class UpdatableMetricsTest {
     }
 
     private UpdatableMetrics givenUpdatableMetricsWith(CounterType counterType) {
-        return new UpdatableMetrics(metricRegistry, counterType, Enum::name);
+        return new UpdatableMetrics(metricRegistry, counterType, MetricName::toString);
     }
 }
