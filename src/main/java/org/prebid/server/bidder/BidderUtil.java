@@ -8,16 +8,10 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpResponse;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Util class to help {@link Bidder}s implementation process responses and requests
@@ -67,22 +61,6 @@ public class BidderUtil {
         return MultiMap.caseInsensitiveMultiMap()
                 .add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
-    }
-
-    /**
-     * Creates {@link List<BidderError>} from list of errors with defined error type
-     */
-    public static List<BidderError> createBidderErrors(BidderError.Type errorsType, List<String> errors) {
-        return errors.stream().map(error -> BidderError.create(error, errorsType)).collect(Collectors.toList());
-    }
-
-    /**
-     * Creates {@link Result<List<BidderBid>>} with empty {@link List<BidderBid>} and error message with defined error
-     * type
-     */
-    public static Result<List<BidderBid>> createEmptyResultWithError(BidderError.Type type,
-                                                                     String error) {
-        return Result.of(Collections.emptyList(), createBidderErrors(type, Collections.singletonList(error)));
     }
 
     public static class BadServerResponseException extends RuntimeException {

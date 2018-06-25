@@ -719,11 +719,11 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         givenHttpConnector("bidder1", mock(BidderRequester.class), BidderSeatBid.of(
                 singletonList(givenBid(Bid.builder().price(BigDecimal.ONE).build())), emptyList(),
-                singletonList(BidderError.create("bidder1_error1", BidderError.Type.bad_server_response))));
+                singletonList(BidderError.createBadServerResponse("bidder1_error1"))));
         givenHttpConnector("bidder2", mock(BidderRequester.class), BidderSeatBid.of(
                 singletonList(givenBid(Bid.builder().price(BigDecimal.ONE).build())), emptyList(),
-                asList(BidderError.create("bidder2_error1", BidderError.Type.bad_server_response),
-                        BidderError.create("bidder2_error2", BidderError.Type.bad_server_response))));
+                asList(BidderError.createBadServerResponse("bidder2_error1"),
+                        BidderError.createBadServerResponse("bidder2_error2"))));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(doubleMap("bidder1", 1, "bidder2", 2)));
 

@@ -102,9 +102,8 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create(
-                        "bidrequest.site.publisher.id or bidrequest.app.publisher.id required for legacy bidders.",
-                        BidderError.Type.bad_input))));
+                BidderError.createBadInput(
+                        "bidrequest.site.publisher.id or bidrequest.app.publisher.id required for legacy bidders."))));
     }
 
     @Test
@@ -120,9 +119,8 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create(
-                        "bidrequest.site.publisher.id or bidrequest.app.publisher.id required for legacy bidders.",
-                        BidderError.Type.bad_input))));
+                BidderError.createBadInput(
+                        "bidrequest.site.publisher.id or bidrequest.app.publisher.id required for legacy bidders."))));
     }
 
     @Test
@@ -139,8 +137,7 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("bidrequest.source.tid required for legacy bidders.",
-                        BidderError.Type.bad_input))));
+                BidderError.createBadInput("bidrequest.source.tid required for legacy bidders."))));
     }
 
     @Test
@@ -158,8 +155,7 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("bidrequest.source.tid required for legacy bidders.",
-                        BidderError.Type.bad_input))));
+                BidderError.createBadInput("bidrequest.source.tid required for legacy bidders."))));
     }
 
     @Test
@@ -178,10 +174,9 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create(
-                        "bidrequest.imp[i].secure must be consistent for legacy bidders. "
-                                + "Mixing 0 and 1 are not allowed.",
-                        BidderError.Type.bad_input))));
+                BidderError.createBadInput(
+                        "bidrequest.imp[i].secure must be consistent for legacy bidders. Mixing 0 and 1 are not " +
+                                "allowed."))));
     }
 
     @Test
@@ -201,8 +196,7 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("There no imps in bidRequest for bidder rubicon",
-                        BidderError.Type.bad_input))));
+                BidderError.createBadInput("There no imps in bidRequest for bidder rubicon"))));
     }
 
     @Test
@@ -222,8 +216,7 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("legacy bidders can only bid on banner and video ad units",
-                        BidderError.Type.bad_input))));
+                BidderError.createBadInput("legacy bidders can only bid on banner and video ad units"))));
     }
 
     @Test
@@ -243,8 +236,7 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("legacy bidders should have at least one defined size Format",
-                        BidderError.Type.bad_input))));
+                BidderError.createBadInput("legacy bidders should have at least one defined size Format"))));
     }
 
     @Test
@@ -264,8 +256,7 @@ public class HttpAdapterRequesterTest {
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("legacy bidders should have at least one defined size Format",
-                        BidderError.Type.bad_input))));
+                BidderError.createBadInput("legacy bidders should have at least one defined size Format"))));
     }
 
     @Test
@@ -375,8 +366,7 @@ public class HttpAdapterRequesterTest {
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(
                 singletonList(BidderBid.of(com.iab.openrtb.response.Bid.builder().build(), BidType.banner, null)),
                 singletonList(ExtHttpCall.builder().build()),
-                singletonList(BidderError.create("legacy bidders can only bid on banner and video ad units",
-                        BidderError.Type.bad_input))));
+                singletonList(BidderError.createBadInput("legacy bidders can only bid on banner and video ad units"))));
     }
 
     @Test
@@ -404,8 +394,8 @@ public class HttpAdapterRequesterTest {
         // then
         assertThat(futureResult.succeeded()).isTrue();
         assertThat(futureResult.result()).isEqualTo(BidderSeatBid.of(emptyList(), singletonList(ExtHttpCall
-                .builder().build()), singletonList(BidderError.create("Media Type is not defined for Bid",
-                BidderError.Type.bad_server_response))));
+                .builder().build()), singletonList(BidderError.createBadServerResponse(
+                "Media Type is not defined for Bid"))));
     }
 
     @Test
@@ -436,9 +426,8 @@ public class HttpAdapterRequesterTest {
         assertThat(futureResult.succeeded()).isTrue();
         assertThat(futureResult.result()).isEqualTo(BidderSeatBid.of(emptyList(), singletonList(ExtHttpCall
                 .builder().build()), asList(
-                BidderError.create("legacy bidders can only bid on banner and video ad units",
-                        BidderError.Type.bad_input),
-                BidderError.create("Media Type is not defined for Bid", BidderError.Type.bad_server_response))));
+                BidderError.createBadInput("legacy bidders can only bid on banner and video ad units"),
+                BidderError.createBadServerResponse("Media Type is not defined for Bid"))));
     }
 
     @Test

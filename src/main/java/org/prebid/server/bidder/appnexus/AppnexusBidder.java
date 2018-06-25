@@ -10,6 +10,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -71,7 +72,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
         final List<Imp> processedImps = new ArrayList<>();
         final Set<String> memberIds = new HashSet<>();
         for (final Imp imp : bidRequest.getImp()) {
@@ -80,7 +81,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 processedImps.add(impWithMemberId.getImp());
                 memberIds.add(impWithMemberId.getMemberId());
             } catch (PreBidException e) {
-                errors.add(e.getMessage());
+                errors.add(BidderError.createBadInput(e.getMessage()));
             }
         }
 
@@ -94,7 +95,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             try {
                 validateMemberId(uniqueIds);
             } catch (PreBidException e) {
-                errors.add(e.getMessage());
+                errors.add(BidderError.createBadInput(e.getMessage()));
             }
         } else {
             url = endpointUrl;
@@ -105,7 +106,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.POST, url, body, BidderUtil.headers(),
-                        outgoingRequest)), BidderUtil.createBidderErrors(BidderError.Type.bad_input, errors));
+                        outgoingRequest)), errors);
     }
 
     /**
@@ -237,11 +238,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
-        } catch (BidderUtil.BadServerResponseException | PreBidException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_server_response, e.getMessage());
-        } catch (BidderUtil.BadInputRequestException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_input, e.getMessage());
+            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
+        } catch (DecodeException | PreBidException e) {
+            return Result.emptyWithError(BidderError.createBadServerResponse(e.getMessage()));
         }
     }
 

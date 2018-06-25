@@ -11,7 +11,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -228,7 +227,7 @@ public class AdtelligentBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -250,7 +249,7 @@ public class AdtelligentBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -259,21 +258,6 @@ public class AdtelligentBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.createBadServerResponse(
                         "ignoring bid id=bidId, request doesn't contain any impression with id=invalidId"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBadInputErrorIfResponseStatusIsBadRequest400() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.BAD_REQUEST.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsOnly(BidderError.createBadInput(
-                        "Unexpected status code: 400. Run with request.test = 1 for more info"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -289,7 +273,7 @@ public class AdtelligentBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -318,7 +302,7 @@ public class AdtelligentBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(asList(Imp.builder().id("impId1").build(),
                 Imp.builder().id("impId2").build())).build();
 
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -342,7 +326,7 @@ public class AdtelligentBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -366,7 +350,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 Imp.builder().video(Video.builder().build()).banner(Banner.builder().build()).id("impId").build()))
                 .build();
 
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, bidRequest);
@@ -378,39 +362,11 @@ public class AdtelligentBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyBidderBidAndErrorListsIfResponseStatusIsNoContent() {
-        // given
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.NO_CONTENT.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyBidderBidAndErrorMessageIsResponseStatusIsNotOk() {
-        // given
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.createBadServerResponse(
-                        "Unexpected status code: 500. Run with request.test = 1 for more info"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnEmptyBidderBidAndErrorListsIfSeatBidIsNotPresentInResponse()
             throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder().build());
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -423,7 +379,7 @@ public class AdtelligentBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCantBeParsed() {
         // given
-        final HttpCall httpCall = givenHttpCall(HttpResponseStatus.OK.code(), "{");
+        final HttpCall httpCall = givenHttpCall("{");
 
         // when
         final Result<List<BidderBid>> result = adtelligentBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -431,11 +387,12 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.createBadServerResponse(
-                        "Unexpected end-of-input: expected close marker for Object (start marker at [Source:" +
-                                " (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, column: 3]"));
+                        "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at" +
+                                " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, " +
+                                "column: 3]"));
     }
 
-    private static HttpCall givenHttpCall(int statusCode, String body) {
-        return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
+    private static HttpCall givenHttpCall(String body) {
+        return HttpCall.full(null, HttpResponse.of(200, null, body), null);
     }
 }
