@@ -25,8 +25,6 @@ public class ResponseBidValidator {
             throw new ValidationException("Empty bid object submitted.");
         }
 
-        // These are the three required fields for bids
-
         final String bidId = bid.getId();
         if (StringUtils.isBlank(bidId)) {
             throw new ValidationException("Bid missing required field 'id'");
@@ -37,8 +35,12 @@ public class ResponseBidValidator {
         }
 
         final BigDecimal price = bid.getPrice();
-        if (price == null || price.compareTo(BigDecimal.ZERO) == 0) {
-            throw new ValidationException("Bid \"%s\" missing required field 'price'", bidId);
+        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("Bid \"%s\" does not contain a positive 'price'", bidId);
+        }
+
+        if (StringUtils.isEmpty(bid.getCrid())) {
+            throw new ValidationException("Bid \"%s\" missing creative ID", bidId);
         }
     }
 }

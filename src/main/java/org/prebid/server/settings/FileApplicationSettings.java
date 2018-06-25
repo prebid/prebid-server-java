@@ -84,8 +84,9 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Creates {@link StoredDataResult} by checking if any ids are missed in storedRequest map and adding an error
-     * to list for each missed Id. Returns {@link Future< StoredDataResult >} with all loaded files and errors list.
+     * Creates {@link StoredDataResult} by checking if any ids are missed in storedRequest map
+     * and adding an error to list for each missed Id
+     * and returns {@link Future&lt;{@link StoredDataResult }&gt;} with all loaded files and errors list.
      */
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {

@@ -8,7 +8,6 @@ public enum MetricName {
     no_bid_requests,
     timeout_requests,
     error_requests,
-    invalid_requests,
     safari_requests,
     safari_no_cookie_requests,
     cookie_sync_requests,
@@ -17,12 +16,39 @@ public enum MetricName {
     imps_requested,
     bids_received,
 
-    ortb_requests,
+    adm_bids_received,
+    nurl_bids_received,
 
-    amp_requests,
+    // request types
+    openrtb2web("openrtb2-web"),
+    openrtb2app("openrtb2-app"),
+    amp,
+    legacy,
+
+    // request statuses
+    ok,
+    badinput,
+    err,
 
     // cookie sync
     opt_outs,
     bad_requests,
-    sets
+    sets,
+    gdpr_prevent,
+    gdpr_masked;
+
+    private final String name;
+
+    MetricName(String name) {
+        this.name = name;
+    }
+
+    MetricName() {
+        this.name = name();
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

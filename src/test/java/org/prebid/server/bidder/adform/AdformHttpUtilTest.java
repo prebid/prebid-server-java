@@ -4,12 +4,17 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import org.junit.Test;
+import org.prebid.server.bidder.adform.model.UrlParameters;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.util.Lists.emptyList;
 
 public class AdformHttpUtilTest {
 
@@ -57,36 +62,143 @@ public class AdformHttpUtilTest {
     @Test
     public void buildAdformUrlShouldReturnCorrectUrl() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(Arrays.asList("15", "16"), "http://adx.adform.net/adx", "tid",
-                "ip", "adId", false);
+        final String url = AdformHttpUtil.buildAdformUrl(
+                UrlParameters.builder()
+                        .masterTagIds(asList(15L, 16L))
+                        .priceTypes(singletonList("gross"))
+                        .endpointUrl("http://adx.adform.net/adx")
+                        .tid("tid")
+                        .ip("ip")
+                        .advertisingId("adId")
+                        .secure(false)
+                        .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url)
-                .isEqualTo("http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=adId&bWlkPTE1&bWlkPTE2");
+        assertThat(url).isEqualTo(
+                "http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=adId&pt=gross&bWlkPTE1&bWlkPTE2");
     }
 
     @Test
     public void buildAdformUrlShouldReturnHttpsProtocolIfSecureIsTrue() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(Arrays.asList("15", "16"), "http://adx.adform.net/adx", "tid",
-                "ip", "adId", true);
+        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+                .masterTagIds(asList(15L, 16L))
+                .priceTypes(singletonList("gross"))
+                .endpointUrl("http://adx.adform.net/adx")
+                .tid("tid")
+                .ip("ip")
+                .advertisingId("adId")
+                .secure(true)
+                .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url)
-                .isEqualTo("https://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=adId&bWlkPTE1&bWlkPTE2");
+        assertThat(url).isEqualTo(
+                "https://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=adId&pt=gross&bWlkPTE1&bWlkPTE2");
     }
 
     @Test
     public void buildAdformUrlShouldNotContainAdidParamIfAdvertisingIdIsMissed() {
         // when
-        final String url = AdformHttpUtil.buildAdformUrl(Arrays.asList("15", "16"), "http://adx.adform.net/adx", "tid",
-                "ip", null, true);
+        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+                .masterTagIds(asList(15L, 16L))
+                .priceTypes(singletonList("gross"))
+                .endpointUrl("http://adx.adform.net/adx")
+                .tid("tid")
+                .ip("ip")
+                .advertisingId(null)
+                .build());
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url)
-                .isEqualTo("https://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&bWlkPTE1&bWlkPTE2");
+                .isEqualTo("http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&pt=gross&bWlkPTE1&bWlkPTE2");
+    }
+
+    @Test
+    public void buildAdformUrlShouldNotContainPtParamIfPriceTypesListIsEmpty() {
+        // when
+        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+                .masterTagIds(asList(15L, 16L))
+                .priceTypes(emptyList())
+                .endpointUrl("http://adx.adform.net/adx")
+                .tid("tid")
+                .ip("ip")
+                .build());
+
+        // then
+        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        assertThat(url)
+                .isEqualTo("http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&bWlkPTE1&bWlkPTE2");
+
+    }
+
+    @Test
+    public void buildAdformUrlShouldNotContainPtParamIfNoValidPriceTypes() {
+        // when
+        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+                .masterTagIds(asList(15L, 16L))
+                .priceTypes(singletonList("notValid"))
+                .endpointUrl("http://adx.adform.net/adx")
+                .tid("tid")
+                .ip("ip")
+                .build());
+
+        // then
+        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        assertThat(url)
+                .isEqualTo("http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&bWlkPTE1&bWlkPTE2");
+    }
+
+    @Test
+    public void buildAdformUrlShouldHasNetPtParamIfOnlyNetIsInPriceTypesList() {
+        // when
+        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+                .masterTagIds(asList(15L, 16L))
+                .priceTypes(singletonList("Net"))
+                .endpointUrl("http://adx.adform.net/adx")
+                .tid("tid")
+                .ip("ip")
+                .build());
+
+        // then
+        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        assertThat(url)
+                .isEqualTo("http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&pt=net&bWlkPTE1&bWlkPTE2");
+    }
+
+    @Test
+    public void buildAdformUrlShouldHasGrossPtParamIfOnlyGrossIsInPriceTypesList() {
+        // when
+        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+                .priceTypes(singletonList("Gross"))
+                .masterTagIds(asList(15L, 16L))
+                .endpointUrl("http://adx.adform.net/adx")
+                .tid("tid")
+                .ip("ip")
+                .build());
+
+        // then
+        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        assertThat(url)
+                .isEqualTo("http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&pt=gross&bWlkPTE1&bWlkPTE2");
+    }
+
+    @Test
+    public void buildAdformUrlShouldHasGrossPtParamIfGrossAndNetAndNotValidPriceTypesAreInList() {
+        // when
+        final String url = AdformHttpUtil.buildAdformUrl(UrlParameters.builder()
+                .priceTypes(asList("Net", "Gross", "NotValid"))
+                .masterTagIds(asList(15L, 16L))
+                .endpointUrl("http://adx.adform.net/adx")
+                .tid("tid")
+                .ip("ip")
+                .build());
+
+        // then
+        // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
+        assertThat(url)
+                .isEqualTo("http://adx.adform.net/adx/?CC=1&rp=4&fd=1&stid=tid&ip=ip&pt=gross&bWlkPTE1&bWlkPTE2");
     }
 }

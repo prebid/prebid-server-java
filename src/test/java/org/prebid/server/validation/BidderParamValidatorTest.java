@@ -12,6 +12,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
+import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
@@ -36,6 +37,7 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String ADTELLIGENT = "adtelligent";
     private static final String FACEBOOK = "audienceNetwork";
     private static final String OPENX = "openx";
+    private static final String EPLANNING = "eplanning";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -48,7 +50,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Before
     public void setUp() {
         given(bidderCatalog.names()).willReturn(new HashSet<>(
-                asList(RUBICON, APPNEXUS, ADFORM, SOVRN, ADTELLIGENT, FACEBOOK, OPENX)));
+                asList(RUBICON, APPNEXUS, ADFORM, SOVRN, ADTELLIGENT, FACEBOOK, OPENX, EPLANNING)));
 
         bidderParamValidator = BidderParamValidator.create(bidderCatalog, "static/bidder-params");
     }
@@ -134,7 +136,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenAdformImpExtIsOk() {
         // given
-        final ExtImpAdform ext = ExtImpAdform.of(15L);
+        final ExtImpAdform ext = ExtImpAdform.of(15L, "gross");
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
@@ -266,6 +268,32 @@ public class BidderParamValidatorTest extends VertxTest {
 
         // when
         final Set<String> messages = bidderParamValidator.validate(OPENX, node);
+
+        // then
+        assertThat(messages.size()).isEqualTo(1);
+    }
+
+
+    @Test
+    public void validateShouldNotReturnValidationMessagesWhenEplanningImpExtIsOk() {
+        // given
+        final ExtImpEplanning ext = ExtImpEplanning.of("exchangeId");
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(EPLANNING, node);
+
+        // then
+        assertThat(messages).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessagesWhenEplanningExtNotValid() {
+        // given
+        final JsonNode node = mapper.createObjectNode().put("exchange_id", 5);
+
+        // when
+        final Set<String> messages = bidderParamValidator.validate(EPLANNING, node);
 
         // then
         assertThat(messages.size()).isEqualTo(1);

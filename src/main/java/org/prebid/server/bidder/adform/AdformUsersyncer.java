@@ -34,14 +34,6 @@ public class AdformUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Adform GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 50;
-    }
-
-    /**
      * Returns Adform {@link UsersyncInfo}
      */
     @Override

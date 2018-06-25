@@ -51,6 +51,7 @@ settings:
   filesystem:
     settings-filename: sample-app-settings.yml
     stored-requests-dir: /tmp
+    stored-imps-dir: /tmp
 ```
 
 Also, create the Data Cache settings file `sample-app-settings.yml` with content:

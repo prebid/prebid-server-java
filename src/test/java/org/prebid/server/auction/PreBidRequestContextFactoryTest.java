@@ -79,6 +79,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         given(routingContext.getBody()).willReturn(givenPreBidRequest(identity()));
         given(routingContext.request()).willReturn(httpRequest);
 
+        given(paramsExtractor.refererFrom(any())).willReturn("http://referer");
+
         // parsed uids cookie
         given(uidsCookieService.parseFromRequest(any())).willReturn(uidsCookie);
         given(uidsCookie.hasLiveUids()).willReturn(false);
@@ -511,6 +513,20 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         assertThat(preBidRequestContext.getUa()).isNull();
         assertThat(preBidRequestContext.getReferer()).isNull();
         assertThat(preBidRequestContext.getDomain()).isNull();
+    }
+
+    @Test
+    public void shouldFailIfRefererIsMissing() {
+        // given
+        final PreBidException exception = new PreBidException("Couldn't derive referer");
+        given(paramsExtractor.refererFrom(any())).willThrow(exception);
+
+        // when
+        final Future<PreBidRequestContext> preBidRequestContextFuture = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(preBidRequestContextFuture.failed()).isTrue();
+        assertThat(preBidRequestContextFuture.cause()).isSameAs(exception);
     }
 
     @Test

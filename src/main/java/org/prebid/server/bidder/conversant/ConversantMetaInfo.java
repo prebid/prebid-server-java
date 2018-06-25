@@ -12,7 +12,7 @@ public class ConversantMetaInfo implements MetaInfo {
 
     public ConversantMetaInfo(boolean enabled) {
         bidderInfo = BidderInfo.create(enabled, "mediapsr@conversantmedia.com",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 24, true);
     }
 
     @Override

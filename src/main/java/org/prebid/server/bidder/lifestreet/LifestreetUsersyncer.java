@@ -35,14 +35,6 @@ public class LifestreetUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Lifestreet GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 67;
-    }
-
-    /**
      * Returns Lifestreet {@link UsersyncInfo}
      */
     @Override

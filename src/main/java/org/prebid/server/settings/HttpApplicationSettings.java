@@ -15,7 +15,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
-import org.prebid.server.settings.proto.HttpFetcherResponse;
+import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;

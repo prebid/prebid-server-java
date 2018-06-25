@@ -62,11 +62,13 @@ public class ApplicationTest extends VertxTest {
     private static final String SOVRN = "sovrn";
     private static final String OPENX = "openx";
     private static final String ADTELLIGENT = "adtelligent";
+    private static final String EPLANNING = "eplanning";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
 
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
+    private static final int ADMIN_PORT = 8060;
 
     @ClassRule
     public static final WireMockClassRule wireMockRule = new WireMockClassRule(WIREMOCK_PORT);
@@ -76,6 +78,13 @@ public class ApplicationTest extends VertxTest {
     private static final RequestSpecification spec = new RequestSpecBuilder()
             .setBaseUri("http://localhost")
             .setPort(APP_PORT)
+            .setConfig(RestAssuredConfig.config()
+                    .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
+            .build();
+
+    private static final RequestSpecification adminSpec = new RequestSpecBuilder()
+            .setBaseUri("http://localhost")
+            .setPort(ADMIN_PORT)
             .setConfig(RestAssuredConfig.config()
                     .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
             .build();
@@ -200,6 +209,17 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-openx-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-openx-bid-response-3.json"))));
 
+        // eplanning bid response for imp
+        wireMockRule.stubFor(post(urlPathEqualTo("/eplanning-exchange/exchangeId1"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("DNT", equalTo("2"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-eplanning-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-eplanning-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-cache-request.json")))
@@ -212,13 +232,14 @@ public class ApplicationTest extends VertxTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for
-                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
-                // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
-                // "conversant":"CV-UID","sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbm"
-                        + "NlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIiwi"
-                        + "bGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvdn"
-                        + "JuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJBRi1VSUQifX0=")
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID","pulsepoint":"PP-UID",
+                // "indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID","conversant":"CV-UID",
+                // "sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID","eplanning":"EP-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF"
+                        + "1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdl"
+                        + "IjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc"
+                        + "2FudCI6IkNWLVVJRCIsInNvdnJuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJ"
+                        + "BRi1VSUQiLCJlcGxhbm5pbmciOiJFUC1VSUQifX0=")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
@@ -241,7 +262,7 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void ampShouldReturnTargeting() throws IOException {
+    public void ampShouldReturnTargeting() throws IOException, JSONException {
         // given
         // rubicon exchange
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
@@ -259,7 +280,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("amp/test-cache-response.json"))));
 
         // when and then
-        given(spec)
+        Response response = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -274,10 +295,10 @@ public class ApplicationTest extends VertxTest {
                         "&oh=120" +
                         "&timeout=10000000" +
                         "&slot=overwrite-tagId" +
-                        "&curl=https%3A%2F%2Fgoogle.com")
-                .then()
-                .assertThat()
-                .body(Matchers.equalTo(jsonFrom("amp/test-amp-response.json")));
+                        "&curl=https%3A%2F%2Fgoogle.com");
+
+        JSONAssert.assertEquals(jsonFrom("amp/test-amp-response.json"), response.asString(),
+                JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -474,6 +495,8 @@ public class ApplicationTest extends VertxTest {
                 // this constant is ok to use as long as it coincides with family name
                 .queryParam("bidder", RUBICON)
                 .queryParam("uid", "updatedUid")
+                .queryParam("gdpr", "1")
+                .queryParam("gdpr_consent", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA")
                 .when()
                 .get("/setuid")
                 .then()
@@ -552,6 +575,78 @@ public class ApplicationTest extends VertxTest {
                 "$.ad_units[3].video.protocols: array found, integer expected");
     }
 
+    @Test
+    public void shouldAskExchangeWithUpdatedSettingsFromCache() throws IOException, JSONException {
+        // update stored settings cache
+        given(adminSpec)
+                .body(jsonFrom("cache/update/test-update-settings-request.json"))
+                .when()
+                .post("/storedrequests/openrtb2")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(""))
+                .statusCode(200);
+
+        // rubicon bid response
+        wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("cache/update/test-rubicon-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("cache/update/test-rubicon-bid-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for
+                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
+                .body(jsonFrom("cache/update/test-auction-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("cache/update/test-auction-response.json"),
+                response, "ext.responsetimemillis.%s");
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
+    public void invalidateSettingsCacheShouldReturnExpectedResponse() {
+        given(adminSpec)
+                .body("{\"requests\":[],\"imps\":[]}")
+                .when()
+                .delete("/storedrequests/openrtb2")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(""))
+                .statusCode(200);
+    }
+
+    @Test
+    public void updateAmpSettingsCacheShouldReturnExpectedResponse() {
+        given(adminSpec)
+                .body("{\"requests\":{},\"imps\":{}}")
+                .when()
+                .post("/storedrequests/amp")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(""))
+                .statusCode(200);
+    }
+
+    @Test
+    public void invalidateAmpSettingsCacheShouldReturnExpectedResponse() {
+        given(adminSpec)
+                .body("{\"requests\":[],\"imps\":[]}")
+                .when()
+                .delete("/storedrequests/amp")
+                .then()
+                .assertThat()
+                .body(Matchers.equalTo(""))
+                .statusCode(200);
+    }
+
     private String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(this.getClass().getResourceAsStream(
@@ -571,6 +666,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange");
         exchanges.put(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange");
         exchanges.put(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange");
+        exchanges.put(EPLANNING, "http://localhost:" + WIREMOCK_PORT + "/eplanning-exchange");
         exchanges.put(OPENX, "http://localhost:" + WIREMOCK_PORT + "/openx-exchange");
 
         // inputs for aliases

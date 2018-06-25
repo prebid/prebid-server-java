@@ -11,7 +11,7 @@ public class SovrnMetaInfo implements MetaInfo {
 
     public SovrnMetaInfo(boolean enabled) {
         bidderInfo = BidderInfo.create(enabled, "sovrnoss@sovrn.com",
-                Collections.singletonList("banner"), Collections.singletonList("banner"), null);
+                Collections.singletonList("banner"), Collections.singletonList("banner"), null, 13, true);
     }
 
     @Override

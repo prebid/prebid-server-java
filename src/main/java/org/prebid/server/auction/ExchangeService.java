@@ -3,8 +3,14 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -15,6 +21,7 @@ import io.vertx.core.json.Json;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
@@ -28,12 +35,18 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.gdpr.model.GdprPurpose;
+import org.prebid.server.gdpr.model.GdprResponse;
+import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -43,20 +56,26 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -68,40 +87,51 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
+    private static final Set<GdprPurpose> GDPR_PURPOSES =
+            Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess,
+                    GdprPurpose.adSelectionAndDeliveryAndReporting));
+    private static final DecimalFormat ROUND_TWO_DECIMALS =
+            new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
     private final BidderCatalog bidderCatalog;
     private final ResponseBidValidator responseBidValidator;
     private final CacheService cacheService;
     private final BidResponsePostProcessor bidResponsePostProcessor;
     private final CurrencyConversionService currencyService;
+    private final GdprService gdprService;
     private final Metrics metrics;
     private final Clock clock;
-    private long expectedCacheTime;
+    private final long expectedCacheTime;
+    private final boolean useGeoLocation;
 
     public ExchangeService(BidderCatalog bidderCatalog,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
                            BidResponsePostProcessor bidResponsePostProcessor,
                            CurrencyConversionService currencyService,
+                           GdprService gdprService,
                            Metrics metrics, Clock clock,
-                           long expectedCacheTime) {
+                           long expectedCacheTime, boolean useGeoLocation) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.currencyService = Objects.requireNonNull(currencyService);
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
+        this.gdprService = gdprService;
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         if (expectedCacheTime < 0) {
-            throw new IllegalArgumentException("Expected cache time could not be negative");
+            throw new IllegalArgumentException("Expected cache time should be positive");
         }
         this.expectedCacheTime = expectedCacheTime;
+        this.useGeoLocation = useGeoLocation;
     }
 
     /**
      * Runs an auction: delegates request to applicable bidders, gathers responses from them and constructs final
      * response containing returned bids and additional information in extensions.
      */
-    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout) {
+    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout,
+                                           MetricsContext metricsContext) {
         // extract ext from bid request
         final ExtBidRequest requestExt;
         try {
@@ -112,10 +142,6 @@ public class ExchangeService {
 
         final Map<String, String> aliases = getAliases(requestExt);
 
-        final List<BidderRequest> bidderRequests = extractBidderRequests(bidRequest, uidsCookie, aliases);
-
-        updateRequestMetric(bidderRequests, uidsCookie, aliases);
-
         final ExtRequestTargeting targeting = targeting(requestExt);
 
         // build cache specific params holder
@@ -124,25 +150,25 @@ public class ExchangeService {
         // build targeting keywords creator
         final TargetingKeywordsCreator keywordsCreator = buildKeywordsCreator(targeting, bidRequest.getApp() != null);
 
-        // randomize the list to make the auction more fair
-        Collections.shuffle(bidderRequests);
+        final String publisherId = publisherId(bidRequest);
 
         final long startTime = clock.millis();
 
-        // send all the requests to the bidders and gathers results
-        final CompositeFuture bidderResults = CompositeFuture.join(bidderRequests.stream()
-                .map(bidderRequest -> requestBids(bidderRequest, startTime,
-                        auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
-                        currencyRates(targeting)))
-                .collect(Collectors.toList()));
-
-        // produce response from bidder results
-        return bidderResults
+        return extractBidderRequests(bidRequest, uidsCookie, aliases, timeout)
+                .map(bidderRequests ->
+                        updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, metricsContext))
+                .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
+                        .map(bidderRequest -> requestBids(bidderRequest, startTime,
+                                auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
+                                currencyRates(targeting)))
+                        .collect(Collectors.toList())))
+                // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
-                .map(this::updateMetricsFromResponses)
+                // produce response from bidder results
+                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
                         toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout))
-                .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, bidResponse));
+                .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
     }
 
     /**
@@ -164,6 +190,21 @@ public class ExchangeService {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         return aliases != null ? aliases : Collections.emptyMap();
+    }
+
+    /**
+     * Extracts publisher id either from {@link BidRequest}.app.publisher.id or {@link BidRequest}.site.publisher.id.
+     * If neither is present returns empty string.
+     */
+    private static String publisherId(BidRequest bidRequest) {
+        final App app = bidRequest.getApp();
+        final Publisher appPublisher = app != null ? app.getPublisher() : null;
+        final Site site = bidRequest.getSite();
+        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
+
+        return publisher != null ? publisher.getId() : StringUtils.EMPTY;
     }
 
     /**
@@ -210,9 +251,10 @@ public class ExchangeService {
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from {@link BidRequest}.ext.prebid.aliases.
      */
-    private List<BidderRequest> extractBidderRequests(BidRequest bidRequest,
-                                                      UidsCookie uidsCookie,
-                                                      Map<String, String> aliases) {
+    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest,
+                                                              UidsCookie uidsCookie,
+                                                              Map<String, String> aliases,
+                                                              Timeout timeout) {
         // sanity check: discard imps without extension
         final List<Imp> imps = bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
@@ -233,19 +275,116 @@ public class ExchangeService {
         // set empty ext.prebid.buyerids attr to avoid leaking of buyerids across bidders
         final ObjectNode userExtNode = !uidsBody.isEmpty() && extUser != null
                 ? removeBuyersidsFromUserExtPrebid(extUser) : null;
+        final ExtRegs extRegs = extRegs(bidRequest.getRegs());
 
         // Splits the input request into requests which are sanitized for each bidder. Intended behavior is:
         // - bidrequest.imp[].ext will only contain the "prebid" field and a "bidder" field which has the params for
         // the intended Bidder.
         // - bidrequest.user.buyeruid will be set to that Bidder's ID.
-        return bidders.stream()
+
+        return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
+                .map(gdprResponse -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
+                        userExtNode, extRegs, aliases, imps, gdprResponse.getVendorsToGdpr()));
+    }
+
+
+    /**
+     * Returns {@link Future&lt;{@link Map}&lt;{@link Integer}, {@link Boolean}&gt;&gt;}, where bidders vendor id mapped
+     * to enabling or disabling gdpr in scope of pbs server. If bidder vendor id is not present in map, it means that
+     * pbs not enforced particular bidder to follow pbs gdpr procedure.
+     */
+    private Future<GdprResponse> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
+                                                            ExtUser extUser, Map<String, String> aliases,
+                                                            ExtRegs extRegs, Timeout timeout) {
+        final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
+        if (gdprEnforcedVendorIds.isEmpty()) {
+            return Future.succeededFuture(GdprResponse.of(Collections.emptyMap(), null));
+        }
+
+        final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final String gdprConsent = extUser != null ? extUser.getConsent() : null;
+        final Device device = bidRequest.getDevice();
+        final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
+
+        return gdprService.resultByVendor(GDPR_PURPOSES, gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null,
+                gdprConsent, ipAddress, timeout);
+    }
+
+    private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,
+                                                   Map<String, String> uidsBody, UidsCookie uidsCookie,
+                                                   ObjectNode userExtNode, ExtRegs extRegs, Map<String, String> aliases,
+                                                   List<Imp> imps, Map<Integer, Boolean> vendorsToGdpr) {
+
+        final Map<String, Boolean> bidderToMaskingRequired = bidders.stream()
+                .collect(Collectors.toMap(Function.identity(),
+                        bidder -> isMaskingRequiredBidder(vendorsToGdpr, bidder, aliases)));
+
+        final List<BidderRequest> bidderRequests = bidders.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid and imp
                 // extensions
                 .map(bidder -> BidderRequest.of(bidder, bidRequest.toBuilder()
-                        .user(prepareUser(bidder, bidRequest, uidsBody, uidsCookie, userExtNode, aliases))
+                        .user(prepareUser(bidder, bidRequest, uidsBody, uidsCookie, userExtNode, aliases,
+                                bidderToMaskingRequired.get(bidder)))
+                        .device(prepareDevice(bidRequest.getDevice(), bidderToMaskingRequired.get(bidder)))
+                        .regs(prepareRegs(bidRequest.getRegs(), extRegs, bidderToMaskingRequired.get(bidder)))
                         .imp(prepareImps(bidder, imps))
                         .build()))
                 .collect(Collectors.toList());
+
+        // randomize the list to make the auction more fair
+        Collections.shuffle(bidderRequests);
+
+        return bidderRequests;
+    }
+
+    /**
+     * Returns flag if masking is required for bidder.
+     */
+    private boolean isMaskingRequiredBidder(Map<Integer, Boolean> vendorToGdprPermission, String bidder,
+                                            Map<String, String> aliases) {
+        final boolean maskingRequired;
+        if (vendorToGdprPermission.isEmpty()) {
+            maskingRequired = false;
+        } else {
+            final String resolvedBidderName = resolveBidder(bidder, aliases);
+            final Boolean gdprAllowsUserData = vendorToGdprPermission.get(
+                    bidderCatalog.metaInfoByName(resolvedBidderName).info().getGdpr().getVendorId());
+
+            // if bidder was not found in vendorToGdprPermission, it means that it was not pbs enforced for gdpr, so
+            // request for this bidder should be sent without changes
+            maskingRequired = gdprAllowsUserData != null && !gdprAllowsUserData;
+
+            if (maskingRequired) {
+                metrics.forAdapter(resolvedBidderName).incCounter(MetricName.gdpr_masked);
+            }
+        }
+        return maskingRequired;
+    }
+
+    /**
+     * Extracts {@link ExtRegs} from {@link Regs}.
+     */
+    private static ExtRegs extRegs(Regs regs) {
+        final ObjectNode regsExt = regs != null ? regs.getExt() : null;
+        if (regsExt != null) {
+            try {
+                return Json.mapper.treeToValue(regs.getExt(), ExtRegs.class);
+            } catch (JsonProcessingException e) {
+                throw new PreBidException(String.format("Error decoding bidRequest.regs.ext: %s", e.getMessage()), e);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extracts pbs gdpr enforced vendor ids.
+     */
+    private Set<Integer> extractGdprEnforcedVendors(List<String> bidders, Map<String, String> aliases) {
+        return bidders.stream()
+                .map(bidder -> bidderCatalog.metaInfoByName(resolveBidder(bidder, aliases)).info().getGdpr())
+                .filter(BidderInfo.GdprInfo::isEnforced)
+                .map(BidderInfo.GdprInfo::getVendorId)
+                .collect(Collectors.toSet());
     }
 
     private static <T> Stream<T> asStream(Iterator<T> iterator) {
@@ -300,16 +439,22 @@ public class ExchangeService {
      * (which means request contains 'explicit' buyeruid in 'request.user.ext.buyerids' or uidsCookie).
      */
     private User prepareUser(String bidder, BidRequest bidRequest, Map<String, String> uidsBody, UidsCookie uidsCookie,
-                             ObjectNode updatedUserExt, Map<String, String> aliases) {
+                             ObjectNode updatedUserExt, Map<String, String> aliases, Boolean maskingRequired) {
+
+        final User user = bidRequest.getUser();
+        final User.UserBuilder builder = user != null ? user.toBuilder() : User.builder();
+
+        // clean buyeruid from user and user.ext.prebid
+        if (maskingRequired) {
+            return builder.buyeruid(null).ext(updatedUserExt).build();
+        }
+
         final String resolvedBidder = resolveBidder(bidder, aliases);
         final String buyerUid = extractUid(uidsBody, uidsCookie, resolvedBidder);
 
-        final User user = bidRequest.getUser();
         if (updatedUserExt == null && StringUtils.isBlank(buyerUid)) {
             return user;
         }
-
-        final User.UserBuilder builder = user != null ? user.toBuilder() : User.builder();
 
         if (user == null || StringUtils.isBlank(user.getBuyeruid()) && StringUtils.isNotBlank(buyerUid)) {
             builder.buyeruid(buyerUid);
@@ -319,6 +464,59 @@ public class ExchangeService {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Prepared device for each bidder depends on gdpr enabling.
+     */
+    private static Device prepareDevice(Device device, Boolean maskingRequired) {
+        return device != null && maskingRequired
+                ? device.toBuilder().ip(maskIp(device.getIp(), '.')).ipv6(maskIp(device.getIpv6(), ':'))
+                .geo(maskGeo(device.getGeo()))
+                .build()
+                : device;
+    }
+
+    /**
+     * Sets gdpr value 1, if bidder required gdpr masking, but gdpr value in regs extension is not defined
+     */
+    private static Regs prepareRegs(Regs regs, ExtRegs extRegs, Boolean maskingRequired) {
+        if (maskingRequired) {
+            if (extRegs == null) {
+                return Regs.of(regs != null ? regs.getCoppa() : null, Json.mapper.valueToTree(ExtRegs.of(1)));
+            } else {
+                return Regs.of(regs.getCoppa(), Json.mapper.valueToTree(ExtRegs.of(1)));
+            }
+        }
+        return regs;
+    }
+
+    /**
+     * Masks ip address by replacing bits after last separator with zeros.
+     */
+    private static String maskIp(String value, char delimiter) {
+        if (StringUtils.isNotEmpty(value)) {
+            final int lastIndexOfDelimiter = value.lastIndexOf(delimiter);
+            return value.substring(0, lastIndexOfDelimiter + 1)
+                    + StringUtils.repeat('0', value.length() - lastIndexOfDelimiter - 1);
+        }
+        return value;
+    }
+
+    /**
+     * Masks {@link Geo} by rounding lon and lat properties to two decimals.
+     */
+    private static Geo maskGeo(Geo geo) {
+        final boolean isNotNullGeo = geo != null;
+        final Float lon = isNotNullGeo ? geo.getLon() : null;
+        final Float lat = isNotNullGeo ? geo.getLat() : null;
+        return isNotNullGeo
+                ? geo.toBuilder()
+                .lon(lon != null ? Float.valueOf(ROUND_TWO_DECIMALS.format(lon)) : null)
+                .lat(lat != null ? Float.valueOf(ROUND_TWO_DECIMALS.format(lat)) : null)
+                .build()
+                : null;
+
     }
 
     private List<Imp> prepareImps(String bidder, List<Imp> imps) {
@@ -351,22 +549,35 @@ public class ExchangeService {
     }
 
     /**
-     * Updates 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
+     * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
      */
-    private void updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
-                                     Map<String, String> aliases) {
+    private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
+                                                    Map<String, String> aliases, String publisherId,
+                                                    MetricsContext metricsContext) {
+        final AccountMetrics accountMetrics = metrics.forAccount(publisherId);
+
+        final MetricName requestType = metricsContext.getRequestType();
+
+        accountMetrics.incCounter(MetricName.requests);
+        accountMetrics.requestType().incCounter(requestType);
+
         for (BidderRequest bidderRequest : bidderRequests) {
             final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
+            final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
+            final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(bidder);
 
-            metrics.forAdapter(bidder).incCounter(MetricName.requests);
+            adapterMetrics.incCounter(MetricName.requests);
+            adapterMetrics.requestType().incCounter(requestType);
+            accountAdapterMetrics.incCounter(MetricName.requests);
 
             final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
                     uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
 
             if (bidderRequest.getBidRequest().getApp() == null && noBuyerId) {
-                metrics.forAdapter(bidder).incCounter(MetricName.no_cookie_requests);
+                adapterMetrics.incCounter(MetricName.no_cookie_requests);
             }
         }
+        return bidderRequests;
     }
 
     /**
@@ -552,23 +763,33 @@ public class ExchangeService {
      * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
      * to make sure {@link Bid#price} is not empty.
      */
-    private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses) {
+    private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
         for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
             final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
+            final AdapterMetrics accountAdapterMetrics = metrics.forAccount(publisherId).forAdapter(bidder);
 
-            adapterMetrics.updateTimer(MetricName.request_time, bidderResponse.getResponseTime());
+            final int responseTime = bidderResponse.getResponseTime();
+            adapterMetrics.updateTimer(MetricName.request_time, responseTime);
+            accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
 
             final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
-            final List<Bid> bids = CollectionUtils.isNotEmpty(bidderBids)
-                    ? bidderBids.stream().map(BidderBid::getBid).collect(Collectors.toList())
-                    : null;
-
-            if (CollectionUtils.isEmpty(bids)) {
+            if (CollectionUtils.isEmpty(bidderBids)) {
                 adapterMetrics.incCounter(MetricName.no_bid_requests);
             } else {
-                for (final Bid bid : bids) {
-                    adapterMetrics.updateHistogram(MetricName.prices, bid.getPrice().multiply(THOUSAND).longValue());
+                for (final BidderBid bidderBid : bidderBids) {
+                    final Bid bid = bidderBid.getBid();
+
+                    final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
+                    adapterMetrics.updateHistogram(MetricName.prices, cpm);
+                    accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
+
+                    adapterMetrics.incCounter(MetricName.bids_received);
+                    accountAdapterMetrics.incCounter(MetricName.bids_received);
+
+                    final MetricName markupMetricName = bid.getAdm() != null
+                            ? MetricName.adm_bids_received : MetricName.nurl_bids_received;
+                    adapterMetrics.forBidType(bidderBid.getType()).incCounter(markupMetricName);
                 }
             }
 

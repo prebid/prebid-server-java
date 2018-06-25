@@ -32,14 +32,6 @@ public class RubiconUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Rubicon GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 52;
-    }
-
-    /**
      * Returns Rubicon {@link UsersyncInfo}
      */
     @Override

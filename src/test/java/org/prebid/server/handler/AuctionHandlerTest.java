@@ -35,8 +35,11 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.AccountMetrics;
 import org.prebid.server.metric.AdapterMetrics;
+import org.prebid.server.metric.BidTypeMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.RequestStatusMetrics;
+import org.prebid.server.metric.RequestTypeMetrics;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
@@ -94,9 +97,17 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private AdapterMetrics adapterMetrics;
     @Mock
+    private RequestTypeMetrics adapterRequestTypeMetrics;
+    @Mock
+    private BidTypeMetrics adapterBidTypeMetrics;
+    @Mock
     private AccountMetrics accountMetrics;
     @Mock
     private AdapterMetrics accountAdapterMetrics;
+    @Mock
+    private RequestTypeMetrics accountRequestTypeMetrics;
+    @Mock
+    private RequestStatusMetrics requestStatusMetrics;
     @Mock
     private HttpAdapterConnector httpAdapterConnector;
     private Clock clock;
@@ -126,8 +137,12 @@ public class AuctionHandlerTest extends VertxTest {
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
 
         given(metrics.forAdapter(any())).willReturn(adapterMetrics);
+        given(adapterMetrics.requestType()).willReturn(adapterRequestTypeMetrics);
+        given(adapterMetrics.forBidType(any())).willReturn(adapterBidTypeMetrics);
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(accountMetrics.forAdapter(any())).willReturn(accountAdapterMetrics);
+        given(accountMetrics.requestType()).willReturn(accountRequestTypeMetrics);
+        given(metrics.forRequestType(any())).willReturn(requestStatusMetrics);
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -513,12 +528,15 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.requests));
+        verify(metrics).forRequestType(eq(MetricName.legacy));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.ok));
         verify(metrics).incCounter(eq(MetricName.app_requests));
         verify(metrics).incCounter(eq(MetricName.imps_requested), eq(1L));
         verify(accountMetrics).incCounter(eq(MetricName.requests));
+        verify(accountRequestTypeMetrics).incCounter(MetricName.legacy);
         verify(metrics).updateTimer(eq(MetricName.request_time), anyLong());
         verify(adapterMetrics).incCounter(eq(MetricName.requests));
+        verify(adapterRequestTypeMetrics).incCounter(MetricName.legacy);
         verify(accountAdapterMetrics).incCounter(eq(MetricName.requests));
         verify(adapterMetrics).updateTimer(eq(MetricName.request_time), eq(100L));
         verify(accountAdapterMetrics).updateTimer(eq(MetricName.request_time), eq(100L));
@@ -529,13 +547,12 @@ public class AuctionHandlerTest extends VertxTest {
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
         verify(accountMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
         verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
+        verify(adapterBidTypeMetrics).incCounter(eq(MetricName.nurl_bids_received));
         verify(accountMetrics, never()).incCounter(eq(MetricName.no_bid_requests));
         verify(accountAdapterMetrics, never()).incCounter(eq(MetricName.no_bid_requests));
         verify(metrics, never()).incCounter(eq(MetricName.safari_requests));
         verify(metrics, never()).incCounter(eq(MetricName.no_cookie_requests));
         verify(metrics, never()).incCounter(eq(MetricName.safari_no_cookie_requests));
-        verify(metrics, never()).incCounter(eq(MetricName.error_requests));
-        verify(metrics, never()).incCounter(eq(MetricName.imps_requested), eq(0L));
     }
 
     @SuppressWarnings("unchecked")
@@ -583,8 +600,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.error_requests));
-        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
+        verify(metrics).forRequestType(eq(MetricName.legacy));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.badinput));
     }
 
     @Test
@@ -597,8 +614,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.error_requests));
-        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
+        verify(metrics).forRequestType(eq(MetricName.legacy));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.badinput));
     }
 
     @Test
@@ -644,8 +661,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.error_requests));
-        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(0L));
+        verify(metrics).forRequestType(eq(MetricName.legacy));
+        verify(requestStatusMetrics).incCounter(eq(MetricName.err));
     }
 
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
@@ -695,6 +712,7 @@ public class AuctionHandlerTest extends VertxTest {
                                 .map(id -> org.prebid.server.proto.response.Bid.builder()
                                         .bidId(id)
                                         .price(new BigDecimal("5.67"))
+                                        .mediaType(MediaType.banner)
                                         .build())
                                 .collect(Collectors.toList()),
                         false)));

@@ -34,14 +34,6 @@ public class AdtelligentUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Adtelligent GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 0;
-    }
-
-    /**
      * Returns Adtelligent {@link UsersyncInfo}
      */
     @Override

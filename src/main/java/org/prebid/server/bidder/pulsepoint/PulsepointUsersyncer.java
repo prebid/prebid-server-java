@@ -35,14 +35,6 @@ public class PulsepointUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Pulsepoint GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 81;
-    }
-
-    /**
      * Returns Pulsepoint {@link UsersyncInfo}
      */
     @Override

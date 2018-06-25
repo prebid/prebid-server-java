@@ -3,6 +3,10 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -13,6 +17,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.analytics.CompositeAnalyticsReporter;
 import org.prebid.server.auction.AmpRequestFactory;
+import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PreBidRequestContextFactory;
@@ -21,6 +26,7 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -35,17 +41,18 @@ import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
-import org.prebid.server.settings.CompositeApplicationSettings;
+import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
+import org.prebid.server.vertx.ContextRunner;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,10 +63,46 @@ import java.util.Set;
 @Configuration
 public class WebConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(WebConfiguration.class);
+
+    @Autowired
+    private ContextRunner contextRunner;
+
+    @Value("${vertx.http-server-instances}")
+    private int httpServerNum;
+
+    @Autowired
+    private Vertx vertx;
+
+    @Autowired
+    private HttpServerOptions httpServerOptions;
+
+    @Autowired
+    private Router router;
+
+    @Value("${http.port}")
+    private int httpPort;
+
+    @PostConstruct
+    public void startHttpServer() {
+        logger.info("Starting {0} instances of Http Server to serve requests on port {1,number,#}", httpServerNum,
+                httpPort);
+
+        contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
+                vertx.createHttpServer(httpServerOptions).requestHandler(router::accept).listen(httpPort, future));
+
+        logger.info("Successfully started {0} instances of Http Server", httpServerNum);
+    }
+
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    Router router(Vertx vertx,
-                  CookieHandler cookieHandler,
+    HttpServerOptions httpServerOptions() {
+        return new HttpServerOptions()
+                .setHandle100ContinueAutomatically(true)
+                .setCompressionSupported(true);
+    }
+
+    @Bean
+    Router router(CookieHandler cookieHandler,
                   BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
@@ -108,11 +151,6 @@ public class WebConfiguration {
     }
 
     @Bean
-    BodyHandler bodyHandler(@Value("${vertx.uploads-dir}") String uploadsDir) {
-        return BodyHandler.create(uploadsDir);
-    }
-
-    @Bean
     NoCacheHandler noCacheHandler() {
         return NoCacheHandler.create();
     }
@@ -133,9 +171,8 @@ public class WebConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AuctionHandler auctionHandler(
-            CompositeApplicationSettings applicationSettings,
+            ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             PreBidRequestContextFactory preBidRequestContextFactory,
             CacheService cacheService,
@@ -143,12 +180,11 @@ public class WebConfiguration {
             HttpAdapterConnector httpAdapterConnector,
             Clock clock) {
 
-        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, metrics, httpAdapterConnector, clock);
+        return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
+                metrics, httpAdapterConnector, clock);
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
             ExchangeService exchangeService,
@@ -164,7 +200,6 @@ public class WebConfiguration {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     AmpHandler openrtbAmpHandler(
             @Value("${amp.default-timeout-ms}") int defaultTimeoutMs,
             AmpRequestFactory ampRequestFactory,
@@ -173,13 +208,14 @@ public class WebConfiguration {
             AmpProperties ampProperties,
             BidderCatalog bidderCatalog,
             CompositeAnalyticsReporter analyticsReporter,
+            AmpResponsePostProcessor ampResponsePostProcessor,
             Metrics metrics,
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
         return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService,
-                ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, metrics, clock,
-                timeoutFactory);
+                ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, ampResponsePostProcessor,
+                metrics, clock, timeoutFactory);
     }
 
     @Bean
@@ -198,9 +234,18 @@ public class WebConfiguration {
     }
 
     @Bean
-    SetuidHandler setuidHandler(UidsCookieService uidsCookieService, CompositeAnalyticsReporter analyticsReporter,
-                                Metrics metrics) {
-        return new SetuidHandler(uidsCookieService, analyticsReporter, metrics);
+    SetuidHandler setuidHandler(
+            @Value("${setuid.default-timeout-ms}") int defaultTimeoutMs,
+            UidsCookieService uidsCookieService,
+            GdprService gdprService,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
+            CompositeAnalyticsReporter analyticsReporter,
+            Metrics metrics,
+            TimeoutFactory timeoutFactory) {
+
+        return new SetuidHandler(defaultTimeoutMs, uidsCookieService, gdprService, hostVendorId, useGeoLocation,
+                analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean
@@ -216,12 +261,9 @@ public class WebConfiguration {
             GoogleRecaptchaVerifier googleRecaptchaVerifier,
             UidsCookieService uidsCookieService) {
 
-        return new OptoutHandler(googleRecaptchaVerifier,
-                uidsCookieService,
-                OptoutHandler.getOptoutRedirectUrl(externalUrl),
-                HttpUtil.validateUrl(optoutUrl),
-                HttpUtil.validateUrl(optinUrl)
-        );
+        return new OptoutHandler(googleRecaptchaVerifier, uidsCookieService,
+                OptoutHandler.getOptoutRedirectUrl(externalUrl), HttpUtil.validateUrl(optoutUrl),
+                HttpUtil.validateUrl(optinUrl));
     }
 
     @Bean

@@ -42,6 +42,7 @@
         <psl.version>2.2.0</psl.version>
         <metrics.version>3.2.3</metrics.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
+        <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -207,6 +208,11 @@
                     <artifactId>kafka-clients</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.conversantmedia.gdpr</groupId>
+            <artifactId>consent-string-sdk-java</artifactId>
+            <version>${consent-string-sdk.version}</version>
         </dependency>
         <!-- Test -->
         <dependency>

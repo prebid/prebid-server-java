@@ -35,14 +35,6 @@ public class AppnexusUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns Appnexus GDPR vendor ID
-     */
-    @Override
-    public int gdprVendorId() {
-        return 32;
-    }
-
-    /**
      * Returns Appnexus {@link UsersyncInfo}
      */
     @Override

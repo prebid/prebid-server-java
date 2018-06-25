@@ -4,17 +4,8 @@ import com.codahale.metrics.MetricRegistry;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 public class AccountMetricsTest {
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AccountMetrics(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AccountMetrics(new MetricRegistry(), null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AccountMetrics(new MetricRegistry(), CounterType.counter,
-                null));
-    }
 
     @Test
     public void forAdapterShouldReturnSameAdapterMetricsOnSuccessiveCalls() {

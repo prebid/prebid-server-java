@@ -1,6 +1,5 @@
 package org.prebid.server.settings;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
@@ -13,7 +12,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
 /**
@@ -25,20 +23,19 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     private final Map<String, Account> accountCache;
     private final Map<String, String> adUnitConfigCache;
-    private final Map<String, String> storedRequestCache;
-    private final Map<String, String> storedImpCache;
-    private final Map<String, String> ampStoredRequestCache;
+    private final SettingsCache cache;
+    private final SettingsCache ampCache;
 
-    public CachingApplicationSettings(ApplicationSettings delegate, int ttl, int size) {
+    public CachingApplicationSettings(ApplicationSettings delegate, SettingsCache cache, SettingsCache ampCache,
+                                      int ttl, int size) {
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
         this.delegate = Objects.requireNonNull(delegate);
-        this.accountCache = createCache(ttl, size);
-        this.adUnitConfigCache = createCache(ttl, size);
-        this.storedRequestCache = createCache(ttl, size);
-        this.storedImpCache = createCache(ttl, size);
-        this.ampStoredRequestCache = createCache(ttl, size);
+        this.accountCache = SettingsCache.createCache(ttl, size);
+        this.adUnitConfigCache = SettingsCache.createCache(ttl, size);
+        this.cache = Objects.requireNonNull(cache);
+        this.ampCache = Objects.requireNonNull(ampCache);
     }
 
     /**
@@ -62,8 +59,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<StoredDataResult> getStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getFromCacheOrDelegate(storedRequestCache, storedImpCache, requestIds, impIds, timeout,
-                delegate::getStoredData);
+        return getFromCacheOrDelegate(cache, requestIds, impIds, timeout, delegate::getStoredData);
     }
 
     /**
@@ -71,16 +67,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<StoredDataResult> getAmpStoredData(Set<String> requestIds, Set<String> impIds, Timeout timeout) {
-        return getFromCacheOrDelegate(ampStoredRequestCache, storedImpCache, requestIds, impIds, timeout,
-                delegate::getAmpStoredData);
-    }
-
-    private static <T> Map<String, T> createCache(int ttl, int size) {
-        return Caffeine.newBuilder()
-                .expireAfterWrite(ttl, TimeUnit.SECONDS)
-                .maximumSize(size)
-                .<String, T>build()
-                .asMap();
+        return getFromCacheOrDelegate(ampCache, requestIds, impIds, timeout, delegate::getAmpStoredData);
     }
 
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache, String key, Timeout timeout,
@@ -104,13 +91,15 @@ public class CachingApplicationSettings implements ApplicationSettings {
     /**
      * Retrieves stored data from cache and collects ids which were absent. For absent ids makes look up to original
      * source, combines results and updates cache with missed stored request. In case when origin source returns Failed
-     * {@link Future} propagates its result to caller. In successive call return {@link Future< StoredDataResult >}
+     * {@link Future} propagates its result to caller. In successive call return {@link Future&lt;StoredDataResult&gt;}
      * with all found stored requests and error from origin source id call was made.
      */
     private static Future<StoredDataResult> getFromCacheOrDelegate(
-            Map<String, String> requestCache, Map<String, String> impCache,
-            Set<String> requestIds, Set<String> impIds, Timeout timeout,
+            SettingsCache cache, Set<String> requestIds, Set<String> impIds, Timeout timeout,
             TriFunction<Set<String>, Set<String>, Timeout, Future<StoredDataResult>> retriever) {
+
+        final Map<String, String> requestCache = cache.getRequestCache();
+        final Map<String, String> impCache = cache.getImpCache();
 
         final Set<String> missedRequestIds = new HashSet<>();
         final Map<String, String> storedIdToRequest = getFromCacheOrAddMissedIds(requestIds, requestCache,
@@ -127,12 +116,12 @@ public class CachingApplicationSettings implements ApplicationSettings {
         // delegate call to original source for missed ids and update cache with it
         return retriever.apply(missedRequestIds, missedImpIds, timeout).compose(result -> {
             final Map<String, String> storedIdToRequestFromDelegate = result.getStoredIdToRequest();
-            storedIdToRequest.putAll(storedIdToRequestFromDelegate);
-            requestCache.putAll(storedIdToRequestFromDelegate);
-
             final Map<String, String> storedIdToImpFromDelegate = result.getStoredIdToImp();
+
+            cache.save(storedIdToRequestFromDelegate, storedIdToImpFromDelegate);
+
+            storedIdToRequest.putAll(storedIdToRequestFromDelegate);
             storedIdToImp.putAll(storedIdToImpFromDelegate);
-            impCache.putAll(storedIdToImpFromDelegate);
 
             return Future.succeededFuture(StoredDataResult.of(storedIdToRequest, storedIdToImp, result.getErrors()));
         });

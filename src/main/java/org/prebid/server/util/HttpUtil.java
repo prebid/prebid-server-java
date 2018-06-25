@@ -1,5 +1,8 @@
 package org.prebid.server.util;
 
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -12,6 +15,11 @@ import java.net.URLEncoder;
  * This class consists of {@code static} utility methods for operating HTTP requests.
  */
 public final class HttpUtil {
+
+    public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
+    public static final CharSequence DNT_HEADER = HttpHeaders.createOptimized("DNT");
+    public static final CharSequence X_REQUEST_AGENT_HEADER = HttpHeaders.createOptimized("X-Request-Agent");
+    public static final String LJT_READER_COOKIE_NAME = "ljt_reader";
 
     private HttpUtil() {
     }
@@ -67,5 +75,32 @@ public final class HttpUtil {
         } catch (UnsupportedEncodingException e) {
             throw new IllegalArgumentException(String.format("Cannot decode input: %s", input));
         }
+    }
+
+    /**
+     * Creates header from name and value, when value is not null or empty string.
+     */
+    public static void addHeaderIfValueIsNotEmpty(MultiMap headers, String headerName, String headerValue) {
+        if (StringUtils.isNotEmpty(headerValue)) {
+            headers.add(headerName, headerValue);
+        }
+    }
+
+    /**
+     * Determines IP-Address by checking "X-Forwarded-For", "X-Real-IP" http headers or remote host address
+     * if both are empty.
+     */
+    public static String ipFrom(HttpServerRequest request) {
+        // X-Forwarded-For: client1, proxy1, proxy2
+        String ip = StringUtils.trimToNull(
+                StringUtils.substringBefore(request.headers().get("X-Forwarded-For"), ","));
+        if (ip == null) {
+            ip = StringUtils.trimToNull(request.headers().get("X-Real-IP"));
+        }
+        if (ip == null) {
+            ip = StringUtils.trimToNull(request.remoteAddress().host());
+        }
+
+        return ip;
     }
 }
