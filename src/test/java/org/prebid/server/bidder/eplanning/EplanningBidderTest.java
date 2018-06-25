@@ -317,7 +317,7 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyBidderBidAndErrorMessageIsResponseStatusIsNotOk() {
+    public void makeBidsShouldReturnEmptyBidderBidAndErrorMessageIfResponseStatusIsNotOk() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), null);
 

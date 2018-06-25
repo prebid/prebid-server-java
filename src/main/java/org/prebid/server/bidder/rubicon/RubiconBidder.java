@@ -116,7 +116,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             }
         }
 
-        return Result.of(httpRequests, BidderUtil.createBidderErrors(BidderError.ErrorType.badInput, errors));
+        return Result.of(httpRequests, BidderUtil.createBidderErrors(BidderError.Type.bad_input, errors));
     }
 
     @Override
@@ -125,9 +125,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return Result.of(extractBids(httpCall.getRequest().getPayload(),
                     BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
         } catch (BidderUtil.BadServerResponseException | PreBidException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badServerResponse, e.getMessage());
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_server_response, e.getMessage());
         } catch (BidderUtil.BadInputRequestException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badInput, e.getMessage());
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_input, e.getMessage());
         }
     }
 

@@ -70,7 +70,7 @@ public class AdformBidder implements Bidder<Void> {
         final List<String> errors = extImpAdformsResult.errors;
 
         if (extImpAdforms.size() == 0) {
-            return Result.of(Collections.emptyList(), BidderUtil.createBidderErrors(BidderError.ErrorType.badInput,
+            return Result.of(Collections.emptyList(), BidderUtil.createBidderErrors(BidderError.Type.bad_input,
                     errors));
         }
         final Device device = request.getDevice();
@@ -94,7 +94,7 @@ public class AdformBidder implements Bidder<Void> {
 
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers, null)),
-                BidderUtil.createBidderErrors(BidderError.ErrorType.badInput, errors));
+                BidderUtil.createBidderErrors(BidderError.Type.bad_input, errors));
     }
 
     /**
@@ -112,12 +112,12 @@ public class AdformBidder implements Bidder<Void> {
         }
 
         if (responseStatusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badInput, String.format(
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_input, String.format(
                     "unexpected status code: %d. Run with request.debug = 1 for more info", responseStatusCode));
         }
 
         if (responseStatusCode != HttpResponseStatus.OK.code()) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badServerResponse, String.format(
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_server_response, String.format(
                     "unexpected status code: %d. Run with request.debug = 1 for more info", responseStatusCode));
         }
         final List<AdformBid> adformBids;
@@ -125,7 +125,7 @@ public class AdformBidder implements Bidder<Void> {
             adformBids = Json.mapper.readValue(httpResponse.getBody(),
                     Json.mapper.getTypeFactory().constructCollectionType(List.class, AdformBid.class));
         } catch (IOException e) {
-            return Result.of(Collections.emptyList(), BidderUtil.createBidderErrors(BidderError.ErrorType.badInput,
+            return Result.of(Collections.emptyList(), BidderUtil.createBidderErrors(BidderError.Type.bad_input,
                     Collections.singletonList(e.getMessage())));
         }
         return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());

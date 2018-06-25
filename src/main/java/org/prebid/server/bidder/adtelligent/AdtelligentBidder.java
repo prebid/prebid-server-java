@@ -73,9 +73,9 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
         try {
             return extractBids(BidderUtil.parseResponse(httpCall.getResponse()), bidRequest.getImp());
         } catch (BidderUtil.BadServerResponseException | PreBidException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badServerResponse, e.getMessage());
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_server_response, e.getMessage());
         } catch (BidderUtil.BadInputRequestException e) {
-            return BidderUtil.createEmptyResultWithError(BidderError.ErrorType.badInput, e.getMessage());
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_input, e.getMessage());
         }
     }
 
@@ -126,12 +126,12 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                 bidRequestBody = Json.mapper.writeValueAsString(bidRequest);
             } catch (JsonProcessingException e) {
                 errors.add(String.format("error while encoding bidRequest, err: %s", e.getMessage()));
-                return Result.of(Collections.emptyList(), BidderUtil.createBidderErrors(BidderError.ErrorType.badInput,
+                return Result.of(Collections.emptyList(), BidderUtil.createBidderErrors(BidderError.Type.bad_input,
                         errors));
             }
             httpRequests.add(HttpRequest.of(HttpMethod.POST, url, bidRequestBody, headers, bidRequest));
         }
-        return Result.of(httpRequests, BidderUtil.createBidderErrors(BidderError.ErrorType.badInput,
+        return Result.of(httpRequests, BidderUtil.createBidderErrors(BidderError.Type.bad_input,
                 errors));
     }
 
@@ -202,7 +202,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .forEach(bid -> addBidOrError(bid, idToImps, bidderBids, errors));
 
-        return Result.of(bidderBids, BidderUtil.createBidderErrors(BidderError.ErrorType.badServerResponse, errors));
+        return Result.of(bidderBids, BidderUtil.createBidderErrors(BidderError.Type.bad_server_response, errors));
     }
 
     /**

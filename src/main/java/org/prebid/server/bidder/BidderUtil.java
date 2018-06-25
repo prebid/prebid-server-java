@@ -72,7 +72,7 @@ public class BidderUtil {
     /**
      * Creates {@link List<BidderError>} from list of errors with defined error type
      */
-    public static List<BidderError> createBidderErrors(BidderError.ErrorType errorsType, List<String> errors) {
+    public static List<BidderError> createBidderErrors(BidderError.Type errorsType, List<String> errors) {
         return errors.stream().map(error -> BidderError.create(error, errorsType)).collect(Collectors.toList());
     }
 
@@ -80,9 +80,9 @@ public class BidderUtil {
      * Creates {@link Result<List<BidderBid>>} with empty {@link List<BidderBid>} and error message with defined error
      * type
      */
-    public static Result<List<BidderBid>> createEmptyResultWithError(BidderError.ErrorType errorType,
+    public static Result<List<BidderBid>> createEmptyResultWithError(BidderError.Type type,
                                                                      String error) {
-        return Result.of(Collections.emptyList(), createBidderErrors(errorType, Collections.singletonList(error)));
+        return Result.of(Collections.emptyList(), createBidderErrors(type, Collections.singletonList(error)));
     }
 
     public static class BadServerResponseException extends RuntimeException {

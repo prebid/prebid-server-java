@@ -78,13 +78,14 @@ public class EplanningBidder implements Bidder<BidRequest> {
                 bidRequestBody = Json.mapper.writeValueAsString(exchangeBidRequest);
             } catch (JsonProcessingException e) {
                 errors.add(String.format("error while encoding bidRequest, err: %s", e.getMessage()));
-                return Result.of(Collections.emptyList(), BidderUtil.errors(errors));
+                return Result.of(Collections.emptyList(), BidderUtil.createBidderErrors(BidderError.Type.bad_input,
+                        errors));
             }
             httpRequests.add(HttpRequest.of(HttpMethod.POST,
                     String.format(endpointUrlTemplate, exchangeIdToImps.getKey()), bidRequestBody, headers,
                     exchangeBidRequest));
         }
-        return Result.of(httpRequests, BidderUtil.errors(errors));
+        return Result.of(httpRequests, BidderUtil.createBidderErrors(BidderError.Type.bad_input, errors));
     }
 
     /**
@@ -151,8 +152,10 @@ public class EplanningBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             return extractBids(BidderUtil.parseResponse(httpCall.getResponse()));
-        } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+        } catch (BidderUtil.BadServerResponseException | PreBidException e) {
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_server_response, e.getMessage());
+        } catch (BidderUtil.BadInputRequestException e) {
+            return BidderUtil.createEmptyResultWithError(BidderError.Type.bad_input, e.getMessage());
         }
     }
 
