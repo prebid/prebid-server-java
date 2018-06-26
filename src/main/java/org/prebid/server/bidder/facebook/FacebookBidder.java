@@ -14,8 +14,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -45,8 +43,6 @@ import java.util.stream.Collectors;
  * Facebook {@link Bidder} implementation.
  */
 public class FacebookBidder implements Bidder<BidRequest> {
-
-    private static final Logger logger = LoggerFactory.getLogger(FacebookBidder.class);
 
     private static final Random RANDOM = new Random();
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE = new
@@ -133,7 +129,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
             return Json.mapper.<ExtPrebid<?, ExtImpFacebook>>convertValue(imp.getExt(), FACEBOOK_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
-            logger.warn("Error occurred parsing audienceNetwork parameters", e);
             throw new PreBidException(e.getMessage(), e);
         }
     }

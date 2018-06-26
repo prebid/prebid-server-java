@@ -177,7 +177,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return Json.mapper.<ExtPrebid<?, ExtImpRubicon>>convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
-            logger.warn("Error occurred parsing rubicon parameters", e);
             throw new PreBidException(e.getMessage(), e);
         }
     }
@@ -304,7 +303,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         try {
             return extNode != null ? Json.mapper.treeToValue(extNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
-            logger.warn("Error occurred while parsing bidrequest.user.ext", e);
             throw new PreBidException(e.getMessage(), e);
         }
     }

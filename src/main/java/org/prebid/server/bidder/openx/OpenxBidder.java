@@ -10,8 +10,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
@@ -42,8 +40,6 @@ import java.util.stream.Collectors;
  * OpenX {@link Bidder} implementation.
  */
 public class OpenxBidder implements Bidder<BidRequest> {
-
-    private static final Logger logger = LoggerFactory.getLogger(OpenxBidder.class);
 
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
 
