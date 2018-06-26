@@ -28,6 +28,7 @@ import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContext
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.PreBidException;
@@ -326,7 +327,7 @@ public class AuctionHandlerTest extends VertxTest {
                                         .price(new BigDecimal("5.67"))
                                         .build())
                                 .collect(Collectors.toList()),
-                        false)))
+                        null)))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
                         Arrays.stream(new String[]{"bidId3", "bidId4"})
@@ -335,7 +336,7 @@ public class AuctionHandlerTest extends VertxTest {
                                         .price(new BigDecimal("5.67"))
                                         .build())
                                 .collect(Collectors.toList()),
-                        false)));
+                        null)));
         // when
         auctionHandler.handle(routingContext);
 
@@ -370,7 +371,7 @@ public class AuctionHandlerTest extends VertxTest {
                                         .bidder(RUBICON).code("adUnitCode2").bidId("bidId2")
                                         .price(new BigDecimal("6.35"))
                                         .responseTimeMs(80).build()),
-                        false)))
+                        null)))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
                         asList(
@@ -382,7 +383,7 @@ public class AuctionHandlerTest extends VertxTest {
                                         .bidder(APPNEXUS).code("adUnitCode2").bidId("bidId4")
                                         .price(new BigDecimal("7.15"))
                                         .responseTimeMs(100).build()),
-                        false)));
+                        null)));
 
         // when
         auctionHandler.handle(routingContext);
@@ -422,7 +423,7 @@ public class AuctionHandlerTest extends VertxTest {
                                 org.prebid.server.proto.response.Bid.builder().mediaType(MediaType.banner)
                                         .bidder(RUBICON).code("adUnitCode1").bidId("bidId1")
                                         .price(new BigDecimal("5.67")).build()),
-                        false)));
+                        null)));
 
         // when
         auctionHandler.handle(routingContext);
@@ -447,7 +448,7 @@ public class AuctionHandlerTest extends VertxTest {
                         singletonList(
                                 org.prebid.server.proto.response.Bid.builder().mediaType(MediaType.video)
                                         .bidId("bidId1").price(new BigDecimal("5.67")).build()),
-                        false)));
+                        null)));
 
         // when
         auctionHandler.handle(routingContext);
@@ -488,14 +489,14 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(RUBICON).responseTimeMs(500).error("rubicon error").build(),
-                        emptyList(), false)))
+                        emptyList(), BidderError.badInput("rubicon error"))))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100).build(),
                         singletonList(org.prebid.server.proto.response.Bid.builder()
                                 .bidId("bidId1")
                                 .price(new BigDecimal("5.67"))
                                 .build()),
-                        false)));
+                        null)));
 
         // when
         auctionHandler.handle(routingContext);
@@ -623,7 +624,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
 
-        givenBidderRespondingWithError(RUBICON, "rubicon error", false);
+        givenBidderRespondingWithError(RUBICON, BidderError.badInput("rubicon error"));
 
         // when
         auctionHandler.handle(routingContext);
@@ -638,7 +639,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
 
-        givenBidderRespondingWithError(RUBICON, "time out", true);
+        givenBidderRespondingWithError(RUBICON, BidderError.timeout("time out"));
 
         // when
         auctionHandler.handle(routingContext);
@@ -715,14 +716,14 @@ public class AuctionHandlerTest extends VertxTest {
                                         .mediaType(MediaType.banner)
                                         .build())
                                 .collect(Collectors.toList()),
-                        false)));
+                        null)));
     }
 
-    private void givenBidderRespondingWithError(String bidder, String error, boolean timedOut) {
+    private void givenBidderRespondingWithError(String bidder, BidderError error) {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
-                        BidderStatus.builder().bidder(bidder).responseTimeMs(500).error(error).build(),
-                        emptyList(), timedOut)));
+                        BidderStatus.builder().bidder(bidder).responseTimeMs(500).error(error.getMessage()).build(),
+                        emptyList(), error)));
     }
 
     private PreBidResponse capturePreBidResponse() throws IOException {

@@ -15,14 +15,16 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidsWithError;
 import org.prebid.server.bidder.model.ExchangeCall;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
@@ -70,7 +72,12 @@ public class HttpAdapterConnector {
         try {
             httpRequests = adapter.makeHttpRequests(adapterRequest, preBidRequestContext);
         } catch (PreBidException e) {
-            return Future.succeededFuture(errorBidderResult(e, bidderStarted, adapterRequest.getBidderCode()));
+            final String message = e.getMessage();
+            return Future.succeededFuture(AdapterResponse.of(BidderStatus.builder()
+                    .bidder(adapterRequest.getBidderCode())
+                    .error(message)
+                    .responseTimeMs(responseTime(bidderStarted))
+                    .build(), Collections.emptyList(), BidderError.badInput(message)));
         }
 
         return CompositeFuture.join(httpRequests.stream()
@@ -150,9 +157,12 @@ public class HttpAdapterConnector {
                                         Future<ExchangeCall> future) {
         logger.warn("Error occurred while sending bid request to an exchange", exception);
         final BidderDebug bidderDebug = bidderDebugBuilder.build();
-        future.complete(exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
-                ? ExchangeCall.timeout(bidderDebug, "Timed out")
-                : ExchangeCall.error(bidderDebug, exception.getMessage()));
+
+        final BidderError error = exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
+                ? BidderError.timeout("Timed out")
+                : BidderError.unknown(exception.getMessage());
+
+        future.complete(ExchangeCall.error(bidderDebug, error));
     }
 
     /**
@@ -168,21 +178,19 @@ public class HttpAdapterConnector {
             return ExchangeCall.empty(bidderDebug);
         }
 
-        if (statusCode == HttpResponseStatus.BAD_REQUEST.code()) {
-            return ExchangeCall.error(bidderDebug, String.format("HTTP status %d; body: %s", statusCode, body));
-        }
-
         if (statusCode != HttpResponseStatus.OK.code()) {
-            logger.warn("Bid response code is {0}, body: {1}", statusCode, body);
-            return ExchangeCall.error(bidderDebug, String.format("HTTP status %d; body: %s", statusCode, body));
+            return ExchangeCall.error(bidderDebug,
+                    BidderError.create(String.format("HTTP status %d; body: %s", statusCode, body),
+                            statusCode == HttpResponseStatus.BAD_REQUEST.code()
+                                    ? BidderError.Type.bad_input
+                                    : BidderError.Type.bad_server_response));
         }
 
         final R bidResponse;
         try {
             bidResponse = Json.decodeValue(body, responseTypeReference);
         } catch (DecodeException e) {
-            logger.warn("Error occurred while parsing bid response: {0}", e, body);
-            return ExchangeCall.error(bidderDebug, e.getMessage());
+            return ExchangeCall.error(bidderDebug, BidderError.badServerResponse(e.getMessage()));
         }
 
         return ExchangeCall.success(request, bidResponse, bidderDebug);
@@ -214,22 +222,22 @@ public class HttpAdapterConnector {
                     .usersync(usersyncer.usersyncInfo());
         }
 
-        final List<BidsWithError> bidsWithErrors = exchangeCalls.stream()
+        final List<Result<List<Bid>>> bidsWithErrors = exchangeCalls.stream()
                 .map(exchangeCall -> bidsWithError(adapter, adapterRequest, exchangeCall, responseTime))
                 .collect(Collectors.toList());
 
-        final BidsWithError failedBidsWithError = failedBidsWithError(bidsWithErrors);
+        final Result<List<Bid>> failedBidsWithError = failedBidsWithError(bidsWithErrors);
         final List<Bid> bids = bidsWithErrors.stream()
-                .flatMap(bidsWithError -> bidsWithError.getBids().stream())
+                .flatMap(bidsWithError -> bidsWithError.getValue().stream())
                 .collect(Collectors.toList());
 
-        boolean timedOut = false;
+        BidderError errorToReturn = null;
         List<Bid> bidsToReturn = Collections.emptyList();
 
         if (failedBidsWithError != null
                 && (!adapter.tolerateErrors() || (adapter.tolerateErrors() && bids.isEmpty()))) {
-            bidderStatusBuilder.error(failedBidsWithError.getError());
-            timedOut = failedBidsWithError.isTimedOut();
+            errorToReturn = failedBidsWithError.getErrors().get(0);
+            bidderStatusBuilder.error(errorToReturn.getMessage());
         } else if (bids.isEmpty()) {
             bidderStatusBuilder.noBid(true);
         } else {
@@ -237,7 +245,7 @@ public class HttpAdapterConnector {
             bidderStatusBuilder.numBids(bidsToReturn.size());
         }
 
-        return AdapterResponse.of(bidderStatusBuilder.build(), bidsToReturn, timedOut);
+        return AdapterResponse.of(bidderStatusBuilder.build(), bidsToReturn, errorToReturn);
     }
 
     private int responseTime(long bidderStarted) {
@@ -247,33 +255,31 @@ public class HttpAdapterConnector {
     /**
      * Transforms {@link ExchangeCall} into {@link BidsWithError} object with list of bids or error.
      */
-    private static <T, R> BidsWithError bidsWithError(Adapter<T, R> adapter, AdapterRequest adapterRequest,
-                                                      ExchangeCall<T, R> exchangeCall, Integer responseTime) {
-        final String error = exchangeCall.getError();
-        if (StringUtils.isNotBlank(error)) {
-            return BidsWithError.of(Collections.emptyList(), error, exchangeCall.isTimedOut());
+    private static <T, R> Result<List<Bid>> bidsWithError(Adapter<T, R> adapter, AdapterRequest adapterRequest,
+                                                          ExchangeCall<T, R> exchangeCall, Integer responseTime) {
+        final BidderError error = exchangeCall.getError();
+        if (error != null) {
+            return Result.emptyWithError(error);
         }
         try {
             final List<Bid> bids = adapter.extractBids(adapterRequest, exchangeCall).stream()
                     .map(bidBuilder -> bidBuilder.responseTimeMs(responseTime))
                     .map(Bid.BidBuilder::build)
                     .collect(Collectors.toList());
-            return BidsWithError.of(bids, null, false);
+            return Result.of(bids, Collections.emptyList());
         } catch (PreBidException e) {
-            logger.warn("Error from bidder {0}. Ignoring all bids: {1}", adapterRequest.getBidderCode(),
-                    e.getMessage());
-            return BidsWithError.of(Collections.emptyList(), e.getMessage(), false);
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     /**
      * Searches for last error in list of {@link BidsWithError}
      */
-    private static BidsWithError failedBidsWithError(List<BidsWithError> bidsWithErrors) {
-        final ListIterator<BidsWithError> iterator = bidsWithErrors.listIterator(bidsWithErrors.size());
+    private static <U extends Result<List<Bid>>> U failedBidsWithError(List<U> bidsWithErrors) {
+        final ListIterator<U> iterator = bidsWithErrors.listIterator(bidsWithErrors.size());
         while (iterator.hasPrevious()) {
-            final BidsWithError current = iterator.previous();
-            if (StringUtils.isNotBlank(current.getError())) {
+            final U current = iterator.previous();
+            if (CollectionUtils.isNotEmpty(current.getErrors())) {
                 return current;
             }
         }
@@ -314,13 +320,5 @@ public class HttpAdapterConnector {
         }
 
         return validBids;
-    }
-
-    private AdapterResponse errorBidderResult(Exception exception, long bidderStarted, String bidder) {
-        return AdapterResponse.of(BidderStatus.builder()
-                .bidder(bidder)
-                .error(exception.getMessage())
-                .responseTimeMs(responseTime(bidderStarted))
-                .build(), Collections.emptyList(), false);
     }
 }

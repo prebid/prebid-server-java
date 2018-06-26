@@ -19,6 +19,7 @@ import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.InvalidRequestException;
@@ -202,7 +203,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
                                                  List<AdapterResponse> adapterResponses) {
         adapterResponses.stream()
-                .filter(ar -> StringUtils.isNotBlank(ar.getBidderStatus().getError()))
+                .filter(ar -> ar.getError() != null)
                 .forEach(ar -> updateAdapterErrorMetrics(ar, preBidRequestContext));
 
         final List<BidderStatus> bidderStatuses = Stream.concat(
@@ -235,7 +236,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
                 .forAdapter(bidder);
 
-        if (adapterResponse.isTimedOut()) {
+        if (adapterResponse.getError().getType() == BidderError.Type.timeout) {
             adapterMetrics.incCounter(MetricName.timeout_requests);
             accountAdapterMetrics.incCounter(MetricName.timeout_requests);
         } else {
