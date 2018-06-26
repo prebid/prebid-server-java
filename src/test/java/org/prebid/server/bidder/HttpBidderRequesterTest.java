@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -267,7 +268,7 @@ public class HttpBidderRequesterTest {
                         .status(500).build());
         assertThat(bidderSeatBid.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage).containsOnly(
-                "Server responded with failure status: 500. Set request.test = 1 for debugging info.");
+                "Unexpected status code: 500. Run with request.test = 1 for more info");
     }
 
     @Test
@@ -295,7 +296,13 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
                 // this request will fail with response exception
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
+                // this request will fail with timeout
+                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
                 // this request will fail with 500 status
+                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
+                // this request will fail with 400 status
+                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
+                // this request will get 204 status
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
                 // finally this request will succeed
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)),
@@ -316,18 +323,28 @@ public class HttpBidderRequesterTest {
                 // simulate response error for the second request (which will trigger exceptionHandler call on
                 // response mock first time)
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception")))
+                // simulate timeout for the third request (which will trigger exceptionHandler call on
+                // response mock second time)
+                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException("Timeout exception")))
                 // continue normally for subsequent requests
                 .willReturn(httpClientResponse);
         given(httpClientResponse.bodyHandler(any()))
-                // do not invoke body handler for the second request (which will trigger bodyHandler call on
-                // response mock first time) that will end up with response error
+                // do not invoke body handler for the second and third requests (which will trigger bodyHandler call on
+                // response mock first and second time) that will end up with response error and timeout
+                .willReturn(httpClientResponse)
                 .willReturn(httpClientResponse)
                 // continue normally for subsequent requests
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(EMPTY)));
         given(httpClientResponse.statusCode())
-                // simulate 500 status for the third request (which will trigger statusCode call on response mock
+                // simulate 500 status for the fourth request (which will trigger statusCode call on response mock
                 // first time)
                 .willReturn(500)
+                // simulate 400 status for the fifth request (which will trigger statusCode call on response mock
+                // second time)
+                .willReturn(400)
+                // simulate 204 status for the sixth request (which will trigger statusCode call on response mock
+                // third time)
+                .willReturn(204)
                 // continue normally for subsequent requests
                 .willReturn(200);
 
@@ -341,15 +358,16 @@ public class HttpBidderRequesterTest {
                 .result();
 
         // then
-        // only one call is expected since other requests failed with errors
+        // only one call is expected since other requests failed with errors or returned with 204 status
         verify(bidder).makeBids(any(), any());
         assertThat(bidderSeatBid.getBids()).hasSize(1);
-        assertThat(bidderSeatBid.getErrors()).hasSize(5).containsOnly(
+        assertThat(bidderSeatBid.getErrors()).containsOnly(
                 BidderError.badInput("makeHttpRequestsError"),
-                BidderError.badServerResponse("Request exception"),
-                BidderError.badServerResponse("Response exception"),
-                BidderError.badServerResponse(
-                        "Server responded with failure status: 500. Set request.test = 1 for debugging info."),
+                BidderError.unknown("Request exception"),
+                BidderError.unknown("Response exception"),
+                BidderError.timeout("Timeout exception"),
+                BidderError.badServerResponse("Unexpected status code: 500. Run with request.test = 1 for more info"),
+                BidderError.badInput("Unexpected status code: 400. Run with request.test = 1 for more info"),
                 BidderError.badServerResponse("makeBidsError"));
     }
 

@@ -408,7 +408,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall httpCall = givenHttpCall(200, "invalid");
+        final HttpCall httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -423,7 +423,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
-        final HttpCall httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .w(200)
@@ -454,8 +454,8 @@ public class FacebookBidderTest extends VertxTest {
                         BidType.banner, null));
     }
 
-    private static HttpCall givenHttpCall(int statusCode, String body) {
-        return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
+    private static HttpCall givenHttpCall(String body) {
+        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
 
 }

@@ -18,7 +18,7 @@ public class BidderError {
         return BidderError.of(message, type);
     }
 
-    public static BidderError create(String message) {
+    public static BidderError unknown(String message) {
         return BidderError.of(message, Type.unknown);
     }
 

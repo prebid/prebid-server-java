@@ -638,7 +638,7 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.full(null, HttpResponse.of(200, null, body), null);
+        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
 
     private static String givenBidResponse(Integer bidType) throws JsonProcessingException {
