@@ -89,8 +89,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Appnexus doesn't support audio Imps. Ignoring Imp ID=23");
+                .containsExactly(BidderError.badInput("Appnexus doesn't support audio Imps. Ignoring Imp ID=23"));
     }
 
     @Test
@@ -126,8 +125,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("No placement or member+invcode provided");
+                .containsExactly(BidderError.badInput("No placement or member+invcode provided"));
     }
 
     @Test
@@ -147,9 +145,8 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("All request.imp[i].ext.appnexus.member params must match. "
-                        + "Request contained: member2, member1");
+                .containsExactly(BidderError.badInput("All request.imp[i].ext.appnexus.member params must match. "
+                        + "Request contained: member2, member1"));
     }
 
     @Test
@@ -200,8 +197,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("No placement or member+invcode provided");
+                .containsExactly(BidderError.badInput("No placement or member+invcode provided"));
     }
 
     @Test
@@ -222,8 +218,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .isEmpty();
 
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("No placement or member+invcode provided");
+                .containsExactly(BidderError.badInput("No placement or member+invcode provided"));
     }
 
     @Test
@@ -456,48 +451,18 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultIfResponseStatusIs204() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(204, null);
-
-        // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseStatusIsNot200Or204() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(302, null);
-
-        // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .extracting(BidderError::getMessage)
-                .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, "invalid");
+        final HttpCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).containsOnly(
-                "Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
-                        " at [Source: (String)\"invalid\"; line: 1, column: 15]");
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
+                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n at " +
+                        "[Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -505,7 +470,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBidTypeFromResponseIsBanner() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(BANNER_TYPE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(BANNER_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -521,7 +486,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfBidTypeFromResponseIsVideo() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId").video(Video.builder().build()));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(VIDEO_TYPE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(VIDEO_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -537,7 +502,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnAudioBidIfBidTypeFromResponseIsAudio() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(AUDIO_TYPE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(AUDIO_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -553,7 +518,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnNativeBidIfBidTypeFromResponseBidExtIsNative() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.id("impId"));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(xNATIVE_TYPE));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(xNATIVE_TYPE));
 
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
@@ -569,14 +534,14 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidTypeValueFromResponseIsNotValid() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, givenBidResponse(42));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(42));
         // when
         final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsOnly("Unrecognized bid_ad_type in response from appnexus: 42");
+                .containsOnly(BidderError.badServerResponse(
+                        "Unrecognized bid_ad_type in response from appnexus: 42"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -584,7 +549,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidExtNotDefined() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")
@@ -597,8 +562,8 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsOnly("bidResponse.bid.ext should be defined for appnexus");
+                .containsOnly(BidderError.badServerResponse(
+                        "bidResponse.bid.ext should be defined for appnexus"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -606,7 +571,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidExtAppnexusNotDefined() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")
@@ -619,8 +584,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsOnly("bidResponse.bid.ext.appnexus should be defined");
+                .containsOnly(BidderError.badServerResponse("bidResponse.bid.ext.appnexus should be defined"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -628,7 +592,7 @@ public class AppnexusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidExtAppnexusBidTypeNotDefined() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .impid("impId")
@@ -641,8 +605,8 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsOnly("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
+                .containsOnly(BidderError.badServerResponse(
+                        "bidResponse.bid.ext.appnexus.bid_ad_type should be defined"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -673,8 +637,8 @@ public class AppnexusBidderTest extends VertxTest {
         return mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpAppnexus.builder()).build()));
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(int statusCode, String body) {
-        return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
+    private static HttpCall<BidRequest> givenHttpCall(String body) {
+        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
 
     private static String givenBidResponse(Integer bidType) throws JsonProcessingException {
@@ -687,5 +651,4 @@ public class AppnexusBidderTest extends VertxTest {
                         .build()))
                 .build());
     }
-
 }

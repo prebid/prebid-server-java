@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.adtelligent;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -11,9 +10,9 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
@@ -60,8 +59,8 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
      */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final ResultWithErrors<Map<Integer, List<Imp>>> sourceIdToImpsResult = mapSourceIdToImp(request.getImp());
-        return createHttpRequests(sourceIdToImpsResult.result, sourceIdToImpsResult.errors, request);
+        final Result<Map<Integer, List<Imp>>> sourceIdToImpsResult = mapSourceIdToImp(request.getImp());
+        return createHttpRequests(sourceIdToImpsResult.getValue(), sourceIdToImpsResult.getErrors(), request);
     }
 
     /**
@@ -71,9 +70,10 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
         try {
-            return extractBids(BidderUtil.parseResponse(httpCall.getResponse()), bidRequest.getImp());
-        } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return extractBids(bidResponse, bidRequest.getImp());
+        } catch (DecodeException e) {
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -85,8 +85,8 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
     /**
      * Validates and creates {@link Map} where sourceId is used as key and {@link List} of {@link Imp} as value.
      */
-    private ResultWithErrors<Map<Integer, List<Imp>>> mapSourceIdToImp(List<Imp> imps) {
-        final List<String> errors = new ArrayList<>();
+    private Result<Map<Integer, List<Imp>>> mapSourceIdToImp(List<Imp> imps) {
+        final List<BidderError> errors = new ArrayList<>();
         final Map<Integer, List<Imp>> sourceToImps = new HashMap<>();
         for (final Imp imp : imps) {
             final ExtImpAdtelligent extImpAdtelligent;
@@ -94,7 +94,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                 validateImpression(imp);
                 extImpAdtelligent = getExtImpAdtelligent(imp);
             } catch (PreBidException ex) {
-                errors.add(ex.getMessage());
+                errors.add(BidderError.badInput(ex.getMessage()));
                 continue;
             }
             final Imp updatedImp = updateImp(imp, extImpAdtelligent);
@@ -107,28 +107,29 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                 sourceIdImps.add(updatedImp);
             }
         }
-        return ResultWithErrors.of(sourceToImps, errors);
+        return Result.of(sourceToImps, errors);
     }
 
     /**
      * Creates {@link HttpRequest}s. One for each source id. Adds source id as url parameter
      */
     private Result<List<HttpRequest<BidRequest>>> createHttpRequests(Map<Integer, List<Imp>> sourceToImps,
-                                                                     List<String> errors, BidRequest request) {
+                                                                     List<BidderError> errors, BidRequest request) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceToImps.entrySet()) {
             final String url = String.format("%s?aid=%d", endpointUrl, sourceIdToImps.getKey());
             final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
             final String bidRequestBody;
             try {
-                bidRequestBody = Json.mapper.writeValueAsString(bidRequest);
-            } catch (JsonProcessingException e) {
-                errors.add(String.format("error while encoding bidRequest, err: %s", e.getMessage()));
-                return Result.of(Collections.emptyList(), BidderUtil.errors(errors));
+                bidRequestBody = Json.encode(bidRequest);
+            } catch (EncodeException e) {
+                errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s",
+                        e.getMessage())));
+                return Result.of(Collections.emptyList(), errors);
             }
             httpRequests.add(HttpRequest.of(HttpMethod.POST, url, bidRequestBody, headers, bidRequest));
         }
-        return Result.of(httpRequests, BidderUtil.errors(errors));
+        return Result.of(httpRequests, errors);
     }
 
     /**
@@ -189,7 +190,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
 
         final Map<String, Imp> idToImps = imps.stream().collect(Collectors.toMap(Imp::getId, Function.identity()));
         final List<BidderBid> bidderBids = new ArrayList<>();
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
         bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
@@ -198,32 +199,22 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .forEach(bid -> addBidOrError(bid, idToImps, bidderBids, errors));
 
-        return Result.of(bidderBids, BidderUtil.errors(errors));
+        return Result.of(bidderBids, errors);
     }
 
     /**
      * Creates {@link BidderBid} from {@link Bid} if it has matching {@link Imp}, otherwise adds error to error list.
      */
     private static void addBidOrError(Bid bid, Map<String, Imp> idToImps, List<BidderBid> bidderBids,
-                                      List<String> errors) {
+                                      List<BidderError> errors) {
         final String bidImpId = bid.getImpid();
 
         if (idToImps.containsKey(bidImpId)) {
             final Video video = idToImps.get(bidImpId).getVideo();
             bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner, null));
         } else {
-            errors.add(String.format("ignoring bid id=%s, request doesn't contain any impression with id=%s",
-                    bid.getId(), bidImpId));
+            errors.add(BidderError.badServerResponse(String.format(
+                    "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));
         }
-    }
-
-    /**
-     * Class which holds result with {@link List} of errors
-     */
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static class ResultWithErrors<T> {
-        T result;
-        List<String> errors;
     }
 }

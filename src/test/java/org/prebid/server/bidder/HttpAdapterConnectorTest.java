@@ -41,6 +41,7 @@ import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
@@ -223,6 +224,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError()).isEqualTo(BidderError.badInput("Make http requests exception"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Make http requests exception");
     }
 
@@ -239,8 +241,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
-        assertThat(adapterResponse.isTimedOut()).isTrue();
-        assertThat(adapterResponse.getBidderStatus()).isNotNull();
+        assertThat(adapterResponse.getError()).isEqualTo(BidderError.timeout("Timed out"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Timed out");
         verifyZeroInteractions(httpClient);
     }
@@ -257,8 +258,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
-        assertThat(adapterResponse.isTimedOut()).isTrue();
-        assertThat(adapterResponse.getBidderStatus()).isNotNull();
+        assertThat(adapterResponse.getError()).isEqualTo(BidderError.timeout("Timed out"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Timed out");
     }
 
@@ -274,8 +274,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
-        assertThat(adapterResponse.isTimedOut()).isTrue();
-        assertThat(adapterResponse.getBidderStatus()).isNotNull();
+        assertThat(adapterResponse.getError()).isEqualTo(BidderError.timeout("Timed out"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Timed out");
     }
 
@@ -291,6 +290,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError()).isEqualTo(BidderError.unknown("Request exception"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Request exception");
     }
 
@@ -305,11 +305,12 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError()).isEqualTo(BidderError.unknown("Response exception"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Response exception");
     }
 
     @Test
-    public void callShouldSubmitErrorToAdapterIfHttpResponseStatusCodeIs204() {
+    public void callShouldNotSubmitErrorToAdapterIfHttpResponseStatusCodeIs204() {
         // given
         givenHttpClientReturnsResponses(204, "response");
 
@@ -319,6 +320,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError()).isNull();
         assertThat(adapterResponse.getBidderStatus().getError()).isNull();
         assertThat(adapterResponse.getBids()).isEmpty();
     }
@@ -335,7 +337,26 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError())
+                .isEqualTo(BidderError.badServerResponse("HTTP status 503; body: response"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("HTTP status 503; body: response");
+    }
+
+    @Test
+    public void callShouldSubmitErrorToAdapterIfHttpResponseStatusCodeIs400() {
+        // given
+        givenHttpClientReturnsResponses(400, "response");
+
+        // when
+        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
+                adapterRequest,
+                preBidRequestContext);
+
+        // then
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError())
+                .isEqualTo(BidderError.badInput("HTTP status 400; body: response"));
+        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("HTTP status 400; body: response");
     }
 
     @Test
@@ -349,6 +370,9 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError()).isNotNull();
+        assertThat(adapterResponse.getError().getMessage()).startsWith("Failed to decode");
+        assertThat(adapterResponse.getError().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(adapterResponse.getBidderStatus().getError()).startsWith("Failed to decode");
     }
 
@@ -402,6 +426,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError()).isNull();
         assertThat(adapterResponse.getBidderStatus().getError()).isNull();
         assertThat(adapterResponse.getBids()).hasSize(1);
     }
@@ -443,8 +468,10 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
-        assertThat(adapterResponse.getBidderStatus().getError()).isNotNull()
-                .startsWith("HTTP status 503; body:");
+        assertThat(adapterResponse.getError()).isNotNull();
+        assertThat(adapterResponse.getError().getMessage()).startsWith("HTTP status 503; body:");
+        assertThat(adapterResponse.getError().getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(adapterResponse.getBidderStatus().getError()).startsWith("HTTP status 503; body:");
     }
 
     @Test
@@ -486,12 +513,14 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError()).isNull();
         assertThat(adapterResponse.getBidderStatus().getError()).isNull();
         assertThat(adapterResponse.getBids()).hasSize(1);
     }
 
     @Test
-    public void callShouldReturnAdapterResponseWithErrorIfAtLeastOneErrorOccursWhileExtractingForNotToleratedErrorsAdapter()
+    public void
+    callShouldReturnAdapterResponseWithErrorIfAtLeastOneErrorOccursWhileExtractingForNotToleratedErrorsAdapter()
             throws JsonProcessingException {
         // given
         willReturn(asList(givenHttpRequest(), givenHttpRequest())).given(adapter).makeHttpRequests(any(), any());
@@ -512,8 +541,9 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
-        assertThat(adapterResponse.getBidderStatus().getError()).isNotNull()
-                .isEqualTo("adapter extractBids exception");
+        assertThat(adapterResponse.getError())
+                .isEqualTo(BidderError.badServerResponse("adapter extractBids exception"));
+        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("adapter extractBids exception");
     }
 
     @Test
@@ -541,6 +571,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getError()).isNull();
         assertThat(adapterResponse.getBidderStatus().getError()).isNull();
         assertThat(adapterResponse.getBids()).hasSize(1);
     }

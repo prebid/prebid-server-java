@@ -11,7 +11,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -70,7 +69,8 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.POST);
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("http://eplanning.com/exchangeId");
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly("http://eplanning.com/exchangeId");
 
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -141,13 +141,13 @@ public class EplanningBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage)
-                .containsExactly("EPlanning only supports banner Imps. Ignoring Imp ID=impId");
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
+                "EPlanning only supports banner Imps. Ignoring Imp ID=impId"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorMessageWhenImpExtBidderINull() throws JsonProcessingException {
+    public void makeHttpRequestsShouldReturnErrorMessageWhenImpExtBidderIsNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -159,9 +159,8 @@ public class EplanningBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage)
-                .containsExactly(
-                        "Ignoring imp id=impId, error while decoding extImpBidder, err: bidder property is not present");
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
+                "Ignoring imp id=impId, error while decoding extImpBidder, err: bidder property is not present"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -179,9 +178,10 @@ public class EplanningBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).element(0).asString()
-                .startsWith(
-                        "Ignoring imp id=impId, error while decoding extImpBidder, err: Cannot construct instance of ");
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith(
+                "Ignoring imp id=impId, error while decoding extImpBidder, err: Cannot construct instance of ");
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -204,10 +204,10 @@ public class EplanningBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage)
-                .containsExactly(
-                        "Ignoring imp id=impId, error while decoding extImpBidder, err: bidder property is not present");
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("http://eplanning.com/exchangeId");
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
+                "Ignoring imp id=impId, error while decoding extImpBidder, err: bidder property is not present"));
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly("http://eplanning.com/exchangeId");
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> Json.mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).hasSize(1)
@@ -292,7 +292,7 @@ public class EplanningBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build()))
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
@@ -304,39 +304,11 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyBidderBidAndErrorListsIfResponseStatusIsNoContent() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.NO_CONTENT.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyBidderBidAndErrorMessageIsResponseStatusIsNotOk() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), null);
-
-        // when
-        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Unexpected status code: 500. Run with request.test = 1 for more info");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnEmptyBidderBidAndErrorListsIfSeatBidIsNotPresentInResponse()
             throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder().build());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), response);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
@@ -349,15 +321,16 @@ public class EplanningBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCantBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), "{");
+        final HttpCall<BidRequest> httpCall = givenHttpCall("{");
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage)
-                .containsExactly("Unexpected end-of-input: expected close marker for Object (start marker at [Source:" +
-                        " (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, column: 3]");
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
+                "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at " +
+                        "[Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, column: " +
+                        "3]"));
     }
 
     @Test
@@ -366,7 +339,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(eplanningBidder.extractTargeting(Json.mapper.createObjectNode())).hasSize(0);
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(int statusCode, String body) {
-        return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
+    private static HttpCall<BidRequest> givenHttpCall(String body) {
+        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
 }

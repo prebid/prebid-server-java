@@ -9,8 +9,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
@@ -38,8 +36,6 @@ import java.util.function.Function;
  * Executes stored request processing
  */
 public class StoredRequestProcessor {
-
-    private static final Logger logger = LoggerFactory.getLogger(StoredRequestProcessor.class);
 
     private final ApplicationSettings applicationSettings;
     private final TimeoutFactory timeoutFactory;
@@ -98,7 +94,8 @@ public class StoredRequestProcessor {
                                                           Map<Imp, String> impsToStoredRequestId) {
         return storedDataFuture
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored request fetching failed with exception: %s", exception))))
+                        String.format("Stored request fetching failed with exception message: %s",
+                                exception.getMessage()))))
                 .compose(result -> result.getErrors().size() > 0
                         ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
                         : Future.succeededFuture(result))
@@ -167,13 +164,11 @@ public class StoredRequestProcessor {
             return Json.mapper.treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
                     classToCast);
         } catch (JsonPatchException e) {
-            final String errorMessage = String.format(
-                    "Couldn't create merge patch from origin object node for id %s", id);
-            logger.warn(errorMessage);
-            throw new InvalidRequestException(errorMessage);
+            throw new InvalidRequestException(String.format(
+                    "Couldn't create merge patch from origin object node for id %s: %s", id, e.getMessage()));
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(
-                    String.format("Can't convert merging result for id %s", id));
+                    String.format("Can't convert merging result for id %s: %s", id, e.getMessage()));
         }
     }
 
@@ -249,8 +244,8 @@ public class StoredRequestProcessor {
                     return prebid.getStoredrequest();
                 }
             } catch (JsonProcessingException e) {
-                throw new InvalidRequestException(
-                        String.format("Incorrect Imp extension format for Imp with id %s", imp.getId()));
+                throw new InvalidRequestException(String.format(
+                        "Incorrect Imp extension format for Imp with id %s: %s", imp.getId(), e.getMessage()));
             }
         }
         return null;

@@ -15,15 +15,13 @@ public class HttpCall<T> {
 
     HttpResponse response;
 
-    String error;
+    BidderError error;
 
-    boolean timedOut;
-
-    public static <T> HttpCall<T> full(HttpRequest<T> request, HttpResponse response, String error) {
-        return new HttpCall<>(request, response, error, false);
+    public static <T> HttpCall<T> success(HttpRequest<T> request, HttpResponse response, BidderError error) {
+        return new HttpCall<>(request, response, error);
     }
 
-    public static <T> HttpCall<T> partial(HttpRequest<T> request, String error, boolean timedOut) {
-        return new HttpCall<>(request, null, error, timedOut);
+    public static <T> HttpCall<T> failure(HttpRequest<T> request, BidderError error) {
+        return new HttpCall<>(request, null, error);
     }
 }

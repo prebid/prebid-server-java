@@ -12,9 +12,8 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -45,8 +44,6 @@ import java.util.stream.Collectors;
  */
 public class FacebookBidder implements Bidder<BidRequest> {
 
-    private static final Logger logger = LoggerFactory.getLogger(FacebookBidder.class);
-
     private static final Random RANDOM = new Random();
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
@@ -70,7 +67,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
         final List<Imp> processedImps = new ArrayList<>();
         final String placementId;
         String pubId = null;
@@ -83,7 +80,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 processedImps.add(makeImp(imp, placementId));
             }
         } catch (PreBidException e) {
-            errors.add(e.getMessage());
+            errors.add(BidderError.badInput(e.getMessage()));
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder()
@@ -95,15 +92,16 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
         return Result.of(Collections.singletonList(
                 HttpRequest.of(HttpMethod.POST, endpointUrl(), body, BidderUtil.headers(), outgoingRequest)),
-                BidderUtil.errors(errors));
+                errors);
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
-        } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
+        } catch (DecodeException e) {
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -131,7 +129,6 @@ public class FacebookBidder implements Bidder<BidRequest> {
             return Json.mapper.<ExtPrebid<?, ExtImpFacebook>>convertValue(imp.getExt(), FACEBOOK_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
-            logger.warn("Error occurred parsing audienceNetwork parameters", e);
             throw new PreBidException(e.getMessage(), e);
         }
     }

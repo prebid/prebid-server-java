@@ -10,9 +10,8 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -50,8 +49,6 @@ import java.util.stream.Collectors;
  */
 public class AppnexusBidder implements Bidder<BidRequest> {
 
-    private static final Logger logger = LoggerFactory.getLogger(AppnexusBidder.class);
-
     private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
 
@@ -71,7 +68,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
         final List<Imp> processedImps = new ArrayList<>();
         final Set<String> memberIds = new HashSet<>();
         for (final Imp imp : bidRequest.getImp()) {
@@ -80,7 +77,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 processedImps.add(impWithMemberId.getImp());
                 memberIds.add(impWithMemberId.getMemberId());
             } catch (PreBidException e) {
-                errors.add(e.getMessage());
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -94,7 +91,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             try {
                 validateMemberId(uniqueIds);
             } catch (PreBidException e) {
-                errors.add(e.getMessage());
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         } else {
             url = endpointUrl;
@@ -105,7 +102,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.POST, url, body, BidderUtil.headers(),
-                        outgoingRequest)), BidderUtil.errors(errors));
+                        outgoingRequest)), errors);
     }
 
     /**
@@ -207,7 +204,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             ext = Json.mapper.<ExtPrebid<?, ExtImpAppnexus>>convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
-            logger.warn("Error occurred parsing appnexus parameters", e);
             throw new PreBidException(e.getMessage(), e);
         }
 
@@ -237,9 +233,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(extractBids(BidderUtil.parseResponse(httpCall.getResponse())), Collections.emptyList());
-        } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
+        } catch (DecodeException | PreBidException e) {
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -299,7 +296,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         try {
             appnexusBidExt = Json.mapper.treeToValue(bidExt, AppnexusBidExt.class);
         } catch (JsonProcessingException e) {
-            logger.warn("Error occurred parsing bidresponse.bid.ext", e);
             throw new PreBidException(e.getMessage(), e);
         }
         return appnexusBidExt;

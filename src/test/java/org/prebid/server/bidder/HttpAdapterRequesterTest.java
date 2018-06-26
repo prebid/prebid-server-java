@@ -48,7 +48,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -69,7 +68,7 @@ public class HttpAdapterRequesterTest {
     @Mock
     private Usersyncer usersyncer;
 
-    private HttpAdapterRequester adapterHttpConnector;
+    private HttpAdapterRequester httpAdapterRequester;
 
     private Timeout timeout;
 
@@ -78,16 +77,7 @@ public class HttpAdapterRequesterTest {
         // given
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
 
-        adapterHttpConnector = new HttpAdapterRequester(BIDDER, adapter, usersyncer, httpAdapterConnector);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(BIDDER, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new HttpAdapterRequester(BIDDER, adapter, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new HttpAdapterRequester(BIDDER, adapter, usersyncer, null));
+        httpAdapterRequester = new HttpAdapterRequester(BIDDER, adapter, usersyncer, httpAdapterConnector);
     }
 
     @Test
@@ -96,13 +86,13 @@ public class HttpAdapterRequesterTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create(
+                BidderError.badInput(
                         "bidrequest.site.publisher.id or bidrequest.app.publisher.id required for legacy bidders."))));
     }
 
@@ -113,13 +103,13 @@ public class HttpAdapterRequesterTest {
                 .publisher(Publisher.builder().id("").build()).build()).build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create(
+                BidderError.badInput(
                         "bidrequest.site.publisher.id or bidrequest.app.publisher.id required for legacy bidders."))));
     }
 
@@ -131,13 +121,13 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("bidrequest.source.tid required for legacy bidders."))));
+                BidderError.badInput("bidrequest.source.tid required for legacy bidders."))));
     }
 
     @Test
@@ -149,13 +139,13 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("bidrequest.source.tid required for legacy bidders."))));
+                BidderError.badInput("bidrequest.source.tid required for legacy bidders."))));
     }
 
     @Test
@@ -168,15 +158,15 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create(
-                        "bidrequest.imp[i].secure must be consistent for legacy bidders. "
-                                + "Mixing 0 and 1 are not allowed."))));
+                BidderError.badInput(
+                        "bidrequest.imp[i].secure must be consistent for legacy bidders. Mixing 0 and 1 are not " +
+                                "allowed."))));
     }
 
     @Test
@@ -190,13 +180,13 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("There no imps in bidRequest for bidder rubicon"))));
+                BidderError.badInput("There no imps in bidRequest for bidder rubicon"))));
     }
 
     @Test
@@ -210,13 +200,13 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("legacy bidders can only bid on banner and video ad units"))));
+                BidderError.badInput("legacy bidders can only bid on banner and video ad units"))));
     }
 
     @Test
@@ -230,13 +220,13 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("legacy bidders should have at least one defined size Format"))));
+                BidderError.badInput("legacy bidders should have at least one defined size Format"))));
     }
 
     @Test
@@ -250,13 +240,13 @@ public class HttpAdapterRequesterTest {
                 .build();
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         verifyZeroInteractions(httpAdapterConnector);
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(emptyList(), emptyList(), singletonList(
-                BidderError.create("legacy bidders should have at least one defined size Format"))));
+                BidderError.badInput("legacy bidders should have at least one defined size Format"))));
     }
 
     @Test
@@ -276,11 +266,10 @@ public class HttpAdapterRequesterTest {
         given(httpAdapterConnector.call(any(), any(), any(), any())).willReturn(Future.succeededFuture
                 (AdapterResponse.of(
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
-                        singletonList(Bid.builder().mediaType(MediaType.video).build()),
-                        false)));
+                        singletonList(Bid.builder().mediaType(MediaType.video).build()), null)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, timeout);
+        httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         final ArgumentCaptor<AdapterRequest> bidderArgumentCaptor = ArgumentCaptor.forClass(AdapterRequest.class);
@@ -316,11 +305,10 @@ public class HttpAdapterRequesterTest {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
-                        singletonList(Bid.builder().mediaType(MediaType.video).build()),
-                        false)));
+                        singletonList(Bid.builder().mediaType(MediaType.video).build()), null)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, timeout);
+        httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         final ArgumentCaptor<AdapterRequest> bidderArgumentCaptor = ArgumentCaptor.forClass(AdapterRequest.class);
@@ -355,18 +343,17 @@ public class HttpAdapterRequesterTest {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
-                        singletonList(Bid.builder().mediaType(MediaType.banner).build()),
-                        false)));
+                        singletonList(Bid.builder().mediaType(MediaType.banner).build()), null)));
 
         // when
-        final Future<BidderSeatBid> result = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> result = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(
                 singletonList(BidderBid.of(com.iab.openrtb.response.Bid.builder().build(), BidType.banner, null)),
                 singletonList(ExtHttpCall.builder().build()),
-                singletonList(BidderError.create("legacy bidders can only bid on banner and video ad units"))));
+                singletonList(BidderError.badInput("legacy bidders can only bid on banner and video ad units"))));
     }
 
     @Test
@@ -385,16 +372,16 @@ public class HttpAdapterRequesterTest {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
-                        singletonList(Bid.builder().build()),
-                        false)));
+                        singletonList(Bid.builder().build()), null)));
 
         // when
-        final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> futureResult = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         assertThat(futureResult.succeeded()).isTrue();
         assertThat(futureResult.result()).isEqualTo(BidderSeatBid.of(emptyList(), singletonList(ExtHttpCall
-                .builder().build()), singletonList(BidderError.create("Media Type is not defined for Bid"))));
+                .builder().build()), singletonList(BidderError.badServerResponse(
+                "Media Type is not defined for Bid"))));
     }
 
     @Test
@@ -415,18 +402,17 @@ public class HttpAdapterRequesterTest {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
-                        singletonList(Bid.builder().build()),
-                        false)));
+                        singletonList(Bid.builder().build()), null)));
 
         // when
-        final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> futureResult = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         assertThat(futureResult.succeeded()).isTrue();
         assertThat(futureResult.result()).isEqualTo(BidderSeatBid.of(emptyList(), singletonList(ExtHttpCall
                 .builder().build()), asList(
-                BidderError.create("legacy bidders can only bid on banner and video ad units"),
-                BidderError.create("Media Type is not defined for Bid"))));
+                BidderError.badInput("legacy bidders can only bid on banner and video ad units"),
+                BidderError.badServerResponse("Media Type is not defined for Bid"))));
     }
 
     @Test
@@ -446,11 +432,10 @@ public class HttpAdapterRequesterTest {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
-                        singletonList(Bid.builder().mediaType(MediaType.banner).build()),
-                        false)));
+                        singletonList(Bid.builder().mediaType(MediaType.banner).build()), null)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, timeout);
+        httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
@@ -473,11 +458,10 @@ public class HttpAdapterRequesterTest {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
-                        singletonList(Bid.builder().mediaType(MediaType.banner).build()),
-                        false)));
+                        singletonList(Bid.builder().mediaType(MediaType.banner).build()), null)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, timeout);
+        httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
@@ -500,11 +484,10 @@ public class HttpAdapterRequesterTest {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
-                        singletonList(Bid.builder().mediaType(MediaType.banner).build()),
-                        false)));
+                        singletonList(Bid.builder().mediaType(MediaType.banner).build()), null)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, timeout);
+        httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
@@ -546,11 +529,10 @@ public class HttpAdapterRequesterTest {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
                         BidderStatus.builder().debug(singletonList(BidderDebug.builder().build())).build(),
-                        singletonList(Bid.builder().mediaType(MediaType.banner).build()),
-                        false)));
+                        singletonList(Bid.builder().mediaType(MediaType.banner).build()), null)));
 
         // when
-        adapterHttpConnector.requestBids(bidRequest, timeout);
+        httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         final PreBidRequestContext preBidRequestContext = capturePreBidRequestContext();
@@ -620,10 +602,10 @@ public class HttpAdapterRequesterTest {
                         singletonList(Bid.builder().mediaType(MediaType.banner).code("code").creativeId("creativeId")
                                 .price(BigDecimal.ONE).nurl("nurl").adm("adm").width(100).height(200).dealId("dealId")
                                 .build()),
-                        false)));
+                        null)));
 
         // when
-        final Future<BidderSeatBid> futureResult = adapterHttpConnector.requestBids(bidRequest, timeout);
+        final Future<BidderSeatBid> futureResult = httpAdapterRequester.requestBids(bidRequest, timeout);
 
         // then
         assertThat(futureResult.result()).isEqualTo(BidderSeatBid.of(singletonList(

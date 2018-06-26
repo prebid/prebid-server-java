@@ -3,6 +3,7 @@ package org.prebid.server.bidder.model;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -13,6 +14,10 @@ import java.util.List;
 public class Result<T> {
 
     T value;
+
     List<BidderError> errors;
 
+    public static <R> Result<List<R>> emptyWithError(BidderError error) {
+        return Result.of(Collections.emptyList(), Collections.singletonList(error));
+    }
 }

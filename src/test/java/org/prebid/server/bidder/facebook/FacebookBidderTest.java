@@ -117,8 +117,8 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId");
+                .containsExactly(BidderError.badInput(
+                        "audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId"));
     }
 
     @Test
@@ -141,8 +141,8 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId");
+                .containsExactly(BidderError.badInput(
+                        "audienceNetwork doesn't support native or audio Imps. Ignoring Imp ID=impId"));
     }
 
     @Test
@@ -164,9 +164,8 @@ public class FacebookBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("audienceNetwork doesn't support video type with no video data");
+        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
+                "audienceNetwork doesn't support video type with no video data"));
     }
 
     @Test
@@ -191,8 +190,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("audienceNetwork parameters section is missing");
+                .containsExactly(BidderError.badInput("audienceNetwork parameters section is missing"));
     }
 
     @Test
@@ -218,8 +216,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Missing placementId param");
+                .containsExactly(BidderError.badInput("Missing placementId param"));
     }
 
     @Test
@@ -245,8 +242,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Missing placementId param");
+                .containsExactly(BidderError.badInput("Missing placementId param"));
     }
 
     @Test
@@ -272,8 +268,7 @@ public class FacebookBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Invalid placementId param '~malformed'");
+                .containsExactly(BidderError.badInput("Invalid placementId param '~malformed'"));
     }
 
     @Test
@@ -411,52 +406,24 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultIfResponseStatusIs204() {
-        // given
-        final HttpCall httpCall = givenHttpCall(204, null);
-
-        // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseStatusIsNot200Or204() {
-        // given
-        final HttpCall httpCall = givenHttpCall(302, null);
-
-        // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors())
-                .extracting(BidderError::getMessage)
-                .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall httpCall = givenHttpCall(200, "invalid");
+        final HttpCall httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).containsOnly(
-                "Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
-                        " at [Source: (String)\"invalid\"; line: 1, column: 15]");
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
+                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
+                        " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
-        final HttpCall httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .w(200)
@@ -487,8 +454,8 @@ public class FacebookBidderTest extends VertxTest {
                         BidType.banner, null));
     }
 
-    private static HttpCall givenHttpCall(int statusCode, String body) {
-        return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
+    private static HttpCall givenHttpCall(String body) {
+        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
 
 }

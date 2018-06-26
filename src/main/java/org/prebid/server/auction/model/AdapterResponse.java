@@ -2,6 +2,7 @@ package org.prebid.server.auction.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderStatus;
 
@@ -15,5 +16,5 @@ public class AdapterResponse {
 
     List<Bid> bids;
 
-    boolean timedOut;
+    BidderError error;
 }

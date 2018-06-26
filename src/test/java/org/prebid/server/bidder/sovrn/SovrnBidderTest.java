@@ -24,10 +24,10 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
@@ -68,8 +68,8 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId");
+                .containsExactly(BidderError.badInput(
+                        "Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId"));
     }
 
     @Test
@@ -89,8 +89,8 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId");
+                .containsExactly(BidderError.badInput(
+                        "Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=impId"));
     }
 
     @Test
@@ -110,8 +110,8 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=23");
+                .containsExactly(BidderError.badInput(
+                        "Sovrn doesn't support audio, video, or native Imps. Ignoring Imp ID=23"));
     }
 
     @Test
@@ -130,8 +130,7 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Sovrn parameters section is missing");
+                .containsExactly(BidderError.badInput("Sovrn parameters section is missing"));
     }
 
     @Test
@@ -249,52 +248,24 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultIfResponseStatusIs204() {
-        // given
-        final HttpCall httpCall = givenHttpCall(204, null);
-
-        // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseStatusIsNot200Or204() {
-        // given
-        final HttpCall httpCall = givenHttpCall(302, null);
-
-        // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors())
-                .extracting(BidderError::getMessage)
-                .containsOnly("Unexpected status code: 302. Run with request.test = 1 for more info");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall httpCall = givenHttpCall(200, "invalid");
+        final HttpCall httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).hasSize(1).extracting(BidderError::getMessage).containsOnly(
-                "Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
-                        " at [Source: (String)\"invalid\"; line: 1, column: 15]");
+        assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badServerResponse(
+                "Failed to decode: Unrecognized token 'invalid': was expecting ('true', 'false' or 'null')\n" +
+                        " at [Source: (String)\"invalid\"; line: 1, column: 15]"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnResultWithExpectedFields() throws JsonProcessingException {
         // given
-        final HttpCall httpCall = givenHttpCall(200, mapper.writeValueAsString(BidResponse.builder()
+        final HttpCall httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
                                 .w(200)
@@ -325,7 +296,7 @@ public class SovrnBidderTest extends VertxTest {
                         BidType.banner, null));
     }
 
-    private static HttpCall givenHttpCall(int statusCode, String body) {
-        return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
+    private static HttpCall<BidRequest> givenHttpCall(String body) {
+        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
 }

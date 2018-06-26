@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.eplanning;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -10,6 +9,8 @@ import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -20,7 +21,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -57,7 +57,7 @@ public class EplanningBidder implements Bidder<BidRequest> {
      */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
         final Map<String, List<Imp>> exchangeIdsToImps = mapExchangeIdsToImps(request.getImp(), errors);
         final MultiMap headers = createHeaders(request.getDevice());
         return createHttpRequests(request, exchangeIdsToImps, headers, errors);
@@ -69,33 +69,35 @@ public class EplanningBidder implements Bidder<BidRequest> {
      */
     private Result<List<HttpRequest<BidRequest>>> createHttpRequests(BidRequest bidRequest,
                                                                      Map<String, List<Imp>> exchangeIdsToImps,
-                                                                     MultiMap headers, List<String> errors) {
+                                                                     MultiMap headers, List<BidderError> errors) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>(exchangeIdsToImps.size());
         for (final Map.Entry<String, List<Imp>> exchangeIdToImps : exchangeIdsToImps.entrySet()) {
             final BidRequest exchangeBidRequest = bidRequest.toBuilder().imp(exchangeIdToImps.getValue()).build();
             final String bidRequestBody;
             try {
-                bidRequestBody = Json.mapper.writeValueAsString(exchangeBidRequest);
-            } catch (JsonProcessingException e) {
-                errors.add(String.format("error while encoding bidRequest, err: %s", e.getMessage()));
-                return Result.of(Collections.emptyList(), BidderUtil.errors(errors));
+                bidRequestBody = Json.encode(exchangeBidRequest);
+            } catch (EncodeException e) {
+                errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s",
+                        e.getMessage())));
+                return Result.of(Collections.emptyList(), errors);
             }
             httpRequests.add(HttpRequest.of(HttpMethod.POST,
                     String.format(endpointUrlTemplate, exchangeIdToImps.getKey()), bidRequestBody, headers,
                     exchangeBidRequest));
         }
-        return Result.of(httpRequests, BidderUtil.errors(errors));
+        return Result.of(httpRequests, errors);
     }
 
     /**
      * Validates and creates {@link Map} where exchangeId is used as key and {@link List} of {@link Imp} as value.
      */
-    private static Map<String, List<Imp>> mapExchangeIdsToImps(List<Imp> imps, List<String> errors) {
+    private static Map<String, List<Imp>> mapExchangeIdsToImps(List<Imp> imps, List<BidderError> errors) {
         final Map<String, List<Imp>> exchangeIdsToImp = new HashMap<>();
 
         for (final Imp imp : imps) {
             if (imp.getBanner() == null) {
-                errors.add(String.format("EPlanning only supports banner Imps. Ignoring Imp ID=%s", imp.getId()));
+                errors.add(BidderError.badInput(String.format(
+                        "EPlanning only supports banner Imps. Ignoring Imp ID=%s", imp.getId())));
                 continue;
             }
 
@@ -104,14 +106,16 @@ public class EplanningBidder implements Bidder<BidRequest> {
                 extImpEplanning = Json.mapper.<ExtPrebid<?, ExtImpEplanning>>convertValue(imp.getExt(),
                         EPLANNING_EXT_TYPE_REFERENCE).getBidder();
             } catch (IllegalArgumentException ex) {
-                errors.add(String.format("Ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(),
-                        ex.getMessage()));
+                errors.add(BidderError.badInput(String.format(
+                        "Ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(),
+                        ex.getMessage())));
                 continue;
             }
 
             if (extImpEplanning == null) {
-                errors.add(String.format("Ignoring imp id=%s, error while decoding extImpBidder, err: bidder property"
-                        + " is not present", imp.getId()));
+                errors.add(BidderError.badInput(String.format(
+                        "Ignoring imp id=%s, error while decoding extImpBidder, err: bidder property is not present",
+                        imp.getId())));
                 continue;
             }
 
@@ -150,9 +154,10 @@ public class EplanningBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            return extractBids(BidderUtil.parseResponse(httpCall.getResponse()));
-        } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return extractBids(bidResponse);
+        } catch (DecodeException e) {
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 

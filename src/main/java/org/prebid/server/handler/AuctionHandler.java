@@ -19,6 +19,7 @@ import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.InvalidRequestException;
@@ -100,7 +101,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .compose(preBidRequestContext -> applicationSettings.getAccountById(
                         preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
                         .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
-                        .recover(exception -> failWithInvalidRequest("Unknown account id: Unknown account", exception)))
+                        .recover(AuctionHandler::failWithUnknownAccountOrPropagateOriginal))
 
                 .map((Tuple2<PreBidRequestContext, Account> result) ->
                         updateAccountRequestAndRequestTimeMetric(result, context, startTime))
@@ -177,6 +178,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return Future.failedFuture(new InvalidRequestException(message, exception));
     }
 
+    private static <T> Future<T> failWithUnknownAccountOrPropagateOriginal(Throwable exception) {
+        return exception instanceof PreBidException
+                // transform into InvalidRequestException if account is unknown
+                ? failWithInvalidRequest("Unknown account id: Unknown account", exception)
+                // otherwise propagate exception as is because it is of system nature
+                : Future.failedFuture(exception);
+    }
+
     private static <T> Future<T> failWith(String message, Throwable exception) {
         return Future.failedFuture(new PreBidException(message, exception));
     }
@@ -202,7 +211,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
                                                  List<AdapterResponse> adapterResponses) {
         adapterResponses.stream()
-                .filter(ar -> StringUtils.isNotBlank(ar.getBidderStatus().getError()))
+                .filter(ar -> ar.getError() != null)
                 .forEach(ar -> updateAdapterErrorMetrics(ar, preBidRequestContext));
 
         final List<BidderStatus> bidderStatuses = Stream.concat(
@@ -235,7 +244,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
                 .forAdapter(bidder);
 
-        if (adapterResponse.isTimedOut()) {
+        if (adapterResponse.getError().getType() == BidderError.Type.timeout) {
             adapterMetrics.incCounter(MetricName.timeout_requests);
             accountAdapterMetrics.incCounter(MetricName.timeout_requests);
         } else {
@@ -398,11 +407,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
             result = responseResult.result();
         } else {
             final Throwable exception = responseResult.cause();
+            final boolean isRequestInvalid = exception instanceof InvalidRequestException;
 
-            responseStatus = exception instanceof InvalidRequestException ? MetricName.badinput : MetricName.err;
+            responseStatus = isRequestInvalid ? MetricName.badinput : MetricName.err;
 
-            logger.info("Failed to process /auction request", exception);
-            result = error(exception instanceof InvalidRequestException || exception instanceof PreBidException
+            if (!isRequestInvalid) {
+                logger.error("Failed to process /auction request", exception);
+            }
+
+            result = error(isRequestInvalid || exception instanceof PreBidException
                     ? exception.getMessage()
                     : "Unexpected server error");
         }

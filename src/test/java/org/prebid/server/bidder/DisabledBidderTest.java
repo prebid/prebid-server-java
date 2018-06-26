@@ -28,8 +28,7 @@ public class DisabledBidderTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsOnly("error message");
+                .containsOnly(BidderError.badInput("error message"));
     }
 
     @Test

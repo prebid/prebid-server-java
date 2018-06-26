@@ -2,6 +2,7 @@ package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
 import io.netty.channel.ConnectTimeoutException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -11,7 +12,6 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -105,9 +105,11 @@ public class HttpBidderRequester<T> implements BidderRequester {
     private static <T> void handleException(Throwable exception, Future<HttpCall<T>> result,
                                             HttpRequest<T> httpRequest) {
         logger.warn("Error occurred while sending HTTP request to a bidder", exception);
-        final boolean isTimedOut = exception instanceof TimeoutException
-                || exception instanceof ConnectTimeoutException;
-        result.complete(HttpCall.partial(httpRequest, exception.getMessage(), isTimedOut));
+        final BidderError.Type errorType =
+                exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
+                        ? BidderError.Type.timeout
+                        : BidderError.Type.unknown;
+        result.complete(HttpCall.failure(httpRequest, BidderError.create(exception.getMessage(), errorType)));
     }
 
     /**
@@ -115,14 +117,19 @@ public class HttpBidderRequester<T> implements BidderRequester {
      * indicates an error).
      */
     private HttpCall<T> toCall(int statusCode, String body, MultiMap headers, HttpRequest<T> httpRequest) {
-        return HttpCall.full(httpRequest, HttpResponse.of(statusCode, headers, body), errorOrNull(statusCode));
+        return HttpCall.success(httpRequest, HttpResponse.of(statusCode, headers, body), errorOrNull(statusCode));
     }
 
-    private static String errorOrNull(int statusCode) {
-        return statusCode < 200 || statusCode >= 400
-                ? String.format("Server responded with failure status: %d. Set request.test = 1 for debugging info.",
-                statusCode)
-                : null;
+    private static BidderError errorOrNull(int statusCode) {
+        if (statusCode != HttpResponseStatus.OK.code() && statusCode != HttpResponseStatus.NO_CONTENT.code()) {
+            return BidderError.create(String.format(
+                    "Unexpected status code: %d. Run with request.test = 1 for more info", statusCode),
+                    statusCode == HttpResponseStatus.BAD_REQUEST.code()
+                            ? BidderError.Type.bad_input
+                            : BidderError.Type.bad_server_response);
+        }
+
+        return null;
     }
 
     /**
@@ -138,7 +145,8 @@ public class HttpBidderRequester<T> implements BidderRequester {
                 : Collections.emptyList();
 
         final List<Result<List<BidderBid>>> createdBids = calls.stream()
-                .filter(httpCall -> StringUtils.isBlank(httpCall.getError()))
+                .filter(httpCall -> httpCall.getError() == null)
+                .filter(httpCall -> httpCall.getResponse().getStatusCode() == HttpResponseStatus.OK.code())
                 .map(httpCall -> bidder.makeBids(httpCall, bidRequest))
                 .collect(Collectors.toList());
 
@@ -154,15 +162,13 @@ public class HttpBidderRequester<T> implements BidderRequester {
     /**
      * Assembles all errors for {@link BidderSeatBid} into the list of {@link List}&lt;{@link BidderError}&gt;
      */
-    private List<BidderError> errors(List<BidderError> previousErrors, List<HttpCall<T>> calls,
-                                     List<Result<List<BidderBid>>> createdBids) {
-
+    private static <R> List<BidderError> errors(List<BidderError> previousErrors, List<HttpCall<R>> calls,
+                                                List<Result<List<BidderBid>>> createdBids) {
         final List<BidderError> bidderErrors = new ArrayList<>(previousErrors);
         bidderErrors.addAll(
                 Stream.concat(
                         createdBids.stream().flatMap(bidResult -> bidResult.getErrors().stream()),
-                        calls.stream().filter(call -> StringUtils.isNotBlank(call.getError()))
-                                .map(call -> BidderError.of(call.getError(), call.isTimedOut())))
+                        calls.stream().map(HttpCall::getError).filter(Objects::nonNull))
                         .collect(Collectors.toList()));
 
         return bidderErrors;

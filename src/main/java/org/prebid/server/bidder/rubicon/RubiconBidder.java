@@ -21,11 +21,11 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.ViewabilityVendors;
 import org.prebid.server.bidder.model.BidderBid;
@@ -104,7 +104,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
-        final List<String> errors = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
 
         for (final Imp imp : bidRequest.getImp()) {
             try {
@@ -112,21 +112,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 final String body = Json.encode(singleRequest);
                 httpRequests.add(HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers, singleRequest));
             } catch (PreBidException e) {
-                errors.add(e.getMessage());
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.of(httpRequests, BidderUtil.errors(errors));
+        return Result.of(httpRequests, errors);
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            return Result.of(
-                    extractBids(httpCall.getRequest().getPayload(), BidderUtil.parseResponse(httpCall.getResponse())),
-                    Collections.emptyList());
-        } catch (PreBidException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+        } catch (DecodeException e) {
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
@@ -178,7 +177,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return Json.mapper.<ExtPrebid<?, ExtImpRubicon>>convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
-            logger.warn("Error occurred parsing rubicon parameters", e);
             throw new PreBidException(e.getMessage(), e);
         }
     }
@@ -305,7 +303,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         try {
             return extNode != null ? Json.mapper.treeToValue(extNode, ExtUser.class) : null;
         } catch (JsonProcessingException e) {
-            logger.warn("Error occurred while parsing bidrequest.user.ext", e);
             throw new PreBidException(e.getMessage(), e);
         }
     }

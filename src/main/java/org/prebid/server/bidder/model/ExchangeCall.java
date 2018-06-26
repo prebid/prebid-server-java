@@ -14,23 +14,17 @@ public class ExchangeCall<T, R> {
 
     BidderDebug bidderDebug;
 
-    String error;
+    BidderError error;
 
-    boolean timedOut;
-
-    public static <T, R> ExchangeCall<T, R> error(BidderDebug bidderDebug, String error) {
-        return new ExchangeCall<>(null, null, bidderDebug, error, false);
-    }
-
-    public static <T, R> ExchangeCall<T, R> timeout(BidderDebug bidderDebug, String error) {
-        return new ExchangeCall<>(null, null, bidderDebug, error, true);
+    public static <T, R> ExchangeCall<T, R> error(BidderDebug bidderDebug, BidderError error) {
+        return new ExchangeCall<>(null, null, bidderDebug, error);
     }
 
     public static <T, R> ExchangeCall<T, R> success(T request, R response, BidderDebug bidderDebug) {
-        return new ExchangeCall<>(request, response, bidderDebug, null, false);
+        return new ExchangeCall<>(request, response, bidderDebug, null);
     }
 
     public static <T, R> ExchangeCall<T, R> empty(BidderDebug bidderDebug) {
-        return new ExchangeCall<>(null, null, bidderDebug, null, false);
+        return new ExchangeCall<>(null, null, bidderDebug, null);
     }
 }

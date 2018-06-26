@@ -9,16 +9,12 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
-import lombok.AllArgsConstructor;
-import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.adform.model.AdformBid;
 import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.bidder.model.BidderBid;
@@ -65,12 +61,12 @@ public class AdformBidder implements Bidder<Void> {
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final List<Imp> imps = request.getImp();
-        final ResultWithErrors<List<ExtImpAdform>> extImpAdformsResult = getExtImpAdforms(imps);
-        final List<ExtImpAdform> extImpAdforms = extImpAdformsResult.result;
-        final List<String> errors = extImpAdformsResult.errors;
+        final Result<List<ExtImpAdform>> extImpAdformsResult = getExtImpAdforms(imps);
+        final List<ExtImpAdform> extImpAdforms = extImpAdformsResult.getValue();
+        final List<BidderError> errors = extImpAdformsResult.getErrors();
 
         if (extImpAdforms.size() == 0) {
-            return Result.of(Collections.emptyList(), BidderUtil.errors(errors));
+            return Result.of(Collections.emptyList(), errors);
         }
         final Device device = request.getDevice();
         final String url = AdformHttpUtil.buildAdformUrl(
@@ -93,7 +89,7 @@ public class AdformBidder implements Bidder<Void> {
 
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers, null)),
-                BidderUtil.errors(errors));
+                errors);
     }
 
     /**
@@ -104,21 +100,13 @@ public class AdformBidder implements Bidder<Void> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
-        final int responseStatusCode = httpResponse.getStatusCode();
-        if (responseStatusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        }
-        if (responseStatusCode != HttpResponseStatus.OK.code()) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(
-                    String.format("unexpected status code: %d. Run with request.debug = 1 for more info",
-                            responseStatusCode))));
-        }
+
         final List<AdformBid> adformBids;
         try {
             adformBids = Json.mapper.readValue(httpResponse.getBody(),
                     Json.mapper.getTypeFactory().constructCollectionType(List.class, AdformBid.class));
         } catch (IOException e) {
-            return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.create(e.getMessage())));
+            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
         return Result.of(toBidderBid(adformBids, bidRequest.getImp()), Collections.emptyList());
     }
@@ -131,13 +119,13 @@ public class AdformBidder implements Bidder<Void> {
     /**
      * Retrieves from {@link Imp} and filter not valid {@link ExtImpAdform} and returns list result with errors
      */
-    private ResultWithErrors<List<ExtImpAdform>> getExtImpAdforms(List<Imp> imps) {
-        final List<String> errors = new ArrayList<>();
+    private Result<List<ExtImpAdform>> getExtImpAdforms(List<Imp> imps) {
+        final List<BidderError> errors = new ArrayList<>();
         final List<ExtImpAdform> extImpAdforms = new ArrayList<>();
         for (final Imp imp : imps) {
             if (imp.getBanner() == null) {
-                errors.add(String.format(
-                        "Adform adapter supports only banner Imps for now. Ignoring Imp ID=%s", imp.getId()));
+                errors.add(BidderError.badInput(String.format(
+                        "Adform adapter supports only banner Imps for now. Ignoring Imp ID=%s", imp.getId())));
                 continue;
             }
             final ExtImpAdform extImpAdform;
@@ -145,19 +133,20 @@ public class AdformBidder implements Bidder<Void> {
                 extImpAdform = Json.mapper.<ExtPrebid<?, ExtImpAdform>>convertValue(imp.getExt(),
                         ADFORM_EXT_TYPE_REFERENCE).getBidder();
             } catch (IllegalArgumentException e) {
-                errors.add(String.format("Error occurred parsing adform parameters %s", e.getMessage()));
+                errors.add(BidderError.badInput(String.format("Error occurred parsing adform parameters %s",
+                        e.getMessage())));
                 continue;
             }
 
             final Long mid = extImpAdform.getMasterTagId();
             if (mid == null || mid <= 0) {
-                errors.add(String.format("master tag(placement) id is invalid=%s", mid));
+                errors.add(BidderError.badInput(String.format("master tag(placement) id is invalid=%s", mid)));
                 continue;
             }
             extImpAdforms.add(extImpAdform);
         }
 
-        return ResultWithErrors.of(extImpAdforms, errors);
+        return Result.of(extImpAdforms, errors);
     }
 
     /**
@@ -249,17 +238,5 @@ public class AdformBidder implements Bidder<Void> {
                     BidType.banner, null));
         }
         return bidderBids;
-    }
-
-    /**
-     * Class which holds result with {@link List} of errors
-     */
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static class ResultWithErrors<T> {
-
-        T result;
-
-        List<String> errors;
     }
 }
