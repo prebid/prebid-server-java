@@ -22,7 +22,6 @@ import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidsWithError;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -253,7 +252,8 @@ public class HttpAdapterConnector {
     }
 
     /**
-     * Transforms {@link ExchangeCall} into {@link BidsWithError} object with list of bids or error.
+     * Transforms {@link ExchangeCall} into {@link Result}&lt;{@link List}&lt;{@link Bid}&gt;&gt; object with list of
+     * bids and error.
      */
     private static <T, R> Result<List<Bid>> bidsWithError(Adapter<T, R> adapter, AdapterRequest adapterRequest,
                                                           ExchangeCall<T, R> exchangeCall, Integer responseTime) {
@@ -273,7 +273,7 @@ public class HttpAdapterConnector {
     }
 
     /**
-     * Searches for last error in list of {@link BidsWithError}
+     * Searches for last error in list of {@link Result}&lt;{@link List}&lt;{@link Bid}&gt;&gt;
      */
     private static <U extends Result<List<Bid>>> U failedBidsWithError(List<U> bidsWithErrors) {
         final ListIterator<U> iterator = bidsWithErrors.listIterator(bidsWithErrors.size());
