@@ -191,7 +191,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Can't convert merging result for id 123");
+                .hasMessageStartingWith("Can't convert merging result for id 123: Cannot deserialize");
     }
 
     @Test
@@ -374,7 +374,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Incorrect Imp extension format for Imp with id imp-test");
+                .hasMessageStartingWith("Incorrect Imp extension format for Imp with id imp-test: Cannot deserialize");
     }
 
     @Test
@@ -394,8 +394,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Stored request fetching failed with exception: java.lang.Exception:"
-                        + " Error during file fetching");
+                .hasMessage("Stored request fetching failed with exception message: Error during file fetching");
     }
 
     @Test
@@ -438,7 +437,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Can't convert merging result for id 123");
+                .hasMessageStartingWith("Can't convert merging result for id 123: Cannot deserialize");
     }
 
     @Test

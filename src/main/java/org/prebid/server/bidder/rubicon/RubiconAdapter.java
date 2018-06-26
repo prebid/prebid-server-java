@@ -336,7 +336,6 @@ public class RubiconAdapter extends OpenrtbAdapter {
             final ExtUser extUser = Json.mapper.treeToValue(extNode, ExtUser.class);
             return extUser != null ? extUser.getConsent() : null;
         } catch (JsonProcessingException e) {
-            logger.warn("Error occurred while parsing prebidrequest.user.ext", e);
             throw new PreBidException(e.getMessage());
         }
     }

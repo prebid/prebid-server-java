@@ -13,8 +13,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -43,8 +41,6 @@ import java.util.stream.Collectors;
  * Sovrn {@link Bidder} implementation.
  */
 public class SovrnBidder implements Bidder<BidRequest> {
-
-    private static final Logger logger = LoggerFactory.getLogger(SovrnBidder.class);
 
     private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpSovrn>>() {
@@ -117,7 +113,6 @@ public class SovrnBidder implements Bidder<BidRequest> {
             return Json.mapper.<ExtPrebid<?, ExtImpSovrn>>convertValue(imp.getExt(), SOVRN_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
-            logger.warn("Error occurred parsing sovrn parameters", e);
             throw new PreBidException(e.getMessage(), e);
         }
     }

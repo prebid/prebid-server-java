@@ -101,7 +101,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .compose(preBidRequestContext -> applicationSettings.getAccountById(
                         preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
                         .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
-                        .recover(exception -> failWithInvalidRequest("Unknown account id: Unknown account", exception)))
+                        .recover(AuctionHandler::failWithUnknownAccountOrPropagateOriginal))
 
                 .map((Tuple2<PreBidRequestContext, Account> result) ->
                         updateAccountRequestAndRequestTimeMetric(result, context, startTime))
@@ -176,6 +176,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private static <T> Future<T> failWithInvalidRequest(String message, Throwable exception) {
         return Future.failedFuture(new InvalidRequestException(message, exception));
+    }
+
+    private static <T> Future<T> failWithUnknownAccountOrPropagateOriginal(Throwable exception) {
+        return exception instanceof PreBidException
+                // transform into InvalidRequestException if account is unknown
+                ? failWithInvalidRequest("Unknown account id: Unknown account", exception)
+                // otherwise propagate exception as is because it is of system nature
+                : Future.failedFuture(exception);
     }
 
     private static <T> Future<T> failWith(String message, Throwable exception) {
@@ -399,11 +407,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
             result = responseResult.result();
         } else {
             final Throwable exception = responseResult.cause();
+            final boolean isRequestInvalid = exception instanceof InvalidRequestException;
 
-            responseStatus = exception instanceof InvalidRequestException ? MetricName.badinput : MetricName.err;
+            responseStatus = isRequestInvalid ? MetricName.badinput : MetricName.err;
 
-            logger.info("Failed to process /auction request", exception);
-            result = error(exception instanceof InvalidRequestException || exception instanceof PreBidException
+            if (!isRequestInvalid) {
+                logger.error("Failed to process /auction request", exception);
+            }
+
+            result = error(isRequestInvalid || exception instanceof PreBidException
                     ? exception.getMessage()
                     : "Unexpected server error");
         }

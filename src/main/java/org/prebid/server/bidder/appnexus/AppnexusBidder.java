@@ -12,8 +12,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -50,8 +48,6 @@ import java.util.stream.Collectors;
  * AppNexus {@link Bidder} implementation.
  */
 public class AppnexusBidder implements Bidder<BidRequest> {
-
-    private static final Logger logger = LoggerFactory.getLogger(AppnexusBidder.class);
 
     private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
@@ -208,7 +204,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             ext = Json.mapper.<ExtPrebid<?, ExtImpAppnexus>>convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
-            logger.warn("Error occurred parsing appnexus parameters", e);
             throw new PreBidException(e.getMessage(), e);
         }
 
@@ -301,7 +296,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         try {
             appnexusBidExt = Json.mapper.treeToValue(bidExt, AppnexusBidExt.class);
         } catch (JsonProcessingException e) {
-            logger.warn("Error occurred parsing bidresponse.bid.ext", e);
             throw new PreBidException(e.getMessage(), e);
         }
         return appnexusBidExt;
