@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -170,7 +169,7 @@ public class AdformBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCantBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), "{");
+        final HttpCall<Void> httpCall = givenHttpCall("{");
 
         // when
         final Result<List<BidderBid>> result = adformBidder.makeBids(httpCall, null);
@@ -185,7 +184,7 @@ public class AdformBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfResponseBannerFieldIsEmpty() throws JsonProcessingException {
         // given
         final String adformResponse = mapper.writeValueAsString(AdformBid.builder().build());
-        final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), adformResponse);
+        final HttpCall<Void> httpCall = givenHttpCall(adformResponse);
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().build())).build();
 
         // when
@@ -201,7 +200,7 @@ public class AdformBidderTest extends VertxTest {
         // given
         final String adformResponse = mapper.writeValueAsString(AdformBid.builder().banner("someBanner")
                 .response("notBanner").build());
-        final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), adformResponse);
+        final HttpCall<Void> httpCall = givenHttpCall(adformResponse);
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().build())).build();
 
         // when
@@ -219,7 +218,7 @@ public class AdformBidderTest extends VertxTest {
                 .response("banner").winCur("currency").dealId("dealId").height(300).width(400).winCrid("gross")
                 .winBid(BigDecimal.ONE).build());
 
-        final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), adformResponse);
+        final HttpCall<Void> httpCall = givenHttpCall(adformResponse);
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("id").build())).build();
 
         // when
@@ -238,7 +237,7 @@ public class AdformBidderTest extends VertxTest {
         final String adformResponse = mapper.writeValueAsString(asList(AdformBid.builder().banner("admBanner")
                 .response("banner").build(), AdformBid.builder().build()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(HttpResponseStatus.OK.code(), adformResponse);
+        final HttpCall<Void> httpCall = givenHttpCall(adformResponse);
         final BidRequest bidRequest = BidRequest.builder().imp(asList(Imp.builder().id("id1").build(),
                 Imp.builder().id("id2").build())).build();
 
@@ -251,7 +250,7 @@ public class AdformBidderTest extends VertxTest {
                 Bid.builder().id("id1").impid("id1").adm("admBanner").build(), BidType.banner, null));
     }
 
-    private static HttpCall<Void> givenHttpCall(int statusCode, String body) {
-        return HttpCall.full(null, HttpResponse.of(statusCode, null, body), null);
+    private static HttpCall<Void> givenHttpCall(String body) {
+        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }
 }

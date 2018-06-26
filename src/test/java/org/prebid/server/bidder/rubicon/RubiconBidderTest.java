@@ -702,7 +702,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.full(
+        return HttpCall.success(
                 HttpRequest.of(null, null, null, null, bidRequest),
                 HttpResponse.of(200, null, body),
                 null);
