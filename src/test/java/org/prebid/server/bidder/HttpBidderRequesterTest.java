@@ -363,8 +363,8 @@ public class HttpBidderRequesterTest {
         assertThat(bidderSeatBid.getBids()).hasSize(1);
         assertThat(bidderSeatBid.getErrors()).containsOnly(
                 BidderError.badInput("makeHttpRequestsError"),
-                BidderError.unknown("Request exception"),
-                BidderError.unknown("Response exception"),
+                BidderError.generic("Request exception"),
+                BidderError.generic("Response exception"),
                 BidderError.timeout("Timeout exception"),
                 BidderError.badServerResponse("Unexpected status code: 500. Run with request.test = 1 for more info"),
                 BidderError.badInput("Unexpected status code: 400. Run with request.test = 1 for more info"),

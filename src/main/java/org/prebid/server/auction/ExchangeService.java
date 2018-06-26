@@ -685,7 +685,7 @@ public class ExchangeService {
             final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
             if (validationResult.hasErrors()) {
                 for (String error : validationResult.getErrors()) {
-                    errors.add(BidderError.unknown(error));
+                    errors.add(BidderError.generic(error));
                 }
             } else {
                 validBids.add(bid);
@@ -733,7 +733,7 @@ public class ExchangeService {
                 }
                 updatedBidderBids.add(bidderBid);
             } catch (PreBidException ex) {
-                errors.add(BidderError.unknown(ex.getMessage()));
+                errors.add(BidderError.generic(ex.getMessage()));
             }
         }
 

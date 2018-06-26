@@ -18,8 +18,8 @@ public class BidderError {
         return BidderError.of(message, type);
     }
 
-    public static BidderError unknown(String message) {
-        return BidderError.of(message, Type.unknown);
+    public static BidderError generic(String message) {
+        return BidderError.of(message, Type.generic);
     }
 
     public static BidderError badInput(String message) {
@@ -57,6 +57,6 @@ public class BidderError {
         bad_server_response,
 
         timeout,
-        unknown
+        generic
     }
 }

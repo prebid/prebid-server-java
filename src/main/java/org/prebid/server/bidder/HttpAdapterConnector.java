@@ -159,7 +159,7 @@ public class HttpAdapterConnector {
 
         final BidderError error = exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
                 ? BidderError.timeout("Timed out")
-                : BidderError.unknown(exception.getMessage());
+                : BidderError.generic(exception.getMessage());
 
         future.complete(ExchangeCall.error(bidderDebug, error));
     }
