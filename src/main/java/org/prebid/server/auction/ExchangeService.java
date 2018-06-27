@@ -799,29 +799,31 @@ public class ExchangeService {
                 errors.stream()
                         .map(BidderError::getType)
                         .distinct()
-                        .map(errorType -> {
-                            final MetricName errorMetric;
-                            switch (errorType) {
-                                case bad_input:
-                                    errorMetric = MetricName.badinput;
-                                    break;
-                                case bad_server_response:
-                                    errorMetric = MetricName.badserverresponse;
-                                    break;
-                                case timeout:
-                                    errorMetric = MetricName.timeout;
-                                    break;
-                                case generic:
-                                default:
-                                    errorMetric = MetricName.unknown_error;
-                            }
-                            return errorMetric;
-                        })
+                        .map(ExchangeService::bidderErrorTypeToMetric)
                         .forEach(errorMetric -> adapterMetrics.request().incCounter(errorMetric));
             }
         }
 
         return bidderResponses;
+    }
+
+    private static MetricName bidderErrorTypeToMetric(BidderError.Type errorType) {
+        final MetricName errorMetric;
+        switch (errorType) {
+            case bad_input:
+                errorMetric = MetricName.badinput;
+                break;
+            case bad_server_response:
+                errorMetric = MetricName.badserverresponse;
+                break;
+            case timeout:
+                errorMetric = MetricName.timeout;
+                break;
+            case generic:
+            default:
+                errorMetric = MetricName.unknown_error;
+        }
+        return errorMetric;
     }
 
     /**
