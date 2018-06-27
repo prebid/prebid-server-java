@@ -564,11 +564,8 @@ public class ExchangeService {
         for (BidderRequest bidderRequest : bidderRequests) {
             final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
             final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-            final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(bidder);
 
-            adapterMetrics.incCounter(MetricName.requests);
             adapterMetrics.requestType().incCounter(requestType);
-            accountAdapterMetrics.incCounter(MetricName.requests);
 
             final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
                     uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
@@ -775,8 +772,12 @@ public class ExchangeService {
 
             final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
             if (CollectionUtils.isEmpty(bidderBids)) {
-                adapterMetrics.incCounter(MetricName.no_bid_requests);
+                adapterMetrics.request().incCounter(MetricName.nobid);
+                accountAdapterMetrics.request().incCounter(MetricName.nobid);
             } else {
+                adapterMetrics.request().incCounter(MetricName.gotbids);
+                accountAdapterMetrics.request().incCounter(MetricName.gotbids);
+
                 for (final BidderBid bidderBid : bidderBids) {
                     final Bid bid = bidderBid.getBid();
 
@@ -795,11 +796,28 @@ public class ExchangeService {
 
             final List<BidderError> errors = bidderResponse.getSeatBid().getErrors();
             if (CollectionUtils.isNotEmpty(errors)) {
-                for (final BidderError error : errors) {
-                    adapterMetrics.incCounter(error.getType() == BidderError.Type.timeout
-                            ? MetricName.timeout_requests
-                            : MetricName.error_requests);
-                }
+                errors.stream()
+                        .map(BidderError::getType)
+                        .distinct()
+                        .map(errorType -> {
+                            final MetricName errorMetric;
+                            switch (errorType) {
+                                case bad_input:
+                                    errorMetric = MetricName.badinput;
+                                    break;
+                                case bad_server_response:
+                                    errorMetric = MetricName.badserverresponse;
+                                    break;
+                                case timeout:
+                                    errorMetric = MetricName.timeout;
+                                    break;
+                                case generic:
+                                default:
+                                    errorMetric = MetricName.unknown_error;
+                            }
+                            return errorMetric;
+                        })
+                        .forEach(errorMetric -> adapterMetrics.request().incCounter(errorMetric));
             }
         }
 

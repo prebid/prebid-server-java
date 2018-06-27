@@ -19,7 +19,6 @@ import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.InvalidRequestException;
@@ -191,28 +190,23 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext) {
-        final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
         return preBidRequestContext.getAdapterRequests().stream()
                 .filter(ar -> bidderCatalog.isValidAdapterName(ar.getBidderCode()))
-                .peek(ar -> updateAdapterRequestMetrics(ar.getBidderCode(), accountId))
+                .peek(ar -> updateAdapterRequestMetrics(ar.getBidderCode()))
                 .map(ar -> httpAdapterConnector.call(bidderCatalog.adapterByName(ar.getBidderCode()),
                         bidderCatalog.usersyncerByName(ar.getBidderCode()), ar, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private void updateAdapterRequestMetrics(String bidder, String accountId) {
-        final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-
-        adapterMetrics.incCounter(MetricName.requests);
-        adapterMetrics.requestType().incCounter(REQUEST_TYPE_METRIC);
-        metrics.forAccount(accountId).forAdapter(bidder).incCounter(MetricName.requests);
+    private void updateAdapterRequestMetrics(String bidder) {
+        metrics.forAdapter(bidder).requestType().incCounter(REQUEST_TYPE_METRIC);
     }
 
     private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
                                                  List<AdapterResponse> adapterResponses) {
         adapterResponses.stream()
                 .filter(ar -> ar.getError() != null)
-                .forEach(ar -> updateAdapterErrorMetrics(ar, preBidRequestContext));
+                .forEach(this::updateAdapterErrorMetrics);
 
         final List<BidderStatus> bidderStatuses = Stream.concat(
                 adapterResponses.stream()
@@ -235,22 +229,24 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .build();
     }
 
-    private void updateAdapterErrorMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {
-        final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
-        final String bidder = bidderStatus.getBidder();
-
-        final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-        final AdapterMetrics accountAdapterMetrics = metrics
-                .forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
-                .forAdapter(bidder);
-
-        if (adapterResponse.getError().getType() == BidderError.Type.timeout) {
-            adapterMetrics.incCounter(MetricName.timeout_requests);
-            accountAdapterMetrics.incCounter(MetricName.timeout_requests);
-        } else {
-            adapterMetrics.incCounter(MetricName.error_requests);
-            accountAdapterMetrics.incCounter(MetricName.error_requests);
+    private void updateAdapterErrorMetrics(AdapterResponse adapterResponse) {
+        final MetricName errorMetric;
+        switch (adapterResponse.getError().getType()) {
+            case bad_input:
+                errorMetric = MetricName.badinput;
+                break;
+            case bad_server_response:
+                errorMetric = MetricName.badserverresponse;
+                break;
+            case timeout:
+                errorMetric = MetricName.timeout;
+                break;
+            case generic:
+            default:
+                errorMetric = MetricName.unknown_error;
         }
+
+        metrics.forAdapter(adapterResponse.getBidderStatus().getBidder()).request().incCounter(errorMetric);
     }
 
     private void updateResponseTimeMetrics(BidderStatus bidderStatus, PreBidRequestContext preBidRequestContext) {
@@ -280,19 +276,20 @@ public class AuctionHandler implements Handler<RoutingContext> {
         for (final Bid bid : adapterResponse.getBids()) {
             final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
             adapterMetrics.updateHistogram(MetricName.prices, cpm);
-            accountMetrics.updateHistogram(MetricName.prices, cpm);
             accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
+
+            adapterMetrics.incCounter(MetricName.bids_received);
+            accountAdapterMetrics.incCounter(MetricName.bids_received);
 
             updateAdapterMarkupMetrics(adapterMetrics, bid);
         }
 
-        final Integer numBids = bidderStatus.getNumBids();
-        if (numBids != null) {
-            accountMetrics.incCounter(MetricName.bids_received, numBids);
-            accountAdapterMetrics.incCounter(MetricName.bids_received, numBids);
-        } else if (Objects.equals(bidderStatus.getNoBid(), Boolean.TRUE)) {
-            adapterMetrics.incCounter(MetricName.no_bid_requests);
-            accountAdapterMetrics.incCounter(MetricName.no_bid_requests);
+        if (Objects.equals(bidderStatus.getNoBid(), Boolean.TRUE)) {
+            adapterMetrics.request().incCounter(MetricName.nobid);
+            accountAdapterMetrics.request().incCounter(MetricName.nobid);
+        } else {
+            adapterMetrics.request().incCounter(MetricName.gotbids);
+            accountAdapterMetrics.request().incCounter(MetricName.gotbids);
         }
 
         if (Objects.equals(bidderStatus.getNoCookie(), Boolean.TRUE)) {
