@@ -39,6 +39,7 @@ import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.BidTypeMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.RequestMetrics;
 import org.prebid.server.metric.RequestStatusMetrics;
 import org.prebid.server.metric.RequestTypeMetrics;
 import org.prebid.server.proto.request.AdUnit;
@@ -100,11 +101,15 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private RequestTypeMetrics adapterRequestTypeMetrics;
     @Mock
+    private RequestMetrics adapterRequestMetrics;
+    @Mock
     private BidTypeMetrics adapterBidTypeMetrics;
     @Mock
     private AccountMetrics accountMetrics;
     @Mock
     private AdapterMetrics accountAdapterMetrics;
+    @Mock
+    private RequestMetrics accountAdapterRequestMetrics;
     @Mock
     private RequestTypeMetrics accountRequestTypeMetrics;
     @Mock
@@ -139,9 +144,11 @@ public class AuctionHandlerTest extends VertxTest {
 
         given(metrics.forAdapter(any())).willReturn(adapterMetrics);
         given(adapterMetrics.requestType()).willReturn(adapterRequestTypeMetrics);
+        given(adapterMetrics.request()).willReturn(adapterRequestMetrics);
         given(adapterMetrics.forBidType(any())).willReturn(adapterBidTypeMetrics);
         given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(accountMetrics.forAdapter(any())).willReturn(accountAdapterMetrics);
+        given(accountAdapterMetrics.request()).willReturn(accountAdapterRequestMetrics);
         given(accountMetrics.requestType()).willReturn(accountRequestTypeMetrics);
         given(metrics.forRequestType(any())).willReturn(requestStatusMetrics);
 
@@ -536,21 +543,20 @@ public class AuctionHandlerTest extends VertxTest {
         verify(accountMetrics).incCounter(eq(MetricName.requests));
         verify(accountRequestTypeMetrics).incCounter(MetricName.legacy);
         verify(metrics).updateTimer(eq(MetricName.request_time), anyLong());
-        verify(adapterMetrics).incCounter(eq(MetricName.requests));
+        verify(adapterRequestMetrics).incCounter(MetricName.gotbids);
+        verify(accountAdapterRequestMetrics).incCounter(MetricName.gotbids);
         verify(adapterRequestTypeMetrics).incCounter(MetricName.legacy);
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.requests));
         verify(adapterMetrics).updateTimer(eq(MetricName.request_time), eq(100L));
         verify(accountAdapterMetrics).updateTimer(eq(MetricName.request_time), eq(100L));
         verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
         verify(accountAdapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
-        verify(accountMetrics).incCounter(eq(MetricName.bids_received), eq(1L));
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.bids_received), eq(1L));
+        verify(adapterMetrics).incCounter(eq(MetricName.bids_received));
+        verify(accountAdapterMetrics).incCounter(eq(MetricName.bids_received));
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
-        verify(accountMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
         verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), eq(5670L));
         verify(adapterBidTypeMetrics).incCounter(eq(MetricName.nurl_bids_received));
-        verify(accountMetrics, never()).incCounter(eq(MetricName.no_bid_requests));
-        verify(accountAdapterMetrics, never()).incCounter(eq(MetricName.no_bid_requests));
+        verify(adapterRequestMetrics, never()).incCounter(eq(MetricName.nobid));
+        verify(accountAdapterRequestMetrics, never()).incCounter(eq(MetricName.nobid));
         verify(metrics, never()).incCounter(eq(MetricName.safari_requests));
         verify(metrics, never()).incCounter(eq(MetricName.no_cookie_requests));
         verify(metrics, never()).incCounter(eq(MetricName.safari_no_cookie_requests));
@@ -568,8 +574,8 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(adapterMetrics).incCounter(eq(MetricName.no_bid_requests));
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.no_bid_requests));
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.nobid));
+        verify(accountAdapterRequestMetrics).incCounter(eq(MetricName.nobid));
     }
 
     @Test
@@ -620,7 +626,7 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldIncrementErrorMetricIfAdapterReturnsError() {
+    public void shouldIncrementErrorMetricIfAdapterReturnsBadInputError() {
         // given
         givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
 
@@ -630,8 +636,35 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(adapterMetrics).incCounter(eq(MetricName.error_requests));
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.error_requests));
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.badinput));
+    }
+
+    @Test
+    public void shouldIncrementErrorMetricIfAdapterReturnsBadServerResponseError() {
+        // given
+        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+
+        givenBidderRespondingWithError(RUBICON, BidderError.badServerResponse("rubicon error"));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.badserverresponse));
+    }
+
+    @Test
+    public void shouldIncrementErrorMetricIfAdapterReturnsGenericError() {
+        // given
+        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+
+        givenBidderRespondingWithError(RUBICON, BidderError.generic("rubicon error"));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.unknown_error));
     }
 
     @Test
@@ -645,8 +678,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(adapterMetrics).incCounter(eq(MetricName.timeout_requests));
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.timeout_requests));
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.timeout));
     }
 
     @Test

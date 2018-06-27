@@ -290,7 +290,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
-        assertThat(adapterResponse.getError()).isEqualTo(BidderError.unknown("Request exception"));
+        assertThat(adapterResponse.getError()).isEqualTo(BidderError.generic("Request exception"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Request exception");
     }
 
@@ -305,7 +305,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
-        assertThat(adapterResponse.getError()).isEqualTo(BidderError.unknown("Response exception"));
+        assertThat(adapterResponse.getError()).isEqualTo(BidderError.generic("Response exception"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Response exception");
     }
 

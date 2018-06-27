@@ -5,9 +5,6 @@ public enum MetricName {
     requests,
     app_requests,
     no_cookie_requests,
-    no_bid_requests,
-    timeout_requests,
-    error_requests,
     safari_requests,
     safari_no_cookie_requests,
     cookie_sync_requests,
@@ -25,9 +22,14 @@ public enum MetricName {
     amp,
     legacy,
 
-    // request statuses
+    // request and adapter statuses
     ok,
+    nobid,
+    gotbids,
     badinput,
+    badserverresponse,
+    timeout,
+    unknown_error,
     err,
 
     // cookie sync

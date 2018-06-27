@@ -30,7 +30,7 @@ public class MetricsTest {
 
     @Test
     public void createShouldReturnMetricsConfiguredWithCounterType() {
-        verifyCreatesConfiguredCounterType(metrics -> metrics.incCounter(MetricName.requests));
+        verifyCreatesConfiguredCounterType(metrics -> metrics.incCounter(MetricName.bids_received));
     }
 
     @Test
@@ -60,16 +60,16 @@ public class MetricsTest {
     @Test
     public void forAdapterShouldReturnAdapterMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(
-                metrics -> metrics.forAdapter(RUBICON).incCounter(MetricName.requests));
+                metrics -> metrics.forAdapter(RUBICON).incCounter(MetricName.bids_received));
     }
 
     @Test
     public void forAdapterShouldReturnAdapterMetricsConfiguredWithAdapterType() {
         // when
-        metrics.forAdapter(RUBICON).incCounter(MetricName.requests);
+        metrics.forAdapter(RUBICON).incCounter(MetricName.bids_received);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.rubicon.bids_received").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -96,6 +96,29 @@ public class MetricsTest {
     }
 
     @Test
+    public void shouldReturnSameAdapterRequestMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forAdapter(RUBICON).request())
+                .isSameAs(metrics.forAdapter(RUBICON).request());
+    }
+
+    @Test
+    public void shouldReturnAdapterRequestMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .forAdapter(RUBICON)
+                .request()
+                .incCounter(MetricName.gotbids));
+    }
+
+    @Test
+    public void shouldReturnAdapterRequestMetricsConfiguredWithAdapterType() {
+        // when
+        metrics.forAdapter(RUBICON).request().incCounter(MetricName.gotbids);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.requests.gotbids").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void shouldReturnSameAccountAdapterMetricsOnSuccessiveCalls() {
         assertThat(metrics.forAccount("accountId").forAdapter(RUBICON))
                 .isSameAs(metrics.forAccount("accountId").forAdapter(RUBICON));
@@ -106,16 +129,40 @@ public class MetricsTest {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAccount("accountId")
                 .forAdapter(RUBICON)
-                .incCounter(MetricName.requests));
+                .incCounter(MetricName.bids_received));
     }
 
     @Test
     public void shouldReturnAccountAdapterMetricsConfiguredWithAccountAndAdapterType() {
         // when
-        metrics.forAccount("accountId").forAdapter(RUBICON).incCounter(MetricName.requests);
+        metrics.forAccount("accountId").forAdapter(RUBICON).incCounter(MetricName.bids_received);
 
         // then
-        assertThat(metricRegistry.counter("account.accountId.rubicon.requests").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.rubicon.bids_received").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldReturnSameAccountAdapterRequestMetricsOnSuccessiveCalls() {
+        assertThat(metrics.forAccount("accountId").forAdapter(RUBICON).request())
+                .isSameAs(metrics.forAccount("accountId").forAdapter(RUBICON).request());
+    }
+
+    @Test
+    public void shouldReturnAccountAdapterRequestMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .forAccount("accountId")
+                .forAdapter(RUBICON)
+                .request()
+                .incCounter(MetricName.gotbids));
+    }
+
+    @Test
+    public void shouldReturnAccountAdapterRequestMetricsConfiguredWithAccountAndAdapterType() {
+        // when
+        metrics.forAccount("accountId").forAdapter(RUBICON).request().incCounter(MetricName.gotbids);
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.gotbids").getCount()).isEqualTo(1);
     }
 
     @Test

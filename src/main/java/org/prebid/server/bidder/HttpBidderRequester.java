@@ -108,7 +108,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
         final BidderError.Type errorType =
                 exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
                         ? BidderError.Type.timeout
-                        : BidderError.Type.unknown;
+                        : BidderError.Type.generic;
         result.complete(HttpCall.failure(httpRequest, BidderError.create(exception.getMessage(), errorType)));
     }
 

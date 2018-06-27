@@ -51,6 +51,7 @@ import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.BidTypeMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.RequestMetrics;
 import org.prebid.server.metric.RequestTypeMetrics;
 import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -123,17 +124,21 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private Metrics metrics;
     @Mock
-    private AccountMetrics accountMetrics;
-    @Mock
-    private RequestTypeMetrics accountRequestTypeMetrics;
-    @Mock
     private AdapterMetrics adapterMetrics;
     @Mock
     private RequestTypeMetrics adapterRequestTypeMetrics;
     @Mock
+    private RequestMetrics adapterRequestMetrics;
+    @Mock
     private BidTypeMetrics adapterBidTypeMetrics;
     @Mock
+    private AccountMetrics accountMetrics;
+    @Mock
     private AdapterMetrics accountAdapterMetrics;
+    @Mock
+    private RequestMetrics accountAdapterRequestMetrics;
+    @Mock
+    private RequestTypeMetrics accountRequestTypeMetrics;
     @Mock
     private UidsCookie uidsCookie;
     @Mock
@@ -160,12 +165,14 @@ public class ExchangeServiceTest extends VertxTest {
         given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
         given(bidResponsePostProcessor.postProcess(any(), any(), any())).willCallRealMethod();
 
-        given(metrics.forAccount(anyString())).willReturn(accountMetrics);
         given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
-        given(accountMetrics.forAdapter(anyString())).willReturn(accountAdapterMetrics);
-        given(accountMetrics.requestType()).willReturn(accountRequestTypeMetrics);
         given(adapterMetrics.requestType()).willReturn(adapterRequestTypeMetrics);
+        given(adapterMetrics.request()).willReturn(adapterRequestMetrics);
         given(adapterMetrics.forBidType(any())).willReturn(adapterBidTypeMetrics);
+        given(metrics.forAccount(anyString())).willReturn(accountMetrics);
+        given(accountMetrics.forAdapter(anyString())).willReturn(accountAdapterMetrics);
+        given(accountAdapterMetrics.request()).willReturn(accountAdapterRequestMetrics);
+        given(accountMetrics.requestType()).willReturn(accountRequestTypeMetrics);
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -1448,12 +1455,12 @@ public class ExchangeServiceTest extends VertxTest {
         verify(accountMetrics).incCounter(eq(MetricName.requests));
         verify(accountRequestTypeMetrics).incCounter(eq(MetricName.openrtb2web));
         verify(metrics, times(2)).forAdapter("somebidder");
-        verify(adapterMetrics).incCounter(eq(MetricName.requests));
         verify(adapterRequestTypeMetrics).incCounter(eq(MetricName.openrtb2web));
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.requests));
         verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
         verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
         verify(accountAdapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
+        verify(adapterRequestMetrics).incCounter(MetricName.gotbids);
+        verify(accountAdapterRequestMetrics).incCounter(MetricName.gotbids);
         verify(adapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
         verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
         verify(adapterMetrics).incCounter(eq(MetricName.bids_received));
@@ -1473,7 +1480,37 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
 
         // then
-        verify(adapterMetrics).incCounter(eq(MetricName.no_bid_requests));
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.nobid));
+        verify(accountAdapterRequestMetrics).incCounter(eq(MetricName.nobid));
+    }
+
+    @Test
+    public void shouldIncrementGotBidsAndErrorMetricsIfBidderReturnsBidAndDifferentErrors() {
+        // given
+        given(bidderRequester.requestBids(any(), any()))
+                .willReturn(Future.succeededFuture(BidderSeatBid.of(
+                        singletonList(givenBid(Bid.builder().price(TEN).build())),
+                        emptyList(),
+                        asList(
+                                // two identical errors to verify corresponding metric is submitted only once
+                                BidderError.badInput("rubicon error"),
+                                BidderError.badInput("rubicon error"),
+                                BidderError.badServerResponse("rubicon error"),
+                                BidderError.timeout("timeout error"),
+                                BidderError.generic("timeout error")))));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
+
+        // then
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.gotbids));
+        verify(accountAdapterRequestMetrics).incCounter(eq(MetricName.gotbids));
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.badinput));
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.badserverresponse));
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.timeout));
+        verify(adapterRequestMetrics).incCounter(eq(MetricName.unknown_error));
     }
 
     @Test
