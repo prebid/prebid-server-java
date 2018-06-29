@@ -71,6 +71,11 @@ For `influxdb` backend type available next options:
 - `metrics.influxdb.readTimeout` - the response timeout.
 - `metrics.influxdb.interval` - interval in seconds between successive sending metrics.
 
+It is possible to define how many account-level metrics will be submitted on per-account basis:
+- `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`.
+- `metrics.accounts.basic-verbosity` - a list of accounts for which only basic metrics will be submitted.
+- `metrics.accounts.detailed-verbosity` - a list of accounts for which all metrics will be submitted. 
+
 ## Cache
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
