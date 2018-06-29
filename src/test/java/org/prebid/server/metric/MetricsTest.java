@@ -7,26 +7,39 @@ import com.codahale.metrics.MetricRegistry;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 
 import java.util.EnumMap;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 
 public class MetricsTest {
 
     private static final String RUBICON = "rubicon";
     private static final String ACCOUNT_ID = "accountId";
 
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
     private MetricRegistry metricRegistry;
+    @Mock
+    private AccountMetricsVerbosity accountMetricsVerbosity;
 
     private Metrics metrics;
 
     @Before
     public void setUp() {
         metricRegistry = new MetricRegistry();
-        metrics = new Metrics(metricRegistry, CounterType.counter);
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        metrics = new Metrics(metricRegistry, CounterType.counter, accountMetricsVerbosity);
     }
 
     @Test
@@ -430,6 +443,50 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("adapter.rubicon.gdpr_masked").getCount()).isEqualTo(1);
     }
 
+    @Test
+    public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
+        // given
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.none);
+
+        // when
+        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.openrtb2web);
+        metrics.updateAdapterResponseTime(RUBICON, ACCOUNT_ID, 500);
+        metrics.updateAdapterRequestNobidMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updateAdapterBidMetrics(RUBICON, ACCOUNT_ID, 1234L, true, "banner");
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.timer("account.accountId.rubicon.request_time").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.nobid").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.gotbids").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.histogram("account.accountId.rubicon.prices").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.counter("account.accountId.rubicon.bids_received").getCount()).isEqualTo(0);
+    }
+
+    @Test
+    public void shouldUpdateAccountRequestsMetricOnlyIfVerbosityIsBasic() {
+        // given
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.basic);
+
+        // when
+        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.openrtb2web);
+        metrics.updateAdapterResponseTime(RUBICON, ACCOUNT_ID, 500);
+        metrics.updateAdapterRequestNobidMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, ACCOUNT_ID);
+        metrics.updateAdapterBidMetrics(RUBICON, ACCOUNT_ID, 1234L, true, "banner");
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.timer("account.accountId.rubicon.request_time").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.nobid").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.gotbids").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.histogram("account.accountId.rubicon.prices").getCount()).isEqualTo(0);
+        assertThat(metricRegistry.counter("account.accountId.rubicon.bids_received").getCount()).isEqualTo(0);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);
@@ -444,7 +501,8 @@ public class MetricsTest {
             metricRegistry = new MetricRegistry();
 
             // when
-            metricsConsumer.accept(new Metrics(metricRegistry, CounterType.valueOf(counterType.name())));
+            metricsConsumer.accept(
+                    new Metrics(metricRegistry, CounterType.valueOf(counterType.name()), accountMetricsVerbosity));
 
             // then
             softly.assertThat(metricRegistry.getMetrics()).hasValueSatisfying(new Condition<>(

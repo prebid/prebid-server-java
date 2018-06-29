@@ -10,8 +10,10 @@ import com.izettle.metrics.influxdb.InfluxDbSender;
 import io.vertx.core.Vertx;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.prebid.server.metric.AccountMetricsVerbosity;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.vertx.CloseableAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +28,7 @@ import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -71,13 +74,20 @@ public class MetricsConfiguration {
     }
 
     @Bean
-    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry) {
-        return new Metrics(metricRegistry, counterType);
+    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry,
+                    AccountMetricsVerbosity accountMetricsVerbosity) {
+        return new Metrics(metricRegistry, counterType, accountMetricsVerbosity);
     }
 
     @Bean
     MetricRegistry metricRegistry() {
         return new MetricRegistry();
+    }
+
+    @Bean
+    AccountMetricsVerbosity accountMetricsVerbosity(AccountsProperties accountsProperties) {
+        return new AccountMetricsVerbosity(accountsProperties.getDefaultVerbosity(),
+                accountsProperties.getBasicVerbosity(), accountsProperties.getDetailedVerbosity());
     }
 
     @PostConstruct
@@ -135,5 +145,18 @@ public class MetricsConfiguration {
         @NotNull
         @Min(1)
         private Integer interval;
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "metrics.accounts")
+    @Validated
+    @Data
+    @NoArgsConstructor
+    private static class AccountsProperties {
+
+        @NotNull
+        private AccountMetricsVerbosityLevel defaultVerbosity;
+        private List<String> basicVerbosity = new ArrayList<>();
+        private List<String> detailedVerbosity = new ArrayList<>();
     }
 }

@@ -81,6 +81,8 @@ adapters:
     usersync-url: //ap.lijit.com/pixel?
 metrics:
   metricType: flushingCounter
+  accounts:
+    default-verbosity: none
 settings:
   database:
     pool-size: 20
