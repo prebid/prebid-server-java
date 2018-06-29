@@ -22,7 +22,6 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
-import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -323,7 +322,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.cookie_sync_requests));
+        verify(metrics).updateCookieSyncRequestMetric();
     }
 
     @Test

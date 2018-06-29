@@ -31,7 +31,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.RequestStatusMetrics;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -60,8 +59,6 @@ public class AuctionHandlerTest extends VertxTest {
     @Mock
     private Metrics metrics;
     @Mock
-    private RequestStatusMetrics requestStatusMetrics;
-    @Mock
     private Clock clock;
 
     private AuctionHandler auctionHandler;
@@ -77,8 +74,6 @@ public class AuctionHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(metrics.forRequestType(any())).willReturn(requestStatusMetrics);
-
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
@@ -206,8 +201,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.openrtb2web));
-        verify(requestStatusMetrics).incCounter(eq(MetricName.ok));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.ok));
     }
 
     @Test
@@ -223,8 +217,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.openrtb2app));
-        verify(requestStatusMetrics).incCounter(eq(MetricName.ok));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2app), eq(MetricName.ok));
     }
 
     @Test
@@ -241,7 +234,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.app_requests));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyBoolean(), anyInt());
     }
 
     @Test
@@ -262,9 +255,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.safari_requests));
-        verify(metrics).incCounter(eq(MetricName.safari_no_cookie_requests));
-        verify(metrics).incCounter(eq(MetricName.no_cookie_requests));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), eq(true), anyInt());
     }
 
     @Test
@@ -281,7 +272,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(1L));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), anyBoolean(), eq(1));
     }
 
     @Test
@@ -294,8 +285,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.openrtb2web));
-        verify(requestStatusMetrics).incCounter(eq(MetricName.badinput));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.badinput));
     }
 
     @Test
@@ -307,8 +297,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.openrtb2web));
-        verify(requestStatusMetrics).incCounter(eq(MetricName.err));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.err));
     }
 
     @SuppressWarnings("unchecked")
@@ -335,7 +324,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateTimer(eq(MetricName.request_time), eq(500L));
+        verify(metrics).updateRequestTime(eq(500L));
     }
 
     @Test
