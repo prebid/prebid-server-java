@@ -72,13 +72,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
 
-        updateSafariMetrics(isSafari);
+        metrics.updateSafariMetric(isSafari);
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         auctionRequestFactory.fromRequest(context)
                 .map(bidRequest -> addToEvent(bidRequest, bidRequest, auctionEventBuilder::bidRequest))
                 .map(bidRequest ->
-                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
+                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
                 .map(bidRequest -> Tuple2.of(bidRequest, toMetricsContext(bidRequest)))
                 .compose((Tuple2<BidRequest, MetricsContext> result) ->
                         exchangeService.holdAuction(result.getLeft(), uidsCookie, timeout(result.getLeft(), startTime),
@@ -96,23 +96,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return returnValue;
     }
 
-    private void updateSafariMetrics(boolean isSafari) {
-        if (isSafari) {
-            metrics.incCounter(MetricName.safari_requests);
-        }
-    }
-
-    private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, boolean liveUidsPresent,
+    private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, UidsCookie uidsCookie,
                                                                    boolean isSafari) {
-        if (bidRequest.getApp() != null) {
-            metrics.incCounter(MetricName.app_requests);
-        } else if (!liveUidsPresent) {
-            metrics.incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                metrics.incCounter(MetricName.safari_no_cookie_requests);
-            }
-        }
-        metrics.incCounter(MetricName.imps_requested, bidRequest.getImp().size());
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
+                isSafari, bidRequest.getImp().size());
         return bidRequest;
     }
 
@@ -127,8 +114,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private <T> T setupRequestTimeMetricUpdater(T returnValue, RoutingContext context, long startTime) {
         // set up handler to update request time metric when response is sent back to a client
-        context.response().endHandler(ignored ->
-                metrics.updateTimer(MetricName.request_time, clock.millis() - startTime));
+        context.response().endHandler(ignored -> metrics.updateRequestTime(clock.millis() - startTime));
         return returnValue;
     }
 
@@ -179,11 +165,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             }
         }
 
-        updateRequestMetric(requestType, requestStatus);
+        metrics.updateRequestTypeMetric(requestType, requestStatus);
         analyticsReporter.processEvent(auctionEventBuilder.status(status).errors(errorMessages).build());
-    }
-
-    private void updateRequestMetric(MetricName requestType, MetricName requestStatus) {
-        metrics.forRequestType(requestType).incCounter(requestStatus);
     }
 }

@@ -1,6 +1,7 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,5 +61,110 @@ public class Metrics extends UpdatableMetrics {
      */
     public CookieSyncMetrics cookieSync() {
         return cookieSyncMetrics;
+    }
+
+    public void updateSafariMetric(boolean isSafari) {
+        if (isSafari) {
+            incCounter(MetricName.safari_requests);
+        }
+    }
+
+    public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, boolean isSafari,
+                                                            int numImps) {
+        if (isApp) {
+            incCounter(MetricName.app_requests);
+        } else if (!liveUidsPresent) {
+            incCounter(MetricName.no_cookie_requests);
+            if (isSafari) {
+                incCounter(MetricName.safari_no_cookie_requests);
+            }
+        }
+        incCounter(MetricName.imps_requested, numImps);
+    }
+
+    public void updateRequestTime(long millis) {
+        updateTimer(MetricName.request_time, millis);
+    }
+
+    public void updateRequestTypeMetric(MetricName requestType, MetricName requestStatus) {
+        forRequestType(requestType).incCounter(requestStatus);
+    }
+
+    public void updateAccountRequestMetrics(String accountId, MetricName requestType) {
+        final AccountMetrics accountMetrics = forAccount(accountId);
+
+        accountMetrics.incCounter(MetricName.requests);
+        accountMetrics.requestType().incCounter(requestType);
+    }
+
+    public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean isApp,
+                                                           boolean noBuyerId) {
+        final AdapterMetrics adapterMetrics = forAdapter(bidder);
+
+        adapterMetrics.requestType().incCounter(requestType);
+
+        if (!isApp && noBuyerId) {
+            adapterMetrics.incCounter(MetricName.no_cookie_requests);
+        }
+    }
+
+    public void updateAdapterResponseTime(String bidder, String accountId, int responseTime) {
+        final AdapterMetrics adapterMetrics = forAdapter(bidder);
+        final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(bidder);
+
+        adapterMetrics.updateTimer(MetricName.request_time, responseTime);
+        accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
+    }
+
+    public void updateAdapterRequestNobidMetrics(String bidder, String accountId) {
+        forAdapter(bidder).request().incCounter(MetricName.nobid);
+        forAccount(accountId).forAdapter(bidder).request().incCounter(MetricName.nobid);
+    }
+
+    public void updateAdapterRequestGotbidsMetrics(String bidder, String accountId) {
+        forAdapter(bidder).request().incCounter(MetricName.gotbids);
+        forAccount(accountId).forAdapter(bidder).request().incCounter(MetricName.gotbids);
+    }
+
+    public void updateAdapterBidMetrics(String bidder, String accountId, long cpm, boolean isAdm, BidType bidType) {
+        final AdapterMetrics adapterMetrics = forAdapter(bidder);
+        final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(bidder);
+
+        adapterMetrics.updateHistogram(MetricName.prices, cpm);
+        accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
+
+        adapterMetrics.incCounter(MetricName.bids_received);
+        accountAdapterMetrics.incCounter(MetricName.bids_received);
+
+        adapterMetrics.forBidType(bidType)
+                .incCounter(isAdm ? MetricName.adm_bids_received : MetricName.nurl_bids_received);
+    }
+
+    public void updateAdapterRequestErrorMetric(String bidder, MetricName errorMetric) {
+        forAdapter(bidder).request().incCounter(errorMetric);
+    }
+
+    public void updateCookieSyncRequestMetric() {
+        incCounter(MetricName.cookie_sync_requests);
+    }
+
+    public void updateCookieSyncOptoutMetric() {
+        cookieSync().incCounter(MetricName.opt_outs);
+    }
+
+    public void updateCookieSyncBadRequestMetric() {
+        cookieSync().incCounter(MetricName.bad_requests);
+    }
+
+    public void updateCookieSyncSetsMetric(String bidder) {
+        cookieSync().forBidder(bidder).incCounter(MetricName.sets);
+    }
+
+    public void updateCookieSyncGdprPreventMetric(String bidder) {
+        cookieSync().forBidder(bidder).incCounter(MetricName.gdpr_prevent);
+    }
+
+    public void updateGdprMaskedMetric(String bidder) {
+        forAdapter(bidder).incCounter(MetricName.gdpr_masked);
     }
 }

@@ -108,13 +108,13 @@ public class AmpHandler implements Handler<RoutingContext> {
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
 
-        updateSafariMetrics(isSafari);
+        metrics.updateSafariMetric(isSafari);
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         ampRequestFactory.fromRequest(context)
                 .map(bidRequest ->
-                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie.hasLiveUids(), isSafari))
+                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
                 .compose(bidRequest ->
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime),
                                 METRICS_CONTEXT)
@@ -142,17 +142,10 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
     }
 
-    private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, boolean liveUidsPresent,
+    private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, UidsCookie uidsCookie,
                                                                    boolean isSafari) {
-        if (bidRequest.getApp() != null) {
-            metrics.incCounter(MetricName.app_requests);
-        } else if (!liveUidsPresent) {
-            metrics.incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                metrics.incCounter(MetricName.safari_no_cookie_requests);
-            }
-        }
-        metrics.incCounter(MetricName.imps_requested, bidRequest.getImp().size());
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
+                isSafari, bidRequest.getImp().size());
         return bidRequest;
     }
 
@@ -163,8 +156,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private <T> T setupRequestTimeMetricUpdater(T returnValue, RoutingContext context, long startTime) {
         // set up handler to update request time metric when response is sent back to a client
-        context.response().endHandler(ignored ->
-                metrics.updateTimer(MetricName.request_time, clock.millis() - startTime));
+        context.response().endHandler(ignored -> metrics.updateRequestTime(clock.millis() - startTime));
         return returnValue;
     }
 
@@ -294,12 +286,8 @@ public class AmpHandler implements Handler<RoutingContext> {
             }
         }
 
-        updateRequestMetric(METRICS_CONTEXT.getRequestType(), requestStatus);
+        metrics.updateRequestTypeMetric(METRICS_CONTEXT.getRequestType(), requestStatus);
         analyticsReporter.processEvent(ampEventBuilder.status(status).errors(errorMessages).build());
-    }
-
-    private void updateRequestMetric(MetricName requestType, MetricName requestStatus) {
-        metrics.forRequestType(requestType).incCounter(requestStatus);
     }
 
     private static String originFrom(RoutingContext context) {
