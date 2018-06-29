@@ -114,7 +114,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private <T> T setupRequestTimeMetricUpdater(T returnValue, RoutingContext context, long startTime) {
         // set up handler to update request time metric when response is sent back to a client
-        context.response().endHandler(ignored -> metrics.updateRequestTime(clock.millis() - startTime));
+        context.response().endHandler(ignored -> metrics.updateRequestTimeMetric(clock.millis() - startTime));
         return returnValue;
     }
 

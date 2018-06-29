@@ -69,7 +69,7 @@ public class Metrics extends UpdatableMetrics {
         incCounter(MetricName.imps_requested, numImps);
     }
 
-    public void updateRequestTime(long millis) {
+    public void updateRequestTimeMetric(long millis) {
         updateTimer(MetricName.request_time, millis);
     }
 

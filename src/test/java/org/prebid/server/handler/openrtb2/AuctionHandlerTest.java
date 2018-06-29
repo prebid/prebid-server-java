@@ -324,7 +324,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTime(eq(500L));
+        verify(metrics).updateRequestTimeMetric(eq(500L));
     }
 
     @Test
