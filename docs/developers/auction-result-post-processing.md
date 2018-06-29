@@ -13,5 +13,3 @@ Please make sure it behaves well i.e. _never_ throws exceptions (failed `Future`
 ### 2. Add your implementation to Spring Context
 
 In order to make Prebid Server aware of your implementation it needs to be added to the Spring Context in `org.prebid.server.spring.config.ServiceConfiguration` as a bean. It should be annotated with `@Primary` since there is a no-op implementation already defined in context.
-
-Note: if the new implementation uses Vert.x `HttpClient` or other services that must not be shared between different verticle instances then your bean must have `prototype` scope.

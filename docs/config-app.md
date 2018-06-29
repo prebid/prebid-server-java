@@ -71,8 +71,9 @@ For `influxdb` backend type available next options:
 - `metrics.influxdb.readTimeout` - the response timeout.
 - `metrics.influxdb.interval` - interval in seconds between successive sending metrics.
 
-It is possible to define how many account-level metrics will be submitted on per-account basis:
-- `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`.
+It is possible to define how many account-level metrics will be submitted on per-account basis.
+See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
+- `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`. Default is `none`.
 - `metrics.accounts.basic-verbosity` - a list of accounts for which only basic metrics will be submitted.
 - `metrics.accounts.detailed-verbosity` - a list of accounts for which all metrics will be submitted. 
 
