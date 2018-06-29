@@ -25,11 +25,9 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderStatus;
-import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -247,10 +245,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         for (final Bid bid : adapterResponse.getBids()) {
             final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
-            // default to banner
-            final BidType bidType = bid.getMediaType() == MediaType.video ? BidType.video : BidType.banner;
-
-            metrics.updateAdapterBidMetrics(bidder, accountId, cpm, bid.getAdm() != null, bidType);
+            metrics.updateAdapterBidMetrics(bidder, accountId, cpm, bid.getAdm() != null,
+                    bid.getMediaType().toString());
         }
 
         if (Objects.equals(bidderStatus.getNoBid(), Boolean.TRUE)) {

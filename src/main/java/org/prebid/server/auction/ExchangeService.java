@@ -767,7 +767,7 @@ public class ExchangeService {
 
                     final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
                     metrics.updateAdapterBidMetrics(bidder, publisherId, cpm, bid.getAdm() != null,
-                            bidderBid.getType());
+                            bidderBid.getType().toString());
                 }
             }
 

@@ -1,7 +1,6 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,8 +14,8 @@ public class AdapterMetrics extends UpdatableMetrics {
 
     private final RequestTypeMetrics requestTypeMetrics;
     private final RequestMetrics requestMetrics;
-    private final Function<BidType, BidTypeMetrics> bidTypeMetricsCreator;
-    private final Map<BidType, BidTypeMetrics> bidTypeMetrics;
+    private final Function<String, BidTypeMetrics> bidTypeMetricsCreator;
+    private final Map<String, BidTypeMetrics> bidTypeMetrics;
 
     AdapterMetrics(MetricRegistry metricRegistry, CounterType counterType, String adapterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
@@ -63,7 +62,7 @@ public class AdapterMetrics extends UpdatableMetrics {
         return requestMetrics;
     }
 
-    public BidTypeMetrics forBidType(BidType bidType) {
+    public BidTypeMetrics forBidType(String bidType) {
         return bidTypeMetrics.computeIfAbsent(bidType, bidTypeMetricsCreator);
     }
 }

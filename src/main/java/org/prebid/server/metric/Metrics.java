@@ -1,7 +1,6 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -126,7 +125,7 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).forAdapter(bidder).request().incCounter(MetricName.gotbids);
     }
 
-    public void updateAdapterBidMetrics(String bidder, String accountId, long cpm, boolean isAdm, BidType bidType) {
+    public void updateAdapterBidMetrics(String bidder, String accountId, long cpm, boolean isAdm, String bidType) {
         final AdapterMetrics adapterMetrics = forAdapter(bidder);
         final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(bidder);
 
