@@ -5,9 +5,9 @@ import com.codahale.metrics.MetricRegistry;
 import java.util.function.Function;
 
 /**
- * Markup delivery metrics for reporting on certain bid type
+ * Metrics for reporting on certain bid type
  */
-public class BidTypeMetrics extends UpdatableMetrics {
+class BidTypeMetrics extends UpdatableMetrics {
 
     BidTypeMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix, String bidType) {
         super(metricRegistry, counterType, nameCreator(prefix, bidType));

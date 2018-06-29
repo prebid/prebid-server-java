@@ -562,7 +562,7 @@ public class ExchangeService {
             final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
                     uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
 
-            metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestType, isApp, noBuyerId);
+            metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestType, !isApp && noBuyerId);
         }
         return bidderRequests;
     }

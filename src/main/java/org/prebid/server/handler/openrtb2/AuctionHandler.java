@@ -72,7 +72,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
 
-        metrics.updateSafariMetric(isSafari);
+        metrics.updateSafariRequestsMetric(isSafari);
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         auctionRequestFactory.fromRequest(context)

@@ -8,9 +8,9 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Registry of metrics for an account metrics support.
+ * Adapter metrics support.
  */
-public class AdapterMetrics extends UpdatableMetrics {
+class AdapterMetrics extends UpdatableMetrics {
 
     private final RequestTypeMetrics requestTypeMetrics;
     private final RequestMetrics requestMetrics;
@@ -54,15 +54,15 @@ public class AdapterMetrics extends UpdatableMetrics {
         return metricName -> String.format("%s.%s", prefix, metricName.toString());
     }
 
-    public RequestTypeMetrics requestType() {
+    RequestTypeMetrics requestType() {
         return requestTypeMetrics;
     }
 
-    public RequestMetrics request() {
+    RequestMetrics request() {
         return requestMetrics;
     }
 
-    public BidTypeMetrics forBidType(String bidType) {
+    BidTypeMetrics forBidType(String bidType) {
         return bidTypeMetrics.computeIfAbsent(bidType, bidTypeMetricsCreator);
     }
 }

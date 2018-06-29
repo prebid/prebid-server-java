@@ -8,7 +8,7 @@ import java.util.function.Function;
 /**
  * Request metrics support.
  */
-public class RequestStatusMetrics extends UpdatableMetrics {
+class RequestStatusMetrics extends UpdatableMetrics {
 
     RequestStatusMetrics(MetricRegistry metricRegistry, CounterType counterType, MetricName requestType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),

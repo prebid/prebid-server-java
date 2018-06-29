@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * Packages different categories (instances) of metrics
+ * Defines interface for submitting different kinds of metrics.
  */
 public class Metrics extends UpdatableMetrics {
 
@@ -34,35 +34,23 @@ public class Metrics extends UpdatableMetrics {
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
     }
 
-    /**
-     * Returns existing or creates a new {@link RequestStatusMetrics}.
-     */
-    public RequestStatusMetrics forRequestType(MetricName requestType) {
+    RequestStatusMetrics forRequestType(MetricName requestType) {
         return requestMetrics.computeIfAbsent(requestType, requestMetricsCreator);
     }
 
-    /**
-     * Returns existing or creates a new {@link AccountMetrics}.
-     */
-    public AccountMetrics forAccount(String account) {
+    AccountMetrics forAccount(String account) {
         return accountMetrics.computeIfAbsent(account, accountMetricsCreator);
     }
 
-    /**
-     * Returns existing or creates a new {@link AdapterMetrics}.
-     */
-    public AdapterMetrics forAdapter(String adapterType) {
+    AdapterMetrics forAdapter(String adapterType) {
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 
-    /**
-     * Returns {@link CookieSyncMetrics}.
-     */
-    public CookieSyncMetrics cookieSync() {
+    CookieSyncMetrics cookieSync() {
         return cookieSyncMetrics;
     }
 
-    public void updateSafariMetric(boolean isSafari) {
+    public void updateSafariRequestsMetric(boolean isSafari) {
         if (isSafari) {
             incCounter(MetricName.safari_requests);
         }
@@ -96,13 +84,12 @@ public class Metrics extends UpdatableMetrics {
         accountMetrics.requestType().incCounter(requestType);
     }
 
-    public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean isApp,
-                                                           boolean noBuyerId) {
+    public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean noCookie) {
         final AdapterMetrics adapterMetrics = forAdapter(bidder);
 
         adapterMetrics.requestType().incCounter(requestType);
 
-        if (!isApp && noBuyerId) {
+        if (noCookie) {
             adapterMetrics.incCounter(MetricName.no_cookie_requests);
         }
     }

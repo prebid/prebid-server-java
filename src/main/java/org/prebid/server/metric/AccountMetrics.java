@@ -8,9 +8,9 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Registry of {@link AdapterMetrics} for account metrics support.
+ * Account metrics support.
  */
-public class AccountMetrics extends UpdatableMetrics {
+class AccountMetrics extends UpdatableMetrics {
 
     private final Function<String, AdapterMetrics> adapterMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
@@ -35,17 +35,11 @@ public class AccountMetrics extends UpdatableMetrics {
         return metricName -> String.format("%s.%s", prefix, metricName.toString());
     }
 
-    /**
-     * Returns existing or creates a new {@link AdapterMetrics}.
-     */
-    public AdapterMetrics forAdapter(String adapterType) {
+    AdapterMetrics forAdapter(String adapterType) {
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 
-    /**
-     * Returns {@link RequestTypeMetrics}.
-     */
-    public RequestTypeMetrics requestType() {
+    RequestTypeMetrics requestType() {
         return requestTypeMetrics;
     }
 }

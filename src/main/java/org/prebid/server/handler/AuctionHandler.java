@@ -10,6 +10,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.TargetingKeywordsCreator;
@@ -28,6 +29,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderStatus;
+import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.PreBidResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -83,7 +85,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
 
-        metrics.updateSafariMetric(isSafari);
+        metrics.updateSafariRequestsMetric(isSafari);
 
         preBidRequestContextFactory.fromRequest(context)
                 .recover(exception -> failWithInvalidRequest(
@@ -126,7 +128,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             PreBidRequestContext preBidRequestContext, boolean isSafari) {
 
         metrics.updateAppAndNoCookieAndImpsRequestedMetrics(preBidRequestContext.getPreBidRequest().getApp() != null,
-                preBidRequestContext.isNoLiveUids(), isSafari,
+                !preBidRequestContext.isNoLiveUids(), isSafari,
                 preBidRequestContext.getPreBidRequest().getAdUnits().size());
 
         return preBidRequestContext;
@@ -236,9 +238,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
         final String bidder = bidderStatus.getBidder();
 
-        // isApp=false unconditionally because bidderStatus.noCookie has been already set taking into account whether
-        // it is web or app request
-        metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, REQUEST_TYPE_METRIC, false,
+        metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, REQUEST_TYPE_METRIC,
                 Objects.equals(bidderStatus.getNoCookie(), Boolean.TRUE));
 
         final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
@@ -246,7 +246,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         for (final Bid bid : adapterResponse.getBids()) {
             final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
             metrics.updateAdapterBidMetrics(bidder, accountId, cpm, bid.getAdm() != null,
-                    bid.getMediaType().toString());
+                    ObjectUtils.firstNonNull(bid.getMediaType(), MediaType.banner).toString()); // default to banner
         }
 
         if (Objects.equals(bidderStatus.getNoBid(), Boolean.TRUE)) {

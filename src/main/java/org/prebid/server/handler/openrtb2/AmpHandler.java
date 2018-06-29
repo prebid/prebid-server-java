@@ -108,7 +108,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
 
-        metrics.updateSafariMetric(isSafari);
+        metrics.updateSafariRequestsMetric(isSafari);
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
@@ -134,12 +134,6 @@ public class AmpHandler implements Handler<RoutingContext> {
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
         consumer.accept(field);
         return result;
-    }
-
-    private void updateSafariMetrics(boolean isSafari) {
-        if (isSafari) {
-            metrics.incCounter(MetricName.safari_requests);
-        }
     }
 
     private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, UidsCookie uidsCookie,
