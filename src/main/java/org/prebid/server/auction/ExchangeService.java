@@ -38,8 +38,6 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.model.GdprResponse;
-import org.prebid.server.metric.AccountMetrics;
-import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.MetricsContext;
@@ -355,7 +353,7 @@ public class ExchangeService {
             maskingRequired = gdprAllowsUserData != null && !gdprAllowsUserData;
 
             if (maskingRequired) {
-                metrics.forAdapter(resolvedBidderName).incCounter(MetricName.gdpr_masked);
+                metrics.updateGdprMaskedMetric(resolvedBidderName);
             }
         }
         return maskingRequired;
@@ -554,25 +552,17 @@ public class ExchangeService {
     private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
                                                     Map<String, String> aliases, String publisherId,
                                                     MetricsContext metricsContext) {
-        final AccountMetrics accountMetrics = metrics.forAccount(publisherId);
-
         final MetricName requestType = metricsContext.getRequestType();
 
-        accountMetrics.incCounter(MetricName.requests);
-        accountMetrics.requestType().incCounter(requestType);
+        metrics.updateAccountRequestMetrics(publisherId, requestType);
 
         for (BidderRequest bidderRequest : bidderRequests) {
             final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
-            final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-
-            adapterMetrics.requestType().incCounter(requestType);
-
+            final boolean isApp = bidderRequest.getBidRequest().getApp() != null;
             final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
                     uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
 
-            if (bidderRequest.getBidRequest().getApp() == null && noBuyerId) {
-                adapterMetrics.incCounter(MetricName.no_cookie_requests);
-            }
+            metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestType, !isApp && noBuyerId);
         }
         return bidderRequests;
     }
@@ -763,34 +753,21 @@ public class ExchangeService {
     private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
         for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
-            final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-            final AdapterMetrics accountAdapterMetrics = metrics.forAccount(publisherId).forAdapter(bidder);
 
-            final int responseTime = bidderResponse.getResponseTime();
-            adapterMetrics.updateTimer(MetricName.request_time, responseTime);
-            accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
+            metrics.updateAdapterResponseTime(bidder, publisherId, bidderResponse.getResponseTime());
 
             final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
             if (CollectionUtils.isEmpty(bidderBids)) {
-                adapterMetrics.request().incCounter(MetricName.nobid);
-                accountAdapterMetrics.request().incCounter(MetricName.nobid);
+                metrics.updateAdapterRequestNobidMetrics(bidder, publisherId);
             } else {
-                adapterMetrics.request().incCounter(MetricName.gotbids);
-                accountAdapterMetrics.request().incCounter(MetricName.gotbids);
+                metrics.updateAdapterRequestGotbidsMetrics(bidder, publisherId);
 
                 for (final BidderBid bidderBid : bidderBids) {
                     final Bid bid = bidderBid.getBid();
 
                     final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
-                    adapterMetrics.updateHistogram(MetricName.prices, cpm);
-                    accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
-
-                    adapterMetrics.incCounter(MetricName.bids_received);
-                    accountAdapterMetrics.incCounter(MetricName.bids_received);
-
-                    final MetricName markupMetricName = bid.getAdm() != null
-                            ? MetricName.adm_bids_received : MetricName.nurl_bids_received;
-                    adapterMetrics.forBidType(bidderBid.getType()).incCounter(markupMetricName);
+                    metrics.updateAdapterBidMetrics(bidder, publisherId, cpm, bid.getAdm() != null,
+                            bidderBid.getType().toString());
                 }
             }
 
@@ -800,7 +777,7 @@ public class ExchangeService {
                         .map(BidderError::getType)
                         .distinct()
                         .map(ExchangeService::bidderErrorTypeToMetric)
-                        .forEach(errorMetric -> adapterMetrics.request().incCounter(errorMetric));
+                        .forEach(errorMetric -> metrics.updateAdapterRequestErrorMetric(bidder, errorMetric));
             }
         }
 

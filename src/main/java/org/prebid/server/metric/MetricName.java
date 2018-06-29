@@ -7,7 +7,6 @@ public enum MetricName {
     no_cookie_requests,
     safari_requests,
     safari_no_cookie_requests,
-    cookie_sync_requests,
     request_time,
     prices,
     imps_requested,
@@ -16,7 +15,7 @@ public enum MetricName {
     adm_bids_received,
     nurl_bids_received,
 
-    // request types
+    // request types,
     openrtb2web("openrtb2-web"),
     openrtb2app("openrtb2-app"),
     amp,
@@ -33,6 +32,7 @@ public enum MetricName {
     err,
 
     // cookie sync
+    cookie_sync_requests,
     opt_outs,
     bad_requests,
     sets,

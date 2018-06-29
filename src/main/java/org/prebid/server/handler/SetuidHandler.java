@@ -14,7 +14,6 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.model.GdprResponse;
-import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
 
@@ -56,7 +55,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (!uidsCookie.allowsSync()) {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
             context.response().setStatusCode(status).end();
-            metrics.cookieSync().incCounter(MetricName.opt_outs);
+            metrics.updateCookieSyncOptoutMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
         }
@@ -65,7 +64,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (StringUtils.isBlank(bidder)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             context.response().setStatusCode(status).end("\"bidder\" query param is required");
-            metrics.cookieSync().incCounter(MetricName.bad_requests);
+            metrics.updateCookieSyncBadRequestMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
         }
@@ -116,7 +115,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         } else {
             updatedUidsCookie = uidsCookie.updateUid(bidder, uid);
             successfullyUpdated = true;
-            metrics.cookieSync().forBidder(bidder).incCounter(MetricName.sets);
+            metrics.updateCookieSyncSetsMetric(bidder);
         }
 
         final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
@@ -132,7 +131,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder) {
         context.response().setStatusCode(status).end(body);
-        metrics.cookieSync().forBidder(bidder).incCounter(MetricName.gdpr_prevent);
+        metrics.updateCookieSyncGdprPreventMetric(bidder);
         analyticsReporter.processEvent(SetuidEvent.error(status));
     }
 }

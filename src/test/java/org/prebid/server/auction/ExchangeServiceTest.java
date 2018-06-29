@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
@@ -46,13 +47,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprResponse;
-import org.prebid.server.metric.AccountMetrics;
-import org.prebid.server.metric.AdapterMetrics;
-import org.prebid.server.metric.BidTypeMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.RequestMetrics;
-import org.prebid.server.metric.RequestTypeMetrics;
 import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -95,8 +91,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
-import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.*;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
@@ -124,22 +120,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private Metrics metrics;
     @Mock
-    private AdapterMetrics adapterMetrics;
-    @Mock
-    private RequestTypeMetrics adapterRequestTypeMetrics;
-    @Mock
-    private RequestMetrics adapterRequestMetrics;
-    @Mock
-    private BidTypeMetrics adapterBidTypeMetrics;
-    @Mock
-    private AccountMetrics accountMetrics;
-    @Mock
-    private AdapterMetrics accountAdapterMetrics;
-    @Mock
-    private RequestMetrics accountAdapterRequestMetrics;
-    @Mock
-    private RequestTypeMetrics accountRequestTypeMetrics;
-    @Mock
     private UidsCookie uidsCookie;
     @Mock
     private BidderRequester bidderRequester;
@@ -164,15 +144,6 @@ public class ExchangeServiceTest extends VertxTest {
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
         given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
         given(bidResponsePostProcessor.postProcess(any(), any(), any())).willCallRealMethod();
-
-        given(metrics.forAdapter(anyString())).willReturn(adapterMetrics);
-        given(adapterMetrics.requestType()).willReturn(adapterRequestTypeMetrics);
-        given(adapterMetrics.request()).willReturn(adapterRequestMetrics);
-        given(adapterMetrics.forBidType(any())).willReturn(adapterBidTypeMetrics);
-        given(metrics.forAccount(anyString())).willReturn(accountMetrics);
-        given(accountMetrics.forAdapter(anyString())).willReturn(accountAdapterMetrics);
-        given(accountAdapterMetrics.request()).willReturn(accountAdapterRequestMetrics);
-        given(accountMetrics.requestType()).willReturn(accountRequestTypeMetrics);
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -498,7 +469,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
         verify(bidderRequester, times(3)).requestBids(bidRequestCaptor.capture(), any());
-        verify(adapterMetrics).incCounter(eq(MetricName.gdpr_masked));
+        verify(metrics).updateGdprMaskedMetric(eq("bidder3"));
         assertThat(bidRequestCaptor.getAllValues())
                 .extracting(BidRequest::getUser)
                 .extracting(User::getBuyeruid).containsExactlyInAnyOrder(null, "uid1", "uid2");
@@ -1451,21 +1422,12 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
 
         // then
-        verify(metrics, times(2)).forAccount("accountId");
-        verify(accountMetrics).incCounter(eq(MetricName.requests));
-        verify(accountRequestTypeMetrics).incCounter(eq(MetricName.openrtb2web));
-        verify(metrics, times(2)).forAdapter("somebidder");
-        verify(adapterRequestTypeMetrics).incCounter(eq(MetricName.openrtb2web));
-        verify(adapterMetrics).incCounter(eq(MetricName.no_cookie_requests));
-        verify(adapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
-        verify(accountAdapterMetrics).updateTimer(eq(MetricName.request_time), anyLong());
-        verify(adapterRequestMetrics).incCounter(MetricName.gotbids);
-        verify(accountAdapterRequestMetrics).incCounter(MetricName.gotbids);
-        verify(adapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
-        verify(accountAdapterMetrics).updateHistogram(eq(MetricName.prices), anyLong());
-        verify(adapterMetrics).incCounter(eq(MetricName.bids_received));
-        verify(accountAdapterMetrics).incCounter(eq(MetricName.bids_received));
-        verify(adapterBidTypeMetrics).incCounter(eq(MetricName.nurl_bids_received));
+        verify(metrics).updateAccountRequestMetrics(eq("accountId"), eq(MetricName.openrtb2web));
+        verify(metrics)
+                .updateAdapterRequestTypeAndNoCookieMetrics(eq("somebidder"), eq(MetricName.openrtb2web), eq(true));
+        verify(metrics).updateAdapterResponseTime(eq("somebidder"), eq("accountId"), anyInt());
+        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("somebidder"), eq("accountId"));
+        verify(metrics).updateAdapterBidMetrics(eq("somebidder"), eq("accountId"), eq(10000L), eq(false), eq("banner"));
     }
 
     @Test
@@ -1474,14 +1436,14 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderRequester.requestBids(any(), any()))
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)),
+                builder -> builder.app(App.builder().publisher(Publisher.builder().id("accountId").build()).build()));
 
         // when
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
 
         // then
-        verify(adapterRequestMetrics).incCounter(eq(MetricName.nobid));
-        verify(accountAdapterRequestMetrics).incCounter(eq(MetricName.nobid));
+        verify(metrics).updateAdapterRequestNobidMetrics(eq("somebidder"), eq("accountId"));
     }
 
     @Test
@@ -1499,18 +1461,18 @@ public class ExchangeServiceTest extends VertxTest {
                                 BidderError.timeout("timeout error"),
                                 BidderError.generic("timeout error")))));
 
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)));
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)),
+                builder -> builder.site(Site.builder().publisher(Publisher.builder().id("accountId").build()).build()));
 
         // when
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
 
         // then
-        verify(adapterRequestMetrics).incCounter(eq(MetricName.gotbids));
-        verify(accountAdapterRequestMetrics).incCounter(eq(MetricName.gotbids));
-        verify(adapterRequestMetrics).incCounter(eq(MetricName.badinput));
-        verify(adapterRequestMetrics).incCounter(eq(MetricName.badserverresponse));
-        verify(adapterRequestMetrics).incCounter(eq(MetricName.timeout));
-        verify(adapterRequestMetrics).incCounter(eq(MetricName.unknown_error));
+        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("somebidder"), eq("accountId"));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("somebidder"), eq(MetricName.badinput));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("somebidder"), eq(MetricName.badserverresponse));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("somebidder"), eq(MetricName.timeout));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("somebidder"), eq(MetricName.unknown_error));
     }
 
     @Test

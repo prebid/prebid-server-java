@@ -10,6 +10,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.TargetingKeywordsCreator;
@@ -23,11 +24,8 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.metric.AccountMetrics;
-import org.prebid.server.metric.AdapterMetrics;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderStatus;
@@ -87,15 +85,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
 
-        updateSafariMetrics(isSafari);
+        metrics.updateSafariRequestsMetric(isSafari);
 
         preBidRequestContextFactory.fromRequest(context)
                 .recover(exception -> failWithInvalidRequest(
                         String.format("Error parsing request: %s", exception.getMessage()), exception))
 
-                .map(this::updateImpsRequestedMetrics)
-
-                .map(preBidRequestContext -> updateAppAndNoCookieMetrics(preBidRequestContext, isSafari))
+                .map(preBidRequestContext ->
+                        updateAppAndNoCookieAndImpsRequestedMetrics(preBidRequestContext, isSafari))
 
                 .compose(preBidRequestContext -> applicationSettings.getAccountById(
                         preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
@@ -127,27 +124,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
     }
 
-    private void updateSafariMetrics(boolean isSafari) {
-        if (isSafari) {
-            metrics.incCounter(MetricName.safari_requests);
-        }
-    }
+    private PreBidRequestContext updateAppAndNoCookieAndImpsRequestedMetrics(
+            PreBidRequestContext preBidRequestContext, boolean isSafari) {
 
-    private PreBidRequestContext updateImpsRequestedMetrics(PreBidRequestContext preBidRequestContext) {
-        metrics.incCounter(MetricName.imps_requested, preBidRequestContext.getPreBidRequest().getAdUnits().size());
-        return preBidRequestContext;
-    }
-
-    private PreBidRequestContext updateAppAndNoCookieMetrics(PreBidRequestContext preBidRequestContext,
-                                                             boolean isSafari) {
-        if (preBidRequestContext.getPreBidRequest().getApp() != null) {
-            metrics.incCounter(MetricName.app_requests);
-        } else if (preBidRequestContext.isNoLiveUids()) {
-            metrics.incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                metrics.incCounter(MetricName.safari_no_cookie_requests);
-            }
-        }
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(preBidRequestContext.getPreBidRequest().getApp() != null,
+                !preBidRequestContext.isNoLiveUids(), isSafari,
+                preBidRequestContext.getPreBidRequest().getAdUnits().size());
 
         return preBidRequestContext;
     }
@@ -157,10 +139,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
             long startTime) {
 
         final String accountId = preBidRequestContextAccount.getLeft().getPreBidRequest().getAccountId();
-        final AccountMetrics accountMetrics = metrics.forAccount(accountId);
 
-        accountMetrics.incCounter(MetricName.requests);
-        accountMetrics.requestType().incCounter(REQUEST_TYPE_METRIC);
+        metrics.updateAccountRequestMetrics(accountId, REQUEST_TYPE_METRIC);
 
         setupRequestTimeUpdater(context, startTime);
 
@@ -169,8 +149,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private void setupRequestTimeUpdater(RoutingContext context, long startTime) {
         // set up handler to update request time metric when response is sent back to a client
-        context.response().endHandler(ignoredVoid -> metrics.updateTimer(MetricName.request_time,
-                clock.millis() - startTime));
+        context.response().endHandler(ignoredVoid -> metrics.updateRequestTimeMetric(clock.millis() - startTime));
     }
 
     private static <T> Future<T> failWithInvalidRequest(String message, Throwable exception) {
@@ -192,14 +171,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext) {
         return preBidRequestContext.getAdapterRequests().stream()
                 .filter(ar -> bidderCatalog.isValidAdapterName(ar.getBidderCode()))
-                .peek(ar -> updateAdapterRequestMetrics(ar.getBidderCode()))
                 .map(ar -> httpAdapterConnector.call(bidderCatalog.adapterByName(ar.getBidderCode()),
                         bidderCatalog.usersyncerByName(ar.getBidderCode()), ar, preBidRequestContext))
                 .collect(Collectors.toList());
-    }
-
-    private void updateAdapterRequestMetrics(String bidder) {
-        metrics.forAdapter(bidder).requestType().incCounter(REQUEST_TYPE_METRIC);
     }
 
     private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
@@ -246,16 +220,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 errorMetric = MetricName.unknown_error;
         }
 
-        metrics.forAdapter(adapterResponse.getBidderStatus().getBidder()).request().incCounter(errorMetric);
+        metrics.updateAdapterRequestErrorMetric(adapterResponse.getBidderStatus().getBidder(), errorMetric);
     }
 
     private void updateResponseTimeMetrics(BidderStatus bidderStatus, PreBidRequestContext preBidRequestContext) {
-        final String bidder = bidderStatus.getBidder();
-
-        final Integer responseTimeMs = bidderStatus.getResponseTimeMs();
-        metrics.forAdapter(bidder).updateTimer(MetricName.request_time, responseTimeMs);
-        metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId())
-                .forAdapter(bidder).updateTimer(MetricName.request_time, responseTimeMs);
+        metrics.updateAdapterResponseTime(bidderStatus.getBidder(),
+                preBidRequestContext.getPreBidRequest().getAccountId(), bidderStatus.getResponseTimeMs());
     }
 
     private Stream<BidderStatus> invalidBidderStatuses(PreBidRequestContext preBidRequestContext) {
@@ -268,45 +238,21 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final BidderStatus bidderStatus = adapterResponse.getBidderStatus();
         final String bidder = bidderStatus.getBidder();
 
-        final AdapterMetrics adapterMetrics = metrics.forAdapter(bidder);
-        final AccountMetrics accountMetrics =
-                metrics.forAccount(preBidRequestContext.getPreBidRequest().getAccountId());
-        final AdapterMetrics accountAdapterMetrics = accountMetrics.forAdapter(bidder);
+        metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, REQUEST_TYPE_METRIC,
+                Objects.equals(bidderStatus.getNoCookie(), Boolean.TRUE));
+
+        final String accountId = preBidRequestContext.getPreBidRequest().getAccountId();
 
         for (final Bid bid : adapterResponse.getBids()) {
             final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
-            adapterMetrics.updateHistogram(MetricName.prices, cpm);
-            accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
-
-            adapterMetrics.incCounter(MetricName.bids_received);
-            accountAdapterMetrics.incCounter(MetricName.bids_received);
-
-            updateAdapterMarkupMetrics(adapterMetrics, bid);
+            metrics.updateAdapterBidMetrics(bidder, accountId, cpm, bid.getAdm() != null,
+                    ObjectUtils.firstNonNull(bid.getMediaType(), MediaType.banner).toString()); // default to banner
         }
 
         if (Objects.equals(bidderStatus.getNoBid(), Boolean.TRUE)) {
-            adapterMetrics.request().incCounter(MetricName.nobid);
-            accountAdapterMetrics.request().incCounter(MetricName.nobid);
+            metrics.updateAdapterRequestNobidMetrics(bidder, accountId);
         } else {
-            adapterMetrics.request().incCounter(MetricName.gotbids);
-            accountAdapterMetrics.request().incCounter(MetricName.gotbids);
-        }
-
-        if (Objects.equals(bidderStatus.getNoCookie(), Boolean.TRUE)) {
-            adapterMetrics.incCounter(MetricName.no_cookie_requests);
-            accountAdapterMetrics.incCounter(MetricName.no_cookie_requests);
-        }
-    }
-
-    private static void updateAdapterMarkupMetrics(AdapterMetrics adapterMetrics, Bid bid) {
-        final MetricName markupMetricName = bid.getAdm() != null
-                ? MetricName.adm_bids_received : MetricName.nurl_bids_received;
-
-        final MediaType mediaType = bid.getMediaType();
-        if (mediaType == MediaType.banner) {
-            adapterMetrics.forBidType(BidType.banner).incCounter(markupMetricName);
-        } else if (mediaType == MediaType.video) {
-            adapterMetrics.forBidType(BidType.video).incCounter(markupMetricName);
+            metrics.updateAdapterRequestGotbidsMetrics(bidder, accountId);
         }
     }
 
@@ -423,7 +369,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private void updateRequestMetric(MetricName requestStatus) {
-        metrics.forRequestType(REQUEST_TYPE_METRIC).incCounter(requestStatus);
+        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, requestStatus);
     }
 
     private static PreBidResponse error(String status) {

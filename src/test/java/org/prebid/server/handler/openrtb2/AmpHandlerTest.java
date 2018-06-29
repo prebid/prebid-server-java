@@ -37,7 +37,6 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.metric.RequestStatusMetrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -57,6 +56,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.*;
 
 public class AmpHandlerTest extends VertxTest {
@@ -77,8 +77,6 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private Metrics metrics;
     @Mock
-    private RequestStatusMetrics requestStatusMetrics;
-    @Mock
     private Clock clock;
 
     private AmpHandler ampHandler;
@@ -94,8 +92,6 @@ public class AmpHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(metrics.forRequestType(any())).willReturn(requestStatusMetrics);
-
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
 
@@ -268,8 +264,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.amp));
-        verify(requestStatusMetrics).incCounter(eq(MetricName.ok));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.ok));
     }
 
     @Test
@@ -286,7 +281,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.app_requests));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyBoolean(), anyInt());
     }
 
     @Test
@@ -307,9 +302,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.safari_requests));
-        verify(metrics).incCounter(eq(MetricName.safari_no_cookie_requests));
-        verify(metrics).incCounter(eq(MetricName.no_cookie_requests));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), eq(true), anyInt());
     }
 
     @Test
@@ -326,7 +319,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).incCounter(eq(MetricName.imps_requested), eq(1L));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), anyBoolean(), eq(1));
     }
 
     @Test
@@ -339,8 +332,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.amp));
-        verify(requestStatusMetrics).incCounter(eq(MetricName.badinput));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.badinput));
     }
 
     @Test
@@ -352,8 +344,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).forRequestType(eq(MetricName.amp));
-        verify(requestStatusMetrics).incCounter(eq(MetricName.err));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.err));
     }
 
     @SuppressWarnings("unchecked")
@@ -380,7 +371,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateTimer(eq(MetricName.request_time), eq(500L));
+        verify(metrics).updateRequestTimeMetric(eq(500L));
     }
 
     @Test

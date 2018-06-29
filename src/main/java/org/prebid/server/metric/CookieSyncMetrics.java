@@ -10,7 +10,7 @@ import java.util.function.Function;
 /**
  * Contains cookie sync metrics for a bidders metrics support.
  */
-public class CookieSyncMetrics extends UpdatableMetrics {
+class CookieSyncMetrics extends UpdatableMetrics {
 
     private final Function<String, BidderCookieSyncMetrics> bidderCookieSyncMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
@@ -25,14 +25,11 @@ public class CookieSyncMetrics extends UpdatableMetrics {
         bidderCookieSyncMetrics = new HashMap<>();
     }
 
-    /**
-     * Returns existing or create a new {@link BidderCookieSyncMetrics} for supplied bidder.
-     */
-    public BidderCookieSyncMetrics forBidder(String bidder) {
+    BidderCookieSyncMetrics forBidder(String bidder) {
         return bidderCookieSyncMetrics.computeIfAbsent(bidder, bidderCookieSyncMetricsCreator);
     }
 
-    public static class BidderCookieSyncMetrics extends UpdatableMetrics {
+    static class BidderCookieSyncMetrics extends UpdatableMetrics {
 
         BidderCookieSyncMetrics(MetricRegistry metricRegistry, CounterType counterType, String bidder) {
             super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),

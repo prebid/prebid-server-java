@@ -16,7 +16,6 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -46,7 +45,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        metrics.incCounter(MetricName.cookie_sync_requests);
+        metrics.updateCookieSyncRequestMetric();
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
