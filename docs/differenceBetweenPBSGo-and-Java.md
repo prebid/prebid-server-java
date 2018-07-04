@@ -18,3 +18,11 @@ and not the other for an interim period. This page tracks known differences that
 - Java and Go adapters return currency in different ways:
   - in PBS-Go, the adapter sets BidResponse.currency, which is outside of each TypedBid.
   - in PBS-Java, they set BidderBid[N].currency
+
+## GDPR differences
+- PBS-Java supports geo location service interface to determine the country for incoming client request (the host company should provide its own implementation).
+- Different checking of purpose IDs (1 - `Storage and access of information`, 3 - `Ad selection, delivery, reporting`):
+  - for `/auction` endpoint: in PBS-Java - doesn't support GDPR processing.
+  - for `/openrtb2/{auction,amp}` endpoint: in PBS-Java - 1 and 3 (for each bidder from request); in PBS-Go - doesn't support GDPR processing.
+  - for `/cookie_sync` endpoint: in PBS-Java - doesn't support GDPR processing; in PBS-Go - only 1 checked.
+- PBS-Java allows bidder to enforce GDPR processing. This information available in bidder meta info.
