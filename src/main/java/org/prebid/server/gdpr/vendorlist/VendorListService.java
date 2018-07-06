@@ -188,6 +188,8 @@ public class VendorListService {
         if (vendorIdToPurposes != null) {
             return Future.succeededFuture(vendorIdToPurposes);
         } else {
+            log(version, "Vendor list not found. Trying to load.");
+
             fetchNewVendorListFor(version);
 
             return Future.failedFuture(String.format("Vendor list of version %d not found. Try again later.", version));
@@ -207,7 +209,7 @@ public class VendorListService {
     }
 
     private static void handleException(int version, Throwable throwable) {
-        logError(version, throwable.getMessage());
+        log(version, throwable.getMessage());
     }
 
     private void handleResponse(HttpClientResponse response, int version) {
@@ -218,13 +220,13 @@ public class VendorListService {
 
     private void handleBody(int version, int statusCode, String body) {
         if (statusCode != 200) {
-            logError(version, "response code was %d", statusCode);
+            log(version, "response code was %d", statusCode);
         } else {
             final VendorList vendorList;
             try {
                 vendorList = Json.decodeValue(body, VendorList.class);
             } catch (DecodeException e) {
-                logError(version, "parsing json failed for response: %s with message: %s", body, e.getMessage());
+                log(version, "parsing json failed for response: %s with message: %s", body, e.getMessage());
                 return;
             }
 
@@ -234,7 +236,7 @@ public class VendorListService {
                         // add new entry to in-memory cache
                         .map(r -> cache.put(version, mapVendorIdToPurposes(vendorList.getVendors(), knownVendorIds)));
             } else {
-                logError(version, "fetched vendor list parsed but has invalid data: %s", body);
+                log(version, "fetched vendor list parsed but has invalid data: %s", body);
             }
         }
     }
@@ -259,10 +261,10 @@ public class VendorListService {
 
         fileSystem.writeFile(filepath, Buffer.buffer(content), result -> {
             if (result.succeeded()) {
-                logError(version, "Created new vendor list file %s: ", filepath);
+                log(version, "Created new vendor list file %s: ", filepath);
                 future.complete();
             } else {
-                logError(version, "Could not create new vendor list file: %s", filepath);
+                log(version, "Could not create new vendor list file: %s", filepath);
                 future.fail(result.cause());
             }
         });
@@ -270,7 +272,7 @@ public class VendorListService {
         return future;
     }
 
-    private static void logError(int version, String errorMessageFormat, Object... args) {
+    private static void log(int version, String errorMessageFormat, Object... args) {
         logger.info(String.format("Error fetching vendor list via HTTP for version %d with error: %s",
                 version, String.format(errorMessageFormat, args)));
     }

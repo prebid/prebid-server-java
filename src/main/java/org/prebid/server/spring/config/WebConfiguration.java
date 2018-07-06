@@ -225,12 +225,18 @@ public class WebConfiguration {
 
     @Bean
     CookieSyncHandler cookieSyncHandler(
+            @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
+            GdprService gdprService,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
-            Metrics metrics) {
+            Metrics metrics,
+            TimeoutFactory timeoutFactory) {
 
-        return new CookieSyncHandler(uidsCookieService, bidderCatalog, analyticsReporter, metrics);
+        return new CookieSyncHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService, hostVendorId,
+                useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean
