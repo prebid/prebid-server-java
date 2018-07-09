@@ -43,7 +43,7 @@ public class AmpRequestFactory {
     private static final String CURL_REQUEST_PARAM = "curl";
     private static final String SLOT_REQUEST_PARAM = "slot";
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
-    private static final Integer NO_LIMIT_SPLIT_MODE = -1;
+    private static final int NO_LIMIT_SPLIT_MODE = -1;
 
     private final long timeoutAdjustmentMs;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -188,10 +188,10 @@ public class AmpRequestFactory {
      */
     private static List<Format> createOverrideBannerFormats(HttpServerRequest request, List<Format> formats) {
         final List<Format> overrideFormats;
-        final Integer overrideWidth = parseIntParam(request, OW_REQUEST_PARAM, 0);
-        final Integer width = parseIntParam(request, W_REQUEST_PARAM, 0);
-        final Integer overrideHeight = parseIntParam(request, OH_REQUEST_PARAM, 0);
-        final Integer height = parseIntParam(request, H_REQUEST_PARAM, 0);
+        final int overrideWidth = parseIntParamOrZero(request, OW_REQUEST_PARAM);
+        final int width = parseIntParamOrZero(request, W_REQUEST_PARAM);
+        final int overrideHeight = parseIntParamOrZero(request, OH_REQUEST_PARAM);
+        final int height = parseIntParamOrZero(request, H_REQUEST_PARAM);
         final String multiSizeParam = request.getParam(MS_REQUEST_PARAM);
 
         final List<Format> paramsFormats = createFormatsFromParams(overrideWidth, width, overrideHeight, height,
@@ -275,15 +275,15 @@ public class AmpRequestFactory {
         return bidRequest;
     }
 
-    private static Integer parseIntParam(HttpServerRequest request, String name, Integer defaultValue) {
-        return parseInt(request.getParam(name), defaultValue);
+    private static Integer parseIntParamOrZero(HttpServerRequest request, String name) {
+        return parseIntOrZero(request.getParam(name));
     }
 
-    private static Integer parseInt(String param, Integer defaultValue) {
+    private static Integer parseIntOrZero(String param) {
         try {
             return Integer.parseInt(param);
         } catch (NumberFormatException e) {
-            return defaultValue;
+            return 0;
         }
     }
 
@@ -296,8 +296,8 @@ public class AmpRequestFactory {
                 return null;
             }
 
-            final Integer width = parseInt(widthHeight[0], 0);
-            final Integer height = parseInt(widthHeight[1], 0);
+            final Integer width = parseIntOrZero(widthHeight[0]);
+            final Integer height = parseIntOrZero(widthHeight[1]);
 
             if (width == 0 && height == 0) {
                 return null;
