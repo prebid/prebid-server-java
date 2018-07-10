@@ -93,7 +93,8 @@
             }
           }
         },
-        "includewinners": true
+        "includewinners": true,
+        "includebidderkeys": true
       },
       "cache": {
         "bids": {}

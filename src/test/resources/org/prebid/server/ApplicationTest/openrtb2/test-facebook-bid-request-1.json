@@ -42,7 +42,7 @@
         "keyv": 123,
         "pref": 0
       },
-      "consent" : "consentValue"
+      "consent": "consentValue"
     }
   },
   "test": 1,
@@ -86,7 +86,8 @@
             }
           }
         },
-        "includewinners" : true
+        "includewinners": true,
+        "includebidderkeys": true
       },
       "cache": {
         "bids": {},

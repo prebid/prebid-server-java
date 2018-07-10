@@ -137,8 +137,9 @@ public class AuctionRequestFactory {
         final boolean isPriceGranularityNull = targeting.getPricegranularity().isNull();
         final boolean isPriceGranularityTextual = targeting.getPricegranularity().isTextual();
         final boolean isIncludeWinnersNull = targeting.getIncludewinners() == null;
+        final boolean isIncludeBidderKeysNull = targeting.getIncludebidderkeys() == null;
 
-        if (isIncludeWinnersNull || isPriceGranularityNull || isPriceGranularityTextual) {
+        if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
             return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                     prebid.getAliases(),
                     prebid.getBidadjustmentfactors(),
@@ -146,7 +147,8 @@ public class AuctionRequestFactory {
                             populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
                                     isPriceGranularityTextual),
                             targeting.getCurrency(),
-                            isIncludeWinnersNull ? true : targeting.getIncludewinners()),
+                            isIncludeWinnersNull ? true : targeting.getIncludewinners(),
+                            isIncludeBidderKeysNull ? true : targeting.getIncludebidderkeys()),
                     prebid.getStoredrequest(),
                     prebid.getCache())));
         }

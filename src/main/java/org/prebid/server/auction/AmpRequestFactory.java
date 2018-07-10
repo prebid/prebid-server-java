@@ -129,6 +129,7 @@ public class AmpRequestFactory {
             final ExtRequestTargeting targeting = prebid.getTargeting();
             setDefaultTargeting = targeting == null
                     || targeting.getIncludewinners() == null
+                    || targeting.getIncludebidderkeys() == null
                     || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
             final ExtRequestPrebidCache cache = prebid.getCache();
             setDefaultCache = cache == null || (cache.getBids() == null && cache.getVastxml() == null);
@@ -360,6 +361,9 @@ public class AmpRequestFactory {
         final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
                 ? true : targeting.getIncludewinners();
 
-        return ExtRequestTargeting.of(outgoingPriceGranularityNode, currency, includeWinners);
+        final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
+                ? true : targeting.getIncludebidderkeys();
+
+        return ExtRequestTargeting.of(outgoingPriceGranularityNode, currency, includeWinners, includeBidderKeys);
     }
 }
