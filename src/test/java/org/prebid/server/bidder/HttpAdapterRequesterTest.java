@@ -469,6 +469,30 @@ public class HttpAdapterRequesterTest {
     }
 
     @Test
+    public void shouldTolerateMissingAdapterResponseBidderStatusDebug() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().publisher(Publisher.builder().id("sitePublisherId").build()).build())
+                .imp(singletonList(Imp.builder().banner(Banner.builder()
+                        .format(singletonList(Format.builder().build())).build())
+                        .ext((ObjectNode) Json.mapper.createObjectNode().set("bidder", Json.mapper.createObjectNode()))
+                        .build()))
+                .source(Source.builder().tid("tid").build())
+                .build();
+
+        given(httpAdapterConnector.call(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
+                        BidderStatus.builder().debug(null).build(), // set debug to NULL explicitly
+                        emptyList(), null)));
+
+        // when
+        final BidderSeatBid bidderSeatBid = httpAdapterRequester.requestBids(bidRequest, timeout).result();
+
+        // then
+        assertThat(bidderSeatBid.getHttpCalls()).isNotNull().isEmpty();
+    }
+
+    @Test
     public void shouldTakeAccountIdFromAppPublisherIfSiteIsNullAndAppIsNotNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
