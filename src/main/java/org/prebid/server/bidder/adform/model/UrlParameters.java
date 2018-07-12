@@ -22,4 +22,8 @@ public class UrlParameters {
     String advertisingId;
 
     boolean secure;
+
+    String gdprApplies;
+
+    String consent;
 }
