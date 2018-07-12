@@ -314,7 +314,7 @@ public class HttpAdapterRequester implements BidderRequester {
 
         return BidderSeatBid.of(bidderBidsResult.getValue(), adapterResponse.getBidderStatus().getDebug() != null
                 ? toExtHttpCalls(adapterResponse.getBidderStatus().getDebug())
-                : null, bidderErrors);
+                : Collections.emptyList(), bidderErrors);
     }
 
     /**
