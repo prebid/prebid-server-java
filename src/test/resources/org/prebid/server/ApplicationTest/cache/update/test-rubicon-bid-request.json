@@ -84,7 +84,8 @@
             }
           }
         },
-        "includewinners": true
+        "includewinners": true,
+        "includebidderkeys": true
       }
     }
   },

@@ -25,4 +25,9 @@ public class ExtRequestTargeting {
      * Defines the contract for bidrequest.ext.prebid.targeting.includewinners
      */
     Boolean includewinners;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.targeting.includebidderkeys
+     */
+    Boolean includebidderkeys;
 }

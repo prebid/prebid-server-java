@@ -177,7 +177,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .containsExactly(ExtRequestPrebid.of(emptyMap(),
                         emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
-                                        BigDecimal.valueOf(0.1))))), null, true), null,
+                                        BigDecimal.valueOf(0.1))))), null, true, true), null,
                         ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null),
                                 ExtRequestPrebidCacheVastxml.of(null))));
     }
@@ -216,7 +216,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithDefaultIncludeWinnersIfStoredBidRequestExtTargetingHasNoIncludeWinners() {
         // given
         final BidRequest bidRequest = givenBidRequestWithExt(
-                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null, null), null);
+                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null, null, null), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
@@ -242,10 +242,84 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidRequestWithIncludeWinnersFromStoredBidRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithExt(
+                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null, false, null), null);
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), any()))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludewinners)
+                .containsExactly(false);
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithDefaultIncludeBidderKeysIfStoredBidRequestExtTargetingHasNoIncludeBidderKeys() {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithExt(
+                ExtRequestTargeting.of(null, null, false, null), null);
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), any()))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludewinners, ExtRequestTargeting::getIncludebidderkeys)
+                // assert that includeBidderKeys was set with default value and includewinners remained unchanged
+                .containsExactly(tuple(false, true));
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithIncludeBidderKeysFromStoredBidRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithExt(
+                ExtRequestTargeting.of(mapper.createObjectNode().put("foo", "bar"), null, null, false), null);
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), any()))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class)).isNotNull()
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludebidderkeys)
+                .containsExactly(false);
+    }
+
+    @Test
     public void shouldReturnBidRequestWithDefaultPriceGranularityIfStoredBidRequestExtTargetingHasNoPriceGranularity() {
         // given
         final BidRequest bidRequest = givenBidRequestWithExt(
-                ExtRequestTargeting.of(null, null, false), null);
+                ExtRequestTargeting.of(null, null, false, null), null);
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
@@ -266,9 +340,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestTargeting::getIncludewinners, ExtRequestTargeting::getPricegranularity)
                 // assert that priceGranularity was set with default value and includeWinners remained unchanged
                 .containsExactly(
-                        tuple(
-                                false, mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
-                                        ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))))));
+                        tuple(false, mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
+                                ExtGranularityRange.of(BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))))));
     }
 
     private Answer<Object> answerWithFirstArgument() {
@@ -321,7 +394,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         given(httpRequest.getParam("debug")).willReturn("1");
 
-        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null, null),
+        final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null, null, null),
                 ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), ExtRequestPrebidCacheVastxml.of(null)));
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
@@ -350,7 +423,6 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-
 
         assertThat(singletonList(future.result()))
                 .flatExtracting(BidRequest::getImp)
@@ -887,7 +959,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverriddenBannerWhenInvalidParamTreatedAsZeroValue(){
+    public void shouldReturnBidRequestWithOverriddenBannerWhenInvalidParamTreatedAsZeroValue() {
         // given
         given(httpRequest.getParam("ow")).willReturn("100");
         given(httpRequest.getParam("oh")).willReturn("invalid");

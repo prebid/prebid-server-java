@@ -46,7 +46,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -482,7 +481,6 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(1).wratio(0).hratio(1));
 
-
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
 
@@ -763,11 +761,11 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenCantParseTargetingPriceGranularity() throws IOException {
+    public void validateShouldReturnValidationMessageWhenCantParseTargetingPriceGranularity() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(null, null,
-                        ExtRequestTargeting.of(new TextNode("pricegranularity"), null, null), null, null))))
+                        ExtRequestTargeting.of(new TextNode("pricegranularity"), null, null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -778,12 +776,12 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenRangesAreEmptyList() throws IOException {
+    public void validateShouldReturnValidationMessageWhenRangesAreEmptyList() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2, emptyList())),
-                                null, null), null, null))))
+                                null, null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -800,7 +798,7 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity
                                 .of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                        BigDecimal.valueOf(0))))), null, null), null, null))))
+                                        BigDecimal.valueOf(0))))), null, null, null), null, null))))
                 .build();
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -817,7 +815,7 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(-1))))),
-                                null, null),
+                                null, null, null),
                         null, null))))
                 .build();
         // when
@@ -834,8 +832,9 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(-1,
-                                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
-                                null, null),
+                                singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
+                                null, null, null),
                         null, null))))
                 .build();
         // when
@@ -846,6 +845,25 @@ public class RequestValidatorTest extends VertxTest {
                 "Price granularity error: precision must be non-negative");
     }
 
+    @Test
+    public void validateShouldReturnValidationMessageForInvalidTargeting() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(1,
+                                singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))))),
+                                null, false, false),
+                        null, null))))
+                .build();
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("ext.prebid.targeting: At least one of includewinners or includebidderkeys"
+                        + " must be enabled to enable targeting support");
+    }
 
     @Test
     public void validateShouldReturnValidationMessageWhenRangesAreNotOrderedByMaxValue() {
@@ -854,7 +872,7 @@ public class RequestValidatorTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
                                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
                                         ExtGranularityRange.of(BigDecimal.valueOf(2), BigDecimal.valueOf(0.05))))),
-                                null, null), null, null))))
+                                null, null, null), null, null))))
                 .build();
 
         // when
@@ -874,7 +892,7 @@ public class RequestValidatorTest extends VertxTest {
                                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
                                         ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(0.05)),
                                         ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))))),
-                                null, null), null, null))))
+                                null, null, null), null, null))))
                 .build();
 
         // when
@@ -893,7 +911,7 @@ public class RequestValidatorTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(mapper.valueToTree(ExtPriceGranularity.of(2,
                                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
                                         ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(-0.05))))),
-                                null, null), null, null))))
+                                null, null, null), null, null))))
                 .build();
 
         // when
@@ -1210,7 +1228,6 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
                         + " {title, img, video, data}");
-
     }
 
     @Test
@@ -1230,7 +1247,6 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
                         + " {title, img, video, data}");
-
     }
 
     @Test
@@ -1250,7 +1266,6 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
                         + " {title, img, video, data}");
-
     }
 
 
@@ -1381,7 +1396,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result0.getErrors()).hasSize(1).containsOnly(
                 "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
-
     }
 
     @Test

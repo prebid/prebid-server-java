@@ -122,7 +122,6 @@ public class RequestValidator {
             validateSite(bidRequest.getSite());
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
-
         } catch (ValidationException ex) {
             return ValidationResult.error(ex.getMessage());
         }
@@ -160,7 +159,6 @@ public class RequestValidator {
                         "request.ext.prebid.bidadjustmentfactors.%s must be a positive number. Got %s",
                         bidder, format(adjustmentFactor));
             }
-
         }
     }
 
@@ -189,6 +187,13 @@ public class RequestValidator {
             throw new ValidationException("Price granularity error: precision must be non-negative");
         }
         validateGranularityRanges(extPriceGranularity.getRanges());
+
+        final Boolean includeWinners = extRequestTargeting.getIncludewinners();
+        final Boolean includeBidderKeys = extRequestTargeting.getIncludebidderkeys();
+        if (Objects.equals(includeWinners, false) && Objects.equals(includeBidderKeys, false)) {
+            throw new ValidationException("ext.prebid.targeting: At least one of includewinners or includebidderkeys"
+                    + " must be enabled to enable targeting support");
+        }
     }
 
     /**
@@ -448,7 +453,6 @@ public class RequestValidator {
                     "request.imp[%d].native.request.assets[%d].img must contain at least one of \"h\" or \"hmin\"",
                     impIndex, assetIndex);
         }
-
     }
 
     private void validateNativeAssetData(DataObject data, int impIndex, int assetIndex) throws ValidationException {
@@ -462,7 +466,6 @@ public class RequestValidator {
                     "request.imp[%d].native.request.assets[%d].data.type must in the range [1, 12]. Got %d.",
                     impIndex, assetIndex, type);
         }
-
     }
 
     private void validateNativeAssetVideo(VideoObject video, int impIndex, int assetIndex) throws ValidationException {

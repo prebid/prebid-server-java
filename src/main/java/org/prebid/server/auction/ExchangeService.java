@@ -609,7 +609,7 @@ public class ExchangeService {
     private static TargetingKeywordsCreator buildKeywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
         return targeting != null
                 ? TargetingKeywordsCreator.create(parsePriceGranularity(targeting.getPricegranularity()),
-                targeting.getIncludewinners() != null ? targeting.getIncludewinners() : true, isApp)
+                targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp)
                 : null;
     }
 
