@@ -1,6 +1,5 @@
 package org.prebid.server.util;
 
-import com.iab.openrtb.request.Device;
 import io.vertx.core.MultiMap;
 import org.junit.Test;
 

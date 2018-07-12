@@ -158,21 +158,27 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-pubmatic-bid-response-1.json"))));
 
         // adform bid response for imp 12
-        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange/"))
+        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange"))
                 .withQueryParam("CC", equalTo("1"))
                 .withQueryParam("rp", equalTo("4"))
                 .withQueryParam("fd", equalTo("1"))
                 .withQueryParam("stid", equalTo("tid"))
+                .withQueryParam("pt", equalTo("gross"))
                 .withQueryParam("ip", equalTo("192.168.244.1"))
                 .withQueryParam("adid", equalTo("ifaId"))
+                .withQueryParam("gdpr", equalTo("0"))
+                .withQueryParam("gdpr_consent", equalTo("consentValue"))
                 // bWlkPTE1 is Base64 encoded "mid=15"
                 .withQueryParam("bWlkPTE1", equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.1"))
+                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.2"))
                 .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
-                .withHeader("Cookie", equalTo("uid=AF-UID"))
+                .withHeader("Cookie", equalTo(
+                        "uid=AF-UID;DigiTrust.v1.identity="
+                                // Base 64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":false}}
+                                + "eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6ZmFsc2V9fQ"))
                 .withRequestBody(equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adform-bid-response-1.json"))));
 
@@ -373,21 +379,26 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("auction/test-sovrn-bid-response-1.json"))));
 
         // adform bid response for ad unit 12
-        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange/"))
+        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange"))
                 .withQueryParam("CC", equalTo("1"))
                 .withQueryParam("rp", equalTo("4"))
                 .withQueryParam("fd", equalTo("1"))
                 .withQueryParam("stid", equalTo("tid"))
                 .withQueryParam("ip", equalTo("192.168.244.1"))
                 .withQueryParam("adid", equalTo("ifaId"))
+                .withQueryParam("gdpr", equalTo("1"))
+                .withQueryParam("gdpr_consent", equalTo("consent1"))
+                .withQueryParam("pt", equalTo("gross"))
                 // bWlkPTE1 is Base64 encoded "mid=15"
                 .withQueryParam("bWlkPTE1", equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.1"))
+                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.2"))
                 .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
-                .withHeader("Cookie", equalTo("uid=AF-UID"))
+                .withHeader("Cookie", equalTo("uid=AF-UID;DigiTrust.v1.identity"
+                        //{"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
+                        + "=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"))
                 .withRequestBody(equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("auction/test-adform-bid-response-1.json"))));
 
