@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -125,6 +126,59 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(populatedBidRequest.getDevice()).isEqualTo(
                 Device.builder().ip("192.168.244.1").ua("UnitTest").build());
         assertThat(populatedBidRequest.getUser()).isEqualTo(User.builder().id("userId").build());
+    }
+
+    @Test
+    public void shouldUpdateImpsWithSecurityOneIfRequestIsSecuredAndImpSecurityNotDefined() {
+        // given
+        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());
+        given(paramsExtractor.secureFrom(any())).willReturn(1);
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(populatedBidRequest.getImp()).extracting(Imp::getSecure).containsOnly(1);
+    }
+
+    @Test
+    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsSecureAndImpSecurityIsZero() {
+        // given
+        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().secure(0).build())).build());
+        given(paramsExtractor.secureFrom(any())).willReturn(1);
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(populatedBidRequest.getImp()).extracting(Imp::getSecure).containsOnly(0);
+    }
+
+    @Test
+    public void shouldUpdateImpsOnlyWithNotDefinedSecurityWithSecurityOneIfRequestIsSecure() {
+        // given
+        givenBidRequest(BidRequest.builder().imp(asList(Imp.builder().build(), Imp.builder().secure(0).build()))
+                .build());
+        given(paramsExtractor.secureFrom(any())).willReturn(1);
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(populatedBidRequest.getImp()).extracting(Imp::getSecure).containsOnly(1, 0);
+    }
+
+    @Test
+    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined(){
+        // given
+        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());
+        given(paramsExtractor.secureFrom(any())).willReturn(0);
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(populatedBidRequest.getImp()).extracting(Imp::getSecure).containsNull();
     }
 
     @Test
