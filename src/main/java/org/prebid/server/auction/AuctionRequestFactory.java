@@ -16,7 +16,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -87,7 +86,6 @@ public class AuctionRequestFactory {
         final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
         final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
         final List<Imp> populatedImps = populateImps(imps, request);
-        final boolean populateImps = CollectionUtils.isNotEmpty(populatedImps);
         final User populatedUser = populateUser(bidRequest.getUser(), context);
         final Integer at = bidRequest.getAt();
         final Boolean setDefaultAt = at == null || at == 0;
@@ -96,12 +94,12 @@ public class AuctionRequestFactory {
         final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
-                || setDefaultAt || updateCurrency || populateImps) {
+                || setDefaultAt || updateCurrency || populatedImps != null) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
                     .user(populatedUser != null ? populatedUser : bidRequest.getUser())
-                    .imp(populateImps ? populatedImps : imps)
+                    .imp(populatedImps != null ? populatedImps : imps)
                     // set the auction type to 1 if it wasn't on the request,
                     // since header bidding is generally a first-price auction.
                     .at(setDefaultAt ? Integer.valueOf(1) : at)
@@ -269,7 +267,7 @@ public class AuctionRequestFactory {
                     .map(imp -> imp.getSecure() == null ? imp.toBuilder().secure(1).build() : imp)
                     .collect(Collectors.toList());
         }
-        return Collections.emptyList();
+        return null;
     }
 
     /**
