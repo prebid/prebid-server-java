@@ -28,10 +28,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class AuctionRequestFactory {
 
@@ -263,18 +263,13 @@ public class AuctionRequestFactory {
      * Updates imps with security 1, when secured request was received and imp security was not defined.
      */
     private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
-        final List<Imp> updatedImps = new ArrayList<>();
         if (Objects.equals(paramsExtractor.secureFrom(request), 1)
                 && imps.stream().map(Imp::getSecure).anyMatch(Objects::isNull)) {
-            for (final Imp imp : imps) {
-                if (imp.getSecure() == null) {
-                    updatedImps.add(imp.toBuilder().secure(1).build());
-                } else {
-                    updatedImps.add(imp);
-                }
-            }
+            return imps.stream()
+                    .map(imp -> imp.getSecure() == null ? imp.toBuilder().secure(1).build() : imp)
+                    .collect(Collectors.toList());
         }
-        return updatedImps;
+        return Collections.emptyList();
     }
 
     /**
