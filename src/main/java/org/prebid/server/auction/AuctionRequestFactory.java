@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -15,6 +16,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -26,7 +28,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public class AuctionRequestFactory {
@@ -78,9 +82,12 @@ public class AuctionRequestFactory {
         final BidRequest result;
 
         final HttpServerRequest request = context.request();
+        final List<Imp> imps = bidRequest.getImp();
 
         final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
         final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
+        final List<Imp> populatedImps = populateImps(imps, request);
+        final boolean populateImps = CollectionUtils.isNotEmpty(populatedImps);
         final User populatedUser = populateUser(bidRequest.getUser(), context);
         final Integer at = bidRequest.getAt();
         final Boolean setDefaultAt = at == null || at == 0;
@@ -89,11 +96,12 @@ public class AuctionRequestFactory {
         final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
-                || setDefaultAt || updateCurrency) {
+                || setDefaultAt || updateCurrency || populateImps) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
                     .user(populatedUser != null ? populatedUser : bidRequest.getUser())
+                    .imp(populateImps ? populatedImps : imps)
                     // set the auction type to 1 if it wasn't on the request,
                     // since header bidding is generally a first-price auction.
                     .at(setDefaultAt ? Integer.valueOf(1) : at)
@@ -249,6 +257,24 @@ public class AuctionRequestFactory {
             }
         }
         return result;
+    }
+
+    /**
+     * Updates imps with security 1, when secured request was received and imp security was not defined.
+     */
+    private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
+        final List<Imp> updatedImps = new ArrayList<>();
+        if (Objects.equals(paramsExtractor.secureFrom(request), 1)
+                && imps.stream().map(Imp::getSecure).anyMatch(Objects::isNull)) {
+            for (final Imp imp : imps) {
+                if (imp.getSecure() == null) {
+                    updatedImps.add(imp.toBuilder().secure(1).build());
+                } else {
+                    updatedImps.add(imp);
+                }
+            }
+        }
+        return updatedImps;
     }
 
     /**
