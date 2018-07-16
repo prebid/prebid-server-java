@@ -44,13 +44,16 @@ import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.math.NumberUtils.isDigits;
 import static org.apache.commons.lang3.math.NumberUtils.toLong;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 public class PreBidRequestContextFactoryTest extends VertxTest {
 
-    private static final Long HTTP_REQUEST_TIMEOUT = 250L;
+    private static final long DEFAULT_HTTP_REQUEST_TIMEOUT = 250L;
+    private static final long MAX_HTTP_REQUEST_TIMEOUT = 1000L;
+
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
 
@@ -86,8 +89,15 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
         final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
-        factory = new PreBidRequestContextFactory(HTTP_REQUEST_TIMEOUT, paramsExtractor, applicationSettings,
-                uidsCookieService, timeoutFactory);
+        factory = new PreBidRequestContextFactory(DEFAULT_HTTP_REQUEST_TIMEOUT, MAX_HTTP_REQUEST_TIMEOUT,
+                paramsExtractor, applicationSettings, uidsCookieService, timeoutFactory);
+    }
+
+    @Test
+    public void creationShouldFailIfMaxTimeoutLessThanDefault() {
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                new PreBidRequestContextFactory(2, 1, null, null, null, null))
+                .withMessage("Max timeout cannot be less than default timeout: max=1, default=2");
     }
 
     @Test
@@ -423,11 +433,11 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(HTTP_REQUEST_TIMEOUT);
+        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(DEFAULT_HTTP_REQUEST_TIMEOUT);
     }
 
     @Test
-    public void shouldPickDefaultTimeoutIfGreaterThan2000InRequest() {
+    public void shouldPickMaxTimeoutIfTimeoutInRequestExceedsLimit() {
         // given
         given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.timeoutMillis(5000L)));
 
@@ -435,7 +445,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(HTTP_REQUEST_TIMEOUT);
+        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(MAX_HTTP_REQUEST_TIMEOUT);
     }
 
     @Test
@@ -447,11 +457,11 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(HTTP_REQUEST_TIMEOUT);
+        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(DEFAULT_HTTP_REQUEST_TIMEOUT);
     }
 
     @Test
-    public void shouldUpdateRequestTimeoutIfGreaterThan2000InRequest() {
+    public void shouldUpdateRequestTimeoutIfGreaterThanMaxTimeoutInRequest() {
         // given
         given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.timeoutMillis(5000L)));
 
@@ -459,7 +469,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(HTTP_REQUEST_TIMEOUT);
+        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(MAX_HTTP_REQUEST_TIMEOUT);
     }
 
     @Test
