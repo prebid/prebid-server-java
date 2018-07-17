@@ -66,7 +66,7 @@ public class IndexAdapter extends OpenrtbAdapter {
     private BidRequest createBidRequest(AdapterRequest adapterRequest, PreBidRequestContext preBidRequestContext) {
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
-        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
         final List<Imp> imps = makeImps(adUnitBids, preBidRequestContext);
         validateImps(imps);

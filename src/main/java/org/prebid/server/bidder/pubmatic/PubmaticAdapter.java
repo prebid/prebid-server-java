@@ -75,7 +75,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     private BidRequest createBidRequest(AdapterRequest adapterRequest, PreBidRequestContext preBidRequestContext) {
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
-        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         final List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams =

@@ -7,6 +7,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.Video;
 import org.prebid.server.proto.response.MediaType;
 
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,9 +30,25 @@ public class OpenrtbAdapterTest {
                 .build());
 
         // when and then
-        assertThatThrownBy(() -> OpenrtbAdapter.validateAdUnitBidsMediaTypes(adUnitBids))
+        assertThatThrownBy(() -> OpenrtbAdapter.validateAdUnitBidsMediaTypes(adUnitBids,
+                Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video))))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Invalid AdUnit: VIDEO media type with no video data");
+    }
+
+    @Test
+    public void validateAdUnitBidsMediaTypesShouldNotThrowExceptionWhenVideoTypeIsNotValidAndNotAllowedMediaType() {
+        // given
+        final List<AdUnitBid> adUnitBids = singletonList(AdUnitBid.builder()
+                .mediaTypes(singleton(MediaType.video))
+                .video(Video.builder()
+                        .mimes(emptyList())
+                        .build())
+                .build());
+
+        // when and then
+        assertThatCode(() -> OpenrtbAdapter.validateAdUnitBidsMediaTypes(adUnitBids, singleton(MediaType.banner)))
+                .doesNotThrowAnyException();
     }
 
     @Test
