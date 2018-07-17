@@ -44,7 +44,7 @@ adapters:
     usersync-url: //ib.adnxs.com/getuid?
   conversant:
     enabled: false
-    endpoint: http://media.msg.dotomi.com/s2s/header/24
+    endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
     usersync-url: http://prebid-match.dotomi.com/prebid/match?rurl=
   eplanning:
     enabled: false
