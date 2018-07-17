@@ -29,7 +29,6 @@ import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -41,8 +40,7 @@ import java.util.stream.Stream;
  */
 public class PulsepointAdapter extends OpenrtbAdapter {
 
-    private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
-            Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
+    private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.singleton(MediaType.banner);
 
     private final String endpointUrl;
 
@@ -63,7 +61,7 @@ public class PulsepointAdapter extends OpenrtbAdapter {
     private BidRequest createBidRequest(AdapterRequest adapterRequest, PreBidRequestContext preBidRequestContext) {
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
-        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
         final List<AdUnitBidWithParams<NormalizedPulsepointParams>> adUnitBidsWithParams =
                 createAdUnitBidsWithParams(adUnitBids);
@@ -226,7 +224,8 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                 .adm(bid.getAdm())
                 .creativeId(bid.getCrid())
                 .width(bid.getW())
-                .height(bid.getH());
+                .height(bid.getH())
+                .mediaType(MediaType.banner);
     }
 
 }

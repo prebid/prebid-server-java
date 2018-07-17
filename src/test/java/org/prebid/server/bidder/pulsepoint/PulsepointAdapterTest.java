@@ -243,20 +243,19 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
+    public void makeHttpRequestsShouldNotFailIfMediaTypeHasVideoAndMimesListIsEmpty() {
         //given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
-                        .mediaTypes(singleton(MediaType.video))
+                        .mediaTypes(EnumSet.of(MediaType.banner, MediaType.video))
                         .video(Video.builder()
                                 .mimes(emptyList())
                                 .build()))));
 
         // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
-                .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("Invalid AdUnit: VIDEO media type with no video data");
+        assertThatCode(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -367,40 +366,6 @@ public class PulsepointAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
-        //given
-        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
-                givenAdUnitBid(builder -> builder
-                        .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
-                        .video(Video.builder()
-                                .mimes(singletonList("Mime1"))
-                                .playbackMethod(1)
-                                .build()))));
-
-        preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-
-        // when
-        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
-                preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.getPayload().getImp())
-                .containsOnly(
-                        Imp.builder()
-                                .video(com.iab.openrtb.request.Video.builder().w(300).h(250)
-                                        .mimes(singletonList("Mime1")).playbackmethod(singletonList(1)).build())
-                                .tagid("100500")
-                                .build(),
-                        Imp.builder()
-                                .banner(Banner.builder().w(100).h(200)
-                                        .format(singletonList(Format.builder().w(300).h(250).build())).build())
-                                .tagid("100500")
-                                .build()
-                );
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfMultipleAdUnitsInPreBidRequest() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, asList(
@@ -471,6 +436,7 @@ public class PulsepointAdapterTest extends VertxTest {
                         .height(250)
                         .bidder(BIDDER)
                         .bidId("bidId")
+                        .mediaType(MediaType.banner)
                         .build());
     }
 

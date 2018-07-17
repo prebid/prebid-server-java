@@ -354,6 +354,7 @@
       "bid_id": "bidId6",
       "code": "adUnitCode6",
       "creative_id": "crid6",
+      "media_type":"banner",
       "bidder": "pulsepoint",
       "price": 5.78,
       "width": 300,

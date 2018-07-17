@@ -15,22 +15,6 @@
         "topframe": 0
       },
       "tagid": "456"
-    },
-    {
-      "id": "impId81",
-      "video": {
-        "mimes": [
-          "mimes"
-        ],
-        "w": 300,
-        "h": 600,
-        "skipmin": 0,
-        "skipafter": 0,
-        "playbackmethod": [
-          null
-        ]
-      },
-      "tagid": "456"
     }
   ],
   "site": {
