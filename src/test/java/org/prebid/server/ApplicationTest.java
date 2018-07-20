@@ -63,6 +63,7 @@ public class ApplicationTest extends VertxTest {
     private static final String OPENX = "openx";
     private static final String ADTELLIGENT = "adtelligent";
     private static final String EPLANNING = "eplanning";
+    private static final String SOMOAUDIENCE = "somoaudience";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
 
@@ -226,6 +227,12 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-eplanning-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-eplanning-bid-response-1.json"))));
 
+        // adtelligent bid response for imp 16
+        wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
+                .withQueryParam("s", equalTo("placementId"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-somoaudience-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-somoaudience-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-cache-request.json")))
@@ -241,12 +248,12 @@ public class ApplicationTest extends VertxTest {
                 // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
                 // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
                 // "conversant":"CV-UID","sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID",
-                // "eplanning":"EP-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF"
-                        + "1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdl"
-                        + "IjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc"
-                        + "2FudCI6IkNWLVVJRCIsInNvdnJuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJ"
-                        + "BRi1VSUQiLCJlcGxhbm5pbmciOiJFUC1VSUQifX0=")
+                // "eplanning":"EP-UID","somoaudience":"SM-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlT"
+                        + "mV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEI"
+                        + "iwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvd"
+                        + "nJuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJBRi1VSUQiLCJlcGxhbm5pbmciOiJFUC1"
+                        + "VSUQiLCJzb21vYXVkaWVuY2UiOiJTTS1VSUQifX0=")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
@@ -680,6 +687,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange");
         exchanges.put(EPLANNING, "http://localhost:" + WIREMOCK_PORT + "/eplanning-exchange");
         exchanges.put(OPENX, "http://localhost:" + WIREMOCK_PORT + "/openx-exchange");
+        exchanges.put(SOMOAUDIENCE, "http://localhost:" + WIREMOCK_PORT + "/somoaudience-exchange");
 
         // inputs for aliases
         exchanges.put(APPNEXUS_ALIAS, null);

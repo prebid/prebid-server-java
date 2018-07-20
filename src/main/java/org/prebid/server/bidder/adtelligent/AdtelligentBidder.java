@@ -65,7 +65,6 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
 
     /**
      * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
-     * Handles cases when response status is different to OK 200.
      */
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
