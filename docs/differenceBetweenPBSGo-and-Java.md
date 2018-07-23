@@ -1,6 +1,6 @@
 # Differences Between Prebid Server Go and Java
 
-April 24, 2018
+July 23, 2018
 
 The sister Prebid Server projects are both busy and moving forward at different paces on different features. Sometimes a feature may exist in one implementation
 and not the other for an interim period. This page tracks known differences that may persist for longer than a couple of weeks.
