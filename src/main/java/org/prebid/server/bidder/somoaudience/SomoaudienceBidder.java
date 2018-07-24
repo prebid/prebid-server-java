@@ -67,7 +67,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         for (final Imp imp : imps) {
             final String placement;
             try {
-                placement = validateImpression(imp);
+                placement = getPlacementHash(imp);
             } catch (PreBidException ex) {
                 errors.add(BidderError.badInput(ex.getMessage()));
                 continue;
@@ -86,7 +86,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
     /**
      * Validates {@link Imp}s. Throws {@link PreBidException} in case of {@link Imp} is invalid.
      */
-    private String validateImpression(Imp imp) {
+    private String getPlacementHash(Imp imp) {
         final String impId = imp.getId();
         if (imp.getAudio() != null) {
             throw new PreBidException(String.format("ignoring imp id=%s, Somoaudience doesn't support Audio", impId));
@@ -97,22 +97,17 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("ignoring imp id=%s, extImpBidder is empty", impId));
         }
 
-        final ExtImpSomoaudience extImpSomoaudience = getExtImpSomoaudience(imp);
+        final ExtImpSomoaudience extImpSomoaudience;
 
-        return extImpSomoaudience.getPlacementHash();
-    }
-
-    /**
-     * Extracts {@link ExtImpSomoaudience} from imp.ext.bidder.
-     */
-    private ExtImpSomoaudience getExtImpSomoaudience(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpSomoaudience>>convertValue(imp.getExt(),
+            extImpSomoaudience = Json.mapper.<ExtPrebid<?, ExtImpSomoaudience>>convertValue(imp.getExt(),
                     SOMOAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format(
                     "ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(), e.getMessage()));
         }
+
+        return extImpSomoaudience.getPlacementHash();
     }
 
     /**
@@ -190,12 +185,12 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
      */
     private static BidType bidTypeFromImp(Imp imp) {
         BidType bidType = BidType.banner;
-        if (imp.getBanner() != null) {
-            bidType = BidType.banner;
-        } else if (imp.getVideo() != null) {
-            bidType = BidType.video;
-        } else if (imp.getXNative() != null) {
-            bidType = BidType.xNative;
+        if (imp.getBanner() == null) {
+            if (imp.getVideo() != null) {
+                bidType = BidType.video;
+            } else if (imp.getXNative() != null) {
+                bidType = BidType.xNative;
+            }
         }
         return bidType;
     }
