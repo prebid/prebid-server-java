@@ -42,6 +42,10 @@ adapters:
     enabled: false
     endpoint: http://ib.adnxs.com/openrtb2
     usersync-url: //ib.adnxs.com/getuid?
+  brightroll:
+    enabled: false
+    endpoint: http://east-bid.ybp.yahoo.com/bid/appnexuspbs
+    usersync-url: http://east-bid.ybp.yahoo.com/sync/appnexuspbs?url=
   conversant:
     enabled: false
     endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
