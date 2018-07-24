@@ -382,6 +382,22 @@
       }
     },
     {
+      "id": "impId16",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "somoaudience": {
+          "placement_hash": "placementId"
+        }
+      }
+    },
+    {
       "id": "impId011",
       "banner": {
         "format": [

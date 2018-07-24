@@ -77,6 +77,10 @@ adapters:
     enabled: false
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
     usersync-url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid
+  somoaudience:
+    enabled: false
+    enpoint: http://publisher-east.mobileadtrading.com/rtb/bid
+    usersync-ur: //publisher-east.mobileadtrading.com/usersync?ru=
   sovrn:
     enabled: false
     endpoint: http://ap.lijit.com/rtb/bid?src=prebid_server
