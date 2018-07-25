@@ -29,6 +29,19 @@
     {
       "type": "json",
       "value": {
+        "id": "620160380",
+        "impid": "impId16",
+        "price": 6.7951,
+        "adm": "adm16",
+        "crid": "crid16",
+        "dealid": "dealId16",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "7706636740145184841",
         "impid": "impId3",
         "price": 4.43334,
