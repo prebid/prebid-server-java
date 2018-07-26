@@ -59,6 +59,7 @@ public class ApplicationTest extends VertxTest {
     private static final String PUBMATIC = "pubmatic";
     private static final String CONVERSANT = "conversant";
     private static final String ADFORM = "adform";
+    private static final String BRIGHTROLL = "brightroll";
     private static final String SOVRN = "sovrn";
     private static final String OPENX = "openx";
     private static final String ADTELLIGENT = "adtelligent";
@@ -216,6 +217,19 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-openx-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-openx-bid-response-3.json"))));
 
+        // brightroll bid response for imp 17
+        wireMockRule.stubFor(post(urlPathEqualTo("/brightroll-exchange"))
+                .withQueryParam("publisher", equalTo("publisher"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("DNT", equalTo("2"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withHeader("x-openrtb-version", equalTo("2.5"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-brightroll-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-brightroll-bid-response-1.json"))));
+
         // eplanning bid response for imp
         wireMockRule.stubFor(post(urlPathEqualTo("/eplanning-exchange/exchangeId1"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
@@ -245,15 +259,15 @@ public class ApplicationTest extends VertxTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for
-                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
-                // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
-                // "conversant":"CV-UID","sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID",
-                // "eplanning":"EP-UID","somoaudience":"SM-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllbmNlT"
-                        + "mV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEI"
-                        + "iwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInNvd"
-                        + "nJuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJBRi1VSUQiLCJlcGxhbm5pbmciOiJFUC1"
-                        + "VSUQiLCJzb21vYXVkaWVuY2UiOiJTTS1VSUQifX0=")
+                //{"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID","pulsepoint":"PP-UID",
+                // "indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID","conversant":"CV-UID",
+                // "sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID","eplanning":"EP-UID","brightroll":"BR-UID",
+                // "somoaudience":"SM-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllb"
+                        + "mNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIi"
+                        + "wibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInN"
+                        + "vdnJuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJBRi1VSUQiLCJlcGxhbm5pbmci"
+                        + "OiJFUC1VSUQiLCJicmlnaHRyb2xsIjoiQlItVUlEIiwic29tb2F1ZGllbmNlIjoiU00tVUlEIn19")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
@@ -683,6 +697,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange");
         exchanges.put(CONVERSANT, "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange");
         exchanges.put(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange");
+        exchanges.put(BRIGHTROLL, "http://localhost:" + WIREMOCK_PORT + "/brightroll-exchange");
         exchanges.put(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange");
         exchanges.put(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange");
         exchanges.put(EPLANNING, "http://localhost:" + WIREMOCK_PORT + "/eplanning-exchange");

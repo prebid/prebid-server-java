@@ -575,6 +575,40 @@
       "bid": [
         {
           "id": "620160380",
+          "impid": "impId17",
+          "price": 6.79510,
+          "adm": "adm17",
+          "crid": "crid17",
+          "dealid": "dealId17",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb": "6.70",
+                "hb_bidder_brightroll": "brightroll",
+                "hb_size": "300x250",
+                "hb_bidder": "brightroll",
+                "hb_cache_id_brightroll": "34698794-e297-47bd-b140-ed42cede87c1",
+                "hb_cache_id": "34698794-e297-47bd-b140-ed42cede87c1",
+                "hb_pb_brightroll": "6.70",
+                "hb_creative_loadtype": "html",
+                "hb_deal": "dealId17",
+                "hb_size_brightroll": "300x250",
+                "hb_deal_brightroll": "dealId17"
+              }
+            }
+          }
+        }
+      ],
+      "seat": "brightroll",
+      "group": 0
+    },
+    {
+      "bid": [
+        {
+          "id": "620160380",
           "impid": "impId14",
           "price": 6.79510,
           "adm": "adm14",
@@ -691,6 +725,14 @@
           {
             "uri": "{{ adform.exchange_uri }}?CC=1&adid=ifaId&fd=1&gdpr=0&gdpr_consent=consentValue&ip=192.168.244.1&pt=gross&rp=4&stid=tid&bWlkPTE1",
             "responsebody": "{\"response\":\"banner\",\"banner\":\"banner\",\"win_bid\":\"10.5\",\"currency\":\"currency\",\"width\":400,\"height\":300,\"dealId\":\"dealId\",\"win_crid\":\"crid12\"}",
+            "status": 200
+          }
+        ],
+        "brightroll": [
+          {
+            "uri": "{{ brightroll.exchange_uri }}?publisher=publisher",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId17\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"ext\":{\"bidder\":{\"publisher\":\"publisher\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"BR-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"EUR\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"620160380\",\"impid\":\"impId17\",\"price\":8.43,\"adm\":\"adm17\",\"crid\":\"crid17\",\"dealid\":\"dealId17\",\"w\":300,\"h\":250}],\"seat\":\"seatId17\",\"group\":0}]}",
             "status": 200
           }
         ],
@@ -1184,6 +1226,24 @@
             }
           },
           {
+            "id": "impId17",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ],
+              "w": 300,
+              "h": 250
+            },
+            "ext": {
+              "brightroll": {
+                "publisher": "publisher"
+              }
+            }
+          },
+          {
             "id": "impId14",
             "banner": {
               "format": [
@@ -1411,6 +1471,7 @@
         "Media Type is not defined for Bid"
       ],
       "adform": [],
+      "brightroll": [],
       "appnexus": [
         "Appnexus doesn't support audio Imps. Ignoring Imp ID=impId32"
       ],
@@ -1443,6 +1504,7 @@
       "pulsepoint": "{{ pulsepoint.response_time_ms }}",
       "indexExchange": "{{ indexExchange.response_time_ms }}",
       "adform": "{{ adform.response_time_ms }}",
+      "brightroll": "{{ brightroll.response_time_ms }}",
       "sovrn": "{{ sovrn.response_time_ms }}",
       "adtelligent": "{{ adtelligent.response_time_ms }}",
       "openx": "{{ openx.response_time_ms }}",
