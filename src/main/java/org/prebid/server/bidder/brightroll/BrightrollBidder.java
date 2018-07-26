@@ -103,8 +103,8 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      */
     private static BidRequest updateBidRequest(BidRequest bidRequest, List<BidderError> errors) {
         final List<Imp> imps = bidRequest.getImp();
-        final Boolean isImpsRequiredUpdate = imps.stream().anyMatch(BrightrollBidder::isRequiredUpdate);
-        if (isImpsRequiredUpdate) {
+        final boolean requiredUpdate = imps.stream().anyMatch(BrightrollBidder::isRequiredUpdate);
+        if (requiredUpdate) {
             bidRequest = bidRequest.toBuilder().imp(imps.stream()
                     .filter(imp -> isImpValid(imp, errors))
                     .map(BrightrollBidder::updateImpSize)
