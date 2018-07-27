@@ -645,6 +645,15 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
+    public void versionHandlerShouldRespondWithCommitRevision() throws IOException {
+        given(adminSpec)
+                .get("/version")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
+
+    @Test
     public void invalidateSettingsCacheShouldReturnExpectedResponse() {
         given(adminSpec)
                 .body("{\"requests\":[],\"imps\":[]}")

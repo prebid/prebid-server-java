@@ -15,6 +15,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
+import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.CompositeApplicationSettings;
@@ -242,9 +243,9 @@ public class SettingsConfiguration {
     @Configuration
     @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
             havingValue = "true")
-    public static class CacheNotificationConfiguration {
+    public static class AdminServerConfiguration {
 
-        private static final Logger logger = LoggerFactory.getLogger(CacheNotificationConfiguration.class);
+        private static final Logger logger = LoggerFactory.getLogger(AdminServerConfiguration.class);
 
         @Autowired
         private ContextRunner contextRunner;
@@ -261,6 +262,9 @@ public class SettingsConfiguration {
         @Autowired
         private SettingsCacheNotificationHandler ampCacheNotificationHandler;
 
+        @Autowired
+        private VersionHandler versionHandler;
+
         @Value("${admin.port}")
         private int adminPort;
 
@@ -274,6 +278,11 @@ public class SettingsConfiguration {
             return new SettingsCacheNotificationHandler(ampSettingsCache);
         }
 
+        @Bean
+        VersionHandler versionHandler() {
+            return VersionHandler.create("git-revision.json");
+        }
+
         @PostConstruct
         public void startAdminServer() {
             logger.info("Starting Admin Server to serve requests on port {0,number,#}", adminPort);
@@ -282,6 +291,7 @@ public class SettingsConfiguration {
             router.route().handler(bodyHandler);
             router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
             router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+            router.route("/version").handler(versionHandler);
 
             contextRunner.<HttpServer>runOnServiceContext(future ->
                     vertx.createHttpServer().requestHandler(router::accept).listen(adminPort, future));
