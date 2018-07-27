@@ -341,9 +341,6 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         givenUsersyncersReturningFamilyName();
 
-//        given(bidderCatalog.isValidName(RUBICON)).willReturn(true);
-//        given(bidderCatalog.isValidName(APPNEXUS)).willReturn(true);
-
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
