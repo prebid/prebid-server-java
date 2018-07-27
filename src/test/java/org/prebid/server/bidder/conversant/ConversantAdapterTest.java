@@ -379,38 +379,15 @@ public class ConversantAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnRequestsWithAppFromPreBidRequest() {
+    public void makeHttpRequestsShouldThrowPrebidExceptionIfAppIsPresentOnRequest() {
         // given
         preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder
-                .app(App.builder().id("appId").build()));
+                .app(App.builder().build()));
 
-        // when
-        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
-                preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.getPayload().getApp().getId())
-                .containsOnly("appId");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestsWithUserFromPreBidRequestIfAppPresent() {
-        // given
-        preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder
-                .app(App.builder().build())
-                .user(User.builder().buyeruid("buyerUid").build()));
-
-        given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUidFromCookie");
-
-        // when
-        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
-                preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).hasSize(1)
-                .extracting(r -> r.getPayload().getUser())
-                .containsOnly(User.builder().buyeruid("buyerUid").build());
+        // when and then
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
+                .isExactlyInstanceOf(PreBidException.class)
+                .hasMessage("Conversant doesn't support App requests");
     }
 
     @Test
