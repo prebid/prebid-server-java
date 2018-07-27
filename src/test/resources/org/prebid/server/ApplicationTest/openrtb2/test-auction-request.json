@@ -363,6 +363,24 @@
       }
     },
     {
+      "id": "impId17",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "brightroll": {
+          "publisher": "publisher"
+        }
+      }
+    },
+    {
       "id": "impId14",
       "banner": {
         "format": [
@@ -378,6 +396,22 @@
           "siteId": 1234,
           "bidFloor": 20,
           "placementId": 10
+        }
+      }
+    },
+    {
+      "id": "impId16",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "somoaudience": {
+          "placement_hash": "placementId"
         }
       }
     },

@@ -83,7 +83,7 @@ public class FacebookAdapter extends OpenrtbAdapter {
                                                                  PreBidRequestContext preBidRequestContext) {
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
-        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
         validateAdUnitBidsBannerMediaType(adUnitBids);
 
         return createAdUnitBidsWithParams(adUnitBids).stream()

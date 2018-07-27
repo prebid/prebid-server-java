@@ -11,6 +11,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -38,6 +39,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(AuctionHandler.class);
 
     private final long defaultTimeout;
+    private final long maxTimeout;
     private final ExchangeService exchangeService;
     private final AuctionRequestFactory auctionRequestFactory;
     private final UidsCookieService uidsCookieService;
@@ -46,11 +48,19 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final Clock clock;
     private final TimeoutFactory timeoutFactory;
 
-    public AuctionHandler(long defaultTimeout, ExchangeService exchangeService,
+    public AuctionHandler(long defaultTimeout, long maxTimeout, ExchangeService exchangeService,
                           AuctionRequestFactory auctionRequestFactory, UidsCookieService uidsCookieService,
                           AnalyticsReporter analyticsReporter, Metrics metrics, Clock clock,
                           TimeoutFactory timeoutFactory) {
+
+        if (maxTimeout < defaultTimeout) {
+            throw new IllegalArgumentException(
+                    String.format("Max timeout cannot be less than default timeout: max=%d, default=%d", maxTimeout,
+                            defaultTimeout));
+        }
+
         this.defaultTimeout = defaultTimeout;
+        this.maxTimeout = maxTimeout;
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -108,8 +118,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
-        final Long tmax = bidRequest.getTmax();
-        return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
+        final long tmax = ObjectUtils.firstNonNull(bidRequest.getTmax(), 0L);
+
+        final long timeout = tmax <= 0 ? defaultTimeout
+                : tmax > maxTimeout ? maxTimeout : tmax;
+
+        return timeoutFactory.create(startTime, timeout);
     }
 
     private <T> T setupRequestTimeMetricUpdater(T returnValue, RoutingContext context, long startTime) {

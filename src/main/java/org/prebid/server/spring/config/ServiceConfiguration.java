@@ -65,12 +65,13 @@ public class ServiceConfiguration {
     @Bean
     PreBidRequestContextFactory preBidRequestContextFactory(
             @Value("${default-timeout-ms}") long defaultTimeoutMs,
+            @Value("${max-timeout-ms}") long maxTimeoutMs,
             ImplicitParametersExtractor implicitParametersExtractor,
             ApplicationSettings applicationSettings,
             UidsCookieService uidsCookieService,
             TimeoutFactory timeoutFactory) {
 
-        return new PreBidRequestContextFactory(defaultTimeoutMs, implicitParametersExtractor,
+        return new PreBidRequestContextFactory(defaultTimeoutMs, maxTimeoutMs, implicitParametersExtractor,
                 applicationSettings, uidsCookieService, timeoutFactory);
     }
 

@@ -24,6 +24,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -41,7 +42,7 @@ import java.util.stream.Collectors;
  */
 public class AdformBidder implements Bidder<Void> {
 
-    private static final String VERSION = "0.1.1";
+    private static final String VERSION = "0.1.2";
     private static final String BANNER = "banner";
     private static final TypeReference<ExtPrebid<?, ExtImpAdform>> ADFORM_EXT_TYPE_REFERENCE = new
             TypeReference<ExtPrebid<?, ExtImpAdform>>() {
@@ -68,7 +69,9 @@ public class AdformBidder implements Bidder<Void> {
         if (extImpAdforms.size() == 0) {
             return Result.of(Collections.emptyList(), errors);
         }
+
         final Device device = request.getDevice();
+        final ExtUser extUser = AdformRequestUtil.getExtUser(request.getUser());
         final String url = AdformHttpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(getMasterTagIds(extImpAdforms))
@@ -78,6 +81,8 @@ public class AdformBidder implements Bidder<Void> {
                         .ip(getIp(device))
                         .advertisingId(getIfa(device))
                         .secure(getSecure(imps))
+                        .gdprApplies(AdformRequestUtil.getGdprApplies(request.getRegs()))
+                        .consent(AdformRequestUtil.getConsent(extUser))
                         .build());
 
         final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
@@ -85,7 +90,8 @@ public class AdformBidder implements Bidder<Void> {
                 getUserAgent(device),
                 getIp(device),
                 getReferer(request.getSite()),
-                getUserId(request.getUser()));
+                getUserId(request.getUser()),
+                AdformRequestUtil.getAdformDigitrust(extUser));
 
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers, null)),

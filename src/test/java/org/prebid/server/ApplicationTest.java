@@ -63,10 +63,12 @@ public class ApplicationTest extends VertxTest {
     private static final String PUBMATIC = "pubmatic";
     private static final String CONVERSANT = "conversant";
     private static final String ADFORM = "adform";
+    private static final String BRIGHTROLL = "brightroll";
     private static final String SOVRN = "sovrn";
     private static final String OPENX = "openx";
     private static final String ADTELLIGENT = "adtelligent";
     private static final String EPLANNING = "eplanning";
+    private static final String SOMOAUDIENCE = "somoaudience";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
 
@@ -162,21 +164,27 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-pubmatic-bid-response-1.json"))));
 
         // adform bid response for imp 12
-        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange/"))
+        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange"))
                 .withQueryParam("CC", equalTo("1"))
                 .withQueryParam("rp", equalTo("4"))
                 .withQueryParam("fd", equalTo("1"))
                 .withQueryParam("stid", equalTo("tid"))
+                .withQueryParam("pt", equalTo("gross"))
                 .withQueryParam("ip", equalTo("192.168.244.1"))
                 .withQueryParam("adid", equalTo("ifaId"))
+                .withQueryParam("gdpr", equalTo("0"))
+                .withQueryParam("gdpr_consent", equalTo("consentValue"))
                 // bWlkPTE1 is Base64 encoded "mid=15"
                 .withQueryParam("bWlkPTE1", equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.1"))
+                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.2"))
                 .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
-                .withHeader("Cookie", equalTo("uid=AF-UID"))
+                .withHeader("Cookie", equalTo(
+                        "uid=AF-UID;DigiTrust.v1.identity="
+                                // Base 64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":false}}
+                                + "eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6ZmFsc2V9fQ"))
                 .withRequestBody(equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adform-bid-response-1.json"))));
 
@@ -213,6 +221,19 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-openx-bid-request-3.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-openx-bid-response-3.json"))));
 
+        // brightroll bid response for imp 17
+        wireMockRule.stubFor(post(urlPathEqualTo("/brightroll-exchange"))
+                .withQueryParam("publisher", equalTo("publisher"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("DNT", equalTo("2"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withHeader("x-openrtb-version", equalTo("2.5"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-brightroll-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-brightroll-bid-response-1.json"))));
+
         // eplanning bid response for imp
         wireMockRule.stubFor(post(urlPathEqualTo("/eplanning-exchange/exchangeId1"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
@@ -223,6 +244,12 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept-Language", equalTo("en"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-eplanning-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-eplanning-bid-response-1.json"))));
+
+        // adtelligent bid response for imp 16
+        wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
+                .withQueryParam("s", equalTo("placementId"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-somoaudience-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-somoaudience-bid-response-1.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
@@ -236,15 +263,15 @@ public class ApplicationTest extends VertxTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for
-                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID",
-                // "pulsepoint":"PP-UID","indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID",
-                // "conversant":"CV-UID","sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID",
-                // "eplanning":"EP-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF"
-                        + "1ZGllbmNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdl"
-                        + "IjoiSUUtVUlEIiwibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc"
-                        + "2FudCI6IkNWLVVJRCIsInNvdnJuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJ"
-                        + "BRi1VSUQiLCJlcGxhbm5pbmciOiJFUC1VSUQifX0=")
+                //{"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345","audienceNetwork":"FB-UID","pulsepoint":"PP-UID",
+                // "indexExchange":"IE-UID","lifestreet":"LS-UID","pubmatic":"PM-UID","conversant":"CV-UID",
+                // "sovrn":"990011","adtelligent":"AT-UID","adform":"AF-UID","eplanning":"EP-UID","brightroll":"BR-UID",
+                // "somoaudience":"SM-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSIsImF1ZGllb"
+                        + "mNlTmV0d29yayI6IkZCLVVJRCIsInB1bHNlcG9pbnQiOiJQUC1VSUQiLCJpbmRleEV4Y2hhbmdlIjoiSUUtVUlEIi"
+                        + "wibGlmZXN0cmVldCI6IkxTLVVJRCIsInB1Ym1hdGljIjoiUE0tVUlEIiwiY29udmVyc2FudCI6IkNWLVVJRCIsInN"
+                        + "vdnJuIjoiOTkwMDExIiwiYWR0ZWxsaWdlbnQiOiJBVC1VSUQiLCJhZGZvcm0iOiJBRi1VSUQiLCJlcGxhbm5pbmci"
+                        + "OiJFUC1VSUQiLCJicmlnaHRyb2xsIjoiQlItVUlEIiwic29tb2F1ZGllbmNlIjoiU00tVUlEIn19")
                 .body(jsonFrom("openrtb2/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
@@ -377,21 +404,26 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("auction/test-sovrn-bid-response-1.json"))));
 
         // adform bid response for ad unit 12
-        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange/"))
+        wireMockRule.stubFor(get(urlPathEqualTo("/adform-exchange"))
                 .withQueryParam("CC", equalTo("1"))
                 .withQueryParam("rp", equalTo("4"))
                 .withQueryParam("fd", equalTo("1"))
                 .withQueryParam("stid", equalTo("tid"))
                 .withQueryParam("ip", equalTo("192.168.244.1"))
                 .withQueryParam("adid", equalTo("ifaId"))
+                .withQueryParam("gdpr", equalTo("1"))
+                .withQueryParam("gdpr_consent", equalTo("consent1"))
+                .withQueryParam("pt", equalTo("gross"))
                 // bWlkPTE1 is Base64 encoded "mid=15"
                 .withQueryParam("bWlkPTE1", equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.1"))
+                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.2"))
                 .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
-                .withHeader("Cookie", equalTo("uid=AF-UID"))
+                .withHeader("Cookie", equalTo("uid=AF-UID;DigiTrust.v1.identity"
+                        //{"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
+                        + "=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"))
                 .withRequestBody(equalTo(""))
                 .willReturn(aResponse().withBody(jsonFrom("auction/test-adform-bid-response-1.json"))));
 
@@ -683,10 +715,12 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange");
         exchanges.put(CONVERSANT, "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange");
         exchanges.put(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange");
+        exchanges.put(BRIGHTROLL, "http://localhost:" + WIREMOCK_PORT + "/brightroll-exchange");
         exchanges.put(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange");
         exchanges.put(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange");
         exchanges.put(EPLANNING, "http://localhost:" + WIREMOCK_PORT + "/eplanning-exchange");
         exchanges.put(OPENX, "http://localhost:" + WIREMOCK_PORT + "/openx-exchange");
+        exchanges.put(SOMOAUDIENCE, "http://localhost:" + WIREMOCK_PORT + "/somoaudience-exchange");
 
         // inputs for aliases
         exchanges.put(APPNEXUS_ALIAS, null);

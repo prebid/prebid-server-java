@@ -24,6 +24,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## Auction
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
+- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.expected-cache-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
@@ -149,4 +150,5 @@ If not defined in config, endpoint will respond with 'No Content' (204) status w
 - `external-url` - the setting stands for external URL prebid server is reachable by, 
 for example address of the load-balancer e.g. http://prebid.host.com.
 - `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
+- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
 - `admin.port` - the port to listen on administration requests.

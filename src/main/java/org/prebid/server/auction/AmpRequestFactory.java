@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class AmpRequestFactory {
 
@@ -42,6 +43,7 @@ public class AmpRequestFactory {
     private static final String CURL_REQUEST_PARAM = "curl";
     private static final String SLOT_REQUEST_PARAM = "slot";
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
+    private static final int NO_LIMIT_SPLIT_MODE = -1;
 
     private final long timeoutAdjustmentMs;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -127,6 +129,7 @@ public class AmpRequestFactory {
             final ExtRequestTargeting targeting = prebid.getTargeting();
             setDefaultTargeting = targeting == null
                     || targeting.getIncludewinners() == null
+                    || targeting.getIncludebidderkeys() == null
                     || targeting.getPricegranularity() == null || targeting.getPricegranularity().isNull();
             final ExtRequestPrebidCache cache = prebid.getCache();
             setDefaultCache = cache == null || (cache.getBids() == null && cache.getVastxml() == null);
@@ -156,35 +159,6 @@ public class AmpRequestFactory {
         return updateBidRequest(bidRequest, updatedSite, updatedImp, updatedTimeout);
     }
 
-    private static List<Format> overrideBannerFormats(HttpServerRequest request) {
-        final Integer ow = parseIntParam(request, OW_REQUEST_PARAM);
-        final Integer formatWidth = ow != null ? ow : parseIntParam(request, W_REQUEST_PARAM);
-
-        final Integer oh = parseIntParam(request, OH_REQUEST_PARAM);
-        final Integer formatHeight = oh != null ? oh : parseIntParam(request, H_REQUEST_PARAM);
-
-        final Format format = formatWidth != null || formatHeight != null
-                ? Format.builder().w(formatWidth).h(formatHeight).build()
-                : null;
-
-        final String ms = request.getParam(MS_REQUEST_PARAM);
-        final List<Format> multiSizeFormats = StringUtils.isNotBlank(ms) ? parseMultiSizeParam(ms) : null;
-
-        List<Format> formats = null;
-        if (format != null || CollectionUtils.isNotEmpty(multiSizeFormats)) {
-            formats = new ArrayList<>();
-
-            if (format != null) {
-                formats.add(format);
-            }
-
-            if (CollectionUtils.isNotEmpty(multiSizeFormats) && ow == null && oh == null) {
-                formats.addAll(multiSizeFormats);
-            }
-        }
-        return formats;
-    }
-
     private static Site overrideSitePage(Site site, HttpServerRequest request) {
         final String canonicalUrl = canonicalUrl(request);
         if (StringUtils.isBlank(canonicalUrl)) {
@@ -197,7 +171,10 @@ public class AmpRequestFactory {
 
     private Imp overrideImp(Imp imp, HttpServerRequest request) {
         final String tagId = request.getParam(SLOT_REQUEST_PARAM);
-        final List<Format> overwrittenFormats = overrideBannerFormats(request);
+        final Banner banner = imp.getBanner();
+        final List<Format> overwrittenFormats = banner != null
+                ? createOverrideBannerFormats(request, banner.getFormat())
+                : null;
         if (StringUtils.isNotBlank(tagId) || CollectionUtils.isNotEmpty(overwrittenFormats)) {
             return imp.toBuilder()
                     .tagid(StringUtils.isNotBlank(tagId) ? tagId : imp.getTagid())
@@ -205,6 +182,71 @@ public class AmpRequestFactory {
                     .build();
         }
         return null;
+    }
+
+    /**
+     * Creates formats from request parameters to override origin amp banner formats.
+     */
+    private static List<Format> createOverrideBannerFormats(HttpServerRequest request, List<Format> formats) {
+        final List<Format> overrideFormats;
+        final int overrideWidth = parseIntParamOrZero(request, OW_REQUEST_PARAM);
+        final int width = parseIntParamOrZero(request, W_REQUEST_PARAM);
+        final int overrideHeight = parseIntParamOrZero(request, OH_REQUEST_PARAM);
+        final int height = parseIntParamOrZero(request, H_REQUEST_PARAM);
+        final String multiSizeParam = request.getParam(MS_REQUEST_PARAM);
+
+        final List<Format> paramsFormats = createFormatsFromParams(overrideWidth, width, overrideHeight, height,
+                multiSizeParam);
+
+        if (paramsFormats != null) {
+            overrideFormats = paramsFormats;
+        } else {
+            overrideFormats = updateFormatsFromParams(formats, width, height);
+        }
+
+        return overrideFormats;
+    }
+
+    /**
+     * Create new formats from request parameters.
+     */
+    private static List<Format> createFormatsFromParams(Integer overrideWidth, Integer width, Integer overrideHeight,
+                                                        Integer height, String multiSizeParam) {
+        List<Format> overrideFormats = null;
+        if (overrideWidth != 0 && overrideHeight != 0) {
+            overrideFormats = Collections.singletonList(Format.builder().w(overrideWidth).h(overrideHeight).build());
+        } else if (overrideWidth != 0 && height != 0) {
+            overrideFormats = Collections.singletonList(Format.builder().w(overrideWidth).h(height).build());
+        } else if (width != 0 && overrideHeight != 0) {
+            overrideFormats = Collections.singletonList(Format.builder().w(width).h(overrideHeight).build());
+        } else {
+            final List<Format> multiSizeFormats = StringUtils.isNotBlank(multiSizeParam)
+                    ? parseMultiSizeParam(multiSizeParam)
+                    : null;
+            if (CollectionUtils.isNotEmpty(multiSizeFormats)) {
+                overrideFormats = multiSizeFormats;
+            } else if (width != 0 && height != 0) {
+                overrideFormats = Collections.singletonList(Format.builder().w(width).h(height).build());
+            }
+        }
+        return overrideFormats;
+    }
+
+    /**
+     * Updates origin amp banner formats from parameters.
+     */
+    private static List<Format> updateFormatsFromParams(List<Format> formats, Integer width, Integer height) {
+        List<Format> updatedFormats = null;
+        if (width != 0) {
+            updatedFormats = formats.stream()
+                    .map(format -> Format.builder().w(width).h(format.getH()).build())
+                    .collect(Collectors.toList());
+        } else if (height != 0) {
+            updatedFormats = formats.stream()
+                    .map(format -> Format.builder().w(format.getW()).h(height).build())
+                    .collect(Collectors.toList());
+        }
+        return updatedFormats;
     }
 
     private static Banner overrideBanner(Banner banner, List<Format> formats) {
@@ -234,34 +276,38 @@ public class AmpRequestFactory {
         return bidRequest;
     }
 
-    private static Integer parseIntParam(HttpServerRequest request, String name) {
-        final String param = request.getParam(name);
-        return parseInt(param);
+    private static Integer parseIntParamOrZero(HttpServerRequest request, String name) {
+        return parseIntOrZero(request.getParam(name));
     }
 
-    private static Integer parseInt(String param) {
+    private static Integer parseIntOrZero(String param) {
         try {
             return Integer.parseInt(param);
         } catch (NumberFormatException e) {
-            return null;
+            return 0;
         }
     }
 
     private static List<Format> parseMultiSizeParam(String ms) {
-        final String[] formatStrings = ms.split(",");
+        final String[] formatStrings = ms.split(",", NO_LIMIT_SPLIT_MODE);
         final List<Format> formats = new ArrayList<>();
         for (String format : formatStrings) {
-            final String[] widthHeight = format.split("x");
-            if (widthHeight.length == 2) {
-                final Integer width = parseInt(widthHeight[0]);
-                final Integer height = parseInt(widthHeight[1]);
-                if (width != null && height != null) {
-                    formats.add(Format.builder()
-                            .w(width)
-                            .h(height)
-                            .build());
-                }
+            final String[] widthHeight = format.split("x", NO_LIMIT_SPLIT_MODE);
+            if (widthHeight.length != 2) {
+                return null;
             }
+
+            final Integer width = parseIntOrZero(widthHeight[0]);
+            final Integer height = parseIntOrZero(widthHeight[1]);
+
+            if (width == 0 && height == 0) {
+                return null;
+            }
+
+            formats.add(Format.builder()
+                    .w(width)
+                    .h(height)
+                    .build());
         }
         return formats;
     }
@@ -315,6 +361,9 @@ public class AmpRequestFactory {
         final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
                 ? true : targeting.getIncludewinners();
 
-        return ExtRequestTargeting.of(outgoingPriceGranularityNode, currency, includeWinners);
+        final boolean includeBidderKeys = isTargetingNull || targeting.getIncludebidderkeys() == null
+                ? true : targeting.getIncludebidderkeys();
+
+        return ExtRequestTargeting.of(outgoingPriceGranularityNode, currency, includeWinners, includeBidderKeys);
     }
 }

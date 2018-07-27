@@ -187,6 +187,7 @@ public class WebConfiguration {
     @Bean
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${auction.max-timeout-ms}") int maxTimeoutMs,
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
@@ -195,7 +196,7 @@ public class WebConfiguration {
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
-        return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, exchangeService,
+        return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, maxTimeoutMs, exchangeService,
                 auctionRequestFactory, uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory);
     }
 

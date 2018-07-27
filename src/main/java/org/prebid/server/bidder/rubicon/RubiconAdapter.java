@@ -101,7 +101,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
-        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adUnitBids.stream()
                 .flatMap(adUnitBid -> createBidRequests(adUnitBid, preBidRequestContext))

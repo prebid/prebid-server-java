@@ -1,9 +1,9 @@
 package org.prebid.server.auction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -129,6 +129,59 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldUpdateImpsWithSecurityOneIfRequestIsSecuredAndImpSecurityNotDefined() {
+        // given
+        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());
+        given(paramsExtractor.secureFrom(any())).willReturn(1);
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(populatedBidRequest.getImp()).extracting(Imp::getSecure).containsOnly(1);
+    }
+
+    @Test
+    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsSecureAndImpSecurityIsZero() {
+        // given
+        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().secure(0).build())).build());
+        given(paramsExtractor.secureFrom(any())).willReturn(1);
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(populatedBidRequest.getImp()).extracting(Imp::getSecure).containsOnly(0);
+    }
+
+    @Test
+    public void shouldUpdateImpsOnlyWithNotDefinedSecurityWithSecurityOneIfRequestIsSecure() {
+        // given
+        givenBidRequest(BidRequest.builder().imp(asList(Imp.builder().build(), Imp.builder().secure(0).build()))
+                .build());
+        given(paramsExtractor.secureFrom(any())).willReturn(1);
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(populatedBidRequest.getImp()).extracting(Imp::getSecure).containsOnly(1, 0);
+    }
+
+    @Test
+    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined(){
+        // given
+        givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());
+        given(paramsExtractor.secureFrom(any())).willReturn(0);
+
+        // when
+        final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(populatedBidRequest.getImp()).extracting(Imp::getSecure).containsNull();
+    }
+
+    @Test
     public void shouldNotSetFieldsFromHeadersIfRequestFieldsNotEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -232,7 +285,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetCurrencyIfMissedInRequestAndPresentInAdServerCurrencyConfig(){
+    public void shouldSetCurrencyIfMissedInRequestAndPresentInAdServerCurrencyConfig() {
         // given
         givenBidRequest(BidRequest.builder().cur(null).build());
 
@@ -244,11 +297,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldConvertStringPriceGranularityViewToCustom() throws JsonProcessingException {
+    public void shouldConvertStringPriceGranularityViewToCustom() {
         // given
         givenBidRequest(BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(new TextNode("low"), null, null), null, null))))
+                        null, null, ExtRequestTargeting.of(new TextNode("low"), null, null, null), null, null))))
                 .build());
 
         // when
@@ -273,7 +326,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(new TextNode("invalid"), null, null), null, null))))
+                        null, null, ExtRequestTargeting.of(new TextNode("invalid"), null, null, null), null, null))))
                 .build());
 
         // when
@@ -291,7 +344,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(null, null, null), null, null))))
+                        null, null, ExtRequestTargeting.of(null, null, null, null), null, null))))
                 .build());
 
         // when
@@ -316,7 +369,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest(BidRequest.builder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(null, null, null), null, null))))
+                        null, null, ExtRequestTargeting.of(null, null, null, null), null, null))))
                 .build());
 
         // when
@@ -332,6 +385,30 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtBidRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getIncludewinners)
+                .containsOnly(true);
+    }
+
+    @Test
+    public void shouldSetDefaultIncludeBidderKeysIfIncludeBidderKeysIsMissed() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(null, null, null, null), null, null))))
+                .build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getTargeting)
+                .extracting(ExtRequestTargeting::getIncludebidderkeys)
                 .containsOnly(true);
     }
 
