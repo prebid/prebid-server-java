@@ -2,6 +2,9 @@ package org.prebid.server;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
+import com.iab.gdpr.consent.VendorConsentEncoder;
+import com.iab.gdpr.consent.implementation.v1.VendorConsentBuilder;
+import com.iab.gdpr.consent.range.StartEndRangeEntry;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
@@ -35,6 +38,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -501,8 +505,19 @@ public class ApplicationTest extends VertxTest {
 
     @Test
     public void cookieSyncShouldReturnBidderStatusWithRubiconUsersyncInfo() {
+        final String gdprConsent = VendorConsentEncoder.toBase64String(new VendorConsentBuilder()
+                .withConsentRecordCreatedOn(Instant.now())
+                .withConsentRecordLastUpdatedOn(Instant.now())
+                .withConsentLanguage("en")
+                .withVendorListVersion(79)
+                .withRangeEntries(singletonList(new StartEndRangeEntry(1, 100)))
+                .withMaxVendorId(100)
+                .withBitField(new HashSet<>(asList(32, 52)))
+                .withAllowedPurposeIds(new HashSet<>(asList(1, 3)))
+                .build());
+
         final CookieSyncResponse cookieSyncResponse = given(spec)
-                .body(CookieSyncRequest.of(singletonList(RUBICON)))
+                .body(CookieSyncRequest.of(singletonList(RUBICON), 1, gdprConsent))
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -514,7 +529,10 @@ public class ApplicationTest extends VertxTest {
                 singletonList(BidderUsersyncStatus.builder()
                         .bidder(RUBICON)
                         .noCookie(true)
-                        .usersync(UsersyncInfo.of("http://localhost:" + WIREMOCK_PORT + "/cookie", "redirect", false))
+                        .usersync(UsersyncInfo.of(
+                                "http://localhost:" + WIREMOCK_PORT
+                                        + "/rubicon-usersync?gdpr=1&gdpr_consent=" + gdprConsent,
+                                "redirect", false))
                         .build())));
     }
 

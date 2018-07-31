@@ -40,6 +40,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
 
+## Cookie Sync
+- `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
+
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
 

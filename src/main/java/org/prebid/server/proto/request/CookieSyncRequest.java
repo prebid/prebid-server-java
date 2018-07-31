@@ -10,4 +10,8 @@ import java.util.List;
 public class CookieSyncRequest {
 
     List<String> bidders;
+
+    Integer gdpr;
+
+    String gdprConsent;
 }
