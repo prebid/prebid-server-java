@@ -99,8 +99,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
                         .recover(AuctionHandler::failWithUnknownAccountOrPropagateOriginal))
 
-                .map((Tuple2<PreBidRequestContext, Account> result) ->
-                        updateAccountRequestAndRequestTimeMetric(result, context, startTime))
+                .map(this::updateAccountRequestAndRequestTimeMetric)
 
                 .compose((Tuple2<PreBidRequestContext, Account> result) ->
                         CompositeFuture.join(submitRequestsToAdapters(result.getLeft()))
@@ -121,7 +120,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         addTargetingKeywords(result.getLeft().getPreBidRequest(), result.getMiddle(),
                                 result.getRight()))
 
-                .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
+                .setHandler(preBidResponseResult ->
+                        respondWith(bidResponseOrError(preBidResponseResult), context, startTime));
     }
 
     private PreBidRequestContext updateAppAndNoCookieAndImpsRequestedMetrics(
@@ -135,21 +135,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private Tuple2<PreBidRequestContext, Account> updateAccountRequestAndRequestTimeMetric(
-            Tuple2<PreBidRequestContext, Account> preBidRequestContextAccount, RoutingContext context,
-            long startTime) {
+            Tuple2<PreBidRequestContext, Account> preBidRequestContextAccount) {
 
         final String accountId = preBidRequestContextAccount.getLeft().getPreBidRequest().getAccountId();
-
         metrics.updateAccountRequestMetrics(accountId, REQUEST_TYPE_METRIC);
 
-        setupRequestTimeUpdater(context, startTime);
-
         return preBidRequestContextAccount;
-    }
-
-    private void setupRequestTimeUpdater(RoutingContext context, long startTime) {
-        // set up handler to update request time metric when response is sent back to a client
-        context.response().endHandler(ignoredVoid -> metrics.updateRequestTimeMetric(clock.millis() - startTime));
     }
 
     private static <T> Future<T> failWithInvalidRequest(String message, Throwable exception) {
@@ -329,11 +320,19 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return left;
     }
 
-    private static void respondWith(PreBidResponse response, RoutingContext context) {
+    private void respondWith(PreBidResponse response, RoutingContext context, long startTime) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped.");
+            return;
+        }
+
         context.response()
                 .putHeader(HttpHeaders.DATE, date())
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .end(Json.encode(response));
+
+        metrics.updateRequestTimeMetric(clock.millis() - startTime);
     }
 
     private static String date() {

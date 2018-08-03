@@ -104,6 +104,13 @@ public class HttpBidderRequester<T> implements BidderRequester {
      */
     private static <T> void handleException(Throwable exception, Future<HttpCall<T>> result,
                                             HttpRequest<T> httpRequest) {
+        // Exception handler can be called more than one time, so all we can do is just to log the error
+        if (result.isComplete()) {
+            logger.warn("Exception handler was called after processing has been completed with error: {0}",
+                    exception.getMessage());
+            return;
+        }
+
         logger.warn("Error occurred while sending HTTP request to a bidder", exception);
         final BidderError.Type errorType =
                 exception instanceof TimeoutException || exception instanceof ConnectTimeoutException

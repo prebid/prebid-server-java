@@ -12,7 +12,6 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
-import io.vertx.ext.web.handler.TimeoutHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.analytics.CompositeAnalyticsReporter;
@@ -98,7 +97,8 @@ public class WebConfiguration {
     HttpServerOptions httpServerOptions() {
         return new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
-                .setCompressionSupported(true);
+                .setCompressionSupported(true)
+                .setIdleTimeout(10); // kick off long processing requests
     }
 
     @Bean
@@ -121,7 +121,6 @@ public class WebConfiguration {
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
-        router.route().handler(TimeoutHandler.create(10000)); // kick off long processing requests
         router.route().handler(cookieHandler);
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
