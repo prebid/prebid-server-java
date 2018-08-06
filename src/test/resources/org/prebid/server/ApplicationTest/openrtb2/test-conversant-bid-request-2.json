@@ -14,7 +14,8 @@
         "h": 600,
         "topframe": 0
       },
-      "displaymanager": "prebid-s2s"
+      "displaymanager": "prebid-s2s",
+      "displaymanagerver": "1.0.1"
     }
   ],
   "site": {
