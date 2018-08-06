@@ -84,6 +84,11 @@ public class ConversantAdapter extends OpenrtbAdapter {
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
 
+        final Site site = makeSite(preBidRequestContext, adUnitBidsWithParams);
+        if (site == null) {
+            throw new PreBidException("Conversant doesn't support App requests");
+        }
+
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return BidRequest.builder()
                 .id(preBidRequest.getTid())
@@ -91,7 +96,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
                 .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
                 .app(preBidRequest.getApp())
-                .site(makeSite(preBidRequestContext, adUnitBidsWithParams))
+                .site(site)
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
