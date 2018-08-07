@@ -156,7 +156,7 @@ public class HttpAdapterConnector {
                                         Future<ExchangeCall> future) {
         // Exception handler can be called more than one time, so all we can do is just to log the error
         if (future.isComplete()) {
-            logger.warn("Exception handler was called after processing has been completed with error: {0}",
+            logger.warn("Exception handler was called after processing has been completed: {0}",
                     exception.getMessage());
             return;
         }
