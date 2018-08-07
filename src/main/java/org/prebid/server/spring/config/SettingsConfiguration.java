@@ -15,6 +15,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
+import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.CompositeApplicationSettings;
@@ -240,11 +241,10 @@ public class SettingsConfiguration {
     }
 
     @Configuration
-    @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
-            havingValue = "true")
-    public static class CacheNotificationConfiguration {
+    @ConditionalOnProperty(prefix = "admin", name = "port")
+    public static class AdminServerConfiguration {
 
-        private static final Logger logger = LoggerFactory.getLogger(CacheNotificationConfiguration.class);
+        private static final Logger logger = LoggerFactory.getLogger(AdminServerConfiguration.class);
 
         @Autowired
         private ContextRunner contextRunner;
@@ -256,22 +256,34 @@ public class SettingsConfiguration {
         private BodyHandler bodyHandler;
 
         @Autowired
+        private VersionHandler versionHandler;
+
+        @Autowired(required = false)
         private SettingsCacheNotificationHandler cacheNotificationHandler;
 
-        @Autowired
+        @Autowired(required = false)
         private SettingsCacheNotificationHandler ampCacheNotificationHandler;
 
         @Value("${admin.port}")
         private int adminPort;
 
         @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+                havingValue = "true")
         SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache) {
             return new SettingsCacheNotificationHandler(settingsCache);
         }
 
         @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+                havingValue = "true")
         SettingsCacheNotificationHandler ampCacheNotificationHandler(SettingsCache ampSettingsCache) {
             return new SettingsCacheNotificationHandler(ampSettingsCache);
+        }
+
+        @Bean
+        VersionHandler versionHandler() {
+            return VersionHandler.create("git-revision.json");
         }
 
         @PostConstruct
@@ -280,8 +292,13 @@ public class SettingsConfiguration {
 
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
-            router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
-            router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+            router.route("/version").handler(versionHandler);
+            if (cacheNotificationHandler != null) {
+                router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
+            }
+            if (ampCacheNotificationHandler != null) {
+                router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+            }
 
             contextRunner.<HttpServer>runOnServiceContext(future ->
                     vertx.createHttpServer().requestHandler(router::accept).listen(adminPort, future));

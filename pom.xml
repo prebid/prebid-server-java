@@ -57,6 +57,7 @@
         <checkstyle.version>7.6</checkstyle.version>
         <download-plugin.version>1.2.0</download-plugin.version>
         <jacoco-plugin.version>0.8.0</jacoco-plugin.version>
+        <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -381,6 +382,28 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>${git-commmit-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                    <prefix>git</prefix>
+                    <verbose>false</verbose>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git-revision.json
+                    </generateGitPropertiesFilename>
+                    <format>json</format>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
