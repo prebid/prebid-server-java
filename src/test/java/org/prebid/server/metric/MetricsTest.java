@@ -487,6 +487,24 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("account.accountId.rubicon.bids_received").getCount()).isEqualTo(0);
     }
 
+    @Test
+    public void shouldIncrementActiveConnectionsMetrics() {
+        // when
+        metrics.updateActiveConnectionsMetrics(true);
+
+        // then
+        assertThat(metricRegistry.counter("active_connections").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldDecrementActiveConnectionsMetrics() {
+        // when
+        metrics.updateActiveConnectionsMetrics(false);
+
+        // then
+        assertThat(metricRegistry.counter("active_connections").getCount()).isEqualTo(-1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

@@ -53,6 +53,10 @@ class UpdatableMetrics {
         incrementer.accept(metricRegistry, name(metricName), value);
     }
 
+    protected void decCounter(MetricName metricName) {
+        metricRegistry.counter(name(metricName)).dec();
+    }
+
     /**
      * Updates metric's timer with a given value.
      */
