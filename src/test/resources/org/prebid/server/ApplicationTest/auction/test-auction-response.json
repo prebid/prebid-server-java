@@ -249,6 +249,7 @@
       "bid_id": "bidId9",
       "code": "adUnitCode9",
       "creative_id": "crid9",
+      "media_type":"banner",
       "bidder": "pubmatic",
       "price": 5.78,
       "width": 300,
