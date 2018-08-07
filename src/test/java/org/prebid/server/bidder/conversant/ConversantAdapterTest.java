@@ -353,6 +353,7 @@ public class ConversantAdapterTest extends VertxTest {
                                         .pos(3)
                                         .build())
                                 .displaymanager("prebid-s2s")
+                                .displaymanagerver("1.0.1")
                                 .bidfloor(1.03F)
                                 .secure(12)
                                 .build()))

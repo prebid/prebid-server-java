@@ -149,6 +149,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
                         .instl(adUnitBid.getInstl())
                         .secure(makeSecure(preBidRequestContext, params))
                         .displaymanager("prebid-s2s")
+                        .displaymanagerver("1.0.1")
                         .bidfloor(params.getBidfloor())
                         .tagid(params.getTagId())
                         .build());

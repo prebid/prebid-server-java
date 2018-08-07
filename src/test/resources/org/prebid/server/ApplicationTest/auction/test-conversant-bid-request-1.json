@@ -15,6 +15,7 @@
         "pos": 28
       },
       "displaymanager": "prebid-s2s",
+      "displaymanagerver": "1.0.1",
       "tagid": "tagId1",
       "bidfloor": 7.32,
       "secure": 42
