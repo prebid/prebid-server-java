@@ -154,6 +154,13 @@ public class HttpAdapterConnector {
      */
     private static void handleException(Throwable exception, BidderDebug.BidderDebugBuilder bidderDebugBuilder,
                                         Future<ExchangeCall> future) {
+        // Exception handler can be called more than one time, so all we can do is just to log the error
+        if (future.isComplete()) {
+            logger.warn("Exception handler was called after processing has been completed: {0}",
+                    exception.getMessage());
+            return;
+        }
+
         logger.warn("Error occurred while sending bid request to an exchange", exception);
         final BidderDebug bidderDebug = bidderDebugBuilder.build();
 

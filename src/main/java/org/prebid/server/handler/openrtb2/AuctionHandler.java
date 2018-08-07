@@ -96,9 +96,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                                 .map(bidResponse -> Tuple2.of(bidResponse, result.getRight())))
                 .map((Tuple2<BidResponse, MetricsContext> result) ->
                         addToEvent(result, result.getLeft(), auctionEventBuilder::bidResponse))
-                .map((Tuple2<BidResponse, MetricsContext> result) ->
-                        setupRequestTimeMetricUpdater(result, context, startTime))
-                .setHandler(responseResult -> handleResult(responseResult, auctionEventBuilder, context));
+                .setHandler(responseResult -> handleResult(responseResult, auctionEventBuilder, context, startTime));
     }
 
     private static <T, R> R addToEvent(R returnValue, T field, Consumer<T> consumer) {
@@ -126,14 +124,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return timeoutFactory.create(startTime, timeout);
     }
 
-    private <T> T setupRequestTimeMetricUpdater(T returnValue, RoutingContext context, long startTime) {
-        // set up handler to update request time metric when response is sent back to a client
-        context.response().endHandler(ignored -> metrics.updateRequestTimeMetric(clock.millis() - startTime));
-        return returnValue;
-    }
-
     private void handleResult(AsyncResult<Tuple2<BidResponse, MetricsContext>> responseResult,
-                              AuctionEvent.AuctionEventBuilder auctionEventBuilder, RoutingContext context) {
+                              AuctionEvent.AuctionEventBuilder auctionEventBuilder, RoutingContext context,
+                              long startTime) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped.");
+            return;
+        }
+
         final MetricName requestType;
         final MetricName requestStatus;
         final int status;
@@ -179,6 +178,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             }
         }
 
+        metrics.updateRequestTimeMetric(clock.millis() - startTime);
         metrics.updateRequestTypeMetric(requestType, requestStatus);
         analyticsReporter.processEvent(auctionEventBuilder.status(status).errors(errorMessages).build());
     }

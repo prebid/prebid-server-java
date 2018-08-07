@@ -127,8 +127,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
                                 context.queryParams()))
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
-                .map(ampResponse -> setupRequestTimeMetricUpdater(ampResponse, context, startTime))
-                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context));
+                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context, startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -146,12 +145,6 @@ public class AmpHandler implements Handler<RoutingContext> {
     private Timeout timeout(BidRequest bidRequest, long startTime) {
         final Long tmax = bidRequest.getTmax();
         return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
-    }
-
-    private <T> T setupRequestTimeMetricUpdater(T returnValue, RoutingContext context, long startTime) {
-        // set up handler to update request time metric when response is sent back to a client
-        context.response().endHandler(ignored -> metrics.updateRequestTimeMetric(clock.millis() - startTime));
-        return returnValue;
     }
 
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
@@ -233,7 +226,13 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
-                              RoutingContext context) {
+                              RoutingContext context, long startTime) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped.");
+            return;
+        }
+
         final MetricName requestStatus;
         final int status;
         final List<String> errorMessages;
@@ -280,6 +279,7 @@ public class AmpHandler implements Handler<RoutingContext> {
             }
         }
 
+        metrics.updateRequestTimeMetric(clock.millis() - startTime);
         metrics.updateRequestTypeMetric(METRICS_CONTEXT.getRequestType(), requestStatus);
         analyticsReporter.processEvent(ampEventBuilder.status(status).errors(errorMessages).build());
     }
