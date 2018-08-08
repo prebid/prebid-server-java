@@ -32,6 +32,7 @@ public enum MetricName {
     timeout,
     unknown_error,
     err,
+    networkerr,
 
     // cookie sync
     cookie_sync_requests,
