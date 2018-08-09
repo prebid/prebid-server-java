@@ -133,25 +133,26 @@ public class AuctionHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final MetricName requestType;
+        final boolean responseSucceeded = responseResult.succeeded();
+
+        final MetricName requestType = responseSucceeded
+                ? responseResult.result().getRight().getRequestType()
+                : MetricName.openrtb2web;
         final MetricName requestStatus;
         final int status;
         final List<String> errorMessages;
 
-        if (responseResult.succeeded()) {
-            final Tuple2<BidResponse, MetricsContext> result = responseResult.result();
+        context.response().exceptionHandler(throwable -> handleResponseException(throwable, requestType));
 
+        if (responseSucceeded) {
             context.response()
                     .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                    .end(Json.encode(result.getLeft()));
+                    .end(Json.encode(responseResult.result().getLeft()));
 
-            requestType = result.getRight().getRequestType();
             requestStatus = MetricName.ok;
             status = HttpResponseStatus.OK.code();
             errorMessages = Collections.emptyList();
         } else {
-            requestType = MetricName.openrtb2web;
-
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
                 requestStatus = MetricName.badinput;
@@ -181,5 +182,10 @@ public class AuctionHandler implements Handler<RoutingContext> {
         metrics.updateRequestTimeMetric(clock.millis() - startTime);
         metrics.updateRequestTypeMetric(requestType, requestStatus);
         analyticsReporter.processEvent(auctionEventBuilder.status(status).errors(errorMessages).build());
+    }
+
+    private void handleResponseException(Throwable throwable, MetricName requestType) {
+        logger.warn("Failed to send auction response", throwable);
+        metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 }

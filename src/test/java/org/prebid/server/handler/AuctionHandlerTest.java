@@ -642,6 +642,41 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics).updateRequestTypeMetric(eq(MetricName.legacy), eq(MetricName.err));
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldUpdateNetworkErrorMetric() {
+        // given
+        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+
+        givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
+
+        // simulate calling exception handler that is supposed to update networkerr timer value
+        given(httpResponse.exceptionHandler(any())).willAnswer(inv -> {
+            ((Handler<Void>) inv.getArgument(0)).handle(null);
+            return null;
+        });
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.legacy), eq(MetricName.networkerr));
+    }
+
+    @Test
+    public void shouldNotUpdateNetworkErrorMetricIfResponseSucceeded() {
+        // given
+        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+
+        givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(metrics, never()).updateRequestTypeMetric(eq(MetricName.legacy), eq(MetricName.networkerr));
+    }
+
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 

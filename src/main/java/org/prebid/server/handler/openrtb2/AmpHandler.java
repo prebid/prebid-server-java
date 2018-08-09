@@ -233,18 +233,21 @@ public class AmpHandler implements Handler<RoutingContext> {
             return;
         }
 
+        final MetricName requestType = METRICS_CONTEXT.getRequestType();
         final MetricName requestStatus;
         final int status;
         final List<String> errorMessages;
 
-        final String origin = originFrom(context);
+        context.response().exceptionHandler(throwable -> handleResponseException(throwable, requestType));
 
+        final String origin = originFrom(context);
         ampEventBuilder.origin(origin);
 
         // Add AMP headers
         context.response()
                 .putHeader("AMP-Access-Control-Allow-Source-Origin", origin)
                 .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+
         if (responseResult.succeeded()) {
             context.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
             context.response().end(Json.encode(responseResult.result()));
@@ -280,7 +283,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
 
         metrics.updateRequestTimeMetric(clock.millis() - startTime);
-        metrics.updateRequestTypeMetric(METRICS_CONTEXT.getRequestType(), requestStatus);
+        metrics.updateRequestTypeMetric(requestType, requestStatus);
         analyticsReporter.processEvent(ampEventBuilder.status(status).errors(errorMessages).build());
     }
 
@@ -295,5 +298,10 @@ public class AmpHandler implements Handler<RoutingContext> {
             origin = ObjectUtils.firstNonNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
+    }
+
+    private void handleResponseException(Throwable throwable, MetricName requestType) {
+        logger.warn("Failed to send amp response", throwable);
+        metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 }

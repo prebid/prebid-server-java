@@ -387,6 +387,45 @@ public class AmpHandlerTest extends VertxTest {
         verify(httpResponse, never()).endHandler(any());
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldUpdateNetworkErrorMetric() {
+        // given
+        given(ampRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any(), any())).willReturn(
+                givenBidResponse(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, null), null))));
+
+        // simulate calling exception handler that is supposed to update networkerr timer value
+        given(httpResponse.exceptionHandler(any())).willAnswer(inv -> {
+            ((Handler<Void>) inv.getArgument(0)).handle(null);
+            return null;
+        });
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.networkerr));
+    }
+
+    @Test
+    public void shouldNotUpdateNetworkErrorMetricIfResponseSucceeded() {
+        // given
+        given(ampRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any(), any())).willReturn(
+                givenBidResponse(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(null, null), null))));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics, never()).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.networkerr));
+    }
+
     @Test
     public void shouldPassBadRequestEventToAnalyticsReporterIfBidRequestIsInvalid() {
         // given
