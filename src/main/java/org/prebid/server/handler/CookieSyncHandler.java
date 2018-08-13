@@ -11,7 +11,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.CookieSyncEvent;
@@ -27,7 +26,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
-import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
@@ -237,43 +235,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             if (!uidsCookie.hasLiveUidFrom(usersyncer.cookieFamilyName())) {
                 result = bidderStatusBuilder(bidderName)
                         .noCookie(true)
-                        .usersync(updateUsersyncInfo(usersyncer.usersyncInfo(), gdpr, gdprConsent))
+                        .usersync(usersyncer.usersyncInfo().withGdpr(gdpr, gdprConsent))
                         .build();
             } else {
                 result = null;
             }
         }
 
-        return result;
-    }
-
-    /**
-     * Updates a sync endpoint template. It will replace:
-     * <p>
-     * {{gdpr}} -- with the "gdpr" string (should be either "0", "1", or "")
-     * {{gdpr_consent}} -- with the Raw base64 URL-encoded GDPR Vendor Consent string.
-     * <p>
-     * For example, the template:
-     * //some-domain.com/getuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&callback=prebid-server-domain.com%2Fsetuid%3Fbidder%3Dadnxs%26gdpr={{gdpr}}%26gdpr_consent={{gdpr_consent}}%26uid%3D%24UID
-     * <p>
-     * would evaluate to:
-     * //some-domain.com/getuid?gdpr=&gdpr_consent=BONciguONcjGKADACHENAOLS1rAHDAFAAEAASABQAMwAeACEAFw&callback=prebid-server-domain.com%2Fsetuid%3Fbidder%3Dadnxs%26gdpr=%26gdpr_consent=BONciguONcjGKADACHENAOLS1rAHDAFAAEAASABQAMwAeACEAFw%26uid%3D%24UID
-     * <p>
-     * if the "gdpr" arg was empty, and the consent arg was "BONciguONcjGKADACHENAOLS1rAHDAFAAEAASABQAMwAeACEAFw"
-     */
-    private static UsersyncInfo updateUsersyncInfo(UsersyncInfo usersyncInfo, String gdpr, String gdprConsent) {
-        final String url = usersyncInfo.getUrl();
-
-        final UsersyncInfo result;
-        if (url.contains(GDPR_PLACEHOLDER) && url.contains(GDPR_CONSENT_PLACEHOLDER)) {
-            final String updatedUrl = url
-                    .replace(GDPR_PLACEHOLDER, ObjectUtils.firstNonNull(gdpr, ""))
-                    .replace(GDPR_CONSENT_PLACEHOLDER, ObjectUtils.firstNonNull(gdprConsent, ""));
-
-            result = UsersyncInfo.of(updatedUrl, usersyncInfo.getType(), usersyncInfo.getSupportCORS());
-        } else {
-            result = usersyncInfo;
-        }
         return result;
     }
 
