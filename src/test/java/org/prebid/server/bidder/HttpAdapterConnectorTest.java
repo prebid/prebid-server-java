@@ -6,6 +6,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.Bid.BidBuilder;
@@ -22,6 +23,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.junit.Before;
@@ -47,6 +49,8 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.response.BidderDebug;
@@ -119,6 +123,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
         httpAdapterConnector = new HttpAdapterConnector(httpClient, clock);
+
+        given(usersyncer.usersyncInfo()).willReturn(UsersyncInfo.of("", null, null));
     }
 
     @Test
@@ -623,6 +629,35 @@ public class HttpAdapterConnectorTest extends VertxTest {
         assertThat(adapterResponse.getBidderStatus().getNoCookie()).isTrue();
         assertThat(adapterResponse.getBidderStatus().getUsersync()).isNotNull();
         assertThat(adapterResponse.getBidderStatus().getUsersync()).isEqualTo(UsersyncInfo.of("url1", null, false));
+    }
+
+    @Test
+    public void callShouldReturnGdprAwareAdapterResponseWithNoCookieIfNoAdapterUidInCookieAndNoAppInPreBidRequest()
+            throws IOException {
+        // given
+        final Regs regs = Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1)));
+        final User user = User.builder()
+                .ext(Json.mapper.valueToTree(ExtUser.of(null, "consent$1", null)))
+                .build();
+        preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder.regs(regs).user(user));
+
+        givenHttpClientReturnsResponses(200,
+                givenBidResponse(identity(), identity(), singletonList(identity())));
+
+        given(usersyncer.usersyncInfo()).willReturn(
+                UsersyncInfo.of("http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
+                        null, false));
+
+        // when
+        final Future<AdapterResponse> adapterResponseFuture =
+                httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
+
+        // then
+        final AdapterResponse adapterResponse = adapterResponseFuture.result();
+        assertThat(adapterResponse.getBidderStatus().getNoCookie()).isTrue();
+        assertThat(adapterResponse.getBidderStatus().getUsersync()).isNotNull();
+        assertThat(adapterResponse.getBidderStatus().getUsersync())
+                .isEqualTo(UsersyncInfo.of("http://url?redir=%26gdpr%3D1%26gdpr_consent%3Dconsent%241", null, false));
     }
 
     @Test

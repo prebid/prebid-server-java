@@ -47,7 +47,7 @@ adapters:
   brightroll:
     enabled: false
     endpoint: http://east-bid.ybp.yahoo.com/bid/appnexuspbs
-    usersync-url: http://east-bid.ybp.yahoo.com/sync/appnexuspbs?url=
+    usersync-url: http://east-bid.ybp.yahoo.com/sync/appnexuspbs?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&url=
   conversant:
     enabled: false
     endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
@@ -62,7 +62,7 @@ adapters:
     nonSecureEndpoint: http://an.facebook.com/placementbid.ortb
   indexexchange:
     enabled: false
-    usersync-url: //ssum-sec.casalemedia.com/usermatchredir?s=184932&cb=https%3A%2F%2Fprebid.adnxs.com%2Fpbs%2Fv1%2Fsetuid%3Fbidder%3DindexExchange%26uid%3D
+    usersync-url: //ssum-sec.casalemedia.com/usermatchredir?s=184932&cb=https%3A%2F%2Fprebid.adnxs.com%2Fpbs%2Fv1%2Fsetuid%3Fbidder%3DindexExchange%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}%26uid%3D
   lifestreet:
     enabled: false
     endpoint: https://prebid.s2s.lfstmedia.com/adrequest
@@ -82,7 +82,7 @@ adapters:
   rubicon:
     enabled: false
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
-    usersync-url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid
+    usersync-url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
   somoaudience:
     enabled: false
     endpoint: http://publisher-east.mobileadtrading.com/rtb/bid

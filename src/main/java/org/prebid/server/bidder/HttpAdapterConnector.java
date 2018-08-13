@@ -1,7 +1,11 @@
 package org.prebid.server.bidder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -16,6 +20,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.AdapterResponse;
@@ -26,6 +31,9 @@ import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.BidderStatus;
@@ -221,11 +229,16 @@ public class HttpAdapterConnector {
                     .debug(exchangeCalls.stream().map(ExchangeCall::getBidderDebug).collect(Collectors.toList()));
         }
 
-        if (preBidRequestContext.getPreBidRequest().getApp() == null
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        if (preBidRequest.getApp() == null
                 && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()) == null) {
+
+            final String gdpr = gdprFrom(preBidRequest.getRegs());
+            final String gdprConsent = gdprConsentFrom(preBidRequest.getUser());
+
             bidderStatusBuilder
                     .noCookie(true)
-                    .usersync(usersyncer.usersyncInfo());
+                    .usersync(usersyncer.usersyncInfo().withGdpr(gdpr, gdprConsent));
         }
 
         final List<Result<List<Bid>>> bidsWithErrors = exchangeCalls.stream()
@@ -252,6 +265,32 @@ public class HttpAdapterConnector {
         }
 
         return AdapterResponse.of(bidderStatusBuilder.build(), bidsToReturn, errorToReturn);
+    }
+
+    private static String gdprFrom(Regs regs) {
+        final ObjectNode extRegsNode = regs != null ? regs.getExt() : null;
+        final ExtRegs extRegs;
+        try {
+            extRegs = extRegsNode != null ? Json.mapper.treeToValue(extRegsNode, ExtRegs.class) : null;
+        } catch (JsonProcessingException e) {
+            return "";
+        }
+
+        final String gdpr = extRegs != null ? Integer.toString(extRegs.getGdpr()) : "";
+        return ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0") ? "" : gdpr;
+    }
+
+    private static String gdprConsentFrom(User user) {
+        final ObjectNode extUserNode = user != null ? user.getExt() : null;
+        ExtUser extUser;
+        try {
+            extUser = extUserNode != null ? Json.mapper.treeToValue(extUserNode, ExtUser.class) : null;
+        } catch (JsonProcessingException e) {
+            extUser = null;
+        }
+
+        final String gdprConsent = extUser != null ? extUser.getConsent() : "";
+        return ObjectUtils.firstNonNull(gdprConsent, "");
     }
 
     private int responseTime(long bidderStarted) {

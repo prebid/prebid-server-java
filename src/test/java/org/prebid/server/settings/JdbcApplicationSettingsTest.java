@@ -103,7 +103,7 @@ public class JdbcApplicationSettingsTest {
     @Before
     public void setUp() {
         vertx = Vertx.vertx();
-        timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
+        timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(5000L);
         jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectQuery, selectQuery);
     }
 
