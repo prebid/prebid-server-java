@@ -15,6 +15,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Cookie;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
@@ -100,7 +101,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
         final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
         return imp.toBuilder()
                 .bidfloor(sovrnExt.getBidfloor())
-                .tagid(sovrnExt.getTagid())
+                .tagid(ObjectUtils.firstNonNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
                 .build();
     }
 

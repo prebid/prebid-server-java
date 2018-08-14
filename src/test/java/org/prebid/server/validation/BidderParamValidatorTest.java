@@ -192,7 +192,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenSovrnImpExtIsOk() {
         // given
-        final ExtImpSovrn ext = ExtImpSovrn.of("tag", null);
+        final ExtImpSovrn ext = ExtImpSovrn.of("tag", null, null);
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
@@ -212,7 +212,7 @@ public class BidderParamValidatorTest extends VertxTest {
         final Set<String> messages = bidderParamValidator.validate(SOVRN, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(1);
+        assertThat(messages.size()).isEqualTo(2);
     }
 
     @Test
