@@ -144,7 +144,7 @@ public class SovrnBidderTest extends VertxTest {
                                         .w(200)
                                         .h(300)
                                         .build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
                                 .build()))
                 .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
                 .regs(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1))))
@@ -160,7 +160,7 @@ public class SovrnBidderTest extends VertxTest {
                 .containsExactly(BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .id("impId")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(200).h(300).build()))
                                         .w(200)
@@ -207,6 +207,50 @@ public class SovrnBidderTest extends VertxTest {
                         tuple("Cookie", "ljt_reader=701"));
     }
 
+    @Test
+    public void makeHttpRequestShouldReturnImpWithTagidIfBothTagidAndLegacyTagIdDefined() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Collections.singletonList(
+                        Imp.builder()
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", "legacyTagId", null))))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(body -> mapper.readValue(body, BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly("tagid");
+
+    }
+
+    @Test
+    public void makeHttpRequestShouldReturnImpWithTagidFromLegacyIfTagIdIsEmpty() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Collections.singletonList(
+                        Imp.builder()
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null))))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(body -> mapper.readValue(body, BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnly("legacyTagId");
+    }
 
     @Test
     public void makeHttpRequestsShouldReturnEmptyResultWhenMissingBidRequestImps() {
