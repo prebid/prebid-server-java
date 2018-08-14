@@ -64,11 +64,6 @@ public class ConversantAdapter extends OpenrtbAdapter {
     @Override
     public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
                                                                  PreBidRequestContext preBidRequestContext) {
-        if (preBidRequestContext.getPreBidRequest().getApp() == null
-                && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()) == null) {
-            return Collections.emptyList();
-        }
-
         final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
         final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST, endpointUrl,
                 bidRequest, headers());
