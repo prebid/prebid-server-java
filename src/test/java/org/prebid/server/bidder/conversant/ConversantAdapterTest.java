@@ -113,20 +113,6 @@ public class ConversantAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnEmptyRequestsIfNoAppAndNoCookie() {
-        // given
-        given(uidsCookie.uidFrom(eq(BIDDER))).willReturn(null);
-        preBidRequestContext = givenPreBidRequestContext(identity(), builder -> builder.app(null));
-
-        // when
-        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
-                preBidRequestContext);
-
-        // then
-        assertThat(httpRequests).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldFailIfParamsMissingInAtLeastOneAdUnitBid() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, asList(
