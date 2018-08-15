@@ -31,6 +31,9 @@ public class LifestreetConfiguration extends BidderConfiguration {
     @Value("${adapters.lifestreet.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.lifestreet.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -46,7 +49,7 @@ public class LifestreetConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new LifestreetMetaInfo(enabled);
+        return new LifestreetMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

@@ -31,6 +31,9 @@ public class AppnexusConfiguration extends BidderConfiguration {
     @Value("${adapters.appnexus.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.appnexus.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -46,7 +49,7 @@ public class AppnexusConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new AppnexusMetaInfo(enabled);
+        return new AppnexusMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

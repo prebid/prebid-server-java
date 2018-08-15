@@ -10,9 +10,10 @@ public class IndexMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public IndexMetaInfo(boolean enabled) {
+    public IndexMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 10, true);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"),
+                null, 10, pbsEnforcesGdpr);
     }
 
     @Override

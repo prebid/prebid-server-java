@@ -12,9 +12,10 @@ public class EplanningMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public EplanningMetaInfo(boolean enabled) {
+    public EplanningMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "mmartinho@e-planning.net",
-                Collections.singletonList("banner"), Collections.singletonList("banner"), null, 0, true);
+                Collections.singletonList("banner"), Collections.singletonList("banner"),
+                null, 0, pbsEnforcesGdpr);
     }
 
     /**

@@ -171,7 +171,6 @@ public class AdformHttpUtilTest {
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
         assertThat(url)
                 .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
-
     }
 
     @Test

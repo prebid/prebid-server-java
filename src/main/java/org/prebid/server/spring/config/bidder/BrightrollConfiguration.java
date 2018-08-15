@@ -30,6 +30,9 @@ public class BrightrollConfiguration extends BidderConfiguration {
     @Value("${adapters.brightroll.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.brightroll.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -45,7 +48,7 @@ public class BrightrollConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new BrightrollMetaInfo(enabled);
+        return new BrightrollMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

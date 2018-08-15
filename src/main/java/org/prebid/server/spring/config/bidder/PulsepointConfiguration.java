@@ -31,6 +31,9 @@ public class PulsepointConfiguration extends BidderConfiguration {
     @Value("${adapters.pulsepoint.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.pulsepoint.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -46,7 +49,7 @@ public class PulsepointConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new PulsepointMetaInfo(enabled);
+        return new PulsepointMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

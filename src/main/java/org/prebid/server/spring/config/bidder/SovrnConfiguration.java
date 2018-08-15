@@ -31,6 +31,9 @@ public class SovrnConfiguration extends BidderConfiguration {
     @Value("${adapters.sovrn.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.sovrn.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -46,7 +49,7 @@ public class SovrnConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new SovrnMetaInfo(enabled);
+        return new SovrnMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

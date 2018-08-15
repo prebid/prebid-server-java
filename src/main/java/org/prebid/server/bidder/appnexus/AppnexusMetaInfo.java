@@ -9,9 +9,10 @@ public class AppnexusMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public AppnexusMetaInfo(boolean enabled) {
+    public AppnexusMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
-                Arrays.asList("banner", "native"), Arrays.asList("banner", "video"), null, 32, true);
+                Arrays.asList("banner", "native"), Arrays.asList("banner", "video"),
+                null, 32, pbsEnforcesGdpr);
     }
 
     @Override

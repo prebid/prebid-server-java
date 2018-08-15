@@ -13,7 +13,7 @@ public class RubiconMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public RubiconMetaInfo(boolean enabled) {
+    public RubiconMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "header-bidding@rubiconproject.com",
                 Collections.singletonList("banner"), Arrays.asList("banner", "video"), Stream.of(
                         ViewabilityVendors.activeview,
@@ -24,7 +24,7 @@ public class RubiconMetaInfo implements MetaInfo {
                         ViewabilityVendors.moat,
                         ViewabilityVendors.sizemek,
                         ViewabilityVendors.whiteops)
-                        .map(ViewabilityVendors::name).collect(Collectors.toList()), 52, true);
+                        .map(ViewabilityVendors::name).collect(Collectors.toList()), 52, pbsEnforcesGdpr);
     }
 
     @Override

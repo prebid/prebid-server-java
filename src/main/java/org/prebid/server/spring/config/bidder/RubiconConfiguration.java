@@ -31,6 +31,9 @@ public class RubiconConfiguration extends BidderConfiguration {
     @Value("${adapters.rubicon.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.rubicon.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${adapters.rubicon.XAPI.Username}")
     private String username;
 
@@ -49,7 +52,7 @@ public class RubiconConfiguration extends BidderConfiguration {
 
     @Override
     public MetaInfo createMetaInfo() {
-        return new RubiconMetaInfo(enabled);
+        return new RubiconMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

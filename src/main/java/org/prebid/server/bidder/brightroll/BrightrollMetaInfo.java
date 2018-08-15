@@ -13,9 +13,10 @@ public class BrightrollMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public BrightrollMetaInfo(boolean enabled) {
+    public BrightrollMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "smithaa@oath.com",
-                Collections.singletonList("banner, video"), Arrays.asList("banner", "video"), null, 25, true);
+                Collections.singletonList("banner, video"), Arrays.asList("banner", "video"),
+                null, 25, pbsEnforcesGdpr);
     }
 
     /**

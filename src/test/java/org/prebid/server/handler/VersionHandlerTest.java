@@ -71,7 +71,6 @@ public class VersionHandlerTest {
         // then
         verify(httpResponse).end(Json.mapper.writeValueAsString(
                 RevisionResponse.of("4df3f6192d7938ccdaac04df783c46c7e8847d08")));
-
     }
 
     @AllArgsConstructor(staticName = "of")
