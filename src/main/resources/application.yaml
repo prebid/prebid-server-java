@@ -51,7 +51,7 @@ adapters:
   conversant:
     enabled: false
     endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
-    usersync-url: prebid-match.dotomi.com/prebid/match?rurl=
+    usersync-url: //prebid-match.dotomi.com/prebid/match?rurl=
   eplanning:
     enabled: false
     endpoint: http://ads.us.e-planning.net/dsp/obr/1
@@ -73,7 +73,7 @@ adapters:
     usersync-url: https://rtb.openx.net/sync/prebid?r=
   pubmatic:
     enabled: false
-    endpoint: http://openbid.pubmatic.com/translator?source=prebid-server
+    endpoint: http://hbopenbid.pubmatic.com/translator?source=prebid-server
     usersync-url: //ads.pubmatic.com/AdServer/js/user_sync.html?predirect=
   pulsepoint:
     enabled: false
