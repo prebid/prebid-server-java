@@ -55,7 +55,7 @@ adapters:
   conversant:
     enabled: false
     endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
-    usersync-url: prebid-match.dotomi.com/prebid/match?rurl=
+    usersync-url: //prebid-match.dotomi.com/prebid/match?rurl=
     pbs-enforces-gdpr: true
   eplanning:
     enabled: false
@@ -83,7 +83,7 @@ adapters:
     pbs-enforces-gdpr: true
   pubmatic:
     enabled: false
-    endpoint: http://openbid.pubmatic.com/translator?source=prebid-server
+    endpoint: http://hbopenbid.pubmatic.com/translator?source=prebid-server
     usersync-url: //ads.pubmatic.com/AdServer/js/user_sync.html?predirect=
     pbs-enforces-gdpr: true
   pulsepoint:
