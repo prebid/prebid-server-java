@@ -297,6 +297,12 @@ public class ExchangeServiceTest extends VertxTest {
                                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
                                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
                                 .ifa("ifa")
+                                .macsha1("macsha1")
+                                .macmd5("macmd5")
+                                .didsha1("didsha1")
+                                .didmd5("didmd5")
+                                .dpidsha1("dpidsha1")
+                                .dpidmd5("dpidmd5")
                                 .build()));
 
         // when
@@ -382,6 +388,12 @@ public class ExchangeServiceTest extends VertxTest {
                                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
                                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
                                 .ifa("ifa")
+                                .macsha1("macsha1")
+                                .macmd5("macmd5")
+                                .didsha1("didsha1")
+                                .didmd5("didmd5")
+                                .dpidsha1("dpidsha1")
+                                .dpidmd5("dpidmd5")
                                 .build())
                         .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
 
@@ -397,7 +409,9 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.1")
                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ifa("ifa").build());
+                .ifa("ifa").macsha1("macsha1").macmd5("macmd5").didsha1("didsha1").didmd5("didmd5").dpidsha1("dpidsha1")
+                .dpidmd5("dpidmd5")
+                .build());
         verifyZeroInteractions(gdprService);
     }
 
