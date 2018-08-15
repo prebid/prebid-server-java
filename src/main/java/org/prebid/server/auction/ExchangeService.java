@@ -472,6 +472,8 @@ public class ExchangeService {
         return device != null && maskingRequired
                 ? device.toBuilder().ip(maskIp(device.getIp(), '.')).ipv6(maskIp(device.getIpv6(), ':'))
                 .geo(maskGeo(device.getGeo()))
+                // suppress device information affected by gdpr
+                .ifa(null).macsha1(null).macmd5(null).dpidsha1(null).dpidmd5(null).didsha1(null).didmd5(null)
                 .build()
                 : device;
     }
