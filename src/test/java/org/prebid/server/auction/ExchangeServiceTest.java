@@ -296,6 +296,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .ip("192.168.0.1")
                                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
                                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                                .ifa("ifa")
                                 .build()));
 
         // when
@@ -380,6 +381,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .ip("192.168.0.1")
                                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
                                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                                .ifa("ifa")
                                 .build())
                         .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
 
@@ -394,7 +396,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
         assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.1")
                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
-                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build()).build());
+                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                .ifa("ifa").build());
         verifyZeroInteractions(gdprService);
     }
 

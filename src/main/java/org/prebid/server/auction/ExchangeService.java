@@ -472,7 +472,7 @@ public class ExchangeService {
         return device != null && maskingRequired
                 ? device.toBuilder().ip(maskIp(device.getIp(), '.')).ipv6(maskIp(device.getIpv6(), ':'))
                 .geo(maskGeo(device.getGeo()))
-                .build()
+                .ifa(null).build()
                 : device;
     }
 
