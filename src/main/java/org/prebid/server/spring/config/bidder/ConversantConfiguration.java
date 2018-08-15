@@ -31,6 +31,9 @@ public class ConversantConfiguration extends BidderConfiguration {
     @Value("${adapters.conversant.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.conversant.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -46,7 +49,7 @@ public class ConversantConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new ConversantMetaInfo(enabled);
+        return new ConversantMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

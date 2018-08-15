@@ -517,7 +517,6 @@ public class ExchangeService {
                 .lat(lat != null ? Float.valueOf(ROUND_TWO_DECIMALS.format(lat)) : null)
                 .build()
                 : null;
-
     }
 
     private List<Imp> prepareImps(String bidder, List<Imp> imps) {

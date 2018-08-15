@@ -31,6 +31,9 @@ public class PubmaticConfiguration extends BidderConfiguration {
     @Value("${adapters.pubmatic.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.pubmatic.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -46,7 +49,7 @@ public class PubmaticConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new PubmaticMetaInfo(enabled);
+        return new PubmaticMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

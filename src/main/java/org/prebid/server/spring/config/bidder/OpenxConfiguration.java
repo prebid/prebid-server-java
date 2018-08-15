@@ -30,6 +30,9 @@ public class OpenxConfiguration extends BidderConfiguration {
     @Value("${adapters.openx.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.openx.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -45,7 +48,7 @@ public class OpenxConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new OpenxMetaInfo(enabled);
+        return new OpenxMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

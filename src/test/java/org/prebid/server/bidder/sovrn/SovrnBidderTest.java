@@ -227,7 +227,6 @@ public class SovrnBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
                 .containsOnly("tagid");
-
     }
 
     @Test

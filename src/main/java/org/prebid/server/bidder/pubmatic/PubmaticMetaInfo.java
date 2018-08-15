@@ -10,9 +10,10 @@ public class PubmaticMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public PubmaticMetaInfo(boolean enabled) {
+    public PubmaticMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "header-bidding@pubmatic.com",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 76, true);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"),
+                null, 76, pbsEnforcesGdpr);
     }
 
     @Override

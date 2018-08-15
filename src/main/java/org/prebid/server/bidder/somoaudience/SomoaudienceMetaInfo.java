@@ -13,10 +13,10 @@ public class SomoaudienceMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public SomoaudienceMetaInfo(boolean enabled) {
+    public SomoaudienceMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "publishers@somoaudience.com",
-                Collections.singletonList("banner, native"), Arrays.asList("banner", "native", "video"), null, 341,
-                true);
+                Collections.singletonList("banner, native"), Arrays.asList("banner", "native", "video"),
+                null, 341, pbsEnforcesGdpr);
     }
 
     /**

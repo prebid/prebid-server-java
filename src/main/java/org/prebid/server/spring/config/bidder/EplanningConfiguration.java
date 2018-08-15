@@ -30,6 +30,9 @@ public class EplanningConfiguration extends BidderConfiguration {
     @Value("${adapters.eplanning.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.eplanning.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -45,7 +48,7 @@ public class EplanningConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new EplanningMetaInfo(enabled);
+        return new EplanningMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

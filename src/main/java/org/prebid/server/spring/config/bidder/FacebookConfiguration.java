@@ -35,6 +35,9 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Value("${adapters.facebook.usersync-url:#{null}}")
     private String usersyncUrl;
 
+    @Value("${adapters.facebook.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${adapters.facebook.platformId:#{null}}")
     private String platformId;
 
@@ -55,7 +58,7 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new FacebookMetaInfo(enabled);
+        return new FacebookMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

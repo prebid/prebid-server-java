@@ -30,6 +30,9 @@ public class SomoaudienceConfiguration extends BidderConfiguration {
     @Value("${adapters.somoaudience.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.somoaudience.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
 
@@ -45,7 +48,7 @@ public class SomoaudienceConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new SomoaudienceMetaInfo(enabled);
+        return new SomoaudienceMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override
