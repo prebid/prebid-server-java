@@ -226,4 +226,30 @@ public class GdprServiceTest {
         assertThat(future.succeeded()).isTrue();
         verifyZeroInteractions(geoLocationService);
     }
+
+    @Test
+    public void shouldReturnFailedFutureIfGdprSdkCantGetAllowedPurposesInAReasonOfInvalidConsentString() {
+        // when
+        final Future<?> future =
+                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "1",
+                        "BONciguONcjGKADACHENAOLS1r", null, null);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause().getMessage())
+                .isEqualTo("Error when retrieving allowed purpose ids in a reason of invalid consent string");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfGdprSdkCantCheckIfVendorAllowedInAReasonOfInvalidConsentString() {
+        // when
+        final Future<?> future =
+                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "1",
+                        "BOSbaBZOSbaBoABABBENBcoAAAAgSABgBAA", null, null);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause().getMessage())
+                .isEqualTo("Error when checking if vendor is allowed in a reason of invalid consent string");
+    }
 }

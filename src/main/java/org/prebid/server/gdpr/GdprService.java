@@ -8,6 +8,7 @@ import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.model.GdprResponse;
@@ -130,7 +131,7 @@ public class GdprService {
 
         // consent string confirms user has allowed all purposes
         final Set<Integer> purposeIds = purposes.stream().map(GdprPurpose::getId).collect(Collectors.toSet());
-        if (!vendorConsent.getAllowedPurposeIds().containsAll(purposeIds)) {
+        if (!getAllowedPurposeIdsFromConsent(vendorConsent).containsAll(purposeIds)) {
             return sameResultFor(vendorIds, false);
         }
 
@@ -138,12 +139,25 @@ public class GdprService {
                 .map(vendorIdToPurposes -> toResult(vendorIdToPurposes, vendorIds, purposeIds, vendorConsent));
     }
 
+    /**
+     * Retrieves allowed purpose ids from consent string. Throws {@link InvalidRequestException} in case of
+     * gdpr sdk throws {@link ArrayIndexOutOfBoundsException} when consent string is not valid.
+     */
+    private Set<Integer> getAllowedPurposeIdsFromConsent(VendorConsent vendorConsent) {
+        try {
+            return vendorConsent.getAllowedPurposeIds();
+        } catch (ArrayIndexOutOfBoundsException ex) {
+            throw new InvalidRequestException(
+                    "Error when retrieving allowed purpose ids in a reason of invalid consent string");
+        }
+    }
+
     private static Map<Integer, Boolean> toResult(Map<Integer, Set<Integer>> vendorIdToPurposes, Set<Integer> vendorIds,
                                                   Set<Integer> purposeIds, VendorConsent vendorConsent) {
         final Map<Integer, Boolean> result = new HashMap<>(vendorIds.size());
         for (Integer vendorId : vendorIds) {
             // consent string confirms Vendor is allowed
-            final boolean vendorIsAllowed = vendorId != null && vendorConsent.isVendorAllowed(vendorId);
+            final boolean vendorIsAllowed = vendorId != null && isVendorAllowed(vendorConsent, vendorId);
 
             // vendorlist lookup confirms Vendor has all purposes
             final boolean vendorHasAllPurposes;
@@ -157,6 +171,19 @@ public class GdprService {
             result.put(vendorId, vendorIsAllowed && vendorHasAllPurposes);
         }
         return result;
+    }
+
+    /**
+     * Checks if vendorId is in list of allowed vendors in consent string. Throws {@link InvalidRequestException}
+     * in case of gdpr sdk throws {@link ArrayIndexOutOfBoundsException} when consent string is not valid.
+     */
+    private static boolean isVendorAllowed(VendorConsent vendorConsent, Integer vendorId) {
+        try {
+            return vendorConsent.isVendorAllowed(vendorId);
+        } catch (ArrayIndexOutOfBoundsException ex) {
+            throw new InvalidRequestException(
+                    "Error when checking if vendor is allowed in a reason of invalid consent string");
+        }
     }
 
     /**
