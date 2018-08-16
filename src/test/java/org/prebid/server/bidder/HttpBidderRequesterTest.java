@@ -78,7 +78,7 @@ public class HttpBidderRequesterTest {
     }
 
     @Test
-    public void shouldTolerateBidderReturningNoHttpRequests() {
+    public void shouldReturnFailedToRequestBidsErrorWhenBidderReturnsEmptyHttpRequestAndErrorLists() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(emptyList(), emptyList()));
 
@@ -89,7 +89,9 @@ public class HttpBidderRequesterTest {
         // then
         assertThat(bidderSeatBid.getBids()).isEmpty();
         assertThat(bidderSeatBid.getHttpCalls()).isEmpty();
-        assertThat(bidderSeatBid.getErrors()).isEmpty();
+        assertThat(bidderSeatBid.getErrors())
+                .containsOnly(BidderError.failedToRequestBids("The bidder failed to generate any bid " +
+                        "requests, but also failed to generate an error"));
     }
 
     @Test

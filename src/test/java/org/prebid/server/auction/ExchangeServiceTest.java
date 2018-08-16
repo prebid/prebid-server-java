@@ -1500,6 +1500,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 BidderError.badInput("rubicon error"),
                                 BidderError.badInput("rubicon error"),
                                 BidderError.badServerResponse("rubicon error"),
+                                BidderError.failedToRequestBids("rubicon failed to request bids"),
                                 BidderError.timeout("timeout error"),
                                 BidderError.generic("timeout error")))));
 
@@ -1513,6 +1514,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(metrics).updateAdapterRequestGotbidsMetrics(eq("somebidder"), eq("accountId"));
         verify(metrics).updateAdapterRequestErrorMetric(eq("somebidder"), eq(MetricName.badinput));
         verify(metrics).updateAdapterRequestErrorMetric(eq("somebidder"), eq(MetricName.badserverresponse));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("somebidder"), eq(MetricName.failedtorequestbids));
         verify(metrics).updateAdapterRequestErrorMetric(eq("somebidder"), eq(MetricName.timeout));
         verify(metrics).updateAdapterRequestErrorMetric(eq("somebidder"), eq(MetricName.unknown_error));
     }

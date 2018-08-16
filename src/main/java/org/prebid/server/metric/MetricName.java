@@ -29,6 +29,7 @@ public enum MetricName {
     gotbids,
     badinput,
     badserverresponse,
+    failedtorequestbids,
     timeout,
     unknown_error,
     err,

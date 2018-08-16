@@ -12,6 +12,7 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -56,14 +57,31 @@ public class HttpBidderRequester<T> implements BidderRequester {
      * Executes given request to a given bidder.
      */
     public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout) {
-        final Result<List<HttpRequest<T>>> httpRequests = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
 
-        return CompositeFuture.join(httpRequests.getValue().stream()
+        final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
+        final List<HttpRequest<T>> httpRequests = httpRequestsWithErrors.getValue();
+
+        return CollectionUtils.isEmpty(httpRequests)
+                ? emptyBidderSeatBidWithErrors(bidderErrors)
+                : CompositeFuture.join(httpRequests.stream()
                 .map(httpRequest -> doRequest(httpRequest, timeout))
                 .collect(Collectors.toList()))
-                .map(httpRequestsResult -> toBidderSeatBid(bidRequest, httpRequests.getErrors(),
-                        httpRequestsResult.list()));
+                .map(httpRequestsResult -> toBidderSeatBid(bidRequest, bidderErrors, httpRequestsResult.list()));
     }
+
+    /**
+     * Creates {@link Future<BidderSeatBid>} with empty {@link List<BidderBid>} and {@link List<ExtHttpCall>} with
+     * {@link List<BidderError>}. If errors list is empty, creates error which indicates of bidder unexpected behaviour.
+     */
+    private Future<BidderSeatBid> emptyBidderSeatBidWithErrors(List<BidderError> bidderErrors) {
+        return Future.succeededFuture(
+                BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(), bidderErrors.isEmpty()
+                        ? Collections.singletonList(BidderError.failedToRequestBids(
+                        "The bidder failed to generate any bid requests, but also failed to generate an error"))
+                        : bidderErrors));
+    }
+
 
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
