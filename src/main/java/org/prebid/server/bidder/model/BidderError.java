@@ -30,6 +30,10 @@ public class BidderError {
         return BidderError.of(message, Type.bad_server_response);
     }
 
+    public static BidderError failedToRequestBids(String message) {
+        return BidderError.of(message, Type.failed_to_request_bids);
+    }
+
     public static BidderError timeout(String message) {
         return BidderError.of(message, Type.timeout);
     }
@@ -55,6 +59,15 @@ public class BidderError {
          * issues for the PBS host company
          */
         bad_server_response,
+
+        /**
+         * Covers the case where a bidder failed to generate any http requests to get bids, but did not generate any
+         * error messages. This should not happen in practice and will signal that an bidder is poorly coded.
+         * If there was something wrong with a request such that an bidder could not generate a bid, then it should
+         * generate an error explaining the deficiency. Otherwise it will be extremely difficult to debug the reason
+         * why a bidder is not bidding.
+         */
+        failed_to_request_bids,
 
         timeout,
         generic
