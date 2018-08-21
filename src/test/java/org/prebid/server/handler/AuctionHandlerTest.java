@@ -699,7 +699,33 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithNoUsersyncInfoForGdprNonCompliantBidder() throws IOException {
+    public void shouldRespondWithNoUsersyncInfoForAllBiddersIfHostVendorDeniesGdpr() throws IOException {
+        // given
+        givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(1, false), null)));
+
+        given(httpAdapterConnector.call(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
+                        BidderStatus.builder().bidder(RUBICON).responseTimeMs(100)
+                                .usersync(UsersyncInfo.of("url1", "type1", null))
+                                .build(), emptyList(), null)))
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
+                        BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100)
+                                .usersync(UsersyncInfo.of("url2", "type2", null))
+                                .build(), emptyList(), null)));
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.getBidderStatus()).extracting(BidderStatus::getUsersync)
+                .containsOnly(null, null);
+    }
+
+    @Test
+    public void shouldRespondWithNoUsersyncInfoForBidderRestrictedByGdpr() throws IOException {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
