@@ -339,6 +339,31 @@ public class SovrnBidderTest extends VertxTest {
                         BidType.banner, null));
     }
 
+    @Test
+    public void makeBidsShouldReturnDecodedUrlInAdmField() throws JsonProcessingException {
+        //given
+        final HttpCall httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .w(200)
+                                .h(150)
+                                .price(BigDecimal.ONE)
+                                .impid("impid")
+                                .dealid("dealid")
+                                .adm("encoded+url+test")
+                                .build()))
+                        .build()))
+                .build()));
+
+        // when
+        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
+
+        //then
+        assertThat(result.getValue()).hasSize(1).element(0)
+                .returns("encoded url test", bidderBid -> bidderBid.getBid().getAdm());
+
+    }
+
     private static HttpCall<BidRequest> givenHttpCall(String body) {
         return HttpCall.success(null, HttpResponse.of(200, null, body), null);
     }

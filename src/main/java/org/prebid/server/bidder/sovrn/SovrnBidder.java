@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -151,7 +152,12 @@ public class SovrnBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, null))
+                .map(bid -> BidderBid.of(decodeAdm(bid), BidType.banner, null))
                 .collect(Collectors.toList());
+    }
+
+    private static Bid decodeAdm(Bid bid) {
+        bid.setAdm(HttpUtil.decodeUrl(bid.getAdm()));
+        return bid;
     }
 }
