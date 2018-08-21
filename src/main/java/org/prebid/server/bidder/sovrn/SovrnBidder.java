@@ -152,11 +152,11 @@ public class SovrnBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(decodeAdm(bid), BidType.banner, null))
+                .map(bid -> BidderBid.of(updateBid(bid), BidType.banner, null))
                 .collect(Collectors.toList());
     }
 
-    private static Bid decodeAdm(Bid bid) {
+    private static Bid updateBid(Bid bid) {
         bid.setAdm(HttpUtil.decodeUrl(bid.getAdm()));
         return bid;
     }
