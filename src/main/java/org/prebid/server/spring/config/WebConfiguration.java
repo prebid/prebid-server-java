@@ -189,10 +189,13 @@ public class WebConfiguration {
             CacheService cacheService,
             Metrics metrics,
             HttpAdapterConnector httpAdapterConnector,
-            Clock clock) {
+            Clock clock,
+            GdprService gdprService,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
 
         return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
-                metrics, httpAdapterConnector, clock);
+                metrics, httpAdapterConnector, clock, gdprService, hostVendorId, useGeoLocation);
     }
 
     @Bean

@@ -44,9 +44,6 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
 
-    private static final String GDPR_PLACEHOLDER = "{{gdpr}}";
-    private static final String GDPR_CONSENT_PLACEHOLDER = "{{gdpr_consent}}";
-
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
