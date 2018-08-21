@@ -146,10 +146,6 @@ public class AuctionHandlerTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-//        final Map<Integer, Boolean> vendorsToGdpr = new HashMap<>();
-//        vendorsToGdpr.put(1, true);
-//        vendorsToGdpr.put(15, true);
-//        vendorsToGdpr.put(20, false);
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(emptyMap(), null)));
 
