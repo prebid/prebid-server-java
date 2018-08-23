@@ -28,7 +28,6 @@ import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -39,7 +38,6 @@ import org.prebid.server.proto.response.MediaType;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
