@@ -514,6 +514,20 @@
           "exchange_id": "exchangeId1"
         }
       }
+    },
+    {
+      "id": "impId18",
+      "video": {
+        "mimes": [
+          "mimes"
+        ]
+      },
+      "ext": {
+        "beachfront": {
+          "appId": "beachfrontAppId",
+          "bidfloor": 1
+        }
+      }
     }
   ],
   "device": {
