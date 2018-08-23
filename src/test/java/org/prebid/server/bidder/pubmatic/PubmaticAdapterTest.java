@@ -28,6 +28,7 @@ import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -38,6 +39,7 @@ import org.prebid.server.proto.response.MediaType;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -283,6 +285,22 @@ public class PubmaticAdapterTest extends VertxTest {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
                 .app(App.builder().id("appId").build()).user(User.builder().build()));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .extracting(r -> r.getPayload().getApp().getId())
+                .containsOnly("appId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithAppFromPreBidRequestWithNullCookie() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
+                .app(App.builder().id("appId").build()).user(User.builder().build()), null);
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -548,6 +566,15 @@ public class PubmaticAdapterTest extends VertxTest {
                     .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
             Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
                     preBidRequestBuilderCustomizer) {
+        return givenPreBidRequestContextCustomizable(preBidRequestContextBuilderCustomizer,
+                preBidRequestBuilderCustomizer, uidsCookie);
+    }
+
+    private PreBidRequestContext givenPreBidRequestContextCustomizable(
+            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext
+                    .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
+            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
+                    preBidRequestBuilderCustomizer, UidsCookie uidsCookie) {
 
         final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
                 .accountId("accountId");
