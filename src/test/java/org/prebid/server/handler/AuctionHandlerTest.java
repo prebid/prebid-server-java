@@ -754,6 +754,35 @@ public class AuctionHandlerTest extends VertxTest {
                 .containsOnly(UsersyncInfo.of("url1", "type1", null), null);
     }
 
+    @Test
+    public void shouldRespondWithUsersyncInfoForBiddersButNotForHostVendor() throws IOException {
+        // given
+        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+
+        final Map<Integer, Boolean> vendorsToGdpr = new HashMap<>();
+        vendorsToGdpr.put(1, true); // host vendor id from app config
+        vendorsToGdpr.put(15, true); // Rubicon bidder
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(vendorsToGdpr, null)));
+
+        given(httpAdapterConnector.call(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
+                        BidderStatus.builder().bidder(RUBICON).responseTimeMs(100)
+                                .usersync(UsersyncInfo.of("url1", "type1", null))
+                                .build(), emptyList(), null)));
+
+        auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
+                cacheService, metrics, httpAdapterConnector, clock, gdprService, 1, false);
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.getBidderStatus()).extracting(BidderStatus::getUsersync)
+                .containsOnly(UsersyncInfo.of("url1", "type1", null));
+    }
+
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 

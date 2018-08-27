@@ -212,7 +212,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             result = Collections.emptyMap(); // deny all by host vendor
         } else if (hostVendorIdIsMissing) {
             final Map<Integer, Boolean> vendorsToGdprWithoutHost = new HashMap<>(vendorsToGdpr);
-            vendorsToGdpr.remove(gdprHostVendorId); // just to be clean with bidders
+            vendorsToGdprWithoutHost.remove(gdprHostVendorId); // just to be clean with bidders
             result = vendorsToGdprWithoutHost;
         } else {
             result = vendorsToGdpr;
