@@ -28,22 +28,27 @@ import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContext
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
+import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.request.AdUnit;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.BidderStatus.BidderStatusBuilder;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.PreBidResponse;
+import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 
@@ -53,7 +58,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -92,7 +99,10 @@ public class AuctionHandlerTest extends VertxTest {
     private Metrics metrics;
     @Mock
     private HttpAdapterConnector httpAdapterConnector;
+
     private Clock clock;
+    @Mock
+    private GdprService gdprService;
 
     private AuctionHandler auctionHandler;
 
@@ -102,6 +112,10 @@ public class AuctionHandlerTest extends VertxTest {
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
+    @Mock
+    private MetaInfo rubiconMetaInfo;
+    @Mock
+    private MetaInfo appnexusMetaInfo;
 
     @Before
     public void setUp() {
@@ -112,11 +126,15 @@ public class AuctionHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
         willReturn(rubiconAdapter).given(bidderCatalog).adapterByName(eq(RUBICON));
+        given(bidderCatalog.metaInfoByName(eq(RUBICON))).willReturn(rubiconMetaInfo);
+        given(rubiconMetaInfo.info()).willReturn(givenBidderInfo(15, false));
 
         given(bidderCatalog.isValidAdapterName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isActive(eq(APPNEXUS))).willReturn(true);
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
+        given(bidderCatalog.metaInfoByName(eq(APPNEXUS))).willReturn(appnexusMetaInfo);
+        given(appnexusMetaInfo.info()).willReturn(givenBidderInfo(20, true));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -128,8 +146,11 @@ public class AuctionHandlerTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(emptyMap(), null)));
+
         auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
-                cacheService, metrics, httpAdapterConnector, clock);
+                cacheService, metrics, httpAdapterConnector, clock, gdprService, null, false);
     }
 
     @Test
@@ -677,6 +698,91 @@ public class AuctionHandlerTest extends VertxTest {
         verify(metrics, never()).updateRequestTypeMetric(eq(MetricName.legacy), eq(MetricName.networkerr));
     }
 
+    @Test
+    public void shouldRespondWithNoUsersyncInfoForAllBiddersIfHostVendorDeniesGdpr() throws IOException {
+        // given
+        givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(1, false), null)));
+
+        given(httpAdapterConnector.call(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
+                        BidderStatus.builder().bidder(RUBICON).responseTimeMs(100)
+                                .usersync(UsersyncInfo.of("url1", "type1", null))
+                                .build(), emptyList(), null)))
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
+                        BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100)
+                                .usersync(UsersyncInfo.of("url2", "type2", null))
+                                .build(), emptyList(), null)));
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.getBidderStatus()).extracting(BidderStatus::getUsersync)
+                .containsOnly(null, null);
+    }
+
+    @Test
+    public void shouldRespondWithNoUsersyncInfoForBidderRestrictedByGdpr() throws IOException {
+        // given
+        givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
+
+        final Map<Integer, Boolean> vendorsToGdpr = new HashMap<>();
+        vendorsToGdpr.put(1, true); // host vendor id from app config
+        vendorsToGdpr.put(15, true); // Rubicon bidder
+        vendorsToGdpr.put(20, false); // Appnexus bidder
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(vendorsToGdpr, null)));
+
+        given(httpAdapterConnector.call(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
+                        BidderStatus.builder().bidder(RUBICON).responseTimeMs(100)
+                                .usersync(UsersyncInfo.of("url1", "type1", null))
+                                .build(), emptyList(), null)))
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
+                        BidderStatus.builder().bidder(APPNEXUS).responseTimeMs(100)
+                                .usersync(UsersyncInfo.of("url2", "type2", null))
+                                .build(), emptyList(), null)));
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.getBidderStatus()).extracting(BidderStatus::getUsersync)
+                .containsOnly(UsersyncInfo.of("url1", "type1", null), null);
+    }
+
+    @Test
+    public void shouldRespondWithUsersyncInfoForBiddersButNotForHostVendor() throws IOException {
+        // given
+        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+
+        final Map<Integer, Boolean> vendorsToGdpr = new HashMap<>();
+        vendorsToGdpr.put(1, true); // host vendor id from app config
+        vendorsToGdpr.put(15, true); // Rubicon bidder
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(vendorsToGdpr, null)));
+
+        given(httpAdapterConnector.call(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(AdapterResponse.of(
+                        BidderStatus.builder().bidder(RUBICON).responseTimeMs(100)
+                                .usersync(UsersyncInfo.of("url1", "type1", null))
+                                .build(), emptyList(), null)));
+
+        auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
+                cacheService, metrics, httpAdapterConnector, clock, gdprService, 1, false);
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final PreBidResponse preBidResponse = capturePreBidResponse();
+        assertThat(preBidResponse.getBidderStatus()).extracting(BidderStatus::getUsersync)
+                .containsOnly(UsersyncInfo.of("url1", "type1", null));
+    }
+
     private void givenPreBidRequestContextWith1AdUnitAnd1Bid(
             Function<PreBidRequestBuilder, PreBidRequestBuilder> preBidRequestBuilderCustomizer) {
 
@@ -741,5 +847,9 @@ public class AuctionHandlerTest extends VertxTest {
         final ArgumentCaptor<String> preBidResponseCaptor = ArgumentCaptor.forClass(String.class);
         verify(httpResponse).end(preBidResponseCaptor.capture());
         return mapper.readValue(preBidResponseCaptor.getValue(), PreBidResponse.class);
+    }
+
+    private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
+        return new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr));
     }
 }
