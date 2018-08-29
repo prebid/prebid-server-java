@@ -123,7 +123,7 @@ public class CacheService {
 
             final long remainingTimeout = timeout.remaining();
             if (remainingTimeout <= 0) {
-                handleException(new TimeoutException(), future);
+                handleException(new TimeoutException("Timeout has been exceeded"), future);
             } else {
                 httpClient.postAbs(endpointUrl, response -> handleResponse(response, bidCount, future))
                         .exceptionHandler(exception -> handleException(exception, future))
@@ -180,6 +180,13 @@ public class CacheService {
      * Completes input {@link Future} with the given exception.
      */
     private static void handleException(Throwable exception, Future<BidCacheResponse> future) {
+        // Exception handler can be called more than one time, so all we can do is just to log the error
+        if (future.isComplete()) {
+            logger.warn("Exception handler was called after processing has been completed: {0}",
+                    exception.getMessage());
+            return;
+        }
+
         logger.warn("Error occurred while sending request to cache service", exception);
         future.fail(exception);
     }

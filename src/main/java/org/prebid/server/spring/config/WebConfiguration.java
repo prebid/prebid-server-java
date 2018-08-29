@@ -109,8 +109,12 @@ public class WebConfiguration {
     }
 
     @Bean
-    ConnectionHandler connectionHandler(Metrics metrics) {
-        return ConnectionHandler.create(metrics);
+    ConnectionHandler connectionHandler(
+            Metrics metrics,
+            @Value("${inbound-connections.limit}") int inboundConnectionsLimit,
+            @Value("${inbound-connections.reset-period-ms}") int inboundConnectionsResetPeriodMs) {
+
+        return ConnectionHandler.create(metrics, vertx, inboundConnectionsLimit, inboundConnectionsResetPeriodMs);
     }
 
     @Bean

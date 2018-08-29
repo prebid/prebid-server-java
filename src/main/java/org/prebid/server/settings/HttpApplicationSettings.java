@@ -149,9 +149,16 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return ids.stream().collect(Collectors.joining(","));
     }
 
-    private static void handleException(Throwable throwable, Future<StoredDataResult> future,
+    private static void handleException(Throwable exception, Future<StoredDataResult> future,
                                         Set<String> requestIds, Set<String> impIds) {
-        future.complete(failWith(requestIds, impIds, throwable.getMessage()));
+        // Exception handler can be called more than one time, so all we can do is just to log the error
+        if (future.isComplete()) {
+            logger.warn("Exception handler was called after processing has been completed: {0}",
+                    exception.getMessage());
+            return;
+        }
+
+        future.complete(failWith(requestIds, impIds, exception.getMessage()));
     }
 
     private static StoredDataResult failWith(Set<String> requestIds, Set<String> impIds, String errorMessageFormat,

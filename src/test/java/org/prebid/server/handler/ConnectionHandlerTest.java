@@ -1,6 +1,7 @@
 package org.prebid.server.handler;
 
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpConnection;
 import org.junit.Before;
 import org.junit.Rule;
@@ -22,16 +23,18 @@ public class ConnectionHandlerTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private HttpConnection httpConnection;
+    private Metrics metrics;
+    @Mock
+    private Vertx vertx;
 
     private ConnectionHandler connectionHandler;
 
     @Mock
-    private Metrics metrics;
+    private HttpConnection httpConnection;
 
     @Before
     public void setUp() {
-        connectionHandler = ConnectionHandler.create(metrics);
+        connectionHandler = ConnectionHandler.create(metrics, vertx, 1000, 3600);
     }
 
     @Test
@@ -57,5 +60,42 @@ public class ConnectionHandlerTest {
         final ArgumentCaptor<Boolean> incrementCaptor = ArgumentCaptor.forClass(Boolean.class);
         verify(metrics, times(2)).updateActiveConnectionsMetrics(incrementCaptor.capture());
         assertThat(incrementCaptor.getAllValues()).containsExactly(true, false);
+    }
+
+    @Test
+    public void shouldCloseConnectionIfInboundConnectionsLimitExceeded() {
+        // given
+        connectionHandler = ConnectionHandler.create(metrics, vertx, 1, 3600);
+
+        // when
+        connectionHandler.handle(httpConnection);
+        connectionHandler.handle(httpConnection);
+
+        // then
+        verify(httpConnection).close();
+    }
+
+    @Test
+    public void shouldNotCloseConnectionIfInboundConnectionsLimitDoesNotExceeded() {
+        // given
+        connectionHandler = ConnectionHandler.create(metrics, vertx, 1, 3600);
+
+        // when
+        connectionHandler.handle(httpConnection);
+
+        // then
+        verify(httpConnection, times(0)).close();
+    }
+
+    @Test
+    public void shouldDoesNotManageInboundConnectionsIfLimitIsZero() {
+        // given
+        connectionHandler = ConnectionHandler.create(metrics, vertx, 0, 3600);
+
+        // when
+        connectionHandler.handle(httpConnection);
+
+        // then
+        verify(httpConnection, times(0)).close();
     }
 }

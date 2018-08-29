@@ -18,6 +18,13 @@ This parameter affects how many CPU cores will be utilized by the application. R
 ## HTTP
 - `http.port` - the port to listen on.
 
+## Inbound connections
+
+We need this because Vert.x has no rate limit mechanism for incoming requests. It can leads to leaks of OS resources (for example, exceeding of open file limit). 
+
+- `inbound-connections.limit` - the maximal throughput for inbound connections (set 0 for no limits).
+- `inbound-connections.reset-period-ms` - the period of time to reset inbound connections counter.
+
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
 - `http-client.connect-timeout-ms` - set the connect timeout.

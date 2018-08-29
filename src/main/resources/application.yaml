@@ -11,11 +11,14 @@ http:
 admin:
   port: 8060
 http-client:
-  max-pool-size: 10000
+  max-pool-size: 2000
   connect-timeout-ms: 2500
 external-url: http://localhost:8000
 default-timeout-ms: 250
 max-timeout-ms: 5000
+inbound-connections:
+  limit: 1000
+  reset-period-ms: 7200000
 auction:
   default-timeout-ms: 2000
   max-timeout-ms: 5000
