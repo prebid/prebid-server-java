@@ -146,7 +146,6 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      * request to video endpoint.
      */
     private static BeachfrontVideoRequest makeVideoRequest(BidRequest bidRequest, List<String> errors) {
-
         final BeachfrontVideoRequest.BeachfrontVideoRequestBuilder beachfrontVideoRequestBuilder
                 = BeachfrontVideoRequest.builder().cur(Collections.singletonList("USD")).isPrebid(true);
 
@@ -155,24 +154,21 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final ExtImpBeachfront latestExtImpBeachfront = makeVideoImpsAndGetExtImpBeachfront(bidRequest, errors,
                 beachfrontVideoImps);
 
-        beachfrontVideoRequestBuilder.imp(beachfrontVideoImps);
-
         final Device device = bidRequest.getDevice();
-        if (device != null) {
-            beachfrontVideoRequestBuilder.device(BeachfrontVideoDevice.of(device.getUa(), null,
-                    BeachfrontVideoGeo.of(device.getIp())));
-        }
-
-        beachfrontVideoRequestBuilder.appId(latestExtImpBeachfront.getAppId());
-
-        makeUserForVideoRequest(bidRequest, beachfrontVideoRequestBuilder);
-
+        final User user = bidRequest.getUser();
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
 
-        makeVideoRequestDomain(app, site, beachfrontVideoRequestBuilder);
+        populateVideoRequestDomainAndSite(app, site, beachfrontVideoRequestBuilder);
 
-        return beachfrontVideoRequestBuilder.build();
+        return beachfrontVideoRequestBuilder
+                .imp(beachfrontVideoImps)
+                .device(device != null
+                        ? BeachfrontVideoDevice.of(device.getUa(), null, BeachfrontVideoGeo.of(device.getIp()))
+                        : null)
+                .appId(latestExtImpBeachfront.getAppId())
+                .user(user != null ? makeUserForVideoRequest(user) : null)
+                .build();
     }
 
     /**
@@ -214,74 +210,45 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     }
 
     /**
-     * Populates {@link BeachfrontVideoRequest} domain and site fields from {@link App} or {@link Site}.
+     * Creates {@link BeachfrontVideoRequest} domain from {@link App} or {@link Site}.
      */
-    private static void makeVideoRequestDomain(App app, Site site, BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
-            videoRequestBuilder) {
+    private static void populateVideoRequestDomainAndSite(App app, Site site,
+                                                          BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
+                                                                  videoRequestBuilder) {
+        String resolvedDomain = null;
+        BeachfrontSite resolvedBeachfrontSite = null;
         if (app != null) {
-            makeVideoRequestDomainFromApp(app, videoRequestBuilder);
+            final String domain = app.getDomain();
+            if (StringUtils.isNotEmpty(domain)) {
+                resolvedDomain = domain;
+                resolvedBeachfrontSite = BeachfrontSite.of(app.getId());
+            }
         } else {
-            makeVideoRequestDomainFromSite(site, videoRequestBuilder);
-        }
-    }
-
-    /**
-     * Populates {@link BeachfrontVideoRequest} domain and site from site if site and page are not empty
-     */
-    private static void makeVideoRequestDomainFromSite(Site site, BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
-            videoRequestBuilder) {
-        if (site != null) {
-            final String page = site.getPage();
+            final String page = site != null ? site.getPage() : null;
             if (StringUtils.isNotEmpty(page)) {
-                makeVideoRequestDomainFromPage(site, videoRequestBuilder);
+                final String domain = site.getDomain();
+                resolvedDomain = StringUtils.isEmpty(domain) ? HttpUtil.getDomainFromUrl(page) : domain;
+                resolvedBeachfrontSite = BeachfrontSite.of(site.getPage());
             }
         }
+        videoRequestBuilder.domain(resolvedDomain)
+                .site(resolvedBeachfrontSite);
     }
 
     /**
-     * Populates {@link BeachfrontVideoRequest} domain and site from site.
+     * Creates {@link BeachfrontVideoRequest} user.
      */
-    private static void makeVideoRequestDomainFromPage(Site site, BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
-            videoRequestBuilder) {
-        final String domain = site.getDomain();
-        if (StringUtils.isEmpty(domain)) {
-            videoRequestBuilder.domain(HttpUtil.getDomainFromUrl(site.getPage()));
-        } else {
-            videoRequestBuilder.domain(domain);
-        }
-        videoRequestBuilder.site(BeachfrontSite.of(site.getPage()));
-    }
-
-    /**
-     * Populates {@link BeachfrontVideoRequest} domain and site from app.
-     */
-    private static void makeVideoRequestDomainFromApp(App app,
-                                                      BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
-                                                              videoRequestBuilder) {
-        final String domain = app.getDomain();
-        if (StringUtils.isNotEmpty(domain)) {
-            videoRequestBuilder.domain(domain).site(BeachfrontSite.of(app.getId()));
-        }
-    }
-
-    /**
-     * Populates {@link BeachfrontVideoRequest} user.
-     */
-    private static void makeUserForVideoRequest(BidRequest bidRequest,
-                                                BeachfrontVideoRequest.BeachfrontVideoRequestBuilder builder) {
-        final User user = bidRequest.getUser();
-        if (user != null) {
-            final String userId = user.getId();
-            final String buyerId = user.getBuyeruid();
-            builder.user(User.builder()
-                    //   Exchange-specific ID for the user. At least one of id or
-                    //   buyeruid is recommended.
-                    .id(StringUtils.isNotEmpty(userId) ? userId : null)
-                    //   Buyer-specific ID for the user as mapped by the exchange for
-                    //   the buyer. At least one of buyeruid or id is recommended.
-                    .buyeruid(StringUtils.isNotEmpty(buyerId) ? buyerId : null)
-                    .build());
-        }
+    private static User makeUserForVideoRequest(User user) {
+        final String userId = user.getId();
+        final String buyerId = user.getBuyeruid();
+        return User.builder()
+                //   Exchange-specific ID for the user. At least one of id or
+                //   buyeruid is recommended.
+                .id(StringUtils.isNotEmpty(userId) ? userId : null)
+                //   Buyer-specific ID for the user as mapped by the exchange for
+                //   the buyer. At least one of buyeruid or id is recommended.
+                .buyeruid(StringUtils.isNotEmpty(buyerId) ? buyerId : null)
+                .build();
     }
 
     /**
@@ -294,17 +261,20 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
                 BeachfrontBannerRequest.builder().adapterName(BEACHFRONT_NAME).adapterVersion(BEACHFRONT_VERSION);
 
         final List<BeachfrontSlot> beachfrontSlots = makeBeachfrontSlots(imps, errors);
-        beachfrontRequestsBuilder.slots(beachfrontSlots);
 
-        makeDeviceFields(beachfrontRequestsBuilder, bidRequest.getDevice());
+        final Device device = bidRequest.getDevice();
+        if (device != null) {
+            populateDeviceFields(beachfrontRequestsBuilder, bidRequest.getDevice());
+        }
+
+        populateDomainPageFieldsForBannerRequest(bidRequest.getApp(), bidRequest.getSite(), beachfrontRequestsBuilder);
 
         final User user = bidRequest.getUser();
-        if (user != null) {
-            beachfrontRequestsBuilder.user(user.getBuyeruid());
-        }
-        makeDomainPageFieldsForBannerRequest(bidRequest, bidRequest.getSite(), beachfrontRequestsBuilder);
 
-        return beachfrontRequestsBuilder.build();
+        return beachfrontRequestsBuilder
+                .slots(beachfrontSlots)
+                .user(user != null ? user.getBuyeruid() : null)
+                .build();
     }
 
     /**
@@ -352,10 +322,9 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     /**
      * Populates {@link BeachfrontBannerRequest} domain and page fields from {@link App} or {@link Site}.
      */
-    private static void makeDomainPageFieldsForBannerRequest(BidRequest bidRequest, Site site,
-                                                             BeachfrontBannerRequest.BeachfrontBannerRequestBuilder
-                                                                     beachfrontRequestsBuilder) {
-        final App app = bidRequest.getApp();
+    private static void populateDomainPageFieldsForBannerRequest(App app, Site site,
+                                                                 BeachfrontBannerRequest.BeachfrontBannerRequestBuilder
+                                                                         beachfrontRequestsBuilder) {
         if (app != null) {
             beachfrontRequestsBuilder.domain(app.getDomain());
             beachfrontRequestsBuilder.page(app.getId());
@@ -370,18 +339,15 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     /**
      * Populates {@link BeachfrontBannerRequest} with fields from {@link Device} if it is not null.
      */
-    private static void makeDeviceFields(BeachfrontBannerRequest.BeachfrontBannerRequestBuilder builder,
-                                         Device device) {
-        if (device != null) {
-            builder.ip(device.getIp());
-            builder.deviceModel(device.getModel());
-            builder.deviceOs(device.getOs());
-            builder.dnt(device.getDnt());
-            if (StringUtils.isNotEmpty(device.getUa())) {
-                builder.ua(device.getUa());
-            }
+    private static void populateDeviceFields(BeachfrontBannerRequest.BeachfrontBannerRequestBuilder builder,
+                                             Device device) {
+        builder.ip(device.getIp());
+        builder.deviceModel(device.getModel());
+        builder.deviceOs(device.getOs());
+        builder.dnt(device.getDnt());
+        if (StringUtils.isNotEmpty(device.getUa())) {
+            builder.ua(device.getUa());
         }
-
     }
 
     /**

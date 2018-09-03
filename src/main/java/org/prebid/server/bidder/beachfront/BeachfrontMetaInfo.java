@@ -14,7 +14,7 @@ public class BeachfrontMetaInfo implements MetaInfo {
 
     public BeachfrontMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "jim@beachfront.com",
-                Arrays.asList("banner", "video"), Arrays.asList("banner", "video"), null, 0, pbsEnforcesGdpr);
+                Arrays.asList("banner", "video"), Arrays.asList("banner", "video"), null, 335, pbsEnforcesGdpr);
     }
 
     /**
