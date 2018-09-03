@@ -29,6 +29,7 @@ import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pubmatic.model.NormalizedPubmaticParams;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
+import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
@@ -269,7 +270,9 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     }
 
     private String makeUserCookie(PreBidRequestContext preBidRequestContext) {
-        final String cookieValue = preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName());
+        final UidsCookie uidsCookie = preBidRequestContext.getUidsCookie();
+        final String cookieValue = uidsCookie != null ? uidsCookie.uidFrom(usersyncer.cookieFamilyName()) : null;
+
         return Cookie.cookie("KADUSERCOOKIE", ObjectUtils.firstNonNull(cookieValue, "")).encode();
     }
 

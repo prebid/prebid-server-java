@@ -295,6 +295,22 @@ public class PubmaticAdapterTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnRequestsWithAppFromPreBidRequestWithNullCookie() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
+                .app(App.builder().id("appId").build()).user(User.builder().build()), null);
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .extracting(r -> r.getPayload().getApp().getId())
+                .containsOnly("appId");
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnRequestsWithUserFromPreBidRequestIfAppPresent() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
@@ -548,6 +564,15 @@ public class PubmaticAdapterTest extends VertxTest {
                     .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
             Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
                     preBidRequestBuilderCustomizer) {
+        return givenPreBidRequestContextCustomizable(preBidRequestContextBuilderCustomizer,
+                preBidRequestBuilderCustomizer, uidsCookie);
+    }
+
+    private PreBidRequestContext givenPreBidRequestContextCustomizable(
+            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext
+                    .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
+            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
+                    preBidRequestBuilderCustomizer, UidsCookie uidsCookie) {
 
         final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
                 .accountId("accountId");
