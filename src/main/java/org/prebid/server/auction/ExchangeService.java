@@ -18,10 +18,13 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
@@ -84,6 +87,7 @@ import java.util.stream.StreamSupport;
  */
 public class ExchangeService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
     private static final String PREBID_EXT = "prebid";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
     private static final Set<GdprPurpose> GDPR_PURPOSES =
@@ -130,7 +134,7 @@ public class ExchangeService {
      * response containing returned bids and additional information in extensions.
      */
     public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout,
-                                           MetricsContext metricsContext) {
+                                           MetricsContext metricsContext, Map<Imp, String> invalidImpsToError) {
         // extract ext from bid request
         final ExtBidRequest requestExt;
         try {
@@ -149,6 +153,9 @@ public class ExchangeService {
         // build targeting keywords creator
         final TargetingKeywordsCreator keywordsCreator = buildKeywordsCreator(targeting, bidRequest.getApp() != null);
 
+        // build Map<Bidder, Error> from invalid imps error to add it to response
+        final Map<String, List<String>> bidderToErrors = makeResponseErrors(invalidImpsToError, aliases);
+
         final String publisherId = publisherId(bidRequest);
 
         final long startTime = clock.millis();
@@ -166,8 +173,57 @@ public class ExchangeService {
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
-                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout))
+                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout, bidderToErrors))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
+    }
+
+    private Map<String, List<String>> makeResponseErrors(Map<Imp, String> invalidImpsToError,
+                                                         Map<String, String> aliases) {
+        final Map<String, List<String>> bidderToErrors = new HashMap<>();
+        if (MapUtils.isNotEmpty(invalidImpsToError)) {
+            for (Map.Entry<Imp, String> invalidImpToError : invalidImpsToError.entrySet()) {
+                final Imp droppedImp = invalidImpToError.getKey();
+                final String reasonError = invalidImpToError.getValue();
+                final String formattedError = String.format(
+                        "Imp with id = %s was dropped in a reason : %s", droppedImp.getId(), reasonError);
+                final Map<String, String> biddersToError;
+                try {
+                    biddersToError = mapImpErrorsToBidderErrors(aliases, droppedImp, formattedError);
+                } catch (PreBidException ex) {
+                    logger.warn(ex.getMessage());
+                    continue;
+                }
+                addEntryToMap(bidderToErrors, biddersToError);
+            }
+        }
+        return bidderToErrors;
+    }
+
+    private Map<String, String> mapImpErrorsToBidderErrors(Map<String, String> aliases, Imp invalidImp, String error) {
+        final ObjectNode ext = invalidImp.getExt();
+        if (ext == null) {
+            throw new PreBidException(String.format("Imp with id = %s, cannot be added to response error in reason"
+                    + " of missing request.ext field", invalidImp.getId()));
+        }
+        // check for null ext
+        return asStream(invalidImp.getExt().fieldNames())
+                .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
+                .filter(bidder -> isValidBidder(bidder, aliases))
+                .map(bidder -> resolveBidder(bidder, aliases))
+                .distinct()
+                .collect(Collectors.toMap(Function.identity(), ignored -> error));
+    }
+
+    private void addEntryToMap(Map<String, List<String>> bidderToErrors, Map<String, String> biddersToError) {
+        for (Map.Entry<String, String> bidderToError : biddersToError.entrySet()) {
+            final List<String> bidderErrors = bidderToErrors.get(bidderToError.getKey());
+            if (bidderErrors == null) {
+                bidderToErrors.put(bidderToError.getKey(),
+                        new ArrayList<>(Collections.singleton(bidderToError.getValue())));
+            } else {
+                bidderErrors.add(bidderToError.getValue());
+            }
+        }
     }
 
     /**
@@ -672,10 +728,8 @@ public class ExchangeService {
 
         for (BidderBid bid : bids) {
             final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
-            if (validationResult.hasErrors()) {
-                for (String error : validationResult.getErrors()) {
-                    errors.add(BidderError.generic(error));
-                }
+            if (validationResult.hasFailed()) {
+                errors.add(BidderError.generic(validationResult.getFailedError()));
             } else {
                 validBids.add(bid);
             }
@@ -814,14 +868,14 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, BidRequestCacheInfo cacheInfo,
-                                              Timeout timeout) {
+                                              Timeout timeout, Map<String, List<String>> biddersErrors) {
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, winningBids, winningBidsByBidder);
 
         return toWinningBidsWithCacheIds(winningBids, bidRequest.getImp(), keywordsCreator, cacheInfo, timeout)
                 .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        winningBidsWithCacheIds, winningBidsByBidder));
+                        winningBidsWithCacheIds, winningBidsByBidder, biddersErrors));
     }
 
     /**
@@ -976,14 +1030,15 @@ public class ExchangeService {
     private static BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                           TargetingKeywordsCreator keywordsCreator,
                                                           Map<Bid, CacheIdInfo> winningBidsWithCacheIds,
-                                                          Set<Bid> winningBidsByBidder) {
+                                                          Set<Bid> winningBidsByBidder,
+                                                          Map<String, List<String>> biddersErrors) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
                         toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest);
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, biddersErrors);
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -1046,20 +1101,33 @@ public class ExchangeService {
      * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
      * bidders
      */
-    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest) {
+    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
+                                                   Map<String, List<String>> invalidImpsErrors) {
         final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream().collect(
                 Collectors.toMap(BidderResponse::getBidder, r -> ListUtils.emptyIfNull(r.getSeatBid().getHttpCalls())))
                 : null;
         final ExtResponseDebug extResponseDebug = httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null;
 
-        final Map<String, List<String>> errors = results.stream()
+        final Map<String, List<String>> responseErrors = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, r -> messages(r.getSeatBid().getErrors())));
 
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
-        return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
+        return ExtBidResponse.of(extResponseDebug, mergeErrors(responseErrors, invalidImpsErrors),
+                responseTimeMillis, null);
+    }
+
+    private static Map<String, List<String>> mergeErrors(Map<String, List<String>> firstErrorsMap,
+                                                         Map<String, List<String>> secondErrorsMap) {
+        // merge for shared bidders
+        firstErrorsMap.forEach((key, value) -> secondErrorsMap.merge(key, value,
+                (firstList, secondList) -> {
+                    secondList.addAll(firstList);
+                    return secondList;
+                }));
+        return secondErrorsMap;
     }
 
     private static List<String> messages(List<BidderError> errors) {

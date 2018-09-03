@@ -73,7 +73,8 @@ public class AmpRequestFactory {
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request()))
                 .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context))
-                .map(auctionRequestFactory::validateRequest);
+                .map(bidRequest -> auctionRequestFactory.validateRequest(bidRequest).getLeft());
+
     }
 
     private static BidRequest validateStoredBidRequest(String tagId, BidRequest bidRequest) {

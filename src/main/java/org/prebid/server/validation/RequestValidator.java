@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -77,6 +78,7 @@ public class RequestValidator {
      * at a time.
      */
     public ValidationResult validate(BidRequest bidRequest) {
+        final Map<Imp, String> impsToError = new HashMap<>();
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
                 throw new ValidationException("request missing required field: \"id\"");
@@ -106,12 +108,10 @@ public class RequestValidator {
                         aliases);
             }
 
-            if (CollectionUtils.isEmpty(bidRequest.getImp())) {
-                throw new ValidationException("request.imp must contain at least one element.");
-            }
+            impsToError.putAll(validateImps(bidRequest, aliases));
 
-            for (int index = 0; index < bidRequest.getImp().size(); index++) {
-                validateImp(bidRequest.getImp().get(index), aliases, index);
+            if (impsToError.size() == bidRequest.getImp().size()) {
+                throw new ValidationException("request.imp must contain at least one valid imp.");
             }
 
             if ((bidRequest.getSite() == null && bidRequest.getApp() == null)
@@ -123,9 +123,28 @@ public class RequestValidator {
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
         } catch (ValidationException ex) {
-            return ValidationResult.error(ex.getMessage());
+            return ValidationResult.requestValidationError(ex.getMessage(), impsToError);
         }
-        return ValidationResult.success();
+        return ValidationResult.successWithImpErrors(impsToError);
+    }
+
+    private Map<Imp, String> validateImps(BidRequest bidRequest, Map<String, String> aliases)
+            throws ValidationException {
+        if (CollectionUtils.isEmpty(bidRequest.getImp())) {
+            throw new ValidationException("request.imp must contain at least one element.");
+        }
+
+        final Map<Imp, String> invalidImps = new HashMap<>();
+        final List<Imp> imps = bidRequest.getImp();
+        for (int index = 0; index < imps.size(); index++) {
+            final Imp imp = imps.get(index);
+            try {
+                validateImp(imp, aliases, index);
+            } catch (ValidationException ex) {
+                invalidImps.put(imp, ex.getMessage());
+            }
+        }
+        return invalidImps;
     }
 
     /**

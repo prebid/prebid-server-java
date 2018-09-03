@@ -1537,14 +1537,17 @@
       "adform": [],
       "brightroll": [],
       "appnexus": [
-        "Appnexus doesn't support audio Imps. Ignoring Imp ID=impId32"
+        "Appnexus doesn't support audio Imps. Ignoring Imp ID=impId32",
+        "Imp with id = impId-error-1 was dropped in a reason : request.imp[1].ext.appnexus failed validation.\n$.placement_id: is missing but it is required\n$.member: is missing but it is required\n$.placementId: is missing but it is required\n$.inv_code: is missing but it is required\n$.invCode: is missing but it is required"
       ],
       "audienceNetwork": [],
       "appnexusAlias": [],
       "pubmatic": [],
       "rubicon": [],
       "pulsepoint": [],
-      "conversant": [],
+      "conversant": [
+        "Imp with id = impId-error-2 was dropped in a reason : Id is not found in storedRequest"
+      ],
       "sovrn": [],
       "openx": [],
       "eplanning": [],

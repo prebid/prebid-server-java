@@ -24,32 +24,28 @@ public class ResponseBidValidatorTest {
     public void validateShouldFailedIfMissingBid() {
         final ValidationResult result = responseBidValidator.validate(null);
 
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Empty bid object submitted.");
+        assertThat(result.getFailedError()).isEqualTo("Empty bid object submitted.");
     }
 
     @Test
     public void validateShouldFailedIfBidHasNoId() {
         final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.id(null)));
 
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid missing required field 'id'");
+        assertThat(result.getFailedError()).isEqualTo("Bid missing required field 'id'");
     }
 
     @Test
     public void validateShouldFailedIfBidHasNoImpId() {
         final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.impid(null)));
 
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid \"bidId1\" missing required field 'impid'");
+        assertThat(result.getFailedError()).isEqualTo("Bid \"bidId1\" missing required field 'impid'");
     }
 
     @Test
     public void validateShouldFailedIfBidHasNoPrice() {
         final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.price(null)));
 
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
+        assertThat(result.getFailedError()).isEqualTo("Bid \"bidId1\" does not contain a positive 'price'");
     }
 
     @Test
@@ -57,23 +53,21 @@ public class ResponseBidValidatorTest {
         final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.price(
                 BigDecimal.valueOf(-1))));
 
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid \"bidId1\" does not contain a positive 'price'");
+        assertThat(result.getFailedError()).isEqualTo("Bid \"bidId1\" does not contain a positive 'price'");
     }
 
     @Test
     public void validateShouldFailedIfBidHasNoCrid() {
         final ValidationResult result = responseBidValidator.validate(givenBid(builder -> builder.crid(null)));
 
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid \"bidId1\" missing creative ID");
+        assertThat(result.getFailedError()).isEqualTo("Bid \"bidId1\" missing creative ID");
     }
 
     @Test
     public void validateShouldReturnSuccessfulResultForValidBid() {
         final ValidationResult result = responseBidValidator.validate(givenBid(identity()));
 
-        assertThat(result.hasErrors()).isFalse();
+        assertThat(result.hasFailed()).isFalse();
     }
 
     private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

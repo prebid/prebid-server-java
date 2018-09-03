@@ -16,7 +16,9 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -27,8 +29,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -60,7 +64,7 @@ public class AuctionRequestFactory {
      * Method determines {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    public Future<BidRequest> fromRequest(RoutingContext context) {
+    public Future<Tuple2<BidRequest, Map<Imp, String>>> fromRequest(RoutingContext context) {
         final BidRequest bidRequest;
         try {
             bidRequest = parseRequest(context);
@@ -69,8 +73,20 @@ public class AuctionRequestFactory {
         }
 
         return storedRequestProcessor.processStoredRequests(bidRequest)
-                .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context))
-                .map(this::validateRequest);
+                .map(resolvedBidRequestResult -> Tuple2.of(fillImplicitParameters(
+                        resolvedBidRequestResult.getLeft(), context), resolvedBidRequestResult.getRight()))
+                .map(this::validateAuctionRequest);
+    }
+
+    /**
+     *
+     */
+    private Tuple2<BidRequest, Map<Imp, String>> validateAuctionRequest(
+            Tuple2<BidRequest, Map<Imp, String>> resolvedBidRequestResult) {
+        final Tuple2<BidRequest, Map<Imp, String>> validationResult =
+                this.validateRequest(resolvedBidRequestResult.getLeft());
+        validationResult.getRight().putAll(resolvedBidRequestResult.getRight());
+        return validationResult;
     }
 
     /**
@@ -115,12 +131,24 @@ public class AuctionRequestFactory {
     /**
      * Performs thorough validation of fully constructed {@link BidRequest} that is going to be used to hold an auction.
      */
-    BidRequest validateRequest(BidRequest bidRequest) {
+    Tuple2<BidRequest, Map<Imp, String>> validateRequest(BidRequest bidRequest) {
+        final List<String> errors = new ArrayList<>();
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
-        if (validationResult.hasErrors()) {
-            throw new InvalidRequestException(validationResult.getErrors());
+
+        if (validationResult.hasFailed()) {
+            errors.addAll(validationResult.getImpToError().values());
+            errors.add(validationResult.getFailedError());
+            throw new InvalidRequestException(errors);
         }
-        return bidRequest;
+
+        final Map<Imp, String> invalidImps = validationResult.getImpToError();
+        if (MapUtils.isNotEmpty(invalidImps)) {
+            final List<Imp> validImps = new ArrayList<>(bidRequest.getImp());
+            validImps.removeAll(invalidImps.keySet());
+            bidRequest = bidRequest.toBuilder().imp(validImps).build();
+        }
+
+        return Tuple2.of(bidRequest, invalidImps);
     }
 
     /**

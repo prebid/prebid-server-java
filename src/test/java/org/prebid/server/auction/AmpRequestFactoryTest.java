@@ -20,6 +20,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
@@ -32,6 +33,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -161,7 +163,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -189,7 +191,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -220,7 +222,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -249,7 +251,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -273,7 +275,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -298,7 +300,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -323,7 +325,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -348,6 +350,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         return invocationOnMock -> invocationOnMock.getArguments()[0];
     }
 
+    private Answer<Tuple2<BidRequest, Map<Imp, String>>> answerWithFirstArgumentInTuple() {
+        return invocationOnMock -> Tuple2.of((BidRequest) invocationOnMock.getArguments()[0], emptyMap());
+    }
+
     @Test
     public void shouldReturnBidRequestWithDefaultCachingIfStoredBidRequestExtHasNoCaching() {
         // given
@@ -355,7 +361,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -379,7 +385,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -416,7 +422,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenBidRequestWithExt(null, null)));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -444,7 +450,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -471,7 +477,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -507,7 +513,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -543,7 +549,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -579,7 +585,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -614,7 +620,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -648,7 +654,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -679,7 +685,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -710,7 +716,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -743,7 +749,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -775,7 +781,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -808,7 +814,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -841,7 +847,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -874,7 +880,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -907,7 +913,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -944,7 +950,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -979,7 +985,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -1006,7 +1012,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);
@@ -1031,7 +1037,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
         given(auctionRequestFactory.fillImplicitParameters(any(), any()))
                 .willAnswer(answerWithFirstArgument());
-        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgumentInTuple());
 
         // when
         final Future<BidRequest> future = factory.fromRequest(routingContext);

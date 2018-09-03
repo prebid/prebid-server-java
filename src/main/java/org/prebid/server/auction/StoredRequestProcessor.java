@@ -10,7 +10,10 @@ import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
@@ -54,27 +57,57 @@ public class StoredRequestProcessor {
      * fetched jsons from source. In case any error happen during the process, returns failedFuture with
      * InvalidRequestException {@link InvalidRequestException} as cause.
      */
-    Future<BidRequest> processStoredRequests(BidRequest bidRequest) {
+    Future<Tuple2<BidRequest, Map<Imp, String>>> processStoredRequests(BidRequest bidRequest) {
         final Map<BidRequest, String> bidRequestToStoredRequestId;
-        final Map<Imp, String> impToStoredRequestId;
-        try {
-            bidRequestToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
-                    Collections.singletonList(bidRequest), StoredRequestProcessor::getStoredRequestFromBidRequest);
+        final Tuple2<Map<Imp, String>, Map<Imp, String>> impToStoredRequestIdWithErrors;
 
-            impToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
+        try {
+            bidRequestToStoredRequestId = getBidRequestStoredRequestIds(bidRequest);
+
+            impToStoredRequestIdWithErrors = mapStoredRequestHolderToStoredRequestId(
                     bidRequest.getImp(), StoredRequestProcessor::getStoredRequestFromImp);
         } catch (InvalidRequestException e) {
             return Future.failedFuture(e);
         }
 
+        final Map<Imp, String> impToStoredRequestId = impToStoredRequestIdWithErrors.getLeft();
+        final Map<Imp, String> impToError = impToStoredRequestIdWithErrors.getRight();
         final Set<String> requestIds = new HashSet<>(bidRequestToStoredRequestId.values());
         final Set<String> impIds = new HashSet<>(impToStoredRequestId.values());
+
         if (requestIds.isEmpty() && impIds.isEmpty()) {
-            return Future.succeededFuture(bidRequest);
+            return respondWhenStoredIdsNotFound(bidRequest, impToError);
         }
 
         return storedRequestsToBidRequest(applicationSettings.getStoredData(requestIds, impIds, timeout(bidRequest)),
-                bidRequest, bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId);
+                bidRequest, bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId, impToError);
+    }
+
+    private Map<BidRequest, String> getBidRequestStoredRequestIds(BidRequest bidRequest) {
+        Tuple2<Map<BidRequest, String>, Map<BidRequest, String>> bidRequestToStoredRequestId;
+        bidRequestToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
+                Collections.singletonList(bidRequest), StoredRequestProcessor::getStoredRequestFromBidRequest);
+
+        final List<String> bidRequestErrors = new ArrayList<>(bidRequestToStoredRequestId.getRight().values());
+        if (CollectionUtils.isNotEmpty(bidRequestErrors)) {
+            throw new InvalidRequestException(bidRequestErrors);
+        }
+        return bidRequestToStoredRequestId.getLeft();
+    }
+
+    private Future<Tuple2<BidRequest, Map<Imp, String>>> respondWhenStoredIdsNotFound(BidRequest bidRequest,
+                                                                                      Map<Imp, String> impToErrors) {
+        if (MapUtils.isNotEmpty(impToErrors)) {
+            final List<Imp> imps = new ArrayList<>(bidRequest.getImp());
+            imps.removeAll(impToErrors.keySet());
+            if (imps.isEmpty()) {
+                final List<String> errors = new ArrayList<>(impToErrors.values());
+                errors.add("request.imp must contain at least one valid imp.");
+                return Future.failedFuture(new InvalidRequestException(errors));
+            }
+            bidRequest.toBuilder().imp(imps).build();
+        }
+        return Future.succeededFuture(Tuple2.of(bidRequest, impToErrors));
     }
 
     /**
@@ -85,31 +118,32 @@ public class StoredRequestProcessor {
 
         return storedRequestsToBidRequest(
                 applicationSettings.getAmpStoredData(Collections.singleton(ampRequestId), Collections.emptySet(),
-                        timeout(bidRequest)),
-                bidRequest, ampRequestId, Collections.emptyMap());
+                        timeout(bidRequest)), bidRequest, ampRequestId, Collections.emptyMap(), Collections.emptyMap())
+                .map(Tuple2::getLeft);
     }
 
-    private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,
-                                                          BidRequest bidRequest, String storedBidRequestId,
-                                                          Map<Imp, String> impsToStoredRequestId) {
+    private Future<Tuple2<BidRequest, Map<Imp, String>>> storedRequestsToBidRequest(
+            Future<StoredDataResult> storedDataFuture,
+            BidRequest bidRequest, String storedBidRequestId,
+            Map<Imp, String> impsToStoredRequestId,
+            Map<Imp, String> impToError) {
         return storedDataFuture
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed with exception message: %s",
                                 exception.getMessage()))))
-                .compose(result -> result.getErrors().size() > 0
-                        ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
-                        : Future.succeededFuture(result))
-                .map(result -> mergeBidRequestAndImps(bidRequest, storedBidRequestId,
-                        impsToStoredRequestId, result));
+                .map(result -> mergeBidRequestAndImps(bidRequest, storedBidRequestId, impsToStoredRequestId, impToError,
+                        result));
     }
 
     /**
      * Runs {@link BidRequest} and {@link Imp}s merge processes.
      */
-    private BidRequest mergeBidRequestAndImps(BidRequest bidRequest, String storedRequestId,
-                                              Map<Imp, String> impToStoredId, StoredDataResult storedDataResult) {
+    private Tuple2<BidRequest, Map<Imp, String>> mergeBidRequestAndImps(BidRequest bidRequest, String storedRequestId,
+                                                                        Map<Imp, String> impToStoredId,
+                                                                        Map<Imp, String> impToErrors,
+                                                                        StoredDataResult storedDataResult) {
         return mergeBidRequestImps(mergeBidRequest(bidRequest, storedRequestId, storedDataResult), impToStoredId,
-                storedDataResult);
+                impToErrors, storedDataResult);
     }
 
     /**
@@ -118,8 +152,10 @@ public class StoredRequestProcessor {
      */
     private BidRequest mergeBidRequest(BidRequest bidRequest, String storedRequestId,
                                        StoredDataResult storedDataResult) {
-        return storedRequestId != null
-                ? merge(bidRequest, storedDataResult.getStoredIdToRequest(), storedRequestId, BidRequest.class)
+        final Map<String, String> storedIdToRequest = storedDataResult.getStoredIdToRequest();
+        return storedRequestId != null && MapUtils.isNotEmpty(storedIdToRequest)
+                && storedIdToRequest.get(storedRequestId) != null
+                ? merge(bidRequest, storedIdToRequest, storedRequestId, BidRequest.class)
                 : bidRequest;
     }
 
@@ -127,21 +163,41 @@ public class StoredRequestProcessor {
      * Merges {@link Imp}s from original request with Imps from stored request source. Values from original request
      * has higher priority than stored request values.
      */
-    private BidRequest mergeBidRequestImps(BidRequest bidRequest, Map<Imp, String> impToStoredId,
-                                           StoredDataResult storedDataResult) {
+    private Tuple2<BidRequest, Map<Imp, String>> mergeBidRequestImps(BidRequest bidRequest,
+                                                                     Map<Imp, String> impToStoredId,
+                                                                     Map<Imp, String> impToError,
+                                                                     StoredDataResult storedDataResult) {
         if (impToStoredId.isEmpty()) {
-            return bidRequest;
+            return Tuple2.of(bidRequest, Collections.emptyMap());
         }
+        final Map<String, String> storedIdToImp = storedDataResult.getStoredIdToImp();
         final List<Imp> mergedImps = new ArrayList<>(bidRequest.getImp());
         for (int i = 0; i < mergedImps.size(); i++) {
             final Imp imp = mergedImps.get(i);
             final String storedRequestId = impToStoredId.get(imp);
+
             if (storedRequestId != null) {
-                final Imp mergedImp = merge(imp, storedDataResult.getStoredIdToImp(), storedRequestId, Imp.class);
+                if (storedIdToImp.get(storedRequestId) == null) {
+                    impToError.put(imp, String.format("No config found for id: %s", storedRequestId));
+                    continue;
+                }
+                final Imp mergedImp;
+                try {
+                    mergedImp = merge(imp, storedIdToImp, storedRequestId, Imp.class);
+                } catch (InvalidRequestException ex) {
+                    impToError.put(imp, ex.getMessage());
+                    continue;
+                }
                 mergedImps.set(i, mergedImp);
             }
         }
-        return bidRequest.toBuilder().imp(mergedImps).build();
+
+        mergedImps.removeAll(impToError.keySet());
+        if (mergedImps.isEmpty()) {
+            throw new InvalidRequestException(new ArrayList<>(impToError.values()));
+        }
+
+        return Tuple2.of(bidRequest.toBuilder().imp(mergedImps).build(), impToError);
     }
 
     /**
@@ -149,6 +205,7 @@ public class StoredRequestProcessor {
      * and cast it to appropriate class. In case of any exception during merging, throws {@link InvalidRequestException}
      * with reason message.
      */
+
     private <T> T merge(T originalObject, Map<String, String> storedData, String id, Class<T> classToCast) {
         final JsonNode originJsonNode = Json.mapper.valueToTree(originalObject);
         final JsonNode storedRequestJsonNode;
@@ -178,18 +235,24 @@ public class StoredRequestProcessor {
      * Gathers all errors into list, and in case if it is not empty, throws {@link InvalidRequestException} with
      * list of errors.
      */
-    private <K> Map<K, String> mapStoredRequestHolderToStoredRequestId(
+    private <K> Tuple2<Map<K, String>, Map<K, String>> mapStoredRequestHolderToStoredRequestId(
             List<K> storedRequestHolders, Function<K, ExtStoredRequest> storedRequestExtractor) {
 
         if (CollectionUtils.isEmpty(storedRequestHolders)) {
-            return Collections.emptyMap();
+            return Tuple2.of(Collections.emptyMap(), Collections.emptyMap());
         }
 
         final Map<K, String> holderToPreBidRequest = new HashMap<>();
-        final List<String> errors = new ArrayList<>();
+        final Map<K, String> holderToError = new HashMap<>();
 
         for (K storedRequestHolder : storedRequestHolders) {
-            final ExtStoredRequest extStoredRequest = storedRequestExtractor.apply(storedRequestHolder);
+            final ExtStoredRequest extStoredRequest;
+            try {
+                extStoredRequest = storedRequestExtractor.apply(storedRequestHolder);
+            } catch (PreBidException ex) {
+                holderToError.put(storedRequestHolder, ex.getMessage());
+                continue;
+            }
 
             if (extStoredRequest != null) {
                 final String storedRequestId = extStoredRequest.getId();
@@ -197,16 +260,11 @@ public class StoredRequestProcessor {
                 if (storedRequestId != null) {
                     holderToPreBidRequest.put(storedRequestHolder, storedRequestId);
                 } else {
-                    errors.add("Id is not found in storedRequest");
+                    holderToError.put(storedRequestHolder, "Id is not found in storedRequest");
                 }
             }
         }
-
-        if (errors.size() > 0) {
-            throw new InvalidRequestException(errors);
-        }
-
-        return holderToPreBidRequest;
+        return Tuple2.of(holderToPreBidRequest, holderToError);
     }
 
     /**
@@ -244,7 +302,7 @@ public class StoredRequestProcessor {
                     return prebid.getStoredrequest();
                 }
             } catch (JsonProcessingException e) {
-                throw new InvalidRequestException(String.format(
+                throw new PreBidException(String.format(
                         "Incorrect Imp extension format for Imp with id %s: %s", imp.getId(), e.getMessage()));
             }
         }

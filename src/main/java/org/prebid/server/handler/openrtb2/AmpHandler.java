@@ -117,7 +117,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
                 .compose(bidRequest ->
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime),
-                                METRICS_CONTEXT)
+                                METRICS_CONTEXT, Collections.emptyMap())
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
                 .map((Tuple2<BidRequest, BidResponse> result) ->
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))

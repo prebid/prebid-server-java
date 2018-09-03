@@ -47,8 +47,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -90,7 +92,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getFailedError()).isNotNull();
     }
 
     @Test
@@ -102,7 +104,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request missing required field: \"id\"");
+        assertThat(result.getFailedError()).isEqualTo("request missing required field: \"id\"");
     }
 
     @Test
@@ -114,7 +116,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request missing required field: \"id\"");
+        assertThat(result.getFailedError()).isEqualTo("request missing required field: \"id\"");
     }
 
     @Test
@@ -126,7 +128,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.tmax must be nonnegative. Got -100");
+        assertThat(result.getFailedError()).isEqualTo("request.tmax must be nonnegative. Got -100");
     }
 
     @Test
@@ -138,7 +140,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -150,7 +152,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("currency was not defined either in request.cur or in"
+        assertThat(result.getFailedError()).isEqualTo("currency was not defined either in request.cur or in"
                 + " configuration field adServerCurrency");
     }
 
@@ -163,7 +165,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.cur can contain exactly one element");
+        assertThat(result.getFailedError()).isEqualTo("request.cur can contain exactly one element");
     }
 
     @Test
@@ -175,7 +177,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.cur can contain exactly one element");
+        assertThat(result.getFailedError()).isEqualTo("request.cur can contain exactly one element");
     }
 
     @Test
@@ -189,7 +191,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).asString().startsWith("request.ext is invalid");
+        assertThat(result.getFailedError()).startsWith("request.ext is invalid");
     }
 
     @Test
@@ -201,7 +203,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp must contain at least one element.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one element.");
     }
 
     @Test
@@ -215,7 +217,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp[0] missing required field: \"id\"");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0] missing required field: \"id\"");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -229,7 +233,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp[0] missing required field: \"id\"");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0] missing required field: \"id\"");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -248,9 +254,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0] must contain at least one of \"banner\", \"video\", \"audio\", or "
-                        + "\"native\"");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0] must contain at least one of \"banner\", \"video\", \"audio\", or \"native\"");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -267,8 +273,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].video.mimes must contain at least one supported MIME type");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].video.mimes must contain at least one supported MIME type");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
+
     }
 
     @Test
@@ -285,8 +293,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].audio.mimes must contain at least one supported MIME type");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].audio.mimes must contain at least one supported MIME type");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -299,9 +308,11 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
                         + "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -314,9 +325,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
                         + "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -329,9 +341,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] should define *either* {w, h} *or* {wmin, wratio, "
                         + "hratio}, but not both. If both are valid, send two \"format\" objects in the request.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -344,7 +357,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -357,7 +370,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -370,9 +383,11 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} (for static size "
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] should define *either* {w, h} (for static size "
                         + "requirements) *or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -385,8 +400,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -399,8 +415,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -413,8 +430,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -427,8 +446,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -441,9 +462,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define"
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define"
                         + " non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -456,8 +478,11 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("Request imp[0].banner.format[0] must define "
-                + "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define "
+                        + "non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
+
     }
 
     @Test
@@ -470,9 +495,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\","
-                        + " and \"hratio\" properties.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -485,9 +511,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and "
-                        + "\"hratio\" properties.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -500,9 +527,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and"
-                        + " \"hratio\" properties.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -515,9 +542,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and"
-                        + " \"hratio\" properties.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and \"hratio\" properties.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -530,8 +557,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].pmp.deals[0] missing required field: \"id\"");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].pmp.deals[0] missing required field: \"id\"");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -544,8 +573,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].pmp.deals[0] missing required field: \"id\"");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].pmp.deals[0] missing required field: \"id\"");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -558,8 +589,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site should include at least one of request.site.id or request.site.page.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.site should include at least one of request.site.id or request.site.page.");
     }
 
     @Test
@@ -572,8 +603,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site should include at least one of request.site.id or request.site.page.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.site should include at least one of request.site.id or request.site.page.");
     }
 
     @Test
@@ -586,7 +617,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.hasErrors()).isFalse();
+        assertThat(result.hasFailed()).isFalse();
     }
 
     @Test
@@ -599,7 +630,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.hasErrors()).isFalse();
+        assertThat(result.hasFailed()).isFalse();
     }
 
     @Test
@@ -612,8 +643,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site should include at least one of request.site.id or request.site.page.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.site should include at least one of request.site.id or request.site.page.");
     }
 
     @Test
@@ -628,8 +659,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site or request.app must be defined, but not both.");
+        assertThat(result.getFailedError()).isEqualTo("request.site or request.app must be defined, but not both.");
     }
 
     @Test
@@ -644,8 +674,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site or request.app must be defined, but not both.");
+        assertThat(result.getFailedError()).isEqualTo("request.site or request.app must be defined, but not both.");
     }
 
     @Test
@@ -657,7 +686,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -671,7 +700,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp[0].ext must contain at least one bidder");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].ext must contain at least one bidder");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -684,7 +716,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.imp[0].ext contains unknown bidder: rubicon");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].ext contains unknown bidder: rubicon");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -698,7 +733,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -712,8 +747,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].ext.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -727,7 +764,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -740,7 +777,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -755,7 +792,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.user.ext.prebid requires a "
+        assertThat(result.getFailedError()).isEqualTo("request.user.ext.prebid requires a "
                 + "\"buyeruids\" property with at least one ID defined. If none exist, then request.user.ext.prebid "
                 + "should not be defined.");
     }
@@ -771,7 +808,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "Error while parsing request.ext.prebid.targeting.pricegranularity");
     }
 
@@ -787,7 +824,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "Price granularity error: empty granularity definition supplied");
     }
 
@@ -804,7 +841,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "Price granularity error: increment must be a nonzero positive number");
     }
 
@@ -822,7 +859,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "Price granularity error: increment must be a nonzero positive number");
     }
 
@@ -841,8 +878,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
-                "Price granularity error: precision must be non-negative");
+        assertThat(result.getFailedError()).isEqualTo("Price granularity error: precision must be non-negative");
     }
 
     @Test
@@ -860,8 +896,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("ext.prebid.targeting: At least one of includewinners or includebidderkeys"
+        assertThat(result.getFailedError()).isEqualTo(
+                "ext.prebid.targeting: At least one of includewinners or includebidderkeys"
                         + " must be enabled to enable targeting support");
     }
 
@@ -879,7 +915,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "Price granularity error: range list must be ordered with increasing \"max\"");
     }
 
@@ -899,7 +935,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "Price granularity error: range list must be ordered with increasing \"max\"");
     }
 
@@ -918,7 +954,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "Price granularity error: increment must be a nonzero positive number");
     }
 
@@ -936,7 +972,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.user.ext.unknown-bidder "
+        assertThat(result.getFailedError()).isEqualTo("request.user.ext.unknown-bidder "
                 + "is neither a known bidder name nor an alias in request.ext.prebid.aliases.");
     }
 
@@ -957,7 +993,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -975,7 +1011,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -993,8 +1029,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user contains a digitrust object that is not valid.");
+        assertThat(result.getFailedError()).isEqualTo("request.user contains a digitrust object that is not valid.");
     }
 
     @Test
@@ -1009,8 +1044,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).asString()
-                .contains("request.user.ext object is not valid:");
+        assertThat(result.getFailedError()).contains("request.user.ext object is not valid:");
     }
 
     @Test
@@ -1024,7 +1058,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "request.ext.prebid.aliases.rubicon defines a no-op alias."
                         + " Choose a different alias, or remove this entry.");
     }
@@ -1040,7 +1074,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "request.ext.prebid.aliases.alias refers to unknown bidder: fake");
     }
 
@@ -1055,7 +1089,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -1068,7 +1102,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.regs.ext.gdpr must be either 0 or 1.");
+        assertThat(result.getFailedError()).isEqualTo("request.regs.ext.gdpr must be either 0 or 1.");
     }
 
     @Test
@@ -1081,7 +1115,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).asString().contains("request.regs.ext is invalid:");
+        assertThat(result.getFailedError()).contains("request.regs.ext is invalid:");
     }
 
     @Test
@@ -1093,8 +1127,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp.[0].ext.native contains empty request value");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp.[0].ext.native contains empty request value");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1106,8 +1141,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Error while parsing request.imp.[0].ext.native.request");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Error while parsing request.imp.[0].ext.native.request");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1121,8 +1157,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.context must be in the range [1, 3]. Got 100");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.context must be in the range [1, 3]. Got 100");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1136,8 +1173,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.plcmttype must be in the range [1, 4]. Got 100");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.plcmttype must be in the range [1, 4]. Got 100");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1151,8 +1190,9 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets must be an array containing at least one object.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets must be an array containing at least one object.");
+        assertThat(result.getFailedError()).isEqualTo("request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1166,9 +1206,11 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].id must not be defined. Prebid Server will"
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].id must not be defined. Prebid Server will"
                         + " set this automatically, using the index of the asset in the array as the ID.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1185,9 +1227,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
-                        + " {title, img, video, data}");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0] must define at most one of {title, img, video, data}");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1204,9 +1247,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
-                        + " {title, img, video, data}");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0] must define at most one of {title, img, video, data}");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
 
@@ -1225,9 +1269,11 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
-                        + " {title, img, video, data}");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0] must define at most one of {title, img, video, data}");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
+
     }
 
     @Test
@@ -1244,9 +1290,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
-                        + " {title, img, video, data}");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0] must define at most one of {title, img, video, data}");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1263,9 +1310,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0] must define at most one of"
-                        + " {title, img, video, data}");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0] must define at most one of {title, img, video, data}");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
 
@@ -1280,8 +1328,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].title.len must be a positive integer");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].title.len must be a positive integer");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1295,14 +1345,16 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].title.len must be a positive integer");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].title.len must be a positive integer");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
     public void validateShouldReturnValidationResultWithErrorWhenImageWidthsNull() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest0 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
                 nativeReqCustomizer.assets(singletonList(Asset.builder()
                         .img(ImageObject.builder()
                                 .w(null).wmin(null)
@@ -1311,11 +1363,13 @@ public class RequestValidatorTest extends VertxTest {
                         .build())));
 
         // when
-        final ValidationResult result0 = requestValidator.validate(bidRequest0);
+        final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result0.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
                 "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1333,8 +1387,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result1 = requestValidator.validate(bidRequest1);
 
         // then
-        assertThat(result1.getErrors()).hasSize(1).containsOnly(
+        assertThat(result1.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
                 "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
+        assertThat(result1.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1354,8 +1410,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result2 = requestValidator.validate(bidRequest2);
 
         // then
-        assertThat(result2.getErrors()).hasSize(1).containsOnly(
+        assertThat(result2.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
                 "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
+        assertThat(result2.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1363,7 +1421,7 @@ public class RequestValidatorTest extends VertxTest {
             throws JsonProcessingException {
 
         // given
-        final BidRequest bidRequest2 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
                 nativeReqCustomizer.assets(singletonList(Asset.builder()
                         .img(ImageObject.builder()
                                 .w(0).wmin(null)
@@ -1372,17 +1430,20 @@ public class RequestValidatorTest extends VertxTest {
                         .build())));
 
         // when
-        final ValidationResult result2 = requestValidator.validate(bidRequest2);
+        final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result2.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
                 "request.imp[0].native.request.assets[0].img must contain at least one of \"w\" or \"wmin\"");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
+
     }
 
     @Test
     public void validateShouldReturnValidationResultWithErrorWhenImageHeightsNull() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest0 = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
                 nativeReqCustomizer.assets(singletonList(Asset.builder()
                         .img(ImageObject.builder()
                                 .h(null).hmin(null)
@@ -1391,11 +1452,13 @@ public class RequestValidatorTest extends VertxTest {
                         .build())));
 
         // when
-        final ValidationResult result0 = requestValidator.validate(bidRequest0);
+        final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result0.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
                 "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1413,8 +1476,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
                 "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1433,8 +1498,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
                 "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1453,8 +1520,11 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
                 "request.imp[0].native.request.assets[0].img must contain at least one of \"h\" or \"hmin\"");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
+
     }
 
     @Test
@@ -1469,8 +1539,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
                 "request.imp[0].native.request.assets[0].data.type must in the range [1, 12]. Got 100.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1485,9 +1557,26 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].video.mimes must be an array with at least one"
-                        + " MIME type.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].video.mimes must be an array with at least one MIME type.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithInvalidImpAndItsErrorWithFailedErrorNull()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().imp(
+                Arrays.asList(validImpBuilder().build(), Imp.builder().id("invalidImpId").build())).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[1] must contain at least one of \"banner\", \"video\", \"audio\", or \"native\"");
+        assertThat(result.hasFailed()).isFalse();
     }
 
     @Test
@@ -1506,8 +1595,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].video.minduration must be a positive integer.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].video.minduration must be a positive integer.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1526,8 +1617,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].video.minduration must be a positive integer.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].video.minduration must be a positive integer.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1547,8 +1640,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1568,8 +1663,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1590,8 +1687,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1612,8 +1711,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].native.request.assets[0].video.maxduration must be a positive integer.");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1634,7 +1735,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -1687,7 +1788,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0).isEqualTo("Missing request.imp[0].metric[0].type");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "Missing request.imp[0].metric[0].type");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1702,8 +1806,10 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).element(0)
-                .isEqualTo("request.imp[0].metric[0].value must be in the range [0.0, 1.0]");
+        assertThat(result.getImpToError().entrySet()).extracting(Map.Entry::getValue).containsOnly(
+                "request.imp[0].metric[0].value must be in the range [0.0, 1.0]");
+        assertThat(result.getFailedError()).isEqualTo(
+                "request.imp must contain at least one valid imp.");
     }
 
     @Test
@@ -1720,7 +1826,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "request.ext.prebid.bidadjustmentfactors.rubicon must be a positive number. Got -1.100000");
     }
 
@@ -1739,7 +1845,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly(
+        assertThat(result.getFailedError()).isEqualTo(
                 "request.ext.prebid.bidadjustmentfactors.unknownBidder is not a known bidder or alias");
     }
 
@@ -1755,7 +1861,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     @Test
@@ -1771,7 +1877,7 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getFailedError()).isNull();
     }
 
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {

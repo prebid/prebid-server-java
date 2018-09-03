@@ -208,7 +208,7 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnImpWithTagidIfBothTagidAndLegacyTagIdDefined() {
+    public void makeHttpRequestShouldReturnImpWithTagIdIfBothTagIdAndLegacyTagIdDefined() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(

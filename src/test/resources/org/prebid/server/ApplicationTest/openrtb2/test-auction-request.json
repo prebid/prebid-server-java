@@ -51,6 +51,44 @@
       }
     },
     {
+      "id": "impId-error-1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
+        "w": 300,
+        "h": 600
+      },
+      "ext": {
+        "appnexus": {
+        }
+      }
+    },
+    {
+      "id": "impId-error-2",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
+        "w": 300,
+        "h": 600
+      },
+      "ext": {
+        "prebid": {
+          "storedrequest": {
+          }
+        },
+        "conversant": {
+        }
+      }
+    },
+    {
       "id": "impId4",
       "banner": {
         "format": [
