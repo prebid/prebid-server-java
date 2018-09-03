@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.StoredRequestResult;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -424,7 +425,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
 
         given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(
-                Tuple2.of(BidRequest.builder().build(), emptyMap())));
+                StoredRequestResult.of(BidRequest.builder().build(), emptyMap())));
 
         given(requestValidator.validate(any())).willReturn(new ValidationResult("error1", emptyMap()));
 
@@ -473,7 +474,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(routingContext.getBody()).willReturn(Buffer.buffer("{}"));
 
         given(storedRequestProcessor.processStoredRequests(any())).willReturn(Future.succeededFuture(
-                Tuple2.of(bidRequest, emptyMap())));
+                StoredRequestResult.of(bidRequest, emptyMap())));
 
         given(requestValidator.validate(any())).willReturn(ValidationResult.success());
     }

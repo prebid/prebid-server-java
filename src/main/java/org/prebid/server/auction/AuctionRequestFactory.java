@@ -74,7 +74,8 @@ public class AuctionRequestFactory {
 
         return storedRequestProcessor.processStoredRequests(bidRequest)
                 .map(resolvedBidRequestResult -> Tuple2.of(fillImplicitParameters(
-                        resolvedBidRequestResult.getLeft(), context), resolvedBidRequestResult.getRight()))
+                        resolvedBidRequestResult.getBidRequest(), context),
+                        resolvedBidRequestResult.getFailedImpsToError()))
                 .map(this::validateAuctionRequest);
     }
 
