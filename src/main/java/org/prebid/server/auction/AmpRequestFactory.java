@@ -14,6 +14,7 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidRequestContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtCurrency;
@@ -62,7 +63,7 @@ public class AmpRequestFactory {
      * Method determines {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    public Future<BidRequest> fromRequest(RoutingContext context) {
+    public Future<BidRequestContext> fromRequest(RoutingContext context) {
         final String tagId = context.request().getParam(TAG_ID_REQUEST_PARAM);
         if (StringUtils.isBlank(tagId)) {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
@@ -73,7 +74,9 @@ public class AmpRequestFactory {
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request()))
                 .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context))
-                .map(bidRequest -> auctionRequestFactory.validateRequest(bidRequest).getLeft());
+                .map(auctionRequestFactory::validateRequest)
+                .map(bidRequestToErrors -> auctionRequestFactory.makeBidRequestContext(bidRequestToErrors.getLeft(),
+                        bidRequestToErrors.getRight()));
 
     }
 

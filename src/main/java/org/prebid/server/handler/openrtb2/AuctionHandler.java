@@ -1,7 +1,6 @@
 package org.prebid.server.handler.openrtb2;
 
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -17,8 +16,8 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.model.BidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -32,7 +31,6 @@ import org.prebid.server.util.HttpUtil;
 import java.time.Clock;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -89,16 +87,15 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         auctionRequestFactory.fromRequest(context)
-                .map(bidRequestResult -> addToEvent(bidRequestResult,
-                        bidRequestResult.getLeft(), auctionEventBuilder::bidRequest))
-                .map(bidRequestResult -> Tuple2.of(
-                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequestResult.getLeft(), uidsCookie, isSafari),
-                        bidRequestResult.getRight()))
-                .map(bidRequestResult -> Tuple3.of(bidRequestResult.getLeft(), bidRequestResult.getRight(),
-                        toMetricsContext(bidRequestResult.getLeft())))
-                .compose((Tuple3<BidRequest, Map<Imp, String>, MetricsContext> result) ->
-                        exchangeService.holdAuction(result.getLeft(), uidsCookie, timeout(result.getLeft(), startTime),
-                                result.getRight(), result.getMiddle())
+                .map(bidRequestContext -> addToEvent(bidRequestContext,
+                        bidRequestContext.getBidRequest(), auctionEventBuilder::bidRequest))
+                .map(bidRequestContext ->
+                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequestContext, uidsCookie, isSafari))
+                .map(bidRequestContext -> Tuple2.of(bidRequestContext,
+                        toMetricsContext(bidRequestContext.getBidRequest())))
+                .compose((Tuple2<BidRequestContext, MetricsContext> result) ->
+                        exchangeService.holdAuction(result.getLeft(), uidsCookie,
+                                timeout(result.getLeft().getBidRequest(), startTime), result.getRight())
                                 .map(bidResponse -> Tuple2.of(bidResponse, result.getRight())))
                 .map((Tuple2<BidResponse, MetricsContext> result) ->
                         addToEvent(result, result.getLeft(), auctionEventBuilder::bidResponse))
@@ -110,11 +107,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return returnValue;
     }
 
-    private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, UidsCookie uidsCookie,
-                                                                   boolean isSafari) {
-        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                isSafari, bidRequest.getImp().size());
-        return bidRequest;
+    private BidRequestContext updateAppAndNoCookieAndImpsRequestedMetrics(BidRequestContext bidRequestContext,
+                                                                          UidsCookie uidsCookie, boolean isSafari) {
+        metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequestContext.getBidRequest().getApp() != null,
+                uidsCookie.hasLiveUids(), isSafari, bidRequestContext.getBidRequest().getImp().size());
+        return bidRequestContext;
     }
 
     private static MetricsContext toMetricsContext(BidRequest bidRequest) {

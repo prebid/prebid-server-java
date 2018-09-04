@@ -25,6 +25,7 @@ import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.model.BidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
@@ -113,16 +114,16 @@ public class AmpHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         ampRequestFactory.fromRequest(context)
-                .map(bidRequest ->
-                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
-                .compose(bidRequest ->
-                        exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime),
-                                METRICS_CONTEXT, Collections.emptyMap())
-                                .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
-                .map((Tuple2<BidRequest, BidResponse> result) ->
+                .map(bidRequestContext ->
+                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequestContext, uidsCookie, isSafari))
+                .compose(bidRequestContext ->
+                        exchangeService.holdAuction(bidRequestContext, uidsCookie,
+                                timeout(bidRequestContext.getBidRequest(), startTime), METRICS_CONTEXT)
+                                .map(bidResponse -> Tuple2.of(bidRequestContext, bidResponse)))
+                .map((Tuple2<BidRequestContext, BidResponse> result) ->
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
-                .map((Tuple2<BidRequest, BidResponse> result) -> Tuple3.of(result.getLeft(), result.getRight(),
-                        toAmpResponse(result.getLeft(), result.getRight())))
+                .map((Tuple2<BidRequestContext, BidResponse> result) -> Tuple3.of(result.getLeft().getBidRequest(),
+                        result.getRight(), toAmpResponse(result.getLeft().getBidRequest(), result.getRight())))
                 .compose((Tuple3<BidRequest, BidResponse, AmpResponse> result) ->
                         ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
                                 context.queryParams()))
@@ -135,11 +136,12 @@ public class AmpHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, UidsCookie uidsCookie,
-                                                                   boolean isSafari) {
+    private BidRequestContext updateAppAndNoCookieAndImpsRequestedMetrics(BidRequestContext bidRequestContext,
+                                                                          UidsCookie uidsCookie, boolean isSafari) {
+        final BidRequest bidRequest = bidRequestContext.getBidRequest();
         metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
                 isSafari, bidRequest.getImp().size());
-        return bidRequest;
+        return bidRequestContext;
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {

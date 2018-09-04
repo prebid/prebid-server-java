@@ -18,7 +18,9 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -31,29 +33,38 @@ import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
+    private static final String PREBID_EXT = "prebid";
 
     private final long maxRequestSize;
     private final String adServerCurrency;
+    private final BidderCatalog bidderCatalog;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ImplicitParametersExtractor paramsExtractor;
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
 
     public AuctionRequestFactory(long maxRequestSize, String adServerCurrency,
+                                 BidderCatalog bidderCatalog,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
                                  UidsCookieService uidsCookieService,
                                  RequestValidator requestValidator) {
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
+        this.bidderCatalog = bidderCatalog;
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -64,7 +75,7 @@ public class AuctionRequestFactory {
      * Method determines {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    public Future<Tuple2<BidRequest, Map<Imp, String>>> fromRequest(RoutingContext context) {
+    public Future<BidRequestContext> fromRequest(RoutingContext context) {
         final BidRequest bidRequest;
         try {
             bidRequest = parseRequest(context);
@@ -76,18 +87,143 @@ public class AuctionRequestFactory {
                 .map(resolvedBidRequestResult -> Tuple2.of(fillImplicitParameters(
                         resolvedBidRequestResult.getBidRequest(), context),
                         resolvedBidRequestResult.getFailedImpsToError()))
-                .map(this::validateAuctionRequest);
+                .map(this::validateAuctionRequest)
+                .map(bidRequestToErrors -> this.makeBidRequestContext(bidRequestToErrors.getLeft(),
+                        bidRequestToErrors.getRight()));
     }
 
     /**
-     *
+     * Calls request validation and merge map of invalid {@link Imp}s with errors.
      */
     private Tuple2<BidRequest, Map<Imp, String>> validateAuctionRequest(
             Tuple2<BidRequest, Map<Imp, String>> resolvedBidRequestResult) {
         final Tuple2<BidRequest, Map<Imp, String>> validationResult =
-                this.validateRequest(resolvedBidRequestResult.getLeft());
+                validateRequest(resolvedBidRequestResult.getLeft());
         validationResult.getRight().putAll(resolvedBidRequestResult.getRight());
         return validationResult;
+    }
+
+    /**
+     * Creates {@link BidRequestContext} from {@link BidRequest}, aliases, errors and {@link ExtBidRequest}.
+     */
+    public BidRequestContext makeBidRequestContext(BidRequest bidRequest, Map<Imp, String> impsToErrors) {
+        // extract ext from bid request
+        final ExtBidRequest requestExt;
+        try {
+            requestExt = requestExt(bidRequest);
+        } catch (PreBidException e) {
+            throw new InvalidRequestException(e.getMessage());
+        }
+
+        final Map<String, String> aliases = getAliases(requestExt);
+
+        // build Map<Bidder, Error> from invalid imps error to add it to response
+        final Map<String, List<String>> bidderToErrors = makeResponseErrors(impsToErrors, aliases);
+
+        return BidRequestContext.of(bidRequest, bidderToErrors, aliases, requestExt);
+    }
+
+
+    /**
+     * Extracts {@link ExtBidRequest} from bid request.
+     */
+    private static ExtBidRequest requestExt(BidRequest bidRequest) {
+        try {
+            return bidRequest.getExt() != null
+                    ? Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
+        }
+    }
+
+    /**
+     * Extracts aliases from {@link ExtBidRequest}.
+     */
+    private static Map<String, String> getAliases(ExtBidRequest requestExt) {
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
+        return aliases != null ? aliases : Collections.emptyMap();
+    }
+
+    /**
+     * Converts invalid {@link Imp}s with it errors to map of bidder to errors list.
+     */
+    private Map<String, List<String>> makeResponseErrors(Map<Imp, String> invalidImpsToError,
+                                                         Map<String, String> aliases) {
+        final Map<String, List<String>> bidderToErrors = new HashMap<>();
+        if (MapUtils.isNotEmpty(invalidImpsToError)) {
+            for (Map.Entry<Imp, String> invalidImpToError : invalidImpsToError.entrySet()) {
+                final Imp droppedImp = invalidImpToError.getKey();
+                final String reasonError = invalidImpToError.getValue();
+                final String formattedError = String.format(
+                        "Imp with id = %s was dropped in a reason : %s", droppedImp.getId(), reasonError);
+                final Map<String, String> biddersToError;
+                try {
+                    biddersToError = mapImpErrorsToBidderErrors(aliases, droppedImp, formattedError);
+                } catch (PreBidException ex) {
+                    logger.warn(ex.getMessage());
+                    continue;
+                }
+                addEntryToMap(bidderToErrors, biddersToError);
+            }
+        }
+        return bidderToErrors;
+    }
+
+    /**
+     * Merge bidder to errors of specific impression to shared map of bidder errors.
+     */
+    private static void addEntryToMap(Map<String, List<String>> bidderToErrors, Map<String, String> biddersToError) {
+        for (Map.Entry<String, String> bidderToError : biddersToError.entrySet()) {
+            final List<String> bidderErrors = bidderToErrors.get(bidderToError.getKey());
+            if (bidderErrors == null) {
+                bidderToErrors.put(bidderToError.getKey(),
+                        new ArrayList<>(Collections.singleton(bidderToError.getValue())));
+            } else {
+                bidderErrors.add(bidderToError.getValue());
+            }
+        }
+    }
+
+    /**
+     * Retrieve bidder from invalid {@link Imp} and creates association of its bidders to error. In case when extension
+     * can't be read, throw {@link PreBidException}.
+     */
+    private Map<String, String> mapImpErrorsToBidderErrors(Map<String, String> aliases, Imp invalidImp, String error) {
+        final ObjectNode ext = invalidImp.getExt();
+        if (ext == null) {
+            throw new PreBidException(String.format("Imp with id = %s, cannot be added to response error in reason"
+                    + " of missing request.ext field", invalidImp.getId()));
+        }
+        // check for null ext
+        return asStream(invalidImp.getExt().fieldNames())
+                .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
+                .filter(bidder -> isValidBidder(bidder, aliases))
+                .map(bidder -> resolveBidder(bidder, aliases))
+                .distinct()
+                .collect(Collectors.toMap(Function.identity(), ignored -> error));
+    }
+
+    /**
+     * Returns bidder by alias.
+     */
+    private static String resolveBidder(String bidder, Map<String, String> aliases) {
+        return aliases.getOrDefault(bidder, bidder);
+    }
+
+    /**
+     * Check if bidder is valid.
+     */
+    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
+        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
+    }
+
+    /**
+     * Creates stream from iterator.
+     */
+    private static <T> Stream<T> asStream(Iterator<T> iterator) {
+        final Iterable<T> iterable = () -> iterator;
+        return StreamSupport.stream(iterable.spliterator(), false);
     }
 
     /**
@@ -148,7 +284,6 @@ public class AuctionRequestFactory {
             validImps.removeAll(invalidImps.keySet());
             bidRequest = bidRequest.toBuilder().imp(validImps).build();
         }
-
         return Tuple2.of(bidRequest, invalidImps);
     }
 

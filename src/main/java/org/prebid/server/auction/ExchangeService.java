@@ -24,9 +24,9 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidRequestContext;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.BidderCatalog;
@@ -133,17 +133,12 @@ public class ExchangeService {
      * Runs an auction: delegates request to applicable bidders, gathers responses from them and constructs final
      * response containing returned bids and additional information in extensions.
      */
-    public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout,
-                                           MetricsContext metricsContext, Map<Imp, String> invalidImpsToError) {
-        // extract ext from bid request
-        final ExtBidRequest requestExt;
-        try {
-            requestExt = requestExt(bidRequest);
-        } catch (PreBidException e) {
-            return Future.failedFuture(e);
-        }
+    public Future<BidResponse> holdAuction(BidRequestContext bidRequestContext, UidsCookie uidsCookie, Timeout timeout,
+                                           MetricsContext metricsContext) {
 
-        final Map<String, String> aliases = getAliases(requestExt);
+        final BidRequest bidRequest = bidRequestContext.getBidRequest();
+        final ExtBidRequest requestExt = bidRequestContext.getExtBidRequest();
+        final Map<String, String> aliases = bidRequestContext.getAliases();
 
         final ExtRequestTargeting targeting = targeting(requestExt);
 
@@ -152,9 +147,6 @@ public class ExchangeService {
 
         // build targeting keywords creator
         final TargetingKeywordsCreator keywordsCreator = buildKeywordsCreator(targeting, bidRequest.getApp() != null);
-
-        // build Map<Bidder, Error> from invalid imps error to add it to response
-        final Map<String, List<String>> bidderToErrors = makeResponseErrors(invalidImpsToError, aliases);
 
         final String publisherId = publisherId(bidRequest);
 
@@ -173,69 +165,9 @@ public class ExchangeService {
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
-                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout, bidderToErrors))
+                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout,
+                                bidRequestContext.getBidderErrors()))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
-    }
-
-    private Map<String, List<String>> makeResponseErrors(Map<Imp, String> invalidImpsToError,
-                                                         Map<String, String> aliases) {
-        final Map<String, List<String>> bidderToErrors = new HashMap<>();
-        if (MapUtils.isNotEmpty(invalidImpsToError)) {
-            for (Map.Entry<Imp, String> invalidImpToError : invalidImpsToError.entrySet()) {
-                final Imp droppedImp = invalidImpToError.getKey();
-                final String reasonError = invalidImpToError.getValue();
-                final String formattedError = String.format(
-                        "Imp with id = %s was dropped in a reason : %s", droppedImp.getId(), reasonError);
-                final Map<String, String> biddersToError;
-                try {
-                    biddersToError = mapImpErrorsToBidderErrors(aliases, droppedImp, formattedError);
-                } catch (PreBidException ex) {
-                    logger.warn(ex.getMessage());
-                    continue;
-                }
-                addEntryToMap(bidderToErrors, biddersToError);
-            }
-        }
-        return bidderToErrors;
-    }
-
-    private Map<String, String> mapImpErrorsToBidderErrors(Map<String, String> aliases, Imp invalidImp, String error) {
-        final ObjectNode ext = invalidImp.getExt();
-        if (ext == null) {
-            throw new PreBidException(String.format("Imp with id = %s, cannot be added to response error in reason"
-                    + " of missing request.ext field", invalidImp.getId()));
-        }
-        // check for null ext
-        return asStream(invalidImp.getExt().fieldNames())
-                .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
-                .filter(bidder -> isValidBidder(bidder, aliases))
-                .map(bidder -> resolveBidder(bidder, aliases))
-                .distinct()
-                .collect(Collectors.toMap(Function.identity(), ignored -> error));
-    }
-
-    private void addEntryToMap(Map<String, List<String>> bidderToErrors, Map<String, String> biddersToError) {
-        for (Map.Entry<String, String> bidderToError : biddersToError.entrySet()) {
-            final List<String> bidderErrors = bidderToErrors.get(bidderToError.getKey());
-            if (bidderErrors == null) {
-                bidderToErrors.put(bidderToError.getKey(),
-                        new ArrayList<>(Collections.singleton(bidderToError.getValue())));
-            } else {
-                bidderErrors.add(bidderToError.getValue());
-            }
-        }
-    }
-
-    /**
-     * Extracts {@link ExtBidRequest} from bid request.
-     */
-    private static ExtBidRequest requestExt(BidRequest bidRequest) {
-        try {
-            return bidRequest.getExt() != null
-                    ? Json.mapper.treeToValue(bidRequest.getExt(), ExtBidRequest.class) : null;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(String.format("Error decoding bidRequest.ext: %s", e.getMessage()), e);
-        }
     }
 
     /**

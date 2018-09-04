@@ -79,12 +79,13 @@ public class ServiceConfiguration {
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
+            BidderCatalog bidderCatalog,
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator) {
 
-        return new AuctionRequestFactory(maxRequestSize, adServerCurrency, storedRequestProcessor,
+        return new AuctionRequestFactory(maxRequestSize, adServerCurrency, bidderCatalog, storedRequestProcessor,
                 implicitParametersExtractor, uidsCookieService, requestValidator);
     }
 
