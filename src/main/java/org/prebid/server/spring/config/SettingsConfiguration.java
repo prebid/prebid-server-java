@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.VersionHandler;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.CompositeApplicationSettings;
@@ -24,7 +25,9 @@ import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.vertx.ContextRunner;
-import org.prebid.server.vertx.JdbcClient;
+import org.prebid.server.vertx.jdbc.JdbcClient;
+import org.prebid.server.vertx.jdbc.JdbcClientBasic;
+import org.prebid.server.vertx.jdbc.JdbcClientSafe;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +43,7 @@ import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -77,13 +81,38 @@ public class SettingsConfiguration {
         }
 
         @Bean
-        JdbcClient jdbcClient(Vertx vertx, JDBCClient vertxJdbcClient, ContextRunner contextRunner) {
-            final JdbcClient jdbcClient = new JdbcClient(vertx, vertxJdbcClient);
+        JdbcClientBasic jdbcClientBasic(Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock,
+                                        ContextRunner contextRunner) {
+            final JdbcClientBasic jdbcClientBasic = new JdbcClientBasic(vertx, vertxJdbcClient, metrics, clock);
 
             contextRunner.runOnServiceContext(
-                    future -> jdbcClient.initialize().compose(ignored -> future.complete(), future));
+                    future -> jdbcClientBasic.initialize().compose(ignored -> future.complete(), future));
 
-            return jdbcClient;
+            return jdbcClientBasic;
+        }
+
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "true")
+        JdbcClientSafe jdbcClientSafe(
+                Vertx vertx, JdbcClientBasic jdbcClientBasic, Metrics metrics, ContextRunner contextRunner,
+                @Value("${settings.database.circuit-breaker.max-failures}") int maxFailures,
+                @Value("${settings.database.circuit-breaker.timeout-ms}") long timeoutMs,
+                @Value("${settings.database.circuit-breaker.reset-timeout-ms}") long resetTimeoutMs) {
+
+            final JdbcClientSafe jdbcClientSafe = new JdbcClientSafe(vertx, jdbcClientBasic, metrics,
+                    maxFailures, timeoutMs, resetTimeoutMs);
+
+            contextRunner.runOnServiceContext(
+                    future -> jdbcClientSafe.initialize().compose(ignored -> future.complete(), future));
+
+            return jdbcClientSafe;
+        }
+
+        @Bean
+        JdbcClient jdbcClient(
+                @Autowired(required = false) JdbcClientSafe jdbcClientSafe,
+                @Autowired(required = false) JdbcClientBasic jdbcClientBasic) {
+            return ObjectUtils.firstNonNull(jdbcClientSafe, jdbcClientBasic);
         }
 
         @Bean

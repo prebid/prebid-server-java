@@ -4,6 +4,11 @@ public enum MetricName {
     // common
     active_connections,
 
+    // database
+    db_circuitbreaker_opened,
+    db_circuitbreaker_closed,
+    db_query_time,
+
     // auction
     requests,
     app_requests,

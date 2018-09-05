@@ -505,6 +505,33 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("active_connections").getCount()).isEqualTo(-1);
     }
 
+    @Test
+    public void shouldUpdateDatabaseQueryTimeMetric() {
+        // when
+        metrics.updateDatabaseQueryTimeMetric(456L);
+
+        // then
+        assertThat(metricRegistry.timer("db_query_time").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementDatabaseCircuitBreakerOpenMetric() {
+        // when
+        metrics.updateDatabaseCircuitBreakerMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("db_circuitbreaker_opened").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementDatabaseCircuitBreakerCloseMetric() {
+        // when
+        metrics.updateDatabaseCircuitBreakerMetric(false);
+
+        // then
+        assertThat(metricRegistry.counter("db_circuitbreaker_closed").getCount()).isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

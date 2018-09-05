@@ -394,7 +394,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Stored request fetching failed with exception message: Error during file fetching");
+                .hasMessage("Stored request fetching failed: Error during file fetching");
     }
 
     @Test

@@ -1,4 +1,4 @@
-package org.prebid.server.vertx;
+package org.prebid.server.vertx.jdbc;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -7,7 +7,9 @@ import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.metric.Metrics;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
@@ -16,38 +18,35 @@ import java.util.function.Function;
 /**
  * Wrapper over {@link JDBCClient} that supports setting query timeout in milliseconds.
  */
-public class JdbcClient {
+public class JdbcClientBasic implements JdbcClient {
 
     private final Vertx vertx;
     private final JDBCClient jdbcClient;
+    private final Metrics metrics;
+    private final Clock clock;
 
-    public JdbcClient(Vertx vertx, JDBCClient jdbcClient) {
+    public JdbcClientBasic(Vertx vertx, JDBCClient jdbcClient, Metrics metrics, Clock clock) {
         this.vertx = Objects.requireNonNull(vertx);
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
+        this.metrics = Objects.requireNonNull(metrics);
+        this.clock = Objects.requireNonNull(clock);
     }
 
-    /**
-     * Triggers connection creation. Should be called during application initialization to detect connection issues as
-     * early as possible.
-     * <p>
-     * Must be called on Vertx event loop thread.
-     */
+    @Override
     public Future<Void> initialize() {
         final Future<SQLConnection> result = Future.future();
         jdbcClient.getConnection(result.completer());
         return result.mapEmpty();
     }
 
-    /**
-     * Executes query with parameters and returns {@link Future<T>} eventually holding result mapped to a model
-     * object by provided mapper
-     */
+    @Override
     public <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper,
                                       Timeout timeout) {
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
             return Future.failedFuture(timeoutException());
         }
+        final long startTime = clock.millis();
 
         // timeout implementation is inspired by this answer:
         // https://groups.google.com/d/msg/vertx/eSf3AQagGGU/K7pztnjLc_EJ
@@ -55,6 +54,7 @@ public class JdbcClient {
         final long timerId = vertx.setTimer(remainingTimeout, id -> {
             // no need for synchronization since timer is fired on the same event loop thread
             if (!queryResultFuture.isComplete()) {
+                metrics.updateDatabaseQueryTimeMetric(clock.millis() - startTime);
                 queryResultFuture.fail(timeoutException());
             }
         });
@@ -76,6 +76,7 @@ public class JdbcClient {
                     vertx.cancelTimer(timerId);
                     // check is to avoid harmless exception if timeout exceeds before successful result becomes ready
                     if (!queryResultFuture.isComplete()) {
+                        metrics.updateDatabaseQueryTimeMetric(clock.millis() - startTime);
                         queryResultFuture.handle(ar);
                     }
                 });

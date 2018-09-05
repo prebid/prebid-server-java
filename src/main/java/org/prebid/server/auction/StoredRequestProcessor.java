@@ -94,8 +94,7 @@ public class StoredRequestProcessor {
                                                           Map<Imp, String> impsToStoredRequestId) {
         return storedDataFuture
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored request fetching failed with exception message: %s",
-                                exception.getMessage()))))
+                        String.format("Stored request fetching failed: %s", exception.getMessage()))))
                 .compose(result -> result.getErrors().size() > 0
                         ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
                         : Future.succeededFuture(result))
