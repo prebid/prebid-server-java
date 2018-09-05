@@ -2,7 +2,6 @@ package org.prebid.server.vertx.jdbc;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -75,13 +74,27 @@ public class JdbcClientSafeTest {
     }
 
     @Test
+    public void executeQueryShouldReturnResultIfCircuitIsClosedAndQuerySucceeded(TestContext context) {
+        // given
+        givenExecuteQueryReturning(singletonList(Future.succeededFuture("value")));
+
+        // when
+        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(),
+                resultSet -> resultSet.getResults().get(0).getString(0), timeout);
+
+        // then
+        future.setHandler(context.asyncAssertSuccess(result ->
+                assertThat(result).isEqualTo("value")));
+    }
+
+    @Test
     public void executeQueryShouldReturnExceptionIfCircuitIsClosedAndQueryFails(TestContext context) {
         // given
         givenExecuteQueryReturning(singletonList(
                 Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
-        final Future<ResultSet> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout);
+        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout);
 
         // then
         future.setHandler(context.asyncAssertFailure(throwable ->
@@ -91,14 +104,11 @@ public class JdbcClientSafeTest {
     @Test
     public void executeQueryShouldNotExecuteQueryIfCircuitIsOpened(TestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(
-                Future.failedFuture(new RuntimeException("exception1"))));
+        givenExecuteQueryReturning(singletonList(Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
-        final Future<ResultSet> future =
-                jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout) // 1 call
-                        .recover(ignored ->
-                                jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout)); // 2 call
+        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout) // 1 call
+                .recover(ignored -> jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout)); // 2 call
 
         // then
         future.setHandler(context.asyncAssertFailure(throwable -> {
@@ -112,8 +122,7 @@ public class JdbcClientSafeTest {
     @Test
     public void executeQueryShouldReturnExceptionIfCircuitIsHalfOpenedAndQueryFails(TestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(
-                Future.failedFuture(new RuntimeException("exception1"))));
+        givenExecuteQueryReturning(singletonList(Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
         final Async async = context.async();
@@ -122,8 +131,7 @@ public class JdbcClientSafeTest {
                 .setHandler(ignored -> vertx.setTimer(300L, id -> async.complete()));
         async.await();
 
-        final Future<ResultSet> future =
-                jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout); // 3 call
+        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout); // 3 call
 
         // then
         future.setHandler(context.asyncAssertFailure(exception -> {
@@ -148,7 +156,7 @@ public class JdbcClientSafeTest {
                 .setHandler(ignored -> vertx.setTimer(300L, id -> async.complete()));
         async.await();
 
-        final Future<String> future = jdbcClientSafe.executeQuery("query", emptyList(),
+        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(),
                 resultSet -> resultSet.getResults().get(0).getString(0), timeout); // 3 call
 
         // then
@@ -163,11 +171,10 @@ public class JdbcClientSafeTest {
     @Test
     public void executeQueryShouldReportMetricsOnCircuitOpened(TestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(
-                Future.failedFuture(new RuntimeException("exception1"))));
+        givenExecuteQueryReturning(singletonList(Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
-        final Future<ResultSet> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout);
+        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout);
 
         // then
         future.setHandler(context.asyncAssertFailure(throwable ->
@@ -188,7 +195,7 @@ public class JdbcClientSafeTest {
                 .setHandler(ignored -> vertx.setTimer(300L, id -> async.complete()));
         async.await();
 
-        final Future<String> future = jdbcClientSafe.executeQuery("query", emptyList(),
+        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(),
                 resultSet -> resultSet.getResults().get(0).getString(0), timeout); // 3 call
 
         // then
