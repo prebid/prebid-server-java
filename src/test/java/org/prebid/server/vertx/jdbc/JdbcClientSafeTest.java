@@ -76,7 +76,8 @@ public class JdbcClientSafeTest {
     @Test
     public void executeQueryShouldReturnResultIfCircuitIsClosedAndQuerySucceeded(TestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(Future.succeededFuture("value")));
+        givenExecuteQueryReturning(singletonList(
+                Future.succeededFuture("value")));
 
         // when
         final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(),
@@ -104,7 +105,8 @@ public class JdbcClientSafeTest {
     @Test
     public void executeQueryShouldNotExecuteQueryIfCircuitIsOpened(TestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(Future.failedFuture(new RuntimeException("exception1"))));
+        givenExecuteQueryReturning(singletonList(
+                Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
         final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout) // 1 call
@@ -122,7 +124,8 @@ public class JdbcClientSafeTest {
     @Test
     public void executeQueryShouldReturnExceptionIfCircuitIsHalfOpenedAndQueryFails(TestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(Future.failedFuture(new RuntimeException("exception1"))));
+        givenExecuteQueryReturning(singletonList(
+                Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
         final Async async = context.async();
@@ -171,7 +174,8 @@ public class JdbcClientSafeTest {
     @Test
     public void executeQueryShouldReportMetricsOnCircuitOpened(TestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(Future.failedFuture(new RuntimeException("exception1"))));
+        givenExecuteQueryReturning(singletonList(
+                Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
         final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout);
