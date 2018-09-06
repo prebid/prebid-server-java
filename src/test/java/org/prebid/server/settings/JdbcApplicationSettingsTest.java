@@ -23,8 +23,8 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.vertx.jdbc.BasicJdbcClient;
 import org.prebid.server.vertx.jdbc.JdbcClient;
-import org.prebid.server.vertx.jdbc.JdbcClientBasic;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -397,7 +397,7 @@ public class JdbcApplicationSettingsTest {
     }
 
     private JdbcClient jdbcClient() {
-        return new JdbcClientBasic(vertx, JDBCClient.createShared(vertx,
+        return new BasicJdbcClient(vertx, JDBCClient.createShared(vertx,
                 new JsonObject()
                         .put("url", JDBC_URL)
                         .put("driver_class", "org.h2.Driver")

@@ -25,9 +25,9 @@ import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.vertx.ContextRunner;
+import org.prebid.server.vertx.jdbc.BasicJdbcClient;
+import org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient;
 import org.prebid.server.vertx.jdbc.JdbcClient;
-import org.prebid.server.vertx.jdbc.JdbcClientBasic;
-import org.prebid.server.vertx.jdbc.JdbcClientSafe;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,38 +81,37 @@ public class SettingsConfiguration {
         }
 
         @Bean
-        JdbcClientBasic jdbcClientBasic(Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock,
-                                        ContextRunner contextRunner) {
-            final JdbcClientBasic jdbcClientBasic = new JdbcClientBasic(vertx, vertxJdbcClient, metrics, clock);
+        @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "false",
+                matchIfMissing = true)
+        BasicJdbcClient basicJdbcClient(
+                Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
 
-            contextRunner.runOnServiceContext(
-                    future -> jdbcClientBasic.initialize().compose(ignored -> future.complete(), future));
-
-            return jdbcClientBasic;
+            return createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock, contextRunner);
         }
 
         @Bean
         @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "true")
-        JdbcClientSafe jdbcClientSafe(
-                Vertx vertx, JdbcClientBasic jdbcClientBasic, Metrics metrics, ContextRunner contextRunner,
+        CircuitBreakerSecuredJdbcClient circuitBreakerSecuredJdbcClient(
+                Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner,
                 @Value("${settings.database.circuit-breaker.max-failures}") int maxFailures,
                 @Value("${settings.database.circuit-breaker.timeout-ms}") long timeoutMs,
                 @Value("${settings.database.circuit-breaker.reset-timeout-ms}") long resetTimeoutMs) {
 
-            final JdbcClientSafe jdbcClientSafe = new JdbcClientSafe(vertx, jdbcClientBasic, metrics,
-                    maxFailures, timeoutMs, resetTimeoutMs);
+            final BasicJdbcClient basicJdbcClient = createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock,
+                    contextRunner);
 
-            contextRunner.runOnServiceContext(
-                    future -> jdbcClientSafe.initialize().compose(ignored -> future.complete(), future));
-
-            return jdbcClientSafe;
+            return new CircuitBreakerSecuredJdbcClient(vertx, basicJdbcClient, metrics, maxFailures, timeoutMs,
+                    resetTimeoutMs);
         }
 
-        @Bean
-        JdbcClient jdbcClient(
-                @Autowired(required = false) JdbcClientSafe jdbcClientSafe,
-                @Autowired(required = false) JdbcClientBasic jdbcClientBasic) {
-            return ObjectUtils.firstNonNull(jdbcClientSafe, jdbcClientBasic);
+        private static BasicJdbcClient createBasicJdbcClient(
+                Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
+            final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
+
+            contextRunner.runOnServiceContext(
+                    future -> basicJdbcClient.initialize().compose(ignored -> future.complete(), future));
+
+            return basicJdbcClient;
         }
 
         @Bean

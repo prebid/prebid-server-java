@@ -36,7 +36,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.*;
 
-public class JdbcClientBasicTest {
+public class BasicJdbcClientTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -49,7 +49,7 @@ public class JdbcClientBasicTest {
     private Metrics metrics;
 
     private Clock clock;
-    private JdbcClientBasic jdbcClient;
+    private BasicJdbcClient jdbcClient;
 
     private Timeout timeout;
 
@@ -58,15 +58,15 @@ public class JdbcClientBasicTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500L);
 
-        jdbcClient = new JdbcClientBasic(vertx, vertxJdbcClient, metrics, clock);
+        jdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new JdbcClientBasic(null, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new JdbcClientBasic(vertx, null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new JdbcClientBasic(vertx, vertxJdbcClient, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new JdbcClientBasic(vertx, vertxJdbcClient, metrics, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(vertx, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(vertx, vertxJdbcClient, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(vertx, vertxJdbcClient, metrics, null));
     }
 
     @Test

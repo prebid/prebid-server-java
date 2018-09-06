@@ -34,18 +34,18 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @RunWith(VertxUnitRunner.class)
-public class JdbcClientSafeTest {
+public class CircuitBreakerSecuredJdbcClientTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private Vertx vertx;
     @Mock
-    private JdbcClientBasic jdbcClientBasic;
+    private BasicJdbcClient basicJdbcClient;
     @Mock
     private Metrics metrics;
 
-    private JdbcClientSafe jdbcClientSafe;
+    private CircuitBreakerSecuredJdbcClient jdbcClient;
 
     private Timeout timeout;
 
@@ -55,7 +55,7 @@ public class JdbcClientSafeTest {
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500L);
 
-        jdbcClientSafe = new JdbcClientSafe(vertx, jdbcClientBasic, metrics, 0, 100L, 200L);
+        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, basicJdbcClient, metrics, 0, 100L, 200L);
     }
 
     @After
@@ -66,11 +66,11 @@ public class JdbcClientSafeTest {
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new JdbcClientSafe(null, null, null, 0, 0L, 0L));
+                () -> new CircuitBreakerSecuredJdbcClient(null, null, null, 0, 0L, 0L));
         assertThatNullPointerException().isThrownBy(
-                () -> new JdbcClientSafe(vertx, null, null, 0, 0L, 0L));
+                () -> new CircuitBreakerSecuredJdbcClient(vertx, null, null, 0, 0L, 0L));
         assertThatNullPointerException().isThrownBy(
-                () -> new JdbcClientSafe(vertx, jdbcClientBasic, null, 0, 0L, 0L));
+                () -> new CircuitBreakerSecuredJdbcClient(vertx, basicJdbcClient, null, 0, 0L, 0L));
     }
 
     @Test
@@ -80,7 +80,7 @@ public class JdbcClientSafeTest {
                 Future.succeededFuture("value")));
 
         // when
-        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(),
+        final Future<?> future = jdbcClient.executeQuery("query", emptyList(),
                 resultSet -> resultSet.getResults().get(0).getString(0), timeout);
 
         // then
@@ -95,7 +95,7 @@ public class JdbcClientSafeTest {
                 Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
-        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout);
+        final Future<?> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout);
 
         // then
         future.setHandler(context.asyncAssertFailure(throwable ->
@@ -109,14 +109,14 @@ public class JdbcClientSafeTest {
                 Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
-        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout) // 1 call
-                .recover(ignored -> jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout)); // 2 call
+        final Future<?> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout) // 1 call
+                .recover(ignored -> jdbcClient.executeQuery("query", emptyList(), identity(), timeout)); // 2 call
 
         // then
         future.setHandler(context.asyncAssertFailure(throwable -> {
             assertThat(throwable).isInstanceOf(RuntimeException.class).hasMessage("open circuit");
 
-            verify(jdbcClientBasic, times(1))
+            verify(basicJdbcClient, times(1))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 call
         }));
     }
@@ -129,18 +129,18 @@ public class JdbcClientSafeTest {
 
         // when
         final Async async = context.async();
-        jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout) // 1 call
-                .recover(ignored -> jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
+        jdbcClient.executeQuery("query", emptyList(), identity(), timeout) // 1 call
+                .recover(ignored -> jdbcClient.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
                 .setHandler(ignored -> vertx.setTimer(300L, id -> async.complete()));
         async.await();
 
-        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout); // 3 call
+        final Future<?> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout); // 3 call
 
         // then
         future.setHandler(context.asyncAssertFailure(exception -> {
             assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception1");
 
-            verify(jdbcClientBasic, times(2))
+            verify(basicJdbcClient, times(2))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 & 3 calls
         }));
     }
@@ -154,19 +154,19 @@ public class JdbcClientSafeTest {
 
         // when
         final Async async = context.async();
-        jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout) // 1 call
-                .recover(ignored -> jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
+        jdbcClient.executeQuery("query", emptyList(), identity(), timeout) // 1 call
+                .recover(ignored -> jdbcClient.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
                 .setHandler(ignored -> vertx.setTimer(300L, id -> async.complete()));
         async.await();
 
-        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(),
+        final Future<?> future = jdbcClient.executeQuery("query", emptyList(),
                 resultSet -> resultSet.getResults().get(0).getString(0), timeout); // 3 call
 
         // then
         future.setHandler(context.asyncAssertSuccess(result -> {
             assertThat(result).isEqualTo("value");
 
-            verify(jdbcClientBasic, times(2))
+            verify(basicJdbcClient, times(2))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 & 3 calls
         }));
     }
@@ -178,7 +178,7 @@ public class JdbcClientSafeTest {
                 Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
-        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout);
+        final Future<?> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout);
 
         // then
         future.setHandler(context.asyncAssertFailure(throwable ->
@@ -194,12 +194,12 @@ public class JdbcClientSafeTest {
 
         // when
         final Async async = context.async();
-        jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout) // 1 call
-                .recover(ignored -> jdbcClientSafe.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
+        jdbcClient.executeQuery("query", emptyList(), identity(), timeout) // 1 call
+                .recover(ignored -> jdbcClient.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
                 .setHandler(ignored -> vertx.setTimer(300L, id -> async.complete()));
         async.await();
 
-        final Future<?> future = jdbcClientSafe.executeQuery("query", emptyList(),
+        final Future<?> future = jdbcClient.executeQuery("query", emptyList(),
                 resultSet -> resultSet.getResults().get(0).getString(0), timeout); // 3 call
 
         // then
@@ -210,7 +210,7 @@ public class JdbcClientSafeTest {
     @SuppressWarnings("unchecked")
     private <T> void givenExecuteQueryReturning(List<Future<T>> results) {
         BDDMockito.BDDMyOngoingStubbing<Future<Object>> given =
-                given(jdbcClientBasic.executeQuery(any(), any(), any(), any()));
+                given(basicJdbcClient.executeQuery(any(), any(), any(), any()));
         for (Future<T> result : results) {
             given = given.willReturn((Future<Object>) result);
         }

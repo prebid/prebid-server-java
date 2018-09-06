@@ -15,18 +15,18 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * JDBC Client wrapped by {@link CircuitBreaker} to achieve robust behavior
+ * JDBC Client wrapped by {@link CircuitBreaker} to achieve robust operating.
  */
-public class JdbcClientSafe implements JdbcClient {
+public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(JdbcClientSafe.class);
+    private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredJdbcClient.class);
 
-    private final JdbcClientBasic jdbcClientBasic;
+    private final JdbcClient jdbcClient;
     private final Metrics metrics;
     private final CircuitBreaker breaker;
 
-    public JdbcClientSafe(Vertx vertx, JdbcClientBasic jdbcClientBasic, Metrics metrics,
-                          int maxFailures, long timeoutMs, long resetTimeoutMs) {
+    public CircuitBreakerSecuredJdbcClient(Vertx vertx, JdbcClient jdbcClient, Metrics metrics,
+                                           int maxFailures, long timeoutMs, long resetTimeoutMs) {
 
         breaker = CircuitBreaker.create("jdbc-client-circuit-breaker", Objects.requireNonNull(vertx),
                 new CircuitBreakerOptions()
@@ -36,8 +36,10 @@ public class JdbcClientSafe implements JdbcClient {
                 .openHandler(ignored -> circuitOpened())
                 .closeHandler(ignored -> circuitClosed());
 
-        this.jdbcClientBasic = Objects.requireNonNull(jdbcClientBasic);
+        this.jdbcClient = Objects.requireNonNull(jdbcClient);
         this.metrics = Objects.requireNonNull(metrics);
+
+        logger.info("Initialized JDBC client with Circuit Breaker");
     }
 
     private void circuitOpened() {
@@ -51,15 +53,9 @@ public class JdbcClientSafe implements JdbcClient {
     }
 
     @Override
-    public Future<Void> initialize() {
-        logger.info("Initializing JDBC client with Circuit Breaker");
-        return jdbcClientBasic.initialize();
-    }
-
-    @Override
     public <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper,
                                       Timeout timeout) {
-        return breaker.execute(future -> jdbcClientBasic.executeQuery(query, params, mapper, timeout)
+        return breaker.execute(future -> jdbcClient.executeQuery(query, params, mapper, timeout)
                 .setHandler(future));
     }
 }

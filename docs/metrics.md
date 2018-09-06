@@ -11,8 +11,8 @@ This document describes all metrics collected and submitted to configured backen
 - `imps_requested` - number if impressions requested
 - `requests.(ok|badinput|err|networkerr).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
 - `active_connections` - current number of open connections
-- `db_circuitbreaker_opened` - number of database circuit breaker was opened (database is unavailable)
-- `db_circuitbreaker_closed` - number of database circuit breaker was closed (database is available again)
+- `db_circuitbreaker_opened` - number of how many times database circuit breaker was opened (database is unavailable)
+- `db_circuitbreaker_closed` - number of how many times database circuit breaker was closed (database is available again)
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
 
 ## Auction per-adapter metrics

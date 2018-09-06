@@ -13,14 +13,6 @@ import java.util.function.Function;
 public interface JdbcClient {
 
     /**
-     * Triggers connection creation. Should be called during application initialization to detect connection issues as
-     * early as possible.
-     * <p>
-     * Must be called on Vertx event loop thread.
-     */
-    Future<Void> initialize();
-
-    /**
      * Executes query with parameters and returns {@link Future<T>} eventually holding result mapped to a model
      * object by provided mapper
      */
