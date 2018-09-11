@@ -110,6 +110,10 @@ For database data source available next options:
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
+- `settings.database.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make database client more robust.
+- `settings.database.circuit-breaker.max-failures` - the number of failure before opening the circuit.
+- `settings.database.circuit-breaker.timeout-ms` - consider a failure if the operation does not succeed in time.
+- `settings.database.circuit-breaker.reset-timeout-ms` - time spent in open state before attempting to re-try.
 
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.

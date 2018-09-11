@@ -9,7 +9,11 @@ This document describes all metrics collected and submitted to configured backen
 - `safari_no_cookie_requests` - number of requests received from Safari browser without `uids` cookie or with one that didn't contain at least one live UID
 - `request_time` - timer tracking how long did it take for Prebid Server to serve a request
 - `imps_requested` - number if impressions requested
-- `requests.(ok|badinput|err).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
+- `requests.(ok|badinput|err|networkerr).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
+- `active_connections` - current number of open connections
+- `db_circuitbreaker_opened` - number of how many times database circuit breaker was opened (database is unavailable)
+- `db_circuitbreaker_closed` - number of how many times database circuit breaker was closed (database is available again)
+- `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID

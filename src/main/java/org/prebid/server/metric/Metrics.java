@@ -179,4 +179,16 @@ public class Metrics extends UpdatableMetrics {
             decCounter(MetricName.active_connections);
         }
     }
+
+    public void updateDatabaseQueryTimeMetric(long millis) {
+        updateTimer(MetricName.db_query_time, millis);
+    }
+
+    public void updateDatabaseCircuitBreakerMetric(boolean opened) {
+        if (opened) {
+            incCounter(MetricName.db_circuitbreaker_opened);
+        } else {
+            incCounter(MetricName.db_circuitbreaker_closed);
+        }
+    }
 }

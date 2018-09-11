@@ -11,7 +11,7 @@ http:
 admin:
   port: 8060
 http-client:
-  max-pool-size: 10000
+  max-pool-size: 4000
   connect-timeout-ms: 2500
 external-url: http://localhost:8000
 default-timeout-ms: 250

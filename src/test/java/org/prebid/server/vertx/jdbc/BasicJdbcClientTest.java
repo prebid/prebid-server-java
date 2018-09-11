@@ -1,4 +1,4 @@
-package org.prebid.server.vertx;
+package org.prebid.server.vertx.jdbc;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -17,6 +17,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.Metrics;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -35,7 +36,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.*;
 
-public class JdbcClientTest {
+public class BasicJdbcClientTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -44,10 +45,12 @@ public class JdbcClientTest {
     private Vertx vertx;
     @Mock
     private JDBCClient vertxJdbcClient;
-
-    private JdbcClient jdbcClient;
+    @Mock
+    private Metrics metrics;
 
     private Clock clock;
+    private BasicJdbcClient jdbcClient;
+
     private Timeout timeout;
 
     @Before
@@ -55,13 +58,15 @@ public class JdbcClientTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500L);
 
-        jdbcClient = new JdbcClient(vertx, vertxJdbcClient);
+        jdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new JdbcClient(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new JdbcClient(vertx, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(vertx, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(vertx, vertxJdbcClient, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(vertx, vertxJdbcClient, metrics, null));
     }
 
     @Test
@@ -189,6 +194,38 @@ public class JdbcClientTest {
 
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo("value");
+    }
+
+    @Test
+    public void executeQueryShouldReportMetricsIfQueryFails() {
+        // given
+        final SQLConnection connection = mock(SQLConnection.class);
+        givenGetConnectionReturning(Future.succeededFuture(connection));
+
+        givenQueryReturning(connection, Future.failedFuture(new RuntimeException("Failed to execute query")));
+
+        // when
+        final Future<ResultSet> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        verify(metrics).updateDatabaseQueryTimeMetric(anyLong());
+    }
+
+    @Test
+    public void executeQueryShouldReportMetricsIfQuerySucceeds() {
+        // given
+        final SQLConnection connection = mock(SQLConnection.class);
+        givenGetConnectionReturning(Future.succeededFuture(connection));
+
+        givenQueryReturning(connection, Future.succeededFuture(new ResultSet().setResults(emptyList())));
+
+        // when
+        final Future<String> future = jdbcClient.executeQuery("query", emptyList(), Object::toString, timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        verify(metrics).updateDatabaseQueryTimeMetric(anyLong());
     }
 
     @SuppressWarnings("unchecked")
