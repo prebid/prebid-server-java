@@ -628,7 +628,40 @@ public class ExchangeServiceTest extends VertxTest {
                         .id("bidId")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(ExtBidPrebid.of(banner, null), singletonMap("bidExt", 1))))
+                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null), singletonMap("bidExt", 1))))
+                        .build()))
+                .build());
+    }
+
+    @Test
+    public void shouldReturnCacheEntityInExt() {
+        // given
+        givenHttpConnector(BidderSeatBid.of(
+                singletonList(BidderBid.of(
+                        Bid.builder().id("bidId").price(BigDecimal.ONE)
+                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null)),
+                emptyList(),
+                emptyList()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.app(App.builder().publisher(Publisher.builder().id("accountId").build()).build())
+                        .ext(mapper.createObjectNode()));
+
+        Map<String, String> resultTargeting;
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)
+                .result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1).element(0).isEqualTo(SeatBid.builder()
+                .seat("someBidder")
+                .group(0)
+                .bid(singletonList(Bid.builder()
+                        .id("bidId")
+                        .price(BigDecimal.ONE)
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null), singletonMap("bidExt", 1))))
                         .build()))
                 .build());
     }
@@ -652,7 +685,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .bid(singletonList(Bid.builder()
                         .id("bidId")
                         .price(BigDecimal.ONE)
-                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null), null)))
+                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null, null), null)))
                         .build()))
                 .build());
     }
