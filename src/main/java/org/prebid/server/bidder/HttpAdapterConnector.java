@@ -7,9 +7,6 @@ import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -32,6 +29,7 @@ import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -107,21 +105,9 @@ public class HttpAdapterConnector {
             return future;
         }
 
-        final HttpClientRequest httpClientRequest = httpClient.requestAbs(httpRequest.getMethod(), uri,
-                response -> handleResponse(bidderDebugBuilder, response, typeReference, future, requestBody))
-                .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future))
-                .setTimeout(remainingTimeout);
-
-        final MultiMap headers = httpRequest.getHeaders();
-        if (headers != null && !headers.isEmpty()) {
-            httpClientRequest.headers().addAll(headers);
-        }
-
-        if (body != null) {
-            httpClientRequest.end(body);
-        } else {
-            httpClientRequest.end();
-        }
+        httpClient.request(httpRequest.getMethod(), uri, httpRequest.getHeaders(), body, remainingTimeout,
+                response -> handleResponse(bidderDebugBuilder, response, typeReference, future, requestBody),
+                exception -> handleException(exception, bidderDebugBuilder, future));
 
         return future;
     }

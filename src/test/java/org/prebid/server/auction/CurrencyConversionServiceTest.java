@@ -1,11 +1,10 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import org.junit.Before;
 import org.junit.Rule;
@@ -18,6 +17,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -47,8 +47,6 @@ public class CurrencyConversionServiceTest extends VertxTest {
     private HttpClient httpClient;
     @Mock
     private Vertx vertx;
-    @Mock
-    private HttpClientRequest httpClientRequest;
 
     private CurrencyConversionService currencyService;
 
@@ -109,8 +107,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 singletonMap(EUR, BigDecimal.valueOf(1.1565)));
 
         // when
-        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, GBP,
-                EUR);
+        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, GBP, EUR);
 
         // then
         assertThat(price.compareTo(BigDecimal.valueOf(0.86468))).isEqualTo(0);
@@ -123,8 +120,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 BigDecimal.valueOf(1.1565)));
 
         // when
-        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR,
-                GBP);
+        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR, GBP);
 
         // then
         assertThat(price.compareTo(BigDecimal.valueOf(1.1565))).isEqualTo(0);
@@ -147,7 +143,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
     @Test
     public void convertCurrencyShouldUseLatestRatesIfRequestRatesIsNull() {
-        // given and when
+        // when
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, null, EUR, GBP);
 
         // then
@@ -178,6 +174,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
     @Test
     public void convertCurrencyShouldThrowPrebidExceptionIfServerAndRequestRatesAreNull() {
+        // when and then
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE, null, USD, EUR))
                 .withMessage("no currency conversion available");
@@ -229,14 +226,14 @@ public class CurrencyConversionServiceTest extends VertxTest {
     public void initializeShouldMakeOneInitialRequestAndTwoScheduled() {
         // given
         final HttpClient client = mock(HttpClient.class);
-        given(client.getAbs(anyString(), any())).willReturn(httpClientRequest);
         final Vertx vertx = Vertx.vertx();
 
         // when
         currencyService = createAndInitService(URL, 1000, vertx, client);
 
         // then
-        verify(client, after(2100).times(3)).getAbs(anyString(), any());
+        verify(client, after(2100).times(3))
+                .request(any(), anyString(), any(), any(), anyLong(), any(), any());
         vertx.close();
     }
 
@@ -250,9 +247,8 @@ public class CurrencyConversionServiceTest extends VertxTest {
     private HttpClientResponse givenHttpClientResponse(HttpClient httpClient, int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
 
-        given(httpClient.getAbs(anyString(), any()))
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
-        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
         return httpClientResponse;
     }
@@ -269,8 +265,8 @@ public class CurrencyConversionServiceTest extends VertxTest {
     private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
         return inv -> {
             // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(1)).handle(httpClientResponse);
-            return httpClientRequest;
+            ((Handler<HttpClientResponse>) inv.getArgument(5)).handle(httpClientResponse);
+            return Future.future();
         };
     }
 

@@ -19,8 +19,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
@@ -56,6 +54,7 @@ import org.prebid.server.proto.request.PreBidRequest.PreBidRequestBuilder;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.UsersyncInfo;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -63,7 +62,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -80,6 +78,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.*;
 
 public class HttpAdapterConnectorTest extends VertxTest {
@@ -101,24 +100,14 @@ public class HttpAdapterConnectorTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     @Mock
     private UidsCookie uidsCookie;
-    @Mock
-    private HttpClientRequest httpClientRequest;
 
     @Before
     public void setUp() {
-        willReturn(singletonList(givenHttpRequest()))
-                .given(adapter).makeHttpRequests(any(), any());
+        willReturn(singletonList(givenHttpRequest())).given(adapter).makeHttpRequests(any(), any());
         willReturn(new TypeReference<BidResponse>() {
         }).given(adapter).responseTypeReference();
 
-        given(httpClient.requestAbs(any(), anyString(), any())).willReturn(httpClientRequest);
-
-        given(httpClientRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
-        given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
-        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
-
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-
         adapterRequest = AdapterRequest.of(null, null);
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
 
@@ -137,14 +126,13 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        verify(httpClient).requestAbs(eq(GET), anyString(), any());
+        verify(httpClient).request(eq(GET), anyString(), any(), isNull(), anyLong(), any(), any());
     }
 
     @Test
     public void callShouldPerformHttpRequestsWithExpectedHeaders() {
         // given
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
-                .add("key1", "value1");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("key1", "value1");
         willReturn(singletonList(AdapterHttpRequest.of(POST, "uri", null, headers)))
                 .given(adapter).makeHttpRequests(any(), any());
 
@@ -152,8 +140,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        assertThat(httpClientRequest.headers()).extracting(Map.Entry::getKey).containsOnly("key1");
-        assertThat(httpClientRequest.headers()).extracting(Map.Entry::getValue).containsOnly("value1");
+        verify(httpClient).request(any(), anyString(), eq(headers), any(), anyLong(), any(), any());
     }
 
     @Test
@@ -165,7 +152,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        verify(httpClientRequest, never()).headers();
+        verify(httpClient).request(any(), anyString(), isNull(), any(), anyLong(), any(), any());
     }
 
     @Test
@@ -174,9 +161,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue()).isEqualTo(500L);
+        verify(httpClient).request(any(), anyString(), any(), any(), eq(500L), any(), any());
     }
 
     @Test
@@ -203,8 +188,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
-        verify(httpClientRequest, never()).end(anyString());
-        verify(httpClientRequest).end();
+        verify(httpClient).request(any(), anyString(), any(), isNull(), anyLong(), any(), any());
     }
 
     @Test
@@ -255,8 +239,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     @Test
     public void callShouldSubmitTimeOutErrorToAdapterIfConnectTimeoutOccurs() {
         // given
-        given(httpClientRequest.exceptionHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(new ConnectTimeoutException()));
+        givenHttpClientProducesException(new ConnectTimeoutException());
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
@@ -271,8 +254,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     @Test
     public void callShouldSubmitTimeOutErrorToAdapterIfTimeoutOccurs() {
         // given
-        given(httpClientRequest.exceptionHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException()));
+        givenHttpClientProducesException(new TimeoutException());
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
@@ -282,22 +264,6 @@ public class HttpAdapterConnectorTest extends VertxTest {
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
         assertThat(adapterResponse.getError()).isEqualTo(BidderError.timeout("Timed out"));
         assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Timed out");
-    }
-
-    @Test
-    public void callShouldSubmitErrorToAdapterIfHttpRequestFails() {
-        // given
-        given(httpClientRequest.exceptionHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
-
-        // when
-        final Future<AdapterResponse> adapterResponseFuture =
-                httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
-
-        // then
-        final AdapterResponse adapterResponse = adapterResponseFuture.result();
-        assertThat(adapterResponse.getError()).isEqualTo(BidderError.generic("Request exception"));
-        assertThat(adapterResponse.getBidderStatus().getError()).isEqualTo("Request exception");
     }
 
     @Test
@@ -337,9 +303,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(503, "response");
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
-                adapterRequest,
-                preBidRequestContext);
+        final Future<AdapterResponse> adapterResponseFuture =
+                httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
@@ -354,9 +319,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
         givenHttpClientReturnsResponses(400, "response");
 
         // when
-        final Future<AdapterResponse> adapterResponseFuture = httpAdapterConnector.call(adapter, usersyncer,
-                adapterRequest,
-                preBidRequestContext);
+        final Future<AdapterResponse> adapterResponseFuture =
+                httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
 
         // then
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
@@ -464,7 +428,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("error response")))
                 .willReturn(httpClientResponseWithError);
 
-        given(httpClient.requestAbs(any(), anyString(), any()))
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
 
@@ -509,7 +473,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("error response")))
                 .willReturn(httpClientResponseWithError);
 
-        given(httpClient.requestAbs(any(), anyString(), any()))
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
 
@@ -702,7 +666,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         final AdapterResponse adapterResponse = adapterResponseFuture.result();
 
         final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClientRequest).end(bidRequestCaptor.capture());
+        verify(httpClient).request(any(), anyString(), any(), bidRequestCaptor.capture(), anyLong(), any(), any());
         final List<String> bidRequests = bidRequestCaptor.getAllValues();
 
         assertThat(adapterResponse.getBidderStatus().getDebug()).hasSize(1).containsOnly(
@@ -753,27 +717,6 @@ public class HttpAdapterConnectorTest extends VertxTest {
     }
 
     @Test
-    public void callShouldReturnAdapterResponseWithDebugIfFlagIsTrueAndHttpRequestFails() {
-        // given
-        preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
-
-        given(httpClientRequest.exceptionHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
-
-        // when
-        final Future<AdapterResponse> adapterResponseFuture =
-                httpAdapterConnector.call(adapter, usersyncer, adapterRequest, preBidRequestContext);
-
-        // then
-        final AdapterResponse adapterResponse = adapterResponseFuture.result();
-        assertThat(adapterResponse.getBidderStatus().getDebug()).hasSize(1);
-
-        final BidderDebug bidderDebug = adapterResponse.getBidderStatus().getDebug().get(0);
-        assertThat(bidderDebug.getRequestUri()).isNotBlank();
-        assertThat(bidderDebug.getRequestBody()).isNotBlank();
-    }
-
-    @Test
     public void callShouldReturnAdapterResponseWithDebugIfFlagIsTrueAndResponseIsNotSuccessful() {
         // given
         preBidRequestContext = givenPreBidRequestContext(builder -> builder.isDebug(true), identity());
@@ -797,7 +740,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
     private BidRequest captureBidRequest() throws IOException {
         final ArgumentCaptor<String> bidRequestCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClientRequest).end(bidRequestCaptor.capture());
+        verify(httpClient).request(any(), anyString(), any(), bidRequestCaptor.capture(), anyLong(), any(), any());
         return mapper.readValue(bidRequestCaptor.getValue(), BidRequest.class);
     }
 
@@ -880,7 +823,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.requestAbs(any(), anyString(), any()))
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
                 .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(statusCode);
         return httpClientResponse;
@@ -890,8 +833,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
     private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
         return inv -> {
             // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(2)).handle(httpClientResponse);
-            return httpClientRequest;
+            ((Handler<HttpClientResponse>) inv.getArgument(5)).handle(httpClientResponse);
+            return Future.future();
         };
     }
 

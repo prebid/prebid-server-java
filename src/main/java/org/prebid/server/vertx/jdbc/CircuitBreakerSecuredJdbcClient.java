@@ -34,6 +34,7 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
                         .setTimeout(timeoutMs) // consider a failure if the operation does not succeed in time
                         .setResetTimeout(resetTimeoutMs)) // time spent in open state before attempting to re-try
                 .openHandler(ignored -> circuitOpened())
+                .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());
 
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
@@ -43,8 +44,12 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
     }
 
     private void circuitOpened() {
-        logger.warn("Database unavailable, circuit opened.");
+        logger.warn("Database is unavailable, circuit opened.");
         metrics.updateDatabaseCircuitBreakerMetric(true);
+    }
+
+    private void circuitHalfOpened() {
+        logger.warn("Database is ready to try again, circuit half-opened.");
     }
 
     private void circuitClosed() {

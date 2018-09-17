@@ -2,8 +2,8 @@ package org.prebid.server.currency;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -11,6 +11,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -66,9 +67,8 @@ public class CurrencyConversionService {
      * Updates latest currency rates by making a call to currency server.
      */
     private void populatesLatestCurrencyRates() {
-        httpClient.getAbs(currencyServerUrl, this::handleResponse)
-                .exceptionHandler(CurrencyConversionService::handleException)
-                .end();
+        httpClient.request(HttpMethod.GET, currencyServerUrl, null, null, 2000L,
+                this::handleResponse, CurrencyConversionService::handleException);
     }
 
     private void handleResponse(HttpClientResponse response) {

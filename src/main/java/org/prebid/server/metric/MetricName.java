@@ -9,6 +9,10 @@ public enum MetricName {
     db_circuitbreaker_closed,
     db_query_time,
 
+    // http client
+    httpclient_circuitbreaker_opened,
+    httpclient_circuitbreaker_closed,
+
     // auction
     requests,
     app_requests,

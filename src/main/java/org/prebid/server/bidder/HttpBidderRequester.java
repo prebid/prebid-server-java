@@ -6,10 +6,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -23,6 +20,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -95,17 +93,11 @@ public class HttpBidderRequester<T> implements BidderRequester {
             return result;
         }
 
-        final HttpClientRequest httpClientRequest =
-                httpClient.requestAbs(httpRequest.getMethod(), httpRequest.getUri(),
-                        response -> handleResponse(response, result, httpRequest))
-                        .exceptionHandler(exception -> handleException(exception, result, httpRequest));
-        httpClientRequest.headers().addAll(httpRequest.getHeaders());
-        httpClientRequest.setTimeout(remainingTimeout);
-        if (httpRequest.getMethod().equals(HttpMethod.GET)) {
-            httpClientRequest.end();
-        } else {
-            httpClientRequest.end(httpRequest.getBody());
-        }
+        httpClient.request(httpRequest.getMethod(), httpRequest.getUri(), httpRequest.getHeaders(),
+                httpRequest.getBody(), remainingTimeout,
+                response -> handleResponse(response, result, httpRequest),
+                exception -> handleException(exception, result, httpRequest));
+
         return result;
     }
 

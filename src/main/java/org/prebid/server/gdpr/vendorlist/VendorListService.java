@@ -5,8 +5,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -17,6 +17,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.gdpr.vendorlist.proto.VendorList;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.io.File;
 import java.io.IOException;
@@ -202,20 +203,19 @@ public class VendorListService {
     private void fetchNewVendorListFor(int version) {
         final String url = endpointTemplate.replace(VERSION_PLACEHOLDER, String.valueOf(version));
 
-        httpClient.getAbs(url, response -> handleResponse(response, version))
-                .exceptionHandler(throwable -> handleException(version, throwable))
-                .setTimeout(defaultTimeoutMs)
-                .end();
+        httpClient.request(HttpMethod.GET, url, null, null, defaultTimeoutMs,
+                response -> handleResponse(response, version),
+                exception -> handleException(exception, version));
     }
 
-    private static void handleException(int version, Throwable throwable) {
+    private static void handleException(Throwable throwable, int version) {
         log(version, throwable.getMessage());
     }
 
     private void handleResponse(HttpClientResponse response, int version) {
         response
                 .bodyHandler(buffer -> handleBody(version, response.statusCode(), buffer.toString()))
-                .exceptionHandler(throwable -> handleException(version, throwable));
+                .exceptionHandler(throwable -> handleException(throwable, version));
     }
 
     private void handleBody(int version, int statusCode, String body) {
@@ -261,7 +261,7 @@ public class VendorListService {
 
         fileSystem.writeFile(filepath, Buffer.buffer(content), result -> {
             if (result.succeeded()) {
-                log(version, "Created new vendor list file %s: ", filepath);
+                logger.info(String.format("Created new vendor list for version %d in file: %s", version, filepath));
                 future.complete();
             } else {
                 log(version, "Could not create new vendor list file: %s", filepath);

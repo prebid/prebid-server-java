@@ -2,15 +2,17 @@ package org.prebid.server.optout;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClient;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.optout.model.RecaptchaResponse;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -18,7 +20,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Implements the connection to the re-captcha validation endpoint
+ * Implements the connection to the re-captcha validation endpoint.
  */
 public class GoogleRecaptchaVerifier {
 
@@ -35,16 +37,17 @@ public class GoogleRecaptchaVerifier {
     }
 
     /**
-     * Validates reCAPTCHA token by sending it to the re-captcha verfier endpoint url
+     * Validates reCAPTCHA token by sending it to the re-captcha verfier endpoint url.
      */
     public Future<Void> verify(String recaptcha) {
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
+                .add(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_X_WWW_FORM_URLENCODED)
+                .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+
         final Future<Void> future = Future.future();
-        httpClient.postAbs(recaptchaUrl, response -> handleResponse(response, future))
-                .exceptionHandler(exception -> handleException(exception, future))
-                .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_X_WWW_FORM_URLENCODED)
-                .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                .setTimeout(2000L) // google recaptcha API may be slow
-                .end(encodedBody(recaptchaSecret, recaptcha));
+        httpClient.request(HttpMethod.POST, recaptchaUrl, headers, encodedBody(recaptchaSecret, recaptcha), 2000L,
+                response -> handleResponse(response, future),
+                exception -> handleException(exception, future));
         return future;
     }
 
@@ -94,5 +97,4 @@ public class GoogleRecaptchaVerifier {
             throw new PreBidException(String.format("Cannot encode request form value: %s", value), e);
         }
     }
-
 }

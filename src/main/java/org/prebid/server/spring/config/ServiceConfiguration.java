@@ -4,7 +4,6 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
@@ -29,7 +28,11 @@ import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.vertx.ContextRunner;
+import org.prebid.server.vertx.http.BasicHttpClient;
+import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
@@ -106,15 +109,37 @@ public class ServiceConfiguration {
 
     @Bean
     @Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
-    HttpClient httpClient(
+    @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "false",
+            matchIfMissing = true)
+    BasicHttpClient basicHttpClient(
+            Vertx vertx,
+            @Value("${http-client.max-pool-size}") int maxPoolSize,
+            @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs) {
+
+        return createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs);
+    }
+
+    @Bean
+    @Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
+    @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "true")
+    CircuitBreakerSecuredHttpClient circuitBreakerSecuredHttpClient(
+            Vertx vertx,
+            Metrics metrics,
             @Value("${http-client.max-pool-size}") int maxPoolSize,
             @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs,
-            Vertx vertx) {
+            @Value("${http-client.circuit-breaker.max-failures}") int maxFailures,
+            @Value("${http-client.circuit-breaker.timeout-ms}") long timeoutMs,
+            @Value("${http-client.circuit-breaker.reset-timeout-ms}") long resetTimeoutMs) {
 
+        final HttpClient httpClient = createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs);
+        return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics, maxFailures, timeoutMs, resetTimeoutMs);
+    }
+
+    private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs) {
         final HttpClientOptions options = new HttpClientOptions()
                 .setMaxPoolSize(maxPoolSize)
                 .setConnectTimeout(connectTimeoutMs);
-        return vertx.createHttpClient(options);
+        return new BasicHttpClient(vertx.createHttpClient(options));
     }
 
     @Bean

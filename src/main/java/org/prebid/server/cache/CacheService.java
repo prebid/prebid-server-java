@@ -1,11 +1,9 @@
 package org.prebid.server.cache;
 
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -21,6 +19,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -40,9 +40,6 @@ import java.util.stream.Stream;
 public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
-
-    private static final String APPLICATION_JSON =
-            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
     private final HttpClient httpClient;
     private final String endpointUrl;
@@ -125,12 +122,9 @@ public class CacheService {
             if (remainingTimeout <= 0) {
                 handleException(new TimeoutException(), future);
             } else {
-                httpClient.postAbs(endpointUrl, response -> handleResponse(response, bidCount, future))
-                        .exceptionHandler(exception -> handleException(exception, future))
-                        .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                        .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                        .setTimeout(remainingTimeout)
-                        .end(Json.encode(bidCacheRequest));
+                httpClient.request(HttpMethod.POST, endpointUrl, HttpUtil.headers(), Json.encode(bidCacheRequest),
+                        remainingTimeout, response -> handleResponse(response, bidCount, future),
+                        exception -> handleException(exception, future));
             }
         }
         return future;

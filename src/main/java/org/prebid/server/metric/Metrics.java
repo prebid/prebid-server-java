@@ -191,4 +191,12 @@ public class Metrics extends UpdatableMetrics {
             incCounter(MetricName.db_circuitbreaker_closed);
         }
     }
+
+    public void updateHttpClientCircuitBreakerMetric(boolean opened) {
+        if (opened) {
+            incCounter(MetricName.httpclient_circuitbreaker_opened);
+        } else {
+            incCounter(MetricName.httpclient_circuitbreaker_closed);
+        }
+    }
 }

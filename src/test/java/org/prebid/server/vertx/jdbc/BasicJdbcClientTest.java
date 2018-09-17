@@ -70,7 +70,6 @@ public class BasicJdbcClientTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void initializeShouldReturnEmptySucceededFutureIfConnectionCouldBeEstablished() {
         // given
         givenGetConnectionReturning(Future.succeededFuture());
