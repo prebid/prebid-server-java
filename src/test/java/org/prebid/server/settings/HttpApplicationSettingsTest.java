@@ -3,10 +3,7 @@ package org.prebid.server.settings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import org.junit.Before;
 import org.junit.Rule;
@@ -23,6 +20,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -38,6 +36,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
 
 public class HttpApplicationSettingsTest extends VertxTest {
 
@@ -52,20 +52,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     private HttpApplicationSettings httpApplicationSettings;
 
-    @Mock
-    private HttpClientRequest httpClientRequest;
-
     private Timeout timeout;
     private Timeout expiredTimeout;
 
     @Before
     public void setUp() {
-        given(httpClient.getAbs(anyString(), any())).willReturn(httpClientRequest);
-
-        given(httpClientRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
-        given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
-        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
-
         httpApplicationSettings = new HttpApplicationSettings(httpClient, ENDPOINT, AMP_ENDPOINT);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -143,9 +134,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 timeout);
 
         // then
-        final ArgumentCaptor<String> timeoutCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).getAbs(timeoutCaptor.capture(), any());
-        assertThat(timeoutCaptor.getValue()).isEqualTo("http://stored-requests?request-ids=id2,id1&imp-ids=id4,id3");
+        verify(httpClient).request(any(), eq("http://stored-requests?request-ids=id2,id1&imp-ids=id4,id3"), any(), isNull(), anyLong(), any(), any());
     }
 
     @Test
@@ -158,9 +147,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);
 
         // then
-        final ArgumentCaptor<String> timeoutCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).getAbs(timeoutCaptor.capture(), any());
-        assertThat(timeoutCaptor.getValue()).isEqualTo("http://some-domain?param1=value1&request-ids=id1&imp-ids=id2");
+        verify(httpClient).request(any(), eq("http://some-domain?param1=value1&request-ids=id1&imp-ids=id2"), any(), isNull(), anyLong(), any(), any());
     }
 
     @Test
@@ -307,7 +294,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
         // then
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).getAbs(captor.capture(), any());
+        verify(httpClient).request(any(), captor.capture(), any(), isNull(), anyLong(), any(), any());
         assertThat(captor.getValue()).doesNotContain("imp-ids");
     }
 
@@ -318,36 +305,29 @@ public class HttpApplicationSettingsTest extends VertxTest {
         final BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
                 given(httpClientResponse.bodyHandler(any()));
 
-        currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
+        currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response), 0));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable, 0));
     }
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.getAbs(anyString(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(statusCode);
+
+        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
+                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+
         return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
-    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
         return inv -> {
-            // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(1)).handle(httpClientResponse);
-            return httpClientRequest;
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
+            ((Handler<T>) inv.getArgument(position)).handle(obj);
             return inv.getMock();
         };
     }

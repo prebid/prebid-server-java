@@ -1,7 +1,6 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -285,10 +284,10 @@ public class HttpBidderRequesterTest {
         given(httpClientResponse.exceptionHandler(any()))
                 // simulate response error for the second request (which will trigger exceptionHandler call on
                 // response mock first time)
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception")))
+                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception"), 0))
                 // simulate timeout for the third request (which will trigger exceptionHandler call on
                 // response mock second time)
-                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException("Timeout exception")))
+                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException("Timeout exception"), 0))
                 // continue normally for subsequent requests
                 .willReturn(httpClientResponse);
         given(httpClientResponse.bodyHandler(any()))
@@ -297,7 +296,7 @@ public class HttpBidderRequesterTest {
                 .willReturn(httpClientResponse)
                 .willReturn(httpClientResponse)
                 // continue normally for subsequent requests
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(EMPTY)));
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(EMPTY), 0));
         given(httpClientResponse.statusCode())
                 // simulate 500 status for the fourth request (which will trigger statusCode call on response mock
                 // first time)
@@ -340,39 +339,30 @@ public class HttpBidderRequesterTest {
         BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
                 given(httpClientResponse.bodyHandler(any()));
         for (String bidResponse : bidResponses) {
-            currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)));
+            currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse), 0));
         }
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable, 0));
     }
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
                 .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
 
         return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
-    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
         return inv -> {
-            // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(5)).handle(httpClientResponse);
-            return Future.future();
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
+            ((Handler<T>) inv.getArgument(position)).handle(obj);
             return inv.getMock();
         };
     }

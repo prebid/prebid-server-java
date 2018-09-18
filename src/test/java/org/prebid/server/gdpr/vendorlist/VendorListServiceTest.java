@@ -8,11 +8,9 @@ import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -41,7 +39,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-@RunWith(VertxUnitRunner.class)
 public class VendorListServiceTest extends VertxTest {
 
     private static final String CACHE_DIR = "/cache/dir";
@@ -351,19 +348,10 @@ public class VendorListServiceTest extends VertxTest {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
                 .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
 
         return httpClientResponse;
-    }
-
-    @SuppressWarnings("unchecked")
-    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
-        return inv -> {
-            // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(5)).handle(httpClientResponse);
-            return Future.future();
-        };
     }
 
     @SuppressWarnings("unchecked")

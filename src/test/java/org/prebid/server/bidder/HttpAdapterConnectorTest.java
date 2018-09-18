@@ -362,7 +362,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         final String bidResponse = mapper.writeValueAsString(CustomResponse.of("url", BigDecimal.ONE));
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
         given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse), 0))
                 .willReturn(httpClientResponse);
 
         // when
@@ -387,7 +387,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         final String bidResponse = givenBidResponse(identity(), identity(), singletonList(identity()));
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
         given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse), 0))
                 .willReturn(httpClientResponse);
 
         // when
@@ -419,17 +419,17 @@ public class HttpAdapterConnectorTest extends VertxTest {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(200);
         given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse), 0))
                 .willReturn(httpClientResponse);
 
         final HttpClientResponse httpClientResponseWithError = mock(HttpClientResponse.class);
         given(httpClientResponseWithError.statusCode()).willReturn(503);
         given(httpClientResponseWithError.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("error response")))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("error response"), 0))
                 .willReturn(httpClientResponseWithError);
 
-        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
-                .doAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError))
+        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
+                .doAnswer(withSelfAndPassObjectToHandler(httpClientResponseWithError, 5))
                 .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
 
         // when
@@ -464,17 +464,17 @@ public class HttpAdapterConnectorTest extends VertxTest {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(200);
         given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse), 0))
                 .willReturn(httpClientResponse);
 
         final HttpClientResponse httpClientResponseWithError = mock(HttpClientResponse.class);
         given(httpClientResponseWithError.statusCode()).willReturn(503);
         given(httpClientResponseWithError.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("error response")))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("error response"), 0))
                 .willReturn(httpClientResponseWithError);
 
-        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
-                .doAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError))
+        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
+                .doAnswer(withSelfAndPassObjectToHandler(httpClientResponseWithError, 5))
                 .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
 
         // when
@@ -807,7 +807,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
     private void givenHttpClientProducesException(Throwable throwable) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable, 0));
     }
 
     private void givenHttpClientReturnsResponses(int statusCode, String... bidResponses) {
@@ -817,7 +817,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
                 given(httpClientResponse.bodyHandler(any()));
         for (String bidResponse : bidResponses) {
-            currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)));
+            currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse), 0));
         }
     }
 
@@ -825,25 +825,16 @@ public class HttpAdapterConnectorTest extends VertxTest {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
                 .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
 
         return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
-    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
         return inv -> {
-            // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(5)).handle(httpClientResponse);
-            return Future.future();
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
+            ((Handler<T>) inv.getArgument(position)).handle(obj);
             return inv.getMock();
         };
     }

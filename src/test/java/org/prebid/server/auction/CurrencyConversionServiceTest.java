@@ -1,7 +1,6 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -241,14 +240,14 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(httpClient, statusCode);
         given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(body)));
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(body), 0));
     }
 
     private HttpClientResponse givenHttpClientResponse(HttpClient httpClient, int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
                 .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
 
         return httpClientResponse;
@@ -263,18 +262,9 @@ public class CurrencyConversionServiceTest extends VertxTest {
     }
 
     @SuppressWarnings("unchecked")
-    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
         return inv -> {
-            // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(5)).handle(httpClientResponse);
-            return Future.future();
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
+            ((Handler<T>) inv.getArgument(position)).handle(obj);
             return inv.getMock();
         };
     }

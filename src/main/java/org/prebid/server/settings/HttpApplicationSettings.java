@@ -3,8 +3,8 @@ package org.prebid.server.settings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -17,6 +17,7 @@ import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -116,11 +117,9 @@ public class HttpApplicationSettings implements ApplicationSettings {
             if (remainingTimeout <= 0) {
                 handleException(new TimeoutException("Timeout has been exceeded"), future, requestIds, impIds);
             } else {
-                httpClient.getAbs(urlFrom(endpoint, requestIds, impIds),
-                        response -> handleResponse(response, future, requestIds, impIds))
-                        .exceptionHandler(throwable -> handleException(throwable, future, requestIds, requestIds))
-                        .setTimeout(remainingTimeout)
-                        .end();
+                httpClient.request(HttpMethod.POST, urlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), null,
+                        remainingTimeout, response -> handleResponse(response, future, requestIds, impIds),
+                        exception -> handleException(exception, future, requestIds, requestIds));
             }
         }
 
@@ -146,7 +145,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     private static String joinIds(Set<String> ids) {
-        return ids.stream().collect(Collectors.joining(","));
+        return String.join(",", ids);
     }
 
     private static void handleException(Throwable throwable, Future<StoredDataResult> future,

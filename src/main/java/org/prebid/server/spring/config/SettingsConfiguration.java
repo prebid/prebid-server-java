@@ -2,7 +2,6 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -25,6 +24,7 @@ import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.vertx.ContextRunner;
+import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
 import org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient;
 import org.prebid.server.vertx.jdbc.JdbcClient;

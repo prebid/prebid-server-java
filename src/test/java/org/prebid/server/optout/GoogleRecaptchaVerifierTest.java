@@ -135,38 +135,29 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
 
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable, 0));
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
         given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response), 0));
     }
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
                 .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
 
         return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
-    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
         return inv -> {
-            // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(5)).handle(httpClientResponse);
-            return Future.future();
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
+            ((Handler<T>) inv.getArgument(position)).handle(obj);
             return inv.getMock();
         };
     }
