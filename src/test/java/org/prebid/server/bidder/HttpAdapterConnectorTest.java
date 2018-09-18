@@ -77,29 +77,29 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.isNull;
-import static org.mockito.Mockito.*;
 
 public class HttpAdapterConnectorTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
-    private Adapter<?, ?> adapter;
-    @Mock
-    private Usersyncer usersyncer;
     @Mock
     private HttpClient httpClient;
     private Clock clock;
 
     private HttpAdapterConnector httpAdapterConnector;
 
-    private AdapterRequest adapterRequest;
-    private PreBidRequestContext preBidRequestContext;
+    @Mock
+    private Adapter<?, ?> adapter;
+    @Mock
+    private Usersyncer usersyncer;
     @Mock
     private UidsCookie uidsCookie;
+
+    private AdapterRequest adapterRequest;
+    private PreBidRequestContext preBidRequestContext;
 
     @Before
     public void setUp() {
@@ -428,9 +428,9 @@ public class HttpAdapterConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("error response")))
                 .willReturn(httpClientResponseWithError);
 
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
+        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+                .doAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError))
+                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
@@ -473,9 +473,9 @@ public class HttpAdapterConnectorTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("error response")))
                 .willReturn(httpClientResponseWithError);
 
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError));
+        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+                .doAnswer(withRequestAndPassResponseToHandler(httpClientResponseWithError))
+                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
@@ -823,9 +823,11 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(statusCode);
+
+        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+
         return httpClientResponse;
     }
 

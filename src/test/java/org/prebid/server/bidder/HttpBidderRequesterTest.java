@@ -48,12 +48,12 @@ public class HttpBidderRequesterTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private Bidder<?> bidder;
+    @Mock
     private HttpClient httpClient;
 
     private HttpBidderRequester<?> bidderHttpConnector;
 
-    @Mock
-    private Bidder<?> bidder;
     private Timeout timeout;
     private Timeout expiredTimeout;
 
@@ -280,9 +280,7 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
 
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
+        final HttpClientResponse httpClientResponse = givenHttpClientResponse(0);
 
         given(httpClientResponse.exceptionHandler(any()))
                 // simulate response error for the second request (which will trigger exceptionHandler call on
@@ -354,9 +352,11 @@ public class HttpBidderRequesterTest {
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(statusCode);
+
+        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+
         return httpClientResponse;
     }
 

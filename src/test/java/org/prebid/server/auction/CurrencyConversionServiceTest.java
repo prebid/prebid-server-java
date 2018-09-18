@@ -246,10 +246,11 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
     private HttpClientResponse givenHttpClientResponse(HttpClient httpClient, int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(statusCode);
+
+        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+
         return httpClientResponse;
     }
 

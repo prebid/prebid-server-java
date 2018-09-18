@@ -1,6 +1,5 @@
 package org.prebid.server.vertx.http;
 
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpClientRequest;
@@ -21,14 +20,12 @@ public class BasicHttpClient implements HttpClient {
     }
 
     @Override
-    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
-                                              long timeoutMs, Handler<HttpClientResponse> responseHandler,
-                                              Handler<Throwable> exceptionHandler) {
-        final Future<HttpClientResponse> future = Future.future();
+    public void request(HttpMethod method, String url, MultiMap headers, String body, long timeoutMs,
+                        Handler<HttpClientResponse> responseHandler, Handler<Throwable> exceptionHandler) {
 
         final HttpClientRequest httpClientRequest = httpClient.requestAbs(method, url)
-                .handler(response -> handleResponse(response, future, responseHandler))
-                .exceptionHandler(exception -> handleException(exception, future, exceptionHandler));
+                .handler(responseHandler)
+                .exceptionHandler(exceptionHandler);
 
         if (headers != null) {
             httpClientRequest.headers().addAll(headers);
@@ -42,24 +39,6 @@ public class BasicHttpClient implements HttpClient {
             httpClientRequest.end(body);
         } else {
             httpClientRequest.end();
-        }
-
-        return future;
-    }
-
-    private static void handleResponse(HttpClientResponse response, Future<HttpClientResponse> future,
-                                       Handler<HttpClientResponse> responseHandler) {
-        future.tryComplete(response);
-        if (responseHandler != null) {
-            responseHandler.handle(response);
-        }
-    }
-
-    private static void handleException(Throwable exception, Future<HttpClientResponse> future,
-                                        Handler<Throwable> exceptionHandler) {
-        future.tryFail(exception);
-        if (exceptionHandler != null) {
-            exceptionHandler.handle(exception);
         }
     }
 }

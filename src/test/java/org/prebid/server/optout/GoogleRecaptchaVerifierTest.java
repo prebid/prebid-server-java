@@ -19,10 +19,12 @@ import org.prebid.server.vertx.http.HttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class GoogleRecaptchaVerifierTest extends VertxTest {
 
@@ -144,9 +146,11 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.request(any(), anyString(), any(), any(), anyLong(), any(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(statusCode);
+
+        doAnswer(withRequestAndPassResponseToHandler(httpClientResponse))
+                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+
         return httpClientResponse;
     }
 
