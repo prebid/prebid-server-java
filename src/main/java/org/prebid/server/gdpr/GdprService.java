@@ -39,8 +39,7 @@ public class GdprService {
     private final String gdprDefaultValue;
 
     public GdprService(GeoLocationService geoLocationService, VendorListService vendorListService,
-                       List<String> eeaCountries,
-                       String gdprDefaultValue) {
+                       List<String> eeaCountries, String gdprDefaultValue) {
         this.geoLocationService = geoLocationService;
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
         this.vendorListService = Objects.requireNonNull(vendorListService);
