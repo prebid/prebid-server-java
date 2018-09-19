@@ -41,7 +41,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
 
     private Vertx vertx;
     @Mock
-    private BasicJdbcClient basicJdbcClient;
+    private JdbcClient wrappedJdbcClient;
     @Mock
     private Metrics metrics;
 
@@ -55,7 +55,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500L);
 
-        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, basicJdbcClient, metrics, 0, 100L, 200L);
+        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 0, 100L, 200L);
     }
 
     @After
@@ -70,7 +70,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         assertThatNullPointerException().isThrownBy(
                 () -> new CircuitBreakerSecuredJdbcClient(vertx, null, null, 0, 0L, 0L));
         assertThatNullPointerException().isThrownBy(
-                () -> new CircuitBreakerSecuredJdbcClient(vertx, basicJdbcClient, null, 0, 0L, 0L));
+                () -> new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, null, 0, 0L, 0L));
     }
 
     @Test
@@ -116,7 +116,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         future.setHandler(context.asyncAssertFailure(throwable -> {
             assertThat(throwable).isInstanceOf(RuntimeException.class).hasMessage("open circuit");
 
-            verify(basicJdbcClient, times(1))
+            verify(wrappedJdbcClient, times(1))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 call
         }));
     }
@@ -140,7 +140,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         future.setHandler(context.asyncAssertFailure(exception -> {
             assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception1");
 
-            verify(basicJdbcClient, times(2))
+            verify(wrappedJdbcClient, times(2))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 & 3 calls
         }));
     }
@@ -166,7 +166,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         future.setHandler(context.asyncAssertSuccess(result -> {
             assertThat(result).isEqualTo("value");
 
-            verify(basicJdbcClient, times(2))
+            verify(wrappedJdbcClient, times(2))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 & 3 calls
         }));
     }
@@ -210,7 +210,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
     @SuppressWarnings("unchecked")
     private <T> void givenExecuteQueryReturning(List<Future<T>> results) {
         BDDMockito.BDDMyOngoingStubbing<Future<Object>> given =
-                given(basicJdbcClient.executeQuery(any(), any(), any(), any()));
+                given(wrappedJdbcClient.executeQuery(any(), any(), any(), any()));
         for (Future<T> result : results) {
             given = given.willReturn((Future<Object>) result);
         }

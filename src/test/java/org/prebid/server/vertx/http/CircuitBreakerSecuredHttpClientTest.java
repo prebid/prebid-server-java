@@ -97,7 +97,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldFailsIfCircuitIsClosedButWrappedHttpClientFails(TestContext context) {
         // given
-        givenHttpClientReturning(new RuntimeException("exception1"));
+        givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
         doRequest(context, exceptionHandler); // 1 call
@@ -112,7 +112,7 @@ public class CircuitBreakerSecuredHttpClientTest {
         final ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
         verify(exceptionHandler, times(2)).handle(captor.capture());
         assertThat(captor.getAllValues()).extracting(Throwable::getMessage)
-                .containsExactly("exception1", "open circuit");
+                .containsExactly("exception", "open circuit");
     }
 
     @Test
@@ -142,16 +142,12 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldFailsIfCircuitIsHalfOpenedButWrappedHttpClientFails(TestContext context) {
         // given
-        givenHttpClientReturning(new RuntimeException("exception1"));
+        givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
         doRequest(context, exceptionHandler); // 1 call
         doRequest(context, exceptionHandler); // 2 call
-
-        final Async async = context.async();
-        vertx.setTimer(300L, id -> async.countDown());
-        async.await();
-
+        doWaitForResetTime(context);
         doRequest(context, exceptionHandler); // 3 call
 
         // then
@@ -163,22 +159,18 @@ public class CircuitBreakerSecuredHttpClientTest {
         final ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
         verify(exceptionHandler, times(3)).handle(captor.capture());
         assertThat(captor.getAllValues()).extracting(Throwable::getMessage)
-                .containsExactly("exception1", "open circuit", "exception1");
+                .containsExactly("exception", "open circuit", "exception");
     }
 
     @Test
     public void requestShouldSucceedsIfCircuitIsHalfOpenedAndWrappedHttpClientSucceeds(TestContext context) {
         // given
-        givenHttpClientReturning(new RuntimeException("exception1"), mock(HttpClientResponse.class));
+        givenHttpClientReturning(new RuntimeException("exception"), mock(HttpClientResponse.class));
 
         // when
         doRequest(context, exceptionHandler); // 1 call
         doRequest(context, exceptionHandler); // 2 call
-
-        final Async async = context.async();
-        vertx.setTimer(300L, id -> async.countDown()); // waiting for reset time of circuit breaker
-        async.await();
-
+        doWaitForResetTime(context);
         doRequest(context, responseHandler); // 3 call
 
         // then
@@ -190,13 +182,13 @@ public class CircuitBreakerSecuredHttpClientTest {
         final ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
         verify(exceptionHandler, times(2)).handle(captor.capture());
         assertThat(captor.getAllValues()).extracting(Throwable::getMessage)
-                .containsExactly("exception1", "open circuit");
+                .containsExactly("exception", "open circuit");
     }
 
     @Test
     public void requestShouldReportMetricsOnCircuitOpened(TestContext context) {
         // given
-        givenHttpClientReturning(new RuntimeException("exception1"));
+        givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
         doRequest(context, exceptionHandler);
@@ -208,16 +200,12 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void executeQueryShouldReportMetricsOnCircuitClosed(TestContext context) {
         // given
-        givenHttpClientReturning(new RuntimeException("exception1"), mock(HttpClientResponse.class));
+        givenHttpClientReturning(new RuntimeException("exception"), mock(HttpClientResponse.class));
 
         // when
         doRequest(context, exceptionHandler); // 1 call
         doRequest(context, exceptionHandler); // 2 call
-
-        final Async async = context.async();
-        vertx.setTimer(300L, id -> async.countDown()); // waiting for reset time of circuit breaker
-        async.await();
-
+        doWaitForResetTime(context);
         doRequest(context, responseHandler); // 3 call
 
         // then
@@ -239,7 +227,7 @@ public class CircuitBreakerSecuredHttpClientTest {
 
     @SuppressWarnings("unchecked")
     private <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        final int argIndex = obj instanceof Exception ? 6 : 5; // response handler or exception handler
+        final int argIndex = obj instanceof Exception ? 6 : 5; // select exception handler or response handler
         return inv -> {
             // invoking passed handler right away passing mock object to it
             ((Handler<T>) inv.getArgument(argIndex)).handle(obj);
@@ -247,17 +235,23 @@ public class CircuitBreakerSecuredHttpClientTest {
         };
     }
 
-    private Answer<Object> withSelfAndCountDownAsync(Async async) {
+    private void doRequest(TestContext context, Handler<?> handler) {
+        Async async = context.async();
+        doAnswer(withSelfAndCompleteAsync(async)).when(handler).handle(any());
+        httpClient.request(HttpMethod.GET, "http://url", null, null, 0L, responseHandler, exceptionHandler);
+        async.await();
+    }
+
+    private static Answer<Object> withSelfAndCompleteAsync(Async async) {
         return inv -> {
-            async.countDown();
+            async.complete();
             return inv.getMock();
         };
     }
 
-    private void doRequest(TestContext context, Handler<?> handler) {
-        Async async = context.async();
-        doAnswer(withSelfAndCountDownAsync(async)).when(handler).handle(any());
-        httpClient.request(HttpMethod.GET, "http://url", null, null, 0L, responseHandler, exceptionHandler);
+    private void doWaitForResetTime(TestContext context) {
+        final Async async = context.async();
+        vertx.setTimer(300L, id -> async.complete()); // waiting for reset time of circuit breaker
         async.await();
     }
 }

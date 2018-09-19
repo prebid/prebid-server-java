@@ -21,6 +21,9 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+/**
+ * Wrapper over {@link HttpClient} with circuit breaker functionality.
+ */
 public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredHttpClient.class);
@@ -85,7 +88,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     private static String nameFrom(String urlAsString) {
         final URL url = parseUrl(urlAsString);
         return url.getProtocol() + "://" + url.getHost()
-                + (url.getPort() != -1 ? ":" + String.valueOf(url.getPort()) : "") + url.getPath();
+                + (url.getPort() != -1 ? ":" + url.getPort() : "") + url.getPath();
     }
 
     private static URL parseUrl(String url) {
