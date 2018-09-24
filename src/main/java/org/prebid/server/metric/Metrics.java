@@ -191,4 +191,12 @@ public class Metrics extends UpdatableMetrics {
             incCounter(MetricName.db_circuitbreaker_closed);
         }
     }
+
+    public void updateGeoLocationCircuitBreakerMetric(boolean opened) {
+        if (opened) {
+            incCounter(MetricName.geolocation_circuitbreaker_opened);
+        } else {
+            incCounter(MetricName.geolocation_circuitbreaker_closed);
+        }
+    }
 }

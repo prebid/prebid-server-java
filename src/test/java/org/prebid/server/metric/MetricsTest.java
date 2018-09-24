@@ -534,6 +534,24 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("db_circuitbreaker_closed").getCount()).isEqualTo(1);
     }
 
+    @Test
+    public void shouldIncrementGeoLocationCircuitBreakerOpenMetric() {
+        // when
+        metrics.updateGeoLocationCircuitBreakerMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_circuitbreaker_opened").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementGeoLocationCircuitBreakerCloseMetric() {
+        // when
+        metrics.updateGeoLocationCircuitBreakerMetric(false);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_circuitbreaker_closed").getCount()).isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);
