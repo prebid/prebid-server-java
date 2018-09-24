@@ -6,7 +6,6 @@ import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -203,22 +202,24 @@ public class VendorListService {
     private void fetchNewVendorListFor(int version) {
         final String url = endpointTemplate.replace(VERSION_PLACEHOLDER, String.valueOf(version));
 
-        httpClient.request(HttpMethod.GET, url, null, null, defaultTimeoutMs,
-                response -> handleResponse(response, version),
-                exception -> handleException(exception, version));
+        httpClient.get(url, defaultTimeoutMs)
+                .map(response -> handleResponse(response, version))
+                .otherwise(exception -> handleException(exception, version));
     }
 
-    private static void handleException(Throwable throwable, int version) {
-        log(version, throwable.getMessage());
-    }
-
-    private void handleResponse(HttpClientResponse response, int version) {
+    private Void handleResponse(HttpClientResponse response, int version) {
         response
-                .bodyHandler(buffer -> handleBody(version, response.statusCode(), buffer.toString()))
+                .bodyHandler(buffer -> handleStatusAndBody(response.statusCode(), buffer.toString(), version))
                 .exceptionHandler(throwable -> handleException(throwable, version));
+        return null;
     }
 
-    private void handleBody(int version, int statusCode, String body) {
+    private static Void handleException(Throwable throwable, int version) {
+        log(version, throwable.getMessage());
+        return null;
+    }
+
+    private void handleStatusAndBody(int statusCode, String body, int version) {
         if (statusCode != 200) {
             log(version, "response code was %d", statusCode);
         } else {
@@ -261,7 +262,7 @@ public class VendorListService {
 
         fileSystem.writeFile(filepath, Buffer.buffer(content), result -> {
             if (result.succeeded()) {
-                logger.info(String.format("Created new vendor list for version %d in file: %s", version, filepath));
+                logger.info("Created new vendor list for version {0} in file: {1}", version, filepath);
                 future.complete();
             } else {
                 log(version, "Could not create new vendor list file: %s", filepath);
@@ -273,7 +274,7 @@ public class VendorListService {
     }
 
     private static void log(int version, String errorMessageFormat, Object... args) {
-        logger.info(String.format("Error fetching vendor list via HTTP for version %d with error: %s",
-                version, String.format(errorMessageFormat, args)));
+        logger.info("Error fetching vendor list via HTTP for version {0} with error: {1}",
+                version, String.format(errorMessageFormat, args));
     }
 }

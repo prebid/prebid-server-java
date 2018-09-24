@@ -1,6 +1,6 @@
 package org.prebid.server.vertx.http;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -20,12 +20,13 @@ public class BasicHttpClient implements HttpClient {
     }
 
     @Override
-    public void request(HttpMethod method, String url, MultiMap headers, String body, long timeoutMs,
-                        Handler<HttpClientResponse> responseHandler, Handler<Throwable> exceptionHandler) {
+    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
+                                              long timeoutMs) {
+        final Future<HttpClientResponse> future = Future.future();
 
         final HttpClientRequest httpClientRequest = httpClient.requestAbs(method, url)
-                .handler(responseHandler)
-                .exceptionHandler(exceptionHandler);
+                .handler(future::complete)
+                .exceptionHandler(future::tryFail);
 
         if (headers != null) {
             httpClientRequest.headers().addAll(headers);
@@ -40,5 +41,7 @@ public class BasicHttpClient implements HttpClient {
         } else {
             httpClientRequest.end();
         }
+
+        return future;
     }
 }

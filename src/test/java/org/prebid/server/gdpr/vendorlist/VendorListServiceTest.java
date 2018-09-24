@@ -7,7 +7,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -129,17 +128,20 @@ public class VendorListServiceTest extends VertxTest {
 
     @Test
     public void shouldPerformHttpRequestWithExpectedQueryIfVendorListNotFound() {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(eq(HttpMethod.GET), eq("http://vendorlist/1"), any(), any(), anyLong(), any(),
-                any());
+        verify(httpClient).get(eq("http://vendorlist/1"), anyLong());
     }
 
     @Test
     public void shouldNotAskToSaveFileIfHttpRequestFails() {
         // given
+        givenHttpClientResponse(200);
         given(httpClientRequest.exceptionHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception"), 0));
 
@@ -147,7 +149,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -160,7 +162,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -173,7 +175,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -186,7 +188,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -200,7 +202,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -214,7 +216,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -228,7 +230,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -242,7 +244,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -256,7 +258,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -279,6 +281,9 @@ public class VendorListServiceTest extends VertxTest {
 
     @Test
     public void shouldFailIfVendorListNotFound() {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         final Future<?> future = vendorListService.forVersion(1);
 
@@ -348,8 +353,8 @@ public class VendorListServiceTest extends VertxTest {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
-                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(httpClientResponse));
 
         return httpClientResponse;
     }
@@ -357,6 +362,7 @@ public class VendorListServiceTest extends VertxTest {
     @SuppressWarnings("unchecked")
     private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
         return inv -> {
+            // invoking handler right away passing mock to it
             ((Handler<T>) inv.getArgument(position)).handle(obj);
             return inv.getMock();
         };

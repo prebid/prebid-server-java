@@ -35,9 +35,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.*;
 
 public class HttpApplicationSettingsTest extends VertxTest {
 
@@ -129,17 +128,21 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     @Test
     public void getStoredDataShouldSendHttpRequestWithExpectedNewParams() {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         httpApplicationSettings.getStoredData(new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")),
                 timeout);
 
         // then
-        verify(httpClient).request(any(), eq("http://stored-requests?request-ids=id2,id1&imp-ids=id4,id3"), any(), isNull(), anyLong(), any(), any());
+        verify(httpClient).get(eq("http://stored-requests?request-ids=id2,id1&imp-ids=id4,id3"), any(), anyLong());
     }
 
     @Test
     public void getStoredDataShouldSendHttpRequestWithExpectedAppendedParams() {
         // given
+        givenHttpClientResponse(200);
         httpApplicationSettings = new HttpApplicationSettings(httpClient, "http://some-domain?param1=value1",
                 AMP_ENDPOINT);
 
@@ -147,7 +150,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);
 
         // then
-        verify(httpClient).request(any(), eq("http://some-domain?param1=value1&request-ids=id1&imp-ids=id2"), any(), isNull(), anyLong(), any(), any());
+        verify(httpClient).get(eq("http://some-domain?param1=value1&request-ids=id1&imp-ids=id2"), any(), anyLong());
     }
 
     @Test
@@ -261,7 +264,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("id3", "{}"));
         assertThat(future.result().getErrors()).hasSize(2)
-                .containsOnly("No stored request found for id: id2", "No stored imp found for id: id4");
+                .containsOnly("Stored request not found for id: id2", "Stored imp not found for id: id4");
     }
 
     @Test
@@ -289,12 +292,15 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     @Test
     public void getAmpStoredDataShouldIgnoreImpIdsArgument() {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         httpApplicationSettings.getAmpStoredData(singleton("id1"), singleton("id2"), timeout);
 
         // then
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).request(any(), captor.capture(), any(), isNull(), anyLong(), any(), any());
+        verify(httpClient).get(captor.capture(), any(), anyLong());
         assertThat(captor.getValue()).doesNotContain("imp-ids");
     }
 
@@ -305,29 +311,30 @@ public class HttpApplicationSettingsTest extends VertxTest {
         final BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
                 given(httpClientResponse.bodyHandler(any()));
 
-        currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response), 0));
+        currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable, 0));
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
     }
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
-                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        given(httpClient.get(anyString(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(httpClientResponse));
 
         return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
         return inv -> {
-            ((Handler<T>) inv.getArgument(position)).handle(obj);
+            // invoking handler right away passing mock to it
+            ((Handler<T>) inv.getArgument(0)).handle(obj);
             return inv.getMock();
         };
     }

@@ -1,10 +1,8 @@
 package org.prebid.server.vertx.http;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientResponse;
@@ -36,12 +34,8 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     public CircuitBreakerSecuredHttpClient(Vertx vertx, HttpClient httpClient, Metrics metrics,
                                            int maxFailures, long timeoutMs, long resetTimeoutMs) {
-        Objects.requireNonNull(vertx);
-        this.httpClient = Objects.requireNonNull(httpClient);
-        this.metrics = Objects.requireNonNull(metrics);
-
         circuitBreakerCreator = name -> CircuitBreaker.create("http-client-circuit-breaker-" + name,
-                vertx,
+                Objects.requireNonNull(vertx),
                 new CircuitBreakerOptions()
                         .setMaxFailures(maxFailures)
                         .setTimeout(timeoutMs)
@@ -49,40 +43,33 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
                 .closeHandler(ignored -> circuitClosed(name));
+
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     private void circuitOpened(String name) {
-        logger.warn(String.format("Http client request to %s is failed, circuit opened.", name));
+        logger.warn("Http client request to {0} is failed, circuit opened.", name);
         metrics.updateHttpClientCircuitBreakerMetric(true);
     }
 
     private void circuitHalfOpened(String name) {
-        logger.warn(String.format("Http client request to %s will try again, circuit half-opened.", name));
+        logger.warn("Http client request to {0} will try again, circuit half-opened.", name);
     }
 
     private void circuitClosed(String name) {
-        logger.warn(String.format("Http client request to %s becomes succeeded, circuit closed.", name));
+        logger.warn("Http client request to {0} becomes succeeded, circuit closed.", name);
         metrics.updateHttpClientCircuitBreakerMetric(false);
     }
 
     @Override
-    public void request(HttpMethod method, String url, MultiMap headers, String body, long timeoutMs,
-                        Handler<HttpClientResponse> responseHandler, Handler<Throwable> exceptionHandler) {
-
+    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
+                                              long timeoutMs) {
         final String name = nameFrom(url);
         final CircuitBreaker breaker = circuitBreakerByName.computeIfAbsent(name, circuitBreakerCreator);
-        circuitBreakerByName.putIfAbsent(name, breaker);
 
-        breaker.<HttpClientResponse>execute(future -> httpClient.request(method, url, headers, body, timeoutMs,
-                response -> handleResponse(response, future),
-                exception -> handleException(exception, future)))
-                .setHandler(ar -> {
-                    if (ar.succeeded()) {
-                        responseHandler.handle(ar.result());
-                    } else {
-                        exceptionHandler.handle(ar.cause());
-                    }
-                });
+        return breaker.<HttpClientResponse>execute(future -> httpClient.request(method, url, headers, body, timeoutMs)
+                .setHandler(future));
     }
 
     private static String nameFrom(String urlAsString) {
@@ -97,17 +84,5 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
         } catch (MalformedURLException e) {
             throw new PreBidException(String.format("Invalid url: %s", url), e);
         }
-    }
-
-    private static void handleResponse(HttpClientResponse response, Future<HttpClientResponse> future) {
-        if (response.statusCode() >= HttpResponseStatus.INTERNAL_SERVER_ERROR.code()) {
-            future.fail(new PreBidException(String.format("%d: %s", response.statusCode(), response.statusMessage())));
-        } else {
-            future.complete(response);
-        }
-    }
-
-    private static void handleException(Throwable exception, Future<HttpClientResponse> future) {
-        future.tryFail(exception);
     }
 }

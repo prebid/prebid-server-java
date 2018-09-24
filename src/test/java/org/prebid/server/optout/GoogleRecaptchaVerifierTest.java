@@ -19,12 +19,10 @@ import org.prebid.server.vertx.http.HttpClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class GoogleRecaptchaVerifierTest extends VertxTest {
 
@@ -58,12 +56,14 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
 
     @Test
     public void shouldRequestToGoogleRecaptchaVerifierWithExpectedRequestBody() {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         googleRecaptchaVerifier.verify("recaptcha1");
 
         // then
-        verify(httpClient)
-                .request(any(), anyString(), any(), eq("secret=abc&response=recaptcha1"), anyLong(), any(), any());
+        verify(httpClient).post(anyString(), any(), eq("secret=abc&response=recaptcha1"), anyLong());
     }
 
     @Test
@@ -116,7 +116,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
         // then
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(RuntimeException.class)
-                .hasMessage("Google recaptcha verify failed: bad-request");
+                .hasMessage("Verification failed: bad-request");
     }
 
     @Test
@@ -135,29 +135,30 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
 
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable, 0));
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
         given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response), 0));
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
     }
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
-                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        given(httpClient.post(anyString(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(httpClientResponse));
 
         return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
         return inv -> {
-            ((Handler<T>) inv.getArgument(position)).handle(obj);
+            // invoking handler right away passing mock to it
+            ((Handler<T>) inv.getArgument(0)).handle(obj);
             return inv.getMock();
         };
     }

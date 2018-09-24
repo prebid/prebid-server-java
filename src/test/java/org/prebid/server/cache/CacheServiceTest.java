@@ -6,8 +6,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.DecodeException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,8 +46,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.*;
 
 public class CacheServiceTest extends VertxTest {
 
@@ -140,11 +138,14 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsShouldPerformHttpRequestWithExpectedTimeout() {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         cacheService.cacheBids(singleBidList(), timeout);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(), eq(500L), any(), any());
+        verify(httpClient).post(anyString(), any(), any(), eq(500L));
     }
 
     @Test
@@ -195,7 +196,7 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(DecodeException.class);
+        assertThat(future.cause()).isInstanceOf(PreBidException.class);
     }
 
     @Test
@@ -209,25 +210,28 @@ public class CacheServiceTest extends VertxTest {
         // then
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class)
-                .hasMessage("Put response length didn't match");
+                .hasMessage("The number of response cache objects doesn't match with bids");
     }
 
     @Test
     public void cacheBidsShouldMakeHttpRequestUsingConfigurationParams() {
         // given
+        givenHttpClientResponse(200);
+
         cacheService = new CacheService(httpClient, "https://cache-service-host:8888/cache",
                 "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
         // when
         cacheService.cacheBids(singleBidList(), timeout);
 
         // then
-        verify(httpClient).request(eq(HttpMethod.POST), eq("https://cache-service-host:8888/cache"), any(), any(),
-                anyLong(), any(), any());
+        verify(httpClient).post(eq("https://cache-service-host:8888/cache"), any(), any(), anyLong());
     }
 
     @Test
     public void cacheBidsShouldPerformHttpRequestWithExpectedBody() throws Exception {
         // given
+        givenHttpClientResponse(200);
+
         final String adm3 = "<script type=\"application/javascript\" src=\"http://nym1-ib.adnxs"
                 + "f3919239&pp=${AUCTION_PRICE}&\"></script>";
         final String adm4 = "<img src=\"https://tpp.hpppf.com/simgad/11261207092432736464\" border=\"0\" "
@@ -269,6 +273,9 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsVideoOnlyShouldPerformHttpRequestWithExpectedBody() throws IOException {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         cacheService.cacheBidsVideoOnly(asList(
                 givenBid(builder -> builder.mediaType(MediaType.banner).adm("adm1")),
@@ -308,6 +315,9 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtl() throws IOException {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         cacheService.cacheBidsOpenrtb(singletonList(givenBidOpenrtb(identity())),
                 singletonList(givenBidOpenrtb(identity())), 10, 20, timeout);
@@ -321,6 +331,9 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedBody() throws IOException {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1"));
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.adm("adm1"));
@@ -404,37 +417,38 @@ public class CacheServiceTest extends VertxTest {
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
         given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response), 0));
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
 
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable, 0));
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
     }
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
-                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        given(httpClient.post(anyString(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(httpClientResponse));
 
         return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
         return inv -> {
-            ((Handler<T>) inv.getArgument(position)).handle(obj);
+            // invoking handler right away passing mock to it
+            ((Handler<T>) inv.getArgument(0)).handle(obj);
             return inv.getMock();
         };
     }
 
     private BidCacheRequest captureBidCacheRequest() throws IOException {
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).request(any(), anyString(), any(), captor.capture(), anyLong(), any(), any());
+        verify(httpClient).post(anyString(), any(), captor.capture(), anyLong());
         return mapper.readValue(captor.getValue(), BidCacheRequest.class);
     }
 }

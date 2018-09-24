@@ -3,7 +3,6 @@ package org.prebid.server.currency;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -67,18 +66,21 @@ public class CurrencyConversionService {
      * Updates latest currency rates by making a call to currency server.
      */
     private void populatesLatestCurrencyRates() {
-        httpClient.request(HttpMethod.GET, currencyServerUrl, null, null, 2000L,
-                this::handleResponse, CurrencyConversionService::handleException);
+        httpClient.get(currencyServerUrl, 2000L)
+                .map(this::processResponse)
+                .otherwise(CurrencyConversionService::failResponse);
     }
 
-    private void handleResponse(HttpClientResponse response) {
+    private Void processResponse(HttpClientResponse response) {
         final int statusCode = response.statusCode();
         if (statusCode != 200) {
             logger.warn("Currency server response code is {0}", statusCode);
-            return;
+        } else {
+            response
+                    .bodyHandler(this::handleBody)
+                    .exceptionHandler(CurrencyConversionService::failResponse);
         }
-        response.bodyHandler(this::handleBody)
-                .exceptionHandler(CurrencyConversionService::handleException);
+        return null;
     }
 
     /**
@@ -99,8 +101,9 @@ public class CurrencyConversionService {
     /**
      * Handles an error occurred while request. In our case adds error log.
      */
-    private static void handleException(Throwable exception) {
+    private static Void failResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);
+        return null;
     }
 
     /**

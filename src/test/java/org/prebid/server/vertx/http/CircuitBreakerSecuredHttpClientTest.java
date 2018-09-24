@@ -1,6 +1,6 @@
 package org.prebid.server.vertx.http;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
@@ -12,12 +12,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
+import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
-import org.mockito.stubbing.Stubber;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
 
@@ -26,8 +24,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.*;
 
 @RunWith(VertxUnitRunner.class)
 public class CircuitBreakerSecuredHttpClientTest {
@@ -42,11 +40,6 @@ public class CircuitBreakerSecuredHttpClientTest {
     private Metrics metrics;
 
     private CircuitBreakerSecuredHttpClient httpClient;
-
-    @Mock
-    private Handler<HttpClientResponse> responseHandler;
-    @Mock
-    private Handler<Throwable> exceptionHandler;
 
     @Before
     public void setUp() {
@@ -72,7 +65,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldFailsOnInvalidUrl() {
         // when and then
-        assertThatThrownBy(() -> httpClient.request(HttpMethod.GET, "invalid_url", null, null, 0L, null, null))
+        assertThatThrownBy(() -> httpClient.request(HttpMethod.GET, "invalid_url", null, null, 0L))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Invalid url: invalid_url");
     }
@@ -83,15 +76,12 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(mock(HttpClientResponse.class));
 
         // when
-        doRequest(context, responseHandler); // 1 call
-        doRequest(context, responseHandler); // 2 call
+        final Future<?> future = doRequest(context);
 
         // then
-        verify(wrappedHttpClient, times(2))
-                .request(any(), anyString(), any(), any(), anyLong(), any(), any()); // invoked on 1 & 2 calls
+        verify(wrappedHttpClient).request(any(), anyString(), any(), any(), anyLong());
 
-        verify(responseHandler, times(2)).handle(any());
-        verifyZeroInteractions(exceptionHandler);
+        assertThat(future.succeeded()).isTrue();
     }
 
     @Test
@@ -100,43 +90,33 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        doRequest(context, exceptionHandler); // 1 call
-        doRequest(context, exceptionHandler); // 2 call
+        final Future<?> future = doRequest(context);
 
         // then
-        verify(wrappedHttpClient)
-                .request(any(), anyString(), any(), any(), anyLong(), any(), any()); // invoked only on 1 call
+        verify(wrappedHttpClient).request(any(), anyString(), any(), any(), anyLong());
 
-        verifyZeroInteractions(responseHandler);
-
-        final ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
-        verify(exceptionHandler, times(2)).handle(captor.capture());
-        assertThat(captor.getAllValues()).extracting(Throwable::getMessage)
-                .containsExactly("exception", "open circuit");
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
     }
 
     @Test
-    public void requestShouldFailsIfCircuitIsClosedButWrappedHttpClientReturnsHttpStatus500(TestContext context) {
+    public void requestShouldFailsIfCircuitIsHalfOpenedButWrappedHttpClientFailsAndResetTimeIsNotPassedBy(
+            TestContext context) {
         // given
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClientResponse.statusCode()).willReturn(500);
-        given(httpClientResponse.statusMessage()).willReturn("Internal Server Error");
-        givenHttpClientReturning(httpClientResponse);
+        givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        doRequest(context, exceptionHandler); // 1 call
-        doRequest(context, exceptionHandler); // 2 call
+        final Future<?> future1 = doRequest(context); // 1 call
+        final Future<?> future2 = doRequest(context); // 2 call
 
         // then
-        verify(wrappedHttpClient)
-                .request(any(), anyString(), any(), any(), anyLong(), any(), any()); // invoked only on 1 call
+        verify(wrappedHttpClient).request(any(), anyString(), any(), any(), anyLong()); // invoked only on 1 call
 
-        verifyZeroInteractions(responseHandler);
+        assertThat(future1.failed()).isTrue();
+        assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
 
-        final ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
-        verify(exceptionHandler, times(2)).handle(captor.capture());
-        assertThat(captor.getAllValues()).extracting(Throwable::getMessage)
-                .containsExactly("500: Internal Server Error", "open circuit");
+        assertThat(future2.failed()).isTrue();
+        assertThat(future2.cause()).isInstanceOf(RuntimeException.class).hasMessage("open circuit");
     }
 
     @Test
@@ -145,21 +125,23 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        doRequest(context, exceptionHandler); // 1 call
-        doRequest(context, exceptionHandler); // 2 call
+        final Future<?> future1 = doRequest(context); // 1 call
+        final Future<?> future2 = doRequest(context); // 2 call
         doWaitForResetTime(context);
-        doRequest(context, exceptionHandler); // 3 call
+        final Future<?> future3 = doRequest(context); // 3 call
 
         // then
         verify(wrappedHttpClient, times(2))
-                .request(any(), anyString(), any(), any(), anyLong(), any(), any()); // invoked only on 1 & 3 calls
+                .request(any(), anyString(), any(), any(), anyLong()); // invoked only on 1 & 3 calls
 
-        verifyZeroInteractions(responseHandler);
+        assertThat(future1.failed()).isTrue();
+        assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
 
-        final ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
-        verify(exceptionHandler, times(3)).handle(captor.capture());
-        assertThat(captor.getAllValues()).extracting(Throwable::getMessage)
-                .containsExactly("exception", "open circuit", "exception");
+        assertThat(future2.failed()).isTrue();
+        assertThat(future2.cause()).isInstanceOf(RuntimeException.class).hasMessage("open circuit");
+
+        assertThat(future3.failed()).isTrue();
+        assertThat(future3.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
     }
 
     @Test
@@ -168,21 +150,22 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(new RuntimeException("exception"), mock(HttpClientResponse.class));
 
         // when
-        doRequest(context, exceptionHandler); // 1 call
-        doRequest(context, exceptionHandler); // 2 call
+        final Future<?> future1 = doRequest(context); // 1 call
+        final Future<?> future2 = doRequest(context); // 2 call
         doWaitForResetTime(context);
-        doRequest(context, responseHandler); // 3 call
+        final Future<?> future3 = doRequest(context); // 3 call
 
         // then
         verify(wrappedHttpClient, times(2))
-                .request(any(), anyString(), any(), any(), anyLong(), any(), any()); // invoked only on 1 & 3 calls
+                .request(any(), anyString(), any(), any(), anyLong()); // invoked only on 1 & 3 calls
 
-        verify(responseHandler).handle(any());
+        assertThat(future1.failed()).isTrue();
+        assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
 
-        final ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
-        verify(exceptionHandler, times(2)).handle(captor.capture());
-        assertThat(captor.getAllValues()).extracting(Throwable::getMessage)
-                .containsExactly("exception", "open circuit");
+        assertThat(future2.failed()).isTrue();
+        assertThat(future2.cause()).isInstanceOf(RuntimeException.class).hasMessage("open circuit");
+
+        assertThat(future3.succeeded()).isTrue();
     }
 
     @Test
@@ -191,7 +174,7 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        doRequest(context, exceptionHandler);
+        doRequest(context);
 
         // then
         verify(metrics).updateHttpClientCircuitBreakerMetric(eq(true));
@@ -203,10 +186,10 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(new RuntimeException("exception"), mock(HttpClientResponse.class));
 
         // when
-        doRequest(context, exceptionHandler); // 1 call
-        doRequest(context, exceptionHandler); // 2 call
+        doRequest(context); // 1 call
+        doRequest(context); // 2 call
         doWaitForResetTime(context);
-        doRequest(context, responseHandler); // 3 call
+        doRequest(context); // 3 call
 
         // then
         verify(metrics).updateHttpClientCircuitBreakerMetric(eq(false));
@@ -214,39 +197,25 @@ public class CircuitBreakerSecuredHttpClientTest {
 
     @SuppressWarnings("unchecked")
     private <T> void givenHttpClientReturning(T... results) {
-        Stubber stubber = null;
+        BDDMockito.BDDMyOngoingStubbing<Future<HttpClientResponse>> stubbing =
+                given(wrappedHttpClient.request(any(), anyString(), any(), any(), anyLong()));
         for (T result : results) {
-            stubber = stubber == null
-                    ? doAnswer(withSelfAndPassObjectToHandler(result))
-                    : stubber.doAnswer(withSelfAndPassObjectToHandler(result));
-        }
-        if (stubber != null) {
-            stubber.when(wrappedHttpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+            if (result instanceof Exception) {
+                stubbing = stubbing.willReturn(Future.failedFuture((Throwable) result));
+            } else {
+                stubbing = stubbing.willReturn(Future.succeededFuture((HttpClientResponse) result));
+            }
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        final int argIndex = obj instanceof Exception ? 6 : 5; // select exception handler or response handler
-        return inv -> {
-            // invoking passed handler right away passing mock object to it
-            ((Handler<T>) inv.getArgument(argIndex)).handle(obj);
-            return inv.getMock();
-        };
-    }
+    private Future<HttpClientResponse> doRequest(TestContext context) {
+        final Future<HttpClientResponse> future = httpClient.request(HttpMethod.GET, "http://url", null, null, 0L);
 
-    private void doRequest(TestContext context, Handler<?> handler) {
-        Async async = context.async();
-        doAnswer(withSelfAndCompleteAsync(async)).when(handler).handle(any());
-        httpClient.request(HttpMethod.GET, "http://url", null, null, 0L, responseHandler, exceptionHandler);
+        final Async async = context.async();
+        future.setHandler(ar -> async.complete());
         async.await();
-    }
 
-    private static Answer<Object> withSelfAndCompleteAsync(Async async) {
-        return inv -> {
-            async.complete();
-            return inv.getMock();
-        };
+        return future;
     }
 
     private void doWaitForResetTime(TestContext context) {

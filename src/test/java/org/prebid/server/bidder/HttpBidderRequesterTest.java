@@ -1,6 +1,7 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -103,6 +104,8 @@ public class HttpBidderRequesterTest {
     @Test
     public void shouldSendPopulatedPostRequest() {
         // given
+        givenHttpClientResponse(200);
+
         final MultiMap headers = new CaseInsensitiveHeaders();
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.of(HttpMethod.POST, "uri", "requestBody", headers, null)), emptyList()));
@@ -113,13 +116,14 @@ public class HttpBidderRequesterTest {
         bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
-        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), eq(headers), eq("requestBody"), eq(500L), any(),
-                any());
+        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), eq(headers), eq("requestBody"), eq(500L));
     }
 
     @Test
     public void shouldSendPopulatedGetRequestWithoutBody() {
         // given
+        givenHttpClientResponse(200);
+
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.of(HttpMethod.GET, "uri", null, null, null)), emptyList()));
 
@@ -127,12 +131,14 @@ public class HttpBidderRequesterTest {
         bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), isNull(), anyLong(), any(), any());
+        verify(httpClient).request(any(), anyString(), any(), isNull(), anyLong());
     }
 
     @Test
     public void shouldSendMultipleRequests() {
         // given
+        givenHttpClientResponse(200);
+
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)),
@@ -142,7 +148,7 @@ public class HttpBidderRequesterTest {
         bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
-        verify(httpClient, times(2)).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient, times(2)).request(any(), anyString(), any(), any(), anyLong());
     }
 
     @Test
@@ -282,12 +288,11 @@ public class HttpBidderRequesterTest {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(0);
 
         given(httpClientResponse.exceptionHandler(any()))
-                // simulate response error for the second request (which will trigger exceptionHandler call on
+                // simulate response error for the first request
+                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception")))
+                // simulate timeout for the second request (which will trigger exceptionHandler call on
                 // response mock first time)
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception"), 0))
-                // simulate timeout for the third request (which will trigger exceptionHandler call on
-                // response mock second time)
-                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException("Timeout exception"), 0))
+                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException("Timeout exception")))
                 // continue normally for subsequent requests
                 .willReturn(httpClientResponse);
         given(httpClientResponse.bodyHandler(any()))
@@ -296,7 +301,7 @@ public class HttpBidderRequesterTest {
                 .willReturn(httpClientResponse)
                 .willReturn(httpClientResponse)
                 // continue normally for subsequent requests
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(EMPTY), 0));
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(EMPTY)));
         given(httpClientResponse.statusCode())
                 // simulate 500 status for the fourth request (which will trigger statusCode call on response mock
                 // first time)
@@ -336,33 +341,34 @@ public class HttpBidderRequesterTest {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
 
         // setup multiple answers
-        BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
+        BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> stubbing =
                 given(httpClientResponse.bodyHandler(any()));
         for (String bidResponse : bidResponses) {
-            currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse), 0));
+            stubbing = stubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)));
         }
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable, 0));
+        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
     }
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
-                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(httpClientResponse));
 
         return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
         return inv -> {
-            ((Handler<T>) inv.getArgument(position)).handle(obj);
+            // invoking handler right away passing mock to it
+            ((Handler<T>) inv.getArgument(0)).handle(obj);
             return inv.getMock();
         };
     }

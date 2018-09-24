@@ -341,7 +341,7 @@ public class SovrnBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnDecodedUrlInAdmField() throws JsonProcessingException {
-        //given
+        // given
         final HttpCall httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()

@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -194,11 +195,10 @@ public class CurrencyConversionServiceTest extends VertxTest {
     @Test
     public void convertCurrencyShouldThrowExceptionWhenCurrencyServerResponseStatusNot200() {
         // given
-        final HttpClient client = mock(HttpClient.class);
-        givenHttpClientReturnsResponse(client, 503, "server unavailable");
+        givenHttpClientReturnsResponse(httpClient, 503, "server unavailable");
 
         // when
-        currencyService = createAndInitService(URL, 1L, vertx, client);
+        currencyService = createAndInitService(URL, 1L, vertx, httpClient);
 
         // then
         assertThatExceptionOfType(PreBidException.class)
@@ -209,11 +209,10 @@ public class CurrencyConversionServiceTest extends VertxTest {
     @Test
     public void convertCurrencyShouldThrowExceptionWhenCurrencyServerResponseContainsMalformedBody() {
         // given
-        final HttpClient client = mock(HttpClient.class);
-        givenHttpClientReturnsResponse(client, 200, "{\"foo\": \"bar\"}");
+        givenHttpClientReturnsResponse(httpClient, 200, "{\"foo\": \"bar\"}");
 
         // when
-        currencyService = createAndInitService(URL, 1L, vertx, client);
+        currencyService = createAndInitService(URL, 1L, vertx, httpClient);
 
         // then
         assertThatExceptionOfType(PreBidException.class)
@@ -224,31 +223,29 @@ public class CurrencyConversionServiceTest extends VertxTest {
     @Test
     public void initializeShouldMakeOneInitialRequestAndTwoScheduled() {
         // given
-        final HttpClient client = mock(HttpClient.class);
         final Vertx vertx = Vertx.vertx();
+        final HttpClient httpClient = mock(HttpClient.class);
+        givenHttpClientReturnsResponse(httpClient, 200, "{\"foo\": \"bar\"}");
 
         // when
-        currencyService = createAndInitService(URL, 1000, vertx, client);
+        currencyService = createAndInitService(URL, 1000, vertx, httpClient);
 
         // then
-        verify(client, after(2100).times(3))
-                .request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        verify(httpClient, after(2100).times(3)).get(anyString(), anyLong());
         vertx.close();
     }
 
     private void givenHttpClientReturnsResponse(HttpClient httpClient, int statusCode, String body) {
-
         final HttpClientResponse httpClientResponse = givenHttpClientResponse(httpClient, statusCode);
         given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(body), 0));
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(body)));
     }
 
     private HttpClientResponse givenHttpClientResponse(HttpClient httpClient, int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
         given(httpClientResponse.statusCode()).willReturn(statusCode);
 
-        doAnswer(withSelfAndPassObjectToHandler(httpClientResponse, 5))
-                .when(httpClient).request(any(), anyString(), any(), any(), anyLong(), any(), any());
+        given(httpClient.get(anyString(), anyLong())).willReturn(Future.succeededFuture(httpClientResponse));
 
         return httpClientResponse;
     }
@@ -262,9 +259,10 @@ public class CurrencyConversionServiceTest extends VertxTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
         return inv -> {
-            ((Handler<T>) inv.getArgument(position)).handle(obj);
+            // invoking handler right away passing mock to it
+            ((Handler<T>) inv.getArgument(0)).handle(obj);
             return inv.getMock();
         };
     }

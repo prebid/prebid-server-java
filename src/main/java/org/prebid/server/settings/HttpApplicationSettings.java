@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -107,23 +106,19 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,
                                                      Timeout timeout) {
-        final Future<StoredDataResult> future = Future.future();
-
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
-            future.complete(
+            return Future.succeededFuture(
                     StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
-        } else {
-            final long remainingTimeout = timeout.remaining();
-            if (remainingTimeout <= 0) {
-                handleException(new TimeoutException("Timeout has been exceeded"), future, requestIds, impIds);
-            } else {
-                httpClient.request(HttpMethod.POST, urlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), null,
-                        remainingTimeout, response -> handleResponse(response, future, requestIds, impIds),
-                        exception -> handleException(exception, future, requestIds, requestIds));
-            }
         }
 
-        return future;
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            return failResponse(new TimeoutException("Timeout has been exceeded"), requestIds, impIds);
+        }
+
+        return httpClient.get(urlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), remainingTimeout)
+                .compose(response -> processResponse(response, requestIds, impIds))
+                .recover(exception -> failResponse(exception, requestIds, impIds));
     }
 
     private static String urlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
@@ -148,13 +143,23 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return String.join(",", ids);
     }
 
-    private static void handleException(Throwable throwable, Future<StoredDataResult> future,
-                                        Set<String> requestIds, Set<String> impIds) {
-        future.complete(failWith(requestIds, impIds, throwable.getMessage()));
+    private static Future<StoredDataResult> failResponse(Throwable throwable, Set<String> requestIds,
+                                                         Set<String> impIds) {
+        return Future.succeededFuture(toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
     }
 
-    private static StoredDataResult failWith(Set<String> requestIds, Set<String> impIds, String errorMessageFormat,
-                                             Object... args) {
+    private static Future<StoredDataResult> processResponse(HttpClientResponse response, Set<String> requestIds,
+                                                            Set<String> impIds) {
+        final Future<StoredDataResult> future = Future.future();
+        response
+                .bodyHandler(buffer -> future.complete(
+                        toStoredDataResult(requestIds, impIds, response.statusCode(), buffer.toString())))
+                .exceptionHandler(future::tryFail);
+        return future;
+    }
+
+    private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds, Set<String> impIds,
+                                                             String errorMessageFormat, Object... args) {
         final String errorRequests = requestIds.isEmpty() ? ""
                 : String.format("stored requests for ids %s", requestIds);
         final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
@@ -167,25 +172,18 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
     }
 
-    private static void handleResponse(HttpClientResponse response, Future<StoredDataResult> future,
-                                       Set<String> requestIds, Set<String> impIds) {
-        response
-                .bodyHandler(buffer -> future.complete(
-                        toStoredRequestResult(requestIds, impIds, response.statusCode(), buffer.toString())))
-                .exceptionHandler(exception -> handleException(exception, future, requestIds, impIds));
-    }
-
-    private static StoredDataResult toStoredRequestResult(Set<String> requestIds, Set<String> impIds,
-                                                          int statusCode, String body) {
+    private static StoredDataResult toStoredDataResult(Set<String> requestIds, Set<String> impIds,
+                                                       int statusCode, String body) {
         if (statusCode != 200) {
-            return failWith(requestIds, impIds, "response code was %d", statusCode);
+            return toFailedStoredDataResult(requestIds, impIds, "response code was %d", statusCode);
         }
 
         final HttpFetcherResponse response;
         try {
             response = Json.decodeValue(body, HttpFetcherResponse.class);
         } catch (DecodeException e) {
-            return failWith(requestIds, impIds, "parsing json failed for response: %s with message: %s", body,
+            return toFailedStoredDataResult(requestIds, impIds, "parsing json failed for response: %s with message: %s",
+                    body,
                     e.getMessage());
         }
 
@@ -234,7 +232,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
             missedIds.removeAll(notParsedIds);
 
             errors.addAll(missedIds.stream()
-                    .map(id -> String.format("No stored %s found for id: %s", type, id))
+                    .map(id -> String.format("Stored %s not found for id: %s", type, id))
                     .collect(Collectors.toList()));
         }
 

@@ -92,24 +92,19 @@ public class HttpAdapterConnector {
      */
     private <T, R> Future<ExchangeCall> doRequest(AdapterHttpRequest<T> httpRequest, Timeout timeout,
                                                   TypeReference<R> typeReference) {
-        final T requestBody = httpRequest.getPayload();
         final String uri = httpRequest.getUri();
-
+        final T requestBody = httpRequest.getPayload();
         final String body = requestBody != null ? Json.encode(requestBody) : null;
         final BidderDebug.BidderDebugBuilder bidderDebugBuilder = beginBidderDebug(uri, body);
-        final Future<ExchangeCall> future = Future.future();
 
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
-            handleException(new TimeoutException(), bidderDebugBuilder, future);
-            return future;
+            return failResponse(new TimeoutException(), bidderDebugBuilder);
         }
 
-        httpClient.request(httpRequest.getMethod(), uri, httpRequest.getHeaders(), body, remainingTimeout,
-                response -> handleResponse(bidderDebugBuilder, response, typeReference, future, requestBody),
-                exception -> handleException(exception, bidderDebugBuilder, future));
-
-        return future;
+        return httpClient.request(httpRequest.getMethod(), uri, httpRequest.getHeaders(), body, remainingTimeout)
+                .compose(response -> processResponse(bidderDebugBuilder, response, typeReference, requestBody))
+                .recover(exception -> failResponse(exception, bidderDebugBuilder));
     }
 
     private static BidderDebug.BidderDebugBuilder beginBidderDebug(String url, String bidRequestBody) {
@@ -126,29 +121,12 @@ public class HttpAdapterConnector {
                 .build();
     }
 
-    private static <T, R> void handleResponse(BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                              HttpClientResponse response, TypeReference<R> responseTypeReference,
-                                              Future<ExchangeCall> future, T request) {
-        response
-                .bodyHandler(buffer -> future.complete(
-                        toExchangeCall(request, response.statusCode(), buffer.toString(), responseTypeReference,
-                                bidderDebugBuilder)))
-                .exceptionHandler(exception -> handleException(exception, bidderDebugBuilder, future));
-    }
-
     /**
      * Handles request (e.g. read timeout) and response (e.g. connection reset) errors producing
      * {@link ExchangeCall} containing {@link BidderDebug} and error description.
      */
-    private static void handleException(Throwable exception, BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                        Future<ExchangeCall> future) {
-        // Exception handler can be called more than one time, so all we can do is just to log the error
-        if (future.isComplete()) {
-            logger.warn("Exception handler was called after processing has been completed: {0}",
-                    exception.getMessage());
-            return;
-        }
-
+    private static Future<ExchangeCall> failResponse(Throwable exception,
+                                                     BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
         logger.warn("Error occurred while sending bid request to an exchange", exception);
         final BidderDebug bidderDebug = bidderDebugBuilder.build();
 
@@ -156,7 +134,20 @@ public class HttpAdapterConnector {
                 ? BidderError.timeout("Timed out")
                 : BidderError.generic(exception.getMessage());
 
-        future.complete(ExchangeCall.error(bidderDebug, error));
+        return Future.succeededFuture(ExchangeCall.error(bidderDebug, error));
+    }
+
+    private static <T, R> Future<ExchangeCall> processResponse(BidderDebug.BidderDebugBuilder bidderDebugBuilder,
+                                                               HttpClientResponse response,
+                                                               TypeReference<R> responseTypeReference,
+                                                               T request) {
+        final Future<ExchangeCall> future = Future.future();
+        response
+                .bodyHandler(buffer -> future.complete(
+                        toExchangeCall(request, response.statusCode(), buffer.toString(), responseTypeReference,
+                                bidderDebugBuilder)))
+                .exceptionHandler(future::tryFail);
+        return future;
     }
 
     /**

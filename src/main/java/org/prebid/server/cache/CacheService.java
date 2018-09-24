@@ -3,7 +3,6 @@ package org.prebid.server.cache;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -112,70 +111,62 @@ public class CacheService {
      * Asks external prebid cache service to store the given value.
      */
     private Future<BidCacheResponse> makeRequest(BidCacheRequest bidCacheRequest, int bidCount, Timeout timeout) {
-        final Future<BidCacheResponse> future;
         if (bidCount == 0) {
-            future = Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
-        } else {
-            future = Future.future();
-
-            final long remainingTimeout = timeout.remaining();
-            if (remainingTimeout <= 0) {
-                handleException(new TimeoutException(), future);
-            } else {
-                httpClient.request(HttpMethod.POST, endpointUrl, HttpUtil.headers(), Json.encode(bidCacheRequest),
-                        remainingTimeout, response -> handleResponse(response, bidCount, future),
-                        exception -> handleException(exception, future));
-            }
+            return Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
         }
-        return future;
+
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            return failResponse(new TimeoutException("Timeout has been exceeded"));
+        }
+
+        return httpClient.post(endpointUrl, HttpUtil.headers(), Json.encode(bidCacheRequest), remainingTimeout)
+                .compose(response -> processResponse(response, bidCount))
+                .recover(CacheService::failResponse);
+    }
+
+    /**
+     * Completes input {@link Future} with the given exception.
+     */
+    private static Future<BidCacheResponse> failResponse(Throwable exception) {
+        logger.warn("Error occurred while interacting with cache service", exception);
+        return Future.failedFuture(exception);
     }
 
     /**
      * Adds body handler and exception handler to {@link HttpClientResponse}.
      */
-    private static void handleResponse(HttpClientResponse response, int bidCount, Future<BidCacheResponse> future) {
+    private static Future<BidCacheResponse> processResponse(HttpClientResponse response, int bidCount) {
+        final Future<BidCacheResponse> future = Future.future();
         response
-                .bodyHandler(
-                        buffer -> handleResponseAndBody(response.statusCode(), buffer.toString(), bidCount, future))
-                .exceptionHandler(exception -> handleException(exception, future));
+                .bodyHandler(buffer -> future.complete(
+                        processStatusAndBody(response.statusCode(), buffer.toString(), bidCount)))
+                .exceptionHandler(future::tryFail);
+        return future;
     }
 
     /**
      * Analyzes response status/body and completes input {@link Future}
      * with obtained result from prebid cache service or fails it in case of errors.
      */
-    private static void handleResponseAndBody(int statusCode, String body, int bidCount,
-                                              Future<BidCacheResponse> future) {
+    private static BidCacheResponse processStatusAndBody(int statusCode, String body, int bidCount) {
         if (statusCode != 200) {
-            logger.warn("Cache service response code is {0}, body: {1}", statusCode, body);
-            future.fail(new PreBidException(String.format("HTTP status code %d, body: %s", statusCode, body)));
-            return;
+            throw new PreBidException(String.format("HTTP status code %d, body: %s", statusCode, body));
         }
 
         final BidCacheResponse bidCacheResponse;
         try {
             bidCacheResponse = Json.decodeValue(body, BidCacheResponse.class);
         } catch (DecodeException e) {
-            logger.warn("Error occurred while parsing bid cache response: {0}", e, body);
-            future.fail(e);
-            return;
+            throw new PreBidException(String.format("Error occurred while parsing response: %s", body), e);
         }
 
         final List<CacheObject> responses = bidCacheResponse.getResponses();
         if (responses == null || responses.size() != bidCount) {
-            future.fail(new PreBidException("Put response length didn't match"));
-            return;
+            throw new PreBidException("The number of response cache objects doesn't match with bids");
         }
 
-        future.complete(bidCacheResponse);
-    }
-
-    /**
-     * Completes input {@link Future} with the given exception.
-     */
-    private static void handleException(Throwable exception, Future<BidCacheResponse> future) {
-        logger.warn("Error occurred while sending request to cache service", exception);
-        future.fail(exception);
+        return bidCacheResponse;
     }
 
     /**

@@ -30,9 +30,9 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
 
         breaker = CircuitBreaker.create("jdbc-client-circuit-breaker", Objects.requireNonNull(vertx),
                 new CircuitBreakerOptions()
-                        .setMaxFailures(maxFailures) // number of failure before opening the circuit
-                        .setTimeout(timeoutMs) // consider a failure if the operation does not succeed in time
-                        .setResetTimeout(resetTimeoutMs)) // time spent in open state before attempting to re-try
+                        .setMaxFailures(maxFailures)
+                        .setTimeout(timeoutMs)
+                        .setResetTimeout(resetTimeoutMs))
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());

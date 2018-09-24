@@ -204,7 +204,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .adUnitCode("adUnitCode1")
@@ -585,7 +585,7 @@ public class RubiconAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnTwoRequestsIfAdUnitContainsBannerAndVideoMediaTypes() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
@@ -628,7 +628,7 @@ public class RubiconAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnBidRequestsWithoutVideoExtWhenMediaTypeIsVideoAndRubiconParamsVideoIsNull
             () {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                                 .mediaTypes(Collections.singleton(MediaType.video))

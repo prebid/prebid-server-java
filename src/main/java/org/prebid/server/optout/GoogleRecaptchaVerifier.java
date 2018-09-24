@@ -5,7 +5,6 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -37,53 +36,18 @@ public class GoogleRecaptchaVerifier {
     }
 
     /**
-     * Validates reCAPTCHA token by sending it to the re-captcha verfier endpoint url.
+     * Validates reCAPTCHA token by sending it to the re-captcha verifier.
      */
     public Future<Void> verify(String recaptcha) {
-        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
+        return httpClient.post(recaptchaUrl, headers(), encodedBody(recaptchaSecret, recaptcha), 2000L)
+                .compose(GoogleRecaptchaVerifier::processResponse)
+                .recover(GoogleRecaptchaVerifier::failResponse);
+    }
+
+    private static MultiMap headers() {
+        return MultiMap.caseInsensitiveMultiMap()
                 .add(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_X_WWW_FORM_URLENCODED)
                 .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
-
-        final Future<Void> future = Future.future();
-        httpClient.request(HttpMethod.POST, recaptchaUrl, headers, encodedBody(recaptchaSecret, recaptcha), 2000L,
-                response -> handleResponse(response, future),
-                exception -> handleException(exception, future));
-        return future;
-    }
-
-    private void handleResponse(HttpClientResponse response, Future<Void> future) {
-        response
-                .bodyHandler(buffer -> handleResponseAndBody(response.statusCode(), buffer.toString(), future))
-                .exceptionHandler(exception -> handleException(exception, future));
-    }
-
-    private void handleResponseAndBody(int statusCode, String body, Future<Void> future) {
-        if (statusCode != 200) {
-            logger.warn("Google recaptcha response code is {0}, body: {1}", statusCode, body);
-            future.fail(new PreBidException(String.format("HTTP status code %d", statusCode)));
-            return;
-        }
-
-        final RecaptchaResponse response;
-        try {
-            response = Json.decodeValue(body, RecaptchaResponse.class);
-        } catch (DecodeException e) {
-            future.fail(new PreBidException(String.format("Cannot parse Google recaptcha response: %s", body)));
-            return;
-        }
-
-        if (Objects.equals(response.getSuccess(), Boolean.TRUE)) {
-            future.complete();
-        } else {
-            final List<String> errorCodes = response.getErrorCodes();
-            final String errors = errorCodes != null ? String.join(", ", errorCodes) : null;
-            future.fail(new PreBidException(String.format("Google recaptcha verify failed: %s", errors)));
-        }
-    }
-
-    private void handleException(Throwable exception, Future<Void> future) {
-        logger.warn("Error occurred while sending request to verify google recaptcha", exception);
-        future.fail(exception);
     }
 
     private static String encodedBody(String secret, String recaptcha) {
@@ -96,5 +60,40 @@ public class GoogleRecaptchaVerifier {
         } catch (UnsupportedEncodingException e) {
             throw new PreBidException(String.format("Cannot encode request form value: %s", value), e);
         }
+    }
+
+    private static Future<Void> processResponse(HttpClientResponse response) {
+        final Future<Void> future = Future.future();
+        response
+                .bodyHandler(buffer -> future.complete(
+                        processStatusAndBody(response.statusCode(), buffer.toString())))
+                .exceptionHandler(future::tryFail);
+        return future;
+    }
+
+    private static Void processStatusAndBody(int statusCode, String body) {
+        if (statusCode != 200) {
+            throw new PreBidException(String.format("HTTP status code %d", statusCode));
+        }
+
+        final RecaptchaResponse response;
+        try {
+            response = Json.decodeValue(body, RecaptchaResponse.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("Cannot parse response: %s", body));
+        }
+
+        if (!Objects.equals(response.getSuccess(), Boolean.TRUE)) {
+            final List<String> errorCodes = response.getErrorCodes();
+            final String errors = errorCodes != null ? String.join(", ", errorCodes) : null;
+            throw new PreBidException(String.format("Verification failed: %s", errors));
+        }
+
+        return null;
+    }
+
+    private static Future<Void> failResponse(Throwable exception) {
+        logger.warn("Error occurred while verifying Google Recaptcha", exception);
+        return Future.failedFuture(exception);
     }
 }
