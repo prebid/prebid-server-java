@@ -67,7 +67,7 @@ public class GoogleRecaptchaVerifier {
         response
                 .bodyHandler(buffer -> future.complete(
                         processStatusAndBody(response.statusCode(), buffer.toString())))
-                .exceptionHandler(future::tryFail);
+                .exceptionHandler(future::fail);
         return future;
     }
 

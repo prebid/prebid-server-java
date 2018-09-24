@@ -146,7 +146,7 @@ public class HttpAdapterConnector {
                 .bodyHandler(buffer -> future.complete(
                         toExchangeCall(request, response.statusCode(), buffer.toString(), responseTypeReference,
                                 bidderDebugBuilder)))
-                .exceptionHandler(future::tryFail);
+                .exceptionHandler(future::fail);
         return future;
     }
 

@@ -154,7 +154,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
         response
                 .bodyHandler(buffer -> future.complete(
                         toStoredDataResult(requestIds, impIds, response.statusCode(), buffer.toString())))
-                .exceptionHandler(future::tryFail);
+                .exceptionHandler(future::fail);
         return future;
     }
 

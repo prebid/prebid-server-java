@@ -116,7 +116,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
         response
                 .bodyHandler(buffer -> future.complete(
                         toHttpCall(response.statusCode(), buffer.toString(), response.headers(), httpRequest)))
-                .exceptionHandler(future::tryFail);
+                .exceptionHandler(future::fail);
         return future;
     }
 

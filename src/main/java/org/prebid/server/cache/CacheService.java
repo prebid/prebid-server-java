@@ -141,7 +141,7 @@ public class CacheService {
         response
                 .bodyHandler(buffer -> future.complete(
                         processStatusAndBody(response.statusCode(), buffer.toString(), bidCount)))
-                .exceptionHandler(future::tryFail);
+                .exceptionHandler(future::fail);
         return future;
     }
 
