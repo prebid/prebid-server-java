@@ -178,7 +178,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .adUnitCode("adUnitCode1")
@@ -194,7 +194,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .adUnitCode("adUnitCode1")
@@ -331,7 +331,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))

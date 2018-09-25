@@ -9,6 +9,10 @@ public enum MetricName {
     db_circuitbreaker_closed,
     db_query_time,
 
+    // http client
+    httpclient_circuitbreaker_opened,
+    httpclient_circuitbreaker_closed,
+
     // geo location
     geolocation_circuitbreaker_opened,
     geolocation_circuitbreaker_closed,

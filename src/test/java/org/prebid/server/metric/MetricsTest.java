@@ -535,6 +535,24 @@ public class MetricsTest {
     }
 
     @Test
+    public void shouldIncrementHttpClientCircuitBreakerOpenMetric() {
+        // when
+        metrics.updateHttpClientCircuitBreakerMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("httpclient_circuitbreaker_opened").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementHttpClientCircuitBreakerCloseMetric() {
+        // when
+        metrics.updateHttpClientCircuitBreakerMetric(false);
+
+        // then
+        assertThat(metricRegistry.counter("httpclient_circuitbreaker_closed").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void shouldIncrementGeoLocationCircuitBreakerOpenMetric() {
         // when
         metrics.updateGeoLocationCircuitBreakerMetric(true);

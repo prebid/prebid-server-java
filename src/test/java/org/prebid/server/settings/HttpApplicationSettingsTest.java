@@ -3,10 +3,7 @@ package org.prebid.server.settings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import org.junit.Before;
 import org.junit.Rule;
@@ -23,6 +20,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -37,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.*;
 
 public class HttpApplicationSettingsTest extends VertxTest {
@@ -52,20 +51,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     private HttpApplicationSettings httpApplicationSettings;
 
-    @Mock
-    private HttpClientRequest httpClientRequest;
-
     private Timeout timeout;
     private Timeout expiredTimeout;
 
     @Before
     public void setUp() {
-        given(httpClient.getAbs(anyString(), any())).willReturn(httpClientRequest);
-
-        given(httpClientRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
-        given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
-        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
-
         httpApplicationSettings = new HttpApplicationSettings(httpClient, ENDPOINT, AMP_ENDPOINT);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -138,19 +128,21 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     @Test
     public void getStoredDataShouldSendHttpRequestWithExpectedNewParams() {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         httpApplicationSettings.getStoredData(new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")),
                 timeout);
 
         // then
-        final ArgumentCaptor<String> timeoutCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).getAbs(timeoutCaptor.capture(), any());
-        assertThat(timeoutCaptor.getValue()).isEqualTo("http://stored-requests?request-ids=id2,id1&imp-ids=id4,id3");
+        verify(httpClient).get(eq("http://stored-requests?request-ids=id2,id1&imp-ids=id4,id3"), any(), anyLong());
     }
 
     @Test
     public void getStoredDataShouldSendHttpRequestWithExpectedAppendedParams() {
         // given
+        givenHttpClientResponse(200);
         httpApplicationSettings = new HttpApplicationSettings(httpClient, "http://some-domain?param1=value1",
                 AMP_ENDPOINT);
 
@@ -158,9 +150,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);
 
         // then
-        final ArgumentCaptor<String> timeoutCaptor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).getAbs(timeoutCaptor.capture(), any());
-        assertThat(timeoutCaptor.getValue()).isEqualTo("http://some-domain?param1=value1&request-ids=id1&imp-ids=id2");
+        verify(httpClient).get(eq("http://some-domain?param1=value1&request-ids=id1&imp-ids=id2"), any(), anyLong());
     }
 
     @Test
@@ -274,7 +264,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("id3", "{}"));
         assertThat(future.result().getErrors()).hasSize(2)
-                .containsOnly("No stored request found for id: id2", "No stored imp found for id: id4");
+                .containsOnly("Stored request not found for id: id2", "Stored imp not found for id: id4");
     }
 
     @Test
@@ -302,12 +292,15 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     @Test
     public void getAmpStoredDataShouldIgnoreImpIdsArgument() {
+        // given
+        givenHttpClientResponse(200);
+
         // when
         httpApplicationSettings.getAmpStoredData(singleton("id1"), singleton("id2"), timeout);
 
         // then
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).getAbs(captor.capture(), any());
+        verify(httpClient).get(captor.capture(), any(), anyLong());
         assertThat(captor.getValue()).doesNotContain("imp-ids");
     }
 
@@ -329,24 +322,18 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     private HttpClientResponse givenHttpClientResponse(int statusCode) {
         final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.getAbs(anyString(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
         given(httpClientResponse.statusCode()).willReturn(statusCode);
-        return httpClientResponse;
-    }
 
-    @SuppressWarnings("unchecked")
-    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
-        return inv -> {
-            // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(1)).handle(httpClientResponse);
-            return httpClientRequest;
-        };
+        given(httpClient.get(anyString(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(httpClientResponse));
+
+        return httpClientResponse;
     }
 
     @SuppressWarnings("unchecked")
     private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
         return inv -> {
+            // invoking handler right away passing mock to it
             ((Handler<T>) inv.getArgument(0)).handle(obj);
             return inv.getMock();
         };

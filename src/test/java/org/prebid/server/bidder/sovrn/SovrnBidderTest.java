@@ -213,7 +213,8 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", "legacyTagId", null))))
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null, ExtImpSovrn.of("tagid", "legacyTagId", null))))
                                 .build()))
                 .build();
 
@@ -341,7 +342,7 @@ public class SovrnBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnDecodedUrlInAdmField() throws JsonProcessingException {
-        //given
+        // given
         final HttpCall httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
@@ -358,10 +359,9 @@ public class SovrnBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, BidRequest.builder().build());
 
-        //then
+        // then
         assertThat(result.getValue()).hasSize(1).element(0)
                 .returns("encoded url test", bidderBid -> bidderBid.getBid().getAdm());
-
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {

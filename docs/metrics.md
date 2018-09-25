@@ -14,6 +14,8 @@ This document describes all metrics collected and submitted to configured backen
 - `db_circuitbreaker_opened` - number of how many times database circuit breaker was opened (database is unavailable)
 - `db_circuitbreaker_closed` - number of how many times database circuit breaker was closed (database is available again)
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
+- `httpclient_circuitbreaker_opened` - number of how many times http client circuit breaker was opened (requested resource is unavailable)
+- `httpclient_circuitbreaker_closed` - number of how many times http client circuit breaker was closed (requested resource is available again)
 
 ## Auction per-adapter metrics
 - `adapter.<bidder-name>.no_cookie_requests` - number of requests made to `<bidder-name>` that did not contain UID

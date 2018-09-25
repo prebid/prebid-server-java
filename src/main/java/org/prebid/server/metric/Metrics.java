@@ -192,6 +192,14 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
+    public void updateHttpClientCircuitBreakerMetric(boolean opened) {
+        if (opened) {
+            incCounter(MetricName.httpclient_circuitbreaker_opened);
+        } else {
+            incCounter(MetricName.httpclient_circuitbreaker_closed);
+        }
+    }
+
     public void updateGeoLocationCircuitBreakerMetric(boolean opened) {
         if (opened) {
             incCounter(MetricName.geolocation_circuitbreaker_opened);

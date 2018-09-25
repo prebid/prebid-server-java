@@ -228,7 +228,7 @@ public class PulsepointAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
@@ -244,7 +244,7 @@ public class PulsepointAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldNotFailIfMediaTypeHasVideoAndMimesListIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")

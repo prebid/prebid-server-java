@@ -146,7 +146,7 @@ public class SovrnAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")
@@ -163,7 +163,7 @@ public class SovrnAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideo() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode1")

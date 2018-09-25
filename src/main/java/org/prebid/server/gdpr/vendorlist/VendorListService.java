@@ -5,18 +5,20 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.gdpr.vendorlist.proto.VendorList;
+import org.prebid.server.vertx.http.HttpClient;
 
 import java.io.File;
 import java.io.IOException;
@@ -188,11 +190,11 @@ public class VendorListService {
         if (vendorIdToPurposes != null) {
             return Future.succeededFuture(vendorIdToPurposes);
         } else {
-            log(version, "Vendor list not found. Trying to load.");
-
+            logger.info("Vendor list for version {0} not found, started downloading.", version);
             fetchNewVendorListFor(version);
 
-            return Future.failedFuture(String.format("Vendor list of version %d not found. Try again later.", version));
+            return Future.failedFuture(
+                    String.format("Vendor list for version %d not fetched yet, try again later.", version));
         }
     }
 
@@ -202,43 +204,39 @@ public class VendorListService {
     private void fetchNewVendorListFor(int version) {
         final String url = endpointTemplate.replace(VERSION_PLACEHOLDER, String.valueOf(version));
 
-        httpClient.getAbs(url, response -> handleResponse(response, version))
-                .exceptionHandler(throwable -> handleException(version, throwable))
-                .setTimeout(defaultTimeoutMs)
-                .end();
+        httpClient.get(url, defaultTimeoutMs)
+                .compose(response -> processResponse(response, version))
+                .compose(this::saveToFileAndUpdateCache)
+                .recover(exception -> failResponse(exception, version));
     }
 
-    private static void handleException(int version, Throwable throwable) {
-        log(version, throwable.getMessage());
-    }
-
-    private void handleResponse(HttpClientResponse response, int version) {
+    private static Future<VendorListResult> processResponse(HttpClientResponse response, int version) {
+        final Future<VendorListResult> future = Future.future();
         response
-                .bodyHandler(buffer -> handleBody(version, response.statusCode(), buffer.toString()))
-                .exceptionHandler(throwable -> handleException(version, throwable));
+                .bodyHandler(buffer -> future.complete(
+                        processStatusAndBody(response.statusCode(), buffer.toString(), version)))
+                .exceptionHandler(future::fail);
+        return future;
     }
 
-    private void handleBody(int version, int statusCode, String body) {
+    private static VendorListResult processStatusAndBody(int statusCode, String body, int version) {
         if (statusCode != 200) {
-            log(version, "response code was %d", statusCode);
-        } else {
-            final VendorList vendorList;
-            try {
-                vendorList = Json.decodeValue(body, VendorList.class);
-            } catch (DecodeException e) {
-                log(version, "parsing json failed for response: %s with message: %s", body, e.getMessage());
-                return;
-            }
-
-            // we should care on obtained vendor list, because it'll be saved and never be downloaded again
-            if (isVendorListValid(vendorList)) {
-                saveVendorListToFile(version, body)
-                        // add new entry to in-memory cache
-                        .map(r -> cache.put(version, mapVendorIdToPurposes(vendorList.getVendors(), knownVendorIds)));
-            } else {
-                log(version, "fetched vendor list parsed but has invalid data: %s", body);
-            }
+            throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
+
+        final VendorList vendorList;
+        try {
+            vendorList = Json.decodeValue(body, VendorList.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
+        }
+
+        // we should care on obtained vendor list, because it'll be saved and never be downloaded again
+        if (!isVendorListValid(vendorList)) {
+            throw new PreBidException(String.format("Fetched vendor list parsed but has invalid data: %s", body));
+        }
+
+        return VendorListResult.of(version, body, vendorList);
     }
 
     /**
@@ -252,19 +250,31 @@ public class VendorListService {
                 .allMatch(vendor -> vendor != null && vendor.getId() != null && vendor.getPurposeIds() != null);
     }
 
+    private Future<Void> saveToFileAndUpdateCache(VendorListResult vendorListResult) {
+        final VendorList vendorList = vendorListResult.getVendorList();
+        final int version = vendorListResult.getVersion();
+
+        saveToFile(vendorListResult.getVendorListAsString(), version)
+                // add new entry to in-memory cache
+                .map(r -> cache.put(version, mapVendorIdToPurposes(vendorList.getVendors(), knownVendorIds)));
+
+        return Future.succeededFuture();
+    }
+
     /**
      * Saves on file system given content as vendor list of specified version.
      */
-    private Future<Void> saveVendorListToFile(int version, String content) {
+    private Future<Void> saveToFile(String content, int version) {
         final Future<Void> future = Future.future();
         final String filepath = new File(cacheDir, version + JSON_SUFFIX).getPath();
 
         fileSystem.writeFile(filepath, Buffer.buffer(content), result -> {
             if (result.succeeded()) {
-                log(version, "Created new vendor list file %s: ", filepath);
+                logger.info("Created new vendor list for version {0}, file: {1}", version, filepath);
                 future.complete();
             } else {
-                log(version, "Could not create new vendor list file: %s", filepath);
+                logger.warn("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
+                        filepath);
                 future.fail(result.cause());
             }
         });
@@ -272,8 +282,19 @@ public class VendorListService {
         return future;
     }
 
-    private static void log(int version, String errorMessageFormat, Object... args) {
-        logger.info(String.format("Error fetching vendor list via HTTP for version %d with error: %s",
-                version, String.format(errorMessageFormat, args)));
+    private static Future<Void> failResponse(Throwable exception, int version) {
+        logger.warn("Error fetching vendor list via HTTP for version {0}", exception, version);
+        return Future.failedFuture(exception);
+    }
+
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    private static class VendorListResult {
+
+        int version;
+
+        String vendorListAsString;
+
+        VendorList vendorList;
     }
 }
