@@ -608,6 +608,39 @@
     {
       "bid": [
         {
+          "id": "tid",
+          "impid": "impId18",
+          "price": 6.79510,
+          "nurl": "nurl181\"nurl182\"nurl183",
+          "adm": "adm18",
+          "crid": "nurl183",
+          "dealid": "dealId18",
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb": "6.70",
+                "hb_bidder_beachfront": "beachfront",
+                "hb_uuid_beachfront": "b6df7512-1776-44ec-82b3-87a1ce9dcd4b",
+                "hb_uuid": "b6df7512-1776-44ec-82b3-87a1ce9dcd4b",
+                "hb_bidder": "beachfront",
+                "hb_cache_id_beachfront": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e",
+                "hb_cache_id": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e",
+                "hb_pb_beachfront": "6.70",
+                "hb_creative_loadtype": "html",
+                "hb_deal": "dealId18",
+                "hb_deal_beachfront": "dealId18"
+              }
+            }
+          }
+        }
+      ],
+      "seat": "beachfront",
+      "group": 0
+    },
+    {
+      "bid": [
+        {
           "id": "impId9",
           "impid": "impId9",
           "price": 3.82879,
@@ -744,6 +777,14 @@
             "uri": "{{ conversant.exchange_uri }}",
             "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId4\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":600,\"topframe\":0},\"displaymanager\":\"prebid-s2s\",\"displaymanagerver\":\"1.0.1\"}],\"site\":{\"id\":\"siteId2\",\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"dnt\":2,\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"CV-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}}}",
             "responsebody": "{\"id\":\"bidResponseId4\",\"seatbid\":[{\"bid\":[{\"id\":\"671800140\",\"impid\":\"impId4\",\"price\":5.0,\"adm\":\"adm4\",\"crid\":\"crid4\",\"dealid\":\"dealId4\",\"w\":300,\"h\":600}],\"seat\":\"seatId4\",\"group\":0}]}",
+            "status": 200
+          }
+        ],
+        "beachfront": [
+          {
+            "uri": "http://localhost:8090/beachfront-video-exchange?exchange_id=beachfrontAppId&prebidserver",
+            "requestbody": "{\"isPrebid\":true,\"appId\":\"beachfrontAppId\",\"domain\":\"example.com\",\"imp\":[{\"video\":{},\"bidfloor\":1.0,\"id\":0,\"impid\":\"impId18\"}],\"site\":{\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"geo\":{\"ip\":\"192.168.244.1\"}},\"user\":{},\"cur\":[\"USD\"]}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"62016038043\",\"impid\":\"impId18\",\"price\":8.43,\"adm\":\"adm18\",\"nurl\":\"nurl181\\\"nurl182\\\"nurl183\",\"crid\":\"crid18\",\"dealid\":\"dealId18\",\"w\":300,\"h\":250}],\"seat\":\"seatId18\",\"group\":0}]}",
             "status": 200
           }
         ],
@@ -1445,6 +1486,22 @@
                 "exchange_id": "exchangeId1"
               }
             }
+          },
+          {
+            "id": "impId18",
+            "video": {
+              "mimes": [
+                "mimes"
+              ],
+              "skipmin": 0,
+              "skipafter": 0
+            },
+            "ext": {
+              "beachfront": {
+                "appId": "beachfrontAppId",
+                "bidfloor": 1
+              }
+            }
           }
         ],
         "site": {
@@ -1528,6 +1585,7 @@
     },
     "errors": {
       "conversantAlias": [],
+      "beachfront": [],
       "adtelligent": [],
       "somoaudience": [],
       "lifestreet": [
@@ -1570,7 +1628,8 @@
       "adtelligent": "{{ adtelligent.response_time_ms }}",
       "openx": "{{ openx.response_time_ms }}",
       "eplanning": "{{ eplanning.response_time_ms }}",
-      "somoaudience": "{{ somoaudience.response_time_ms }}"
+      "somoaudience": "{{ somoaudience.response_time_ms }}",
+      "beachfront": "{{ beachfront.response_time_ms }}"
     }
   }
 }

@@ -16,6 +16,18 @@
     {
       "type": "json",
       "value": {
+        "id": "tid",
+        "impid": "impId18",
+        "price": 6.7951,
+        "nurl": "nurl181\"nurl182\"nurl183",
+        "adm": "adm18",
+        "crid": "nurl183",
+        "dealid": "dealId18"
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "466223845",
         "impid": "impId2",
         "price": 3.43382,
@@ -299,6 +311,11 @@
     {
       "type": "xml",
       "value": "adm91",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": "adm18",
       "expiry": 120
     },
     {

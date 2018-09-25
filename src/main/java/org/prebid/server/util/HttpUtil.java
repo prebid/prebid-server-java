@@ -115,4 +115,16 @@ public final class HttpUtil {
         }
         return ip;
     }
+
+    public static String getDomainFromUrl(String url) {
+        String domain = null;
+        if (StringUtils.isNotEmpty(url)) {
+            try {
+                domain = new URL(url).getHost();
+            } catch (MalformedURLException e) {
+                return null;
+            }
+        }
+        return domain;
+    }
 }

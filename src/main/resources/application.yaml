@@ -47,6 +47,13 @@ adapters:
     endpoint: http://ib.adnxs.com/openrtb2
     usersync-url: //ib.adnxs.com/getuid?
     pbs-enforces-gdpr: true
+  beachfront:
+    enabled: false
+    banner-endpoint: https://display.bfmio.com/prebid_display
+    video-endpoint: https://reachms.bfmio.com/bid.json?exchange_id=
+    usersync-url: //sync.bfmio.com/syncb?pid=
+    platform-id: 142
+    pbs-enforces-gdpr: true
   brightroll:
     enabled: false
     endpoint: http://east-bid.ybp.yahoo.com/bid/appnexuspbs
