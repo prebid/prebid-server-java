@@ -80,7 +80,7 @@ public class GoogleRecaptchaVerifier {
         try {
             response = Json.decodeValue(body, RecaptchaResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", body));
+            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }
 
         if (!Objects.equals(response.getSuccess(), Boolean.TRUE)) {

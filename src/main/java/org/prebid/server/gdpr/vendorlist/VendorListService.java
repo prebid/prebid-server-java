@@ -188,11 +188,11 @@ public class VendorListService {
         if (vendorIdToPurposes != null) {
             return Future.succeededFuture(vendorIdToPurposes);
         } else {
-            log(version, "Vendor list not found. Trying to load.");
-
+            logger.info("Vendor list for version {0} not found, started downloading.", version);
             fetchNewVendorListFor(version);
 
-            return Future.failedFuture(String.format("Vendor list of version %d not found. Try again later.", version));
+            return Future.failedFuture(
+                    String.format("Vendor list for version %d not fetched yet, try again later.", version));
         }
     }
 
@@ -203,43 +203,45 @@ public class VendorListService {
         final String url = endpointTemplate.replace(VERSION_PLACEHOLDER, String.valueOf(version));
 
         httpClient.get(url, defaultTimeoutMs)
-                .map(response -> handleResponse(response, version))
-                .otherwise(exception -> handleException(exception, version));
+                .compose(response -> processResponse(response, version))
+                .recover(exception -> failResponse(exception, version));
     }
 
-    private Void handleResponse(HttpClientResponse response, int version) {
+    private static Future<Void> failResponse(Throwable exception, int version) {
+        logger.warn("Error fetching vendor list via HTTP for version {0}", exception, version);
+        return Future.failedFuture(exception);
+    }
+
+    private Future<Void> processResponse(HttpClientResponse response, int version) {
+        final Future<Void> future = Future.future();
         response
-                .bodyHandler(buffer -> handleStatusAndBody(response.statusCode(), buffer.toString(), version))
-                .exceptionHandler(throwable -> handleException(throwable, version));
-        return null;
+                .bodyHandler(buffer -> future.complete(
+                        processStatusAndBody(response.statusCode(), buffer.toString(), version)))
+                .exceptionHandler(future::fail);
+        return future;
     }
 
-    private static Void handleException(Throwable throwable, int version) {
-        log(version, throwable.getMessage());
-        return null;
-    }
-
-    private void handleStatusAndBody(int statusCode, String body, int version) {
+    private Void processStatusAndBody(int statusCode, String body, int version) {
         if (statusCode != 200) {
-            log(version, "response code was %d", statusCode);
-        } else {
-            final VendorList vendorList;
-            try {
-                vendorList = Json.decodeValue(body, VendorList.class);
-            } catch (DecodeException e) {
-                log(version, "parsing json failed for response: %s with message: %s", body, e.getMessage());
-                return;
-            }
-
-            // we should care on obtained vendor list, because it'll be saved and never be downloaded again
-            if (isVendorListValid(vendorList)) {
-                saveVendorListToFile(version, body)
-                        // add new entry to in-memory cache
-                        .map(r -> cache.put(version, mapVendorIdToPurposes(vendorList.getVendors(), knownVendorIds)));
-            } else {
-                log(version, "fetched vendor list parsed but has invalid data: %s", body);
-            }
+            throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
+
+        final VendorList vendorList;
+        try {
+            vendorList = Json.decodeValue(body, VendorList.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
+        }
+
+        // we should care on obtained vendor list, because it'll be saved and never be downloaded again
+        if (!isVendorListValid(vendorList)) {
+            throw new PreBidException(String.format("Fetched vendor list parsed but has invalid data: %s", body));
+        }
+
+        saveVendorListToFile(body, version)
+                // add new entry to in-memory cache
+                .map(r -> cache.put(version, mapVendorIdToPurposes(vendorList.getVendors(), knownVendorIds)));
+        return null;
     }
 
     /**
@@ -256,25 +258,21 @@ public class VendorListService {
     /**
      * Saves on file system given content as vendor list of specified version.
      */
-    private Future<Void> saveVendorListToFile(int version, String content) {
+    private Future<Void> saveVendorListToFile(String content, int version) {
         final Future<Void> future = Future.future();
         final String filepath = new File(cacheDir, version + JSON_SUFFIX).getPath();
 
         fileSystem.writeFile(filepath, Buffer.buffer(content), result -> {
             if (result.succeeded()) {
-                logger.info("Created new vendor list for version {0} in file: {1}", version, filepath);
+                logger.info("Created new vendor list for version {0}, file: {1}", version, filepath);
                 future.complete();
             } else {
-                log(version, "Could not create new vendor list file: %s", filepath);
+                logger.warn("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
+                        filepath);
                 future.fail(result.cause());
             }
         });
 
         return future;
-    }
-
-    private static void log(int version, String errorMessageFormat, Object... args) {
-        logger.info("Error fetching vendor list via HTTP for version {0} with error: {1}",
-                version, String.format(errorMessageFormat, args));
     }
 }

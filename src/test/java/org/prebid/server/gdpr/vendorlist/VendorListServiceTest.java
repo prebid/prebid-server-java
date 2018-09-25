@@ -282,7 +282,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldFailIfVendorListNotFound() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientProducesException(new RuntimeException());
 
         // when
         final Future<?> future = vendorListService.forVersion(1);
@@ -290,7 +290,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThat(future.failed()).isTrue();
         assertThat(future.cause())
-                .hasMessage("Vendor list of version 1 not found. Try again later.");
+                .hasMessage("Vendor list for version 1 not fetched yet, try again later.");
     }
 
     @Test

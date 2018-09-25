@@ -1,7 +1,7 @@
 package org.prebid.server.currency;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -67,43 +67,47 @@ public class CurrencyConversionService {
      */
     private void populatesLatestCurrencyRates() {
         httpClient.get(currencyServerUrl, 2000L)
-                .map(this::processResponse)
-                .otherwise(CurrencyConversionService::failResponse);
+                .compose(this::processResponse)
+                .recover(CurrencyConversionService::failResponse);
     }
 
-    private Void processResponse(HttpClientResponse response) {
-        final int statusCode = response.statusCode();
-        if (statusCode != 200) {
-            logger.warn("Currency server response code is {0}", statusCode);
-        } else {
-            response
-                    .bodyHandler(this::handleBody)
-                    .exceptionHandler(CurrencyConversionService::failResponse);
-        }
-        return null;
+    private Future<Void> processResponse(HttpClientResponse response) {
+        final Future<Void> future = Future.future();
+        response
+                .bodyHandler(buffer -> future.complete(
+                        processStatusAndBody(response.statusCode(), buffer.toString())))
+                .exceptionHandler(future::fail);
+        return future;
     }
 
     /**
      * Parses body content and populates latest currency rates.
      */
-    private void handleBody(Buffer buffer) {
-        try {
-            final Map<String, Map<String, BigDecimal>> receivedCurrencyRates =
-                    Json.mapper.readValue(buffer.toString(), CurrencyConversionRates.class).getConversions();
-            if (receivedCurrencyRates != null) {
-                latestCurrencyRates = receivedCurrencyRates;
-            }
-        } catch (IOException e) {
-            logger.warn("Error occurred during parsing response from latest currency service", e);
+    private Void processStatusAndBody(int statusCode, String body) {
+        if (statusCode != 200) {
+            throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
+
+        final CurrencyConversionRates currencyConversionRates;
+        try {
+            currencyConversionRates = Json.mapper.readValue(body, CurrencyConversionRates.class);
+        } catch (IOException e) {
+            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
+        }
+
+        final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
+        if (receivedCurrencyRates != null) {
+            latestCurrencyRates = receivedCurrencyRates;
+        }
+        return null;
     }
 
     /**
      * Handles an error occurred while request. In our case adds error log.
      */
-    private static Void failResponse(Throwable exception) {
+    private static Future<Void> failResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);
-        return null;
+        return Future.failedFuture(exception);
     }
 
     /**
