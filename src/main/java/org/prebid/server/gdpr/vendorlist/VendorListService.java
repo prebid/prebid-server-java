@@ -10,6 +10,8 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
@@ -204,16 +206,12 @@ public class VendorListService {
 
         httpClient.get(url, defaultTimeoutMs)
                 .compose(response -> processResponse(response, version))
+                .compose(this::saveToFileAndUpdateCache)
                 .recover(exception -> failResponse(exception, version));
     }
 
-    private static Future<Void> failResponse(Throwable exception, int version) {
-        logger.warn("Error fetching vendor list via HTTP for version {0}", exception, version);
-        return Future.failedFuture(exception);
-    }
-
-    private Future<Void> processResponse(HttpClientResponse response, int version) {
-        final Future<Void> future = Future.future();
+    private static Future<VendorListResult> processResponse(HttpClientResponse response, int version) {
+        final Future<VendorListResult> future = Future.future();
         response
                 .bodyHandler(buffer -> future.complete(
                         processStatusAndBody(response.statusCode(), buffer.toString(), version)))
@@ -221,7 +219,7 @@ public class VendorListService {
         return future;
     }
 
-    private Void processStatusAndBody(int statusCode, String body, int version) {
+    private static VendorListResult processStatusAndBody(int statusCode, String body, int version) {
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
@@ -238,10 +236,7 @@ public class VendorListService {
             throw new PreBidException(String.format("Fetched vendor list parsed but has invalid data: %s", body));
         }
 
-        saveVendorListToFile(body, version)
-                // add new entry to in-memory cache
-                .map(r -> cache.put(version, mapVendorIdToPurposes(vendorList.getVendors(), knownVendorIds)));
-        return null;
+        return VendorListResult.of(version, body, vendorList);
     }
 
     /**
@@ -255,10 +250,21 @@ public class VendorListService {
                 .allMatch(vendor -> vendor != null && vendor.getId() != null && vendor.getPurposeIds() != null);
     }
 
+    private Future<Void> saveToFileAndUpdateCache(VendorListResult vendorListResult) {
+        final VendorList vendorList = vendorListResult.getVendorList();
+        final int version = vendorListResult.getVersion();
+
+        saveToFile(vendorListResult.getVendorListAsString(), version)
+                // add new entry to in-memory cache
+                .map(r -> cache.put(version, mapVendorIdToPurposes(vendorList.getVendors(), knownVendorIds)));
+
+        return Future.succeededFuture();
+    }
+
     /**
      * Saves on file system given content as vendor list of specified version.
      */
-    private Future<Void> saveVendorListToFile(String content, int version) {
+    private Future<Void> saveToFile(String content, int version) {
         final Future<Void> future = Future.future();
         final String filepath = new File(cacheDir, version + JSON_SUFFIX).getPath();
 
@@ -274,5 +280,21 @@ public class VendorListService {
         });
 
         return future;
+    }
+
+    private static Future<Void> failResponse(Throwable exception, int version) {
+        logger.warn("Error fetching vendor list via HTTP for version {0}", exception, version);
+        return Future.failedFuture(exception);
+    }
+
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    private static class VendorListResult {
+
+        int version;
+
+        String vendorListAsString;
+
+        VendorList vendorList;
     }
 }

@@ -67,12 +67,13 @@ public class CurrencyConversionService {
      */
     private void populatesLatestCurrencyRates() {
         httpClient.get(currencyServerUrl, 2000L)
-                .compose(this::processResponse)
+                .compose(CurrencyConversionService::processResponse)
+                .compose(this::updateCurrencyRates)
                 .recover(CurrencyConversionService::failResponse);
     }
 
-    private Future<Void> processResponse(HttpClientResponse response) {
-        final Future<Void> future = Future.future();
+    private static Future<CurrencyConversionRates> processResponse(HttpClientResponse response) {
+        final Future<CurrencyConversionRates> future = Future.future();
         response
                 .bodyHandler(buffer -> future.complete(
                         processStatusAndBody(response.statusCode(), buffer.toString())))
@@ -83,7 +84,7 @@ public class CurrencyConversionService {
     /**
      * Parses body content and populates latest currency rates.
      */
-    private Void processStatusAndBody(int statusCode, String body) {
+    private static CurrencyConversionRates processStatusAndBody(int statusCode, String body) {
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
@@ -95,17 +96,21 @@ public class CurrencyConversionService {
             throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }
 
+        return currencyConversionRates;
+    }
+
+    private Future<CurrencyConversionRates> updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
         final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
         if (receivedCurrencyRates != null) {
             latestCurrencyRates = receivedCurrencyRates;
         }
-        return null;
+        return Future.succeededFuture(currencyConversionRates);
     }
 
     /**
      * Handles an error occurred while request. In our case adds error log.
      */
-    private static Future<Void> failResponse(Throwable exception) {
+    private static Future<CurrencyConversionRates> failResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);
         return Future.failedFuture(exception);
     }
