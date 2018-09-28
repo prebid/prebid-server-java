@@ -25,6 +25,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.ViewabilityVendors;
@@ -59,7 +60,6 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -169,6 +169,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .site(makeSite(bidRequest.getSite(), rubiconImpExt))
                 .app(makeApp(bidRequest.getApp(), rubiconImpExt))
                 .imp(Collections.singletonList(makeImp(imp, rubiconImpExt)))
+                .cur(makeCurrencies(bidRequest.getCur()))
                 .build();
     }
 
@@ -339,6 +340,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .publisher(makePublisher(rubiconImpExt))
                 .ext(Json.mapper.valueToTree(makeSiteExt(rubiconImpExt)))
                 .build();
+    }
+
+    private static List<String> makeCurrencies(List<String> currencies) {
+        // Rubicon XAPI accepts only USD
+        return CollectionUtils.isNotEmpty(currencies) ? Collections.singletonList(DEFAULT_BID_CURRENCY) : currencies;
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
