@@ -21,9 +21,9 @@ import org.prebid.server.metric.Metrics;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -148,7 +148,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
     @Test
     public void executeQueryShouldReturnResultIfCircuitIsHalfOpenedAndQuerySucceeded(TestContext context) {
         // given
-        givenExecuteQueryReturning(Arrays.asList(
+        givenExecuteQueryReturning(asList(
                 Future.failedFuture(new RuntimeException("exception1")),
                 Future.succeededFuture("value")));
 
@@ -172,6 +172,32 @@ public class CircuitBreakerSecuredJdbcClientTest {
     }
 
     @Test
+    public void executeQueryShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
+        // given
+        givenExecuteQueryReturning(asList(
+                Future.failedFuture(new RuntimeException("exception1")),
+                Future.failedFuture(new RuntimeException("exception2"))));
+
+        // when
+        final Async async = context.async();
+        final Future<?> future1 = jdbcClient.executeQuery("query", emptyList(), identity(), timeout) // 1 call
+                .setHandler(ignored -> vertx.setTimer(200L, id -> async.complete()));
+        async.await();
+
+        final Future<?> future2 = jdbcClient.executeQuery("query", emptyList(), identity(), timeout); // 2 call
+
+        // then
+        future1.setHandler(context.asyncAssertFailure(exception ->
+                assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception1")));
+
+        future2.setHandler(context.asyncAssertFailure(exception ->
+                assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception2")));
+
+        verify(wrappedJdbcClient, times(2))
+                .executeQuery(any(), any(), any(), any());
+    }
+
+    @Test
     public void executeQueryShouldReportMetricsOnCircuitOpened(TestContext context) {
         // given
         givenExecuteQueryReturning(singletonList(
@@ -188,7 +214,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
     @Test
     public void executeQueryShouldReportMetricsOnCircuitClosed(TestContext context) {
         // given
-        givenExecuteQueryReturning(Arrays.asList(
+        givenExecuteQueryReturning(asList(
                 Future.failedFuture(new RuntimeException("exception1")),
                 Future.succeededFuture()));
 

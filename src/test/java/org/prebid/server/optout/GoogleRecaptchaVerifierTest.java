@@ -1,9 +1,6 @@
 package org.prebid.server.optout;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -12,16 +9,15 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 public class GoogleRecaptchaVerifierTest extends VertxTest {
@@ -57,7 +53,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
     @Test
     public void shouldRequestToGoogleRecaptchaVerifierWithExpectedRequestBody() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         // when
         googleRecaptchaVerifier.verify("recaptcha1");
@@ -131,35 +127,14 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
     }
 
-    private void givenHttpClientProducesException(Throwable throwable) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
-
-        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
-    }
-
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
-        given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
-    }
-
-    private HttpClientResponse givenHttpClientResponse(int statusCode) {
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClientResponse.statusCode()).willReturn(statusCode);
-
+        final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response);
         given(httpClient.post(anyString(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(httpClientResponse));
-
-        return httpClientResponse;
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
-            return inv.getMock();
-        };
+    private void givenHttpClientProducesException(Throwable throwable) {
+        given(httpClient.post(anyString(), any(), any(), anyLong()))
+                .willReturn(Future.failedFuture(throwable));
     }
 }

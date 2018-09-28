@@ -7,7 +7,6 @@ import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -30,6 +29,7 @@ import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -103,7 +103,7 @@ public class HttpAdapterConnector {
         }
 
         return httpClient.request(httpRequest.getMethod(), uri, httpRequest.getHeaders(), body, remainingTimeout)
-                .compose(response -> processResponse(bidderDebugBuilder, response, typeReference, requestBody))
+                .compose(response -> processResponse(response, typeReference, requestBody, bidderDebugBuilder))
                 .recover(exception -> failResponse(exception, bidderDebugBuilder));
     }
 
@@ -137,17 +137,16 @@ public class HttpAdapterConnector {
         return Future.succeededFuture(ExchangeCall.error(bidderDebug, error));
     }
 
-    private static <T, R> Future<ExchangeCall> processResponse(BidderDebug.BidderDebugBuilder bidderDebugBuilder,
-                                                               HttpClientResponse response,
-                                                               TypeReference<R> responseTypeReference,
-                                                               T request) {
-        final Future<ExchangeCall> future = Future.future();
-        response
-                .bodyHandler(buffer -> future.complete(
-                        toExchangeCall(request, response.statusCode(), buffer.toString(), responseTypeReference,
-                                bidderDebugBuilder)))
-                .exceptionHandler(future::fail);
-        return future;
+    /**
+     * Handles {@link HttpClientResponse}, analyzes response status
+     * and creates {@link Future} with {@link ExchangeCall} from body content.
+     */
+    private static <T, R> Future<ExchangeCall> processResponse(HttpClientResponse response,
+                                                               TypeReference<R> responseTypeReference, T request,
+                                                               BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
+        return Future.succeededFuture(
+                toExchangeCall(request, response.getStatusCode(), response.getBody(), responseTypeReference,
+                        bidderDebugBuilder));
     }
 
     /**

@@ -2,22 +2,19 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClientResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -26,7 +23,6 @@ import java.util.Map;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -235,35 +231,17 @@ public class CurrencyConversionServiceTest extends VertxTest {
         vertx.close();
     }
 
-    private void givenHttpClientReturnsResponse(HttpClient httpClient, int statusCode, String body) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(httpClient, statusCode);
-        given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(body)));
-    }
-
-    private HttpClientResponse givenHttpClientResponse(HttpClient httpClient, int statusCode) {
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClientResponse.statusCode()).willReturn(statusCode);
-
-        given(httpClient.get(anyString(), anyLong())).willReturn(Future.succeededFuture(httpClientResponse));
-
-        return httpClientResponse;
-    }
-
-    private CurrencyConversionService createAndInitService(String url, long refreshPeriod, Vertx vertx,
-                                                           HttpClient httpClient) {
+    private static CurrencyConversionService createAndInitService(String url, long refreshPeriod, Vertx vertx,
+                                                                  HttpClient httpClient) {
         final CurrencyConversionService currencyService =
                 new CurrencyConversionService(url, refreshPeriod, vertx, httpClient);
         currencyService.initialize();
         return currencyService;
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
-            return inv.getMock();
-        };
+    private static void givenHttpClientReturnsResponse(HttpClient httpClient, int statusCode, String response) {
+        final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response);
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(httpClientResponse));
     }
 }

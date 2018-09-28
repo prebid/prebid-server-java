@@ -131,12 +131,13 @@ public class ServiceConfiguration {
             Metrics metrics,
             @Value("${http-client.max-pool-size}") int maxPoolSize,
             @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs,
-            @Value("${http-client.circuit-breaker.max-failures}") int maxFailures,
-            @Value("${http-client.circuit-breaker.timeout-ms}") long timeoutMs,
-            @Value("${http-client.circuit-breaker.reset-timeout-ms}") long resetTimeoutMs) {
+            @Value("${http-client.circuit-breaker.opening-threshold}") int openingThreshold,
+            @Value("${http-client.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
+            @Value("${http-client.circuit-breaker.closing-interval-ms}") long closingIntervalMs) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs);
-        return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics, maxFailures, timeoutMs, resetTimeoutMs);
+        return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics, openingThreshold, openingIntervalMs,
+                closingIntervalMs);
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs) {
@@ -190,12 +191,12 @@ public class ServiceConfiguration {
         CircuitBreakerSecuredGeoLocationService circuitBreakerSecuredGeoLocationService(
                 Vertx vertx,
                 Metrics metrics,
-                @Value("${gdpr.geolocation.circuit-breaker.max-failures}") int maxFailures,
-                @Value("${gdpr.geolocation.circuit-breaker.timeout-ms}") long timeoutMs,
-                @Value("${gdpr.geolocation.circuit-breaker.reset-timeout-ms}") long resetTimeoutMs) {
+                @Value("${gdpr.geolocation.circuit-breaker.opening-threshold}") int openingThreshold,
+                @Value("${gdpr.geolocation.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
+                @Value("${gdpr.geolocation.circuit-breaker.closing-interval-ms}") long closingIntervalMs) {
 
-            return new CircuitBreakerSecuredGeoLocationService(vertx, createGeoLocationService(), metrics, maxFailures,
-                    timeoutMs, resetTimeoutMs);
+            return new CircuitBreakerSecuredGeoLocationService(vertx, createGeoLocationService(), metrics,
+                    openingThreshold, openingIntervalMs, closingIntervalMs);
         }
 
         /**

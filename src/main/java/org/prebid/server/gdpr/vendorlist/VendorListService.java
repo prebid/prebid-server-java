@@ -5,7 +5,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -19,6 +18,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.gdpr.vendorlist.proto.VendorList;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.File;
 import java.io.IOException;
@@ -210,20 +210,18 @@ public class VendorListService {
                 .recover(exception -> failResponse(exception, version));
     }
 
+    /**
+     * Handles {@link HttpClientResponse}, analyzes response status
+     * and creates {@link Future} with {@link VendorListResult} from body content
+     * or throws {@link PreBidException} in case of errors.
+     */
     private static Future<VendorListResult> processResponse(HttpClientResponse response, int version) {
-        final Future<VendorListResult> future = Future.future();
-        response
-                .bodyHandler(buffer -> future.complete(
-                        processStatusAndBody(response.statusCode(), buffer.toString(), version)))
-                .exceptionHandler(future::fail);
-        return future;
-    }
-
-    private static VendorListResult processStatusAndBody(int statusCode, String body, int version) {
+        final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
+        final String body = response.getBody();
         final VendorList vendorList;
         try {
             vendorList = Json.decodeValue(body, VendorList.class);
@@ -232,17 +230,18 @@ public class VendorListService {
         }
 
         // we should care on obtained vendor list, because it'll be saved and never be downloaded again
-        if (!isVendorListValid(vendorList)) {
+        // while application is running
+        if (!isValid(vendorList)) {
             throw new PreBidException(String.format("Fetched vendor list parsed but has invalid data: %s", body));
         }
 
-        return VendorListResult.of(version, body, vendorList);
+        return Future.succeededFuture(VendorListResult.of(version, body, vendorList));
     }
 
     /**
      * Verifies all significant fields of given {@link VendorList} object.
      */
-    private static boolean isVendorListValid(VendorList vendorList) {
+    private static boolean isValid(VendorList vendorList) {
         return vendorList.getVendorListVersion() != null
                 && vendorList.getLastUpdated() != null
                 && CollectionUtils.isNotEmpty(vendorList.getVendors())
@@ -282,6 +281,9 @@ public class VendorListService {
         return future;
     }
 
+    /**
+     * Handles errors occurred while HTTP request or response processing.
+     */
     private static Future<Void> failResponse(Throwable exception, int version) {
         logger.warn("Error fetching vendor list via HTTP for version {0}", exception, version);
         return Future.failedFuture(exception);

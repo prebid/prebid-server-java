@@ -3,9 +3,6 @@ package org.prebid.server.cache;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClientResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -13,7 +10,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.cache.proto.request.BannerValue;
@@ -27,6 +23,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -139,7 +136,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldPerformHttpRequestWithExpectedTimeout() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -183,7 +180,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(PreBidException.class)
-                .hasMessage("HTTP status code 503, body: response");
+                .hasMessage("HTTP status code 503");
     }
 
     @Test
@@ -216,10 +213,11 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldMakeHttpRequestUsingConfigurationParams() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         cacheService = new CacheService(httpClient, "https://cache-service-host:8888/cache",
                 "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
+
         // when
         cacheService.cacheBids(singleBidList(), timeout);
 
@@ -230,7 +228,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsShouldPerformHttpRequestWithExpectedBody() throws Exception {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         final String adm3 = "<script type=\"application/javascript\" src=\"http://nym1-ib.adnxs"
                 + "f3919239&pp=${AUCTION_PRICE}&\"></script>";
@@ -274,7 +272,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsVideoOnlyShouldPerformHttpRequestWithExpectedBody() throws IOException {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         // when
         cacheService.cacheBidsVideoOnly(asList(
@@ -316,7 +314,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtl() throws IOException {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         // when
         cacheService.cacheBidsOpenrtb(singletonList(givenBidOpenrtb(identity())),
@@ -332,7 +330,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedBody() throws IOException {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         // when
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1"));
@@ -415,35 +413,14 @@ public class CacheServiceTest extends VertxTest {
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
-        given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
+        final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response);
+        given(httpClient.post(anyString(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(httpClientResponse));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
-
-        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
-    }
-
-    private HttpClientResponse givenHttpClientResponse(int statusCode) {
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClientResponse.statusCode()).willReturn(statusCode);
-
         given(httpClient.post(anyString(), any(), any(), anyLong()))
-                .willReturn(Future.succeededFuture(httpClientResponse));
-
-        return httpClientResponse;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
-            return inv.getMock();
-        };
+                .willReturn(Future.failedFuture(throwable));
     }
 
     private BidCacheRequest captureBidCacheRequest() throws IOException {

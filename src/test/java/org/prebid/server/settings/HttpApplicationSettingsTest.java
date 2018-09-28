@@ -2,18 +2,13 @@ package org.prebid.server.settings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClientResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -21,6 +16,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -129,7 +125,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldSendHttpRequestWithExpectedNewParams() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         // when
         httpApplicationSettings.getStoredData(new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")),
@@ -142,7 +138,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldSendHttpRequestWithExpectedAppendedParams() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
         httpApplicationSettings = new HttpApplicationSettings(httpClient, "http://some-domain?param1=value1",
                 AMP_ENDPOINT);
 
@@ -173,7 +169,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfHttpClientRespondsNot200Status() {
         // given
-        givenHttpClientReturnsResponses(500, "ignored");
+        givenHttpClientReturnsResponse(500, "ignored");
 
         // when
         final Future<StoredDataResult> future =
@@ -184,13 +180,13 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getStoredIdToImp()).isEmpty();
         assertThat(future.result().getErrors())
-                .containsOnly("Error fetching stored requests for ids [id1] via HTTP: response code was 500");
+                .containsOnly("Error fetching stored requests for ids [id1] via HTTP: HTTP status code 500");
     }
 
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfHttpResponseIsMalformed() {
         // given
-        givenHttpClientReturnsResponses(200, "invalid-response");
+        givenHttpClientReturnsResponse(200, "invalid-response");
 
         // when
         final Future<StoredDataResult> future =
@@ -209,7 +205,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnResultWithErrorIfStoredRequestObjectIsMalformed() {
         // given
         final String malformedStoredRequest = "{\"requests\": {\"id1\":\"invalid-stored-request\"}";
-        givenHttpClientReturnsResponses(200, malformedStoredRequest);
+        givenHttpClientReturnsResponse(200, malformedStoredRequest);
 
         // when
         final Future<StoredDataResult> future =
@@ -229,7 +225,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnResultWithErrorIfStoredImpObjectIsMalformed() {
         // given
         final String malformedStoredRequest = "{\"imps\": {\"id1\":\"invalid-stored-imp\"}";
-        givenHttpClientReturnsResponses(200, malformedStoredRequest);
+        givenHttpClientReturnsResponse(200, malformedStoredRequest);
 
         // when
         final Future<StoredDataResult> future =
@@ -249,7 +245,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // given
         final HttpFetcherResponse response = HttpFetcherResponse.of(
                 singletonMap("id1", mapper.createObjectNode()), singletonMap("id3", mapper.createObjectNode()));
-        givenHttpClientReturnsResponses(200, mapper.writeValueAsString(response));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
         // when
         final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(
@@ -273,7 +269,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         final HttpFetcherResponse response = HttpFetcherResponse.of(
                 singletonMap("id1", mapper.createObjectNode().put("field1", "field-value1")),
                 singletonMap("id2", mapper.createObjectNode().put("field2", "field-value2")));
-        givenHttpClientReturnsResponses(200, mapper.writeValueAsString(response));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
         // when
         final Future<StoredDataResult> future =
@@ -293,7 +289,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getAmpStoredDataShouldIgnoreImpIdsArgument() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         // when
         httpApplicationSettings.getAmpStoredData(singleton("id1"), singleton("id2"), timeout);
@@ -304,38 +300,13 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(captor.getValue()).doesNotContain("imp-ids");
     }
 
-    private void givenHttpClientReturnsResponses(int statusCode, String response) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
-
-        // setup multiple answers
-        final BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
-                given(httpClientResponse.bodyHandler(any()));
-
-        currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response)));
+    private void givenHttpClientReturnsResponse(int statusCode, String response) {
+        given(httpClient.get(anyString(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
-        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
-    }
-
-    private HttpClientResponse givenHttpClientResponse(int statusCode) {
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClientResponse.statusCode()).willReturn(statusCode);
-
         given(httpClient.get(anyString(), any(), anyLong()))
-                .willReturn(Future.succeededFuture(httpClientResponse));
-
-        return httpClientResponse;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
-            return inv.getMock();
-        };
+                .willReturn(Future.failedFuture(throwable));
     }
 }

@@ -115,7 +115,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
         // when
         doLookup(context); // 1 call
         doLookup(context); // 2 call
-        doWaitForResetTime(context);
+        doWaitForClosingInterval(context);
         final Future<?> future = doLookup(context); // 3 call
 
         // then
@@ -135,7 +135,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
         // when
         doLookup(context); // 1 call
         doLookup(context); // 2 call
-        doWaitForResetTime(context);
+        doWaitForClosingInterval(context);
         final Future<GeoInfo> future = doLookup(context); // 3 call
 
         // then
@@ -143,6 +143,28 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
         assertThat(future.result().getCountry()).isEqualTo("country");
 
         verify(wrappedGeoLocationService, times(2)).lookup(any(), any()); // invoked only on 1 & 3 calls
+    }
+
+    @Test
+    public void lookupShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
+        // given
+        givenWrappedGeoLocationReturning(
+                Future.failedFuture(new RuntimeException("exception1")),
+                Future.failedFuture(new RuntimeException("exception2")));
+
+        // when
+        final Future<?> future1 = doLookup(context); // 1 call
+        doWaitForOpeningInterval(context);
+        final Future<?> future2 = doLookup(context); // 2 call
+
+        // then
+        verify(wrappedGeoLocationService, times(2)).lookup(any(), any());
+
+        assertThat(future1.failed()).isTrue();
+        assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception1");
+
+        assertThat(future2.failed()).isTrue();
+        assertThat(future2.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception2");
     }
 
     @Test
@@ -166,7 +188,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
 
         // when
         doLookup(context); // 1 call
-        doWaitForResetTime(context);
+        doWaitForClosingInterval(context);
         doLookup(context); // 2 call
 
         // then
@@ -192,9 +214,17 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
         return future;
     }
 
-    private void doWaitForResetTime(TestContext context) {
+    private void doWaitForOpeningInterval(TestContext context) {
+        doWait(context, 200L);
+    }
+
+    private void doWaitForClosingInterval(TestContext context) {
+        doWait(context, 300L);
+    }
+
+    private void doWait(TestContext context, long timeout) {
         final Async async = context.async();
-        vertx.setTimer(300L, id -> async.complete()); // waiting for reset time of circuit breaker
+        vertx.setTimer(timeout, id -> async.complete());
         async.await();
     }
 }

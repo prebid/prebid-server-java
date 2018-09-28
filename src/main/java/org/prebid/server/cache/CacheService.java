@@ -2,7 +2,6 @@ package org.prebid.server.cache;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -20,6 +19,7 @@ import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -126,7 +126,7 @@ public class CacheService {
     }
 
     /**
-     * Completes input {@link Future} with the given exception.
+     * Handles errors occurred while HTTP request or response processing.
      */
     private static Future<BidCacheResponse> failResponse(Throwable exception) {
         logger.warn("Error occurred while interacting with cache service", exception);
@@ -134,31 +134,22 @@ public class CacheService {
     }
 
     /**
-     * Adds body handler and exception handler to {@link HttpClientResponse}.
+     * Handles {@link HttpClientResponse}, analyzes response status
+     * and creates {@link Future} with {@link BidCacheResponse} from body content
+     * or throws {@link PreBidException} in case of errors.
      */
     private static Future<BidCacheResponse> processResponse(HttpClientResponse response, int bidCount) {
-        final Future<BidCacheResponse> future = Future.future();
-        response
-                .bodyHandler(buffer -> future.complete(
-                        processStatusAndBody(response.statusCode(), buffer.toString(), bidCount)))
-                .exceptionHandler(future::fail);
-        return future;
-    }
-
-    /**
-     * Analyzes response status/body and completes input {@link Future}
-     * with obtained result from prebid cache service or fails it in case of errors.
-     */
-    private static BidCacheResponse processStatusAndBody(int statusCode, String body, int bidCount) {
+        final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
-            throw new PreBidException(String.format("HTTP status code %d, body: %s", statusCode, body));
+            throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
+        final String body = response.getBody();
         final BidCacheResponse bidCacheResponse;
         try {
             bidCacheResponse = Json.decodeValue(body, BidCacheResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Error occurred while parsing response: %s", body), e);
+            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }
 
         final List<CacheObject> responses = bidCacheResponse.getResponses();
@@ -166,7 +157,7 @@ public class CacheService {
             throw new PreBidException("The number of response cache objects doesn't match with bids");
         }
 
-        return bidCacheResponse;
+        return Future.succeededFuture(bidCacheResponse);
     }
 
     /**

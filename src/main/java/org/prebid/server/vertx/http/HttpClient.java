@@ -2,8 +2,8 @@ package org.prebid.server.vertx.http;
 
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 /**
  * Interface describes HTTP interactions.
