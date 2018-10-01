@@ -1,8 +1,5 @@
 package org.prebid.server.vertx.http;
 
-import io.vertx.circuitbreaker.CircuitBreaker;
-import io.vertx.circuitbreaker.CircuitBreakerOptions;
-import io.vertx.circuitbreaker.CircuitBreakerState;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -11,6 +8,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.vertx.CircuitBreaker;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
@@ -29,26 +27,20 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     private final Function<String, CircuitBreaker> circuitBreakerCreator;
     private final Map<String, CircuitBreaker> circuitBreakerByName = new ConcurrentHashMap<>();
-    private final Map<String, Long> lastFailureByName = new ConcurrentHashMap<>();
 
     private final HttpClient httpClient;
     private final Metrics metrics;
-    private final long openingIntervalMs;
 
     public CircuitBreakerSecuredHttpClient(Vertx vertx, HttpClient httpClient, Metrics metrics,
                                            int openingThreshold, long openingIntervalMs, long closingIntervalMs) {
-        circuitBreakerCreator = name -> CircuitBreaker.create("http-client-circuit-breaker-" + name,
-                Objects.requireNonNull(vertx),
-                new CircuitBreakerOptions()
-                        .setMaxFailures(openingThreshold)
-                        .setResetTimeout(closingIntervalMs))
+        circuitBreakerCreator = name -> new CircuitBreaker("http-client-circuit-breaker-" + name,
+                Objects.requireNonNull(vertx), openingThreshold, openingIntervalMs, closingIntervalMs)
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
                 .closeHandler(ignored -> circuitClosed(name));
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.metrics = Objects.requireNonNull(metrics);
-        this.openingIntervalMs = openingIntervalMs;
 
         logger.info("Initialized HTTP client with Circuit Breaker");
     }
@@ -70,40 +62,8 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     @Override
     public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
                                               long timeoutMs) {
-        final String name = nameFrom(url);
-        final CircuitBreaker breaker = circuitBreakerByName.computeIfAbsent(name, circuitBreakerCreator);
-
-        return breaker.execute(future -> httpClient.request(method, url, headers, body, timeoutMs)
-                .compose(response -> succeedBreaker(response, future))
-                .recover(exception -> failBreaker(exception, future, name, breaker)));
-    }
-
-    private static Future<HttpClientResponse> succeedBreaker(HttpClientResponse response,
-                                                             Future<HttpClientResponse> future) {
-        future.complete(response);
-        return future;
-    }
-
-    private Future<HttpClientResponse> failBreaker(Throwable exception, Future<HttpClientResponse> future,
-                                                   String name, CircuitBreaker breaker) {
-        ensureToIncrementFailureCount(name, breaker);
-
-        future.fail(exception);
-        return future;
-    }
-
-    /**
-     * Reset failure counter to adjust open-circuit time frame.
-     */
-    private void ensureToIncrementFailureCount(String name, CircuitBreaker breaker) {
-        final long currentTimeMillis = System.currentTimeMillis();
-
-        final long lastFailureMs = lastFailureByName.computeIfAbsent(name, ignored -> currentTimeMillis);
-        if (breaker.state() == CircuitBreakerState.CLOSED && currentTimeMillis - lastFailureMs > openingIntervalMs) {
-            breaker.reset();
-        }
-
-        lastFailureByName.put(name, currentTimeMillis);
+        return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
+                .execute(future -> httpClient.request(method, url, headers, body, timeoutMs).setHandler(future));
     }
 
     private static String nameFrom(String urlAsString) {

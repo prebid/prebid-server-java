@@ -100,7 +100,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsIfCircuitIsHalfOpenedButWrappedHttpClientFailsAndResetTimeIsNotPassedBy(
+    public void requestShouldFailsIfCircuitIsHalfOpenedButWrappedHttpClientFailsAndClosingTimeIsNotPassedBy(
             TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));

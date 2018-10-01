@@ -1,8 +1,5 @@
 package org.prebid.server.geolocation;
 
-import io.vertx.circuitbreaker.CircuitBreaker;
-import io.vertx.circuitbreaker.CircuitBreakerOptions;
-import io.vertx.circuitbreaker.CircuitBreakerState;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -10,6 +7,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.vertx.CircuitBreaker;
 
 import java.util.Objects;
 
@@ -20,28 +18,22 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredGeoLocationService.class);
 
+    private final CircuitBreaker breaker;
     private final GeoLocationService geoLocationService;
     private final Metrics metrics;
-    private final CircuitBreaker breaker;
-    private final long openingIntervalMs;
-
-    private long lastFailure;
 
     public CircuitBreakerSecuredGeoLocationService(Vertx vertx, GeoLocationService geoLocationService, Metrics metrics,
                                                    int openingThreshold, long openingIntervalMs,
                                                    long closingIntervalMs) {
 
-        breaker = CircuitBreaker.create("geolocation-service-circuit-breaker", Objects.requireNonNull(vertx),
-                new CircuitBreakerOptions()
-                        .setMaxFailures(openingThreshold)
-                        .setResetTimeout(closingIntervalMs))
+        breaker = new CircuitBreaker("geolocation-service-circuit-breaker", Objects.requireNonNull(vertx),
+                openingThreshold, openingIntervalMs, closingIntervalMs)
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());
 
         this.geoLocationService = Objects.requireNonNull(geoLocationService);
         this.metrics = Objects.requireNonNull(metrics);
-        this.openingIntervalMs = openingIntervalMs;
 
         logger.info("Initialized GeoLocation service with Circuit Breaker");
     }
@@ -62,33 +54,6 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
 
     @Override
     public Future<GeoInfo> lookup(String ip, Timeout timeout) {
-        return breaker.execute(future -> geoLocationService.lookup(ip, timeout)
-                .compose(response -> succeedBreaker(response, future))
-                .recover(exception -> failBreaker(exception, future)));
-    }
-
-    private static Future<GeoInfo> succeedBreaker(GeoInfo response, Future<GeoInfo> future) {
-        future.complete(response);
-        return future;
-    }
-
-    private Future<GeoInfo> failBreaker(Throwable exception, Future<GeoInfo> future) {
-        ensureToIncrementFailureCount();
-
-        future.fail(exception);
-        return future;
-    }
-
-    /**
-     * Reset failure counter to adjust open-circuit time frame.
-     */
-    private void ensureToIncrementFailureCount() {
-        final long currentTimeMillis = System.currentTimeMillis();
-
-        if (breaker.state() == CircuitBreakerState.CLOSED && currentTimeMillis - lastFailure > openingIntervalMs) {
-            breaker.reset();
-        }
-
-        lastFailure = currentTimeMillis;
+        return breaker.execute(future -> geoLocationService.lookup(ip, timeout).setHandler(future));
     }
 }
