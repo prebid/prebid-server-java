@@ -169,7 +169,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .site(makeSite(bidRequest.getSite(), rubiconImpExt))
                 .app(makeApp(bidRequest.getApp(), rubiconImpExt))
                 .imp(Collections.singletonList(makeImp(imp, rubiconImpExt)))
-                .cur(makeCurrencies(bidRequest.getCur()))
+                .cur(null) // suppress currencies
                 .build();
     }
 
@@ -340,11 +340,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .publisher(makePublisher(rubiconImpExt))
                 .ext(Json.mapper.valueToTree(makeSiteExt(rubiconImpExt)))
                 .build();
-    }
-
-    private static List<String> makeCurrencies(List<String> currencies) {
-        // Rubicon XAPI accepts only USD
-        return CollectionUtils.isNotEmpty(currencies) ? Collections.singletonList(DEFAULT_BID_CURRENCY) : currencies;
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {

@@ -485,25 +485,6 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getCur).doesNotContainNull()
-                .containsOnly("USD");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotAddCurrenciesIfNotPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                builder -> builder.video(Video.builder().build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getCur).hasSize(1).containsNull();
     }
 
