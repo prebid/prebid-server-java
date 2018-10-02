@@ -322,7 +322,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("amp/test-cache-response.json"))));
 
         // when and then
-        Response response = given(spec)
+        final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -673,7 +673,7 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void versionHandlerShouldRespondWithCommitRevision() throws IOException {
+    public void versionHandlerShouldRespondWithCommitRevision() {
         given(adminSpec)
                 .get("/version")
                 .then()

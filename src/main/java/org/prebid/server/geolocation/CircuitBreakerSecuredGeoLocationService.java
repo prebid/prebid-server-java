@@ -1,7 +1,5 @@
 package org.prebid.server.geolocation;
 
-import io.vertx.circuitbreaker.CircuitBreaker;
-import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -9,6 +7,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.vertx.CircuitBreaker;
 
 import java.util.Objects;
 
@@ -19,18 +18,16 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredGeoLocationService.class);
 
+    private final CircuitBreaker breaker;
     private final GeoLocationService geoLocationService;
     private final Metrics metrics;
-    private final CircuitBreaker breaker;
 
     public CircuitBreakerSecuredGeoLocationService(Vertx vertx, GeoLocationService geoLocationService, Metrics metrics,
-                                                   int maxFailures, long timeoutMs, long resetTimeoutMs) {
+                                                   int openingThreshold, long openingIntervalMs,
+                                                   long closingIntervalMs) {
 
-        breaker = CircuitBreaker.create("geolocation-service-circuit-breaker", Objects.requireNonNull(vertx),
-                new CircuitBreakerOptions()
-                        .setMaxFailures(maxFailures)
-                        .setTimeout(timeoutMs)
-                        .setResetTimeout(resetTimeoutMs))
+        breaker = new CircuitBreaker("geolocation-service-circuit-breaker", Objects.requireNonNull(vertx),
+                openingThreshold, openingIntervalMs, closingIntervalMs)
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());

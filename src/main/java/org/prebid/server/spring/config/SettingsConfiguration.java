@@ -93,15 +93,13 @@ public class SettingsConfiguration {
         @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "true")
         CircuitBreakerSecuredJdbcClient circuitBreakerSecuredJdbcClient(
                 Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner,
-                @Value("${settings.database.circuit-breaker.max-failures}") int maxFailures,
-                @Value("${settings.database.circuit-breaker.timeout-ms}") long timeoutMs,
-                @Value("${settings.database.circuit-breaker.reset-timeout-ms}") long resetTimeoutMs) {
+                @Value("${settings.database.circuit-breaker.opening-threshold}") int openingThreshold,
+                @Value("${settings.database.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
+                @Value("${settings.database.circuit-breaker.closing-interval-ms}") long closingIntervalMs) {
 
-            final BasicJdbcClient basicJdbcClient = createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock,
-                    contextRunner);
-
-            return new CircuitBreakerSecuredJdbcClient(vertx, basicJdbcClient, metrics, maxFailures, timeoutMs,
-                    resetTimeoutMs);
+            final JdbcClient jdbcClient = createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock, contextRunner);
+            return new CircuitBreakerSecuredJdbcClient(vertx, jdbcClient, metrics, openingThreshold, openingIntervalMs,
+                    closingIntervalMs);
         }
 
         private static BasicJdbcClient createBasicJdbcClient(

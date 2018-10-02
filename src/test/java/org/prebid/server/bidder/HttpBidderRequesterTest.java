@@ -2,11 +2,8 @@ package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.CaseInsensitiveHeaders;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Rule;
@@ -15,7 +12,6 @@ import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -25,6 +21,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -104,7 +101,7 @@ public class HttpBidderRequesterTest {
     @Test
     public void shouldSendPopulatedPostRequest() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         final MultiMap headers = new CaseInsensitiveHeaders();
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
@@ -122,7 +119,7 @@ public class HttpBidderRequesterTest {
     @Test
     public void shouldSendPopulatedGetRequestWithoutBody() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.of(HttpMethod.GET, "uri", null, null, null)), emptyList()));
@@ -137,7 +134,7 @@ public class HttpBidderRequesterTest {
     @Test
     public void shouldSendMultipleRequests() {
         // given
-        givenHttpClientResponse(200);
+        givenHttpClientReturnsResponse(200, null);
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
@@ -157,7 +154,7 @@ public class HttpBidderRequesterTest {
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)), emptyList()));
 
-        givenHttpClientReturnsResponses(200, "responseBody");
+        givenHttpClientReturnsResponse(200, "responseBody");
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
@@ -178,7 +175,9 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, "uri2", "requestBody2", new CaseInsensitiveHeaders(), null)),
                 emptyList()));
 
-        givenHttpClientReturnsResponses(200, "responseBody1", "responseBody2");
+        givenHttpClientReturnsResponses(
+                HttpClientResponse.of(200, null, "responseBody1"),
+                HttpClientResponse.of(200, null, "responseBody2"));
 
         given(bidder.makeBids(any(), any())).willReturn(Result.of(emptyList(), emptyList()));
 
@@ -235,7 +234,7 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, "uri1", "requestBody1", new CaseInsensitiveHeaders(), null)),
                 emptyList()));
 
-        givenHttpClientReturnsResponses(500, "responseBody1");
+        givenHttpClientReturnsResponses(HttpClientResponse.of(500, null, "responseBody1"));
 
         // when
         final BidderSeatBid bidderSeatBid =
@@ -285,35 +284,20 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
 
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(0);
 
-        given(httpClientResponse.exceptionHandler(any()))
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
                 // simulate response error for the first request
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception")))
-                // simulate timeout for the second request (which will trigger exceptionHandler call on
-                // response mock first time)
-                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException("Timeout exception")))
-                // continue normally for subsequent requests
-                .willReturn(httpClientResponse);
-        given(httpClientResponse.bodyHandler(any()))
-                // do not invoke body handler for the second and third requests (which will trigger bodyHandler call on
-                // response mock first and second time) that will end up with response error and timeout
-                .willReturn(httpClientResponse)
-                .willReturn(httpClientResponse)
-                // continue normally for subsequent requests
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(EMPTY)));
-        given(httpClientResponse.statusCode())
-                // simulate 500 status for the fourth request (which will trigger statusCode call on response mock
-                // first time)
-                .willReturn(500)
-                // simulate 400 status for the fifth request (which will trigger statusCode call on response mock
-                // second time)
-                .willReturn(400)
-                // simulate 204 status for the sixth request (which will trigger statusCode call on response mock
-                // third time)
-                .willReturn(204)
-                // continue normally for subsequent requests
-                .willReturn(200);
+                .willReturn(Future.failedFuture(new RuntimeException("Response exception")))
+                // simulate timeout for the second request
+                .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")))
+                // simulate 500 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(500, null, EMPTY)))
+                // simulate 400 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(400, null, EMPTY)))
+                // simulate 204 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(204, null, EMPTY)))
+                // simulate 200 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, EMPTY)));
 
         given(bidder.makeBids(any(), any())).willReturn(
                 Result.of(singletonList(BidderBid.of(null, null, null)),
@@ -337,39 +321,23 @@ public class HttpBidderRequesterTest {
                 BidderError.badServerResponse("makeBidsError"));
     }
 
-    private void givenHttpClientReturnsResponses(int statusCode, String... bidResponses) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
-
-        // setup multiple answers
-        BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> stubbing =
-                given(httpClientResponse.bodyHandler(any()));
-        for (String bidResponse : bidResponses) {
-            stubbing = stubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)));
-        }
+    private void givenHttpClientReturnsResponse(int statusCode, String response) {
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
-        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
-    }
-
-    private HttpClientResponse givenHttpClientResponse(int statusCode) {
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClientResponse.statusCode()).willReturn(statusCode);
-
         given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
-                .willReturn(Future.succeededFuture(httpClientResponse));
-
-        return httpClientResponse;
+                .willReturn(Future.failedFuture(throwable));
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
-            return inv.getMock();
-        };
+    private void givenHttpClientReturnsResponses(HttpClientResponse... httpClientResponses) {
+        BDDMockito.BDDMyOngoingStubbing<Future<HttpClientResponse>> stubbing =
+                given(httpClient.request(any(), anyString(), any(), any(), anyLong()));
+
+        // setup multiple answers
+        for (HttpClientResponse httpClientResponse : httpClientResponses) {
+            stubbing = stubbing.willReturn(Future.succeededFuture(httpClientResponse));
+        }
     }
 }

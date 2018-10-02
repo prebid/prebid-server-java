@@ -1,16 +1,15 @@
 package org.prebid.server.vertx.http;
 
-import io.vertx.circuitbreaker.CircuitBreaker;
-import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.vertx.CircuitBreaker;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -26,26 +25,24 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredHttpClient.class);
 
+    private final Function<String, CircuitBreaker> circuitBreakerCreator;
+    private final Map<String, CircuitBreaker> circuitBreakerByName = new ConcurrentHashMap<>();
+
     private final HttpClient httpClient;
     private final Metrics metrics;
 
-    private final Map<String, CircuitBreaker> circuitBreakerByName = new ConcurrentHashMap<>();
-    private final Function<String, CircuitBreaker> circuitBreakerCreator;
-
     public CircuitBreakerSecuredHttpClient(Vertx vertx, HttpClient httpClient, Metrics metrics,
-                                           int maxFailures, long timeoutMs, long resetTimeoutMs) {
-        circuitBreakerCreator = name -> CircuitBreaker.create("http-client-circuit-breaker-" + name,
-                Objects.requireNonNull(vertx),
-                new CircuitBreakerOptions()
-                        .setMaxFailures(maxFailures)
-                        .setTimeout(timeoutMs)
-                        .setResetTimeout(resetTimeoutMs))
+                                           int openingThreshold, long openingIntervalMs, long closingIntervalMs) {
+        circuitBreakerCreator = name -> new CircuitBreaker("http-client-circuit-breaker-" + name,
+                Objects.requireNonNull(vertx), openingThreshold, openingIntervalMs, closingIntervalMs)
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
                 .closeHandler(ignored -> circuitClosed(name));
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.metrics = Objects.requireNonNull(metrics);
+
+        logger.info("Initialized HTTP client with Circuit Breaker");
     }
 
     private void circuitOpened(String name) {
@@ -65,11 +62,8 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     @Override
     public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
                                               long timeoutMs) {
-        final String name = nameFrom(url);
-        final CircuitBreaker breaker = circuitBreakerByName.computeIfAbsent(name, circuitBreakerCreator);
-
-        return breaker.<HttpClientResponse>execute(future -> httpClient.request(method, url, headers, body, timeoutMs)
-                .setHandler(future));
+        return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
+                .execute(future -> httpClient.request(method, url, headers, body, timeoutMs).setHandler(future));
     }
 
     private static String nameFrom(String urlAsString) {

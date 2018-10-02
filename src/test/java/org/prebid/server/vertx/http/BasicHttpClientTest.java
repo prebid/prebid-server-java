@@ -3,6 +3,7 @@ package org.prebid.server.vertx.http;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -28,22 +29,28 @@ public class BasicHttpClientTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private io.vertx.core.http.HttpClient httpClient;
+    private io.vertx.core.http.HttpClient wrappedHttpClient;
 
-    private BasicHttpClient basicHttpClient;
+    private BasicHttpClient httpClient;
 
     @Mock
     private HttpClientRequest httpClientRequest;
+    @Mock
+    private HttpClientResponse httpClientResponse;
 
     @Before
     public void setUp() {
-        given(httpClient.requestAbs(any(), any())).willReturn(httpClientRequest);
+        given(wrappedHttpClient.requestAbs(any(), any())).willReturn(httpClientRequest);
+
         given(httpClientRequest.handler(any())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
         given(httpClientRequest.headers()).willReturn(new CaseInsensitiveHeaders());
         given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
 
-        basicHttpClient = new BasicHttpClient(httpClient);
+        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
+        given(httpClientResponse.exceptionHandler(any())).willReturn(httpClientResponse);
+
+        httpClient = new BasicHttpClient(wrappedHttpClient);
     }
 
     @Test
@@ -58,16 +65,31 @@ public class BasicHttpClientTest {
         given(httpClientRequest.headers()).willReturn(headers);
 
         // when
-        basicHttpClient.request(HttpMethod.POST, "url", headers, "body", 500L);
+        httpClient.request(HttpMethod.POST, "url", headers, "body", 500L);
 
         // then
-        verify(httpClient).requestAbs(eq(HttpMethod.POST), eq("url"));
+        verify(wrappedHttpClient).requestAbs(eq(HttpMethod.POST), eq("url"));
         verify(httpClientRequest.headers()).addAll(eq(headers));
         verify(httpClientRequest).setTimeout(eq(500L));
         verify(httpClientRequest).end(eq("body"));
     }
 
-    @SuppressWarnings("unchecked")
+    @Test
+    public void requestShouldSucceedsIfHttpRequestSucceeds() {
+        // given
+        given(httpClientRequest.handler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(httpClientResponse));
+
+        given(httpClientResponse.bodyHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("response")));
+
+        // when
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 0L);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+    }
+
     @Test
     public void requestShouldFailsIfHttpRequestFails() {
         // given
@@ -75,24 +97,28 @@ public class BasicHttpClientTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<?> future = basicHttpClient.request(HttpMethod.GET, null, null, null, 0L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 0L);
 
         // then
         assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).hasMessage("Request exception");
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void requestShouldSucceedsIfHttpRequestSucceeds() {
+    public void requestShouldFailsIfHttpResponseFails() {
         // given
         given(httpClientRequest.handler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(mock(HttpClientResponse.class)));
+                .willAnswer(withSelfAndPassObjectToHandler(httpClientResponse));
+
+        given(httpClientResponse.exceptionHandler(any()))
+                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception")));
 
         // when
-        final Future<?> future = basicHttpClient.request(HttpMethod.GET, null, null, null, 0L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 0L);
 
         // then
-        assertThat(future.succeeded()).isTrue();
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).hasMessage("Response exception");
     }
 
     @SuppressWarnings("unchecked")

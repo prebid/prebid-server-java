@@ -1,7 +1,5 @@
 package org.prebid.server.vertx.jdbc;
 
-import io.vertx.circuitbreaker.CircuitBreaker;
-import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -9,6 +7,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.vertx.CircuitBreaker;
 
 import java.util.List;
 import java.util.Objects;
@@ -21,18 +20,15 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
 
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredJdbcClient.class);
 
+    private final CircuitBreaker breaker;
     private final JdbcClient jdbcClient;
     private final Metrics metrics;
-    private final CircuitBreaker breaker;
 
     public CircuitBreakerSecuredJdbcClient(Vertx vertx, JdbcClient jdbcClient, Metrics metrics,
-                                           int maxFailures, long timeoutMs, long resetTimeoutMs) {
+                                           int openingThreshold, long openingIntervalMs, long closingIntervalMs) {
 
-        breaker = CircuitBreaker.create("jdbc-client-circuit-breaker", Objects.requireNonNull(vertx),
-                new CircuitBreakerOptions()
-                        .setMaxFailures(maxFailures)
-                        .setTimeout(timeoutMs)
-                        .setResetTimeout(resetTimeoutMs))
+        breaker = new CircuitBreaker("jdbc-client-circuit-breaker", Objects.requireNonNull(vertx),
+                openingThreshold, openingIntervalMs, closingIntervalMs)
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());
@@ -60,7 +56,6 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
     @Override
     public <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper,
                                       Timeout timeout) {
-        return breaker.execute(future -> jdbcClient.executeQuery(query, params, mapper, timeout)
-                .setHandler(future));
+        return breaker.execute(future -> jdbcClient.executeQuery(query, params, mapper, timeout).setHandler(future));
     }
 }

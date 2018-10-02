@@ -3,7 +3,6 @@ package org.prebid.server.settings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -17,6 +16,7 @@ import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -145,17 +145,14 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private static Future<StoredDataResult> failResponse(Throwable throwable, Set<String> requestIds,
                                                          Set<String> impIds) {
-        return Future.succeededFuture(toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
+        return Future.succeededFuture(
+                toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
     }
 
     private static Future<StoredDataResult> processResponse(HttpClientResponse response, Set<String> requestIds,
                                                             Set<String> impIds) {
-        final Future<StoredDataResult> future = Future.future();
-        response
-                .bodyHandler(buffer -> future.complete(
-                        toStoredDataResult(requestIds, impIds, response.statusCode(), buffer.toString())))
-                .exceptionHandler(future::fail);
-        return future;
+        return Future.succeededFuture(
+                toStoredDataResult(requestIds, impIds, response.getStatusCode(), response.getBody()));
     }
 
     private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds, Set<String> impIds,
@@ -175,7 +172,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
     private static StoredDataResult toStoredDataResult(Set<String> requestIds, Set<String> impIds,
                                                        int statusCode, String body) {
         if (statusCode != 200) {
-            return toFailedStoredDataResult(requestIds, impIds, "response code was %d", statusCode);
+            return toFailedStoredDataResult(requestIds, impIds, "HTTP status code %d", statusCode);
         }
 
         final HttpFetcherResponse response;
@@ -183,8 +180,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
             response = Json.decodeValue(body, HttpFetcherResponse.class);
         } catch (DecodeException e) {
             return toFailedStoredDataResult(requestIds, impIds, "parsing json failed for response: %s with message: %s",
-                    body,
-                    e.getMessage());
+                    body, e.getMessage());
         }
 
         return parseResponse(requestIds, impIds, response);

@@ -2,7 +2,6 @@ package org.prebid.server.currency;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -11,6 +10,7 @@ import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -72,23 +72,18 @@ public class CurrencyConversionService {
                 .recover(CurrencyConversionService::failResponse);
     }
 
-    private static Future<CurrencyConversionRates> processResponse(HttpClientResponse response) {
-        final Future<CurrencyConversionRates> future = Future.future();
-        response
-                .bodyHandler(buffer -> future.complete(
-                        processStatusAndBody(response.statusCode(), buffer.toString())))
-                .exceptionHandler(future::fail);
-        return future;
-    }
-
     /**
-     * Parses body content and populates latest currency rates.
+     * Handles {@link HttpClientResponse}, analyzes response status
+     * and creates {@link Future} with {@link CurrencyConversionRates} from body content
+     * or throws {@link PreBidException} in case of errors.
      */
-    private static CurrencyConversionRates processStatusAndBody(int statusCode, String body) {
+    private static Future<CurrencyConversionRates> processResponse(HttpClientResponse response) {
+        final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
+        final String body = response.getBody();
         final CurrencyConversionRates currencyConversionRates;
         try {
             currencyConversionRates = Json.mapper.readValue(body, CurrencyConversionRates.class);
@@ -96,7 +91,7 @@ public class CurrencyConversionService {
             throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }
 
-        return currencyConversionRates;
+        return Future.succeededFuture(currencyConversionRates);
     }
 
     private Future<CurrencyConversionRates> updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
@@ -108,7 +103,7 @@ public class CurrencyConversionService {
     }
 
     /**
-     * Handles an error occurred while request. In our case adds error log.
+     * Handles errors occurred while HTTP request or response processing.
      */
     private static Future<CurrencyConversionRates> failResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);

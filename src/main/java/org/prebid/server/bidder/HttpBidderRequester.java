@@ -5,8 +5,6 @@ import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -21,6 +19,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -80,7 +79,6 @@ public class HttpBidderRequester<T> implements BidderRequester {
                         : bidderErrors));
     }
 
-
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
@@ -97,8 +95,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
     }
 
     /**
-     * Handles request (e.g. read timeout) and response (e.g. connection reset) errors producing partial
-     * {@link HttpCall} containing request and error description.
+     * Produces {@link Future} with {@link HttpCall} containing request and error description.
      */
     private static <T> Future<HttpCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
         logger.warn("Error occurred while sending HTTP request to a bidder", exception);
@@ -111,22 +108,14 @@ public class HttpBidderRequester<T> implements BidderRequester {
                 HttpCall.failure(httpRequest, BidderError.create(exception.getMessage(), errorType)));
     }
 
-    private static <T> Future<HttpCall<T>> processResponse(HttpClientResponse response, HttpRequest<T> httpRequest) {
-        final Future<HttpCall<T>> future = Future.future();
-        response
-                .bodyHandler(buffer -> future.complete(
-                        toHttpCall(response.statusCode(), buffer.toString(), response.headers(), httpRequest)))
-                .exceptionHandler(future::fail);
-        return future;
-    }
-
     /**
-     * Produces full {@link HttpCall} containing request, response and possible error description (if status code
-     * indicates an error).
+     * Produces {@link Future} with {@link HttpCall} containing request, response and possible error description
+     * (if status code indicates an error).
      */
-    private static <T> HttpCall<T> toHttpCall(int statusCode, String body, MultiMap headers,
-                                              HttpRequest<T> httpRequest) {
-        return HttpCall.success(httpRequest, HttpResponse.of(statusCode, headers, body), errorOrNull(statusCode));
+    private static <T> Future<HttpCall<T>> processResponse(HttpClientResponse response, HttpRequest<T> httpRequest) {
+        final int statusCode = response.getStatusCode();
+        return Future.succeededFuture(HttpCall.success(httpRequest,
+                HttpResponse.of(statusCode, response.getHeaders(), response.getBody()), errorOrNull(statusCode)));
     }
 
     private static BidderError errorOrNull(int statusCode) {

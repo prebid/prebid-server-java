@@ -2,7 +2,6 @@ package org.prebid.server.vertx.http;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -18,6 +17,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -73,7 +73,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldSucceedsIfCircuitIsClosedAndWrappedHttpClientSucceeds(TestContext context) {
         // given
-        givenHttpClientReturning(mock(HttpClientResponse.class));
+        givenHttpClientReturning(HttpClientResponse.of(200, null, null));
 
         // when
         final Future<?> future = doRequest(context);
@@ -100,7 +100,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsIfCircuitIsHalfOpenedButWrappedHttpClientFailsAndResetTimeIsNotPassedBy(
+    public void requestShouldFailsIfCircuitIsHalfOpenedButWrappedHttpClientFailsAndClosingTimeIsNotPassedBy(
             TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
@@ -127,7 +127,7 @@ public class CircuitBreakerSecuredHttpClientTest {
         // when
         final Future<?> future1 = doRequest(context); // 1 call
         final Future<?> future2 = doRequest(context); // 2 call
-        doWaitForResetTime(context);
+        doWaitForClosingInterval(context);
         final Future<?> future3 = doRequest(context); // 3 call
 
         // then
@@ -147,12 +147,12 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldSucceedsIfCircuitIsHalfOpenedAndWrappedHttpClientSucceeds(TestContext context) {
         // given
-        givenHttpClientReturning(new RuntimeException("exception"), mock(HttpClientResponse.class));
+        givenHttpClientReturning(new RuntimeException("exception"), HttpClientResponse.of(200, null, null));
 
         // when
         final Future<?> future1 = doRequest(context); // 1 call
         final Future<?> future2 = doRequest(context); // 2 call
-        doWaitForResetTime(context);
+        doWaitForClosingInterval(context);
         final Future<?> future3 = doRequest(context); // 3 call
 
         // then
@@ -169,6 +169,27 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
+    public void requestShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
+        // given
+        givenHttpClientReturning(new RuntimeException("exception1"), new RuntimeException("exception2"));
+
+        // when
+        final Future<?> future1 = doRequest(context); // 1 call
+        doWaitForOpeningInterval(context);
+        final Future<?> future2 = doRequest(context); // 2 call
+
+        // then
+        verify(wrappedHttpClient, times(2))
+                .request(any(), anyString(), any(), any(), anyLong()); // invoked on 1 & 2 calls
+
+        assertThat(future1.failed()).isTrue();
+        assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception1");
+
+        assertThat(future2.failed()).isTrue();
+        assertThat(future2.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception2");
+    }
+
+    @Test
     public void requestShouldReportMetricsOnCircuitOpened(TestContext context) {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
@@ -181,14 +202,14 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void executeQueryShouldReportMetricsOnCircuitClosed(TestContext context) {
+    public void requestShouldReportMetricsOnCircuitClosed(TestContext context) {
         // given
-        givenHttpClientReturning(new RuntimeException("exception"), mock(HttpClientResponse.class));
+        givenHttpClientReturning(new RuntimeException("exception"), HttpClientResponse.of(200, null, null));
 
         // when
         doRequest(context); // 1 call
         doRequest(context); // 2 call
-        doWaitForResetTime(context);
+        doWaitForClosingInterval(context);
         doRequest(context); // 3 call
 
         // then
@@ -218,9 +239,17 @@ public class CircuitBreakerSecuredHttpClientTest {
         return future;
     }
 
-    private void doWaitForResetTime(TestContext context) {
+    private void doWaitForOpeningInterval(TestContext context) {
+        doWait(context, 200L);
+    }
+
+    private void doWaitForClosingInterval(TestContext context) {
+        doWait(context, 300L);
+    }
+
+    private void doWait(TestContext context, long timeout) {
         final Async async = context.async();
-        vertx.setTimer(300L, id -> async.complete()); // waiting for reset time of circuit breaker
+        vertx.setTimer(timeout, id -> async.complete());
         async.await();
     }
 }

@@ -3,8 +3,8 @@ package org.prebid.server.vertx.http;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.Objects;
 
@@ -25,7 +25,7 @@ public class BasicHttpClient implements HttpClient {
         final Future<HttpClientResponse> future = Future.future();
 
         final HttpClientRequest httpClientRequest = httpClient.requestAbs(method, url)
-                .handler(future::complete)
+                .handler(response -> handleResponse(response, future))
                 .exceptionHandler(future::tryFail);
 
         if (headers != null) {
@@ -43,5 +43,13 @@ public class BasicHttpClient implements HttpClient {
         }
 
         return future;
+    }
+
+    private static void handleResponse(io.vertx.core.http.HttpClientResponse response,
+                                       Future<HttpClientResponse> future) {
+        response
+                .bodyHandler(buffer -> future.complete(
+                        HttpClientResponse.of(response.statusCode(), response.headers(), buffer.toString())))
+                .exceptionHandler(future::fail);
     }
 }
