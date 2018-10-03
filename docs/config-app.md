@@ -21,6 +21,10 @@ This parameter affects how many CPU cores will be utilized by the application. R
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
 - `http-client.connect-timeout-ms` - set the connect timeout.
+- `http-client.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make http client more robust.
+- `http-client.circuit-breaker.opening-threshold` - the number of failure before opening the circuit.
+- `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
+- `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 
 ## Auction
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
