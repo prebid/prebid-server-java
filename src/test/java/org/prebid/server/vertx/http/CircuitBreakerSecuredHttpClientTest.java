@@ -171,6 +171,8 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L);
+
         givenHttpClientReturning(new RuntimeException("exception1"), new RuntimeException("exception2"));
 
         // when
@@ -240,11 +242,11 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     private void doWaitForOpeningInterval(TestContext context) {
-        doWait(context, 200L);
+        doWait(context, 101L);
     }
 
     private void doWaitForClosingInterval(TestContext context) {
-        doWait(context, 300L);
+        doWait(context, 201L);
     }
 
     private void doWait(TestContext context, long timeout) {

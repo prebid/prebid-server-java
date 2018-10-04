@@ -55,7 +55,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500L);
 
-        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 0, 100L, 200L);
+        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 1, 100L, 200L);
     }
 
     @After
@@ -131,7 +131,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         final Async async = context.async();
         jdbcClient.executeQuery("query", emptyList(), identity(), timeout) // 1 call
                 .recover(ignored -> jdbcClient.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
-                .setHandler(ignored -> vertx.setTimer(300L, id -> async.complete()));
+                .setHandler(ignored -> vertx.setTimer(201L, id -> async.complete()));
         async.await();
 
         final Future<?> future = jdbcClient.executeQuery("query", emptyList(), identity(), timeout); // 3 call
@@ -156,7 +156,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         final Async async = context.async();
         jdbcClient.executeQuery("query", emptyList(), identity(), timeout) // 1 call
                 .recover(ignored -> jdbcClient.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
-                .setHandler(ignored -> vertx.setTimer(300L, id -> async.complete()));
+                .setHandler(ignored -> vertx.setTimer(201L, id -> async.complete()));
         async.await();
 
         final Future<?> future = jdbcClient.executeQuery("query", emptyList(),
@@ -174,6 +174,8 @@ public class CircuitBreakerSecuredJdbcClientTest {
     @Test
     public void executeQueryShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
+        jdbcClient = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 2, 100L, 200L);
+
         givenExecuteQueryReturning(asList(
                 Future.failedFuture(new RuntimeException("exception1")),
                 Future.failedFuture(new RuntimeException("exception2"))));
@@ -181,7 +183,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         // when
         final Async async = context.async();
         final Future<?> future1 = jdbcClient.executeQuery("query", emptyList(), identity(), timeout) // 1 call
-                .setHandler(ignored -> vertx.setTimer(200L, id -> async.complete()));
+                .setHandler(ignored -> vertx.setTimer(101L, id -> async.complete()));
         async.await();
 
         final Future<?> future2 = jdbcClient.executeQuery("query", emptyList(), identity(), timeout); // 2 call
@@ -222,7 +224,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         final Async async = context.async();
         jdbcClient.executeQuery("query", emptyList(), identity(), timeout) // 1 call
                 .recover(ignored -> jdbcClient.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
-                .setHandler(ignored -> vertx.setTimer(300L, id -> async.complete()));
+                .setHandler(ignored -> vertx.setTimer(201L, id -> async.complete()));
         async.await();
 
         final Future<?> future = jdbcClient.executeQuery("query", emptyList(),

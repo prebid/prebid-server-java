@@ -30,6 +30,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.cache.CacheBid;
 import org.prebid.server.cache.CacheIdInfo;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookie;
@@ -912,31 +913,36 @@ public class ExchangeService {
         if (!cacheInfo.doCaching) {
             result = Future.succeededFuture(toMapBidsWithEmptyCacheIds(winningBids));
         } else {
+            final List<String> videoImpIds = new ArrayList<>();
+            final Map<String, Integer> impIdToTtl = new HashMap<>(imps.size());
+            for (Imp imp : imps) {
+                if (cacheInfo.shouldCacheVideoBids && imp.getVideo() != null) {
+                    videoImpIds.add(imp.getId());
+                }
+                impIdToTtl.put(imp.getId(), imp.getExp());
+            }
+
             // do not submit bids with zero CPM to prebid cache
             final List<Bid> winningBidsWithNonZeroCpm = winningBids.stream()
                     .filter(bid -> keywordsCreator.isNonZeroCpm(bid.getPrice()))
                     .collect(Collectors.toList());
 
-            final List<Bid> cacheBids = cacheInfo.shouldCacheBids
-                    ? winningBidsWithNonZeroCpm
+            final List<CacheBid> cacheBids = cacheInfo.shouldCacheBids
+                    ? winningBidsWithNonZeroCpm.stream()
+                    .map(bid -> CacheBid.of(bid,
+                            ObjectUtils.firstNonNull(impIdToTtl.get(bid.getImpid()), cacheInfo.cacheBidsTtl)))
+                    .collect(Collectors.toList())
                     : Collections.emptyList();
 
-            final List<Bid> cacheVideoBids;
-            if (cacheInfo.shouldCacheVideoBids) {
-                final List<String> videoImpIds = imps.stream()
-                        .filter(imp -> imp.getVideo() != null)
-                        .map(Imp::getId)
-                        .collect(Collectors.toList());
+            final List<CacheBid> cacheVideoBids = cacheInfo.shouldCacheVideoBids
+                    ? winningBidsWithNonZeroCpm.stream()
+                    .filter(bid -> videoImpIds.contains(bid.getImpid())) // bid is video
+                    .map(bid -> CacheBid.of(bid,
+                            ObjectUtils.firstNonNull(impIdToTtl.get(bid.getImpid()), cacheInfo.cacheVideoBidsTtl)))
+                    .collect(Collectors.toList())
+                    : Collections.emptyList();
 
-                cacheVideoBids = winningBidsWithNonZeroCpm.stream()
-                        .filter(bid -> videoImpIds.contains(bid.getImpid())) // bid is video
-                        .collect(Collectors.toList());
-            } else {
-                cacheVideoBids = Collections.emptyList();
-            }
-
-            result = cacheService.cacheBidsOpenrtb(cacheBids, cacheVideoBids, cacheInfo.cacheBidsTtl,
-                    cacheInfo.cacheVideoBidsTtl, timeout)
+            result = cacheService.cacheBidsOpenrtb(cacheBids, cacheVideoBids, timeout)
                     .recover(throwable -> Future.succeededFuture(Collections.emptyMap())) // just skip cache errors
                     .map(map -> addNotCachedBids(map, winningBids));
         }

@@ -1496,6 +1496,7 @@
               "skipmin": 0,
               "skipafter": 0
             },
+            "exp": 230,
             "ext": {
               "beachfront": {
                 "appId": "beachfrontAppId",

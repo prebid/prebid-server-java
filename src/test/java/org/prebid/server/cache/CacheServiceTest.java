@@ -72,7 +72,6 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        // then
         assertThatNullPointerException().isThrownBy(() -> new CacheService(null, null, null));
         assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, null, null));
         assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, "url", null));
@@ -80,7 +79,6 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void getCacheEndpointUrlShouldFailOnInvalidCacheServiceUrl() {
-        // then
         assertThatIllegalArgumentException().isThrownBy(() ->
                 CacheService.getCacheEndpointUrl("http", "{invalid:host}"));
         assertThatIllegalArgumentException().isThrownBy(() ->
@@ -98,7 +96,7 @@ public class CacheServiceTest extends VertxTest {
 
     @Test
     public void getCachedAssetUrlTemplateShouldFailOnInvalidCacheServiceUrl() {
-        // then
+        // when and then
         assertThatIllegalArgumentException().isThrownBy(() ->
                 CacheService.getCachedAssetUrlTemplate("http", "{invalid:host}", "qs"));
         assertThatIllegalArgumentException().isThrownBy(() ->
@@ -305,7 +303,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldNeverCallCacheServiceIfNoBidsPassed() {
         // when
-        cacheService.cacheBidsOpenrtb(emptyList(), emptyList(), null, null, timeout);
+        cacheService.cacheBidsOpenrtb(emptyList(), emptyList(), timeout);
 
         // then
         verifyZeroInteractions(httpClient);
@@ -317,8 +315,10 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         // when
-        cacheService.cacheBidsOpenrtb(singletonList(givenBidOpenrtb(identity())),
-                singletonList(givenBidOpenrtb(identity())), 10, 20, timeout);
+        cacheService.cacheBidsOpenrtb(
+                singletonList(CacheBid.of(givenBidOpenrtb(identity()), 10)),
+                singletonList(CacheBid.of(givenBidOpenrtb(identity()), 20)),
+                timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -335,7 +335,10 @@ public class CacheServiceTest extends VertxTest {
         // when
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1"));
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.adm("adm1"));
-        cacheService.cacheBidsOpenrtb(singletonList(bid1), singletonList(bid2), null, null, timeout);
+        cacheService.cacheBidsOpenrtb(
+                singletonList(CacheBid.of(bid1, null)),
+                singletonList(CacheBid.of(bid2, null)),
+                timeout);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
@@ -354,7 +357,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(identity());
         final Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> future = cacheService.cacheBidsOpenrtb(
-                singletonList(bid), emptyList(), 60, null, timeout);
+                singletonList(CacheBid.of(bid, 60)), emptyList(), timeout);
 
         // then
         final Map<com.iab.openrtb.response.Bid, CacheIdInfo> result = future.result();
@@ -371,7 +374,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final com.iab.openrtb.response.Bid bid = givenBidOpenrtb(identity());
         final Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> future = cacheService.cacheBidsOpenrtb(
-                emptyList(), singletonList(bid), null, 60, timeout);
+                emptyList(), singletonList(CacheBid.of(bid, 60)), timeout);
 
         // then
         final Map<com.iab.openrtb.response.Bid, CacheIdInfo> result = future.result();
@@ -390,7 +393,9 @@ public class CacheServiceTest extends VertxTest {
         final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1"));
         final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId2"));
         final Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> future = cacheService.cacheBidsOpenrtb(
-                asList(bid1, bid2), asList(bid1, bid2), null, null, timeout);
+                asList(CacheBid.of(bid1, null), CacheBid.of(bid2, null)),
+                asList(CacheBid.of(bid1, null), CacheBid.of(bid2, null)),
+                timeout);
 
         // then
         final Map<com.iab.openrtb.response.Bid, CacheIdInfo> result = future.result();

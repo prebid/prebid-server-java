@@ -42,7 +42,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     @Before
     public void setUp() {
         vertx = Vertx.vertx();
-        geoLocationService = new CircuitBreakerSecuredGeoLocationService(vertx, wrappedGeoLocationService, metrics, 0,
+        geoLocationService = new CircuitBreakerSecuredGeoLocationService(vertx, wrappedGeoLocationService, metrics, 1,
                 100L, 200L);
     }
 
@@ -148,6 +148,9 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     @Test
     public void lookupShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
+        geoLocationService = new CircuitBreakerSecuredGeoLocationService(vertx, wrappedGeoLocationService, metrics, 2,
+                100L, 200L);
+
         givenWrappedGeoLocationReturning(
                 Future.failedFuture(new RuntimeException("exception1")),
                 Future.failedFuture(new RuntimeException("exception2")));

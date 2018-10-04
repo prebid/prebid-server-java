@@ -77,16 +77,15 @@ public class CacheService {
      * The returned result will always have the number of elements equals to sum of sizes of bids and video bids.
      */
     public Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> cacheBidsOpenrtb(
-            List<com.iab.openrtb.response.Bid> bids, List<com.iab.openrtb.response.Bid> videoBids, Integer bidsTtl,
-            Integer videoBidsTtl, Timeout timeout) {
+            List<CacheBid> bids, List<CacheBid> videoBids, Timeout timeout) {
         final Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> result;
 
         if (CollectionUtils.isEmpty(bids) && CollectionUtils.isEmpty(videoBids)) {
             result = Future.succeededFuture(Collections.emptyMap());
         } else {
             final List<PutObject> putObjects = Stream.concat(
-                    bids.stream().map(bid -> createJsonPutObjectOpenrtb(bid, bidsTtl)),
-                    videoBids.stream().map(bid -> createXmlPutObjectOpenrtb(bid, videoBidsTtl)))
+                    bids.stream().map(CacheService::createJsonPutObjectOpenrtb),
+                    videoBids.stream().map(CacheService::createXmlPutObjectOpenrtb))
                     .collect(Collectors.toList());
 
             result = makeRequest(BidCacheRequest.of(putObjects), putObjects.size(), timeout)
@@ -177,15 +176,15 @@ public class CacheService {
     /**
      * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private static PutObject createJsonPutObjectOpenrtb(com.iab.openrtb.response.Bid bid, Integer cacheTtl) {
-        return PutObject.of("json", Json.mapper.valueToTree(bid), cacheTtl);
+    private static PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid) {
+        return PutObject.of("json", Json.mapper.valueToTree(cacheBid.getBid()), cacheBid.getTtl());
     }
 
     /**
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private static PutObject createXmlPutObjectOpenrtb(com.iab.openrtb.response.Bid bid, Integer cacheTtl) {
-        return PutObject.of("xml", new TextNode(bid.getAdm()), cacheTtl);
+    private static PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid) {
+        return PutObject.of("xml", new TextNode(cacheBid.getBid().getAdm()), cacheBid.getTtl());
     }
 
     /**
@@ -221,14 +220,20 @@ public class CacheService {
     /**
      * Creates a map with bids as a key and {@link CacheIdInfo} as a value from obtained UUIDs.
      */
-    private static <T> Map<T, CacheIdInfo> toResultMap(List<T> bids, List<T> videoBids, List<String> uuids) {
-        final Map<T, CacheIdInfo> result = new HashMap<>(uuids.size());
+    private static Map<com.iab.openrtb.response.Bid, CacheIdInfo> toResultMap(
+            List<CacheBid> cacheBids, List<CacheBid> cacheVideoBids, List<String> uuids) {
+        final Map<com.iab.openrtb.response.Bid, CacheIdInfo> result = new HashMap<>(uuids.size());
+
+        final List<com.iab.openrtb.response.Bid> bids = cacheBids.stream()
+                .map(CacheBid::getBid).collect(Collectors.toList());
+        final List<com.iab.openrtb.response.Bid> videoBids = cacheVideoBids.stream()
+                .map(CacheBid::getBid).collect(Collectors.toList());
 
         // here we assume "videoBids" is a sublist of "bids"
         // so, no need for a separate loop on "videoBids" if "bids" is not empty
         if (!bids.isEmpty()) {
             for (int i = 0; i < bids.size(); i++) {
-                final T bid = bids.get(i);
+                final com.iab.openrtb.response.Bid bid = bids.get(i);
 
                 // determine uuid for video bid
                 final int indexOfVideoBid = videoBids.indexOf(bid);

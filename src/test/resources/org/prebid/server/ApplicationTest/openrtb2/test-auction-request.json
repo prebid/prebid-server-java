@@ -522,6 +522,7 @@
           "mimes"
         ]
       },
+      "exp": 230,
       "ext": {
         "beachfront": {
           "appId": "beachfrontAppId",
