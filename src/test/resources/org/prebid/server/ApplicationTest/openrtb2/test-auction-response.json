@@ -32,9 +32,10 @@
                 "hb_cache_id_appnexus": "117431c9-807a-41e1-82a7-dcd8f8875493"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=117431c9-807a-41e1-82a7-dcd8f8875493",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "117431c9-807a-41e1-82a7-dcd8f8875493"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=117431c9-807a-41e1-82a7-dcd8f8875493",
+                  "cache_id": "117431c9-807a-41e1-82a7-dcd8f8875493"
+                }
               }
             },
             "bidder": {
@@ -76,9 +77,10 @@
                 "hb_cache_id_appnexus": "e81ad329-bf26-4f03-b249-5916abf8daa3"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=e81ad329-bf26-4f03-b249-5916abf8daa3",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "e81ad329-bf26-4f03-b249-5916abf8daa3"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=e81ad329-bf26-4f03-b249-5916abf8daa3",
+                  "cache_id": "e81ad329-bf26-4f03-b249-5916abf8daa3"
+                }
               }
             },
             "bidder": {
@@ -160,9 +162,10 @@
                 "hb_pb_adform": "8.40"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=81bc3e9d-5b73-4b34-9626-59f352514167",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "81bc3e9d-5b73-4b34-9626-59f352514167"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=81bc3e9d-5b73-4b34-9626-59f352514167",
+                  "cache_id": "81bc3e9d-5b73-4b34-9626-59f352514167"
+                }
               }
             }
           }
@@ -199,9 +202,10 @@
                 "hb_cache_id_sovrn": "34698794-e297-47bd-b140-ed42cede87c1"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=34698794-e297-47bd-b140-ed42cede87c1",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "34698794-e297-47bd-b140-ed42cede87c1"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=34698794-e297-47bd-b140-ed42cede87c1",
+                  "cache_id": "34698794-e297-47bd-b140-ed42cede87c1"
+                }
               }
             }
           }
@@ -238,9 +242,10 @@
                 "hb_size_openx": "300x250"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=92c39b22-48d8-43e6-bd79-ffea57ce0196",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "92c39b22-48d8-43e6-bd79-ffea57ce0196"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=92c39b22-48d8-43e6-bd79-ffea57ce0196",
+                  "cache_id": "92c39b22-48d8-43e6-bd79-ffea57ce0196"
+                }
               }
             }
           }
@@ -271,9 +276,10 @@
                 "hb_size_openx": "300x250"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=e3c40044-003e-4d90-927b-7be6b622cd6f",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "e3c40044-003e-4d90-927b-7be6b622cd6f"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=e3c40044-003e-4d90-927b-7be6b622cd6f",
+                  "cache_id": "e3c40044-003e-4d90-927b-7be6b622cd6f"
+                }
               }
             }
           }
@@ -306,9 +312,14 @@
                 "hb_uuid": "4fe30d27-99c1-4644-9d86-37abc08d78f0"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=a93c0531-d0e9-43f8-9b98-b60116c8dc84",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "a93c0531-d0e9-43f8-9b98-b60116c8dc84"
+                "vast_xml": {
+                  "url": "http://localhost:8090/cache?uuid=4fe30d27-99c1-4644-9d86-37abc08d78f0",
+                  "cache_id": "4fe30d27-99c1-4644-9d86-37abc08d78f0"
+                },
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=a93c0531-d0e9-43f8-9b98-b60116c8dc84",
+                  "cache_id": "a93c0531-d0e9-43f8-9b98-b60116c8dc84"
+                }
               }
             }
           }
@@ -341,9 +352,14 @@
                 "hb_uuid": "d93a2cae-0e60-472e-b911-74d0acdb99b2"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=44a1828f-21b2-4bd8-b0b3-93423d4d11e5",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "44a1828f-21b2-4bd8-b0b3-93423d4d11e5"
+                "vast_xml": {
+                  "url": "http://localhost:8090/cache?uuid=d93a2cae-0e60-472e-b911-74d0acdb99b2",
+                  "cache_id": "d93a2cae-0e60-472e-b911-74d0acdb99b2"
+                },
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=44a1828f-21b2-4bd8-b0b3-93423d4d11e5",
+                  "cache_id": "44a1828f-21b2-4bd8-b0b3-93423d4d11e5"
+                }
               }
             }
           }
@@ -380,9 +396,10 @@
                 "hb_deal": "dealId15"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=16ba7cad-b7d0-436f-b185-c2a725b020b7",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "16ba7cad-b7d0-436f-b185-c2a725b020b7"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=16ba7cad-b7d0-436f-b185-c2a725b020b7",
+                  "cache_id": "16ba7cad-b7d0-436f-b185-c2a725b020b7"
+                }
               }
             }
           }
@@ -444,9 +461,10 @@
                 "hb_deal": "dealId16"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=d107856d-5066-4af9-905d-6d16d0feba29",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "d107856d-5066-4af9-905d-6d16d0feba29"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=d107856d-5066-4af9-905d-6d16d0feba29",
+                  "cache_id": "d107856d-5066-4af9-905d-6d16d0feba29"
+                }
               }
             }
           }
@@ -480,9 +498,10 @@
                 "hb_size_conversant": "300x600"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=e3c415a7-700e-4d90-927b-7be6b622cd6f",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "e3c415a7-700e-4d90-927b-7be6b622cd6f"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=e3c415a7-700e-4d90-927b-7be6b622cd6f",
+                  "cache_id": "e3c415a7-700e-4d90-927b-7be6b622cd6f"
+                }
               }
             }
           }
@@ -512,9 +531,14 @@
                 "hb_uuid": "8931c065-dc5e-4072-9ddb-d6522c1c6783"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=2eb31187-b44d-4ab1-8479-298311712807",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "2eb31187-b44d-4ab1-8479-298311712807"
+                "vast_xml": {
+                  "url": "http://localhost:8090/cache?uuid=8931c065-dc5e-4072-9ddb-d6522c1c6783",
+                  "cache_id": "8931c065-dc5e-4072-9ddb-d6522c1c6783"
+                },
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=2eb31187-b44d-4ab1-8479-298311712807",
+                  "cache_id": "2eb31187-b44d-4ab1-8479-298311712807"
+                }
               }
             }
           }
@@ -549,9 +573,10 @@
                 "hb_deal": "dealId5"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=70757de8-17ca-448a-b4ea-af6d3b2a78c3",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "70757de8-17ca-448a-b4ea-af6d3b2a78c3"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=70757de8-17ca-448a-b4ea-af6d3b2a78c3",
+                  "cache_id": "70757de8-17ca-448a-b4ea-af6d3b2a78c3"
+                }
               }
             }
           }
@@ -590,9 +615,14 @@
                 "hb_uuid": "267a5bf3-04a9-4670-9162-d50b3436c172"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=9ab8c592-f41e-43e8-a1af-d17323764dd9",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "9ab8c592-f41e-43e8-a1af-d17323764dd9"
+                "vast_xml": {
+                  "url": "http://localhost:8090/cache?uuid=267a5bf3-04a9-4670-9162-d50b3436c172",
+                  "cache_id": "267a5bf3-04a9-4670-9162-d50b3436c172"
+                },
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=9ab8c592-f41e-43e8-a1af-d17323764dd9",
+                  "cache_id": "9ab8c592-f41e-43e8-a1af-d17323764dd9"
+                }
               }
             },
             "bidder": {
@@ -635,9 +665,10 @@
                 "hb_deal": "dealId2"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=675b817e-f9a9-4578-bbc8-775b981de3a7",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "675b817e-f9a9-4578-bbc8-775b981de3a7"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=675b817e-f9a9-4578-bbc8-775b981de3a7",
+                  "cache_id": "675b817e-f9a9-4578-bbc8-775b981de3a7"
+                }
               }
             }
           }
@@ -674,9 +705,10 @@
                 "hb_deal_brightroll": "dealId17"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=9fdd016c-c620-4a3e-95a1-65ba6957779b",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "9fdd016c-c620-4a3e-95a1-65ba6957779b"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=9fdd016c-c620-4a3e-95a1-65ba6957779b",
+                  "cache_id": "9fdd016c-c620-4a3e-95a1-65ba6957779b"
+                }
               }
             }
           }
@@ -713,9 +745,10 @@
                 "hb_size_pubmatic": "300x600"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=b2528f73-96ab-42ab-8f15-fbe6ed779a26",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "b2528f73-96ab-42ab-8f15-fbe6ed779a26"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=b2528f73-96ab-42ab-8f15-fbe6ed779a26",
+                  "cache_id": "b2528f73-96ab-42ab-8f15-fbe6ed779a26"
+                }
               }
             }
           }
@@ -748,9 +781,14 @@
                 "hb_size_pubmatic": "300x600"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=4affc26b-70a3-4461-b274-1682b64d91af",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "4affc26b-70a3-4461-b274-1682b64d91af"
+                "vast_xml": {
+                  "url": "http://localhost:8090/cache?uuid=50a20760-0377-47ec-9070-ed70d8697de6",
+                  "cache_id": "50a20760-0377-47ec-9070-ed70d8697de6"
+                },
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=4affc26b-70a3-4461-b274-1682b64d91af",
+                  "cache_id": "4affc26b-70a3-4461-b274-1682b64d91af"
+                }
               }
             }
           }
@@ -787,9 +825,10 @@
                 "hb_deal": "dealId14"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=683fe79f-6df7-4971-ac70-820e0486992d",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "683fe79f-6df7-4971-ac70-820e0486992d"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=683fe79f-6df7-4971-ac70-820e0486992d",
+                  "cache_id": "683fe79f-6df7-4971-ac70-820e0486992d"
+                }
               }
             }
           }
@@ -823,9 +862,10 @@
                 "hb_creative_loadtype": "html"
               },
               "cache": {
-                "url": "http://localhost:8090/cache?uuid=dc55e62a-50c6-43e5-86ad-802076bcfd04",
-                "cache_host": "http://localhost:8090/cache",
-                "cache_id": "dc55e62a-50c6-43e5-86ad-802076bcfd04"
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=dc55e62a-50c6-43e5-86ad-802076bcfd04",
+                  "cache_id": "dc55e62a-50c6-43e5-86ad-802076bcfd04"
+                }
               }
             }
           }
