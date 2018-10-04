@@ -59,9 +59,6 @@
   "test": 1,
   "at": 1,
   "tmax": 1900,
-  "cur": [
-    "EUR"
-  ],
   "ext": {
     "prebid": {
       "targeting": {

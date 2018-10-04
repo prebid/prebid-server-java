@@ -69,6 +69,7 @@ public class ApplicationTest extends VertxTest {
     private static final String ADTELLIGENT = "adtelligent";
     private static final String EPLANNING = "eplanning";
     private static final String SOMOAUDIENCE = "somoaudience";
+    private static final String BEACHFRONT = "beachfront";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
 
@@ -251,6 +252,15 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-somoaudience-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-somoaudience-bid-response-1.json"))));
 
+        // beachfront bid response for imp 18
+        wireMockRule.stubFor(post(urlPathEqualTo("/beachfront-video-exchange"))
+                .withQueryParam("exchange_id", equalTo("beachfrontAppId"))
+                .withQueryParam("prebidserver", equalTo(""))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-beachfront-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-beachfront-bid-response-1.json"))));
+
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-cache-request.json")))
@@ -312,7 +322,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("amp/test-cache-response.json"))));
 
         // when and then
-        Response response = given(spec)
+        final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
@@ -663,7 +673,7 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void versionHandlerShouldRespondWithCommitRevision() throws IOException {
+    public void versionHandlerShouldRespondWithCommitRevision() {
         given(adminSpec)
                 .get("/version")
                 .then()
@@ -730,7 +740,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(EPLANNING, "http://localhost:" + WIREMOCK_PORT + "/eplanning-exchange");
         exchanges.put(OPENX, "http://localhost:" + WIREMOCK_PORT + "/openx-exchange");
         exchanges.put(SOMOAUDIENCE, "http://localhost:" + WIREMOCK_PORT + "/somoaudience-exchange");
-
+        exchanges.put(BEACHFRONT, "http://localhost:" + WIREMOCK_PORT + "/beachfront-video-exchange?exchange_id=");
         // inputs for aliases
         exchanges.put(APPNEXUS_ALIAS, null);
         exchanges.put(CONVERSANT_ALIAS, null);

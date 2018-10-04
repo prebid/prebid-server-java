@@ -28,7 +28,7 @@ public class RubiconSizeTest {
         // when
         sizes.sort(RubiconSize.comparator());
 
-        //then
+        // then
         assertThat(sizes).containsExactly(15, 2, 9, 8, 19, 44, 59, 101);
     }
 }

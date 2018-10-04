@@ -11,14 +11,20 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
-import org.prebid.server.vertx.JdbcClient;
+import org.prebid.server.vertx.jdbc.BasicJdbcClient;
+import org.prebid.server.vertx.jdbc.JdbcClient;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -36,6 +42,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(VertxUnitRunner.class)
 public class JdbcApplicationSettingsTest {
+
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private static final String JDBC_URL = "jdbc:h2:mem:test";
 
@@ -59,6 +68,10 @@ public class JdbcApplicationSettingsTest {
     private static Connection connection;
 
     private Vertx vertx;
+    @Mock
+    private Metrics metrics;
+
+    private Clock clock;
 
     private JdbcApplicationSettings jdbcApplicationSettings;
 
@@ -103,7 +116,8 @@ public class JdbcApplicationSettingsTest {
     @Before
     public void setUp() {
         vertx = Vertx.vertx();
-        timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(5000L);
+        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        timeout = new TimeoutFactory(clock).create(5000L);
         jdbcApplicationSettings = new JdbcApplicationSettings(jdbcClient(), selectQuery, selectQuery);
     }
 
@@ -383,10 +397,11 @@ public class JdbcApplicationSettingsTest {
     }
 
     private JdbcClient jdbcClient() {
-        return new JdbcClient(vertx, JDBCClient.createShared(vertx,
+        return new BasicJdbcClient(vertx, JDBCClient.createShared(vertx,
                 new JsonObject()
                         .put("url", JDBC_URL)
                         .put("driver_class", "org.h2.Driver")
-                        .put("max_pool_size", 10)));
+                        .put("max_pool_size", 10)), metrics, clock
+        );
     }
 }

@@ -1,9 +1,7 @@
 package org.prebid.server.currency;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -11,6 +9,8 @@ import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -66,41 +66,48 @@ public class CurrencyConversionService {
      * Updates latest currency rates by making a call to currency server.
      */
     private void populatesLatestCurrencyRates() {
-        httpClient.getAbs(currencyServerUrl, this::handleResponse)
-                .exceptionHandler(CurrencyConversionService::handleException)
-                .end();
+        httpClient.get(currencyServerUrl, 2000L)
+                .compose(CurrencyConversionService::processResponse)
+                .compose(this::updateCurrencyRates)
+                .recover(CurrencyConversionService::failResponse);
     }
 
-    private void handleResponse(HttpClientResponse response) {
-        final int statusCode = response.statusCode();
+    /**
+     * Handles {@link HttpClientResponse}, analyzes response status
+     * and creates {@link Future} with {@link CurrencyConversionRates} from body content
+     * or throws {@link PreBidException} in case of errors.
+     */
+    private static Future<CurrencyConversionRates> processResponse(HttpClientResponse response) {
+        final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
-            logger.warn("Currency server response code is {0}", statusCode);
-            return;
+            throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
-        response.bodyHandler(this::handleBody)
-                .exceptionHandler(CurrencyConversionService::handleException);
-    }
 
-    /**
-     * Parses body content and populates latest currency rates.
-     */
-    private void handleBody(Buffer buffer) {
+        final String body = response.getBody();
+        final CurrencyConversionRates currencyConversionRates;
         try {
-            final Map<String, Map<String, BigDecimal>> receivedCurrencyRates =
-                    Json.mapper.readValue(buffer.toString(), CurrencyConversionRates.class).getConversions();
-            if (receivedCurrencyRates != null) {
-                latestCurrencyRates = receivedCurrencyRates;
-            }
+            currencyConversionRates = Json.mapper.readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {
-            logger.warn("Error occurred during parsing response from latest currency service", e);
+            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }
+
+        return Future.succeededFuture(currencyConversionRates);
+    }
+
+    private Future<CurrencyConversionRates> updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
+        final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
+        if (receivedCurrencyRates != null) {
+            latestCurrencyRates = receivedCurrencyRates;
+        }
+        return Future.succeededFuture(currencyConversionRates);
     }
 
     /**
-     * Handles an error occurred while request. In our case adds error log.
+     * Handles errors occurred while HTTP request or response processing.
      */
-    private static void handleException(Throwable exception) {
+    private static Future<CurrencyConversionRates> failResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);
+        return Future.failedFuture(exception);
     }
 
     /**

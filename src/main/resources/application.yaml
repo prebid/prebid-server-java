@@ -11,7 +11,7 @@ http:
 admin:
   port: 8060
 http-client:
-  max-pool-size: 10000
+  max-pool-size: 4000
   connect-timeout-ms: 2500
 external-url: http://localhost:8000
 default-timeout-ms: 250
@@ -46,6 +46,13 @@ adapters:
     enabled: false
     endpoint: http://ib.adnxs.com/openrtb2
     usersync-url: //ib.adnxs.com/getuid?
+    pbs-enforces-gdpr: true
+  beachfront:
+    enabled: false
+    banner-endpoint: https://display.bfmio.com/prebid_display
+    video-endpoint: https://reachms.bfmio.com/bid.json?exchange_id=
+    usersync-url: //sync.bfmio.com/syncb?pid=
+    platform-id: 142
     pbs-enforces-gdpr: true
   brightroll:
     enabled: false

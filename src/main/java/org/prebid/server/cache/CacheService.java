@@ -1,11 +1,7 @@
 package org.prebid.server.cache;
 
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -21,6 +17,9 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -40,9 +39,6 @@ import java.util.stream.Stream;
 public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
-
-    private static final String APPLICATION_JSON =
-            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
     private final HttpClient httpClient;
     private final String endpointUrl;
@@ -85,16 +81,15 @@ public class CacheService {
      * The returned result will always have the number of elements equals to sum of sizes of bids and video bids.
      */
     public Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> cacheBidsOpenrtb(
-            List<com.iab.openrtb.response.Bid> bids, List<com.iab.openrtb.response.Bid> videoBids, Integer bidsTtl,
-            Integer videoBidsTtl, Timeout timeout) {
+            List<CacheBid> bids, List<CacheBid> videoBids, Timeout timeout) {
         final Future<Map<com.iab.openrtb.response.Bid, CacheIdInfo>> result;
 
         if (CollectionUtils.isEmpty(bids) && CollectionUtils.isEmpty(videoBids)) {
             result = Future.succeededFuture(Collections.emptyMap());
         } else {
             final List<PutObject> putObjects = Stream.concat(
-                    bids.stream().map(bid -> createJsonPutObjectOpenrtb(bid, bidsTtl)),
-                    videoBids.stream().map(bid -> createXmlPutObjectOpenrtb(bid, videoBidsTtl)))
+                    bids.stream().map(CacheService::createJsonPutObjectOpenrtb),
+                    videoBids.stream().map(CacheService::createXmlPutObjectOpenrtb))
                     .collect(Collectors.toList());
 
             result = makeRequest(BidCacheRequest.of(putObjects), putObjects.size(), timeout)
@@ -119,73 +114,53 @@ public class CacheService {
      * Asks external prebid cache service to store the given value.
      */
     private Future<BidCacheResponse> makeRequest(BidCacheRequest bidCacheRequest, int bidCount, Timeout timeout) {
-        final Future<BidCacheResponse> future;
         if (bidCount == 0) {
-            future = Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
-        } else {
-            future = Future.future();
-
-            final long remainingTimeout = timeout.remaining();
-            if (remainingTimeout <= 0) {
-                handleException(new TimeoutException(), future);
-            } else {
-                httpClient.postAbs(endpointUrl, response -> handleResponse(response, bidCount, future))
-                        .exceptionHandler(exception -> handleException(exception, future))
-                        .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                        .putHeader(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                        .setTimeout(remainingTimeout)
-                        .end(Json.encode(bidCacheRequest));
-            }
+            return Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
         }
-        return future;
+
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            return failResponse(new TimeoutException("Timeout has been exceeded"));
+        }
+
+        return httpClient.post(endpointUrl, HttpUtil.headers(), Json.encode(bidCacheRequest), remainingTimeout)
+                .compose(response -> processResponse(response, bidCount))
+                .recover(CacheService::failResponse);
     }
 
     /**
-     * Adds body handler and exception handler to {@link HttpClientResponse}.
+     * Handles errors occurred while HTTP request or response processing.
      */
-    private static void handleResponse(HttpClientResponse response, int bidCount, Future<BidCacheResponse> future) {
-        response
-                .bodyHandler(
-                        buffer -> handleResponseAndBody(response.statusCode(), buffer.toString(), bidCount, future))
-                .exceptionHandler(exception -> handleException(exception, future));
+    private static Future<BidCacheResponse> failResponse(Throwable exception) {
+        logger.warn("Error occurred while interacting with cache service", exception);
+        return Future.failedFuture(exception);
     }
 
     /**
-     * Analyzes response status/body and completes input {@link Future}
-     * with obtained result from prebid cache service or fails it in case of errors.
+     * Handles {@link HttpClientResponse}, analyzes response status
+     * and creates {@link Future} with {@link BidCacheResponse} from body content
+     * or throws {@link PreBidException} in case of errors.
      */
-    private static void handleResponseAndBody(int statusCode, String body, int bidCount,
-                                              Future<BidCacheResponse> future) {
+    private static Future<BidCacheResponse> processResponse(HttpClientResponse response, int bidCount) {
+        final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
-            logger.warn("Cache service response code is {0}, body: {1}", statusCode, body);
-            future.fail(new PreBidException(String.format("HTTP status code %d, body: %s", statusCode, body)));
-            return;
+            throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
+        final String body = response.getBody();
         final BidCacheResponse bidCacheResponse;
         try {
             bidCacheResponse = Json.decodeValue(body, BidCacheResponse.class);
         } catch (DecodeException e) {
-            logger.warn("Error occurred while parsing bid cache response: {0}", e, body);
-            future.fail(e);
-            return;
+            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
         }
 
         final List<CacheObject> responses = bidCacheResponse.getResponses();
         if (responses == null || responses.size() != bidCount) {
-            future.fail(new PreBidException("Put response length didn't match"));
-            return;
+            throw new PreBidException("The number of response cache objects doesn't match with bids");
         }
 
-        future.complete(bidCacheResponse);
-    }
-
-    /**
-     * Completes input {@link Future} with the given exception.
-     */
-    private static void handleException(Throwable exception, Future<BidCacheResponse> future) {
-        logger.warn("Error occurred while sending request to cache service", exception);
-        future.fail(exception);
+        return Future.succeededFuture(bidCacheResponse);
     }
 
     /**
@@ -205,15 +180,15 @@ public class CacheService {
     /**
      * Makes JSON type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private static PutObject createJsonPutObjectOpenrtb(com.iab.openrtb.response.Bid bid, Integer cacheTtl) {
-        return PutObject.of("json", Json.mapper.valueToTree(bid), cacheTtl);
+    private static PutObject createJsonPutObjectOpenrtb(CacheBid cacheBid) {
+        return PutObject.of("json", Json.mapper.valueToTree(cacheBid.getBid()), cacheBid.getTtl());
     }
 
     /**
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
-    private static PutObject createXmlPutObjectOpenrtb(com.iab.openrtb.response.Bid bid, Integer cacheTtl) {
-        return PutObject.of("xml", new TextNode(bid.getAdm()), cacheTtl);
+    private static PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid) {
+        return PutObject.of("xml", new TextNode(cacheBid.getBid().getAdm()), cacheBid.getTtl());
     }
 
     /**
@@ -249,14 +224,20 @@ public class CacheService {
     /**
      * Creates a map with bids as a key and {@link CacheIdInfo} as a value from obtained UUIDs.
      */
-    private static <T> Map<T, CacheIdInfo> toResultMap(List<T> bids, List<T> videoBids, List<String> uuids) {
-        final Map<T, CacheIdInfo> result = new HashMap<>(uuids.size());
+    private static Map<com.iab.openrtb.response.Bid, CacheIdInfo> toResultMap(
+            List<CacheBid> cacheBids, List<CacheBid> cacheVideoBids, List<String> uuids) {
+        final Map<com.iab.openrtb.response.Bid, CacheIdInfo> result = new HashMap<>(uuids.size());
+
+        final List<com.iab.openrtb.response.Bid> bids = cacheBids.stream()
+                .map(CacheBid::getBid).collect(Collectors.toList());
+        final List<com.iab.openrtb.response.Bid> videoBids = cacheVideoBids.stream()
+                .map(CacheBid::getBid).collect(Collectors.toList());
 
         // here we assume "videoBids" is a sublist of "bids"
         // so, no need for a separate loop on "videoBids" if "bids" is not empty
         if (!bids.isEmpty()) {
             for (int i = 0; i < bids.size(); i++) {
-                final T bid = bids.get(i);
+                final com.iab.openrtb.response.Bid bid = bids.get(i);
 
                 // determine uuid for video bid
                 final int indexOfVideoBid = videoBids.indexOf(bid);

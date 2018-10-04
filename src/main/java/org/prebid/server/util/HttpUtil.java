@@ -1,5 +1,6 @@
 package org.prebid.server.util;
 
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -15,6 +16,9 @@ import java.net.URLEncoder;
  * This class consists of {@code static} utility methods for operating HTTP requests.
  */
 public final class HttpUtil {
+
+    private static final String APPLICATION_JSON =
+            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
 
     public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
     public static final CharSequence DNT_HEADER = HttpHeaders.createOptimized("DNT");
@@ -78,6 +82,15 @@ public final class HttpUtil {
     }
 
     /**
+     * Creates general headers for request.
+     */
+    public static MultiMap headers() {
+        return MultiMap.caseInsensitiveMultiMap()
+                .add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON);
+    }
+
+    /**
      * Creates header from name and value, when value is not null or empty string.
      */
     public static void addHeaderIfValueIsNotEmpty(MultiMap headers, String headerName, String headerValue) {
@@ -100,7 +113,18 @@ public final class HttpUtil {
         if (ip == null) {
             ip = StringUtils.trimToNull(request.remoteAddress().host());
         }
-
         return ip;
+    }
+
+    public static String getDomainFromUrl(String url) {
+        String domain = null;
+        if (StringUtils.isNotEmpty(url)) {
+            try {
+                domain = new URL(url).getHost();
+            } catch (MalformedURLException e) {
+                return null;
+            }
+        }
+        return domain;
     }
 }

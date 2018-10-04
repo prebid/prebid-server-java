@@ -12,7 +12,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
-import org.prebid.server.vertx.JdbcClient;
+import org.prebid.server.vertx.jdbc.JdbcClient;
 
 import java.util.ArrayList;
 import java.util.Collections;

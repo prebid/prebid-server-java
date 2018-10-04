@@ -1,23 +1,17 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.CaseInsensitiveHeaders;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -26,12 +20,13 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.asList;
@@ -39,7 +34,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -51,24 +45,17 @@ public class HttpBidderRequesterTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private HttpClient httpClient;
+    private Bidder<?> bidder;
     @Mock
-    private HttpClientRequest httpClientRequest;
+    private HttpClient httpClient;
 
     private HttpBidderRequester<?> bidderHttpConnector;
 
-    @Mock
-    private Bidder<?> bidder;
     private Timeout timeout;
     private Timeout expiredTimeout;
 
     @Before
     public void setUp() {
-        // given
-        given(httpClient.requestAbs(any(), anyString(), any())).willReturn(httpClientRequest);
-        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
-        given(httpClientRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
@@ -114,6 +101,8 @@ public class HttpBidderRequesterTest {
     @Test
     public void shouldSendPopulatedPostRequest() {
         // given
+        givenHttpClientReturnsResponse(200, null);
+
         final MultiMap headers = new CaseInsensitiveHeaders();
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.of(HttpMethod.POST, "uri", "requestBody", headers, null)), emptyList()));
@@ -124,44 +113,29 @@ public class HttpBidderRequesterTest {
         bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
-        verify(httpClient).requestAbs(eq(HttpMethod.POST), eq("uri"), any());
-        verify(httpClientRequest).end(eq("requestBody"));
-        assertThat(httpClientRequest.headers()).hasSize(2)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("header1", "value1"), tuple("header2", "value2"));
-
-        final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue()).isEqualTo(500L);
+        verify(httpClient).request(eq(HttpMethod.POST), eq("uri"), eq(headers), eq("requestBody"), eq(500L));
     }
 
     @Test
     public void shouldSendPopulatedGetRequestWithoutBody() {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders();
+        givenHttpClientReturnsResponse(200, null);
+
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.GET, "uri", null, headers, null)), emptyList()));
-        headers.add("header1", "value1");
-        headers.add("header2", "value2");
+                HttpRequest.of(HttpMethod.GET, "uri", null, null, null)), emptyList()));
 
         // when
         bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
-        verify(httpClient).requestAbs(eq(HttpMethod.GET), eq("uri"), any());
-        verify(httpClientRequest).end();
-        assertThat(httpClientRequest.headers()).hasSize(2)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("header1", "value1"), tuple("header2", "value2"));
-
-        final ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(httpClientRequest).setTimeout(timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue()).isEqualTo(500L);
+        verify(httpClient).request(any(), anyString(), any(), isNull(), anyLong());
     }
 
     @Test
     public void shouldSendMultipleRequests() {
         // given
+        givenHttpClientReturnsResponse(200, null);
+
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)),
@@ -171,7 +145,7 @@ public class HttpBidderRequesterTest {
         bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
 
         // then
-        verify(httpClient, times(2)).requestAbs(any(), any(), any());
+        verify(httpClient, times(2)).request(any(), anyString(), any(), any(), anyLong());
     }
 
     @Test
@@ -180,7 +154,7 @@ public class HttpBidderRequesterTest {
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)), emptyList()));
 
-        givenHttpClientReturnsResponses(200, "responseBody");
+        givenHttpClientReturnsResponse(200, "responseBody");
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
@@ -201,7 +175,9 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, "uri2", "requestBody2", new CaseInsensitiveHeaders(), null)),
                 emptyList()));
 
-        givenHttpClientReturnsResponses(200, "responseBody1", "responseBody2");
+        givenHttpClientReturnsResponses(
+                HttpClientResponse.of(200, null, "responseBody1"),
+                HttpClientResponse.of(200, null, "responseBody2"));
 
         given(bidder.makeBids(any(), any())).willReturn(Result.of(emptyList(), emptyList()));
 
@@ -258,7 +234,7 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, "uri1", "requestBody1", new CaseInsensitiveHeaders(), null)),
                 emptyList()));
 
-        givenHttpClientReturnsResponses(500, "responseBody1");
+        givenHttpClientReturnsResponses(HttpClientResponse.of(500, null, "responseBody1"));
 
         // when
         final BidderSeatBid bidderSeatBid =
@@ -294,8 +270,6 @@ public class HttpBidderRequesterTest {
     public void shouldTolerateMultipleErrors() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
-                // this request will fail with request exception
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
                 // this request will fail with response exception
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
                 // this request will fail with timeout
@@ -310,45 +284,20 @@ public class HttpBidderRequesterTest {
                 HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
 
-        given(httpClientRequest.exceptionHandler(any()))
-                // simulate request error for the first request
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")))
-                // continue normally for subsequent requests
-                .willReturn(httpClientRequest);
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.requestAbs(any(), anyString(), any()))
-                // do not invoke response handler for the first request that will end up with request error
-                .willReturn(httpClientRequest)
-                // continue normally for subsequent requests
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
-        given(httpClientResponse.exceptionHandler(any()))
-                // simulate response error for the second request (which will trigger exceptionHandler call on
-                // response mock first time)
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception")))
-                // simulate timeout for the third request (which will trigger exceptionHandler call on
-                // response mock second time)
-                .willAnswer(withSelfAndPassObjectToHandler(new TimeoutException("Timeout exception")))
-                // continue normally for subsequent requests
-                .willReturn(httpClientResponse);
-        given(httpClientResponse.bodyHandler(any()))
-                // do not invoke body handler for the second and third requests (which will trigger bodyHandler call on
-                // response mock first and second time) that will end up with response error and timeout
-                .willReturn(httpClientResponse)
-                .willReturn(httpClientResponse)
-                // continue normally for subsequent requests
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(EMPTY)));
-        given(httpClientResponse.statusCode())
-                // simulate 500 status for the fourth request (which will trigger statusCode call on response mock
-                // first time)
-                .willReturn(500)
-                // simulate 400 status for the fifth request (which will trigger statusCode call on response mock
-                // second time)
-                .willReturn(400)
-                // simulate 204 status for the sixth request (which will trigger statusCode call on response mock
-                // third time)
-                .willReturn(204)
-                // continue normally for subsequent requests
-                .willReturn(200);
+
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+                // simulate response error for the first request
+                .willReturn(Future.failedFuture(new RuntimeException("Response exception")))
+                // simulate timeout for the second request
+                .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")))
+                // simulate 500 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(500, null, EMPTY)))
+                // simulate 400 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(400, null, EMPTY)))
+                // simulate 204 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(204, null, EMPTY)))
+                // simulate 200 status
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, EMPTY)));
 
         given(bidder.makeBids(any(), any())).willReturn(
                 Result.of(singletonList(BidderBid.of(null, null, null)),
@@ -365,7 +314,6 @@ public class HttpBidderRequesterTest {
         assertThat(bidderSeatBid.getBids()).hasSize(1);
         assertThat(bidderSeatBid.getErrors()).containsOnly(
                 BidderError.badInput("makeHttpRequestsError"),
-                BidderError.generic("Request exception"),
                 BidderError.generic("Response exception"),
                 BidderError.timeout("Timeout exception"),
                 BidderError.badServerResponse("Unexpected status code: 500. Run with request.test = 1 for more info"),
@@ -373,45 +321,23 @@ public class HttpBidderRequesterTest {
                 BidderError.badServerResponse("makeBidsError"));
     }
 
-    private void givenHttpClientReturnsResponses(int statusCode, String... bidResponses) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
-
-        // setup multiple answers
-        BDDMockito.BDDMyOngoingStubbing<HttpClientResponse> currentStubbing =
-                given(httpClientResponse.bodyHandler(any()));
-        for (String bidResponse : bidResponses) {
-            currentStubbing = currentStubbing.willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(bidResponse)));
-        }
+    private void givenHttpClientReturnsResponse(int statusCode, String response) {
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
-        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable));
+        given(httpClient.request(any(), anyString(), any(), any(), anyLong()))
+                .willReturn(Future.failedFuture(throwable));
     }
 
-    private HttpClientResponse givenHttpClientResponse(int statusCode) {
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.requestAbs(any(), anyString(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
-        given(httpClientResponse.statusCode()).willReturn(statusCode);
-        return httpClientResponse;
-    }
+    private void givenHttpClientReturnsResponses(HttpClientResponse... httpClientResponses) {
+        BDDMockito.BDDMyOngoingStubbing<Future<HttpClientResponse>> stubbing =
+                given(httpClient.request(any(), anyString(), any(), any(), anyLong()));
 
-    @SuppressWarnings("unchecked")
-    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
-        return inv -> {
-            // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(2)).handle(httpClientResponse);
-            return httpClientRequest;
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
-            return inv.getMock();
-        };
+        // setup multiple answers
+        for (HttpClientResponse httpClientResponse : httpClientResponses) {
+            stubbing = stubbing.willReturn(Future.succeededFuture(httpClientResponse));
+        }
     }
 }

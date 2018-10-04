@@ -249,7 +249,7 @@ public class ConversantAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                                 .adUnitCode("adUnitCode1")
@@ -266,7 +266,7 @@ public class ConversantAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                                 .adUnitCode("adUnitCode1")
@@ -412,7 +412,7 @@ public class ConversantAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
                                 .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))

@@ -306,11 +306,13 @@ public class MetricsTest {
         metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.ok);
         metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.err);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.badinput);
+        metrics.updateRequestTypeMetric(MetricName.amp, MetricName.networkerr);
 
         // then
         assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.err.openrtb2-app").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("requests.badinput.amp").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("requests.networkerr.amp").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -503,6 +505,69 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("active_connections").getCount()).isEqualTo(-1);
+    }
+
+    @Test
+    public void shouldUpdateDatabaseQueryTimeMetric() {
+        // when
+        metrics.updateDatabaseQueryTimeMetric(456L);
+
+        // then
+        assertThat(metricRegistry.timer("db_query_time").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementDatabaseCircuitBreakerOpenMetric() {
+        // when
+        metrics.updateDatabaseCircuitBreakerMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("db_circuitbreaker_opened").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementDatabaseCircuitBreakerCloseMetric() {
+        // when
+        metrics.updateDatabaseCircuitBreakerMetric(false);
+
+        // then
+        assertThat(metricRegistry.counter("db_circuitbreaker_closed").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementHttpClientCircuitBreakerOpenMetric() {
+        // when
+        metrics.updateHttpClientCircuitBreakerMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("httpclient_circuitbreaker_opened").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementHttpClientCircuitBreakerCloseMetric() {
+        // when
+        metrics.updateHttpClientCircuitBreakerMetric(false);
+
+        // then
+        assertThat(metricRegistry.counter("httpclient_circuitbreaker_closed").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementGeoLocationCircuitBreakerOpenMetric() {
+        // when
+        metrics.updateGeoLocationCircuitBreakerMetric(true);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_circuitbreaker_opened").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementGeoLocationCircuitBreakerCloseMetric() {
+        // when
+        metrics.updateGeoLocationCircuitBreakerMetric(false);
+
+        // then
+        assertThat(metricRegistry.counter("geolocation_circuitbreaker_closed").getCount()).isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
