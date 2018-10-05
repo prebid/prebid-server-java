@@ -157,14 +157,16 @@ public class ExchangeServiceTest extends VertxTest {
         metricsContext = MetricsContext.of(MetricName.openrtb2web);
 
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, 0, false);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
+                emptyMap(), emptyMap(), null, null);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
-                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, -1, false));
+                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, -1,
+                        null, null, null, null));
     }
 
     @Test
@@ -1301,7 +1303,8 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, 100, false);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 100,
+                emptyMap(), emptyMap(), null, null);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenHttpConnector(givenSeatBid(singletonList(givenBid(bid))));
@@ -1329,33 +1332,10 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldRequestCacheServiceWithExpectedBidCacheTtlFromRequest() {
-        // given
-        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
-        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid1))));
-
-        final BidRequest bidRequest = givenBidRequest(singletonList(
-                // imp ids are not really used for matching, included them here for clarity
-                givenImp(singletonMap("bidder1", 1),
-                        builder -> builder.id("impId1").video(Video.builder().build()))),
-                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
-                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
-                                2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                        BigDecimal.valueOf(0.5))))), null, true, true), null,
-                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(100)))))));
-
-        // when
-        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
-
-        // then
-        verify(cacheService).cacheBidsOpenrtb(eq(emptyList()), eq(singletonList(CacheBid.of(bid1, 100))), same(timeout));
-    }
-
-    @Test
     public void shouldRequestCacheServiceWithExpectedBidCacheTtlFromImp() {
         // given
-        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).exp(200).build();
-        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid1))));
+        final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).exp(200).build();
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -1371,7 +1351,114 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
 
         // then
-        verify(cacheService).cacheBidsOpenrtb(eq(emptyList()), eq(singletonList(CacheBid.of(bid1, 200))), same(timeout));
+        verify(cacheService).cacheBidsOpenrtb(eq(emptyList()), eq(singletonList(CacheBid.of(bid, 200))),
+                same(timeout));
+    }
+
+    @Test
+    public void shouldRequestCacheServiceWithExpectedBidCacheTtlFromRequest() {
+        // given
+        final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1),
+                        builder -> builder.id("impId1").video(Video.builder().build()))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
+                                2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                        BigDecimal.valueOf(0.5))))), null, true, true), null,
+                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(100)))))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
+
+        // then
+        verify(cacheService).cacheBidsOpenrtb(eq(emptyList()), eq(singletonList(CacheBid.of(bid, 100))),
+                same(timeout));
+    }
+
+    @Test
+    public void shouldRequestCacheServiceWithExpectedBidCacheTtlFromAccountMediaTypeTtl() {
+        // given
+        exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
+                emptyMap(), singletonMap("publisher", 100), null, null);
+
+        final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1),
+                        builder -> builder.id("impId1").video(Video.builder().build()))),
+                builder -> builder
+                        .site(Site.builder().publisher(Publisher.builder().id("publisher").build()).build())
+                        .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                                null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
+                                        2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                                BigDecimal.valueOf(0.5))))), null, true, true), null,
+                                ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null)))))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
+
+        // then
+        verify(cacheService).cacheBidsOpenrtb(eq(emptyList()), eq(singletonList(CacheBid.of(bid, 100))),
+                same(timeout));
+    }
+
+    @Test
+    public void shouldRequestCacheServiceWithExpectedBidCacheTtlFromMediaTypeTtl() {
+        // given
+        exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
+                emptyMap(), emptyMap(), 100, null);
+
+        final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1),
+                        builder -> builder.id("impId1"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
+                                2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                        BigDecimal.valueOf(0.5))))), null, true, true), null,
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), null))))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
+
+        // then
+        verify(cacheService).cacheBidsOpenrtb(eq(singletonList(CacheBid.of(bid, 100))), eq(emptyList()),
+                same(timeout));
+    }
+
+    @Test
+    public void shouldRequestCacheServiceWithNoCacheTtl() {
+        // given
+        final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder1", 1),
+                        builder -> builder.id("impId1"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
+                                2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                        BigDecimal.valueOf(0.5))))), null, true, true), null,
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), null))))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
+
+        // then
+        verify(cacheService).cacheBidsOpenrtb(eq(singletonList(CacheBid.of(bid, null))), eq(emptyList()),
+                same(timeout));
     }
 
     @Test

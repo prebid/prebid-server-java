@@ -31,10 +31,16 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.expected-cache-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO 4217 codes for the representation of currencies.
 - `auction.currency-rates-refresh-period-ms` - default refresh period for currency rates updates.
 - `auction.currency-rates-url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
+- `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
+- `auction.cache.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service.
+- `auction.cache.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service.
+- `auction.cache.account.<ACCOUNT>.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service 
+for particular Rubicon account. Overrides `cache.banner-ttl-seconds` property.
+- `auction.cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
+for particular Rubicon account. Overrides `cache.video-ttl-seconds` property.
 
 ## Amp
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.

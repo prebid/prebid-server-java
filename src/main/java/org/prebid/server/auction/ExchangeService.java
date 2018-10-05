@@ -101,16 +101,23 @@ public class ExchangeService {
     private final GdprService gdprService;
     private final Metrics metrics;
     private final Clock clock;
-    private final long expectedCacheTime;
     private final boolean useGeoLocation;
+    private final long expectedCacheTime;
+    private final Map<String, Integer> accountToBannerCacheTtl;
+    private final Map<String, Integer> accountToVideoCacheTtl;
+    private final Integer bannerCacheTtl;
+    private final Integer videoCacheTtl;
 
     public ExchangeService(BidderCatalog bidderCatalog,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
                            BidResponsePostProcessor bidResponsePostProcessor,
-                           CurrencyConversionService currencyService,
-                           GdprService gdprService,
-                           Metrics metrics, Clock clock,
-                           long expectedCacheTime, boolean useGeoLocation) {
+                           CurrencyConversionService currencyService, GdprService gdprService,
+                           Metrics metrics, Clock clock, boolean useGeoLocation, long expectedCacheTime,
+                           Map<String, Integer> accountToBannerCacheTtl, Map<String, Integer> accountToVideoCacheTtl,
+                           Integer bannerCacheTtl, Integer videoCacheTtl) {
+        if (expectedCacheTime < 0) {
+            throw new IllegalArgumentException("Expected cache time should be positive");
+        }
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
@@ -119,11 +126,12 @@ public class ExchangeService {
         this.gdprService = gdprService;
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
-        if (expectedCacheTime < 0) {
-            throw new IllegalArgumentException("Expected cache time should be positive");
-        }
-        this.expectedCacheTime = expectedCacheTime;
         this.useGeoLocation = useGeoLocation;
+        this.expectedCacheTime = expectedCacheTime;
+        this.accountToBannerCacheTtl = Objects.requireNonNull(accountToBannerCacheTtl);
+        this.accountToVideoCacheTtl = Objects.requireNonNull(accountToVideoCacheTtl);
+        this.bannerCacheTtl = bannerCacheTtl;
+        this.videoCacheTtl = videoCacheTtl;
     }
 
     /**
@@ -167,7 +175,7 @@ public class ExchangeService {
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
-                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout))
+                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, publisherId, timeout))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
     }
 
@@ -815,12 +823,13 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, BidRequestCacheInfo cacheInfo,
-                                              Timeout timeout) {
+                                              String publisherId, Timeout timeout) {
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, winningBids, winningBidsByBidder);
 
-        return toWinningBidsWithCacheIds(winningBids, bidRequest.getImp(), keywordsCreator, cacheInfo, timeout)
+        return toWinningBidsWithCacheIds(winningBids, bidRequest.getImp(), keywordsCreator, cacheInfo, publisherId,
+                timeout)
                 .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
                         winningBidsWithCacheIds, winningBidsByBidder));
     }
@@ -905,9 +914,9 @@ public class ExchangeService {
     /**
      * Corresponds cacheId (or null if not present) to each {@link Bid}.
      */
-    private Future<Map<Bid, CacheIdInfo>> toWinningBidsWithCacheIds(Set<Bid> winningBids, List<Imp> imps,
-                                                                    TargetingKeywordsCreator keywordsCreator,
-                                                                    BidRequestCacheInfo cacheInfo, Timeout timeout) {
+    private Future<Map<Bid, CacheIdInfo>> toWinningBidsWithCacheIds(
+            Set<Bid> winningBids, List<Imp> imps, TargetingKeywordsCreator keywordsCreator,
+            BidRequestCacheInfo cacheInfo, String publisherId, Timeout timeout) {
         final Future<Map<Bid, CacheIdInfo>> result;
 
         if (!cacheInfo.doCaching) {
@@ -929,16 +938,14 @@ public class ExchangeService {
 
             final List<CacheBid> cacheBids = cacheInfo.shouldCacheBids
                     ? winningBidsWithNonZeroCpm.stream()
-                    .map(bid -> CacheBid.of(bid,
-                            ObjectUtils.firstNonNull(impIdToTtl.get(bid.getImpid()), cacheInfo.cacheBidsTtl)))
+                    .map(bid -> toCacheBid(bid, impIdToTtl, cacheInfo, publisherId, false))
                     .collect(Collectors.toList())
                     : Collections.emptyList();
 
             final List<CacheBid> cacheVideoBids = cacheInfo.shouldCacheVideoBids
                     ? winningBidsWithNonZeroCpm.stream()
                     .filter(bid -> videoImpIds.contains(bid.getImpid())) // bid is video
-                    .map(bid -> CacheBid.of(bid,
-                            ObjectUtils.firstNonNull(impIdToTtl.get(bid.getImpid()), cacheInfo.cacheVideoBidsTtl)))
+                    .map(bid -> toCacheBid(bid, impIdToTtl, cacheInfo, publisherId, true))
                     .collect(Collectors.toList())
                     : Collections.emptyList();
 
@@ -948,6 +955,22 @@ public class ExchangeService {
         }
 
         return result;
+    }
+
+    /**
+     * Creates {@link CacheBid} from given {@link Bid} and determined cache ttl.
+     */
+    private CacheBid toCacheBid(Bid bid, Map<String, Integer> impIdToTtl, BidRequestCacheInfo cacheInfo,
+                                String publisherId, boolean isVideoBid) {
+        final Integer impTtl = impIdToTtl.get(bid.getImpid());
+        final Integer requestTtl = isVideoBid ? cacheInfo.cacheVideoBidsTtl : cacheInfo.cacheBidsTtl;
+        final Integer accountMediTypeTtl = isVideoBid
+                ? accountToVideoCacheTtl.get(publisherId)
+                : accountToBannerCacheTtl.get(publisherId);
+        final Integer mediTypeTtl = isVideoBid ? videoCacheTtl : bannerCacheTtl;
+        final Integer ttl = ObjectUtils.firstNonNull(impTtl, requestTtl, accountMediTypeTtl, mediTypeTtl);
+
+        return CacheBid.of(bid, ttl);
     }
 
     /**
