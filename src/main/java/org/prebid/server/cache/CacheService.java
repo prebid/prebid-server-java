@@ -50,6 +50,10 @@ public class CacheService {
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
     }
 
+    public String getEndpointUrl() {
+        return endpointUrl;
+    }
+
     /**
      * Makes cache for bids (legacy).
      * <p>
