@@ -41,6 +41,8 @@ import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheBid;
 import org.prebid.server.cache.CacheIdInfo;
 import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.account.AccountCacheService;
+import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -78,7 +80,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,6 +128,8 @@ public class ExchangeServiceTest extends VertxTest {
     private UidsCookie uidsCookie;
     @Mock
     private BidderRequester bidderRequester;
+    @Mock
+    private AccountCacheService accountCacheService;
 
     private Clock clock;
 
@@ -153,15 +156,16 @@ public class ExchangeServiceTest extends VertxTest {
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(1, true), null)));
+        given(accountCacheService.getCacheTtlByAccountId(any()))
+                .willReturn(Future.succeededFuture(CacheTtl.empty()));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
-
         metricsContext = MetricsContext.of(MetricName.openrtb2web);
 
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
-                emptyMap(), emptyMap(), null, null);
+                accountCacheService, CacheTtl.empty());
     }
 
     @Test
@@ -169,7 +173,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
                         bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, -1,
-                        null, null, null, null));
+                        accountCacheService, CacheTtl.empty()));
     }
 
     @Test
@@ -1307,7 +1311,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 100,
-                emptyMap(), emptyMap(), null, null);
+                accountCacheService, CacheTtl.empty());
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenHttpConnector(givenSeatBid(singletonList(givenBid(bid))));
@@ -1356,6 +1360,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(cacheService).cacheBidsOpenrtb(eq(emptyList()), eq(singletonList(CacheBid.of(bid, 200))),
                 same(timeout));
+
+        verifyZeroInteractions(accountCacheService);
     }
 
     @Test
@@ -1380,14 +1386,19 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(cacheService).cacheBidsOpenrtb(eq(emptyList()), eq(singletonList(CacheBid.of(bid, 100))),
                 same(timeout));
+
+        verifyZeroInteractions(accountCacheService);
     }
 
     @Test
     public void shouldRequestCacheServiceWithExpectedBidCacheTtlFromAccountMediaTypeTtl() {
         // given
+        given(accountCacheService.getCacheTtlByAccountId(any()))
+                .willReturn(Future.succeededFuture(CacheTtl.of(null, 100)));
+
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
-                emptyMap(), singletonMap("publisher", 100), null, null);
+                accountCacheService, CacheTtl.empty());
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
@@ -1410,6 +1421,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(cacheService).cacheBidsOpenrtb(eq(emptyList()), eq(singletonList(CacheBid.of(bid, 100))),
                 same(timeout));
+
+        verify(accountCacheService).getCacheTtlByAccountId(eq("publisher"));
     }
 
     @Test
@@ -1417,7 +1430,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         exchangeService = new ExchangeService(bidderCatalog, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
-                emptyMap(), emptyMap(), 100, null);
+                accountCacheService, CacheTtl.of(100, null));
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
@@ -1438,6 +1451,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         verify(cacheService).cacheBidsOpenrtb(eq(singletonList(CacheBid.of(bid, 100))), eq(emptyList()),
                 same(timeout));
+
+        verifyZeroInteractions(accountCacheService);
     }
 
     @Test

@@ -38,9 +38,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.cache.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service.
 - `auction.cache.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service.
 - `auction.cache.account.<ACCOUNT>.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service 
-for particular Rubicon account. Overrides `cache.banner-ttl-seconds` property.
+for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
 - `auction.cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
-for particular Rubicon account. Overrides `cache.video-ttl-seconds` property.
+for particular publisher account. Overrides `cache.video-ttl-seconds` property.
 
 ## Amp
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.

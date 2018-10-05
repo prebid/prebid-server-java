@@ -18,6 +18,9 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.account.AccountCacheService;
+import org.prebid.server.cache.account.SimpleAccountCacheService;
+import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
@@ -240,12 +243,16 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             @Value("${auction.cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${auction.cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            AccountCacheProperties accountCacheProperties) {
+            AccountCacheService accountCacheService) {
 
         return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, bidResponsePostProcessor,
                 currencyConversionService, gdprService, metrics, clock, useGeoLocation, expectedCacheTimeMs,
-                accountCacheProperties.getAccountToBannerTtl(), accountCacheProperties.getAccountToVideoTtl(),
-                bannerCacheTtl, videoCacheTtl);
+                accountCacheService, CacheTtl.of(bannerCacheTtl, videoCacheTtl));
+    }
+
+    @Bean
+    AccountCacheService simpleAccountCacheService(AccountCacheProperties accountCacheProperties) {
+        return new SimpleAccountCacheService(accountCacheProperties.getAccountToCacheTtl());
     }
 
     @Component
@@ -256,17 +263,16 @@ public class ServiceConfiguration {
 
         private Map<String, Map<String, Integer>> account;
 
-        private final Map<String, Integer> accountToBannerTtl = new HashMap<>();
-
-        private final Map<String, Integer> accountToVideoTtl = new HashMap<>();
+        private final Map<String, CacheTtl> accountToCacheTtl = new HashMap<>();
 
         @PostConstruct
         private void init() {
             final Map<String, Map<String, Integer>> account = getAccount();
             if (account != null) {
                 for (Map.Entry<String, Map<String, Integer>> entry : account.entrySet()) {
-                    accountToBannerTtl.putIfAbsent(entry.getKey(), entry.getValue().get("banner-ttl-seconds"));
-                    accountToVideoTtl.putIfAbsent(entry.getKey(), entry.getValue().get("video-ttl-seconds"));
+                    accountToCacheTtl.put(entry.getKey(), CacheTtl.of(
+                            entry.getValue().get("banner-ttl-seconds"),
+                            entry.getValue().get("video-ttl-seconds")));
                 }
             }
         }
