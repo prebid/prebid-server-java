@@ -742,6 +742,16 @@
                 "hb_creative_loadtype": "html",
                 "hb_deal": "dealId18",
                 "hb_deal_beachfront": "dealId18"
+              },
+              "cache": {
+                "vast_xml": {
+                  "url": "http://localhost:8090/cache?uuid=b6df7512-1776-44ec-82b3-87a1ce9dcd4b",
+                  "cache_id": "b6df7512-1776-44ec-82b3-87a1ce9dcd4b"
+                },
+                "bids": {
+                  "url": "http://localhost:8090/cache?uuid=4fe59ef5-6fb4-48c5-88b6-9870257fc49e",
+                  "cache_id": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e"
+                }
               }
             }
           }

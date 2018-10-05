@@ -5,7 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class CacheInner {
+public class CacheAsset {
     String url;
 
     String cacheId;

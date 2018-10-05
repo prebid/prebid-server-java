@@ -52,11 +52,11 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
-import org.prebid.server.proto.openrtb.ext.response.Cache;
-import org.prebid.server.proto.openrtb.ext.response.CacheInner;
+import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -1030,10 +1030,8 @@ public class ExchangeService {
     private Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
                              Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder) {
         final Bid bid = bidderBid.getBid();
-
         final Map<String, String> targetingKeywords;
-        Cache.CacheBuilder cacheBuilder = null;
-        final Cache cache;
+        final ExtResponseCache cache;
 
         if (keywordsCreator != null && winningBidsByBidder.contains(bid)) {
             final boolean isWinningBid = winningBidsWithCacheIds.containsKey(bid);
@@ -1041,24 +1039,15 @@ public class ExchangeService {
             final String videoCacheId = isWinningBid ? winningBidsWithCacheIds.get(bid).getVideoCacheId() : null;
             targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
 
-            if (cacheId != null) {
-                cacheBuilder = Cache.builder();
-                CacheInner cacheInner = CacheInner.of(cacheService.getCachedAssetURL(cacheId), cacheId);
-                cacheBuilder.bids(cacheInner);
-            }
+            CacheAsset bids = cacheId != null ? CacheAsset.of(cacheService.getCachedAssetURL(cacheId), cacheId) : null;
 
-            if (videoCacheId != null) {
-                if (cacheBuilder == null) {
-                    cacheBuilder = Cache.builder();
-                }
-                CacheInner cacheInner = CacheInner.of(cacheService.getCachedAssetURL(videoCacheId), videoCacheId);
-                cacheBuilder.vastXml(cacheInner);
-            }
+            CacheAsset vastXml = videoCacheId != null
+                    ? CacheAsset.of(cacheService.getCachedAssetURL(videoCacheId), videoCacheId) : null;
 
-            if (cacheBuilder == null) {
-                cache = null;
+            if (bids != null || vastXml != null) {
+                cache = ExtResponseCache.of(vastXml, bids);
             } else {
-                cache = cacheBuilder.build();
+                cache = null;
             }
         } else {
             targetingKeywords = null;
