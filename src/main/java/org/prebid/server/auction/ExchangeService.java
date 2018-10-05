@@ -52,9 +52,11 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -1002,7 +1004,7 @@ public class ExchangeService {
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    private static BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
+    private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                           TargetingKeywordsCreator keywordsCreator,
                                                           Map<Bid, CacheIdInfo> winningBidsWithCacheIds,
                                                           Set<Bid> winningBidsByBidder) {
@@ -1028,7 +1030,7 @@ public class ExchangeService {
      * Creates an OpenRTB {@link SeatBid} for a bidder. It will contain all the bids supplied by a bidder and a "bidder"
      * extension field populated.
      */
-    private static SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
+    private SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
                                      Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder) {
         final String bidder = bidderResponse.getBidder();
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
@@ -1048,22 +1050,34 @@ public class ExchangeService {
     /**
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
-    private static Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
+    private Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
                              Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder) {
         final Bid bid = bidderBid.getBid();
-
         final Map<String, String> targetingKeywords;
+        final ExtResponseCache cache;
+
         if (keywordsCreator != null && winningBidsByBidder.contains(bid)) {
             final boolean isWinningBid = winningBidsWithCacheIds.containsKey(bid);
             final String cacheId = isWinningBid ? winningBidsWithCacheIds.get(bid).getCacheId() : null;
             final String videoCacheId = isWinningBid ? winningBidsWithCacheIds.get(bid).getVideoCacheId() : null;
-
             targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
+
+            CacheAsset bids = cacheId != null ? CacheAsset.of(cacheService.getCachedAssetURL(cacheId), cacheId) : null;
+
+            CacheAsset vastXml = videoCacheId != null
+                    ? CacheAsset.of(cacheService.getCachedAssetURL(videoCacheId), videoCacheId) : null;
+
+            if (bids != null || vastXml != null) {
+                cache = ExtResponseCache.of(vastXml, bids);
+            } else {
+                cache = null;
+            }
         } else {
             targetingKeywords = null;
+            cache = null;
         }
 
-        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords);
+        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords, cache);
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
 
         bid.setExt(Json.mapper.valueToTree(bidExt));
