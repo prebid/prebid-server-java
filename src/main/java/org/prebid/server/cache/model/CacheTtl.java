@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
- * Holds information about cache TTL for media types.
+ * Holds the information about cache TTL for different bid media types.
  */
 @AllArgsConstructor(staticName = "of")
 @Value

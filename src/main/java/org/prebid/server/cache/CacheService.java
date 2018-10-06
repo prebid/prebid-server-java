@@ -7,6 +7,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.cache.model.CacheBid;
+import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.cache.proto.request.BannerValue;
 import org.prebid.server.cache.proto.request.BidCacheRequest;

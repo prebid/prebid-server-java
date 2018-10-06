@@ -11,6 +11,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.cache.model.CacheBid;
+import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.cache.proto.request.BannerValue;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
