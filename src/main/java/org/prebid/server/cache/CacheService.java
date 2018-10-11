@@ -43,15 +43,21 @@ public class CacheService {
     private final HttpClient httpClient;
     private final String endpointUrl;
     private final String cachedAssetUrlTemplate;
+    private final String hostPath;
 
-    public CacheService(HttpClient httpClient, String endpointUrl, String cachedAssetUrlTemplate) {
+    public CacheService(HttpClient httpClient, String endpointUrl, String cachedAssetUrlTemplate, String hostPath) {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
+        this.hostPath = hostPath;
     }
 
     public String getEndpointUrl() {
         return endpointUrl;
+    }
+
+    public String getHostPath() {
+        return hostPath;
     }
 
     /**

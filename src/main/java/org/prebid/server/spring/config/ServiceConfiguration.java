@@ -56,12 +56,14 @@ public class ServiceConfiguration {
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.query}") String query,
+            @Value("${cache.hostPath:}") String hostPath,
             HttpClient httpClient) {
 
         return new CacheService(
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host),
-                CacheService.getCachedAssetUrlTemplate(scheme, host, query));
+                CacheService.getCachedAssetUrlTemplate(scheme, host, query),
+                hostPath);
     }
 
     @Bean

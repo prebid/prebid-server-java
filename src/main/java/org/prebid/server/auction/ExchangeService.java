@@ -1037,7 +1037,8 @@ public class ExchangeService {
             final boolean isWinningBid = winningBidsWithCacheIds.containsKey(bid);
             final String cacheId = isWinningBid ? winningBidsWithCacheIds.get(bid).getCacheId() : null;
             final String videoCacheId = isWinningBid ? winningBidsWithCacheIds.get(bid).getVideoCacheId() : null;
-            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
+            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId,
+                    cacheService.getHostPath());
 
             CacheAsset bids = cacheId != null ? CacheAsset.of(cacheService.getCachedAssetURL(cacheId), cacheId) : null;
 

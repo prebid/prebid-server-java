@@ -67,14 +67,14 @@ public class CacheServiceTest extends VertxTest {
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
         cacheService = new CacheService(httpClient, "http://cache-service/cache",
-                "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+                "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", null);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new CacheService(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, "url", null));
+        assertThatNullPointerException().isThrownBy(() -> new CacheService(null, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new CacheService(httpClient, "url", null, null));
     }
 
     @Test
@@ -214,7 +214,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         cacheService = new CacheService(httpClient, "https://cache-service-host:8888/cache",
-                "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
+                "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%", null);
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);

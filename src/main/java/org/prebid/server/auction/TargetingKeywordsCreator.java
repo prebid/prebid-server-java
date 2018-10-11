@@ -82,6 +82,8 @@ public class TargetingKeywordsCreator {
      */
     private static final String HB_ENV_APP_VALUE = "mobile-app";
 
+    private static final String HB_CACHE_HOSTPATH = "hb_cache_hostpath";
+
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
     private final boolean includeBidderKeys;
@@ -144,16 +146,16 @@ public class TargetingKeywordsCreator {
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
         return makeFor(bid.getBidder(), winningBid, bid.getPrice(), StringUtils.EMPTY, bid.getWidth(), bid.getHeight(),
-                bid.getCacheId(), null, bid.getDealId());
+                bid.getCacheId(), null, bid.getDealId(), StringUtils.EMPTY);
     }
 
     /**
      * Creates map of keywords for the given {@link com.iab.openrtb.response.Bid}.
      */
     Map<String, String> makeFor(com.iab.openrtb.response.Bid bid, String bidder, boolean winningBid,
-                                String cacheId, String vastCacheId) {
+                                String cacheId, String vastCacheId, String hostPath) {
         return makeFor(bidder, winningBid, bid.getPrice(), "0.0", bid.getW(), bid.getH(), cacheId, vastCacheId,
-                bid.getDealid());
+                bid.getDealid(), hostPath);
     }
 
     /**
@@ -161,7 +163,7 @@ public class TargetingKeywordsCreator {
      */
     private Map<String, String> makeFor(String bidder, boolean winningBid, BigDecimal price, String defaultCpm,
                                         Integer width, Integer height, String cacheId, String vastCacheId,
-                                        String dealId) {
+                                        String dealId, String hostPath) {
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
         final String hbSize = sizeFrom(width, height);
 
@@ -176,6 +178,11 @@ public class TargetingKeywordsCreator {
         }
         if (StringUtils.isNotBlank(vastCacheId)) {
             keywordMap.put(HB_VAST_ID_KEY, vastCacheId);
+        }
+        if (StringUtils.isNotBlank(vastCacheId) || StringUtils.isNotBlank(cacheId)) {
+            if (StringUtils.isNotBlank(hostPath)) {
+                keywordMap.put(HB_CACHE_HOSTPATH, hostPath);
+            }
         }
         if (StringUtils.isNotBlank(dealId)) {
             keywordMap.put(HB_DEAL_KEY, dealId);
