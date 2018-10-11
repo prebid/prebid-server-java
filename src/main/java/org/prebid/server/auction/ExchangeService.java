@@ -149,6 +149,8 @@ public class ExchangeService {
         // build cache specific params holder
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
 
+        final BidRequestReturnCreativeInfo creativeInfo = bidRequestReturnCreativeInfo(requestExt);
+
         // build targeting keywords creator
         final TargetingKeywordsCreator keywordsCreator = buildKeywordsCreator(targeting, bidRequest.getApp() != null);
 
@@ -169,7 +171,7 @@ public class ExchangeService {
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
-                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout))
+                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout, creativeInfo))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
     }
 
@@ -603,6 +605,21 @@ public class ExchangeService {
         return BidRequestCacheInfo.noCache();
     }
 
+    private static BidRequestReturnCreativeInfo bidRequestReturnCreativeInfo(ExtBidRequest extBidRequest) {
+        final ExtRequestPrebid prebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
+        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
+
+        if (cache != null) {
+            Boolean returnCreativeBid = cache.getBids() != null ? cache.getBids().getReturnCreative() : null;
+            Boolean returnCreativeVideoBid = cache.getVastxml() != null ? cache.getVastxml().getReturncreative() : null;
+
+            return BidRequestReturnCreativeInfo.of(returnCreativeBid != null ? returnCreativeBid : true,
+                    returnCreativeVideoBid != null ? returnCreativeVideoBid : true);
+        }
+
+        return BidRequestReturnCreativeInfo.defaultTrue();
+    }
+
     /**
      * Extracts targeting keywords settings from the bid request and creates {@link TargetingKeywordsCreator}
      * instance if they are present.
@@ -817,14 +834,27 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, BidRequestCacheInfo cacheInfo,
-                                              Timeout timeout) {
+                                              Timeout timeout, BidRequestReturnCreativeInfo creativeInfo) {
+        final List<String> videoImpIds = new ArrayList<>();
+        if (cacheInfo.doCaching) {
+            for (Imp imp : bidRequest.getImp()) {
+                if (cacheInfo.shouldCacheVideoBids && imp.getVideo() != null) {
+                    videoImpIds.add(imp.getId());
+                }
+            }
+        }
+
+        List<BidderResponse> bidderResponsesCreativeChecked = bidderResponses.stream()
+                .map(bidderResponse -> mapBidderResponse(bidderResponse, videoImpIds, creativeInfo))
+                .collect(Collectors.toList());
+
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
-        populateWinningBids(keywordsCreator, bidderResponses, winningBids, winningBidsByBidder);
+        populateWinningBids(keywordsCreator, bidderResponsesCreativeChecked, winningBids, winningBidsByBidder);
 
         return toWinningBidsWithCacheIds(winningBids, bidRequest.getImp(), keywordsCreator, cacheInfo, timeout)
-                .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        winningBidsWithCacheIds, winningBidsByBidder));
+                .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponsesCreativeChecked, bidRequest,
+                        keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder));
     }
 
     /**
@@ -868,6 +898,14 @@ public class ExchangeService {
                     .flatMap(bidsByBidderMap -> bidsByBidderMap.values().stream())
                     .collect(Collectors.toList());
             winningBidsByBidder.addAll(bidsByBidder);
+        }
+    }
+
+    private static Bid modifyBid(Bid bid, Boolean returnCreative) {
+        if (returnCreative) {
+            return bid;
+        } else {
+            return bid.toBuilder().adm(null).build();
         }
     }
 
@@ -950,6 +988,28 @@ public class ExchangeService {
         }
 
         return result;
+    }
+
+    private static BidderResponse mapBidderResponse(BidderResponse bidderResponse, List<String> videoImpIds,
+                                                    BidRequestReturnCreativeInfo creativeInfo) {
+        return BidderResponse.of(bidderResponse.getBidder(), BidderSeatBid.of(bidderResponse.getSeatBid().getBids()
+                        .stream()
+                        .map(bidderBid -> BidderBid.of(mapBidsCreative(bidderBid.getBid(), videoImpIds, creativeInfo),
+                                bidderBid.getType(), bidderBid.getBidCurrency()))
+                        .collect(Collectors.toList()), bidderResponse.getSeatBid().getHttpCalls(),
+                bidderResponse.getSeatBid().getErrors()), bidderResponse.getResponseTime());
+    }
+
+    private static Bid mapBidsCreative(Bid bid, List<String> videoImpIds, BidRequestReturnCreativeInfo creativeInfo) {
+        boolean returnCreative;
+
+        if (videoImpIds.contains(bid.getImpid())) {
+            returnCreative = creativeInfo.returnCreativeVideoBids;
+        } else {
+            returnCreative = creativeInfo.returnCreativeBids;
+        }
+
+        return modifyBid(bid, returnCreative);
     }
 
     /**
@@ -1105,6 +1165,19 @@ public class ExchangeService {
 
         static BidRequestCacheInfo noCache() {
             return BidRequestCacheInfo.of(false, false, null, false, null);
+        }
+    }
+
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    private static class BidRequestReturnCreativeInfo {
+
+        boolean returnCreativeBids;
+
+        boolean returnCreativeVideoBids;
+
+        static BidRequestReturnCreativeInfo defaultTrue() {
+            return BidRequestReturnCreativeInfo.of(true, true);
         }
     }
 }

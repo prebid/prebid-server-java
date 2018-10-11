@@ -19,7 +19,7 @@ import java.util.List;
  * memory pressure. In order to avoid unnecessary allocations this class is made mutable (as an exception) i.e. this
  * decision could be seen as a performance optimisation.
  */
-@Builder
+@Builder(toBuilder = true)
 @Data
 public class Bid {
 
