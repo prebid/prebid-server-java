@@ -295,7 +295,9 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(User.builder().ext(mapper.valueToTree(
-                                ExtUser.of(ExtUserPrebid.of(uids), null, null))).build())
+                                ExtUser.of(ExtUserPrebid.of(uids), null, null)))
+                                .geo(Geo.builder().lon(-85.1245F).lat(189.9531F).build())
+                                .build())
                         .device(Device.builder()
                                 .ip("192.168.0.1")
                                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
@@ -317,7 +319,9 @@ public class ExchangeServiceTest extends VertxTest {
         verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
         final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
         assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
-                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null)))
+                .geo(Geo.builder().lon(-85.12F).lat(189.95F).build())
+                .build());
         assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:0000")
                 .geo(Geo.builder().lon(-85.34F).lat(189.34F).build()).build());
