@@ -28,7 +28,6 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## Auction
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
-- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.expected-cache-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
