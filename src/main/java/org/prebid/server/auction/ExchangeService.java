@@ -448,7 +448,11 @@ public class ExchangeService {
 
         // clean buyeruid from user and user.ext.prebid
         if (maskingRequired) {
-            return builder.buyeruid(null).ext(updatedUserExt).geo(user != null ? maskGeo(user.getGeo()) : null).build();
+            return builder
+                    .buyeruid(null)
+                    .geo(user != null ? maskGeo(user.getGeo()) : null)
+                    .ext(updatedUserExt)
+                    .build();
         }
 
         final String resolvedBidder = resolveBidder(bidder, aliases);
