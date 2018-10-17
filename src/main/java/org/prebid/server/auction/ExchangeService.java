@@ -149,8 +149,6 @@ public class ExchangeService {
         // build cache specific params holder
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
 
-        final BidRequestReturnCreativeInfo creativeInfo = bidRequestReturnCreativeInfo(requestExt);
-
         // build targeting keywords creator
         final TargetingKeywordsCreator keywordsCreator = buildKeywordsCreator(targeting, bidRequest.getApp() != null);
 
@@ -171,7 +169,7 @@ public class ExchangeService {
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
-                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout, creativeInfo))
+                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
     }
 
@@ -597,27 +595,18 @@ public class ExchangeService {
                 final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;
                 final Integer cacheVideoBidsTtl = shouldCacheVideoBids ? cache.getVastxml().getTtlseconds() : null;
 
+                final Boolean returnCreativeBid = cache.getBids() != null ? cache.getBids().getReturnCreative() : null;
+                final Boolean returnCreativeVideoBid = cache.getVastxml() != null
+                        ? cache.getVastxml().getReturncreative() : null;
+
                 return BidRequestCacheInfo.of(true, shouldCacheBids, cacheBidsTtl,
-                        shouldCacheVideoBids, cacheVideoBidsTtl);
+                        shouldCacheVideoBids, cacheVideoBidsTtl,
+                        returnCreativeBid != null ? returnCreativeBid : true,
+                        returnCreativeVideoBid != null ? returnCreativeVideoBid : true);
             }
         }
 
         return BidRequestCacheInfo.noCache();
-    }
-
-    private static BidRequestReturnCreativeInfo bidRequestReturnCreativeInfo(ExtBidRequest extBidRequest) {
-        final ExtRequestPrebid prebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
-        final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
-
-        if (cache != null) {
-            Boolean returnCreativeBid = cache.getBids() != null ? cache.getBids().getReturnCreative() : null;
-            Boolean returnCreativeVideoBid = cache.getVastxml() != null ? cache.getVastxml().getReturncreative() : null;
-
-            return BidRequestReturnCreativeInfo.of(returnCreativeBid != null ? returnCreativeBid : true,
-                    returnCreativeVideoBid != null ? returnCreativeVideoBid : true);
-        }
-
-        return BidRequestReturnCreativeInfo.defaultTrue();
     }
 
     /**
@@ -834,27 +823,14 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, BidRequestCacheInfo cacheInfo,
-                                              Timeout timeout, BidRequestReturnCreativeInfo creativeInfo) {
-        final List<String> videoImpIds = new ArrayList<>();
-        if (cacheInfo.doCaching) {
-            for (Imp imp : bidRequest.getImp()) {
-                if (cacheInfo.shouldCacheVideoBids && imp.getVideo() != null) {
-                    videoImpIds.add(imp.getId());
-                }
-            }
-        }
-
-        List<BidderResponse> bidderResponsesCreativeChecked = bidderResponses.stream()
-                .map(bidderResponse -> mapBidderResponse(bidderResponse, videoImpIds, creativeInfo))
-                .collect(Collectors.toList());
-
+                                              Timeout timeout) {
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
-        populateWinningBids(keywordsCreator, bidderResponsesCreativeChecked, winningBids, winningBidsByBidder);
+        populateWinningBids(keywordsCreator, bidderResponses, winningBids, winningBidsByBidder);
 
         return toWinningBidsWithCacheIds(winningBids, bidRequest.getImp(), keywordsCreator, cacheInfo, timeout)
-                .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponsesCreativeChecked, bidRequest,
-                        keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder));
+                .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest,
+                        keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder, cacheInfo));
     }
 
     /**
@@ -898,14 +874,6 @@ public class ExchangeService {
                     .flatMap(bidsByBidderMap -> bidsByBidderMap.values().stream())
                     .collect(Collectors.toList());
             winningBidsByBidder.addAll(bidsByBidder);
-        }
-    }
-
-    private static Bid modifyBid(Bid bid, Boolean returnCreative) {
-        if (returnCreative) {
-            return bid;
-        } else {
-            return bid.toBuilder().adm(null).build();
         }
     }
 
@@ -990,28 +958,6 @@ public class ExchangeService {
         return result;
     }
 
-    private static BidderResponse mapBidderResponse(BidderResponse bidderResponse, List<String> videoImpIds,
-                                                    BidRequestReturnCreativeInfo creativeInfo) {
-        return BidderResponse.of(bidderResponse.getBidder(), BidderSeatBid.of(bidderResponse.getSeatBid().getBids()
-                        .stream()
-                        .map(bidderBid -> BidderBid.of(mapBidsCreative(bidderBid.getBid(), videoImpIds, creativeInfo),
-                                bidderBid.getType(), bidderBid.getBidCurrency()))
-                        .collect(Collectors.toList()), bidderResponse.getSeatBid().getHttpCalls(),
-                bidderResponse.getSeatBid().getErrors()), bidderResponse.getResponseTime());
-    }
-
-    private static Bid mapBidsCreative(Bid bid, List<String> videoImpIds, BidRequestReturnCreativeInfo creativeInfo) {
-        boolean returnCreative;
-
-        if (videoImpIds.contains(bid.getImpid())) {
-            returnCreative = creativeInfo.returnCreativeVideoBids;
-        } else {
-            returnCreative = creativeInfo.returnCreativeBids;
-        }
-
-        return modifyBid(bid, returnCreative);
-    }
-
     /**
      * Adds bids with no cache id info.
      */
@@ -1042,13 +988,14 @@ public class ExchangeService {
      * including processing of winning bids with cache IDs.
      */
     private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                                          TargetingKeywordsCreator keywordsCreator,
-                                                          Map<Bid, CacheIdInfo> winningBidsWithCacheIds,
-                                                          Set<Bid> winningBidsByBidder) {
+                                                   TargetingKeywordsCreator keywordsCreator,
+                                                   Map<Bid, CacheIdInfo> winningBidsWithCacheIds,
+                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
-                        toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
+                        toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder,
+                                cacheInfo))
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest);
@@ -1068,7 +1015,8 @@ public class ExchangeService {
      * extension field populated.
      */
     private SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
-                                     Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder) {
+                              Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder,
+                              BidRequestCacheInfo cacheInfo) {
         final String bidder = bidderResponse.getBidder();
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
 
@@ -1078,7 +1026,8 @@ public class ExchangeService {
                 .group(0)
                 .bid(bidderSeatBid.getBids().stream()
                         .map(bidderBid ->
-                                toBid(bidderBid, bidder, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
+                                toBid(bidderBid, bidder, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder,
+                                        cacheInfo))
                         .collect(Collectors.toList()));
 
         return seatBidBuilder.build();
@@ -1088,7 +1037,8 @@ public class ExchangeService {
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
     private Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
-                             Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder) {
+                      Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder,
+                      BidRequestCacheInfo cacheInfo) {
         final Bid bid = bidderBid.getBid();
         final Map<String, String> targetingKeywords;
         final ExtResponseCache cache;
@@ -1103,6 +1053,16 @@ public class ExchangeService {
 
             CacheAsset vastXml = videoCacheId != null
                     ? CacheAsset.of(cacheService.getCachedAssetURL(videoCacheId), videoCacheId) : null;
+
+            if (vastXml != null) {
+                if (!cacheInfo.returnCreativeVideoBids) {
+                    bid.setAdm(null);
+                }
+            } else {
+                if (!cacheInfo.returnCreativeBids) {
+                    bid.setAdm(null);
+                }
+            }
 
             if (bids != null || vastXml != null) {
                 cache = ExtResponseCache.of(vastXml, bids);
@@ -1163,21 +1123,12 @@ public class ExchangeService {
 
         Integer cacheVideoBidsTtl;
 
-        static BidRequestCacheInfo noCache() {
-            return BidRequestCacheInfo.of(false, false, null, false, null);
-        }
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @Value
-    private static class BidRequestReturnCreativeInfo {
-
         boolean returnCreativeBids;
 
         boolean returnCreativeVideoBids;
 
-        static BidRequestReturnCreativeInfo defaultTrue() {
-            return BidRequestReturnCreativeInfo.of(true, true);
+        static BidRequestCacheInfo noCache() {
+            return BidRequestCacheInfo.of(false, false, null, false, null, true, true);
         }
     }
 }

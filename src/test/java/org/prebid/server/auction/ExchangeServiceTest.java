@@ -995,7 +995,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid2))));
 
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any()))
-                .willReturn(Future.succeededFuture(emptyMap()));
+                .willReturn(Future.succeededFuture(singletonMap(bid1, CacheIdInfo.of(null, "cacheId1"))));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
