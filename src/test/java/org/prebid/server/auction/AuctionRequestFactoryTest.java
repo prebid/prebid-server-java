@@ -57,7 +57,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, "USD", storedRequestProcessor, paramsExtractor,
+        factory = new AuctionRequestFactory(2000L, Integer.MAX_VALUE, "USD", storedRequestProcessor, paramsExtractor,
                 uidsCookieService, requestValidator);
     }
 
@@ -79,7 +79,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(1, "USD", storedRequestProcessor, paramsExtractor,
+        factory = new AuctionRequestFactory(2000L, 1, "USD", storedRequestProcessor, paramsExtractor,
                 uidsCookieService, requestValidator);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));

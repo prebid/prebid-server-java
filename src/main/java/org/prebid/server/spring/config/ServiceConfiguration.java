@@ -84,6 +84,7 @@ public class ServiceConfiguration {
 
     @Bean
     AuctionRequestFactory auctionRequestFactory(
+            @Value("${auction.default-timeout-ms}") long defaultTimeout,
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor,
@@ -91,7 +92,7 @@ public class ServiceConfiguration {
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator) {
 
-        return new AuctionRequestFactory(maxRequestSize, adServerCurrency, storedRequestProcessor,
+        return new AuctionRequestFactory(defaultTimeout, maxRequestSize, adServerCurrency, storedRequestProcessor,
                 implicitParametersExtractor, uidsCookieService, requestValidator);
     }
 

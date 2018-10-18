@@ -37,6 +37,7 @@ public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
+    private final long defaultTimeout;
     private final long maxRequestSize;
     private final String adServerCurrency;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -44,11 +45,12 @@ public class AuctionRequestFactory {
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
 
-    public AuctionRequestFactory(long maxRequestSize, String adServerCurrency,
+    public AuctionRequestFactory(long defaultTimeout, long maxRequestSize, String adServerCurrency,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
                                  UidsCookieService uidsCookieService,
                                  RequestValidator requestValidator) {
+        this.defaultTimeout = defaultTimeout;
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -93,7 +95,7 @@ public class AuctionRequestFactory {
         final ObjectNode ext = bidRequest.getExt();
         final ObjectNode populatedExt = ext != null ? populateBidRequestExtension(ext) : null;
         final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
-        final Long tmax = bidRequest.getTmax() == null ? 2000L : null;
+        final Long tmax = bidRequest.getTmax() == null ? defaultTimeout : null;
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
                 || setDefaultAt || updateCurrency || populatedImps != null || tmax != null) {
