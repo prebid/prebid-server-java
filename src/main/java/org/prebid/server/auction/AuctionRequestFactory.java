@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +37,7 @@ public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
+    private final long defaultTimeout;
     private final long maxRequestSize;
     private final String adServerCurrency;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -43,11 +45,12 @@ public class AuctionRequestFactory {
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
 
-    public AuctionRequestFactory(long maxRequestSize, String adServerCurrency,
+    public AuctionRequestFactory(long defaultTimeout, long maxRequestSize, String adServerCurrency,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
                                  UidsCookieService uidsCookieService,
                                  RequestValidator requestValidator) {
+        this.defaultTimeout = defaultTimeout;
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -88,13 +91,14 @@ public class AuctionRequestFactory {
         final List<Imp> populatedImps = populateImps(imps, request);
         final User populatedUser = populateUser(bidRequest.getUser(), context);
         final Integer at = bidRequest.getAt();
-        final Boolean setDefaultAt = at == null || at == 0;
+        final boolean setDefaultAt = at == null || at == 0;
         final ObjectNode ext = bidRequest.getExt();
         final ObjectNode populatedExt = ext != null ? populateBidRequestExtension(ext) : null;
         final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
+        final boolean updateTmax = bidRequest.getTmax() == null;
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
-                || setDefaultAt || updateCurrency || populatedImps != null) {
+                || setDefaultAt || updateCurrency || populatedImps != null || updateTmax) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
@@ -105,6 +109,7 @@ public class AuctionRequestFactory {
                     .at(setDefaultAt ? Integer.valueOf(1) : at)
                     .ext(populatedExt != null ? populatedExt : ext)
                     .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
+                    .tmax(updateTmax ? defaultTimeout : bidRequest.getTmax())
                     .build();
         } else {
             result = bidRequest;
