@@ -91,14 +91,14 @@ public class AuctionRequestFactory {
         final List<Imp> populatedImps = populateImps(imps, request);
         final User populatedUser = populateUser(bidRequest.getUser(), context);
         final Integer at = bidRequest.getAt();
-        final Boolean setDefaultAt = at == null || at == 0;
+        final boolean setDefaultAt = at == null || at == 0;
         final ObjectNode ext = bidRequest.getExt();
         final ObjectNode populatedExt = ext != null ? populateBidRequestExtension(ext) : null;
         final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
-        final Long tmax = bidRequest.getTmax() == null ? defaultTimeout : null;
+        final boolean updateTmax = bidRequest.getTmax() == null;
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
-                || setDefaultAt || updateCurrency || populatedImps != null || tmax != null) {
+                || setDefaultAt || updateCurrency || populatedImps != null || updateTmax) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
@@ -109,7 +109,7 @@ public class AuctionRequestFactory {
                     .at(setDefaultAt ? Integer.valueOf(1) : at)
                     .ext(populatedExt != null ? populatedExt : ext)
                     .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
-                    .tmax(tmax != null ? tmax : bidRequest.getTmax())
+                    .tmax(updateTmax ? defaultTimeout : bidRequest.getTmax())
                     .build();
         } else {
             result = bidRequest;
