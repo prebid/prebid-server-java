@@ -9,5 +9,5 @@ public class ExtRequestPrebidCacheVastxml {
 
     Integer ttlseconds;
 
-    Boolean returncreative;
+    Boolean returnCreative;
 }

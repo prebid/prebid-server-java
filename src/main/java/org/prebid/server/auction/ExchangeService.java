@@ -595,9 +595,9 @@ public class ExchangeService {
                 final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;
                 final Integer cacheVideoBidsTtl = shouldCacheVideoBids ? cache.getVastxml().getTtlseconds() : null;
 
-                final Boolean returnCreativeBid = cache.getBids() != null ? cache.getBids().getReturnCreative() : null;
-                final Boolean returnCreativeVideoBid = cache.getVastxml() != null
-                        ? cache.getVastxml().getReturncreative() : null;
+                final Boolean returnCreativeBid = shouldCacheBids ? cache.getBids().getReturnCreative() : null;
+                final Boolean returnCreativeVideoBid = shouldCacheVideoBids
+                        ? cache.getVastxml().getReturnCreative() : null;
 
                 return BidRequestCacheInfo.of(true, shouldCacheBids, cacheBidsTtl,
                         shouldCacheVideoBids, cacheVideoBidsTtl,
