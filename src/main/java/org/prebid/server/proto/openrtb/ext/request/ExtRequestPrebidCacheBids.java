@@ -8,4 +8,6 @@ import lombok.Value;
 public class ExtRequestPrebidCacheBids {
 
     Integer ttlseconds;
+
+    Boolean returnCreative;
 }

@@ -971,7 +971,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
                                 2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                         BigDecimal.valueOf(0.5))))), null, true, true), null,
-                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), null))))));
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)
@@ -987,6 +987,38 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(
                         tuple(null, null, null),
                         tuple("bidder2", "cacheId2", "cacheId2"));
+    }
+
+    @Test
+    public void shouldReturnCreativeForBannerAndNotReturnForVideo() {
+        // given
+        final Bid bid1 = Bid.builder().id("bidId1").adm("adm1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid1))));
+
+        final Bid bid2 = Bid.builder().id("bidId2").adm("adm2").impid("impId2").price(BigDecimal.valueOf(7.19)).build();
+        givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid2))));
+
+        given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any()))
+                .willReturn(Future.succeededFuture(singletonMap(bid1, CacheIdInfo.of(null, "cacheId1"))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1").video(Video.builder().build()))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
+                                2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                        BigDecimal.valueOf(0.5))))), null, true, true), null,
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, true),
+                                ExtRequestPrebidCacheVastxml.of(null, false)))))));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)
+                .result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsOnly("adm2", null);
     }
 
     @Test
@@ -1009,7 +1041,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
                                 2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                         BigDecimal.valueOf(0.5))))), null, true, true), null,
-                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null)))))));
+                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null)))))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)
@@ -1046,7 +1078,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
                                 null, true, true), null,
-                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), null))))));
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)
@@ -1083,7 +1115,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
                                 null, true, true), null,
-                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), null))))));
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)
@@ -1323,7 +1355,7 @@ public class ExchangeServiceTest extends VertxTest {
                         ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))),
                                 null, true, true), null,
-                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), null))))));
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))))));
 
         // when
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext).result();
@@ -1349,7 +1381,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
                                 2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                         BigDecimal.valueOf(0.5))))), null, true, true), null,
-                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(100)))))));
+                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(100, null)))))));
 
         // when
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
@@ -1372,7 +1404,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
                                 2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                         BigDecimal.valueOf(0.5))))), null, true, true), null,
-                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(100)))))));
+                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(100, null)))))));
 
         // when
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
@@ -1643,7 +1675,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
                                 2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                         BigDecimal.valueOf(0.5))))), null, true, true), null,
-                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), null))))));
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)

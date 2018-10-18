@@ -599,8 +599,14 @@ public class ExchangeService {
                 final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;
                 final Integer cacheVideoBidsTtl = shouldCacheVideoBids ? cache.getVastxml().getTtlseconds() : null;
 
+                final Boolean returnCreativeBid = shouldCacheBids ? cache.getBids().getReturnCreative() : null;
+                final Boolean returnCreativeVideoBid = shouldCacheVideoBids
+                        ? cache.getVastxml().getReturnCreative() : null;
+
                 return BidRequestCacheInfo.of(true, shouldCacheBids, cacheBidsTtl,
-                        shouldCacheVideoBids, cacheVideoBidsTtl);
+                        shouldCacheVideoBids, cacheVideoBidsTtl,
+                        returnCreativeBid != null ? returnCreativeBid : true,
+                        returnCreativeVideoBid != null ? returnCreativeVideoBid : true);
             }
         }
 
@@ -827,8 +833,8 @@ public class ExchangeService {
         populateWinningBids(keywordsCreator, bidderResponses, winningBids, winningBidsByBidder);
 
         return toWinningBidsWithCacheIds(winningBids, bidRequest.getImp(), keywordsCreator, cacheInfo, timeout)
-                .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        winningBidsWithCacheIds, winningBidsByBidder));
+                .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest,
+                        keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder, cacheInfo));
     }
 
     /**
@@ -986,13 +992,14 @@ public class ExchangeService {
      * including processing of winning bids with cache IDs.
      */
     private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                                          TargetingKeywordsCreator keywordsCreator,
-                                                          Map<Bid, CacheIdInfo> winningBidsWithCacheIds,
-                                                          Set<Bid> winningBidsByBidder) {
+                                                   TargetingKeywordsCreator keywordsCreator,
+                                                   Map<Bid, CacheIdInfo> winningBidsWithCacheIds,
+                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
-                        toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
+                        toSeatBid(bidderResponse, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder,
+                                cacheInfo))
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest);
@@ -1012,7 +1019,8 @@ public class ExchangeService {
      * extension field populated.
      */
     private SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
-                                     Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder) {
+                              Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder,
+                              BidRequestCacheInfo cacheInfo) {
         final String bidder = bidderResponse.getBidder();
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
 
@@ -1022,7 +1030,8 @@ public class ExchangeService {
                 .group(0)
                 .bid(bidderSeatBid.getBids().stream()
                         .map(bidderBid ->
-                                toBid(bidderBid, bidder, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder))
+                                toBid(bidderBid, bidder, keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder,
+                                        cacheInfo))
                         .collect(Collectors.toList()));
 
         return seatBidBuilder.build();
@@ -1032,7 +1041,8 @@ public class ExchangeService {
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
     private Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
-                             Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder) {
+                      Map<Bid, CacheIdInfo> winningBidsWithCacheIds, Set<Bid> winningBidsByBidder,
+                      BidRequestCacheInfo cacheInfo) {
         final Bid bid = bidderBid.getBid();
         final Map<String, String> targetingKeywords;
         final ExtResponseCache cache;
@@ -1047,6 +1057,12 @@ public class ExchangeService {
 
             CacheAsset vastXml = videoCacheId != null
                     ? CacheAsset.of(cacheService.getCachedAssetURL(videoCacheId), videoCacheId) : null;
+
+            if (videoCacheId != null && !cacheInfo.returnCreativeVideoBids) {
+                bid.setAdm(null);
+            } else if (cacheId != null && !cacheInfo.returnCreativeBids) {
+                bid.setAdm(null);
+            }
 
             if (bids != null || vastXml != null) {
                 cache = ExtResponseCache.of(vastXml, bids);
@@ -1107,8 +1123,12 @@ public class ExchangeService {
 
         Integer cacheVideoBidsTtl;
 
+        boolean returnCreativeBids;
+
+        boolean returnCreativeVideoBids;
+
         static BidRequestCacheInfo noCache() {
-            return BidRequestCacheInfo.of(false, false, null, false, null);
+            return BidRequestCacheInfo.of(false, false, null, false, null, false, false);
         }
     }
 }

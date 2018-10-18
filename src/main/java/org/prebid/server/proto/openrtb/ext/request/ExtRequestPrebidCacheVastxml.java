@@ -8,4 +8,6 @@ import lombok.Value;
 public class ExtRequestPrebidCacheVastxml {
 
     Integer ttlseconds;
+
+    Boolean returnCreative;
 }
