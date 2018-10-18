@@ -34,7 +34,6 @@ import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
-import org.prebid.server.handler.ValidateHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
@@ -124,7 +123,6 @@ public class WebConfiguration {
                   CookieSyncHandler cookieSyncHandler,
                   SetuidHandler setuidHandler,
                   OptoutHandler optoutHandler,
-                  ValidateHandler validateHandler,
                   BidderParamHandler bidderParamHandler,
                   BiddersHandler biddersHandler,
                   BidderDetailsHandler bidderDetailsHandler,
@@ -143,7 +141,6 @@ public class WebConfiguration {
         router.get("/setuid").handler(setuidHandler);
         router.post("/optout").handler(optoutHandler);
         router.get("/optout").handler(optoutHandler);
-        router.post("/validate").handler(validateHandler);
         router.get("/bidders/params").handler(bidderParamHandler);
         router.get("/info/bidders").handler(biddersHandler);
         router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
@@ -161,11 +158,6 @@ public class WebConfiguration {
     @Bean
     NoCacheHandler noCacheHandler() {
         return NoCacheHandler.create();
-    }
-
-    @Bean
-    ValidateHandler schemaValidationHandler() {
-        return ValidateHandler.create("static/pbs_request.json");
     }
 
     @Bean

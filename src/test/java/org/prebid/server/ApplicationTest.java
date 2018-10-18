@@ -626,17 +626,6 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnResponseWithValidationMessages() throws IOException {
-        final Response response = given(spec)
-                .body(jsonFrom("auction/test-auction-request.json"))
-                .when()
-                .post("/validate");
-
-        assertThat(response.asString()).isEqualTo("$.ad_units[0].video.protocols: array found, integer expected\n" +
-                "$.ad_units[3].video.protocols: array found, integer expected");
-    }
-
-    @Test
     public void shouldAskExchangeWithUpdatedSettingsFromCache() throws IOException, JSONException {
         // update stored settings cache
         given(adminSpec)
