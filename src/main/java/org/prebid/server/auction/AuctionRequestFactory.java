@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Collections;
 import java.util.List;
@@ -92,9 +93,10 @@ public class AuctionRequestFactory {
         final ObjectNode ext = bidRequest.getExt();
         final ObjectNode populatedExt = ext != null ? populateBidRequestExtension(ext) : null;
         final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
+        final Long tmax = bidRequest.getTmax() == null ? 2000L : null;
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
-                || setDefaultAt || updateCurrency || populatedImps != null) {
+                || setDefaultAt || updateCurrency || populatedImps != null || tmax != null) {
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
@@ -105,6 +107,7 @@ public class AuctionRequestFactory {
                     .at(setDefaultAt ? Integer.valueOf(1) : at)
                     .ext(populatedExt != null ? populatedExt : ext)
                     .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
+                    .tmax(tmax != null ? tmax : bidRequest.getTmax())
                     .build();
         } else {
             result = bidRequest;

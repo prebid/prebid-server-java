@@ -18,6 +18,7 @@ default-timeout-ms: 250
 max-timeout-ms: 5000
 auction:
   default-timeout-ms: 2000
+  max-timeout-ms: 5000
   stored-requests-timeout-ms: 50
   expected-cache-time-ms: 10
   max-request-size: 262144

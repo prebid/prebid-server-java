@@ -189,6 +189,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
                 .user(User.builder().id("userId").build())
                 .cur(singletonList("USD"))
+                .tmax(1000L)
                 .at(1)
                 .build();
 
@@ -294,6 +295,18 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getCur()).isEqualTo(singletonList("USD"));
+    }
+
+    @Test
+    public void shouldSetDefaultTmaxIfInitialValueIsEqualsToNull() {
+        // given
+        givenBidRequest(BidRequest.builder().tmax(null).build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getTmax()).isEqualTo(2000L);
     }
 
     @Test
