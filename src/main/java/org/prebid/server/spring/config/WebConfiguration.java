@@ -30,7 +30,6 @@ import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.ConnectionHandler;
 import org.prebid.server.handler.CookieSyncHandler;
-import org.prebid.server.handler.GetuidsHandler;
 import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SetuidHandler;
@@ -124,7 +123,6 @@ public class WebConfiguration {
                   StatusHandler statusHandler,
                   CookieSyncHandler cookieSyncHandler,
                   SetuidHandler setuidHandler,
-                  GetuidsHandler getuidsHandler,
                   OptoutHandler optoutHandler,
                   ValidateHandler validateHandler,
                   BidderParamHandler bidderParamHandler,
@@ -143,7 +141,6 @@ public class WebConfiguration {
         router.get("/status").handler(statusHandler);
         router.post("/cookie_sync").handler(cookieSyncHandler);
         router.get("/setuid").handler(setuidHandler);
-        router.get("/getuids").handler(getuidsHandler);
         router.post("/optout").handler(optoutHandler);
         router.get("/optout").handler(optoutHandler);
         router.post("/validate").handler(validateHandler);
@@ -267,11 +264,6 @@ public class WebConfiguration {
 
         return new SetuidHandler(defaultTimeoutMs, uidsCookieService, gdprService, hostVendorId, useGeoLocation,
                 analyticsReporter, metrics, timeoutFactory);
-    }
-
-    @Bean
-    GetuidsHandler getuidsHandler(UidsCookieService uidsCookieService) {
-        return new GetuidsHandler(uidsCookieService);
     }
 
     @Bean
