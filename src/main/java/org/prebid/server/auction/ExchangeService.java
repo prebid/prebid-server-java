@@ -1054,14 +1054,10 @@ public class ExchangeService {
             CacheAsset vastXml = videoCacheId != null
                     ? CacheAsset.of(cacheService.getCachedAssetURL(videoCacheId), videoCacheId) : null;
 
-            if (vastXml != null) {
-                if (!cacheInfo.returnCreativeVideoBids) {
-                    bid.setAdm(null);
-                }
-            } else {
-                if (!cacheInfo.returnCreativeBids) {
-                    bid.setAdm(null);
-                }
+            if (videoCacheId != null && !cacheInfo.returnCreativeVideoBids) {
+                bid.setAdm(null);
+            } else if (cacheId != null && !cacheInfo.returnCreativeBids) {
+                bid.setAdm(null);
             }
 
             if (bids != null || vastXml != null) {
@@ -1128,7 +1124,7 @@ public class ExchangeService {
         boolean returnCreativeVideoBids;
 
         static BidRequestCacheInfo noCache() {
-            return BidRequestCacheInfo.of(false, false, null, false, null, true, true);
+            return BidRequestCacheInfo.of(false, false, null, false, null, false, false);
         }
     }
 }
