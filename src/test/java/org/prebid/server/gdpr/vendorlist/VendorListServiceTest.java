@@ -22,7 +22,10 @@ import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
+import java.io.File;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -228,7 +231,7 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasAtLeastOneInvalidVendor() throws JsonProcessingException {
         // given
-        final VendorList vendorList = VendorList.of(1, new Date(), singletonList(Vendor.of(null, null)));
+        final VendorList vendorList = VendorList.of(1, new Date(), singletonList(Vendor.of(null, null, null)));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
@@ -246,12 +249,14 @@ public class VendorListServiceTest extends VertxTest {
         // given
         final String vendorListAsString = mapper.writeValueAsString(givenVendorList());
         givenHttpClientReturnsResponse(200, vendorListAsString);
+        // generate file path to avoid conflicts with path separators in different OS
+        final String filePath = new File("/cache/dir/1.json").getPath();
 
         // when
         vendorListService.forVersion(1);
 
         // then
-        verify(fileSystem).writeFile(eq("/cache/dir/1.json"), eq(Buffer.buffer(vendorListAsString)), any());
+        verify(fileSystem).writeFile(eq(filePath), eq(Buffer.buffer(vendorListAsString)), any());
     }
 
     // In-memory cache related tests
@@ -285,14 +290,14 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).hasSize(1)
-                .containsEntry(52, singleton(1));
+                .containsEntry(52, new HashSet<>(Arrays.asList(1,2)));
     }
 
     @Test
     public void shouldKeepPurposesOnlyForKnownVendors() throws JsonProcessingException {
         // given
         final VendorList vendorList = VendorList.of(1, new Date(),
-                asList(Vendor.of(52, singleton(1)), Vendor.of(42, singleton(1))));
+                asList(Vendor.of(52, singleton(1), singleton(2)), Vendor.of(42, singleton(1), singleton(2))));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
@@ -305,11 +310,11 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).hasSize(1)
-                .containsEntry(52, singleton(1));
+                .containsEntry(52, new HashSet<>(asList(1,2)));
     }
 
     private static VendorList givenVendorList() {
-        final Vendor vendor = Vendor.of(52, singleton(1));
+        final Vendor vendor = Vendor.of(52, singleton(1), singleton(2));
         return VendorList.of(1, new Date(), singletonList(vendor));
     }
 
