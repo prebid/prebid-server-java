@@ -395,7 +395,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam("debug")).willReturn("1");
 
         final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null, null, null),
-                ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), ExtRequestPrebidCacheVastxml.of(null, null)));
+                ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
+                        ExtRequestPrebidCacheVastxml.of(null, null)));
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
         // when

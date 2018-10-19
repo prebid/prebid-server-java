@@ -18,7 +18,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -605,14 +605,22 @@ public class ExchangeService {
                 final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;
                 final Integer cacheVideoBidsTtl = shouldCacheVideoBids ? cache.getVastxml().getTtlseconds() : null;
 
-                final Boolean returnCreativeBid = shouldCacheBids ? cache.getBids().getReturnCreative() : null;
-                final Boolean returnCreativeVideoBid = shouldCacheVideoBids
-                        ? cache.getVastxml().getReturnCreative() : null;
+                final boolean returnCreativeBid = shouldCacheBids
+                        ? ObjectUtils.defaultIfNull(cache.getBids().getReturnCreative(), true)
+                        : false;
+                final boolean returnCreativeVideoBid = shouldCacheVideoBids
+                        ? ObjectUtils.defaultIfNull(cache.getVastxml().getReturnCreative(), true)
+                        : false;
 
-                return BidRequestCacheInfo.of(true, shouldCacheBids, cacheBidsTtl,
-                        shouldCacheVideoBids, cacheVideoBidsTtl,
-                        returnCreativeBid != null ? returnCreativeBid : true,
-                        returnCreativeVideoBid != null ? returnCreativeVideoBid : true);
+                return BidRequestCacheInfo.builder()
+                        .doCaching(true)
+                        .shouldCacheBids(shouldCacheBids)
+                        .cacheBidsTtl(cacheBidsTtl)
+                        .shouldCacheVideoBids(shouldCacheVideoBids)
+                        .cacheVideoBidsTtl(cacheVideoBidsTtl)
+                        .returnCreativeBids(returnCreativeBid)
+                        .returnCreativeVideoBids(returnCreativeVideoBid)
+                        .build();
             }
         }
 
@@ -1110,12 +1118,6 @@ public class ExchangeService {
             final boolean isWinningBid = winningBidsWithCacheIds.containsKey(bid);
             final String cacheId = isWinningBid ? winningBidsWithCacheIds.get(bid).getCacheId() : null;
             final String videoCacheId = isWinningBid ? winningBidsWithCacheIds.get(bid).getVideoCacheId() : null;
-            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
-
-            CacheAsset bids = cacheId != null ? CacheAsset.of(cacheService.getCachedAssetURL(cacheId), cacheId) : null;
-
-            CacheAsset vastXml = videoCacheId != null
-                    ? CacheAsset.of(cacheService.getCachedAssetURL(videoCacheId), videoCacheId) : null;
 
             if (videoCacheId != null && !cacheInfo.returnCreativeVideoBids) {
                 bid.setAdm(null);
@@ -1123,14 +1125,10 @@ public class ExchangeService {
                 bid.setAdm(null);
             }
 
-            if (bids != null || vastXml != null) {
-                cache = ExtResponseCache.of(vastXml, bids);
-            } else {
-                cache = null;
-            }
-//            final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
-//            final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
-//            cache = bids != null || vastXml != null ? ExtResponseCache.of(vastXml, bids) : null;
+            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
+            final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
+            final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
+            cache = bids != null || vastXml != null ? ExtResponseCache.of(vastXml, bids) : null;
         } else {
             targetingKeywords = null;
             cache = null;
@@ -1178,7 +1176,7 @@ public class ExchangeService {
     /**
      * Holds caching information for auction request
      */
-    @AllArgsConstructor(staticName = "of")
+    @Builder
     @Value
     private static class BidRequestCacheInfo {
 
@@ -1197,7 +1195,15 @@ public class ExchangeService {
         boolean returnCreativeVideoBids;
 
         static BidRequestCacheInfo noCache() {
-            return BidRequestCacheInfo.of(false, false, null, false, null, false, false);
+            return BidRequestCacheInfo.builder()
+                    .doCaching(false)
+                    .shouldCacheBids(false)
+                    .cacheBidsTtl(null)
+                    .shouldCacheVideoBids(false)
+                    .cacheVideoBidsTtl(null)
+                    .returnCreativeBids(false)
+                    .returnCreativeVideoBids(false)
+                    .build();
         }
     }
 }
