@@ -1392,6 +1392,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext);
 
         // then
+        // todo: fix all
         verify(cacheService).cacheBidsOpenrtb(eq(emptyList()), eq(singletonList(CacheBid.of(bid, 200))),
                 same(timeout));
 
