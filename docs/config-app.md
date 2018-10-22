@@ -35,12 +35,6 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.currency-rates-refresh-period-ms` - default refresh period for currency rates updates.
 - `auction.currency-rates-url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
-- `auction.cache.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service.
-- `auction.cache.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service.
-- `auction.cache.account.<ACCOUNT>.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service 
-for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
-- `auction.cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
-for particular publisher account. Overrides `cache.video-ttl-seconds` property.
 
 ## Amp
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
@@ -96,6 +90,12 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
 - `cache.query` - appends to `/cache` as query string params (used for legacy Auction requests).
+- `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
+- `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.
+- `cache.account.<ACCOUNT>.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service 
+for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
+- `cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
+for particular publisher account. Overrides `cache.video-ttl-seconds` property.
 
 ## Application settings (account configuration, stored ad unit configurations, stored requests)
 Preconfigured application settings can be obtained from multiple data sources consequently: 

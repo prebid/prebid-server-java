@@ -99,7 +99,7 @@ public class HttpAdapterConnector {
 
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
-            return failResponse(new TimeoutException(), bidderDebugBuilder);
+            return failResponse(new TimeoutException("Timeout has been exceeded"), bidderDebugBuilder);
         }
 
         return httpClient.request(httpRequest.getMethod(), uri, httpRequest.getHeaders(), body, remainingTimeout)

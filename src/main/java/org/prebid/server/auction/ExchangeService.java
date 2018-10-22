@@ -26,16 +26,12 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
-import org.prebid.server.cache.account.AccountCacheService;
-import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheIdInfo;
-import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -108,15 +104,12 @@ public class ExchangeService {
     private final Clock clock;
     private final boolean useGeoLocation;
     private final long expectedCacheTime;
-    private final AccountCacheService accountCacheService;
-    private final CacheTtl mediaTypeCacheTtl;
 
     public ExchangeService(BidderCatalog bidderCatalog,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
                            BidResponsePostProcessor bidResponsePostProcessor,
                            CurrencyConversionService currencyService, GdprService gdprService,
-                           Metrics metrics, Clock clock, boolean useGeoLocation, long expectedCacheTime,
-                           AccountCacheService accountCacheService, CacheTtl mediaTypeCacheTtl) {
+                           Metrics metrics, Clock clock, boolean useGeoLocation, long expectedCacheTime) {
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time should be positive");
         }
@@ -130,8 +123,6 @@ public class ExchangeService {
         this.clock = Objects.requireNonNull(clock);
         this.useGeoLocation = useGeoLocation;
         this.expectedCacheTime = expectedCacheTime;
-        this.accountCacheService = Objects.requireNonNull(accountCacheService);
-        this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
     }
 
     /**
@@ -943,90 +934,20 @@ public class ExchangeService {
         if (!cacheInfo.doCaching) {
             result = Future.succeededFuture(toMapBidsWithEmptyCacheIds(winningBids));
         } else {
-            final List<String> videoImpIds = new ArrayList<>();
-            final Map<String, Integer> impIdToTtl = new HashMap<>(imps.size());
-            boolean impWithNoExpExists = false;
-            for (Imp imp : imps) {
-                if (cacheInfo.shouldCacheVideoBids && imp.getVideo() != null) {
-                    videoImpIds.add(imp.getId());
-                }
-                impIdToTtl.put(imp.getId(), imp.getExp());
-                impWithNoExpExists |= imp.getExp() == null;
-            }
-
             // do not submit bids with zero CPM to prebid cache
             final List<Bid> winningBidsWithNonZeroCpm = winningBids.stream()
                     .filter(bid -> keywordsCreator.isNonZeroCpm(bid.getPrice()))
                     .collect(Collectors.toList());
 
-            result = accountCacheTtlFrom(publisherId, impWithNoExpExists, cacheInfo)
-                    .map(accountCacheTtl -> Tuple2.of(accountCacheTtl,
-                            cacheBidsFrom(winningBidsWithNonZeroCpm, impIdToTtl, cacheInfo, accountCacheTtl)))
-                    .map(tuple2 -> Tuple2.of(tuple2.getRight(),
-                            cacheVideoBidsFrom(winningBidsWithNonZeroCpm, videoImpIds, impIdToTtl, cacheInfo,
-                                    tuple2.getLeft())))
-                    .compose(tuple2 -> cacheService.cacheBidsOpenrtb(tuple2.getLeft(), tuple2.getRight(), timeout)
-                            .recover(throwable -> Future.succeededFuture(Collections.emptyMap())) // skip cache errors
-                            .map(bidToCacheId -> addNotCachedBids(bidToCacheId, winningBids)));
+            result = cacheService.cacheBidsOpenrtb(winningBidsWithNonZeroCpm, imps,
+                    cacheInfo.shouldCacheBids, cacheInfo.cacheBidsTtl,
+                    cacheInfo.shouldCacheVideoBids, cacheInfo.cacheVideoBidsTtl,
+                    publisherId, timeout)
+                    .recover(throwable -> Future.succeededFuture(Collections.emptyMap())) // skip cache errors
+                    .map(bidToCacheId -> addNotCachedBids(bidToCacheId, winningBids));
         }
 
         return result;
-    }
-
-    /**
-     * Fetches {@link CacheTtl} for the given account.
-     */
-    private Future<CacheTtl> accountCacheTtlFrom(String publisherId, boolean impWithNoExpExists,
-                                                 BidRequestCacheInfo cacheInfo) {
-        final Future<CacheTtl> future;
-
-        // do we really want to call to account cache service?
-        if (StringUtils.isEmpty(publisherId)
-                || !impWithNoExpExists
-                || !cacheInfo.shouldCacheVideoBids && cacheInfo.cacheBidsTtl != null
-                || !cacheInfo.shouldCacheBids && cacheInfo.cacheVideoBidsTtl != null
-                || cacheInfo.cacheBidsTtl != null && cacheInfo.cacheVideoBidsTtl != null) {
-            future = Future.succeededFuture(CacheTtl.empty());
-        } else { // yes, we do!
-            future = accountCacheService.getCacheTtlByAccountId(publisherId);
-        }
-
-        return future;
-    }
-
-    private List<CacheBid> cacheBidsFrom(List<Bid> bids, Map<String, Integer> impIdToTtl,
-                                         BidRequestCacheInfo cacheInfo, CacheTtl accountCacheTtl) {
-        return cacheInfo.shouldCacheBids
-                ? bids.stream()
-                .map(bid -> toCacheBid(bid, impIdToTtl, cacheInfo, accountCacheTtl, false))
-                .collect(Collectors.toList())
-                : Collections.emptyList();
-    }
-
-    private List<CacheBid> cacheVideoBidsFrom(List<Bid> bids, List<String> videoImpIds, Map<String, Integer> impIdToTtl,
-                                              BidRequestCacheInfo cacheInfo, CacheTtl accountCacheTtl) {
-        return cacheInfo.shouldCacheVideoBids
-                ? bids.stream()
-                .filter(bid -> videoImpIds.contains(bid.getImpid())) // bid is video
-                .map(bid -> toCacheBid(bid, impIdToTtl, cacheInfo, accountCacheTtl, true))
-                .collect(Collectors.toList())
-                : Collections.emptyList();
-    }
-
-    /**
-     * Creates {@link CacheBid} from given {@link Bid} and determined cache ttl.
-     */
-    private CacheBid toCacheBid(Bid bid, Map<String, Integer> impIdToTtl, BidRequestCacheInfo cacheInfo,
-                                CacheTtl accountCacheTtl, boolean isVideoBid) {
-        final Integer impTtl = impIdToTtl.get(bid.getImpid());
-        final Integer requestTtl = isVideoBid ? cacheInfo.cacheVideoBidsTtl : cacheInfo.cacheBidsTtl;
-        final Integer accountMediaTypeTtl = isVideoBid
-                ? accountCacheTtl.getVideoCacheTtl() : accountCacheTtl.getBannerCacheTtl();
-        final Integer mediaTypeTtl = isVideoBid
-                ? mediaTypeCacheTtl.getVideoCacheTtl() : mediaTypeCacheTtl.getBannerCacheTtl();
-        final Integer ttl = ObjectUtils.firstNonNull(impTtl, requestTtl, accountMediaTypeTtl, mediaTypeTtl);
-
-        return CacheBid.of(bid, ttl);
     }
 
     /**

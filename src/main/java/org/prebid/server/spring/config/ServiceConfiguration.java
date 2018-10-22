@@ -66,12 +66,45 @@ public class ServiceConfiguration {
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.query}") String query,
+            @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
+            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            AccountCacheService accountCacheService,
             HttpClient httpClient) {
 
         return new CacheService(
+                accountCacheService,
+                CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, query));
+    }
+
+    @Bean
+    AccountCacheService simpleAccountCacheService(AccountCacheProperties accountCacheProperties) {
+        return new SimpleAccountCacheService(accountCacheProperties.getAccountToCacheTtl());
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "cache")
+    @Data
+    @NoArgsConstructor
+    private static class AccountCacheProperties {
+
+        private Map<String, Map<String, Integer>> account;
+
+        private final Map<String, CacheTtl> accountToCacheTtl = new HashMap<>();
+
+        @PostConstruct
+        private void init() {
+            final Map<String, Map<String, Integer>> account = getAccount();
+            if (account != null) {
+                for (Map.Entry<String, Map<String, Integer>> entry : account.entrySet()) {
+                    accountToCacheTtl.put(entry.getKey(), CacheTtl.of(
+                            entry.getValue().get("banner-ttl-seconds"),
+                            entry.getValue().get("video-ttl-seconds")));
+                }
+            }
+        }
     }
 
     @Bean
@@ -241,42 +274,10 @@ public class ServiceConfiguration {
             Metrics metrics,
             Clock clock,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
-            @Value("${auction.cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
-            @Value("${auction.cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            AccountCacheService accountCacheService) {
+            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, bidResponsePostProcessor,
-                currencyConversionService, gdprService, metrics, clock, useGeoLocation, expectedCacheTimeMs,
-                accountCacheService, CacheTtl.of(bannerCacheTtl, videoCacheTtl));
-    }
-
-    @Bean
-    AccountCacheService simpleAccountCacheService(AccountCacheProperties accountCacheProperties) {
-        return new SimpleAccountCacheService(accountCacheProperties.getAccountToCacheTtl());
-    }
-
-    @Component
-    @ConfigurationProperties(prefix = "auction.cache")
-    @Data
-    @NoArgsConstructor
-    private static class AccountCacheProperties {
-
-        private Map<String, Map<String, Integer>> account;
-
-        private final Map<String, CacheTtl> accountToCacheTtl = new HashMap<>();
-
-        @PostConstruct
-        private void init() {
-            final Map<String, Map<String, Integer>> account = getAccount();
-            if (account != null) {
-                for (Map.Entry<String, Map<String, Integer>> entry : account.entrySet()) {
-                    accountToCacheTtl.put(entry.getKey(), CacheTtl.of(
-                            entry.getValue().get("banner-ttl-seconds"),
-                            entry.getValue().get("video-ttl-seconds")));
-                }
-            }
-        }
+                currencyConversionService, gdprService, metrics, clock, useGeoLocation, expectedCacheTimeMs);
     }
 
     @Bean
