@@ -246,7 +246,8 @@ public class VendorListService {
                 && vendorList.getLastUpdated() != null
                 && CollectionUtils.isNotEmpty(vendorList.getVendors())
                 && vendorList.getVendors().stream()
-                .allMatch(vendor -> vendor != null && vendor.getId() != null && vendor.combinedPurposes() != null);
+                .allMatch(vendor -> vendor != null && vendor.getId() != null
+                        && (vendor.getPurposeIds() != null || vendor.getLegIntPurposeIds() != null));
     }
 
     private Future<Void> saveToFileAndUpdateCache(VendorListResult vendorListResult) {
