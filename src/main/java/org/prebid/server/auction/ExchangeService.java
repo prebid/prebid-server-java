@@ -38,7 +38,6 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.GdprService;
-import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.gdpr.model.GdprResponse;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -68,7 +67,6 @@ import java.text.DecimalFormatSymbols;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -89,9 +87,6 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
-    private static final Set<GdprPurpose> GDPR_PURPOSES =
-            Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess,
-                    GdprPurpose.adSelectionAndDeliveryAndReporting));
     private static final DecimalFormat ROUND_TWO_DECIMALS =
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
@@ -287,7 +282,6 @@ public class ExchangeService {
                         userExtNode, extRegs, aliases, imps, gdprResponse.getVendorsToGdpr()));
     }
 
-
     /**
      * Returns {@link Future&lt;{@link Map}&lt;{@link Integer}, {@link Boolean}&gt;&gt;}, where bidders vendor id mapped
      * to enabling or disabling gdpr in scope of pbs server. If bidder vendor id is not present in map, it means that
@@ -306,7 +300,7 @@ public class ExchangeService {
         final Device device = bidRequest.getDevice();
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
 
-        return gdprService.resultByVendor(GDPR_PURPOSES, gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null,
+        return gdprService.resultByVendor(gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null,
                 gdprConsent, ipAddress, timeout);
     }
 
