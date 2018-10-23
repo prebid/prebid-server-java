@@ -33,7 +33,7 @@
         <lombok.version>1.16.16</lombok.version>
         <commons.version>3.6</commons.version>
         <commons.collections.version>4.1</commons.collections.version>
-        <jackson.version>2.9.4</jackson.version>
+        <jackson.version>2.9.7</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.9</jsonpatch.version>
         <mysql.version>6.0.6</mysql.version>
