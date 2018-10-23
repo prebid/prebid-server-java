@@ -26,3 +26,4 @@ and not the other for an interim period. This page tracks known differences that
   - in PBS-Java, they set BidderBid[N].currency.
 - PBS-Go fixed the IndexExchange-vs-IX issue.
 - PBS-Java Rubicon adapter removes `req.cur` from request to XAPI.
+- PBS-Go use "60 seconds buffer + {bid,imp,mediaType}TTL" approach to determine caching TTL period.
