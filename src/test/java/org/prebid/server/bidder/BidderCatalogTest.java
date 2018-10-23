@@ -6,6 +6,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import java.util.Collections;
+
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,7 +36,7 @@ public class BidderCatalogTest {
     @Test
     public void isValidNameShouldReturnTrueForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, null, null, null, null, null);
+        bidderDeps = BidderDeps.of(BIDDER, Collections.emptyList(), null, null, null, null, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -53,7 +55,7 @@ public class BidderCatalogTest {
     @Test
     public void metaInfoByNameShouldReturnMetaInfoForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, metaInfo, null, null, null, null);
+        bidderDeps = BidderDeps.of(BIDDER, Collections.emptyList(), metaInfo, null, null, null, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -72,7 +74,7 @@ public class BidderCatalogTest {
     @Test
     public void usersyncerByNameShouldReturnUsersyncerForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, null, usersyncer, null, null, null);
+        bidderDeps = BidderDeps.of(BIDDER, Collections.emptyList(), null, usersyncer, null, null, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -91,7 +93,7 @@ public class BidderCatalogTest {
     @Test
     public void bidderByNameShouldReturnBidderForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, null, null, bidder, null, null);
+        bidderDeps = BidderDeps.of(BIDDER, Collections.emptyList(), null, null, bidder, null, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -110,7 +112,7 @@ public class BidderCatalogTest {
     @Test
     public void adapterByNameShouldReturnAdapterForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, null, null, null, adapter, null);
+        bidderDeps = BidderDeps.of(BIDDER, Collections.emptyList(),null, null, null, adapter, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -129,7 +131,7 @@ public class BidderCatalogTest {
     @Test
     public void bidderRequesterByNameShouldReturnBidderRequesterForKnownBidder() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, null, null, null, null, bidderRequester);
+        bidderDeps = BidderDeps.of(BIDDER, Collections.emptyList(),null, null, null, null, bidderRequester);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
@@ -148,7 +150,7 @@ public class BidderCatalogTest {
     @Test
     public void isValidAdapterNameShouldReturnTrueIfNameIsValidAndAdapterIsDefined() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, null, null, null, adapter, null);
+        bidderDeps = BidderDeps.of(BIDDER, Collections.emptyList(),null, null, null, adapter, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
         // when and then
         assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isTrue();
@@ -157,7 +159,7 @@ public class BidderCatalogTest {
     @Test
     public void isValidAdapterNameShouldReturnFalseIfNameIsInvalid() {
         // given
-        bidderDeps = BidderDeps.of("invalid", null, null, null, adapter, null);
+        bidderDeps = BidderDeps.of("invalid", Collections.emptyList(),null, null, null, adapter, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
         // when and then
         assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isFalse();
@@ -166,7 +168,7 @@ public class BidderCatalogTest {
     @Test
     public void isValidAdapterNameShouldReturnFalseIfAdapterIsNotDefined() {
         // given
-        bidderDeps = BidderDeps.of(BIDDER, null, null, null, null, null);
+        bidderDeps = BidderDeps.of(BIDDER, Collections.emptyList(),null, null, null, null, null);
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
         // when and then
         assertThat(bidderCatalog.isValidAdapterName(BIDDER)).isFalse();

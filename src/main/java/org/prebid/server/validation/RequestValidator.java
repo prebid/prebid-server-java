@@ -547,7 +547,7 @@ public class RequestValidator {
                 throw new ValidationException("request.imp[%d].ext.%s failed validation.\n%s", impIndex,
                         bidderName, messages.stream().collect(Collectors.joining("\n")));
             }
-        } else {
+        } else if (!bidderCatalog.isDeprecatedName(bidderName)) {
             throw new ValidationException(
                     "request.imp[%d].ext contains unknown bidder: %s", impIndex, bidderName);
         }

@@ -59,6 +59,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.spring.config.bidder.BidderConfiguration;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -156,7 +157,23 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        return extractBidderRequests(bidRequest, uidsCookie, aliases, timeout)
+        final Map<String, List<String>> deprecatedBiddersErrors = new HashMap<>();
+
+        // sanity check: discard imps without extension
+        final List<Imp> imps = bidRequest.getImp().stream()
+                .filter(imp -> imp.getExt() != null)
+                .collect(Collectors.toList());
+
+        // identify valid bidders and aliases out of imps
+        final List<String> bidders = imps.stream()
+                .flatMap(imp -> asStream(imp.getExt().fieldNames())
+                        .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
+                        .peek(s -> processDeprecatedBidder(s, deprecatedBiddersErrors))
+                        .filter(bidder -> isValidBidder(bidder, aliases)))
+                .distinct()
+                .collect(Collectors.toList());
+
+        return extractBidderRequests(bidRequest, imps, bidders, uidsCookie, aliases, timeout)
                 .map(bidderRequests ->
                         updateRequestMetric(bidderRequests, uidsCookie, aliases, publisherId, metricsContext))
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
@@ -169,8 +186,17 @@ public class ExchangeService {
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
-                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout))
+                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout, deprecatedBiddersErrors))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
+    }
+
+    private void processDeprecatedBidder(String bidder, Map<String, List<String>> deprecatedBiddersErrors) {
+        if (bidderCatalog.isDeprecatedName(bidder)) {
+            String newBidderName = bidderCatalog.getNewNameForDeprecatedBidder(bidder);
+            List<String> errors = new ArrayList<>();
+            errors.add(String.format(BidderConfiguration.ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED, bidder, newBidderName));
+            deprecatedBiddersErrors.put(bidder, errors);
+        }
     }
 
     /**
@@ -253,23 +279,10 @@ public class ExchangeService {
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from {@link BidRequest}.ext.prebid.aliases.
      */
-    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest,
-                                                              UidsCookie uidsCookie,
+    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest, List<Imp> imps,
+                                                              List<String> bidders, UidsCookie uidsCookie,
                                                               Map<String, String> aliases,
                                                               Timeout timeout) {
-        // sanity check: discard imps without extension
-        final List<Imp> imps = bidRequest.getImp().stream()
-                .filter(imp -> imp.getExt() != null)
-                .collect(Collectors.toList());
-
-        // identify valid bidders and aliases out of imps
-        final List<String> bidders = imps.stream()
-                .flatMap(imp -> asStream(imp.getExt().fieldNames())
-                        .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
-                        .filter(bidder -> isValidBidder(bidder, aliases)))
-                .distinct()
-                .collect(Collectors.toList());
-
         final User user = bidRequest.getUser();
         final ExtUser extUser = extUser(user);
         final Map<String, String> uidsBody = uidsFromBody(extUser);
@@ -827,14 +840,15 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, BidRequestCacheInfo cacheInfo,
-                                              Timeout timeout) {
+                                              Timeout timeout, Map<String, List<String>> deprecatedBiddersErrors) {
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, winningBids, winningBidsByBidder);
 
         return toWinningBidsWithCacheIds(winningBids, bidRequest.getImp(), keywordsCreator, cacheInfo, timeout)
                 .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest,
-                        keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder, cacheInfo));
+                        keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder, cacheInfo,
+                        deprecatedBiddersErrors));
     }
 
     /**
@@ -994,7 +1008,8 @@ public class ExchangeService {
     private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                    TargetingKeywordsCreator keywordsCreator,
                                                    Map<Bid, CacheIdInfo> winningBidsWithCacheIds,
-                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
+                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
+                                                   Map<String, List<String>> deprecatedBiddersErrors) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
@@ -1002,7 +1017,7 @@ public class ExchangeService {
                                 cacheInfo))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest);
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, deprecatedBiddersErrors);
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -1086,7 +1101,8 @@ public class ExchangeService {
      * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
      * bidders
      */
-    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest) {
+    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
+                                                   Map<String, List<String>> deprecatedBiddersErrors) {
         final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream().collect(
                 Collectors.toMap(BidderResponse::getBidder, r -> ListUtils.emptyIfNull(r.getSeatBid().getHttpCalls())))
@@ -1095,6 +1111,8 @@ public class ExchangeService {
 
         final Map<String, List<String>> errors = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, r -> messages(r.getSeatBid().getErrors())));
+
+        errors.putAll(deprecatedBiddersErrors);
 
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));

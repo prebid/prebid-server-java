@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class IndexConfiguration extends BidderConfiguration {
 
@@ -34,6 +36,9 @@ public class IndexConfiguration extends BidderConfiguration {
     @Value("${adapters.indexexchange.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
+    @Value("${adapters.indexexchange.deprecated-names:}")
+    private List<String> deprecatedNames;
+
     @Bean
     BidderDeps indexexchangeBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && endpoint == null) {
@@ -47,6 +52,11 @@ public class IndexConfiguration extends BidderConfiguration {
     @Override
     protected String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Override

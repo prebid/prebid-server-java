@@ -11,16 +11,23 @@ import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.vertx.http.HttpClient;
 
+import java.util.List;
+
 public abstract class BidderConfiguration {
 
     private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = "%s is not configured properly on this "
             + "Prebid Server deploy. If you believe this should work, contact the company hosting the service "
             + "and tell them to check their configuration.";
 
+    public static final String ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED = "Bidder %s has been deprecated and is no "
+            + "longer available. Use %s instead.";
+
     protected BidderDeps bidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         final String bidderName = bidderName();
         final MetaInfo metaInfo = createMetaInfo();
         final boolean enabled = metaInfo.info().isEnabled();
+
+        final List<String> deprecatedNames = deprecatedNames();
 
         final Usersyncer usersyncer = createUsersyncer();
 
@@ -33,10 +40,12 @@ public abstract class BidderConfiguration {
         final BidderRequester bidderRequester = createBidderRequester(httpClient, bidder, adapter, usersyncer,
                 httpAdapterConnector);
 
-        return BidderDeps.of(bidderName, metaInfo, usersyncer, bidder, adapter, bidderRequester);
+        return BidderDeps.of(bidderName, deprecatedNames, metaInfo, usersyncer, bidder, adapter, bidderRequester);
     }
 
     protected abstract String bidderName();
+
+    protected abstract List<String> deprecatedNames();
 
     protected abstract MetaInfo createMetaInfo();
 

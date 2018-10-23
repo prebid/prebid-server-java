@@ -1,5 +1,6 @@
 package org.prebid.server.bidder;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -15,9 +16,17 @@ public class BidderCatalog {
 
     private final Map<String, BidderDeps> bidderDepsMap;
 
+    private final Map<String, BidderDeps> deprecatedBidderDepsMap = new HashMap<>();
+
     public BidderCatalog(List<BidderDeps> bidderDeps) {
         bidderDepsMap = Objects.requireNonNull(bidderDeps).stream()
                 .collect(Collectors.toMap(BidderDeps::getName, Function.identity()));
+
+        for (BidderDeps bidderDepsInner : bidderDeps) {
+            for (String deprecatedBidderName : bidderDepsInner.getDeprecatedNames()) {
+                deprecatedBidderDepsMap.put(deprecatedBidderName, bidderDepsInner);
+            }
+        }
     }
 
     /**
@@ -32,6 +41,14 @@ public class BidderCatalog {
      */
     public boolean isValidName(String name) {
         return bidderDepsMap.containsKey(name);
+    }
+
+    public boolean isDeprecatedName(String name) {
+        return deprecatedBidderDepsMap.containsKey(name);
+    }
+
+    public String getNewNameForDeprecatedBidder(String name) {
+        return deprecatedBidderDepsMap.get(name).getName();
     }
 
     /**

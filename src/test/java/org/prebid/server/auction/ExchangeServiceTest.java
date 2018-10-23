@@ -85,6 +85,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.math.BigDecimal.TEN;
+import static java.math.BigDecimal.valueOf;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static java.util.function.Function.identity;
@@ -198,9 +199,28 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(bidderCatalog).isValidName(eq("invalid"));
-        verifyNoMoreInteractions(bidderCatalog);
+        verify(bidderCatalog).isDeprecatedName(eq("invalid"));
         verifyZeroInteractions(bidderRequester);
         assertThat(bidResponse).isNotNull();
+    }
+
+    @Test
+    public void shouldProccesRequestAndAddErrorAboutDeprecatedBidder() {
+        String invalidBidderName = "invalid";
+
+        given(bidderCatalog.isValidName(invalidBidderName)).willReturn(false);
+        given(bidderCatalog.isDeprecatedName(invalidBidderName)).willReturn(true);
+        given(bidderCatalog.getNewNameForDeprecatedBidder(invalidBidderName)).willReturn("valid");
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(invalidBidderName, 0)));
+
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext).result();
+
+        Map<String, List<String>> errors = new HashMap<>();
+        errors.put(invalidBidderName, Collections.singletonList("Bidder invalid has been deprecated and is no longer available. Use valid instead."));
+
+        assertThat(bidResponse).hasFieldOrPropertyWithValue("ext",
+                mapper.valueToTree(ExtBidResponse.of(null, errors, new HashMap<>(), null)));
     }
 
     @Test
