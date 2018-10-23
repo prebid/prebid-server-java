@@ -25,14 +25,19 @@ import java.util.HashSet;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
-import static org.assertj.core.api.Assertions.*;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class HttpApplicationSettingsTest extends VertxTest {
 
@@ -132,7 +137,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 timeout);
 
         // then
-        verify(httpClient).get(eq("http://stored-requests?request-ids=id2,id1&imp-ids=id4,id3"), any(), anyLong());
+        verify(httpClient).get(eq("http://stored-requests?request-ids=[\"id2\",\"id1\"]&imp-ids=[\"id4\",\"id3\"]"), any(), anyLong());
     }
 
     @Test
@@ -146,7 +151,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         httpApplicationSettings.getStoredData(singleton("id1"), singleton("id2"), timeout);
 
         // then
-        verify(httpClient).get(eq("http://some-domain?param1=value1&request-ids=id1&imp-ids=id2"), any(), anyLong());
+        verify(httpClient).get(eq("http://some-domain?param1=value1&request-ids=[\"id1\"]&imp-ids=[\"id2\"]"), any(), anyLong());
     }
 
     @Test
