@@ -31,6 +31,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -841,9 +842,6 @@ public class ExchangeService {
                 timeout)
                 .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
                         winningBidsWithCacheIds, winningBidsByBidder, cacheInfo));
-//        return toWinningBidsWithCacheIds(winningBids, bidRequest.getImp(), keywordsCreator, cacheInfo, timeout)
-//                .map(winningBidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest,
-//                        keywordsCreator, winningBidsWithCacheIds, winningBidsByBidder, cacheInfo));
     }
 
     /**
@@ -939,10 +937,9 @@ public class ExchangeService {
                     .filter(bid -> keywordsCreator.isNonZeroCpm(bid.getPrice()))
                     .collect(Collectors.toList());
 
-            result = cacheService.cacheBidsOpenrtb(winningBidsWithNonZeroCpm, imps,
-                    cacheInfo.shouldCacheBids, cacheInfo.cacheBidsTtl,
-                    cacheInfo.shouldCacheVideoBids, cacheInfo.cacheVideoBidsTtl,
-                    publisherId, timeout)
+            result = cacheService.cacheBidsOpenrtb(winningBidsWithNonZeroCpm, imps, CacheContext.of(
+                    cacheInfo.shouldCacheBids, cacheInfo.cacheBidsTtl, cacheInfo.shouldCacheVideoBids,
+                    cacheInfo.cacheVideoBidsTtl), publisherId, timeout)
                     .recover(throwable -> Future.succeededFuture(Collections.emptyMap())) // skip cache errors
                     .map(bidToCacheId -> addNotCachedBids(bidToCacheId, winningBids));
         }
