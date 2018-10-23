@@ -169,7 +169,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined(){
+    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined() {
         // given
         givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());
         given(paramsExtractor.secureFrom(any())).willReturn(0);
