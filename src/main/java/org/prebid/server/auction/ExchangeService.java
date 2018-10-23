@@ -284,7 +284,6 @@ public class ExchangeService {
                         userExtNode, extRegs, aliases, imps, gdprResponse.getVendorsToGdpr()));
     }
 
-
     /**
      * Returns {@link Future&lt;{@link Map}&lt;{@link Integer}, {@link Boolean}&gt;&gt;}, where bidders vendor id mapped
      * to enabling or disabling gdpr in scope of pbs server. If bidder vendor id is not present in map, it means that
@@ -303,8 +302,8 @@ public class ExchangeService {
         final Device device = bidRequest.getDevice();
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
 
-        return gdprService.resultByVendor(Collections.emptySet(),
-                gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null, gdprConsent, ipAddress, timeout);
+        return gdprService.resultByVendor(gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null,
+                gdprConsent, ipAddress, timeout);
     }
 
     private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,

@@ -17,6 +17,7 @@ import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,11 @@ public class GdprService {
         return resolveGdprWithCountryValue(gdpr, ipAddress, timeout)
                 .compose(gdprWithCountry -> toGdprResponse(gdprWithCountry.getGdpr(), gdprConsent, purposes, vendorIds,
                         gdprWithCountry.getCountry()));
+    }
+
+    public Future<GdprResponse> resultByVendor(Set<Integer> vendorIds, String gdpr,
+                                               String gdprConsent, String ipAddress, Timeout timeout) {
+        return resultByVendor(Collections.emptySet(), vendorIds, gdpr, gdprConsent, ipAddress, timeout);
     }
 
     /**
