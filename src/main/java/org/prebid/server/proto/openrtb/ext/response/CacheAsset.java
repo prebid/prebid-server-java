@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -15,5 +16,6 @@ public class CacheAsset {
 
     String url;
 
+    @JsonProperty("cacheId")
     String cacheId;
 }
