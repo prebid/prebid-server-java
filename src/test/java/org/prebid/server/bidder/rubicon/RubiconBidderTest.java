@@ -24,7 +24,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.assertj.core.data.Index;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -217,14 +216,13 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        final List<Format> expectedFormat = singletonList(Format.builder().w(300).h(250).build());
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBanner).doesNotContainNull()
-                .extracting(Banner::getFormat).hasSize(1)
-                .contains(expectedFormat, Index.atIndex(0));
+                .flatExtracting(Banner::getFormat).hasSize(1)
+                .containsOnly(Format.builder().w(300).h(250).build());
     }
 
     @Test
