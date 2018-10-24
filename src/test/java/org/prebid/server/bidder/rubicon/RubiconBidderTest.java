@@ -588,7 +588,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnerrorIfSizeIdsNotFound() {
+    public void makeHttpRequestsShouldReturnErrorIfSizeIdsNotFound() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -602,8 +602,8 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput("Bad request.imp[].ext.rubicon.sizes"));
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Bad request.imp[].ext.rubicon.sizes"));
     }
 
     @Test

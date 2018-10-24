@@ -78,7 +78,7 @@ public final class RubiconSize {
     }
 
     public static List<Format> idToSize(List<Integer> sizeIds) {
-        List<Format> result = new ArrayList<>();
+        final List<Format> result = new ArrayList<>();
         for (Integer id : sizeIds) {
             List<Format> idResult = SIZES.keySet().stream()
                     .filter(rubiconSize -> SIZES.get(rubiconSize).equals(id))
