@@ -26,7 +26,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Collections;
 import java.util.List;

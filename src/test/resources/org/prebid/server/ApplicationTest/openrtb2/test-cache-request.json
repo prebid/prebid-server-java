@@ -183,6 +183,19 @@
     {
       "type": "json",
       "value": {
+        "id": "impId61",
+        "impid": "impId61",
+        "price": 3.22425,
+        "adm": "adm61",
+        "crid": "crid61",
+        "dealid": "dealId61",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "600527793",
         "impid": "impId02",
         "price": 4.65904,
@@ -231,6 +244,19 @@
             "bid_ad_type": 3
           }
         }
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId6",
+        "impid": "impId6",
+        "price": 3.82879,
+        "adm": "adm6",
+        "crid": "crid6",
+        "dealid": "dealId6",
+        "w": 300,
+        "h": 600
       }
     },
     {
@@ -322,6 +348,11 @@
     {
       "type": "xml",
       "value": "adm00",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": "adm61",
       "expiry": 120
     },
     {

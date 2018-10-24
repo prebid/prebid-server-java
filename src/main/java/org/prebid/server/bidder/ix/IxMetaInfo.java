@@ -1,18 +1,17 @@
-package org.prebid.server.bidder.index;
+package org.prebid.server.bidder.ix;
 
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.proto.response.BidderInfo;
 
-import java.util.Arrays;
 import java.util.Collections;
 
-public class IndexMetaInfo implements MetaInfo {
+public class IxMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public IndexMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
+    public IxMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"),
+                Collections.emptyList(), Collections.singletonList("banner"),
                 null, 10, pbsEnforcesGdpr);
     }
 

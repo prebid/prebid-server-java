@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.index.proto;
+package org.prebid.server.bidder.ix.proto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -6,8 +6,8 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class IndexParams {
+public class IxParams {
 
-    @JsonProperty("siteID")
-    Integer siteId;
+    @JsonProperty("siteId")
+    String siteId;
 }

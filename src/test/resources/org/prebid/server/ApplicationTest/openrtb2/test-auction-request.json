@@ -117,8 +117,8 @@
         "h": 250
       },
       "ext": {
-        "indexExchange": {
-          "siteID": 10002
+        "ix": {
+          "siteId": "10002"
         }
       }
     },
@@ -132,8 +132,8 @@
         "h": 250
       },
       "ext": {
-        "indexExchange": {
-          "siteID": 10002
+        "ix": {
+          "siteId": "10002"
         }
       }
     },
