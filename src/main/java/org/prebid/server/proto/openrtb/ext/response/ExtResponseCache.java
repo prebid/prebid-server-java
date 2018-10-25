@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -10,7 +11,8 @@ import lombok.Value;
 @Value
 public class ExtResponseCache {
 
-    CacheAsset vastXml;
-
     CacheAsset bids;
+
+    @JsonProperty("vastXml")
+    CacheAsset vastXml;
 }
