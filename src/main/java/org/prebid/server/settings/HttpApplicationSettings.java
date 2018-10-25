@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  * <p>
  * Expected the endpoint to satisfy the following API:
  * <p>
- * GET {endpoint}?request-ids=req1,req2&imp-ids=imp1,imp2,imp3
+ * GET {endpoint}?request-ids=["req1","req2"]&imp-ids=["imp1","imp2","imp3"]
  * <p>
  * This endpoint should return a payload like:
  * <pre>
@@ -126,21 +126,21 @@ public class HttpApplicationSettings implements ApplicationSettings {
         url.append(endpoint.contains("?") ? "&" : "?");
 
         if (!requestIds.isEmpty()) {
-            url.append("request-ids=").append(joinIds(requestIds));
+            url.append("request-ids=[\"").append(joinIds(requestIds)).append("\"]");
         }
 
         if (!impIds.isEmpty()) {
             if (!requestIds.isEmpty()) {
                 url.append("&");
             }
-            url.append("imp-ids=").append(joinIds(impIds));
+            url.append("imp-ids=[\"").append(joinIds(impIds)).append("\"]");
         }
 
         return url.toString();
     }
 
     private static String joinIds(Set<String> ids) {
-        return String.join(",", ids);
+        return String.join("\",\"", ids);
     }
 
     private static Future<StoredDataResult> failResponse(Throwable throwable, Set<String> requestIds,

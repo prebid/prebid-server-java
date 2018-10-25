@@ -87,17 +87,18 @@ public class AuctionRequestFactory {
 
         final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
         final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
-        final List<Imp> populatedImps = populateImps(imps, request);
         final User populatedUser = populateUser(bidRequest.getUser(), context);
+        final List<Imp> populatedImps = populateImps(imps, request);
         final Integer at = bidRequest.getAt();
-        final boolean setDefaultAt = at == null || at == 0;
+        final boolean updateAt = at == null || at == 0;
         final ObjectNode ext = bidRequest.getExt();
         final ObjectNode populatedExt = ext != null ? populateBidRequestExtension(ext) : null;
         final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
         final boolean updateTmax = bidRequest.getTmax() == null;
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
-                || setDefaultAt || updateCurrency || populatedImps != null || updateTmax) {
+        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedImps != null
+                || updateAt || populatedExt != null || updateCurrency || updateTmax) {
+
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
@@ -105,7 +106,7 @@ public class AuctionRequestFactory {
                     .imp(populatedImps != null ? populatedImps : imps)
                     // set the auction type to 1 if it wasn't on the request,
                     // since header bidding is generally a first-price auction.
-                    .at(setDefaultAt ? Integer.valueOf(1) : at)
+                    .at(updateAt ? Integer.valueOf(1) : at)
                     .ext(populatedExt != null ? populatedExt : ext)
                     .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
                     .tmax(updateTmax ? defaultTimeout : bidRequest.getTmax())
@@ -282,7 +283,6 @@ public class AuctionRequestFactory {
         User result = null;
 
         final String id = user != null ? user.getId() : null;
-
         if (StringUtils.isBlank(id)) {
             final String parsedId = uidsCookieService.parseHostCookie(context);
             if (StringUtils.isNotBlank(parsedId)) {

@@ -179,7 +179,7 @@ public class VendorListService {
     private static Map<Integer, Set<Integer>> mapVendorIdToPurposes(List<Vendor> vendors, Set<Integer> knownVendorIds) {
         return vendors.stream()
                 .filter(vendor -> knownVendorIds.contains(vendor.getId())) // optimize cache to use only known vendors
-                .collect(Collectors.toMap(Vendor::getId, Vendor::getPurposeIds));
+                .collect(Collectors.toMap(Vendor::getId, Vendor::combinedPurposes));
     }
 
     /**
@@ -246,7 +246,8 @@ public class VendorListService {
                 && vendorList.getLastUpdated() != null
                 && CollectionUtils.isNotEmpty(vendorList.getVendors())
                 && vendorList.getVendors().stream()
-                .allMatch(vendor -> vendor != null && vendor.getId() != null && vendor.getPurposeIds() != null);
+                .allMatch(vendor -> vendor != null && vendor.getId() != null
+                        && (vendor.getPurposeIds() != null || vendor.getLegIntPurposeIds() != null));
     }
 
     private Future<Void> saveToFileAndUpdateCache(VendorListResult vendorListResult) {

@@ -7,6 +7,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
@@ -16,6 +17,7 @@ import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +57,11 @@ public class GdprService {
         return resolveGdprWithCountryValue(gdpr, ipAddress, timeout)
                 .compose(gdprWithCountry -> toGdprResponse(gdprWithCountry.getGdpr(), gdprConsent, purposes, vendorIds,
                         gdprWithCountry.getCountry()));
+    }
+
+    public Future<GdprResponse> resultByVendor(Set<Integer> vendorIds, String gdpr,
+                                               String gdprConsent, String ipAddress, Timeout timeout) {
+        return resultByVendor(Collections.emptySet(), vendorIds, gdpr, gdprConsent, ipAddress, timeout);
     }
 
     /**
@@ -129,10 +136,16 @@ public class GdprService {
             return sameResultFor(vendorIds, false);
         }
 
-        // consent string confirms user has allowed all purposes
-        final Set<Integer> purposeIds = purposes.stream().map(GdprPurpose::getId).collect(Collectors.toSet());
-        if (!getAllowedPurposeIdsFromConsent(vendorConsent).containsAll(purposeIds)) {
-            return sameResultFor(vendorIds, false);
+        final Set<Integer> allowedPurposeIds = getAllowedPurposeIdsFromConsent(vendorConsent);
+        final Set<Integer> purposeIds;
+        if (CollectionUtils.isEmpty(purposes)) {
+            purposeIds = allowedPurposeIds;
+        } else {
+            // consent string confirms user has allowed all purposes
+            purposeIds = purposes.stream().map(GdprPurpose::getId).collect(Collectors.toSet());
+            if (!allowedPurposeIds.containsAll(purposeIds)) {
+                return sameResultFor(vendorIds, false);
+            }
         }
 
         return vendorListService.forVersion(vendorConsent.getVendorListVersion())
