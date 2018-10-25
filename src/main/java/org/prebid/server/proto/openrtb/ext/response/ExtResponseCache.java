@@ -8,7 +8,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public final class ExtResponseCache {
+public class ExtResponseCache {
 
     CacheAsset vastXml;
 

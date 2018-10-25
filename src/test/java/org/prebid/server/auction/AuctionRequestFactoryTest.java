@@ -57,7 +57,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
-        factory = new AuctionRequestFactory(Integer.MAX_VALUE, "USD", storedRequestProcessor, paramsExtractor,
+        factory = new AuctionRequestFactory(2000L, Integer.MAX_VALUE, "USD", storedRequestProcessor, paramsExtractor,
                 uidsCookieService, requestValidator);
     }
 
@@ -79,7 +79,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(1, "USD", storedRequestProcessor, paramsExtractor,
+        factory = new AuctionRequestFactory(2000L, 1, "USD", storedRequestProcessor, paramsExtractor,
                 uidsCookieService, requestValidator);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
@@ -169,7 +169,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined(){
+    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined() {
         // given
         givenBidRequest(BidRequest.builder().imp(singletonList(Imp.builder().build())).build());
         given(paramsExtractor.secureFrom(any())).willReturn(0);
@@ -189,6 +189,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
                 .user(User.builder().id("userId").build())
                 .cur(singletonList("USD"))
+                .tmax(1000L)
                 .at(1)
                 .build();
 
@@ -294,6 +295,18 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getCur()).isEqualTo(singletonList("USD"));
+    }
+
+    @Test
+    public void shouldSetDefaultTmaxIfInitialValueIsEqualsToNull() {
+        // given
+        givenBidRequest(BidRequest.builder().tmax(null).build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getTmax()).isEqualTo(2000L);
     }
 
     @Test

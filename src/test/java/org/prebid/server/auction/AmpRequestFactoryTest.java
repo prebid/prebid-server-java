@@ -178,8 +178,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                         emptyMap(), ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(2,
                                 singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
                                         BigDecimal.valueOf(0.1))))), null, true, true), null,
-                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null),
-                                ExtRequestPrebidCacheVastxml.of(null))));
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
+                                ExtRequestPrebidCacheVastxml.of(null, null))));
     }
 
     @Test
@@ -369,7 +369,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> Json.mapper.treeToValue(future.result().getExt(), ExtBidRequest.class)).isNotNull()
                 .extracting(extBidRequest -> extBidRequest.getPrebid().getCache().getBids())
-                .containsExactly(ExtRequestPrebidCacheBids.of(null));
+                .containsExactly(ExtRequestPrebidCacheBids.of(null, null));
     }
 
     @Test
@@ -395,7 +395,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam("debug")).willReturn("1");
 
         final BidRequest bidRequest = givenBidRequestWithExt(ExtRequestTargeting.of(null, null, null, null),
-                ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null), ExtRequestPrebidCacheVastxml.of(null)));
+                ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
+                        ExtRequestPrebidCacheVastxml.of(null, null)));
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
 
         // when

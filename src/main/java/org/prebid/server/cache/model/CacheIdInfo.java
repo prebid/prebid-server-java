@@ -1,4 +1,4 @@
-package org.prebid.server.cache;
+package org.prebid.server.cache.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;

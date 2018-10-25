@@ -5,6 +5,8 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -16,6 +18,9 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.account.AccountCacheService;
+import org.prebid.server.cache.account.SimpleAccountCacheService;
+import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
@@ -36,16 +41,21 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 @Configuration
@@ -57,13 +67,46 @@ public class ServiceConfiguration {
             @Value("${cache.host}") String host,
             @Value("${cache.query}") String query,
             @Value("${cache.hostPath:}") String hostPath,
+            @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
+            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            AccountCacheService accountCacheService,
             HttpClient httpClient) {
 
         return new CacheService(
+                accountCacheService,
+                CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, query),
                 hostPath);
+    }
+
+    @Bean
+    AccountCacheService simpleAccountCacheService(AccountCacheProperties accountCacheProperties) {
+        return new SimpleAccountCacheService(accountCacheProperties.getAccountToCacheTtl());
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "cache")
+    @Data
+    @NoArgsConstructor
+    private static class AccountCacheProperties {
+
+        private Map<String, Map<String, Integer>> account;
+
+        private final Map<String, CacheTtl> accountToCacheTtl = new HashMap<>();
+
+        @PostConstruct
+        private void init() {
+            final Map<String, Map<String, Integer>> account = getAccount();
+            if (account != null) {
+                for (Map.Entry<String, Map<String, Integer>> entry : account.entrySet()) {
+                    accountToCacheTtl.put(entry.getKey(), CacheTtl.of(
+                            entry.getValue().get("banner-ttl-seconds"),
+                            entry.getValue().get("video-ttl-seconds")));
+                }
+            }
+        }
     }
 
     @Bean
@@ -86,6 +129,7 @@ public class ServiceConfiguration {
 
     @Bean
     AuctionRequestFactory auctionRequestFactory(
+            @Value("${auction.default-timeout-ms}") long defaultTimeout,
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor,
@@ -93,7 +137,7 @@ public class ServiceConfiguration {
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator) {
 
-        return new AuctionRequestFactory(maxRequestSize, adServerCurrency, storedRequestProcessor,
+        return new AuctionRequestFactory(defaultTimeout, maxRequestSize, adServerCurrency, storedRequestProcessor,
                 implicitParametersExtractor, uidsCookieService, requestValidator);
     }
 
@@ -223,8 +267,6 @@ public class ServiceConfiguration {
 
     @Bean
     ExchangeService exchangeService(
-            @Value("${auction.expected-cache-time-ms}") long expectedCacheTimeMs,
-            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             BidderCatalog bidderCatalog,
             ResponseBidValidator responseBidValidator,
             CacheService cacheService,
@@ -232,10 +274,12 @@ public class ServiceConfiguration {
             GdprService gdprService,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
-            Clock clock) {
+            Clock clock,
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
+            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, bidResponsePostProcessor,
-                currencyConversionService, gdprService, metrics, clock, expectedCacheTimeMs, useGeoLocation);
+                currencyConversionService, gdprService, metrics, clock, useGeoLocation, expectedCacheTimeMs);
     }
 
     @Bean
