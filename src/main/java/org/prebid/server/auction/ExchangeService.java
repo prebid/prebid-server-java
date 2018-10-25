@@ -159,10 +159,10 @@ public class ExchangeService {
         // sanity check: discard imps without extension
         final List<Imp> imps = imps(bidRequest);
 
-        final Map<String, List<String>> deprecatedBiddersErrors = new HashMap<>();
+        final Map<String, List<String>> errors = new HashMap<>();
 
         // identify valid biddersAndErrors and aliases out of imps
-        final List<String> bidders = biddersAndErrors(imps, deprecatedBiddersErrors, aliases);
+        final List<String> bidders = biddersAndErrors(imps, errors, aliases);
 
         return extractBidderRequests(bidRequest, imps, bidders, uidsCookie, aliases, timeout)
                 .map(bidderRequests ->
@@ -172,12 +172,12 @@ public class ExchangeService {
                                 auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
                                 currencyRates(targeting)))
                         .collect(Collectors.toList())))
-                // send all the requests to the biddersAndErrors and gathers results
+                // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
-                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout, deprecatedBiddersErrors))
+                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, timeout, errors))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
     }
 
