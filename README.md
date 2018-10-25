@@ -53,10 +53,14 @@ settings:
     settings-filename: sample-app-settings.yml
     stored-requests-dir: /tmp
     stored-imps-dir: /tmp
+gdpr:
+  vendorlist:
+    filesystem-cache-dir: /tmp
+status-response: "ok"
 ```
 
 Also, create the Data Cache settings file `sample-app-settings.yml` with content:
-```
+```yaml
 accounts:
   - 1001
 ```
