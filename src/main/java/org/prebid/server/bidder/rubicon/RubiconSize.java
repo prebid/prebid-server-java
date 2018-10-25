@@ -80,7 +80,7 @@ public final class RubiconSize {
     public static List<Format> idToSize(List<Integer> sizeIds) {
         final List<Format> result = new ArrayList<>();
         for (Integer id : sizeIds) {
-            List<Format> idResult = SIZES.keySet().stream()
+            final List<Format> idResult = SIZES.keySet().stream()
                     .filter(rubiconSize -> SIZES.get(rubiconSize).equals(id))
                     // sort and limit to avoid conflicts when one value(id) corresponds to multiple keys(sizes)
                     .sorted(Comparator.comparing(rubiconSize -> rubiconSize.h))

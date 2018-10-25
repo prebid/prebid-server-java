@@ -191,18 +191,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (video != null) {
             builder.video(makeVideo(video, rubiconImpExt.getVideo()));
         } else {
-            final List<Integer> sizes = rubiconImpExt.getSizes();
-            if (sizes != null) {
-                if (RubiconSize.idToSize(sizes).isEmpty()) {
+            final List<Format> overriddenSizes;
+            final List<Integer> sizeIds = rubiconImpExt.getSizes();
+            if (sizeIds != null) {
+                final List<Format> resolvedSizes = RubiconSize.idToSize(sizeIds);
+                if (resolvedSizes.isEmpty()) {
                     throw new PreBidException("Bad request.imp[].ext.rubicon.sizes");
-                } else {
-                    final List<Format> formats = RubiconSize.idToSize(sizes);
-                    final Banner modifiedBanner = Banner.builder().format(formats).build();
-                    builder.banner(makeBanner(modifiedBanner));
                 }
+                overriddenSizes = resolvedSizes;
             } else {
-                builder.banner(makeBanner(imp.getBanner()));
+                overriddenSizes = null;
             }
+            builder.banner(makeBanner(imp.getBanner(), overriddenSizes));
         }
 
         return builder.build();
@@ -260,9 +260,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Banner makeBanner(Banner banner) {
+    private static Banner makeBanner(Banner banner, List<Format> overriddenSizes) {
+        final List<Format> sizes = overriddenSizes != null ? overriddenSizes : banner.getFormat();
         return banner.toBuilder()
-                .ext(Json.mapper.valueToTree(makeBannerExt(banner.getFormat())))
+                .ext(Json.mapper.valueToTree(makeBannerExt(sizes)))
                 .build();
     }
 
