@@ -16,17 +16,12 @@ public class BidderCatalog {
 
     private final Map<String, BidderDeps> bidderDepsMap;
 
-    private final Map<String, BidderDeps> deprecatedBidderDepsMap = new HashMap<>();
+    private final Map<String, String> deprecatedNameToError = new HashMap<>();
 
     public BidderCatalog(List<BidderDeps> bidderDeps) {
         bidderDepsMap = Objects.requireNonNull(bidderDeps).stream()
+                .peek(deps -> deprecatedNameToError.putAll(deps.getDeprecatedNameToError()))
                 .collect(Collectors.toMap(BidderDeps::getName, Function.identity()));
-
-        for (BidderDeps bidderDepsInner : bidderDeps) {
-            for (String deprecatedBidderName : bidderDepsInner.getDeprecatedNames()) {
-                deprecatedBidderDepsMap.put(deprecatedBidderName, bidderDepsInner);
-            }
-        }
     }
 
     /**
@@ -44,11 +39,11 @@ public class BidderCatalog {
     }
 
     public boolean isDeprecatedName(String name) {
-        return deprecatedBidderDepsMap.containsKey(name);
+        return deprecatedNameToError.containsKey(name);
     }
 
-    public String getNewNameForDeprecatedBidder(String name) {
-        return deprecatedBidderDepsMap.get(name).getName();
+    public String errorForDeprecatedName(String name) {
+        return deprecatedNameToError.get(name);
     }
 
     /**

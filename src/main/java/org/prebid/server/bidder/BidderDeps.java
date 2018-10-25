@@ -3,7 +3,7 @@ package org.prebid.server.bidder;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * Gathers all dependencies for bidder.
@@ -20,7 +20,7 @@ public class BidderDeps {
      */
     String name;
 
-    List<String> deprecatedNames;
+    Map<String, String> deprecatedNameToError;
 
     /**
      * Bidder's meta information is used in {@link org.prebid.server.handler.info.BidderDetailsHandler} handler

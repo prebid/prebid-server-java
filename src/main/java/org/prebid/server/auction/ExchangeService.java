@@ -59,7 +59,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.BidderInfo;
-import org.prebid.server.spring.config.bidder.BidderConfiguration;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -157,21 +156,13 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
+        // sanity check: discard imps without extension
+        final List<Imp> imps = imps(bidRequest);
+
         final Map<String, List<String>> deprecatedBiddersErrors = new HashMap<>();
 
-        // sanity check: discard imps without extension
-        final List<Imp> imps = bidRequest.getImp().stream()
-                .filter(imp -> imp.getExt() != null)
-                .collect(Collectors.toList());
-
-        // identify valid bidders and aliases out of imps
-        final List<String> bidders = imps.stream()
-                .flatMap(imp -> asStream(imp.getExt().fieldNames())
-                        .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
-                        .peek(s -> processDeprecatedBidder(s, deprecatedBiddersErrors))
-                        .filter(bidder -> isValidBidder(bidder, aliases)))
-                .distinct()
-                .collect(Collectors.toList());
+        // identify valid biddersAndErrors and aliases out of imps
+        final List<String> bidders = biddersAndErrors(imps, deprecatedBiddersErrors, aliases);
 
         return extractBidderRequests(bidRequest, imps, bidders, uidsCookie, aliases, timeout)
                 .map(bidderRequests ->
@@ -181,7 +172,7 @@ public class ExchangeService {
                                 auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
                                 currencyRates(targeting)))
                         .collect(Collectors.toList())))
-                // send all the requests to the bidders and gathers results
+                // send all the requests to the biddersAndErrors and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
@@ -190,13 +181,21 @@ public class ExchangeService {
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
     }
 
-    private void processDeprecatedBidder(String bidder, Map<String, List<String>> deprecatedBiddersErrors) {
-        if (bidderCatalog.isDeprecatedName(bidder)) {
-            String newBidderName = bidderCatalog.getNewNameForDeprecatedBidder(bidder);
-            List<String> errors = new ArrayList<>();
-            errors.add(String.format(BidderConfiguration.ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED, bidder, newBidderName));
-            deprecatedBiddersErrors.put(bidder, errors);
-        }
+    private List<Imp> imps(BidRequest bidRequest) {
+        return bidRequest.getImp().stream()
+                .filter(imp -> imp.getExt() != null)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> biddersAndErrors(List<Imp> imps, Map<String, List<String>> deprecatedBiddersErrors,
+                                          Map<String, String> aliases) {
+        return imps.stream()
+                .flatMap(imp -> asStream(imp.getExt().fieldNames())
+                        .filter(bidder -> !Objects.equals(bidder, PREBID_EXT))
+                        .peek(s -> processDeprecatedBidder(s, deprecatedBiddersErrors))
+                        .filter(bidder -> isValidBidder(bidder, aliases)))
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     /**
@@ -233,6 +232,13 @@ public class ExchangeService {
         final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
 
         return publisher != null ? publisher.getId() : StringUtils.EMPTY;
+    }
+
+    private void processDeprecatedBidder(String bidder, Map<String, List<String>> deprecatedBiddersErrors) {
+        if (bidderCatalog.isDeprecatedName(bidder)) {
+            deprecatedBiddersErrors.put(bidder,
+                    Collections.singletonList(bidderCatalog.errorForDeprecatedName(bidder)));
+        }
     }
 
     /**
@@ -287,7 +293,7 @@ public class ExchangeService {
         final ExtUser extUser = extUser(user);
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
-        // set empty ext.prebid.buyerids attr to avoid leaking of buyerids across bidders
+        // set empty ext.prebid.buyerids attr to avoid leaking of buyerids across biddersAndErrors
         final ObjectNode userExtNode = !uidsBody.isEmpty() && extUser != null
                 ? removeBuyersidsFromUserExtPrebid(extUser) : null;
         final ExtRegs extRegs = extRegs(bidRequest.getRegs());
