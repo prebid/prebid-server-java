@@ -66,9 +66,9 @@ public class ServiceConfiguration {
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.query}") String query,
-            @Value("${cache.hostPath:}") String hostPath,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            @Value("${cache.hostPath:}") String hostPath,
             AccountCacheService accountCacheService,
             HttpClient httpClient) {
 

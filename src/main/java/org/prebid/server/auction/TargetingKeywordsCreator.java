@@ -146,7 +146,7 @@ public class TargetingKeywordsCreator {
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
         return makeFor(bid.getBidder(), winningBid, bid.getPrice(), StringUtils.EMPTY, bid.getWidth(), bid.getHeight(),
-                bid.getCacheId(), null, bid.getDealId(), StringUtils.EMPTY);
+                bid.getCacheId(), null, bid.getDealId(), null);
     }
 
     /**
