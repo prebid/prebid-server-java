@@ -846,7 +846,8 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, BidRequestCacheInfo cacheInfo,
-                                              String publisherId, Timeout timeout, Map<String, List<String>> deprecatedBiddersErrors) {
+                                              String publisherId, Timeout timeout, Map<String,
+                                              List<String>> deprecatedBiddersErrors) {
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, winningBids, winningBidsByBidder);
