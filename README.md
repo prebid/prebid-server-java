@@ -1,4 +1,4 @@
-# Experimental - Not the "official" version. See https://github.com/prebid/prebid-server/
+## This code is being used in production by multiple Prebid.org members, but is not the "official" version. See https://github.com/prebid/prebid-server/
 
 # Prebid Server
 
