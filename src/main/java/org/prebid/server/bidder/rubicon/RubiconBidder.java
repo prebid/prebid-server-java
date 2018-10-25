@@ -191,11 +191,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (video != null) {
             builder.video(makeVideo(video, rubiconImpExt.getVideo()));
         } else {
-            List<Integer> sizes = rubiconImpExt.getSizes();
+            final List<Integer> sizes = rubiconImpExt.getSizes();
             if (sizes != null) {
-                if (RubiconSize.idToSize(sizes).isEmpty())
+                if (RubiconSize.idToSize(sizes).isEmpty()) {
                     throw new PreBidException("Bad request.imp[].ext.rubicon.sizes");
-                else {
+                } else {
                     final List<Format> formats = RubiconSize.idToSize(sizes);
                     final Banner modifiedBanner = Banner.builder().format(formats).build();
                     builder.banner(makeBanner(modifiedBanner));
