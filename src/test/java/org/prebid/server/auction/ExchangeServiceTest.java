@@ -1073,7 +1073,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Bid bid2 = Bid.builder().id("bidId2").impid("impId1").price(BigDecimal.valueOf(7.19)).build();
         givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid2))));
 
-        given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any()))
+        given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(singletonMap(bid2, CacheIdInfo.of(null, "videoCacheId2"))));
 
         given(cacheService.getHostPath()).willReturn("someHost");
@@ -1086,7 +1086,7 @@ public class ExchangeServiceTest extends VertxTest {
                         null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
                                 2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
                                         BigDecimal.valueOf(0.5))))), null, true, true), null,
-                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null)))))));
+                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null)))))));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)

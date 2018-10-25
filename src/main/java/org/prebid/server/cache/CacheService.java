@@ -360,10 +360,6 @@ public class CacheService {
         return result;
     }
 
-    public String getEndpointUrl() {
-        return endpointUrl;
-    }
-
     /**
      * Composes cached asset URL for the given UUID cache value.
      */

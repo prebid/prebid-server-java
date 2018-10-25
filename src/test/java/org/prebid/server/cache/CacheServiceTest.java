@@ -82,9 +82,9 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new CacheService(null, null, null, null, null));
+                () -> new CacheService(null, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new CacheService(accountCacheService, null, null, null, null));
+                () -> new CacheService(accountCacheService, null, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
                 () -> new CacheService(accountCacheService, mediaTypeCacheTtl, null, null, null, null));
         assertThatNullPointerException().isThrownBy(
@@ -406,7 +406,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(accountCacheService, CacheTtl.of(20, null), httpClient,
-                "http://cache-service/cache", "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+                "http://cache-service/cache", "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", null);
 
         givenHttpClientReturnsResponse(200, null);
 
@@ -429,7 +429,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(accountCacheService, CacheTtl.of(10, null), httpClient,
-                "http://cache-service/cache", "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+                "http://cache-service/cache", "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%", null);
 
         givenHttpClientReturnsResponse(200, null);
 
