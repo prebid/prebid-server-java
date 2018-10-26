@@ -53,26 +53,32 @@ public class CacheService {
     private final AccountCacheService accountCacheService;
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
-    private final String endpointUrl;
-    private final String cachedAssetUrlTemplate;
-    private final String hostPath;
+    private final URL endpointUrl;
+    private final URL cachedAssetUrlTemplate;
 
     public CacheService(AccountCacheService accountCacheService, CacheTtl mediaTypeCacheTtl,
-                        HttpClient httpClient, String endpointUrl, String cachedAssetUrlTemplate, String hostPath) {
+                        HttpClient httpClient, URL endpointUrl, URL cachedAssetUrlTemplate) {
         this.accountCacheService = Objects.requireNonNull(accountCacheService);
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
-        this.hostPath = hostPath;
     }
 
-    public String getEndpointUrl() {
-        return endpointUrl;
+    public String getEndpointHost() {
+        String protocol = endpointUrl.getProtocol();
+        String host = endpointUrl.getHost();
+        int port = endpointUrl.getPort();
+
+        if (port == -1) {
+            return String.format("%s://%s", protocol, host);
+        } else {
+            return String.format("%s://%s:%d", protocol, host, port);
+        }
     }
 
-    public String getHostPath() {
-        return hostPath;
+    public String getEndpointPath() {
+        return endpointUrl.getPath();
     }
 
     /**
@@ -229,7 +235,8 @@ public class CacheService {
             return failResponse(new TimeoutException("Timeout has been exceeded"));
         }
 
-        return httpClient.post(endpointUrl, HttpUtil.headers(), Json.encode(bidCacheRequest), remainingTimeout)
+        return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), Json.encode(bidCacheRequest),
+                remainingTimeout)
                 .compose(response -> processResponse(response, bidCount))
                 .recover(CacheService::failResponse);
     }
@@ -364,16 +371,16 @@ public class CacheService {
      * Composes cached asset URL for the given UUID cache value.
      */
     public String getCachedAssetURL(String uuid) {
-        return cachedAssetUrlTemplate.replaceFirst("%PBS_CACHE_UUID%", uuid);
+        return cachedAssetUrlTemplate.toString().replaceFirst("%PBS_CACHE_UUID%", uuid);
     }
 
     /**
      * Composes prebid cache service url against the given schema and host.
      */
-    public static String getCacheEndpointUrl(String cacheSchema, String cacheHost) {
+    public static URL getCacheEndpointUrl(String cacheSchema, String cacheHost, String path) {
         try {
             final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
-            return new URL(baseUrl, "/cache").toString();
+            return new URL(baseUrl, "/" + path);
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cache endpoint for prebid cache service", e);
         }
@@ -382,10 +389,11 @@ public class CacheService {
     /**
      * Composes cached asset url template against the given query, schema and host.
      */
-    public static String getCachedAssetUrlTemplate(String cacheSchema, String cacheHost, String cacheQuery) {
+    public static URL getCachedAssetUrlTemplate(String cacheSchema, String cacheHost, String path,
+                                                   String cacheQuery) {
         try {
             final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
-            return new URL(baseUrl, "/cache?" + cacheQuery).toString();
+            return new URL(baseUrl, "/" + path + "?" + cacheQuery);
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cached asset url template for prebid cache service", e);
         }

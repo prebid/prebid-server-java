@@ -65,10 +65,10 @@ public class ServiceConfiguration {
     CacheService cacheService(
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
+            @Value("${cache.path}") String path,
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            @Value("${cache.hostPath:}") String hostPath,
             AccountCacheService accountCacheService,
             HttpClient httpClient) {
 
@@ -76,9 +76,8 @@ public class ServiceConfiguration {
                 accountCacheService,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
-                CacheService.getCacheEndpointUrl(scheme, host),
-                CacheService.getCachedAssetUrlTemplate(scheme, host, query),
-                hostPath);
+                CacheService.getCacheEndpointUrl(scheme, host, path),
+                CacheService.getCachedAssetUrlTemplate(scheme, host, path, query));
     }
 
     @Bean

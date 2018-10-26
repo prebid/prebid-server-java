@@ -1038,7 +1038,7 @@ public class ExchangeService {
             }
 
             targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId,
-                    cacheService.getHostPath());
+                    cacheService.getEndpointHost(), cacheService.getEndpointPath());
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
             cache = bids != null || vastXml != null ? ExtResponseCache.of(vastXml, bids) : null;

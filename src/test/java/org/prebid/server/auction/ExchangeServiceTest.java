@@ -1076,7 +1076,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(singletonMap(bid2, CacheIdInfo.of(null, "videoCacheId2"))));
 
-        given(cacheService.getHostPath()).willReturn("someHost");
+        given(cacheService.getEndpointHost()).willReturn("someHost");
+        given(cacheService.getEndpointPath()).willReturn("somePath");
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -1095,8 +1096,10 @@ public class ExchangeServiceTest extends VertxTest {
         //then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
                 .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
-                .extracting(targeting -> targeting.get("hb_cache_hostpath"))
-                .containsOnly("someHost", null);
+                .extracting(targeting -> targeting.get("hb_cache_host"),
+                            targeting -> targeting.get("hb_cache_path"))
+                .containsOnly(tuple("someHost", "somePath"),
+                              tuple(null, null));
     }
 
     @Test
