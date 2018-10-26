@@ -1041,7 +1041,7 @@ public class ExchangeService {
                     cacheService.getEndpointHost(), cacheService.getEndpointPath());
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
-            cache = bids != null || vastXml != null ? ExtResponseCache.of(vastXml, bids) : null;
+            cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
         } else {
             targetingKeywords = null;
             cache = null;
