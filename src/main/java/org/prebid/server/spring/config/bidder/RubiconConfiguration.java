@@ -42,7 +42,7 @@ public class RubiconConfiguration extends BidderConfiguration {
     @Value("${adapters.rubicon.XAPI.Password}")
     private String password;
 
-    @Value("${adapters.rubicon.deprecated-names:}")
+    @Value("${adapters.rubicon.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

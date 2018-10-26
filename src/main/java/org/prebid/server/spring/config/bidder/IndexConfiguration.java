@@ -36,7 +36,7 @@ public class IndexConfiguration extends BidderConfiguration {
     @Value("${adapters.indexexchange.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${adapters.indexexchange.deprecated-names:}")
+    @Value("${adapters.indexexchange.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

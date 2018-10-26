@@ -38,7 +38,7 @@ public class EplanningConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.eplanning.deprecated-names:}")
+    @Value("${adapters.eplanning.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Override

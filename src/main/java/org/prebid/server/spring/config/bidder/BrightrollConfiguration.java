@@ -38,7 +38,7 @@ public class BrightrollConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.brightroll.deprecated-names:}")
+    @Value("${adapters.brightroll.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

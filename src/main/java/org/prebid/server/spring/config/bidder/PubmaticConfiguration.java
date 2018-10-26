@@ -39,7 +39,7 @@ public class PubmaticConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.pubmatic.deprecated-names:}")
+    @Value("${adapters.pubmatic.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

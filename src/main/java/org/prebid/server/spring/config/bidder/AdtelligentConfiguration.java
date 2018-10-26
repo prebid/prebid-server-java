@@ -38,7 +38,7 @@ public class AdtelligentConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.adtelligent.deprecated-names:}")
+    @Value("${adapters.adtelligent.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Override

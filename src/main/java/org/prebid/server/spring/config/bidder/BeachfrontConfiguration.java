@@ -41,7 +41,7 @@ public class BeachfrontConfiguration extends BidderConfiguration {
     @Value("${adapters.beachfront.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${adapters.beachfront.deprecated-names:}")
+    @Value("${adapters.beachfront.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

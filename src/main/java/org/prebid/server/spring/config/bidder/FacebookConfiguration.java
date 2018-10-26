@@ -43,7 +43,7 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Value("${adapters.facebook.platformId:#{null}}")
     private String platformId;
 
-    @Value("${adapters.facebook.deprecated-names:}")
+    @Value("${adapters.facebook.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

@@ -39,7 +39,7 @@ public class ConversantConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.conversant.deprecated-names:}")
+    @Value("${adapters.conversant.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

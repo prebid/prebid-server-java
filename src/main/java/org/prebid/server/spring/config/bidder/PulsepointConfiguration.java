@@ -39,7 +39,7 @@ public class PulsepointConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.pulsepoint.deprecated-names:}")
+    @Value("${adapters.pulsepoint.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

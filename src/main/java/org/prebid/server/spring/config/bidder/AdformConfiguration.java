@@ -39,7 +39,7 @@ public class AdformConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.adform.deprecated-names:}")
+    @Value("${adapters.adform.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

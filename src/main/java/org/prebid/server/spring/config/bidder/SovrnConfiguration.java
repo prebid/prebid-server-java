@@ -39,7 +39,7 @@ public class SovrnConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.sovrn.deprecated-names:}")
+    @Value("${adapters.sovrn.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

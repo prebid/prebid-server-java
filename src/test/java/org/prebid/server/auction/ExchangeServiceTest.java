@@ -209,8 +209,9 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldProccesRequestAndAddErrorAboutDeprecatedBidder() {
-        String invalidBidderName = "invalid";
+    public void shouldProcessRequestAndAddErrorAboutDeprecatedBidder() {
+        //given
+        final String invalidBidderName = "invalid";
 
         given(bidderCatalog.isValidName(invalidBidderName)).willReturn(false);
         given(bidderCatalog.isDeprecatedName(invalidBidderName)).willReturn(true);
@@ -218,13 +219,14 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(invalidBidderName, 0)));
 
+        //when
         final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext).result();
 
-        Map<String, List<String>> errors = new HashMap<>();
-        errors.put(invalidBidderName, Collections.singletonList("invalid has been deprecated and is no longer available. Use valid instead."));
+        //then
 
-        assertThat(bidResponse).hasFieldOrPropertyWithValue("ext",
-                mapper.valueToTree(ExtBidResponse.of(null, errors, new HashMap<>(), null)));
+        assertThat(bidResponse.getExt()).isEqualTo(mapper.valueToTree(ExtBidResponse.of(null,
+                Collections.singletonMap(invalidBidderName, Collections.singletonList("invalid has been deprecated and is no longer available. Use valid instead.")),
+                new HashMap<>(), null)));
     }
 
     @Test

@@ -38,7 +38,7 @@ public class SomoaudienceConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.somoaudience.deprecated-names:}")
+    @Value("${adapters.somoaudience.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

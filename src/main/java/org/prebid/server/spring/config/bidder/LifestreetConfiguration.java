@@ -39,7 +39,7 @@ public class LifestreetConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.lifestreet.deprecated-names:}")
+    @Value("${adapters.lifestreet.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean

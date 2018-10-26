@@ -39,7 +39,7 @@ public class AppnexusConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.appnexus.deprecated-names:}")
+    @Value("${adapters.appnexus.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean
