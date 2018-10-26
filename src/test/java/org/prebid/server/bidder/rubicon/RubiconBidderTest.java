@@ -221,9 +221,8 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBanner).doesNotContainNull()
-                .flatExtracting(Banner::getFormat).hasSize(2)
-                .containsOnly(Format.builder().w(300).h(250).build(),
-                        Format.builder().w(300).h(600).build());
+                .flatExtracting(Banner::getFormat).hasSize(1)
+                .containsOnly(Format.builder().w(300).h(250).build());
     }
 
     @Test
