@@ -263,7 +263,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static Banner makeBanner(Banner banner, List<Format> overriddenSizes) {
         final List<Format> sizes = overriddenSizes != null ? overriddenSizes : banner.getFormat();
         return banner.toBuilder()
-                .format(overriddenSizes)
+                .format(sizes)
                 .ext(Json.mapper.valueToTree(makeBannerExt(sizes)))
                 .build();
     }
