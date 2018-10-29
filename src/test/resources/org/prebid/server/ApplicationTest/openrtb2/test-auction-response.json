@@ -33,8 +33,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=117431c9-807a-41e1-82a7-dcd8f8875493",
-                  "cache_id": "117431c9-807a-41e1-82a7-dcd8f8875493"
+                  "url": "{{ cache_resource_url }}117431c9-807a-41e1-82a7-dcd8f8875493",
+                  "cacheId": "117431c9-807a-41e1-82a7-dcd8f8875493"
                 }
               }
             },
@@ -78,8 +78,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=e81ad329-bf26-4f03-b249-5916abf8daa3",
-                  "cache_id": "e81ad329-bf26-4f03-b249-5916abf8daa3"
+                  "url": "{{ cache_resource_url }}e81ad329-bf26-4f03-b249-5916abf8daa3",
+                  "cacheId": "e81ad329-bf26-4f03-b249-5916abf8daa3"
                 }
               }
             },
@@ -163,8 +163,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=81bc3e9d-5b73-4b34-9626-59f352514167",
-                  "cache_id": "81bc3e9d-5b73-4b34-9626-59f352514167"
+                  "url": "{{ cache_resource_url }}81bc3e9d-5b73-4b34-9626-59f352514167",
+                  "cacheId": "81bc3e9d-5b73-4b34-9626-59f352514167"
                 }
               }
             }
@@ -203,8 +203,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=34698794-e297-47bd-b140-ed42cede87c1",
-                  "cache_id": "34698794-e297-47bd-b140-ed42cede87c1"
+                  "url": "{{ cache_resource_url }}34698794-e297-47bd-b140-ed42cede87c1",
+                  "cacheId": "34698794-e297-47bd-b140-ed42cede87c1"
                 }
               }
             }
@@ -243,8 +243,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=92c39b22-48d8-43e6-bd79-ffea57ce0196",
-                  "cache_id": "92c39b22-48d8-43e6-bd79-ffea57ce0196"
+                  "url": "{{ cache_resource_url }}92c39b22-48d8-43e6-bd79-ffea57ce0196",
+                  "cacheId": "92c39b22-48d8-43e6-bd79-ffea57ce0196"
                 }
               }
             }
@@ -277,8 +277,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=e3c40044-003e-4d90-927b-7be6b622cd6f",
-                  "cache_id": "e3c40044-003e-4d90-927b-7be6b622cd6f"
+                  "url": "{{ cache_resource_url }}e3c40044-003e-4d90-927b-7be6b622cd6f",
+                  "cacheId": "e3c40044-003e-4d90-927b-7be6b622cd6f"
                 }
               }
             }
@@ -312,13 +312,13 @@
                 "hb_uuid": "4fe30d27-99c1-4644-9d86-37abc08d78f0"
               },
               "cache": {
-                "vast_xml": {
-                  "url": "http://localhost:8090/cache?uuid=4fe30d27-99c1-4644-9d86-37abc08d78f0",
-                  "cache_id": "4fe30d27-99c1-4644-9d86-37abc08d78f0"
+                "vastXml": {
+                  "url": "{{ cache_resource_url }}4fe30d27-99c1-4644-9d86-37abc08d78f0",
+                  "cacheId": "4fe30d27-99c1-4644-9d86-37abc08d78f0"
                 },
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=a93c0531-d0e9-43f8-9b98-b60116c8dc84",
-                  "cache_id": "a93c0531-d0e9-43f8-9b98-b60116c8dc84"
+                  "url": "{{ cache_resource_url }}a93c0531-d0e9-43f8-9b98-b60116c8dc84",
+                  "cacheId": "a93c0531-d0e9-43f8-9b98-b60116c8dc84"
                 }
               }
             }
@@ -352,13 +352,13 @@
                 "hb_uuid": "d93a2cae-0e60-472e-b911-74d0acdb99b2"
               },
               "cache": {
-                "vast_xml": {
-                  "url": "http://localhost:8090/cache?uuid=d93a2cae-0e60-472e-b911-74d0acdb99b2",
-                  "cache_id": "d93a2cae-0e60-472e-b911-74d0acdb99b2"
+                "vastXml": {
+                  "url": "{{ cache_resource_url }}d93a2cae-0e60-472e-b911-74d0acdb99b2",
+                  "cacheId": "d93a2cae-0e60-472e-b911-74d0acdb99b2"
                 },
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=44a1828f-21b2-4bd8-b0b3-93423d4d11e5",
-                  "cache_id": "44a1828f-21b2-4bd8-b0b3-93423d4d11e5"
+                  "url": "{{ cache_resource_url }}44a1828f-21b2-4bd8-b0b3-93423d4d11e5",
+                  "cacheId": "44a1828f-21b2-4bd8-b0b3-93423d4d11e5"
                 }
               }
             }
@@ -397,8 +397,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=16ba7cad-b7d0-436f-b185-c2a725b020b7",
-                  "cache_id": "16ba7cad-b7d0-436f-b185-c2a725b020b7"
+                  "url": "{{ cache_resource_url }}16ba7cad-b7d0-436f-b185-c2a725b020b7",
+                  "cacheId": "16ba7cad-b7d0-436f-b185-c2a725b020b7"
                 }
               }
             }
@@ -462,8 +462,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=d107856d-5066-4af9-905d-6d16d0feba29",
-                  "cache_id": "d107856d-5066-4af9-905d-6d16d0feba29"
+                  "url": "{{ cache_resource_url }}d107856d-5066-4af9-905d-6d16d0feba29",
+                  "cacheId": "d107856d-5066-4af9-905d-6d16d0feba29"
                 }
               }
             }
@@ -499,8 +499,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=e3c415a7-700e-4d90-927b-7be6b622cd6f",
-                  "cache_id": "e3c415a7-700e-4d90-927b-7be6b622cd6f"
+                  "url": "{{ cache_resource_url }}e3c415a7-700e-4d90-927b-7be6b622cd6f",
+                  "cacheId": "e3c415a7-700e-4d90-927b-7be6b622cd6f"
                 }
               }
             }
@@ -531,13 +531,13 @@
                 "hb_uuid": "8931c065-dc5e-4072-9ddb-d6522c1c6783"
               },
               "cache": {
-                "vast_xml": {
-                  "url": "http://localhost:8090/cache?uuid=8931c065-dc5e-4072-9ddb-d6522c1c6783",
-                  "cache_id": "8931c065-dc5e-4072-9ddb-d6522c1c6783"
+                "vastXml": {
+                  "url": "{{ cache_resource_url }}8931c065-dc5e-4072-9ddb-d6522c1c6783",
+                  "cacheId": "8931c065-dc5e-4072-9ddb-d6522c1c6783"
                 },
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=2eb31187-b44d-4ab1-8479-298311712807",
-                  "cache_id": "2eb31187-b44d-4ab1-8479-298311712807"
+                  "url": "{{ cache_resource_url }}2eb31187-b44d-4ab1-8479-298311712807",
+                  "cacheId": "2eb31187-b44d-4ab1-8479-298311712807"
                 }
               }
             }
@@ -574,8 +574,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=70757de8-17ca-448a-b4ea-af6d3b2a78c3",
-                  "cache_id": "70757de8-17ca-448a-b4ea-af6d3b2a78c3"
+                  "url": "{{ cache_resource_url }}70757de8-17ca-448a-b4ea-af6d3b2a78c3",
+                  "cacheId": "70757de8-17ca-448a-b4ea-af6d3b2a78c3"
                 }
               }
             }
@@ -615,13 +615,13 @@
                 "hb_uuid": "267a5bf3-04a9-4670-9162-d50b3436c172"
               },
               "cache": {
-                "vast_xml": {
-                  "url": "http://localhost:8090/cache?uuid=267a5bf3-04a9-4670-9162-d50b3436c172",
-                  "cache_id": "267a5bf3-04a9-4670-9162-d50b3436c172"
+                "vastXml": {
+                  "url": "{{ cache_resource_url }}267a5bf3-04a9-4670-9162-d50b3436c172",
+                  "cacheId": "267a5bf3-04a9-4670-9162-d50b3436c172"
                 },
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=9ab8c592-f41e-43e8-a1af-d17323764dd9",
-                  "cache_id": "9ab8c592-f41e-43e8-a1af-d17323764dd9"
+                  "url": "{{ cache_resource_url }}9ab8c592-f41e-43e8-a1af-d17323764dd9",
+                  "cacheId": "9ab8c592-f41e-43e8-a1af-d17323764dd9"
                 }
               }
             },
@@ -666,8 +666,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=675b817e-f9a9-4578-bbc8-775b981de3a7",
-                  "cache_id": "675b817e-f9a9-4578-bbc8-775b981de3a7"
+                  "url": "{{ cache_resource_url }}675b817e-f9a9-4578-bbc8-775b981de3a7",
+                  "cacheId": "675b817e-f9a9-4578-bbc8-775b981de3a7"
                 }
               }
             }
@@ -706,8 +706,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=9fdd016c-c620-4a3e-95a1-65ba6957779b",
-                  "cache_id": "9fdd016c-c620-4a3e-95a1-65ba6957779b"
+                  "url": "{{ cache_resource_url }}9fdd016c-c620-4a3e-95a1-65ba6957779b",
+                  "cacheId": "9fdd016c-c620-4a3e-95a1-65ba6957779b"
                 }
               }
             }
@@ -744,13 +744,13 @@
                 "hb_deal_beachfront": "dealId18"
               },
               "cache": {
-                "vast_xml": {
-                  "url": "http://localhost:8090/cache?uuid=b6df7512-1776-44ec-82b3-87a1ce9dcd4b",
-                  "cache_id": "b6df7512-1776-44ec-82b3-87a1ce9dcd4b"
+                "vastXml": {
+                  "url": "{{ cache_resource_url }}b6df7512-1776-44ec-82b3-87a1ce9dcd4b",
+                  "cacheId": "b6df7512-1776-44ec-82b3-87a1ce9dcd4b"
                 },
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=4fe59ef5-6fb4-48c5-88b6-9870257fc49e",
-                  "cache_id": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e"
+                  "url": "{{ cache_resource_url }}4fe59ef5-6fb4-48c5-88b6-9870257fc49e",
+                  "cacheId": "4fe59ef5-6fb4-48c5-88b6-9870257fc49e"
                 }
               }
             }
@@ -789,8 +789,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=b2528f73-96ab-42ab-8f15-fbe6ed779a26",
-                  "cache_id": "b2528f73-96ab-42ab-8f15-fbe6ed779a26"
+                  "url": "{{ cache_resource_url }}b2528f73-96ab-42ab-8f15-fbe6ed779a26",
+                  "cacheId": "b2528f73-96ab-42ab-8f15-fbe6ed779a26"
                 }
               }
             }
@@ -824,13 +824,13 @@
                 "hb_size_pubmatic": "300x600"
               },
               "cache": {
-                "vast_xml": {
-                  "url": "http://localhost:8090/cache?uuid=50a20760-0377-47ec-9070-ed70d8697de6",
-                  "cache_id": "50a20760-0377-47ec-9070-ed70d8697de6"
+                "vastXml": {
+                  "url": "{{ cache_resource_url }}50a20760-0377-47ec-9070-ed70d8697de6",
+                  "cacheId": "50a20760-0377-47ec-9070-ed70d8697de6"
                 },
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=4affc26b-70a3-4461-b274-1682b64d91af",
-                  "cache_id": "4affc26b-70a3-4461-b274-1682b64d91af"
+                  "url": "{{ cache_resource_url }}4affc26b-70a3-4461-b274-1682b64d91af",
+                  "cacheId": "4affc26b-70a3-4461-b274-1682b64d91af"
                 }
               }
             }
@@ -869,8 +869,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=683fe79f-6df7-4971-ac70-820e0486992d",
-                  "cache_id": "683fe79f-6df7-4971-ac70-820e0486992d"
+                  "url": "{{ cache_resource_url }}683fe79f-6df7-4971-ac70-820e0486992d",
+                  "cacheId": "683fe79f-6df7-4971-ac70-820e0486992d"
                 }
               }
             }
@@ -906,8 +906,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "http://localhost:8090/cache?uuid=dc55e62a-50c6-43e5-86ad-802076bcfd04",
-                  "cache_id": "dc55e62a-50c6-43e5-86ad-802076bcfd04"
+                  "url": "{{ cache_resource_url }}dc55e62a-50c6-43e5-86ad-802076bcfd04",
+                  "cacheId": "dc55e62a-50c6-43e5-86ad-802076bcfd04"
                 }
               }
             }
@@ -932,7 +932,7 @@
         ],
         "beachfront": [
           {
-            "uri": "http://localhost:8090/beachfront-video-exchange?exchange_id=beachfrontAppId&prebidserver",
+            "uri": "{{ beachfront.exchange_uri }}beachfrontAppId&prebidserver",
             "requestbody": "{\"isPrebid\":true,\"appId\":\"beachfrontAppId\",\"domain\":\"example.com\",\"imp\":[{\"video\":{},\"bidfloor\":1.0,\"id\":0,\"impid\":\"impId18\"}],\"site\":{\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"geo\":{\"ip\":\"192.168.244.1\"}},\"user\":{},\"cur\":[\"USD\"]}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"62016038043\",\"impid\":\"impId18\",\"price\":8.43,\"adm\":\"adm18\",\"nurl\":\"nurl181\\\"nurl182\\\"nurl183\",\"crid\":\"crid18\",\"dealid\":\"dealId18\",\"w\":300,\"h\":250}],\"seat\":\"seatId18\",\"group\":0}]}",
             "status": 200
