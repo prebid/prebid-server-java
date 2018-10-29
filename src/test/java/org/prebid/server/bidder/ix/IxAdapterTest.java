@@ -1,5 +1,6 @@
-package org.prebid.server.bidder.index;
+package org.prebid.server.bidder.ix;
 
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -30,7 +31,7 @@ import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
-import org.prebid.server.bidder.index.proto.IndexParams;
+import org.prebid.server.bidder.ix.proto.IxParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.cookie.UidsCookie;
@@ -57,9 +58,9 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
-public class IndexAdapterTest extends VertxTest {
+public class IxAdapterTest extends VertxTest {
 
-    private static final String BIDDER = "indexExchange";
+    private static final String BIDDER = "ix";
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
 
@@ -72,30 +73,30 @@ public class IndexAdapterTest extends VertxTest {
     private AdapterRequest adapterRequest;
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
-    private IndexAdapter adapter;
-    private IndexUsersyncer usersyncer;
+    private IxAdapter adapter;
+    private IxUsersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         exchangeCall = givenExchangeCall(identity(), identity());
-        usersyncer = new IndexUsersyncer(USERSYNC_URL);
-        adapter = new IndexAdapter(usersyncer, ENDPOINT_URL);
+        usersyncer = new IxUsersyncer(USERSYNC_URL);
+        adapter = new IxAdapter(usersyncer, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new IndexAdapter(null, null));
+                () -> new IxAdapter(null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new IndexAdapter(usersyncer, null));
+                () -> new IxAdapter(usersyncer, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new IndexAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new IxAdapter(usersyncer, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -121,7 +122,7 @@ public class IndexAdapterTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("Index doesn't support apps");
+                .hasMessage("ix doesn't support apps");
     }
 
     @Test
@@ -134,34 +135,20 @@ public class IndexAdapterTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("IndexExchange params section is missing");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldFailIfAdUnitBidParamsCouldNotBeParsed() {
-        // given
-        final ObjectNode params = mapper.createObjectNode();
-        params.set("siteID", new TextNode("non-integer"));
-        adapterRequest = givenBidder(builder -> builder.params(params));
-
-        // when and then
-        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
-                .isExactlyInstanceOf(PreBidException.class)
-                .hasMessageStartingWith(
-                        "unmarshal params '{\"siteID\":\"non-integer\"}' failed: Cannot deserialize value of type");
+                .hasMessage("ix params section is missing");
     }
 
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamPublisherIdIsMissing() {
         // given
         final ObjectNode params = mapper.createObjectNode();
-        params.set("siteID", null);
+        params.set("siteId", null);
         adapterRequest = givenBidder(builder -> builder.params(params));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("Missing siteID param");
+                .hasMessage("Missing siteId param");
     }
 
     @Test
@@ -207,7 +194,7 @@ public class IndexAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                        .params(mapper.valueToTree(IndexParams.of(486))));
+                        .params(mapper.valueToTree(IxParams.of("486"))));
 
         preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
@@ -392,6 +379,7 @@ public class IndexAdapterTest extends VertxTest {
                         .bidder(BIDDER)
                         .bidId("bidId")
                         .dealId("dealId")
+                        .mediaType(MediaType.banner)
                         .build());
     }
 
@@ -414,7 +402,7 @@ public class IndexAdapterTest extends VertxTest {
     private static AdUnitBid givenAdUnitBid(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(mapper.valueToTree(IndexParams.of(42)))
+                .params(mapper.valueToTree(IxParams.of("42")))
                 .mediaTypes(singleton(MediaType.banner));
 
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer

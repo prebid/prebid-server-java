@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.index;
+package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -8,13 +8,14 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.bidder.index.proto.IndexParams;
+import org.prebid.server.bidder.ix.proto.IxParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
@@ -32,16 +33,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Index {@link Adapter} implementation.
+ * ix {@link Adapter} implementation.
  */
-public class IndexAdapter extends OpenrtbAdapter {
+public class IxAdapter extends OpenrtbAdapter {
 
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
             Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
 
     private final String endpointUrl;
 
-    public IndexAdapter(Usersyncer usersyncer, String endpointUrl) {
+    public IxAdapter(Usersyncer usersyncer, String endpointUrl) {
         super(usersyncer);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
@@ -59,7 +60,7 @@ public class IndexAdapter extends OpenrtbAdapter {
 
     private static void validatePreBidRequest(PreBidRequest preBidRequest) {
         if (preBidRequest.getApp() != null) {
-            throw new PreBidException("Index doesn't support apps");
+            throw new PreBidException("ix doesn't support apps");
         }
     }
 
@@ -71,9 +72,9 @@ public class IndexAdapter extends OpenrtbAdapter {
         final List<Imp> imps = makeImps(adUnitBids, preBidRequestContext);
         validateImps(imps);
 
-        final Integer siteId = adUnitBids.stream()
-                .map(IndexAdapter::parseAndValidateParams)
-                .map(IndexParams::getSiteId)
+        final String siteId = adUnitBids.stream()
+                .map(IxAdapter::parseAndValidateParams)
+                .map(IxParams::getSiteId)
                 .reduce((first, second) -> second).orElse(null);
 
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
@@ -90,24 +91,24 @@ public class IndexAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static IndexParams parseAndValidateParams(AdUnitBid adUnitBid) {
+    private static IxParams parseAndValidateParams(AdUnitBid adUnitBid) {
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
-            throw new PreBidException("IndexExchange params section is missing");
+            throw new PreBidException("ix params section is missing");
         }
 
-        final IndexParams params;
+        final IxParams params;
         try {
-            params = Json.mapper.convertValue(paramsNode, IndexParams.class);
+            params = Json.mapper.convertValue(paramsNode, IxParams.class);
         } catch (IllegalArgumentException e) {
             // a weird way to pass parsing exception
             throw new PreBidException(String.format("unmarshal params '%s' failed: %s", paramsNode,
                     e.getMessage()), e.getCause());
         }
 
-        final Integer siteId = params.getSiteId();
-        if (siteId == null || siteId == 0) {
-            throw new PreBidException("Missing siteID param");
+        final String siteId = params.getSiteId();
+        if (StringUtils.isBlank(siteId)) {
+            throw new PreBidException("Missing siteId param");
         }
 
         return params;
@@ -146,10 +147,10 @@ public class IndexAdapter extends OpenrtbAdapter {
         return impBuilder;
     }
 
-    private static Site makeSite(PreBidRequestContext preBidRequestContext, Integer siteId) {
+    private static Site makeSite(PreBidRequestContext preBidRequestContext, String siteId) {
         final Site.SiteBuilder siteBuilder = siteBuilder(preBidRequestContext);
         return siteBuilder == null ? null : siteBuilder
-                .publisher(Publisher.builder().id(siteId != null ? String.valueOf(siteId) : null).build())
+                .publisher(Publisher.builder().id(siteId).build())
                 .build();
     }
 
@@ -172,6 +173,7 @@ public class IndexAdapter extends OpenrtbAdapter {
                 .creativeId(bid.getCrid())
                 .width(bid.getW())
                 .height(bid.getH())
-                .dealId(bid.getDealid());
+                .dealId(bid.getDealid())
+                .mediaType(MediaType.banner);
     }
 }

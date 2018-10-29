@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.index;
+package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Index {@link Bidder} implementation.
+ * ix {@link Bidder} implementation.
  */
-public class IndexBidder implements Bidder {
+public class IxBidder implements Bidder {
 
     @Override
     public Result<List<HttpRequest>> makeHttpRequests(BidRequest bidRequest) {

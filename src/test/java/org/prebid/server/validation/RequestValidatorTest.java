@@ -1168,7 +1168,7 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.imp[0].native.request.assets[0].id must not be defined. Prebid Server will"
-                        + " set this automatically, using the index of the asset in the array as the ID.");
+                        + " set this automatically, using the ix of the asset in the array as the ID.");
     }
 
     @Test
