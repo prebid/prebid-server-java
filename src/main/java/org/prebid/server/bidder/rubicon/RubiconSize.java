@@ -3,9 +3,12 @@ package org.prebid.server.bidder.rubicon;
 import com.iab.openrtb.request.Format;
 import lombok.EqualsAndHashCode;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @EqualsAndHashCode
 public final class RubiconSize {
@@ -72,6 +75,21 @@ public final class RubiconSize {
 
     public static Integer toId(Format size) {
         return SIZES.getOrDefault(size(size.getW(), size.getH()), 0);
+    }
+
+    public static List<Format> idToSize(List<Integer> sizeIds) {
+        final List<Format> result = new ArrayList<>();
+        for (Integer id : sizeIds) {
+            final List<Format> idResult = SIZES.keySet().stream()
+                    .filter(rubiconSize -> SIZES.get(rubiconSize).equals(id))
+                    // sort and limit to avoid conflicts when one value(id) corresponds to multiple keys(sizes)
+                    .sorted(Comparator.comparing(rubiconSize -> rubiconSize.h))
+                    .limit(1)
+                    .map(rubiconSize -> Format.builder().w(rubiconSize.w).h(rubiconSize.h).build())
+                    .collect(Collectors.toList());
+            result.addAll(idResult);
+        }
+        return result;
     }
 
     // MAS comparator stuff

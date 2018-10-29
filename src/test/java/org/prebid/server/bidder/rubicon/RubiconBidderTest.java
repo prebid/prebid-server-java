@@ -67,9 +67,14 @@ import java.util.function.Function;
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.ZERO;
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -190,6 +195,34 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(RubiconBannerExt::getRp).doesNotContainNull()
                 .extracting(RubiconBannerExtRp::getSizeId)
                 .containsOnly(15);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldOverrideBannerFormatWithRubiconSizes() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder()
+                                .format(asList(
+                                        Format.builder().w(300).h(250).build(),
+                                        Format.builder().w(300).h(600).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder()
+                                .sizes(singletonList(15)).build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBanner).doesNotContainNull()
+                .flatExtracting(Banner::getFormat).hasSize(1)
+                .containsOnly(Format.builder().w(300).h(250).build());
     }
 
     @Test
@@ -550,6 +583,25 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).containsOnly(BidderError.badInput("No valid sizes"));
         assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfSizeIdsNotFound() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder()
+                                .sizes(singletonList(3)).build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Bad request.imp[].ext.rubicon.sizes"));
     }
 
     @Test

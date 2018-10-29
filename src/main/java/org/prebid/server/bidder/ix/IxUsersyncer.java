@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.index;
+package org.prebid.server.bidder.ix;
 
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.proto.response.UsersyncInfo;
@@ -6,13 +6,13 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import java.util.Objects;
 
 /**
- * IndexExchange {@link Usersyncer} implementation
+ * ix {@link Usersyncer} implementation
  */
-public class IndexUsersyncer implements Usersyncer {
+public class IxUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
 
-    public IndexUsersyncer(String usersyncUrl) {
+    public IxUsersyncer(String usersyncUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl));
     }
 
@@ -24,15 +24,15 @@ public class IndexUsersyncer implements Usersyncer {
     }
 
     /**
-     * Returns IndexExchange cookie family
+     * Returns ix cookie family
      */
     @Override
     public String cookieFamilyName() {
-        return "indexExchange";
+        return "ix";
     }
 
     /**
-     * Returns IndexExchange {@link UsersyncInfo}
+     * Returns ix {@link UsersyncInfo}
      */
     @Override
     public UsersyncInfo usersyncInfo() {

@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.index;
+package org.prebid.server.bidder.ix;
 
 
 import org.junit.Test;
@@ -7,16 +7,16 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-public class IndexUsersyncerTest {
+public class IxUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new IndexUsersyncer(null));
+        assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer(null));
     }
 
     @Test
     public void creationShouldInitExpectedUsercyncInfo() {
-        assertThat(new IndexUsersyncer("//usersync.org/").usersyncInfo())
+        assertThat(new IxUsersyncer("//usersync.org/").usersyncInfo())
                 .isEqualTo(UsersyncInfo.of("//usersync.org/", "redirect", false));
     }
 }

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
 
+import java.util.List;
+
 /**
  * Defines the contract for bidrequest.imp[i].ext.rubicon
  */
@@ -20,6 +22,8 @@ public class ExtImpRubicon {
 
     @JsonProperty("zoneId")
     Integer zoneId;
+
+    List<Integer> sizes;
 
     JsonNode inventory;
 

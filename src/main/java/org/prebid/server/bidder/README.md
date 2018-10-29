@@ -15,7 +15,7 @@ for review and approval of the ported adapter:
 - appnexus
 - audienceNetwork
 - conversant
-- indexExchange
+- ix
 - lifestreet
 - openx
 - pubmatic

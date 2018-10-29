@@ -204,9 +204,9 @@
       "bids": [
         {
           "bid_id": "bidId7",
-          "bidder": "indexExchange",
+          "bidder": "ix",
           "params": {
-            "siteID": 486
+            "siteId": 486
           }
         }
       ],

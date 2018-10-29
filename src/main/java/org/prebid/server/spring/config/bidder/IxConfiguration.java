@@ -8,10 +8,10 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpAdapterRequester;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.bidder.index.IndexAdapter;
-import org.prebid.server.bidder.index.IndexBidder;
-import org.prebid.server.bidder.index.IndexMetaInfo;
-import org.prebid.server.bidder.index.IndexUsersyncer;
+import org.prebid.server.bidder.ix.IxAdapter;
+import org.prebid.server.bidder.ix.IxBidder;
+import org.prebid.server.bidder.ix.IxMetaInfo;
+import org.prebid.server.bidder.ix.IxUsersyncer;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -20,27 +20,27 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
-public class IndexConfiguration extends BidderConfiguration {
+public class IxConfiguration extends BidderConfiguration {
 
-    private static final String BIDDER_NAME = "indexExchange";
+    private static final String BIDDER_NAME = "ix";
 
-    @Value("${adapters.indexexchange.enabled}")
+    @Value("${adapters.ix.enabled}")
     private boolean enabled;
 
-    @Value("${adapters.indexexchange.endpoint:#{null}}")
+    @Value("${adapters.ix.endpoint:#{null}}")
     private String endpoint;
 
-    @Value("${adapters.indexexchange.usersync-url}")
+    @Value("${adapters.ix.usersync-url}")
     private String usersyncUrl;
 
-    @Value("${adapters.indexexchange.pbs-enforces-gdpr}")
+    @Value("${adapters.ix.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
     @Value("${adapters.indexexchange.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean
-    BidderDeps indexexchangeBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+    BidderDeps ixBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && endpoint == null) {
             throw new IllegalStateException(
                     String.format("%s is enabled but has missing required configuration properties. "
@@ -61,22 +61,22 @@ public class IndexConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new IndexMetaInfo(enabled, pbsEnforcesGdpr);
+        return new IxMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new IndexUsersyncer(usersyncUrl);
+        return new IxUsersyncer(usersyncUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new IndexBidder();
+        return new IxBidder();
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new IndexAdapter(usersyncer, endpoint);
+        return new IxAdapter(usersyncer, endpoint);
     }
 
     @Override
