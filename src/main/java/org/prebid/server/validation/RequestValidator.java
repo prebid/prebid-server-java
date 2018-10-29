@@ -400,7 +400,7 @@ public class RequestValidator {
     private void validateNativeAsset(Asset asset, int impIndex, int assetIndex) throws ValidationException {
         if (asset.getId() != null) {
             throw new ValidationException("request.imp[%d].native.request.assets[%d].id must not be defined. Prebid"
-                    + " Server will set this automatically, using the index of the asset in the array as the ID.",
+                    + " Server will set this automatically, using the ix of the asset in the array as the ID.",
                     impIndex, assetIndex);
         }
 

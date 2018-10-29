@@ -23,9 +23,12 @@ public class BidderCatalog {
 
     public BidderCatalog(List<BidderDeps> bidderDeps) {
         bidderDepsMap = Objects.requireNonNull(bidderDeps).stream()
-                .peek(deps -> deprecatedNameToError.putAll(
-                        createErrorsForDeprecatedNames(deps.getDeprecatedNames(), deps.getName())))
                 .collect(Collectors.toMap(BidderDeps::getName, Function.identity()));
+
+        Objects.requireNonNull(bidderDeps).forEach(deps ->
+                deprecatedNameToError.putAll(createErrorsForDeprecatedNames(deps.getDeprecatedNames(),
+                        deps.getName())));
+
     }
 
     /**

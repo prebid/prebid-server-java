@@ -1071,16 +1071,12 @@ public class ExchangeService {
                 : null;
         final ExtResponseDebug extResponseDebug = httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null;
 
-        final Map<String, List<String>> errors = results.stream()
-                .collect(Collectors.toMap(BidderResponse::getBidder, r -> messages(r.getSeatBid().getErrors())));
+        final Map<String, List<String>> errors = new HashMap<>();
+        for (BidderResponse bidderResponse : results) {
+            errors.put(bidderResponse.getBidder(), messages(bidderResponse.getSeatBid().getErrors()));
+        }
 
-        final Map<String, List<String>> deprecatedBiddersErrors = bidRequest.getImp().stream()
-                .filter(imp -> imp.getExt() != null)
-                .flatMap(imp -> asStream(imp.getExt().fieldNames()))
-                .distinct()
-                .filter(bidderCatalog::isDeprecatedName)
-                .collect(Collectors.toMap(Function.identity(),
-                        bidder -> Collections.singletonList(bidderCatalog.errorForDeprecatedName(bidder))));
+        final Map<String, List<String>> deprecatedBiddersErrors = extractDeprecatedBiddersErrors(bidRequest);
 
         errors.putAll(deprecatedBiddersErrors);
 
@@ -1088,6 +1084,16 @@ public class ExchangeService {
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
+    }
+
+    private Map<String, List<String>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
+        return bidRequest.getImp().stream()
+                .filter(imp -> imp.getExt() != null)
+                .flatMap(imp -> asStream(imp.getExt().fieldNames()))
+                .distinct()
+                .filter(bidderCatalog::isDeprecatedName)
+                .collect(Collectors.toMap(Function.identity(),
+                        bidder -> Collections.singletonList(bidderCatalog.errorForDeprecatedName(bidder))));
     }
 
     private static List<String> messages(List<BidderError> errors) {

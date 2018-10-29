@@ -244,7 +244,7 @@
               "cache": {
                 "bids": {
                   "url": "http://localhost:8090/cache?uuid=3ed36e9a-c27b-4d68-a82e-536fbf8fd6c1",
-                  "cache_id": "3ed36e9a-c27b-4d68-a82e-536fbf8fd6c1"
+                  "cacheId": "3ed36e9a-c27b-4d68-a82e-536fbf8fd6c1"
                 }
               }
             }
@@ -278,13 +278,13 @@
                 "hb_deal": "dealId61"
               },
               "cache": {
-                "vast_xml": {
+                "vastXml": {
                   "url": "http://localhost:8090/cache?uuid=5437cd87-de4f-4981-84fa-7baceb1f3685",
-                  "cache_id": "5437cd87-de4f-4981-84fa-7baceb1f3685"
+                  "cacheId": "5437cd87-de4f-4981-84fa-7baceb1f3685"
                 },
                 "bids": {
                   "url": "http://localhost:8090/cache?uuid=969172e8-1699-4235-a2a6-31cab4647a32",
-                  "cache_id": "969172e8-1699-4235-a2a6-31cab4647a32"
+                  "cacheId": "969172e8-1699-4235-a2a6-31cab4647a32"
                 }
               }
             }
