@@ -202,13 +202,6 @@ public class ExchangeService {
         return publisher != null ? publisher.getId() : StringUtils.EMPTY;
     }
 
-    private void processDeprecatedBidder(String bidder, Map<String, List<String>> deprecatedBiddersErrors) {
-        if (bidderCatalog.isDeprecatedName(bidder)) {
-            deprecatedBiddersErrors.put(bidder,
-                    Collections.singletonList(bidderCatalog.errorForDeprecatedName(bidder)));
-        }
-    }
-
     /**
      * Extracts bidAdjustments from {@link ExtBidRequest}.
      */
@@ -273,7 +266,7 @@ public class ExchangeService {
         final ExtUser extUser = extUser(user);
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
-        // set empty ext.prebid.buyerids attr to avoid leaking of buyerids across biddersAndErrors
+        // set empty ext.prebid.buyerids attr to avoid leaking of buyerids across bidders
         final ObjectNode userExtNode = !uidsBody.isEmpty() && extUser != null
                 ? removeBuyersidsFromUserExtPrebid(extUser) : null;
         final ExtRegs extRegs = extRegs(bidRequest.getRegs());
@@ -1081,7 +1074,7 @@ public class ExchangeService {
         final Map<String, List<String>> errors = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, r -> messages(r.getSeatBid().getErrors())));
 
-        Map<String, List<String>> deprecatedBiddersErrors = bidRequest.getImp().stream()
+        final Map<String, List<String>> deprecatedBiddersErrors = bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
                 .flatMap(imp -> asStream(imp.getExt().fieldNames()))
                 .distinct()
