@@ -33,7 +33,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_appnexus": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_appnexus": "/cache"
+                "hb_cache_path_appnexus": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_appnexus": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -82,7 +84,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_appnexus": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_appnexus": "/cache"
+                "hb_cache_path_appnexus": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_appnexus": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -171,7 +175,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_adform": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_adform": "/cache"
+                "hb_cache_path_adform": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_adform": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -215,7 +221,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_sovrn": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_sovrn": "/cache"
+                "hb_cache_path_sovrn": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_sovrn": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -259,7 +267,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_openx": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_openx": "/cache"
+                "hb_cache_path_openx": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_openx": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -297,7 +307,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_openx": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_openx": "/cache"
+                "hb_cache_path_openx": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_openx": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -337,7 +349,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_openx": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_openx": "/cache"
+                "hb_cache_path_openx": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_openx": "http://localhost:8090/cache"
               },
               "cache": {
                 "vastXml": {
@@ -381,7 +395,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_openx": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_openx": "/cache"
+                "hb_cache_path_openx": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_openx": "http://localhost:8090/cache"
               },
               "cache": {
                 "vastXml": {
@@ -429,7 +445,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_eplanning": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_eplanning": "/cache"
+                "hb_cache_path_eplanning": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_eplanning": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -498,7 +516,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_somoaudience": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_somoaudience": "/cache"
+                "hb_cache_path_somoaudience": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_somoaudience": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -539,7 +559,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_conversant": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_conversant": "/cache"
+                "hb_cache_path_conversant": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_conversant": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -576,7 +598,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_conversant": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_conversant": "/cache"
+                "hb_cache_path_conversant": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_conversant": "http://localhost:8090/cache"
               },
               "cache": {
                 "vastXml": {
@@ -622,7 +646,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_audienceNetwork": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_audienceNetwork": "/cache"
+                "hb_cache_path_audienceNetwork": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_audienceNetwork": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -668,7 +694,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_rubicon": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_rubicon": "/cache"
+                "hb_cache_path_rubicon": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_rubicon": "http://localhost:8090/cache"
               },
               "cache": {
                 "vastXml": {
@@ -722,7 +750,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_rubicon": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_rubicon": "/cache"
+                "hb_cache_path_rubicon": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_rubicon": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -766,7 +796,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_brightroll": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_brightroll": "/cache"
+                "hb_cache_path_brightroll": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_brightroll": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -809,7 +841,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_beachfront": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_beachfront": "/cache"
+                "hb_cache_path_beachfront": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_beachfront": "http://localhost:8090/cache"
               },
               "cache": {
                 "vastXml": {
@@ -857,7 +891,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_pubmatic": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_pubmatic": "/cache"
+                "hb_cache_path_pubmatic": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_pubmatic": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -897,7 +933,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_pubmatic": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_pubmatic": "/cache"
+                "hb_cache_path_pubmatic": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_pubmatic": "http://localhost:8090/cache"
               },
               "cache": {
                 "vastXml": {
@@ -945,7 +983,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_adtelligent": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_adtelligent": "/cache"
+                "hb_cache_path_adtelligent": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_adtelligent": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -986,7 +1026,9 @@
                 "hb_cache_host": "http://localhost:8090",
                 "hb_cache_host_pulsepoint": "http://localhost:8090",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_pulsepoint": "/cache"
+                "hb_cache_path_pulsepoint": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_pulsepoint": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {

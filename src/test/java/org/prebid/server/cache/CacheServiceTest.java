@@ -78,7 +78,7 @@ public class CacheServiceTest extends VertxTest {
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
         cacheService = new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient,
-                new URL("http://cache-service/cache"), new URL("http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%"));
+                new URL("http://cache-service/cache"),"http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
     }
 
     @Test
@@ -232,7 +232,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         cacheService = new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient,
-                new URL("https://cache-service-host:8888/cache"), new URL("https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%"));
+                new URL("https://cache-service-host:8888/cache"), "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -408,7 +408,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(accountCacheService, CacheTtl.of(20, null), httpClient,
-                new URL("http://cache-service/cache"), new URL("http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%"));
+                new URL("http://cache-service/cache"),"http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
 
         givenHttpClientReturnsResponse(200, null);
 
@@ -431,7 +431,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(accountCacheService, CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"), new URL("http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%"));
+                new URL("http://cache-service/cache"),"http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
 
         givenHttpClientReturnsResponse(200, null);
 

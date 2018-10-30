@@ -84,6 +84,7 @@ public class TargetingKeywordsCreator {
 
     private static final String HB_CACHE_HOST = "hb_cache_host";
     private static final String HB_CACHE_PATH = "hb_cache_path";
+    private static final String HB_CACHE_HOSTPATH = "hb_cache_hostpath";
 
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
@@ -181,9 +182,10 @@ public class TargetingKeywordsCreator {
             keywordMap.put(HB_VAST_ID_KEY, vastCacheId);
         }
         if (StringUtils.isNotBlank(vastCacheId) || StringUtils.isNotBlank(cacheId)) {
-            if (StringUtils.isNotBlank(cacheHost)) {
+            if (cacheHost != null && cachePath != null) {
                 keywordMap.put(HB_CACHE_HOST, cacheHost);
                 keywordMap.put(HB_CACHE_PATH, cachePath);
+                keywordMap.put(HB_CACHE_HOSTPATH, cacheHost + cachePath);
             }
         }
         if (StringUtils.isNotBlank(dealId)) {

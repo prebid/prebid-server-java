@@ -1097,9 +1097,10 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
                 .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .extracting(targeting -> targeting.get("hb_cache_host"),
-                            targeting -> targeting.get("hb_cache_path"))
-                .containsOnly(tuple("someHost", "somePath"),
-                              tuple(null, null));
+                            targeting -> targeting.get("hb_cache_path"),
+                            targeting -> targeting.get("hb_cache_hostpath"))
+                .containsOnly(tuple("someHost", "somePath", "someHostsomePath"),
+                              tuple(null, null, null));
     }
 
     @Test
