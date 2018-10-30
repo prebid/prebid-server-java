@@ -63,6 +63,22 @@ public class GdprService {
     }
 
     /**
+     * Implements "consent string has all vendor purposes" checking strategy.
+     * <p>
+     * Returns {@link GdprResponse} which handles information about a map with Vendor ID as a key and GDPR result
+     * [true/false] and country user comes from.
+     * <p>
+     * GDPR purposes will be fetched from consent string.
+     */
+    public Future<GdprResponse> resultByVendor(Set<Integer> vendorIds, String gdpr,
+                                               String gdprConsent, String ipAddress, Timeout timeout) {
+        return toGdprInfo(gdpr, gdprConsent, ipAddress, timeout)
+                .compose(gdprInfo -> toResultByVendor(gdprInfo, vendorIds,
+                        purposesForConsentCheck(gdprInfo), GdprService::verdictForConsentHasAllVendorPurposes)
+                        .map(vendorIdToResult -> GdprResponse.of(vendorIdToResult, gdprInfo.getCountry())));
+    }
+
+    /**
      * Returns purpose IDs from the given {@link GdprPurpose} collection or null if it is not needed by flow.
      */
     private Set<Integer> purposesForVendorCheck(GdprInfoWithCountry gdprInfo, Set<GdprPurpose> purposes) {
@@ -77,22 +93,6 @@ public class GdprService {
     private static boolean verdictForVendorHasAllGivenPurposes(Set<Integer> givenPurposeIds,
                                                                Set<Integer> vendorPurposeIds) {
         return vendorPurposeIds.containsAll(givenPurposeIds);
-    }
-
-    /**
-     * Implements "consent string has all vendor purposes" checking strategy.
-     * <p>
-     * Returns {@link GdprResponse} which handles information about a map with Vendor ID as a key and GDPR result
-     * [true/false] and country user comes from.
-     * <p>
-     * GDPR purposes will be fetched from consent string.
-     */
-    public Future<GdprResponse> resultByVendor(Set<Integer> vendorIds, String gdpr,
-                                               String gdprConsent, String ipAddress, Timeout timeout) {
-        return toGdprInfo(gdpr, gdprConsent, ipAddress, timeout)
-                .compose(gdprInfo -> toResultByVendor(gdprInfo, vendorIds,
-                        purposesForConsentCheck(gdprInfo), GdprService::verdictForConsentHasAllVendorPurposes)
-                        .map(vendorIdToResult -> GdprResponse.of(vendorIdToResult, gdprInfo.getCountry())));
     }
 
     /**

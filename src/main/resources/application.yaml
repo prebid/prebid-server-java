@@ -38,6 +38,11 @@ adapters:
     endpoint: http://adx.adform.net/adx
     usersync-url: //cm.adform.net/cookie?redirect_url=
     pbs-enforces-gdpr: true
+  adkerneladn:
+    enabled: false
+    endpoint: http://tag.adkernel.com/rtbpub?account=
+    usersync-url: https://tag.adkernel.com/syncr?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
+    pbs-enforces-gdpr: true
   adtelligent:
     enabled: false
     endpoint: http://hb.adtelligent.com/auction
