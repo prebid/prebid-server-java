@@ -44,6 +44,7 @@ adapters:
     endpoint: http://tag.adkernel.com/rtbpub?account=
     usersync-url: https://tag.adkernel.com/syncr?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
     pbs-enforces-gdpr: true
+    deprecated-names:
   adtelligent:
     enabled: false
     endpoint: http://hb.adtelligent.com/auction
