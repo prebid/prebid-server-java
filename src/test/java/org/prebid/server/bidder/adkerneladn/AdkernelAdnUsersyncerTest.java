@@ -10,7 +10,8 @@ public class AdkernelAdnUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer(null, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer("some_url", null));
     }
 
     @Test

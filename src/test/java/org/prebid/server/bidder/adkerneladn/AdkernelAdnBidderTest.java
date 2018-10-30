@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -54,20 +55,6 @@ public class AdkernelAdnBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new AdkernelAdnBidder("invalid_ulr"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnEmptyResultWhenMissingBidRequestImps() {
-        // given
-        final Result<List<HttpRequest<BidRequest>>> expected = Result.of(emptyList(),
-                singletonList(BidderError.badInput("No impression in the bid request")));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelAdnBidder.makeHttpRequests(
-                BidRequest.builder().build());
-
-        // then
-        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -296,7 +283,10 @@ public class AdkernelAdnBidderTest extends VertxTest {
     public void makeHttpRequestShouldModifySite() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.site(Site.builder().build()),
+                builder -> builder.site(Site.builder()
+                        .domain("some domain")
+                        .publisher(Publisher.builder().build())
+                        .build()),
                 identity(),
                 identity());
 
@@ -315,7 +305,9 @@ public class AdkernelAdnBidderTest extends VertxTest {
     public void makeHttpRequestShouldModifyApp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.app(App.builder().build()),
+                builder -> builder.app(App.builder()
+                        .publisher(Publisher.builder().build())
+                        .build()),
                 identity(),
                 identity());
 
@@ -346,7 +338,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));

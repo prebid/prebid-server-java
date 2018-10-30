@@ -57,10 +57,6 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<Imp> imps = bidRequest.getImp();
 
-        if (CollectionUtils.isEmpty(imps))
-            return Result.of(Collections.emptyList(),
-                    Collections.singletonList(BidderError.badInput("No impression in the bid request")));
-
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         try {
@@ -94,9 +90,9 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             throw new PreBidException(e.getMessage(), e);
         }
 
-        if (adkernelAdnExt.getPubId() == null || adkernelAdnExt.getPubId() < 1)
+        if (adkernelAdnExt.getPubId() == null || adkernelAdnExt.getPubId() < 1) {
             throw new PreBidException(String.format("Invalid pubId value. Ignoring imp id=%s", imp.getId()));
-
+        }
         return adkernelAdnExt;
     }
 
@@ -126,15 +122,17 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         if (compatBanner != null) {
             //As banner.w/h are required fields for adkernel adn platform - take the first format entry
             if (compatBanner.getW() == null && compatBanner.getH() == null) {
-                if (CollectionUtils.isEmpty(compatBanner.getFormat())) {
+                final List<Format> compatBannerFormat = compatBanner.getFormat();
+
+                if (CollectionUtils.isEmpty(compatBannerFormat)) {
                     throw new PreBidException("Expected at least one banner.format entry or explicit w/h");
                 }
 
-                final Format format = compatBanner.getFormat().get(0);
+                final Format format = compatBannerFormat.get(0);
                 final Banner.BannerBuilder bannerBuilder = compatBanner.toBuilder();
 
-                if (compatBanner.getFormat().size() > 1) {
-                    bannerBuilder.format(compatBanner.getFormat().subList(1, compatBanner.getFormat().size()));
+                if (compatBannerFormat.size() > 1) {
+                    bannerBuilder.format(compatBannerFormat.subList(1, compatBannerFormat.size()));
                 } else {
                     bannerBuilder.format(Collections.emptyList());
                 }
@@ -177,37 +175,37 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         }
         bidRequestBuilder.imp(modifiedImps);
 
-        if (prebidBidRequest.getSite() != null) {
-            final Site modifySite = prebidBidRequest.getSite().toBuilder()
-                    .publisher(null).domain("").build();
-
-            bidRequestBuilder.site(modifySite);
+        final Site site = prebidBidRequest.getSite();
+        if (site != null) {
+            bidRequestBuilder.site(site.toBuilder().publisher(null).domain("").build());
         }
-        if (prebidBidRequest.getApp() != null) {
-            final App modifyApp = prebidBidRequest.getApp().toBuilder()
-                    .publisher(null).build();
 
-            bidRequestBuilder.app(modifyApp);
+        final App app = prebidBidRequest.getApp();
+        if (app != null) {
+            bidRequestBuilder.app(app.toBuilder().publisher(null).build());
         }
         return bidRequestBuilder.build();
     }
 
-    // Builds enpoint url based on adapter-specific pub settings from imp.ext
+    // Builds endpoint url based on adapter-specific pub settings from imp.ext
     private static String buildEndpoint(ExtImpAdkernelAdn impExt, String endpointUrl) {
+        final String updatedEndpointUrl;
 
         if (impExt.getHost() != null) {
+            final URL url;
             try {
-                final URL defaultUrl = new URL(endpointUrl);
-                final String defaultDomain = defaultUrl.getHost();
-                final String defaultPort = defaultUrl.getPort() == -1 ? "" : ":" + defaultUrl.getPort();
-
-                endpointUrl = endpointUrl.replace(defaultDomain + defaultPort, impExt.getHost());
+                url = new URL(endpointUrl);
             } catch (MalformedURLException e) {
-                e.printStackTrace();
+                throw new PreBidException(
+                        String.format("Error occurred while parsing AdkernelAdn endpoint url: %s", endpointUrl), e);
             }
+            final String currentHostAndPort = url.getHost() + (url.getPort() == -1 ? "" : ":" + url.getPort());
+            updatedEndpointUrl = endpointUrl.replace(currentHostAndPort, impExt.getHost());
+        } else {
+            updatedEndpointUrl = endpointUrl;
         }
 
-        return String.format("%s%s", endpointUrl, impExt.getPubId());
+        return String.format("%s%s", updatedEndpointUrl, impExt.getPubId());
     }
 
     @Override
@@ -223,12 +221,11 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Collections.emptyList();
-        } else {
-            if (bidResponse.getSeatbid().size() != 1) {
-                throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
-            }
-            return bidsFromResponse(bidRequest, bidResponse);
         }
+        if (bidResponse.getSeatbid().size() != 1) {
+            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+        }
+        return bidsFromResponse(bidRequest, bidResponse);
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
