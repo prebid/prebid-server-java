@@ -529,6 +529,41 @@
           "bidfloor": 1
         }
       }
+    },
+    {
+      "id": "impId021",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 200
+          }
+        ]
+      },
+      "ext": {
+        "adkernelAdn": {
+          "pubId": 101
+        }
+      }
+    },
+    {
+      "id": "impId022",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 640,
+        "h": 480
+      },
+      "ext": {
+        "adkernelAdn": {
+          "pubId": 102
+        }
+      }
     }
   ],
   "device": {
