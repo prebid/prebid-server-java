@@ -16,15 +16,9 @@ import org.prebid.server.geolocation.model.GeoInfo;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
@@ -276,5 +270,35 @@ public class GdprServiceTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause().getMessage())
                 .isEqualTo("Error when checking if vendor is allowed in a reason of invalid consent string");
+    }
+
+    @Test
+    public void shouldReturnRestrictedResultIfGdprParamIsOneAndConsentHasNotAllVendorPurposes() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
+                singletonMap(1, new HashSet<>(Arrays.asList(1, 2, 3, 4)))));
+
+        // when
+        final Future<?> future =
+                gdprService.resultByVendor(singleton(1), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), null));
+    }
+
+    @Test
+    public void shouldReturnAllowedResultIfGdprParamIsOneAndConsentHasAllVendorPurposes() {
+        // given
+        given(vendorListService.forVersion(anyInt())).willReturn(Future.succeededFuture(
+                singletonMap(1, new HashSet<>(Arrays.asList(1, 2, 3)))));
+
+        // when
+        final Future<?> future =
+                gdprService.resultByVendor(singleton(1), "1", "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA", null, null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
     }
 }

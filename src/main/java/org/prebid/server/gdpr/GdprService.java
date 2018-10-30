@@ -7,7 +7,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
@@ -17,12 +16,12 @@ import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -49,114 +48,100 @@ public class GdprService {
     }
 
     /**
+     * Implements "each vendor has all given purposes" checking strategy.
+     * <p>
      * Returns {@link GdprResponse} which handles information about a map with Vendor ID as a key and GDPR result
      * [true/false] and country user comes from.
      */
     public Future<GdprResponse> resultByVendor(Set<GdprPurpose> purposes, Set<Integer> vendorIds, String gdpr,
                                                String gdprConsent, String ipAddress, Timeout timeout) {
-        return resolveGdprWithCountryValue(gdpr, ipAddress, timeout)
-                .compose(gdprWithCountry -> toGdprResponse(gdprWithCountry.getGdpr(), gdprConsent, purposes, vendorIds,
-                        gdprWithCountry.getCountry()));
+        return toGdprInfo(gdpr, gdprConsent, ipAddress, timeout)
+                .compose(gdprInfo -> toResultByVendor(gdprInfo, vendorIds,
+                        purposesForVendorCheck(gdprInfo, purposes), GdprService::verdictForVendorHasAllGivenPurposes)
+                        .map(vendorIdToResult ->
+                                GdprResponse.of(vendorIdToResult, gdprInfo.getCountry())));
     }
 
+    /**
+     * Implements "consent string has all vendor purposes" checking strategy.
+     * <p>
+     * Returns {@link GdprResponse} which handles information about a map with Vendor ID as a key and GDPR result
+     * [true/false] and country user comes from.
+     * <p>
+     * GDPR purposes will be fetched from consent string.
+     */
     public Future<GdprResponse> resultByVendor(Set<Integer> vendorIds, String gdpr,
                                                String gdprConsent, String ipAddress, Timeout timeout) {
-        return resultByVendor(Collections.emptySet(), vendorIds, gdpr, gdprConsent, ipAddress, timeout);
+        return toGdprInfo(gdpr, gdprConsent, ipAddress, timeout)
+                .compose(gdprInfo -> toResultByVendor(gdprInfo, vendorIds,
+                        purposesForConsentCheck(gdprInfo), GdprService::verdictForConsentHasAllVendorPurposes)
+                        .map(vendorIdToResult -> GdprResponse.of(vendorIdToResult, gdprInfo.getCountry())));
     }
 
     /**
-     * Determines GDPR value from external GDPR param, geo location or default.
+     * Returns purpose IDs from the given {@link GdprPurpose} collection or null if it is not needed by flow.
      */
-    private Future<GdprWithCountry> resolveGdprWithCountryValue(String gdpr, String ipAddress, Timeout timeout) {
-        final String gdprFromRequest = StringUtils.stripToNull(gdpr);
-
-        final Future<GdprWithCountry> result;
-        if (isValidGdpr(gdprFromRequest)) {
-            result = Future.succeededFuture(GdprWithCountry.of(gdprFromRequest, null));
-        } else if (ipAddress != null && geoLocationService != null) {
-            result = geoLocationService.lookup(ipAddress, timeout)
-                    .map(GeoInfo::getCountry)
-                    .map(this::createGdprWithCountry)
-                    .otherwise(GdprWithCountry.of(gdprDefaultValue, null));
-        } else {
-            result = Future.succeededFuture(GdprWithCountry.of(gdprDefaultValue, null));
-        }
-        return result;
+    private Set<Integer> purposesForVendorCheck(GdprInfoWithCountry gdprInfo, Set<GdprPurpose> purposes) {
+        return !Objects.equals(gdprInfo.getGdpr(), "0") && gdprInfo.getVendorConsent() != null
+                ? purposes.stream().map(GdprPurpose::getId).collect(Collectors.toSet())
+                : null;
     }
 
     /**
-     * Returns flag if gdpr has valid value '0' or '1'.
+     * Confirms vendor has all given purposes.
      */
-    private boolean isValidGdpr(String gdprFromRequest) {
-        return gdprFromRequest != null && (gdprFromRequest.equals("0") || gdprFromRequest.equals("1"));
+    private static boolean verdictForVendorHasAllGivenPurposes(Set<Integer> givenPurposeIds,
+                                                               Set<Integer> vendorPurposeIds) {
+        return vendorPurposeIds.containsAll(givenPurposeIds);
     }
 
     /**
-     * Creates {@link GdprWithCountry} which gdpr value depends on if country is in eea list.
+     * Returns purpose IDs from consent string or null if it is not needed by flow.
      */
-    private GdprWithCountry createGdprWithCountry(String country) {
-        final String gdpr = country == null ? gdprDefaultValue : eeaCountries.contains(country) ? "1" : "0";
-        return GdprWithCountry.of(gdpr, country);
+    private Set<Integer> purposesForConsentCheck(GdprInfoWithCountry gdprInfo) {
+        return !Objects.equals(gdprInfo.getGdpr(), "0") && gdprInfo.getVendorConsent() != null
+                ? getAllowedPurposeIdsFromConsent(gdprInfo.getVendorConsent())
+                : null;
     }
 
     /**
-     * Analyzes GDPR params and returns a {@link GdprResponse} with map of gdpr result for each vendor.
+     * Confirms consent purposes (as superset) contains all vendor purposes (as subset).
      */
-    private Future<GdprResponse> toGdprResponse(String gdpr, String gdprConsent, Set<GdprPurpose> purposes,
-                                                Set<Integer> vendorIds, String country) {
-        final Future<Map<Integer, Boolean>> vendorIdsToGdpr;
-        switch (gdpr) {
-            case "0":
-                vendorIdsToGdpr = sameResultFor(vendorIds, true);
-                break;
-            case "1":
-                vendorIdsToGdpr = fromConsent(gdprConsent, purposes, vendorIds);
-                break;
-            default:
-                return Future.failedFuture(String.format("The gdpr param must be either 0 or 1, given: %s", gdpr));
-        }
-        return vendorIdsToGdpr.map(vendorsToGdpr -> GdprResponse.of(vendorsToGdpr, country));
+    private static Boolean verdictForConsentHasAllVendorPurposes(Set<Integer> consentPurposeIds,
+                                                                 Set<Integer> vendorPurposeIds) {
+        return consentPurposeIds.containsAll(vendorPurposeIds);
     }
 
-    private static Future<Map<Integer, Boolean>> sameResultFor(Set<Integer> vendorIds, boolean result) {
-        return Future.succeededFuture(vendorIds.stream().collect(Collectors.toMap(Function.identity(), id -> result)));
-    }
+    private Future<Map<Integer, Boolean>> toResultByVendor(
+            GdprInfoWithCountry gdprInfo, Set<Integer> vendorIds, Set<Integer> purposeIds,
+            BiFunction<Set<Integer>, Set<Integer>, Boolean> verdictForPurposes) {
 
-    private Future<Map<Integer, Boolean>> fromConsent(String consentString, Set<GdprPurpose> purposes,
-                                                      Set<Integer> vendorIds) {
-        if (StringUtils.isEmpty(consentString)) {
-            return sameResultFor(vendorIds, false);
+        if (Objects.equals(gdprInfo.getGdpr(), "0")) {
+            return sameResultFor(vendorIds, true); // allow all vendors
         }
 
-        final VendorConsent vendorConsent;
-        try {
-            vendorConsent = VendorConsentDecoder.fromBase64String(consentString);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            logger.warn("Error occurred during parsing consent string {0}", e.getMessage());
-            return sameResultFor(vendorIds, false);
+        final VendorConsent vendorConsent = gdprInfo.getVendorConsent();
+        if (vendorConsent == null) {
+            return sameResultFor(vendorIds, false); // consent is broken
         }
 
         final Set<Integer> allowedPurposeIds = getAllowedPurposeIdsFromConsent(vendorConsent);
-        final Set<Integer> purposeIds;
-        if (CollectionUtils.isEmpty(purposes)) {
-            purposeIds = allowedPurposeIds;
-        } else {
-            // consent string confirms user has allowed all purposes
-            purposeIds = purposes.stream().map(GdprPurpose::getId).collect(Collectors.toSet());
-            if (!allowedPurposeIds.containsAll(purposeIds)) {
-                return sameResultFor(vendorIds, false);
-            }
+
+        // consent string confirms user has allowed given purposes
+        if (allowedPurposeIds != purposeIds && !allowedPurposeIds.containsAll(purposeIds)) {
+            return sameResultFor(vendorIds, false);
         }
 
         return vendorListService.forVersion(vendorConsent.getVendorListVersion())
-                .map(vendorIdToPurposes -> toResult(vendorIdToPurposes, vendorIds, purposeIds, vendorConsent));
+                .map(vendorIdToPurposes ->
+                        toResult(vendorIdToPurposes, vendorIds, vendorConsent, purposeIds, verdictForPurposes));
     }
 
     /**
      * Retrieves allowed purpose ids from consent string. Throws {@link InvalidRequestException} in case of
      * gdpr sdk throws {@link ArrayIndexOutOfBoundsException} when consent string is not valid.
      */
-    private Set<Integer> getAllowedPurposeIdsFromConsent(VendorConsent vendorConsent) {
+    private static Set<Integer> getAllowedPurposeIdsFromConsent(VendorConsent vendorConsent) {
         try {
             return vendorConsent.getAllowedPurposeIds();
         } catch (ArrayIndexOutOfBoundsException ex) {
@@ -165,23 +150,32 @@ public class GdprService {
         }
     }
 
-    private static Map<Integer, Boolean> toResult(Map<Integer, Set<Integer>> vendorIdToPurposes, Set<Integer> vendorIds,
-                                                  Set<Integer> purposeIds, VendorConsent vendorConsent) {
+    /**
+     * Creates the same result for all given vendors.
+     */
+    private static Future<Map<Integer, Boolean>> sameResultFor(Set<Integer> vendorIds, boolean result) {
+        return Future.succeededFuture(vendorIds.stream()
+                .collect(Collectors.toMap(Function.identity(), id -> result)));
+    }
+
+    /**
+     * Processes {@link VendorListService} response and returns GDPR result by vendor ID.
+     */
+    private static Map<Integer, Boolean> toResult(
+            Map<Integer, Set<Integer>> vendorIdToPurposes, Set<Integer> vendorIds, VendorConsent vendorConsent,
+            Set<Integer> purposeIds, BiFunction<Set<Integer>, Set<Integer>, Boolean> verdictForPurposes) {
+
         final Map<Integer, Boolean> result = new HashMap<>(vendorIds.size());
         for (Integer vendorId : vendorIds) {
-            // consent string confirms Vendor is allowed
+            // confirm consent is allowed the vendor
             final boolean vendorIsAllowed = vendorId != null && isVendorAllowed(vendorConsent, vendorId);
 
-            // vendorlist lookup confirms Vendor has all purposes
-            final boolean vendorHasAllPurposes;
-            if (vendorIsAllowed) {
-                final Set<Integer> vendorPurposeIds = vendorIdToPurposes.get(vendorId);
-                vendorHasAllPurposes = vendorPurposeIds != null && vendorPurposeIds.containsAll(purposeIds);
-            } else {
-                vendorHasAllPurposes = false;
-            }
+            // confirm purposes
+            final boolean purposesAreMatched = vendorIsAllowed
+                    ? verdictForPurposes.apply(purposeIds, vendorIdToPurposes.get(vendorId))
+                    : false;
 
-            result.put(vendorId, vendorIsAllowed && vendorHasAllPurposes);
+            result.put(vendorId, vendorIsAllowed && purposesAreMatched);
         }
         return result;
     }
@@ -200,12 +194,68 @@ public class GdprService {
     }
 
     /**
-     * Internal class for holding gdpr and country values.
+     * Resolves GDPR internal flag and returns {@link GdprInfoWithCountry} model.
+     */
+    private Future<GdprInfoWithCountry> toGdprInfo(String gdpr, String gdprConsent, String ipAddress, Timeout timeout) {
+        final Future<GdprInfoWithCountry> result;
+
+        final String gdprFromRequest = StringUtils.stripToNull(gdpr);
+        if (isValidGdpr(gdprFromRequest)) {
+            result = Future.succeededFuture(
+                    GdprInfoWithCountry.of(gdprFromRequest, vendorConsentFrom(gdprFromRequest, gdprConsent), null));
+        } else if (ipAddress != null && geoLocationService != null) {
+            result = geoLocationService.lookup(ipAddress, timeout)
+                    .map(GeoInfo::getCountry)
+                    .map(country -> createGdprInfoWithCountry(gdprConsent, country))
+                    .otherwise(
+                            GdprInfoWithCountry.of(gdprDefaultValue, vendorConsentFrom(gdprDefaultValue, gdprConsent),
+                                    null));
+        } else {
+            result = Future.succeededFuture(
+                    GdprInfoWithCountry.of(gdprDefaultValue, vendorConsentFrom(gdprDefaultValue, gdprConsent), null));
+        }
+
+        return result;
+    }
+
+    /**
+     * Checks GDPR flag has valid value.
+     */
+    private boolean isValidGdpr(String gdprFromRequest) {
+        return gdprFromRequest != null && (gdprFromRequest.equals("0") || gdprFromRequest.equals("1"));
+    }
+
+    /**
+     * Parses consent string to {@link VendorConsent} model or null if GDPR is not 1.
+     */
+    private VendorConsent vendorConsentFrom(String gdpr, String gdprConsent) {
+        try {
+            return Objects.equals(gdpr, "1") ? VendorConsentDecoder.fromBase64String(gdprConsent) : null;
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Creates {@link GdprInfoWithCountry} which GDPR value depends on if country is in eea list.
+     */
+    private GdprInfoWithCountry createGdprInfoWithCountry(String gdprConsent, String country) {
+        final String gdpr = country == null ? gdprDefaultValue : eeaCountries.contains(country) ? "1" : "0";
+        return GdprInfoWithCountry.of(gdpr, vendorConsentFrom(gdpr, gdprConsent), country);
+    }
+
+    /**
+     * Internal class for holding GDPR information and country.
      */
     @AllArgsConstructor(staticName = "of")
     @Value
-    private static class GdprWithCountry {
+    private static class GdprInfoWithCountry {
+
         String gdpr;
+
+        VendorConsent vendorConsent;
+
         String country;
     }
 }

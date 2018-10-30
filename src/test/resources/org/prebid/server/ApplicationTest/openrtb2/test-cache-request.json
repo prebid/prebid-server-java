@@ -3,19 +3,6 @@
     {
       "type": "json",
       "value": {
-        "id": "impId91",
-        "impid": "impId91",
-        "price": 3.22425,
-        "adm": "adm91",
-        "crid": "crid91",
-        "dealid": "dealId91",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "tid",
         "impid": "impId18",
         "price": 6.7951,
@@ -29,40 +16,19 @@
     {
       "type": "json",
       "value": {
-        "id": "466223845",
-        "impid": "impId2",
-        "price": 3.43382,
-        "adm": "adm2",
-        "crid": "crid2",
-        "dealid": "dealId2",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "600527793",
-        "impid": "impId011",
-        "price": 4.65904,
-        "adm": "adm00",
-        "crid": "crid00",
-        "dealid": "dealId00",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "620160380",
-        "impid": "impId16",
-        "price": 6.7951,
-        "adm": "adm16",
-        "crid": "crid16",
-        "dealid": "dealId16",
-        "w": 300,
-        "h": 250
+        "id": "bid02",
+        "impid": "impId022",
+        "price": 1.81364,
+        "adm": "adm022",
+        "adid": "2002",
+        "adomain": [
+          "video-example.com"
+        ],
+        "cid": "1001",
+        "crid": "crid022",
+        "cat": [
+          "IAB2"
+        ]
       }
     },
     {
@@ -95,49 +61,12 @@
     {
       "type": "json",
       "value": {
-        "id": "impId4",
-        "impid": "impId4",
-        "price": 4.83637,
-        "adm": "adm4",
-        "crid": "crid4",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "620160380",
         "impid": "impId14",
         "price": 6.7951,
         "adm": "adm14",
         "crid": "crid14",
         "dealid": "dealId14",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "impId12",
-        "impid": "impId12",
-        "price": 8.46365,
-        "adm": "banner",
-        "crid": "crid12",
-        "w": 400,
-        "h": 300
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "620160388",
-        "impid": "impId15",
-        "price": 6.7951,
-        "adm": "adm15",
-        "crid": "crid15",
-        "dealid": "dealId15",
         "w": 300,
         "h": 250
       }
@@ -160,44 +89,6 @@
       "value": {
         "id": "600527793",
         "impid": "impId03",
-        "price": 4.65904,
-        "adm": "adm00",
-        "crid": "crid00",
-        "dealid": "dealId00",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "impId8",
-        "impid": "impId8",
-        "price": 3.82879,
-        "adm": "adm8",
-        "crid": "crid8",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "impId61",
-        "impid": "impId61",
-        "price": 3.22425,
-        "adm": "adm61",
-        "crid": "crid61",
-        "dealid": "dealId61",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
-      "type": "json",
-      "value": {
-        "id": "600527793",
-        "impid": "impId02",
         "price": 4.65904,
         "adm": "adm00",
         "crid": "crid00",
@@ -262,26 +153,21 @@
     {
       "type": "json",
       "value": {
-        "id": "880290288",
-        "impid": "impId1",
-        "price": 6.7951,
-        "adm": "adm1",
-        "crid": "crid1",
-        "dealid": "dealId1",
+        "id": "wehM-93KGr0_0_0",
+        "impid": "impId021",
+        "price": 0.40303,
+        "adm": "adm021",
+        "adid": "19005",
+        "adomain": [
+          "test.com"
+        ],
+        "cid": "3706",
+        "crid": "crid021",
+        "cat": [
+          "IAB2"
+        ],
         "w": 300,
-        "h": 250,
-        "ext": {
-          "rp": {
-            "targeting": [
-              {
-                "key": "rpfl_1001",
-                "values": [
-                  "2_tier0100"
-                ]
-              }
-            ]
-          }
-        }
+        "h": 250
       }
     },
     {
@@ -325,6 +211,158 @@
     {
       "type": "json",
       "value": {
+        "id": "impId91",
+        "impid": "impId91",
+        "price": 3.22425,
+        "adm": "adm91",
+        "crid": "crid91",
+        "dealid": "dealId91",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "466223845",
+        "impid": "impId2",
+        "price": 3.43382,
+        "adm": "adm2",
+        "crid": "crid2",
+        "dealid": "dealId2",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId011",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "620160380",
+        "impid": "impId16",
+        "price": 6.7951,
+        "adm": "adm16",
+        "crid": "crid16",
+        "dealid": "dealId16",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId4",
+        "impid": "impId4",
+        "price": 4.83637,
+        "adm": "adm4",
+        "crid": "crid4",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId12",
+        "impid": "impId12",
+        "price": 8.46365,
+        "adm": "banner",
+        "crid": "crid12",
+        "w": 400,
+        "h": 300
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "620160388",
+        "impid": "impId15",
+        "price": 6.7951,
+        "adm": "adm15",
+        "crid": "crid15",
+        "dealid": "dealId15",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId8",
+        "impid": "impId8",
+        "price": 3.82879,
+        "adm": "adm8",
+        "crid": "crid8",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId61",
+        "impid": "impId61",
+        "price": 3.22425,
+        "adm": "adm61",
+        "crid": "crid61",
+        "dealid": "dealId61",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId02",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "880290288",
+        "impid": "impId1",
+        "price": 6.7951,
+        "adm": "adm1",
+        "crid": "crid1",
+        "dealid": "dealId1",
+        "w": 300,
+        "h": 250,
+        "ext": {
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "json",
+      "value": {
         "id": "600527793",
         "impid": "impId13",
         "price": 4.65904,
@@ -337,17 +375,32 @@
     },
     {
       "type": "xml",
-      "value": "adm91",
-      "expiry": 120
-    },
-    {
-      "type": "xml",
       "value": "adm18",
       "expiry": 230
     },
     {
       "type": "xml",
+      "value": "adm022",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
       "value": "adm00",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": "adm00",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": null,
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": "adm91",
       "expiry": 120
     },
     {
@@ -357,17 +410,7 @@
     },
     {
       "type": "xml",
-      "value": "adm00",
-      "expiry": 120
-    },
-    {
-      "type": "xml",
       "value": "adm1",
-      "expiry": 120
-    },
-    {
-      "type": "xml",
-      "value": null,
       "expiry": 120
     }
   ]

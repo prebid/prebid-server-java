@@ -41,7 +41,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -57,6 +63,7 @@ public class ApplicationTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
     private static final String FACEBOOK = "audienceNetwork";
+    private static final String ADKERNELADN = "adkernelAdn";
     private static final String PULSEPOINT = "pulsepoint";
     private static final String IX = "ix";
     private static final String LIFESTREET = "lifestreet";
@@ -139,7 +146,7 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-facebook-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-facebook-bid-response-1.json"))));
 
-        // ix bid response for imp 6
+        // ix bid response for imp 6 and imp 61
         wireMockRule.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-ix-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-ix-bid-response-1.json"))));
@@ -260,6 +267,24 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept", equalTo("application/json"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/test-beachfront-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-beachfront-bid-response-1.json"))));
+
+        // adkernelAdn bid response for imp 021
+        wireMockRule.stubFor(post(urlPathEqualTo("/adkerneladn-exchange"))
+                .withQueryParam("account", equalTo("101"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("x-openrtb-version", equalTo("2.5"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-adkerneladn-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adkerneladn-bid-response-1.json"))));
+
+        // adkernelAdn bid response for imp 022
+        wireMockRule.stubFor(post(urlPathEqualTo("/adkerneladn-exchange"))
+                .withQueryParam("account", equalTo("102"))
+                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("x-openrtb-version", equalTo("2.5"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/test-adkerneladn-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/test-adkerneladn-bid-response-2.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
@@ -717,6 +742,7 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(RUBICON, "http://localhost:" + WIREMOCK_PORT + "/rubicon-exchange?tk_xint=rp-pbs");
         exchanges.put(APPNEXUS, "http://localhost:" + WIREMOCK_PORT + "/appnexus-exchange");
         exchanges.put(FACEBOOK, "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange");
+        exchanges.put(ADKERNELADN, "http://localhost:" + WIREMOCK_PORT + "/adkerneladn-exchange");
         exchanges.put(PULSEPOINT, "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange");
         exchanges.put(IX, "http://localhost:" + WIREMOCK_PORT + "/ix-exchange");
         exchanges.put(LIFESTREET, "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange");
