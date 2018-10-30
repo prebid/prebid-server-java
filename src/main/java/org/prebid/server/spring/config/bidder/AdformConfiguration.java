@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class AdformConfiguration extends BidderConfiguration {
 
@@ -37,6 +39,9 @@ public class AdformConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
+    @Value("${adapters.adform.deprecated-names}")
+    private List<String> deprecatedNames;
+
     @Bean
     BidderDeps adformBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
@@ -45,6 +50,11 @@ public class AdformConfiguration extends BidderConfiguration {
     @Override
     protected String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Override

@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class AdtelligentConfiguration extends BidderConfiguration {
 
@@ -36,9 +38,17 @@ public class AdtelligentConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
+    @Value("${adapters.adtelligent.deprecated-names}")
+    private List<String> deprecatedNames;
+
     @Override
     protected String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Bean

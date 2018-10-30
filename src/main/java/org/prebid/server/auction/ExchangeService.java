@@ -246,8 +246,7 @@ public class ExchangeService {
      * NOTE: the return list will only contain entries for bidders that both have the extension field in at least one
      * {@link Imp}, and are known to {@link BidderCatalog} or aliases from {@link BidRequest}.ext.prebid.aliases.
      */
-    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest,
-                                                              UidsCookie uidsCookie,
+    private Future<List<BidderRequest>> extractBidderRequests(BidRequest bidRequest, UidsCookie uidsCookie,
                                                               Map<String, String> aliases,
                                                               Timeout timeout) {
         // sanity check: discard imps without extension
@@ -1065,20 +1064,34 @@ public class ExchangeService {
      * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
      * bidders
      */
-    private static ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest) {
+    private ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest) {
         final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream().collect(
                 Collectors.toMap(BidderResponse::getBidder, r -> ListUtils.emptyIfNull(r.getSeatBid().getHttpCalls())))
                 : null;
         final ExtResponseDebug extResponseDebug = httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null;
 
-        final Map<String, List<String>> errors = results.stream()
-                .collect(Collectors.toMap(BidderResponse::getBidder, r -> messages(r.getSeatBid().getErrors())));
+        final Map<String, List<String>> errors = new HashMap<>();
+        for (BidderResponse bidderResponse : results) {
+            errors.put(bidderResponse.getBidder(), messages(bidderResponse.getSeatBid().getErrors()));
+        }
+
+        errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
 
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
+    }
+
+    private Map<String, List<String>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
+        return bidRequest.getImp().stream()
+                .filter(imp -> imp.getExt() != null)
+                .flatMap(imp -> asStream(imp.getExt().fieldNames()))
+                .distinct()
+                .filter(bidderCatalog::isDeprecatedName)
+                .collect(Collectors.toMap(Function.identity(),
+                        bidder -> Collections.singletonList(bidderCatalog.errorForDeprecatedName(bidder))));
     }
 
     private static List<String> messages(List<BidderError> errors) {

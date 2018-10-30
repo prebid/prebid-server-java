@@ -11,6 +11,8 @@ import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.vertx.http.HttpClient;
 
+import java.util.List;
+
 public abstract class BidderConfiguration {
 
     private static final String ERROR_MESSAGE_TEMPLATE_FOR_DISABLED = "%s is not configured properly on this "
@@ -33,10 +35,12 @@ public abstract class BidderConfiguration {
         final BidderRequester bidderRequester = createBidderRequester(httpClient, bidder, adapter, usersyncer,
                 httpAdapterConnector);
 
-        return BidderDeps.of(bidderName, metaInfo, usersyncer, bidder, adapter, bidderRequester);
+        return BidderDeps.of(bidderName, deprecatedNames(), metaInfo, usersyncer, bidder, adapter, bidderRequester);
     }
 
     protected abstract String bidderName();
+
+    protected abstract List<String> deprecatedNames();
 
     protected abstract MetaInfo createMetaInfo();
 

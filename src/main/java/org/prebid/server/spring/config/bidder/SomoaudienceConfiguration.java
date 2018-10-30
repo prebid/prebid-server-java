@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class SomoaudienceConfiguration extends BidderConfiguration {
 
@@ -36,6 +38,9 @@ public class SomoaudienceConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
+    @Value("${adapters.somoaudience.deprecated-names}")
+    private List<String> deprecatedNames;
+
     @Bean
     BidderDeps somoaudienceBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
@@ -44,6 +49,11 @@ public class SomoaudienceConfiguration extends BidderConfiguration {
     @Override
     protected String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Override

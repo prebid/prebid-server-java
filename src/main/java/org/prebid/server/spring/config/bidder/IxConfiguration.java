@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class IxConfiguration extends BidderConfiguration {
 
@@ -34,6 +36,9 @@ public class IxConfiguration extends BidderConfiguration {
     @Value("${adapters.ix.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
+    @Value("${adapters.ix.deprecated-names}")
+    private List<String> deprecatedNames;
+
     @Bean
     BidderDeps ixBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && endpoint == null) {
@@ -47,6 +52,11 @@ public class IxConfiguration extends BidderConfiguration {
     @Override
     protected String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Override

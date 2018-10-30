@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class RubiconConfiguration extends BidderConfiguration {
 
@@ -40,6 +42,9 @@ public class RubiconConfiguration extends BidderConfiguration {
     @Value("${adapters.rubicon.XAPI.Password}")
     private String password;
 
+    @Value("${adapters.rubicon.deprecated-names}")
+    private List<String> deprecatedNames;
+
     @Bean
     BidderDeps rubiconBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
@@ -48,6 +53,11 @@ public class RubiconConfiguration extends BidderConfiguration {
     @Override
     public String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Override

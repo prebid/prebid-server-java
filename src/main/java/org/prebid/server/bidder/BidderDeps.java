@@ -3,6 +3,8 @@ package org.prebid.server.bidder;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.util.List;
+
 /**
  * Gathers all dependencies for bidder.
  */
@@ -17,6 +19,8 @@ public class BidderDeps {
      * inspecting bidrequest.imp[i].ext.{bidder} fields.
      */
     String name;
+
+    List<String> deprecatedNames;
 
     /**
      * Bidder's meta information is used in {@link org.prebid.server.handler.info.BidderDetailsHandler} handler

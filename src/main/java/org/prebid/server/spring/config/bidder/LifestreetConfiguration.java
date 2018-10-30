@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class LifestreetConfiguration extends BidderConfiguration {
 
@@ -37,6 +39,9 @@ public class LifestreetConfiguration extends BidderConfiguration {
     @Value("${external-url}")
     private String externalUrl;
 
+    @Value("${adapters.lifestreet.deprecated-names}")
+    private List<String> deprecatedNames;
+
     @Bean
     BidderDeps lifestreetBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
@@ -45,6 +50,11 @@ public class LifestreetConfiguration extends BidderConfiguration {
     @Override
     protected String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Override

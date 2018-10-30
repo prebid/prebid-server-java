@@ -18,6 +18,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class FacebookConfiguration extends BidderConfiguration {
 
@@ -41,6 +43,9 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Value("${adapters.facebook.platformId:#{null}}")
     private String platformId;
 
+    @Value("${adapters.facebook.deprecated-names}")
+    private List<String> deprecatedNames;
+
     @Bean
     BidderDeps facebookBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && (usersyncUrl == null || platformId == null)) {
@@ -54,6 +59,11 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Override
     protected String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Override

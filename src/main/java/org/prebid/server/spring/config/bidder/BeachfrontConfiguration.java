@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class BeachfrontConfiguration extends BidderConfiguration {
 
@@ -39,6 +41,9 @@ public class BeachfrontConfiguration extends BidderConfiguration {
     @Value("${adapters.beachfront.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
+    @Value("${adapters.beachfront.deprecated-names}")
+    private List<String> deprecatedNames;
+
     @Bean
     BidderDeps beachfrontBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
@@ -47,6 +52,11 @@ public class BeachfrontConfiguration extends BidderConfiguration {
     @Override
     protected String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Override
