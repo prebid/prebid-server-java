@@ -1076,9 +1076,7 @@ public class ExchangeService {
             errors.put(bidderResponse.getBidder(), messages(bidderResponse.getSeatBid().getErrors()));
         }
 
-        final Map<String, List<String>> deprecatedBiddersErrors = extractDeprecatedBiddersErrors(bidRequest);
-
-        errors.putAll(deprecatedBiddersErrors);
+        errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
 
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
