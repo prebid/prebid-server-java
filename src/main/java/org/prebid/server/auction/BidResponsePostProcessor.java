@@ -16,6 +16,7 @@ public interface BidResponsePostProcessor {
     /**
      * This method is called when auction is finished.
      *
+     * @param context     represents initial web request
      * @param bidRequest  original auction request
      * @param uidsCookie  auction request {@link Uids} container
      * @param bidResponse auction result
