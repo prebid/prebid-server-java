@@ -44,8 +44,8 @@ import java.util.stream.Collectors;
  */
 public class SovrnBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpSovrn>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpSovrn>>() {
             };
 
     private final String endpointUrl;

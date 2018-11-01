@@ -199,7 +199,7 @@ public class PreBidRequestContextFactory {
                     logger.warn("Invalid mediaType: {0}", mediaType);
                 }
             }
-            if (bidMediaTypes.size() == 0) {
+            if (bidMediaTypes.isEmpty()) {
                 bidMediaTypes.add(MediaType.banner);
             }
         } else {
