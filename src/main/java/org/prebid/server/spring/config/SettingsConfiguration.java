@@ -23,6 +23,7 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
@@ -176,6 +177,32 @@ public class SettingsConfiguration {
                 @Value("${settings.http.amp-endpoint}") String ampEndpoint) {
 
             return new HttpApplicationSettings(httpClient, endpoint, ampEndpoint);
+        }
+    }
+
+    @Configuration
+    static class HttpPeriodicRefreshServiceConfiguration {
+
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.http-update",
+                name = {"endpoint", "refresh-rate", "timeout"})
+        HttpPeriodicRefreshService httpPeriodicRefreshService(
+                SettingsCache settingsCache,
+                @Value("${settings.http-update.endpoint}") String endpoint,
+                @Value("${settings.http-update.refresh-rate}") long refreshPeriod,
+                @Value("${settings.http-update.timeout}") long timeout,
+                Vertx vertx,
+                HttpClient httpClient,
+                ContextRunner contextRunner) {
+
+            final HttpPeriodicRefreshService service = new HttpPeriodicRefreshService(settingsCache, endpoint, refreshPeriod, timeout, vertx, httpClient);
+
+            contextRunner.runOnServiceContext(future -> {
+                service.initialize();
+                future.complete();
+            });
+
+            return service;
         }
     }
 
