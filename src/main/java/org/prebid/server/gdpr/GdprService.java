@@ -197,25 +197,26 @@ public class GdprService {
      * Resolves GDPR internal flag and returns {@link GdprInfoWithCountry} model.
      */
     private Future<GdprInfoWithCountry> toGdprInfo(String gdpr, String gdprConsent, String ipAddress, Timeout timeout) {
-        final Future<GdprInfoWithCountry> result;
-
+        // from request param
         final String gdprFromRequest = StringUtils.stripToNull(gdpr);
         if (isValidGdpr(gdprFromRequest)) {
-            result = Future.succeededFuture(
+            return Future.succeededFuture(
                     GdprInfoWithCountry.of(gdprFromRequest, vendorConsentFrom(gdprFromRequest, gdprConsent), null));
-        } else if (ipAddress != null && geoLocationService != null) {
-            result = geoLocationService.lookup(ipAddress, timeout)
+        }
+
+        // from geo location
+        if (ipAddress != null && geoLocationService != null) {
+            return geoLocationService.lookup(ipAddress, timeout)
                     .map(GeoInfo::getCountry)
-                    .map(country -> createGdprInfoWithCountry(gdprConsent, country))
+                    .map(resolvedCountry -> createGdprInfoWithCountry(gdprConsent, resolvedCountry))
                     .otherwise(
                             GdprInfoWithCountry.of(gdprDefaultValue, vendorConsentFrom(gdprDefaultValue, gdprConsent),
                                     null));
-        } else {
-            result = Future.succeededFuture(
-                    GdprInfoWithCountry.of(gdprDefaultValue, vendorConsentFrom(gdprDefaultValue, gdprConsent), null));
         }
 
-        return result;
+        // use default
+        return Future.succeededFuture(
+                GdprInfoWithCountry.of(gdprDefaultValue, vendorConsentFrom(gdprDefaultValue, gdprConsent), null));
     }
 
     /**

@@ -201,7 +201,7 @@ public class StoredRequestProcessor {
             }
         }
 
-        if (errors.size() > 0) {
+        if (!errors.isEmpty()) {
             throw new InvalidRequestException(errors);
         }
 

@@ -64,6 +64,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
             new TypeReference<ExtBidResponse>() {
             };
+
     private static final MetricsContext METRICS_CONTEXT = MetricsContext.of(MetricName.amp);
 
     private final long defaultTimeout;
@@ -117,7 +118,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
                 .compose(bidRequest ->
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime),
-                                METRICS_CONTEXT)
+                                METRICS_CONTEXT, context)
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
                 .map((Tuple2<BidRequest, BidResponse> result) ->
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
