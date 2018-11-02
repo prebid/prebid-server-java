@@ -8,15 +8,11 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.CacheNotificationListener;
-import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.proto.response.HttpRefreshResponse;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -26,8 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import static java.util.Collections.singletonMap;
 
 public class HttpPeriodicRefreshService {
 
@@ -145,7 +139,8 @@ public class HttpPeriodicRefreshService {
 
         cacheNotificationListener.invalidate(invalidatedRequests, invalidatedImps);
 
-        final Map<String, ObjectNode> requestsToSave = removeFromMap(refreshResponse.getRequests(), invalidatedRequests);
+        final Map<String, ObjectNode> requestsToSave = removeFromMap(refreshResponse.getRequests(),
+                invalidatedRequests);
         final Map<String, ObjectNode> impsToSave = removeFromMap(refreshResponse.getImps(), invalidatedImps);
 
         return HttpRefreshResponse.of(requestsToSave, impsToSave);

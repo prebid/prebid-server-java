@@ -195,13 +195,13 @@ public class SettingsConfiguration {
                 HttpClient httpClient,
                 ContextRunner contextRunner) {
 
-            final HttpPeriodicRefreshService service = new HttpPeriodicRefreshService(settingsCache, endpoint, refreshPeriod, timeout, vertx, httpClient);
+            final HttpPeriodicRefreshService service = new HttpPeriodicRefreshService(settingsCache, endpoint,
+                    refreshPeriod, timeout, vertx, httpClient);
 
             contextRunner.runOnServiceContext(future -> {
                 service.initialize();
                 future.complete();
             });
-
             return service;
         }
     }
