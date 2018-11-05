@@ -119,8 +119,8 @@ public class HttpPeriodicRefreshService {
         final Instant updateTime = Instant.now();
 
         final String lastModifiedParam = "last-modified=" + lastUpdateTime;
-        final String paramOrAnd = refreshUrl.contains("?") ? "&" : "?";
-        final String refreshEndpoint = refreshUrl + paramOrAnd + lastModifiedParam;
+        final String andOrParam = refreshUrl.contains("?") ? "&" : "?";
+        final String refreshEndpoint = refreshUrl + andOrParam + lastModifiedParam;
 
         httpClient.get(refreshEndpoint, timeout)
                 .map(HttpPeriodicRefreshService::processResponse)
