@@ -1,6 +1,7 @@
 package org.prebid.server;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import com.iab.gdpr.consent.VendorConsentEncoder;
 import com.iab.gdpr.consent.implementation.v1.VendorConsentBuilder;
@@ -48,6 +49,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -86,6 +88,7 @@ public class ApplicationTest extends VertxTest {
 
     @ClassRule
     public static final WireMockClassRule wireMockRule = new WireMockClassRule(WIREMOCK_PORT);
+//    public static final WireMockClassRule wireMockRule =  new WireMockClassRule(wireMockConfig().port(WIREMOCK_PORT).notifier(new ConsoleNotifier(true)));
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
 

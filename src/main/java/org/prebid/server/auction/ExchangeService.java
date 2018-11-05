@@ -71,6 +71,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -823,7 +824,7 @@ public class ExchangeService {
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, BidRequestCacheInfo cacheInfo,
                                               String publisherId, Timeout timeout) {
-        final Set<Bid> bids = newOrEmptySet(keywordsCreator);
+        final Set<Bid> bids = newOrEmptyOrderedSet(keywordsCreator);
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, bids, winningBids, winningBidsByBidder);
@@ -839,6 +840,10 @@ public class ExchangeService {
      */
     private static Set<Bid> newOrEmptySet(TargetingKeywordsCreator keywordsCreator) {
         return keywordsCreator != null ? new HashSet<>() : Collections.emptySet();
+    }
+
+    private static Set<Bid> newOrEmptyOrderedSet(TargetingKeywordsCreator keywordsCreator) {
+        return keywordsCreator != null ? new LinkedHashSet<>() : Collections.emptySet();
     }
 
     /**
