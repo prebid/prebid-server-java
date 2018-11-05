@@ -92,7 +92,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .map(bidRequest -> Tuple2.of(bidRequest, toMetricsContext(bidRequest)))
                 .compose((Tuple2<BidRequest, MetricsContext> result) ->
                         exchangeService.holdAuction(result.getLeft(), uidsCookie, timeout(result.getLeft(), startTime),
-                                result.getRight())
+                                result.getRight(), context)
                                 .map(bidResponse -> Tuple2.of(bidResponse, result.getRight())))
                 .map((Tuple2<BidResponse, MetricsContext> result) ->
                         addToEvent(result, result.getLeft(), auctionEventBuilder::bidResponse))

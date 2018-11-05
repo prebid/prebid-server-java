@@ -65,6 +65,7 @@ public class ServiceConfiguration {
     CacheService cacheService(
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
+            @Value("${cache.path}") String path,
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
@@ -75,8 +76,8 @@ public class ServiceConfiguration {
                 accountCacheService,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
-                CacheService.getCacheEndpointUrl(scheme, host),
-                CacheService.getCachedAssetUrlTemplate(scheme, host, query));
+                CacheService.getCacheEndpointUrl(scheme, host, path),
+                CacheService.getCachedAssetUrlTemplate(scheme, host, path, query));
     }
 
     @Bean
@@ -349,7 +350,9 @@ public class ServiceConfiguration {
             @Value("${auction.currency-rates-url}") String currencyServerUrl,
             Vertx vertx,
             HttpClient httpClient,
-            ContextRunner contextRunner) {
+            ContextRunner contextRunner,
+            // FIXME - 02/11 required dependency for httpClient
+            Metrics metrics) {
 
         final CurrencyConversionService service = new CurrencyConversionService(currencyServerUrl, refreshPeriod,
                 vertx, httpClient);

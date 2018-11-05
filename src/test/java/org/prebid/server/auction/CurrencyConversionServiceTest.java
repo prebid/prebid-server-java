@@ -17,6 +17,7 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,6 +70,11 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> createAndInitService(URL, 0L, vertx, httpClient))
                 .withMessage("Refresh period for updating rates must be positive value");
+    }
+
+    @Test
+    public void initializeShouldSetLastUpdatedDate() {
+        assertThat(currencyService.getLastUpdated()).isNotNull();
     }
 
     @Test

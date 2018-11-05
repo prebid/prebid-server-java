@@ -40,8 +40,9 @@ import java.util.stream.Collectors;
 public class EplanningBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_EXCHANGE_ID = "5a1ad71d2d53a0f5";
-    private static final TypeReference<ExtPrebid<?, ExtImpEplanning>> EPLANNING_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpEplanning>>() {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpEplanning>> EPLANNING_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpEplanning>>() {
             };
 
     private final String endpointUrlTemplate;
@@ -162,7 +163,7 @@ public class EplanningBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Extracts bids from {@link BidResponse} and creates {@link List<BidderBid>} from them.
+     * Extracts bids from {@link BidResponse} and creates list of {@link BidderBid}s from them.
      */
     private static Result<List<BidderBid>> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {

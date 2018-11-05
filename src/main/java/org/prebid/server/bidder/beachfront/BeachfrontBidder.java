@@ -63,9 +63,10 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     private static final String BEACHFRONT_VERSION = "0.1.1";
     private static final String VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpBeachfront>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpBeachfront>>() {
             };
+
     private static final MultiMap VIDEO_HEADERS = BidderUtil.headers();
 
     private final String bannerEndpointUrl;
@@ -278,8 +279,9 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     }
 
     /**
-     * Creates {@link List<BeachfrontSlot>} from {@link Imp}. If Imp has audio or native type, adds error about
-     * unsupported type.
+     * Creates list of {@link BeachfrontSlot}s from {@link Imp}.
+     * <p>
+     * If Imp has audio or native type, adds error about unsupported type.
      * <p>
      * All banner imps without extension, or with extension which can't be deserialized, considering as invalid.
      * If all imps are invalid, throws {@link InvalidRequestException}.
@@ -465,7 +467,9 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     }
 
     /**
-     * Parses response body to {@link List<BeachfrontResponseSlot>}. Throws {@link PreBidException} in case of failure.
+     * Parses response body to list of {@link BeachfrontResponseSlot}s.
+     * <p>
+     * Throws {@link PreBidException} in case of failure.
      */
     private static List<BeachfrontResponseSlot> makeBeachfrontResponseSlots(String responseBody) {
         if (responseBody == null) {
@@ -507,7 +511,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     }
 
     /**
-     * Creates {@link Result} with empty {@link List<BidderBid>} and bad server errors.
+     * Creates {@link Result} with empty list of {@link BidderBid}s and bad server errors.
      */
     private static Result<List<BidderBid>> makeErrorResponse(List<BidderError> errors) {
         errors.add(BidderError.badServerResponse("Failed to process the beachfront response"));
