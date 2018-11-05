@@ -1,6 +1,7 @@
 package org.prebid.server.settings.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -37,7 +38,7 @@ public class HttpPeriodicRefreshService {
 
     public HttpPeriodicRefreshService(CacheNotificationListener cacheNotificationListener, String refreshUrl,
                                       long refreshPeriod, long timeout, Vertx vertx, HttpClient httpClient) {
-        this.cacheNotificationListener = cacheNotificationListener;
+        this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
         this.refreshUrl = HttpUtil.validateUrl(Objects.requireNonNull(refreshUrl));
         this.refreshPeriod = refreshPeriod;
         this.timeout = timeout;
@@ -56,7 +57,7 @@ public class HttpPeriodicRefreshService {
         lastUpdateTime = Instant.now();
 
         httpClient.get(refreshUrl, timeout)
-                .compose(HttpPeriodicRefreshService::processResponse)
+                .map(HttpPeriodicRefreshService::processResponse)
                 .map(this::save)
                 .recover(HttpPeriodicRefreshService::failResponse);
     }
@@ -78,11 +79,7 @@ public class HttpPeriodicRefreshService {
         return Future.failedFuture(exception);
     }
 
-    private static Future<HttpRefreshResponse> processResponse(HttpClientResponse response) {
-        return Future.succeededFuture(parseResponse(response));
-    }
-
-    private static HttpRefreshResponse parseResponse(HttpClientResponse response) {
+    private static HttpRefreshResponse processResponse(HttpClientResponse response) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
@@ -121,10 +118,12 @@ public class HttpPeriodicRefreshService {
     private void refresh() {
         final Instant updateTime = Instant.now();
 
-        String thisEndpoint = refreshUrl + "?last-modified=" + lastUpdateTime.toEpochMilli();
+        final String lastModifiedParam = "last-modified=" + lastUpdateTime;
+        final String paramOrAnd = refreshUrl.contains("?") ? "&" : "?";
+        final String refreshEndpoint = refreshUrl + paramOrAnd + lastModifiedParam;
 
-        httpClient.get(thisEndpoint, timeout)
-                .compose(HttpPeriodicRefreshService::processResponse)
+        httpClient.get(refreshEndpoint, timeout)
+                .map(HttpPeriodicRefreshService::processResponse)
                 .map(this::update)
                 .map(this::save)
                 .recover(HttpPeriodicRefreshService::failResponse);
@@ -137,7 +136,9 @@ public class HttpPeriodicRefreshService {
         final List<String> invalidatedRequests = getInvalidatedKeys(refreshResponse.getRequests());
         final List<String> invalidatedImps = getInvalidatedKeys(refreshResponse.getImps());
 
-        cacheNotificationListener.invalidate(invalidatedRequests, invalidatedImps);
+        if (!invalidatedRequests.isEmpty() || !invalidatedImps.isEmpty()) {
+            cacheNotificationListener.invalidate(invalidatedRequests, invalidatedImps);
+        }
 
         final Map<String, ObjectNode> requestsToSave = removeFromMap(refreshResponse.getRequests(),
                 invalidatedRequests);
@@ -148,16 +149,12 @@ public class HttpPeriodicRefreshService {
 
     private static List<String> getInvalidatedKeys(Map<String, ObjectNode> changes) {
 
-        List<String> result = new ArrayList<>();
+        final List<String> result = new ArrayList<>();
+
         for (String id : changes.keySet()) {
-            String value;
-            try {
-                value = Json.mapper.writeValueAsString(changes.get(id));
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(String.format("Error parsing json for id: %s with message: %s", id,
-                        e.getMessage()));
-            }
-            if (value.contains("deleted")) {
+            final ObjectNode jsonNodes = changes.get(id);
+            final JsonNode deleted = jsonNodes.get("deleted");
+            if (deleted != null && deleted.asBoolean()) {
                 result.add(id);
             }
         }
@@ -165,9 +162,10 @@ public class HttpPeriodicRefreshService {
     }
 
     private static Map<String, ObjectNode> removeFromMap(Map<String, ObjectNode> map, List<String> invalidatedKeys) {
+        final Map<String, ObjectNode> result = new HashMap<>(map);
         for (String key : invalidatedKeys) {
-            map.remove(key);
+            result.remove(key);
         }
-        return map;
+        return result;
     }
 }

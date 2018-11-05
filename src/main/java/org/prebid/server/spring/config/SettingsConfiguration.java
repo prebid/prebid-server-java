@@ -181,28 +181,45 @@ public class SettingsConfiguration {
     }
 
     @Configuration
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache.http-update",
+            name = {"endpoint", "refresh-rate", "timeout"})
     static class HttpPeriodicRefreshServiceConfiguration {
 
-        @Bean
-        @ConditionalOnProperty(prefix = "settings.http-update",
-                name = {"endpoint", "refresh-rate", "timeout"})
-        HttpPeriodicRefreshService httpPeriodicRefreshService(
-                SettingsCache settingsCache,
-                @Value("${settings.http-update.endpoint}") String endpoint,
-                @Value("${settings.http-update.refresh-rate}") long refreshPeriod,
-                @Value("${settings.http-update.timeout}") long timeout,
-                Vertx vertx,
-                HttpClient httpClient,
-                ContextRunner contextRunner) {
+        @Autowired
+        SettingsCache settingsCache;
+        @Value("${settings.in-memory-cache.http-update.endpoint}")
+        String endpoint;
+        @Value("${settings.in-memory-cache.http-update.amp-endpoint}")
+        String ampEndpoint;
+        @Value("${settings.in-memory-cache.http-update.refresh-rate}")
+        long refreshPeriod;
+        @Value("${settings.in-memory-cache.http-update.timeout}")
+        long timeout;
+        @Autowired
+        Vertx vertx;
+        @Autowired
+        HttpClient httpClient;
+        @Autowired
+        ContextRunner contextRunner;
+
+        //FIXME
+        @Autowired
+        Metrics metrics;
+
+        @PostConstruct
+        public void httpPeriodicRefreshService() {
 
             final HttpPeriodicRefreshService service = new HttpPeriodicRefreshService(settingsCache, endpoint,
                     refreshPeriod, timeout, vertx, httpClient);
 
+            final HttpPeriodicRefreshService ampService = new HttpPeriodicRefreshService(settingsCache, ampEndpoint,
+                    refreshPeriod, timeout, vertx, httpClient);
+
             contextRunner.runOnServiceContext(future -> {
                 service.initialize();
+                ampService.initialize();
                 future.complete();
             });
-            return service;
         }
     }
 

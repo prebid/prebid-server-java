@@ -7,8 +7,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -18,16 +16,12 @@ import org.prebid.server.settings.proto.response.HttpRefreshResponse;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -38,9 +32,7 @@ import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-
 public class HttpPeriodicRefreshServiceTest extends VertxTest {
-
 
     private static final String ENDPOINT_URL = "http://stored-requests.prebid.com";
 
@@ -77,9 +69,6 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
                         singletonMap("id1", mapper.createObjectNode().put("deleted", "true")),
                         singletonMap("id2", mapper.createObjectNode().put("field2", "field-value2")))));
 
-        given(httpClient.get(contains(ENDPOINT_URL + "?last-modified="), anyLong()))
-                .willReturn(Future.succeededFuture(updateResponse));
-
         expectedRequests = singletonMap("id1", "{\"field1\":\"field-value1\"}");
         expectedImps = singletonMap("id2", "{\"field2\":\"field-value2\"}");
 
@@ -105,6 +94,9 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
 
     @Test
     public void shouldCallInvalidateAndSaveWithExpectedParameters() {
+        given(httpClient.get(contains(ENDPOINT_URL + "?last-modified="), anyLong()))
+                .willReturn(Future.succeededFuture(updateResponse));
+
         verify(cacheNotificationListener).save(expectedRequests, expectedImps);
         verify(cacheNotificationListener, after(1100)).invalidate(singletonList("id1"), emptyList());
         verify(cacheNotificationListener).save(emptyMap(), expectedImps);
@@ -124,8 +116,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
 
         // when and then
         verify(cacheNotificationListener).save(expectedRequests, expectedImps);
-        verify(cacheNotificationListener, after(1100)).invalidate(emptyList(), emptyList());
-        verify(cacheNotificationListener).save(singletonMap("id1","{\"changed1\":\"value-changed2\"}"), expectedImps);
+        verify(cacheNotificationListener, after(1100)).save(singletonMap("id1", "{\"changed1\":\"value-changed2\"}"), expectedImps);
     }
 
     @Test
@@ -137,7 +128,6 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     @Test
     public void initializeShouldMakeOnlyOneInitialRequestIfRefreshPeriodIsNegative() throws JsonProcessingException {
         // given
-        final Vertx vertx = Vertx.vertx();
         final HttpClient httpClient = mock(HttpClient.class);
         givenHttpClientReturnsResponse(httpClient, mapper.writeValueAsString(httpRefreshResponse));
 
