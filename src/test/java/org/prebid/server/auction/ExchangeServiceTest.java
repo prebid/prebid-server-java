@@ -1089,6 +1089,46 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldPopulateHostpathTargetingKeywords() {
+        // given
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid1))));
+
+        final Bid bid2 = Bid.builder().id("bidId2").impid("impId1").price(BigDecimal.valueOf(7.19)).build();
+        givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid2))));
+
+        given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonMap(bid2, CacheIdInfo.of(null, "videoCacheId2"))));
+
+        given(cacheService.getEndpointHost()).willReturn("someHost");
+        given(cacheService.getEndpointPath()).willReturn("somePath");
+        given(cacheService.getEndpointHostPath()).willReturn("someHostPath");
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2),
+                        builder -> builder.id("impId1").video(Video.builder().build()))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
+                                2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                        BigDecimal.valueOf(0.5))))), null, true, true), null,
+                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null)))))));
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)
+                .result();
+
+        //then
+        assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
+                .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
+                .extracting(targeting -> targeting.get("hb_cache_host"),
+                            targeting -> targeting.get("hb_cache_path"),
+                            targeting -> targeting.get("hb_cache_hostpath"))
+                .containsOnly(tuple("someHost", "somePath", "someHostPath"),
+                              tuple(null, null, null));
+    }
+
+    @Test
     public void shouldNotPopulateCacheIdTargetingKeywordsIfCacheServiceReturnEmptyResult() {
         // given
         givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(
