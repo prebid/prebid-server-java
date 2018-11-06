@@ -1078,6 +1078,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(cacheService.getEndpointHost()).willReturn("someHost");
         given(cacheService.getEndpointPath()).willReturn("somePath");
+        given(cacheService.getEndpointHostPath()).willReturn("someHostPath");
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -1099,7 +1100,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(targeting -> targeting.get("hb_cache_host"),
                             targeting -> targeting.get("hb_cache_path"),
                             targeting -> targeting.get("hb_cache_hostpath"))
-                .containsOnly(tuple("someHost", "somePath", "someHostsomePath"),
+                .containsOnly(tuple("someHost", "somePath", "someHostPath"),
                               tuple(null, null, null));
     }
 

@@ -148,16 +148,17 @@ public class TargetingKeywordsCreator {
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {
         return makeFor(bid.getBidder(), winningBid, bid.getPrice(), StringUtils.EMPTY, bid.getWidth(), bid.getHeight(),
-                bid.getCacheId(), null, bid.getDealId(), null, null);
+                bid.getCacheId(), null, bid.getDealId(), null, null, null);
     }
 
     /**
      * Creates map of keywords for the given {@link com.iab.openrtb.response.Bid}.
      */
     Map<String, String> makeFor(com.iab.openrtb.response.Bid bid, String bidder, boolean winningBid,
-                                String cacheId, String vastCacheId, String cacheHost, String cachePath) {
+                                String cacheId, String vastCacheId, String cacheHost, String cachePath,
+                                String cacheHostPath) {
         return makeFor(bidder, winningBid, bid.getPrice(), "0.0", bid.getW(), bid.getH(), cacheId, vastCacheId,
-                bid.getDealid(), cacheHost, cachePath);
+                bid.getDealid(), cacheHost, cachePath, cacheHostPath);
     }
 
     /**
@@ -165,7 +166,7 @@ public class TargetingKeywordsCreator {
      */
     private Map<String, String> makeFor(String bidder, boolean winningBid, BigDecimal price, String defaultCpm,
                                         Integer width, Integer height, String cacheId, String vastCacheId,
-                                        String dealId, String cacheHost, String cachePath) {
+                                        String dealId, String cacheHost, String cachePath, String cacheHostPath) {
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
         final String hbSize = sizeFrom(width, height);
 
@@ -185,7 +186,7 @@ public class TargetingKeywordsCreator {
             if (cacheHost != null && cachePath != null) {
                 keywordMap.put(HB_CACHE_HOST, cacheHost);
                 keywordMap.put(HB_CACHE_PATH, cachePath);
-                keywordMap.put(HB_CACHE_HOSTPATH, cacheHost + cachePath);
+                keywordMap.put(HB_CACHE_HOSTPATH, cacheHostPath);
             }
         }
         if (StringUtils.isNotBlank(dealId)) {

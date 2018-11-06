@@ -66,19 +66,31 @@ public class CacheService {
     }
 
     public String getEndpointHost() {
-        String protocol = endpointUrl.getProtocol();
         String host = endpointUrl.getHost();
         int port = endpointUrl.getPort();
 
         if (port == -1) {
-            return String.format("%s://%s", protocol, host);
+            return host;
         } else {
-            return String.format("%s://%s:%d", protocol, host, port);
+            return String.format("%s:%d", host, port);
         }
     }
 
     public String getEndpointPath() {
         return endpointUrl.getPath();
+    }
+
+    public String getEndpointHostPath() {
+        String protocol = endpointUrl.getProtocol();
+        String host = endpointUrl.getHost();
+        int port = endpointUrl.getPort();
+        String path = getEndpointPath();
+
+        if (port == -1) {
+            return String.format("%s://%s%s", protocol, host, path);
+        } else {
+            return String.format("%s://%s:%d%s", protocol, host, port, path);
+        }
     }
 
     /**
@@ -371,7 +383,7 @@ public class CacheService {
      * Composes cached asset URL for the given UUID cache value.
      */
     public String getCachedAssetURL(String uuid) {
-        return cachedAssetUrlTemplate.toString().replaceFirst("%PBS_CACHE_UUID%", uuid);
+        return cachedAssetUrlTemplate.replaceFirst("%PBS_CACHE_UUID%", uuid);
     }
 
     /**
