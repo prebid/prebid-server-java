@@ -183,7 +183,7 @@ public class TargetingKeywordsCreator {
             keywordMap.put(HB_VAST_ID_KEY, vastCacheId);
         }
         if (StringUtils.isNotBlank(vastCacheId) || StringUtils.isNotBlank(cacheId)) {
-            if (cacheHost != null && cachePath != null) {
+            if (cacheHost != null && cachePath != null && cacheHostPath != null) {
                 keywordMap.put(HB_CACHE_HOST, cacheHost);
                 keywordMap.put(HB_CACHE_PATH, cachePath);
                 keywordMap.put(HB_CACHE_HOSTPATH, cacheHostPath);
