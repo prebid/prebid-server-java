@@ -565,12 +565,12 @@ public class RequestValidator {
     }
 
     private void validateBanner(Banner banner, int impIndex) throws ValidationException {
-        if (banner != null && banner.getFormat() != null) {
-            final boolean hasWidth = hasValue(banner.getW());
-            final boolean hasHeight = hasValue(banner.getH());
-            final boolean hasSizes = hasWidth && hasHeight;
+        if (banner != null ) {
+            final boolean hasWidth = banner.getW() != null && banner.getW() > 0;
+            final boolean hasHeight = banner.getH() != null && banner.getH() > 0;
+            final boolean hasSize = hasWidth && hasHeight;
 
-            if (!hasSizes && banner.getFormat().isEmpty()) {
+            if (CollectionUtils.isEmpty(banner.getFormat()) && !hasSize) {
                 throw new ValidationException("request.imp[%d].banner has no sizes. Define \"w\" and \"h\", " +
                         "or include \"format\" elements.", impIndex);
             }
