@@ -8,6 +8,9 @@ vertx:
   http-server-instances: 1
 http:
   port: 8080
+  ssl: false
+  jks-path:
+  jks-password:
 admin:
   port: 8060
 http-client:
