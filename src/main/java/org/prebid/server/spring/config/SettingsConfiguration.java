@@ -214,7 +214,7 @@ public class SettingsConfiguration {
         @Autowired
         ContextRunner contextRunner;
 
-        //FIXME
+        //FIXME - 05/11 required dependency for httpClient
         @Autowired
         Metrics metrics;
 
