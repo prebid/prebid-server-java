@@ -62,7 +62,7 @@ public class HttpPeriodicRefreshService {
                 .recover(HttpPeriodicRefreshService::failResponse);
     }
 
-    private HttpRefreshResponse save(HttpRefreshResponse refreshResponse) {
+    private Void save(HttpRefreshResponse refreshResponse) {
         final Map<String, String> requests = parseStoredData(refreshResponse.getRequests(), StoredDataType.request);
         final Map<String, String> imps = parseStoredData(refreshResponse.getImps(), StoredDataType.imp);
 
@@ -74,7 +74,7 @@ public class HttpPeriodicRefreshService {
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private static Future<HttpRefreshResponse> failResponse(Throwable exception) {
+    private static Future<Void> failResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);
         return Future.failedFuture(exception);
     }
@@ -132,7 +132,6 @@ public class HttpPeriodicRefreshService {
     }
 
     private HttpRefreshResponse update(HttpRefreshResponse refreshResponse) {
-
         final List<String> invalidatedRequests = getInvalidatedKeys(refreshResponse.getRequests());
         final List<String> invalidatedImps = getInvalidatedKeys(refreshResponse.getImps());
 
@@ -148,7 +147,6 @@ public class HttpPeriodicRefreshService {
     }
 
     private static List<String> getInvalidatedKeys(Map<String, ObjectNode> changes) {
-
         final List<String> result = new ArrayList<>();
 
         for (String id : changes.keySet()) {
