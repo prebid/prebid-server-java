@@ -52,7 +52,10 @@ import java.util.LinkedHashSet;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -287,6 +290,117 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.imp[0].audio.mimes must contain at least one supported MIME type");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNoSizes() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .format(emptyList())
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNoHeight() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .w(300)
+                                .format(emptyList())
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndZeroHeight() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .w(300)
+                                .h(0)
+                                .format(emptyList())
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNoWidth() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .h(600)
+                                .format(emptyList())
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements.");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndZeroWidth() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .h(600)
+                                .w(0)
+                                .format(emptyList())
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements.");
     }
 
     @Test
