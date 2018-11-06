@@ -15,6 +15,7 @@
         "pos": 28
       },
       "displaymanager": "prebid-s2s",
+      "displaymanagerver": "1.0.1",
       "tagid": "tagId1",
       "bidfloor": 7.32,
       "secure": 42
@@ -38,7 +39,12 @@
     "id": "12345",
     "buyeruid": "CV-UID",
     "ext": {
-      "consent": "consent1"
+      "consent": "consent1",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 1
+      }
     }
   },
   "regs": {

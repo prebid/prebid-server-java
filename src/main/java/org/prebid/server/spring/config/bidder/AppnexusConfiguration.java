@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -13,9 +12,12 @@ import org.prebid.server.bidder.appnexus.AppnexusAdapter;
 import org.prebid.server.bidder.appnexus.AppnexusBidder;
 import org.prebid.server.bidder.appnexus.AppnexusMetaInfo;
 import org.prebid.server.bidder.appnexus.AppnexusUsersyncer;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class AppnexusConfiguration extends BidderConfiguration {
@@ -31,8 +33,14 @@ public class AppnexusConfiguration extends BidderConfiguration {
     @Value("${adapters.appnexus.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.appnexus.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
+
+    @Value("${adapters.appnexus.deprecated-names}")
+    private List<String> deprecatedNames;
 
     @Bean
     BidderDeps appnexusBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -45,8 +53,13 @@ public class AppnexusConfiguration extends BidderConfiguration {
     }
 
     @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
+    }
+
+    @Override
     protected MetaInfo createMetaInfo() {
-        return new AppnexusMetaInfo(enabled);
+        return new AppnexusMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

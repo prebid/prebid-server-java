@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import io.vertx.core.http.HttpClient;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
@@ -14,9 +13,12 @@ import org.prebid.server.bidder.facebook.FacebookAdapter;
 import org.prebid.server.bidder.facebook.FacebookBidder;
 import org.prebid.server.bidder.facebook.FacebookMetaInfo;
 import org.prebid.server.bidder.facebook.FacebookUsersyncer;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class FacebookConfiguration extends BidderConfiguration {
@@ -35,8 +37,14 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Value("${adapters.facebook.usersync-url:#{null}}")
     private String usersyncUrl;
 
+    @Value("${adapters.facebook.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${adapters.facebook.platformId:#{null}}")
     private String platformId;
+
+    @Value("${adapters.facebook.deprecated-names}")
+    private List<String> deprecatedNames;
 
     @Bean
     BidderDeps facebookBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -54,8 +62,13 @@ public class FacebookConfiguration extends BidderConfiguration {
     }
 
     @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
+    }
+
+    @Override
     protected MetaInfo createMetaInfo() {
-        return new FacebookMetaInfo(enabled);
+        return new FacebookMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

@@ -21,15 +21,20 @@ This parameter affects how many CPU cores will be utilized by the application. R
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
 - `http-client.connect-timeout-ms` - set the connect timeout.
+- `http-client.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make http client more robust.
+- `http-client.circuit-breaker.opening-threshold` - the number of failure before opening the circuit.
+- `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
+- `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 
 ## Auction
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
+- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.expected-cache-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO 4217 codes for the representation of currencies.
 - `auction.currency-rates-refresh-period-ms` - default refresh period for currency rates updates.
 - `auction.currency-rates-url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
+- `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 
 ## Amp
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
@@ -39,6 +44,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
 
+## Cookie Sync
+- `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
+
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
 
@@ -46,6 +54,8 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
 - `adapters.<BIDDER_NAME>.usersync-url` - the url for synchronizing UIDs cookie.
+- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
 
 But feel free to add additional bidder's specific options.
 
@@ -71,8 +81,9 @@ For `influxdb` backend type available next options:
 - `metrics.influxdb.readTimeout` - the response timeout.
 - `metrics.influxdb.interval` - interval in seconds between successive sending metrics.
 
-It is possible to define how many account-level metrics will be submitted on per-account basis:
-- `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`.
+It is possible to define how many account-level metrics will be submitted on per-account basis.
+See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
+- `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`. Default is `none`.
 - `metrics.accounts.basic-verbosity` - a list of accounts for which only basic metrics will be submitted.
 - `metrics.accounts.detailed-verbosity` - a list of accounts for which all metrics will be submitted. 
 
@@ -80,6 +91,12 @@ It is possible to define how many account-level metrics will be submitted on per
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
 - `cache.query` - appends to `/cache` as query string params (used for legacy Auction requests).
+- `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
+- `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.
+- `cache.account.<ACCOUNT>.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service 
+for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
+- `cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
+for particular publisher account. Overrides `cache.video-ttl-seconds` property.
 
 ## Application settings (account configuration, stored ad unit configurations, stored requests)
 Preconfigured application settings can be obtained from multiple data sources consequently: 
@@ -104,6 +121,10 @@ For database data source available next options:
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
+- `settings.database.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make database client more robust.
+- `settings.database.circuit-breaker.opening-threshold` - the number of failure before opening the circuit.
+- `settings.database.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
+- `settings.database.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
@@ -146,4 +167,5 @@ If not defined in config, endpoint will respond with 'No Content' (204) status w
 - `external-url` - the setting stands for external URL prebid server is reachable by, 
 for example address of the load-balancer e.g. http://prebid.host.com.
 - `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
+- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
 - `admin.port` - the port to listen on administration requests.

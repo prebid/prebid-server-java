@@ -24,6 +24,9 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.gdpr.GdprService;
+import org.prebid.server.gdpr.GdprUtils;
+import org.prebid.server.gdpr.model.GdprPurpose;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -39,10 +42,14 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -52,6 +59,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private static final MetricName REQUEST_TYPE_METRIC = MetricName.legacy;
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
+    private static final Set<GdprPurpose> GDPR_PURPOSES =
+            Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
 
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
@@ -59,13 +68,16 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final CacheService cacheService;
     private final Metrics metrics;
     private final HttpAdapterConnector httpAdapterConnector;
-
     private final Clock clock;
+    private final GdprService gdprService;
+    private final Integer gdprHostVendorId;
+    private final boolean useGeoLocation;
 
     public AuctionHandler(ApplicationSettings applicationSettings, BidderCatalog bidderCatalog,
                           PreBidRequestContextFactory preBidRequestContextFactory,
                           CacheService cacheService, Metrics metrics,
-                          HttpAdapterConnector httpAdapterConnector, Clock clock) {
+                          HttpAdapterConnector httpAdapterConnector, Clock clock,
+                          GdprService gdprService, Integer gdprHostVendorId, boolean useGeoLocation) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.preBidRequestContextFactory = Objects.requireNonNull(preBidRequestContextFactory);
@@ -73,6 +85,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.httpAdapterConnector = Objects.requireNonNull(httpAdapterConnector);
         this.clock = Objects.requireNonNull(clock);
+        this.gdprService = Objects.requireNonNull(gdprService);
+        this.gdprHostVendorId = gdprHostVendorId;
+        this.useGeoLocation = useGeoLocation;
     }
 
     /**
@@ -99,17 +114,17 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
                         .recover(AuctionHandler::failWithUnknownAccountOrPropagateOriginal))
 
-                .map((Tuple2<PreBidRequestContext, Account> result) ->
-                        updateAccountRequestAndRequestTimeMetric(result, context, startTime))
+                .map(this::updateAccountRequestAndRequestTimeMetric)
 
                 .compose((Tuple2<PreBidRequestContext, Account> result) ->
                         CompositeFuture.join(submitRequestsToAdapters(result.getLeft()))
                                 .map(bidderResults -> Tuple3.of(result.getLeft(), result.getRight(),
                                         bidderResults.<AdapterResponse>list())))
 
-                .map((Tuple3<PreBidRequestContext, Account, List<AdapterResponse>> result) ->
-                        Tuple3.of(result.getLeft(), result.getMiddle(),
-                                composePreBidResponse(result.getLeft(), result.getRight())))
+                .compose((Tuple3<PreBidRequestContext, Account, List<AdapterResponse>> result) ->
+                        resolveVendorsToGdpr(result.getLeft(), result.getRight())
+                                .map(vendorsToGdpr -> Tuple3.of(result.getLeft(), result.getMiddle(),
+                                        composePreBidResponse(result.getLeft(), result.getRight(), vendorsToGdpr))))
 
                 .compose((Tuple3<PreBidRequestContext, Account, PreBidResponse> result) ->
                         processCacheMarkup(result.getLeft(), result.getRight())
@@ -121,7 +136,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         addTargetingKeywords(result.getLeft().getPreBidRequest(), result.getMiddle(),
                                 result.getRight()))
 
-                .setHandler(preBidResponseResult -> respondWith(bidResponseOrError(preBidResponseResult), context));
+                .setHandler(preBidResponseResult ->
+                        respondWith(bidResponseOrError(preBidResponseResult), context, startTime));
     }
 
     private PreBidRequestContext updateAppAndNoCookieAndImpsRequestedMetrics(
@@ -135,21 +151,12 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private Tuple2<PreBidRequestContext, Account> updateAccountRequestAndRequestTimeMetric(
-            Tuple2<PreBidRequestContext, Account> preBidRequestContextAccount, RoutingContext context,
-            long startTime) {
+            Tuple2<PreBidRequestContext, Account> preBidRequestContextAccount) {
 
         final String accountId = preBidRequestContextAccount.getLeft().getPreBidRequest().getAccountId();
-
         metrics.updateAccountRequestMetrics(accountId, REQUEST_TYPE_METRIC);
 
-        setupRequestTimeUpdater(context, startTime);
-
         return preBidRequestContextAccount;
-    }
-
-    private void setupRequestTimeUpdater(RoutingContext context, long startTime) {
-        // set up handler to update request time metric when response is sent back to a client
-        context.response().endHandler(ignoredVoid -> metrics.updateRequestTimeMetric(clock.millis() - startTime));
     }
 
     private static <T> Future<T> failWithInvalidRequest(String message, Throwable exception) {
@@ -176,15 +183,54 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toList());
     }
 
+    private Future<Map<Integer, Boolean>> resolveVendorsToGdpr(PreBidRequestContext preBidRequestContext,
+                                                               List<AdapterResponse> adapterResponses) {
+        final Set<Integer> vendorIds = adapterResponses.stream()
+                .map(adapterResponse -> adapterResponse.getBidderStatus().getBidder())
+                .filter(bidderCatalog::isActive)
+                .map(bidder -> bidderCatalog.metaInfoByName(bidder).info().getGdpr().getVendorId())
+                .collect(Collectors.toSet());
+
+        final boolean hostVendorIdIsMissing = gdprHostVendorId != null && !vendorIds.contains(gdprHostVendorId);
+        if (hostVendorIdIsMissing) {
+            vendorIds.add(gdprHostVendorId);
+        }
+
+        final String gdpr = GdprUtils.gdprFrom(preBidRequestContext.getPreBidRequest().getRegs());
+        final String gdprConsent = GdprUtils.gdprConsentFrom(preBidRequestContext.getPreBidRequest().getUser());
+        final String ip = useGeoLocation ? preBidRequestContext.getIp() : null;
+
+        return gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, gdpr, gdprConsent, ip,
+                preBidRequestContext.getTimeout())
+                .map(gdprResponse -> toVendorsToGdpr(gdprResponse.getVendorsToGdpr(), hostVendorIdIsMissing));
+    }
+
+    private Map<Integer, Boolean> toVendorsToGdpr(Map<Integer, Boolean> vendorsToGdpr, boolean hostVendorIdIsMissing) {
+        final Map<Integer, Boolean> result;
+
+        if (Objects.equals(vendorsToGdpr.get(gdprHostVendorId), false)) {
+            result = Collections.emptyMap(); // deny all by host vendor
+        } else if (hostVendorIdIsMissing) {
+            final Map<Integer, Boolean> vendorsToGdprWithoutHost = new HashMap<>(vendorsToGdpr);
+            vendorsToGdprWithoutHost.remove(gdprHostVendorId); // just to be clean with bidders
+            result = vendorsToGdprWithoutHost;
+        } else {
+            result = vendorsToGdpr;
+        }
+
+        return result;
+    }
+
     private PreBidResponse composePreBidResponse(PreBidRequestContext preBidRequestContext,
-                                                 List<AdapterResponse> adapterResponses) {
+                                                 List<AdapterResponse> adapterResponses,
+                                                 Map<Integer, Boolean> vendorsToGdpr) {
         adapterResponses.stream()
                 .filter(ar -> ar.getError() != null)
                 .forEach(this::updateAdapterErrorMetrics);
 
         final List<BidderStatus> bidderStatuses = Stream.concat(
                 adapterResponses.stream()
-                        .map(AdapterResponse::getBidderStatus)
+                        .map(adapterResponse -> updateBidderStatus(adapterResponse.getBidderStatus(), vendorsToGdpr))
                         .peek(bs -> updateResponseTimeMetrics(bs, preBidRequestContext)),
                 invalidBidderStatuses(preBidRequestContext))
                 .collect(Collectors.toList());
@@ -201,6 +247,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .bidderStatus(bidderStatuses)
                 .bids(bids)
                 .build();
+    }
+
+    private BidderStatus updateBidderStatus(BidderStatus bidderStatus, Map<Integer, Boolean> vendorsToGdpr) {
+        final int vendorId = bidderCatalog.metaInfoByName(bidderStatus.getBidder()).info().getGdpr().getVendorId();
+        return Objects.equals(vendorsToGdpr.get(vendorId), true)
+                ? bidderStatus
+                : bidderStatus.toBuilder().usersync(null).build();
     }
 
     private void updateAdapterErrorMetrics(AdapterResponse adapterResponse) {
@@ -300,7 +353,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final Integer sortBids = preBidRequest.getSortBids();
         if (sortBids != null && sortBids == 1) {
             final TargetingKeywordsCreator keywordsCreator =
-                    TargetingKeywordsCreator.create(account.getPriceGranularity(), true, false);
+                    TargetingKeywordsCreator.create(account.getPriceGranularity(), true, true, false);
 
             final Map<String, List<Bid>> adUnitCodeToBids = preBidResponse.getBids().stream()
                     .collect(Collectors.groupingBy(Bid::getCode));
@@ -329,11 +382,26 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return left;
     }
 
-    private static void respondWith(PreBidResponse response, RoutingContext context) {
+    private void respondWith(PreBidResponse response, RoutingContext context, long startTime) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped.");
+            return;
+        }
+
+        context.response().exceptionHandler(this::handleResponseException);
+
         context.response()
                 .putHeader(HttpHeaders.DATE, date())
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .end(Json.encode(response));
+
+        metrics.updateRequestTimeMetric(clock.millis() - startTime);
+    }
+
+    private void handleResponseException(Throwable throwable) {
+        logger.warn("Failed to send auction response", throwable);
+        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 
     private static String date() {

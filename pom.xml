@@ -29,11 +29,11 @@
         <spring.boot.version>1.5.9.RELEASE</spring.boot.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <hibernate-validator.version>6.0.7.Final</hibernate-validator.version>
-        <vertx.version>3.5.2</vertx.version>
+        <vertx.version>3.5.4</vertx.version>
         <lombok.version>1.16.16</lombok.version>
         <commons.version>3.6</commons.version>
         <commons.collections.version>4.1</commons.collections.version>
-        <jackson.version>2.9.4</jackson.version>
+        <jackson.version>2.9.7</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.9</jsonpatch.version>
         <mysql.version>6.0.6</mysql.version>
@@ -57,6 +57,7 @@
         <checkstyle.version>7.6</checkstyle.version>
         <download-plugin.version>1.2.0</download-plugin.version>
         <jacoco-plugin.version>0.8.0</jacoco-plugin.version>
+        <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -105,6 +106,11 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-jdbc-client</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-circuit-breaker</artifactId>
             <version>${vertx.version}</version>
         </dependency>
         <dependency>
@@ -381,6 +387,28 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>${git-commmit-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                    <prefix>git</prefix>
+                    <verbose>false</verbose>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git-revision.json
+                    </generateGitPropertiesFilename>
+                    <format>json</format>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

@@ -25,6 +25,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.ViewabilityVendors;
@@ -59,7 +60,6 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -87,8 +87,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpRubicon>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpRubicon>>() {
             };
 
     private final String endpointUrl;
@@ -169,6 +169,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .site(makeSite(bidRequest.getSite(), rubiconImpExt))
                 .app(makeApp(bidRequest.getApp(), rubiconImpExt))
                 .imp(Collections.singletonList(makeImp(imp, rubiconImpExt)))
+                .cur(null) // suppress currencies
                 .build();
     }
 
@@ -190,7 +191,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (video != null) {
             builder.video(makeVideo(video, rubiconImpExt.getVideo()));
         } else {
-            builder.banner(makeBanner(imp.getBanner()));
+            final List<Format> overriddenSizes;
+            final List<Integer> sizeIds = rubiconImpExt.getSizes();
+            if (sizeIds != null) {
+                final List<Format> resolvedSizes = RubiconSize.idToSize(sizeIds);
+                if (resolvedSizes.isEmpty()) {
+                    throw new PreBidException("Bad request.imp[].ext.rubicon.sizes");
+                }
+                overriddenSizes = resolvedSizes;
+            } else {
+                overriddenSizes = null;
+            }
+            builder.banner(makeBanner(imp.getBanner(), overriddenSizes));
         }
 
         return builder.build();
@@ -248,9 +260,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Banner makeBanner(Banner banner) {
+    private static Banner makeBanner(Banner banner, List<Format> overriddenSizes) {
+        final List<Format> sizes = overriddenSizes != null ? overriddenSizes : banner.getFormat();
         return banner.toBuilder()
-                .ext(Json.mapper.valueToTree(makeBannerExt(banner.getFormat())))
+                .format(sizes)
+                .ext(Json.mapper.valueToTree(makeBannerExt(sizes)))
                 .build();
     }
 

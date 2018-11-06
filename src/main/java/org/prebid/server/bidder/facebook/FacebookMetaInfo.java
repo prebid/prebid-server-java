@@ -10,9 +10,10 @@ public class FacebookMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public FacebookMetaInfo(boolean enabled) {
+    public FacebookMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "info@prebid.org",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 0, true);
+                Collections.emptyList(), Arrays.asList("banner", "video"),
+                null, 0, pbsEnforcesGdpr);
     }
 
     @Override

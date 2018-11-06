@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -27,12 +28,15 @@ import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
+    private final long defaultTimeout;
     private final long maxRequestSize;
     private final String adServerCurrency;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -40,11 +44,12 @@ public class AuctionRequestFactory {
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
 
-    public AuctionRequestFactory(long maxRequestSize, String adServerCurrency,
+    public AuctionRequestFactory(long defaultTimeout, long maxRequestSize, String adServerCurrency,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ImplicitParametersExtractor paramsExtractor,
                                  UidsCookieService uidsCookieService,
                                  RequestValidator requestValidator) {
+        this.defaultTimeout = defaultTimeout;
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -78,27 +83,33 @@ public class AuctionRequestFactory {
         final BidRequest result;
 
         final HttpServerRequest request = context.request();
+        final List<Imp> imps = bidRequest.getImp();
 
         final Device populatedDevice = populateDevice(bidRequest.getDevice(), request);
         final Site populatedSite = bidRequest.getApp() == null ? populateSite(bidRequest.getSite(), request) : null;
         final User populatedUser = populateUser(bidRequest.getUser(), context);
+        final List<Imp> populatedImps = populateImps(imps, request);
         final Integer at = bidRequest.getAt();
-        final Boolean setDefaultAt = at == null || at == 0;
+        final boolean updateAt = at == null || at == 0;
         final ObjectNode ext = bidRequest.getExt();
         final ObjectNode populatedExt = ext != null ? populateBidRequestExtension(ext) : null;
         final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
+        final boolean updateTmax = bidRequest.getTmax() == null;
 
-        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedExt != null
-                || setDefaultAt || updateCurrency) {
+        if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedImps != null
+                || updateAt || populatedExt != null || updateCurrency || updateTmax) {
+
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
                     .site(populatedSite != null ? populatedSite : bidRequest.getSite())
                     .user(populatedUser != null ? populatedUser : bidRequest.getUser())
+                    .imp(populatedImps != null ? populatedImps : imps)
                     // set the auction type to 1 if it wasn't on the request,
                     // since header bidding is generally a first-price auction.
-                    .at(setDefaultAt ? Integer.valueOf(1) : at)
+                    .at(updateAt ? Integer.valueOf(1) : at)
                     .ext(populatedExt != null ? populatedExt : ext)
                     .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
+                    .tmax(updateTmax ? defaultTimeout : bidRequest.getTmax())
                     .build();
         } else {
             result = bidRequest;
@@ -137,8 +148,9 @@ public class AuctionRequestFactory {
         final boolean isPriceGranularityNull = targeting.getPricegranularity().isNull();
         final boolean isPriceGranularityTextual = targeting.getPricegranularity().isTextual();
         final boolean isIncludeWinnersNull = targeting.getIncludewinners() == null;
+        final boolean isIncludeBidderKeysNull = targeting.getIncludebidderkeys() == null;
 
-        if (isIncludeWinnersNull || isPriceGranularityNull || isPriceGranularityTextual) {
+        if (isPriceGranularityNull || isPriceGranularityTextual || isIncludeWinnersNull || isIncludeBidderKeysNull) {
             return Json.mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                     prebid.getAliases(),
                     prebid.getBidadjustmentfactors(),
@@ -146,7 +158,8 @@ public class AuctionRequestFactory {
                             populatePriceGranularity(targeting.getPricegranularity(), isPriceGranularityNull,
                                     isPriceGranularityTextual),
                             targeting.getCurrency(),
-                            isIncludeWinnersNull ? true : targeting.getIncludewinners()),
+                            isIncludeWinnersNull ? true : targeting.getIncludewinners(),
+                            isIncludeBidderKeysNull ? true : targeting.getIncludebidderkeys()),
                     prebid.getStoredrequest(),
                     prebid.getCache())));
         }
@@ -250,6 +263,19 @@ public class AuctionRequestFactory {
     }
 
     /**
+     * Updates imps with security 1, when secured request was received and imp security was not defined.
+     */
+    private List<Imp> populateImps(List<Imp> imps, HttpServerRequest request) {
+        if (Objects.equals(paramsExtractor.secureFrom(request), 1)
+                && imps.stream().map(Imp::getSecure).anyMatch(Objects::isNull)) {
+            return imps.stream()
+                    .map(imp -> imp.getSecure() == null ? imp.toBuilder().secure(1).build() : imp)
+                    .collect(Collectors.toList());
+        }
+        return null;
+    }
+
+    /**
      * Populates the request body's 'user' section from the incoming http request if the original is partially filled
      * and the request contains necessary info (id).
      */
@@ -257,7 +283,6 @@ public class AuctionRequestFactory {
         User result = null;
 
         final String id = user != null ? user.getId() : null;
-
         if (StringUtils.isBlank(id)) {
             final String parsedId = uidsCookieService.parseHostCookie(context);
             if (StringUtils.isNotBlank(parsedId)) {

@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -10,6 +9,9 @@ import org.prebid.server.bidder.DisabledBidder;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
+import org.prebid.server.vertx.http.HttpClient;
+
+import java.util.List;
 
 public abstract class BidderConfiguration {
 
@@ -33,10 +35,12 @@ public abstract class BidderConfiguration {
         final BidderRequester bidderRequester = createBidderRequester(httpClient, bidder, adapter, usersyncer,
                 httpAdapterConnector);
 
-        return BidderDeps.of(bidderName, metaInfo, usersyncer, bidder, adapter, bidderRequester);
+        return BidderDeps.of(bidderName, deprecatedNames(), metaInfo, usersyncer, bidder, adapter, bidderRequester);
     }
 
     protected abstract String bidderName();
+
+    protected abstract List<String> deprecatedNames();
 
     protected abstract MetaInfo createMetaInfo();
 

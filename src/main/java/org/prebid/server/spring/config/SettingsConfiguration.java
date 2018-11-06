@@ -2,7 +2,6 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -15,6 +14,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
+import org.prebid.server.handler.VersionHandler;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.CompositeApplicationSettings;
@@ -23,7 +24,10 @@ import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.vertx.ContextRunner;
-import org.prebid.server.vertx.JdbcClient;
+import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.jdbc.BasicJdbcClient;
+import org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient;
+import org.prebid.server.vertx.jdbc.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +43,7 @@ import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -76,13 +81,35 @@ public class SettingsConfiguration {
         }
 
         @Bean
-        JdbcClient jdbcClient(Vertx vertx, JDBCClient vertxJdbcClient, ContextRunner contextRunner) {
-            final JdbcClient jdbcClient = new JdbcClient(vertx, vertxJdbcClient);
+        @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "false",
+                matchIfMissing = true)
+        BasicJdbcClient basicJdbcClient(
+                Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
+
+            return createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock, contextRunner);
+        }
+
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "true")
+        CircuitBreakerSecuredJdbcClient circuitBreakerSecuredJdbcClient(
+                Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner,
+                @Value("${settings.database.circuit-breaker.opening-threshold}") int openingThreshold,
+                @Value("${settings.database.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
+                @Value("${settings.database.circuit-breaker.closing-interval-ms}") long closingIntervalMs) {
+
+            final JdbcClient jdbcClient = createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock, contextRunner);
+            return new CircuitBreakerSecuredJdbcClient(vertx, jdbcClient, metrics, openingThreshold, openingIntervalMs,
+                    closingIntervalMs);
+        }
+
+        private static BasicJdbcClient createBasicJdbcClient(
+                Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
+            final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
 
             contextRunner.runOnServiceContext(
-                    future -> jdbcClient.initialize().compose(ignored -> future.complete(), future));
+                    future -> basicJdbcClient.initialize().compose(ignored -> future.complete(), future));
 
-            return jdbcClient;
+            return basicJdbcClient;
         }
 
         @Bean
@@ -240,11 +267,10 @@ public class SettingsConfiguration {
     }
 
     @Configuration
-    @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
-            havingValue = "true")
-    public static class CacheNotificationConfiguration {
+    @ConditionalOnProperty(prefix = "admin", name = "port")
+    public static class AdminServerConfiguration {
 
-        private static final Logger logger = LoggerFactory.getLogger(CacheNotificationConfiguration.class);
+        private static final Logger logger = LoggerFactory.getLogger(AdminServerConfiguration.class);
 
         @Autowired
         private ContextRunner contextRunner;
@@ -256,22 +282,34 @@ public class SettingsConfiguration {
         private BodyHandler bodyHandler;
 
         @Autowired
+        private VersionHandler versionHandler;
+
+        @Autowired(required = false)
         private SettingsCacheNotificationHandler cacheNotificationHandler;
 
-        @Autowired
+        @Autowired(required = false)
         private SettingsCacheNotificationHandler ampCacheNotificationHandler;
 
         @Value("${admin.port}")
         private int adminPort;
 
         @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+                havingValue = "true")
         SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache) {
             return new SettingsCacheNotificationHandler(settingsCache);
         }
 
         @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+                havingValue = "true")
         SettingsCacheNotificationHandler ampCacheNotificationHandler(SettingsCache ampSettingsCache) {
             return new SettingsCacheNotificationHandler(ampSettingsCache);
+        }
+
+        @Bean
+        VersionHandler versionHandler() {
+            return VersionHandler.create("git-revision.json");
         }
 
         @PostConstruct
@@ -280,8 +318,13 @@ public class SettingsConfiguration {
 
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
-            router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
-            router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+            router.route("/version").handler(versionHandler);
+            if (cacheNotificationHandler != null) {
+                router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
+            }
+            if (ampCacheNotificationHandler != null) {
+                router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+            }
 
             contextRunner.<HttpServer>runOnServiceContext(future ->
                     vertx.createHttpServer().requestHandler(router::accept).listen(adminPort, future));

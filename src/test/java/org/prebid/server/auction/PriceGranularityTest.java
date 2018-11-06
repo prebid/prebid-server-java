@@ -106,7 +106,7 @@ public class PriceGranularityTest {
                 ExtGranularityRange.of(BigDecimal.valueOf(3), BigDecimal.valueOf(0.01)),
                 ExtGranularityRange.of(BigDecimal.valueOf(8), BigDecimal.valueOf(0.05))));
 
-        //when
+        // when
         final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(extPriceGranularity);
 
         // then

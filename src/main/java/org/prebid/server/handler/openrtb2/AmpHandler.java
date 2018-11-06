@@ -64,6 +64,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private static final TypeReference<ExtBidResponse> EXT_BID_RESPONSE_TYPE_REFERENCE =
             new TypeReference<ExtBidResponse>() {
             };
+
     private static final MetricsContext METRICS_CONTEXT = MetricsContext.of(MetricName.amp);
 
     private final long defaultTimeout;
@@ -117,7 +118,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
                 .compose(bidRequest ->
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime),
-                                METRICS_CONTEXT)
+                                METRICS_CONTEXT, context)
                                 .map(bidResponse -> Tuple2.of(bidRequest, bidResponse)))
                 .map((Tuple2<BidRequest, BidResponse> result) ->
                         addToEvent(result.getRight(), ampEventBuilder::bidResponse, result))
@@ -127,8 +128,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
                                 context.queryParams()))
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
-                .map(ampResponse -> setupRequestTimeMetricUpdater(ampResponse, context, startTime))
-                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context));
+                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context, startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -146,12 +146,6 @@ public class AmpHandler implements Handler<RoutingContext> {
     private Timeout timeout(BidRequest bidRequest, long startTime) {
         final Long tmax = bidRequest.getTmax();
         return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
-    }
-
-    private <T> T setupRequestTimeMetricUpdater(T returnValue, RoutingContext context, long startTime) {
-        // set up handler to update request time metric when response is sent back to a client
-        context.response().endHandler(ignored -> metrics.updateRequestTimeMetric(clock.millis() - startTime));
-        return returnValue;
     }
 
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {
@@ -233,19 +227,28 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
-                              RoutingContext context) {
+                              RoutingContext context, long startTime) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped.");
+            return;
+        }
+
+        final MetricName requestType = METRICS_CONTEXT.getRequestType();
         final MetricName requestStatus;
         final int status;
         final List<String> errorMessages;
 
-        final String origin = originFrom(context);
+        context.response().exceptionHandler(throwable -> handleResponseException(throwable, requestType));
 
+        final String origin = originFrom(context);
         ampEventBuilder.origin(origin);
 
         // Add AMP headers
         context.response()
                 .putHeader("AMP-Access-Control-Allow-Source-Origin", origin)
                 .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+
         if (responseResult.succeeded()) {
             context.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
             context.response().end(Json.encode(responseResult.result()));
@@ -280,7 +283,8 @@ public class AmpHandler implements Handler<RoutingContext> {
             }
         }
 
-        metrics.updateRequestTypeMetric(METRICS_CONTEXT.getRequestType(), requestStatus);
+        metrics.updateRequestTimeMetric(clock.millis() - startTime);
+        metrics.updateRequestTypeMetric(requestType, requestStatus);
         analyticsReporter.processEvent(ampEventBuilder.status(status).errors(errorMessages).build());
     }
 
@@ -295,5 +299,10 @@ public class AmpHandler implements Handler<RoutingContext> {
             origin = ObjectUtils.firstNonNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
+    }
+
+    private void handleResponseException(Throwable throwable, MetricName requestType) {
+        logger.warn("Failed to send amp response", throwable);
+        metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 }

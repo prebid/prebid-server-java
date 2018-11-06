@@ -24,6 +24,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -41,10 +42,11 @@ import java.util.stream.Collectors;
  */
 public class AdformBidder implements Bidder<Void> {
 
-    private static final String VERSION = "0.1.1";
+    private static final String VERSION = "0.1.2";
     private static final String BANNER = "banner";
-    private static final TypeReference<ExtPrebid<?, ExtImpAdform>> ADFORM_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpAdform>>() {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpAdform>> ADFORM_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpAdform>>() {
             };
 
     private final String endpointUrl;
@@ -65,10 +67,12 @@ public class AdformBidder implements Bidder<Void> {
         final List<ExtImpAdform> extImpAdforms = extImpAdformsResult.getValue();
         final List<BidderError> errors = extImpAdformsResult.getErrors();
 
-        if (extImpAdforms.size() == 0) {
+        if (extImpAdforms.isEmpty()) {
             return Result.of(Collections.emptyList(), errors);
         }
+
         final Device device = request.getDevice();
+        final ExtUser extUser = AdformRequestUtil.getExtUser(request.getUser());
         final String url = AdformHttpUtil.buildAdformUrl(
                 UrlParameters.builder()
                         .masterTagIds(getMasterTagIds(extImpAdforms))
@@ -78,6 +82,8 @@ public class AdformBidder implements Bidder<Void> {
                         .ip(getIp(device))
                         .advertisingId(getIfa(device))
                         .secure(getSecure(imps))
+                        .gdprApplies(AdformRequestUtil.getGdprApplies(request.getRegs()))
+                        .consent(AdformRequestUtil.getConsent(extUser))
                         .build());
 
         final MultiMap headers = AdformHttpUtil.buildAdformHeaders(
@@ -85,7 +91,8 @@ public class AdformBidder implements Bidder<Void> {
                 getUserAgent(device),
                 getIp(device),
                 getReferer(request.getSite()),
-                getUserId(request.getUser()));
+                getUserId(request.getUser()),
+                AdformRequestUtil.getAdformDigitrust(extUser));
 
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers, null)),
@@ -95,7 +102,7 @@ public class AdformBidder implements Bidder<Void> {
     /**
      * Converts Adform Response format to {@link List} of {@link BidderBid}s with {@link List} of errors.
      * Returns empty result {@link List} in case of "No Content" response status.
-     * Returns empty result {@link List} with errors in case of response status different from "OK" or "No Content"
+     * Returns empty result {@link List} with errors in case of response status different from "OK" or "No Content".
      */
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
@@ -117,7 +124,7 @@ public class AdformBidder implements Bidder<Void> {
     }
 
     /**
-     * Retrieves from {@link Imp} and filter not valid {@link ExtImpAdform} and returns list result with errors
+     * Retrieves from {@link Imp} and filter not valid {@link ExtImpAdform} and returns list result with errors.
      */
     private Result<List<ExtImpAdform>> getExtImpAdforms(List<Imp> imps) {
         final List<BidderError> errors = new ArrayList<>();
@@ -150,35 +157,35 @@ public class AdformBidder implements Bidder<Void> {
     }
 
     /**
-     * Converts {@link ExtImpAdform} {@link List} to master tag {@link List}
+     * Converts {@link ExtImpAdform} {@link List} to master tag {@link List}.
      */
     private List<Long> getMasterTagIds(List<ExtImpAdform> extImpAdforms) {
         return extImpAdforms.stream().map(ExtImpAdform::getMasterTagId).collect(Collectors.toList());
     }
 
     /**
-     * Converts {@link ExtImpAdform} {@link List} to price types {@link List}
+     * Converts {@link ExtImpAdform} {@link List} to price types {@link List}.
      */
     private List<String> getPriceType(List<ExtImpAdform> extImpAdforms) {
         return extImpAdforms.stream().map(ExtImpAdform::getPriceType).collect(Collectors.toList());
     }
 
     /**
-     * Retrieves referer from {@link Site}
+     * Retrieves referer from {@link Site}.
      */
     private String getReferer(Site site) {
         return site != null ? site.getPage() : "";
     }
 
     /**
-     * Retrieves userId from {@link User}
+     * Retrieves userId from {@link User}.
      */
     private String getUserId(User user) {
         return user != null ? user.getBuyeruid() : "";
     }
 
     /**
-     * Defines if request should be secured from {@link List} of {@link Imp}s
+     * Defines if request should be secured from {@link List} of {@link Imp}s.
      */
     private Boolean getSecure(List<Imp> imps) {
         return imps.stream()
@@ -186,28 +193,28 @@ public class AdformBidder implements Bidder<Void> {
     }
 
     /**
-     * Retrieves userAgent from {@link Device}
+     * Retrieves userAgent from {@link Device}.
      */
     private String getUserAgent(Device device) {
         return device != null ? ObjectUtils.firstNonNull(device.getUa(), "") : "";
     }
 
     /**
-     * Retrieves ip from {@link Device}
+     * Retrieves ip from {@link Device}.
      */
     private String getIp(Device device) {
         return device != null ? ObjectUtils.firstNonNull(device.getIp(), "") : "";
     }
 
     /**
-     * Retrieves ifs from {@link Device}
+     * Retrieves ifs from {@link Device}.
      */
     private String getIfa(Device device) {
         return device != null ? ObjectUtils.firstNonNull(device.getIfa(), "") : "";
     }
 
     /**
-     * Retrieves tid from {@link Source}
+     * Retrieves tid from {@link Source}.
      */
     private String getTid(Source source) {
         return source != null ? ObjectUtils.firstNonNull(source.getTid(), "") : "";
@@ -218,10 +225,10 @@ public class AdformBidder implements Bidder<Void> {
      */
     private List<BidderBid> toBidderBid(List<AdformBid> adformBids, List<Imp> imps) {
         final List<BidderBid> bidderBids = new ArrayList<>();
+
         for (int i = 0; i < adformBids.size(); i++) {
             final AdformBid adformBid = adformBids.get(i);
-            if (StringUtils.isEmpty(adformBid.getBanner())
-                    || !Objects.equals(adformBid.getResponse(), BANNER)) {
+            if (StringUtils.isEmpty(adformBid.getBanner()) || !Objects.equals(adformBid.getResponse(), BANNER)) {
                 continue;
             }
             final Imp imp = imps.get(i);
@@ -237,6 +244,7 @@ public class AdformBidder implements Bidder<Void> {
                             .build(),
                     BidType.banner, null));
         }
+
         return bidderBids;
     }
 }

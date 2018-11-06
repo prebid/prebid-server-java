@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -15,6 +16,7 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Cookie;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
@@ -42,8 +44,8 @@ import java.util.stream.Collectors;
  */
 public class SovrnBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpSovrn>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpSovrn>>() {
             };
 
     private final String endpointUrl;
@@ -100,7 +102,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
         final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
         return imp.toBuilder()
                 .bidfloor(sovrnExt.getBidfloor())
-                .tagid(sovrnExt.getTagid())
+                .tagid(ObjectUtils.firstNonNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
                 .build();
     }
 
@@ -150,7 +152,12 @@ public class SovrnBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, null))
+                .map(bid -> BidderBid.of(updateBid(bid), BidType.banner, null))
                 .collect(Collectors.toList());
+    }
+
+    private static Bid updateBid(Bid bid) {
+        bid.setAdm(HttpUtil.decodeUrl(bid.getAdm()));
+        return bid;
     }
 }

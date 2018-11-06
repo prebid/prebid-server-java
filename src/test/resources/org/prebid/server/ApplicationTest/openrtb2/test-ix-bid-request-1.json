@@ -1,0 +1,73 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId6",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ],
+        "w": 300,
+        "h": 250,
+        "topframe": 0
+      },
+      "tagid": "impId6"
+    },
+    {
+      "id": "impId61",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "w": 300,
+        "h": 250,
+        "skipmin": 0,
+        "skipafter": 0,
+        "playbackmethod": [
+          null
+        ]
+      },
+      "tagid": "impId61"
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "10002"
+    }
+  },
+  "device": {
+    "ua" : "userAgent",
+    "dnt": 2,
+    "ip" : "192.168.244.1",
+    "pxratio": 4.2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "user": {
+    "buyeruid": "IE-UID",
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
+  },
+  "at": 1,
+  "tmax": 1000,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

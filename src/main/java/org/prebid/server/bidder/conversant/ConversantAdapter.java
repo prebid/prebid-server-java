@@ -64,11 +64,6 @@ public class ConversantAdapter extends OpenrtbAdapter {
     @Override
     public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
                                                                  PreBidRequestContext preBidRequestContext) {
-        if (preBidRequestContext.getPreBidRequest().getApp() == null
-                && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()) == null) {
-            return Collections.emptyList();
-        }
-
         final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
         final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST, endpointUrl,
                 bidRequest, headers());
@@ -78,11 +73,16 @@ public class ConversantAdapter extends OpenrtbAdapter {
     private BidRequest createBidRequest(AdapterRequest adapterRequest, PreBidRequestContext preBidRequestContext) {
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
-        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
         final List<AdUnitBidWithParams<ConversantParams>> adUnitBidsWithParams = createAdUnitBidsWithParams(adUnitBids);
         final List<Imp> imps = makeImps(adUnitBidsWithParams, preBidRequestContext);
         validateImps(imps);
+
+        final Site site = makeSite(preBidRequestContext, adUnitBidsWithParams);
+        if (site == null) {
+            throw new PreBidException("Conversant doesn't support App requests");
+        }
 
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return BidRequest.builder()
@@ -91,7 +91,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
                 .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
                 .app(preBidRequest.getApp())
-                .site(makeSite(preBidRequestContext, adUnitBidsWithParams))
+                .site(site)
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
@@ -144,6 +144,7 @@ public class ConversantAdapter extends OpenrtbAdapter {
                         .instl(adUnitBid.getInstl())
                         .secure(makeSecure(preBidRequestContext, params))
                         .displaymanager("prebid-s2s")
+                        .displaymanagerver("1.0.1")
                         .bidfloor(params.getBidfloor())
                         .tagid(params.getTagId())
                         .build());

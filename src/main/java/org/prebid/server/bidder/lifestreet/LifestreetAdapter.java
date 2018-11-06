@@ -52,7 +52,7 @@ public class LifestreetAdapter extends OpenrtbAdapter {
                                                                  PreBidRequestContext preBidRequestContext) {
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
-        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
         return createAdUnitBidsWithParams(adUnitBids).stream()
                 .flatMap(adUnitBidWithParams -> createBidRequests(adUnitBidWithParams, preBidRequestContext))

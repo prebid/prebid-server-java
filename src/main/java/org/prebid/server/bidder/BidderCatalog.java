@@ -1,5 +1,6 @@
 package org.prebid.server.bidder;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,11 +14,20 @@ import java.util.stream.Collectors;
  */
 public class BidderCatalog {
 
+    private static final String ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED = "%s has been deprecated and is no "
+            + "longer available. Use %s instead.";
+
     private final Map<String, BidderDeps> bidderDepsMap;
+
+    private final Map<String, String> deprecatedNameToError = new HashMap<>();
 
     public BidderCatalog(List<BidderDeps> bidderDeps) {
         bidderDepsMap = Objects.requireNonNull(bidderDeps).stream()
                 .collect(Collectors.toMap(BidderDeps::getName, Function.identity()));
+
+        bidderDeps.forEach(deps ->
+                deprecatedNameToError.putAll(createErrorsForDeprecatedNames(deps.getDeprecatedNames(),
+                        deps.getName())));
     }
 
     /**
@@ -32,6 +42,19 @@ public class BidderCatalog {
      */
     public boolean isValidName(String name) {
         return bidderDepsMap.containsKey(name);
+    }
+
+    public boolean isDeprecatedName(String name) {
+        return deprecatedNameToError.containsKey(name);
+    }
+
+    public String errorForDeprecatedName(String name) {
+        return deprecatedNameToError.get(name);
+    }
+
+    private Map<String, String> createErrorsForDeprecatedNames(List<String> deprecatedNames, String name) {
+        return deprecatedNames.stream().collect(Collectors.toMap(deprecatedName -> deprecatedName,
+                deprecatedName -> String.format(ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED, deprecatedName, name)));
     }
 
     /**

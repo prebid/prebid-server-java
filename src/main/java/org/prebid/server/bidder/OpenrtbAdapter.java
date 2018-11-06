@@ -100,8 +100,7 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
             deviceBuilder.ua(preBidRequestContext.getUa());
         }
 
-        return deviceBuilder
-                .ip(preBidRequestContext.getIp());
+        return deviceBuilder.ip(preBidRequestContext.getIp());
     }
 
     protected User.UserBuilder userBuilder(PreBidRequestContext preBidRequestContext) {
@@ -128,9 +127,10 @@ public abstract class OpenrtbAdapter implements Adapter<BidRequest, BidResponse>
                 .build();
     }
 
-    protected static void validateAdUnitBidsMediaTypes(List<AdUnitBid> adUnitBids) {
+    protected static void validateAdUnitBidsMediaTypes(List<AdUnitBid> adUnitBids, Set<MediaType> allowedMediaTypes) {
         if (!adUnitBids.stream()
                 .allMatch(adUnitBid -> adUnitBid.getMediaTypes().stream()
+                        .filter(allowedMediaTypes::contains)
                         .allMatch(mediaType -> isValidAdUnitBidVideoMediaType(mediaType, adUnitBid)))) {
             throw new PreBidException("Invalid AdUnit: VIDEO media type with no video data");
         }

@@ -18,3 +18,4 @@
 - [Configuration](config.md)
 - [Application Configuration Options](config-app.md)
 - [Running](run.md)
+- [Metrics](metrics.md)

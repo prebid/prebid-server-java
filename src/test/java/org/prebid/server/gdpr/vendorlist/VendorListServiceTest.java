@@ -5,13 +5,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -23,8 +19,13 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.gdpr.vendorlist.proto.VendorList;
 import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
+import java.io.File;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,12 +33,10 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 public class VendorListServiceTest extends VertxTest {
 
@@ -51,8 +50,6 @@ public class VendorListServiceTest extends VertxTest {
     @Mock
     private HttpClient httpClient;
     @Mock
-    private HttpClientRequest httpClientRequest;
-    @Mock
     private BidderCatalog bidderCatalog;
     @Mock
     private MetaInfo metaInfo;
@@ -63,17 +60,12 @@ public class VendorListServiceTest extends VertxTest {
     public void setUp() {
         given(fileSystem.existsBlocking(anyString())).willReturn(false); // always create cache dir
 
-        given(httpClient.getAbs(anyString(), any())).willReturn(httpClientRequest);
-        given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
-        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
-
         given(bidderCatalog.names()).willReturn(singleton(null));
         given(bidderCatalog.metaInfoByName(any())).willReturn(metaInfo);
         given(metaInfo.info()).willReturn(new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(52, true)));
 
         vendorListService = VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/{VERSION}",
-                0,
-                null, bidderCatalog);
+                0, null, bidderCatalog);
     }
 
     // Creation related tests
@@ -131,27 +123,14 @@ public class VendorListServiceTest extends VertxTest {
 
     @Test
     public void shouldPerformHttpRequestWithExpectedQueryIfVendorListNotFound() {
-        // when
-        vendorListService.forVersion(1);
-
-        // then
-        final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(httpClient).getAbs(captor.capture(), any());
-        assertThat(captor.getValue()).isEqualTo("http://vendorlist/1");
-    }
-
-    @Test
-    public void shouldNotAskToSaveFileIfHttpRequestFails() {
         // given
-        given(httpClientRequest.exceptionHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception"), 0));
+        givenHttpClientReturnsResponse(200, null);
 
         // when
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).getAbs(any(), any());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(httpClient).get(eq("http://vendorlist/1"), anyLong());
     }
 
     @Test
@@ -163,7 +142,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).getAbs(any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -176,7 +155,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).getAbs(any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -189,7 +168,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).getAbs(any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -203,7 +182,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).getAbs(any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -217,7 +196,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).getAbs(any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -231,7 +210,7 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).getAbs(any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -245,21 +224,21 @@ public class VendorListServiceTest extends VertxTest {
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).getAbs(any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
     @Test
     public void shouldNotAskToSaveFileIfFetchedVendorListHasAtLeastOneInvalidVendor() throws JsonProcessingException {
         // given
-        final VendorList vendorList = VendorList.of(1, new Date(), singletonList(Vendor.of(null, null)));
+        final VendorList vendorList = VendorList.of(1, new Date(), singletonList(Vendor.of(null, null, null)));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
         vendorListService.forVersion(1);
 
         // then
-        verify(httpClient).getAbs(any(), any());
+        verify(httpClient).get(anyString(), anyLong());
         verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
@@ -270,25 +249,30 @@ public class VendorListServiceTest extends VertxTest {
         // given
         final String vendorListAsString = mapper.writeValueAsString(givenVendorList());
         givenHttpClientReturnsResponse(200, vendorListAsString);
+        // generate file path to avoid conflicts with path separators in different OS
+        final String filePath = new File("/cache/dir/1.json").getPath();
 
         // when
         vendorListService.forVersion(1);
 
         // then
-        verify(fileSystem).writeFile(eq("/cache/dir/1.json"), eq(Buffer.buffer(vendorListAsString)), any());
+        verify(fileSystem).writeFile(eq(filePath), eq(Buffer.buffer(vendorListAsString)), any());
     }
 
     // In-memory cache related tests
 
     @Test
     public void shouldFailIfVendorListNotFound() {
+        // given
+        givenHttpClientProducesException(new RuntimeException());
+
         // when
         final Future<?> future = vendorListService.forVersion(1);
 
         // then
         assertThat(future.failed()).isTrue();
         assertThat(future.cause())
-                .hasMessage("Vendor list of version 1 not found. Try again later.");
+                .hasMessage("Vendor list for version 1 not fetched yet, try again later.");
     }
 
     @Test
@@ -297,7 +281,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 2));
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
 
         // when
         vendorListService.forVersion(1); // populate cache
@@ -306,18 +290,18 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).hasSize(1)
-                .containsEntry(52, singleton(1));
+                .containsEntry(52, new HashSet<>(Arrays.asList(1,2)));
     }
 
     @Test
     public void shouldKeepPurposesOnlyForKnownVendors() throws JsonProcessingException {
         // given
         final VendorList vendorList = VendorList.of(1, new Date(),
-                asList(Vendor.of(52, singleton(1)), Vendor.of(42, singleton(1))));
+                asList(Vendor.of(52, singleton(1), singleton(2)), Vendor.of(42, singleton(1), singleton(2))));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 2));
+                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
 
         // when
         vendorListService.forVersion(1); // populate cache
@@ -326,48 +310,29 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).hasSize(1)
-                .containsEntry(52, singleton(1));
+                .containsEntry(52, new HashSet<>(asList(1,2)));
     }
 
     private static VendorList givenVendorList() {
-        final Vendor vendor = Vendor.of(52, singleton(1));
+        final Vendor vendor = Vendor.of(52, singleton(1), singleton(2));
         return VendorList.of(1, new Date(), singletonList(vendor));
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(statusCode);
-        given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer(response), 0));
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }
 
     private void givenHttpClientProducesException(Throwable throwable) {
-        final HttpClientResponse httpClientResponse = givenHttpClientResponse(200);
-
-        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willAnswer(withSelfAndPassObjectToHandler(throwable, 0));
-    }
-
-    private HttpClientResponse givenHttpClientResponse(int statusCode) {
-        final HttpClientResponse httpClientResponse = mock(HttpClientResponse.class);
-        given(httpClient.getAbs(anyString(), any()))
-                .willAnswer(withRequestAndPassResponseToHandler(httpClientResponse));
-        given(httpClientResponse.statusCode()).willReturn(statusCode);
-        return httpClientResponse;
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.failedFuture(throwable));
     }
 
     @SuppressWarnings("unchecked")
-    private Answer<Object> withRequestAndPassResponseToHandler(HttpClientResponse httpClientResponse) {
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
         return inv -> {
-            // invoking passed HttpClientResponse handler right away passing mock response to it
-            ((Handler<HttpClientResponse>) inv.getArgument(1)).handle(httpClientResponse);
-            return httpClientRequest;
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj, int position) {
-        return inv -> {
-            ((Handler<T>) inv.getArgument(position)).handle(obj);
+            // invoking handler right away passing mock to it
+            ((Handler<T>) inv.getArgument(2)).handle(obj);
             return inv.getMock();
         };
     }

@@ -117,8 +117,8 @@
         "h": 250
       },
       "ext": {
-        "indexExchange": {
-          "siteID": 10002
+        "ix": {
+          "siteId": "10002"
         }
       }
     },
@@ -132,8 +132,8 @@
         "h": 250
       },
       "ext": {
-        "indexExchange": {
-          "siteID": 10002
+        "ix": {
+          "siteId": "10002"
         }
       }
     },
@@ -363,6 +363,24 @@
       }
     },
     {
+      "id": "impId17",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "brightroll": {
+          "publisher": "publisher"
+        }
+      }
+    },
+    {
       "id": "impId14",
       "banner": {
         "format": [
@@ -378,6 +396,22 @@
           "siteId": 1234,
           "bidFloor": 20,
           "placementId": 10
+        }
+      }
+    },
+    {
+      "id": "impId16",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "somoaudience": {
+          "placement_hash": "placementId"
         }
       }
     },
@@ -478,6 +512,56 @@
       "ext": {
         "eplanning": {
           "exchange_id": "exchangeId1"
+        }
+      }
+    },
+    {
+      "id": "impId18",
+      "video": {
+        "mimes": [
+          "mimes"
+        ]
+      },
+      "exp": 230,
+      "ext": {
+        "beachfront": {
+          "appId": "beachfrontAppId",
+          "bidfloor": 1
+        }
+      }
+    },
+    {
+      "id": "impId021",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 200
+          }
+        ]
+      },
+      "ext": {
+        "adkernelAdn": {
+          "pubId": 101
+        }
+      }
+    },
+    {
+      "id": "impId022",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 640,
+        "h": 480
+      },
+      "ext": {
+        "adkernelAdn": {
+          "pubId": 102
         }
       }
     }

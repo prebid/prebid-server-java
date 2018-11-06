@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -12,9 +11,12 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.eplanning.EplanningBidder;
 import org.prebid.server.bidder.eplanning.EplanningMetaInfo;
 import org.prebid.server.bidder.eplanning.EplanningUsersyncer;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class EplanningConfiguration extends BidderConfiguration {
@@ -30,12 +32,23 @@ public class EplanningConfiguration extends BidderConfiguration {
     @Value("${adapters.eplanning.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.eplanning.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
+
+    @Value("${adapters.eplanning.deprecated-names}")
+    private List<String> deprecatedNames;
 
     @Override
     protected String bidderName() {
         return BIDDER_NAME;
+    }
+
+    @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
     }
 
     @Bean
@@ -45,7 +58,7 @@ public class EplanningConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new EplanningMetaInfo(enabled);
+        return new EplanningMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

@@ -10,9 +10,10 @@ public class ConversantMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public ConversantMetaInfo(boolean enabled) {
+    public ConversantMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "mediapsr@conversantmedia.com",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 24, true);
+                Collections.emptyList(), Arrays.asList("banner", "video"),
+                null, 24, pbsEnforcesGdpr);
     }
 
     @Override

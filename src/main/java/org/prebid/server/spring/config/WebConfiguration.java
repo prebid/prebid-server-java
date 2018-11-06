@@ -12,7 +12,6 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
-import io.vertx.ext.web.handler.TimeoutHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.analytics.CompositeAnalyticsReporter;
@@ -29,13 +28,12 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
+import org.prebid.server.handler.ConnectionHandler;
 import org.prebid.server.handler.CookieSyncHandler;
-import org.prebid.server.handler.GetuidsHandler;
 import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
-import org.prebid.server.handler.ValidateHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
@@ -78,6 +76,9 @@ public class WebConfiguration {
     private HttpServerOptions httpServerOptions;
 
     @Autowired
+    private ConnectionHandler connectionHandler;
+
+    @Autowired
     private Router router;
 
     @Value("${http.port}")
@@ -89,7 +90,10 @@ public class WebConfiguration {
                 httpPort);
 
         contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
-                vertx.createHttpServer(httpServerOptions).requestHandler(router::accept).listen(httpPort, future));
+                vertx.createHttpServer(httpServerOptions)
+                        .connectionHandler(connectionHandler)
+                        .requestHandler(router::accept)
+                        .listen(httpPort, future));
 
         logger.info("Successfully started {0} instances of Http Server", httpServerNum);
     }
@@ -98,7 +102,13 @@ public class WebConfiguration {
     HttpServerOptions httpServerOptions() {
         return new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
-                .setCompressionSupported(true);
+                .setCompressionSupported(true)
+                .setIdleTimeout(10); // kick off long processing requests
+    }
+
+    @Bean
+    ConnectionHandler connectionHandler(Metrics metrics) {
+        return ConnectionHandler.create(metrics);
     }
 
     @Bean
@@ -112,16 +122,13 @@ public class WebConfiguration {
                   StatusHandler statusHandler,
                   CookieSyncHandler cookieSyncHandler,
                   SetuidHandler setuidHandler,
-                  GetuidsHandler getuidsHandler,
                   OptoutHandler optoutHandler,
-                  ValidateHandler validateHandler,
                   BidderParamHandler bidderParamHandler,
                   BiddersHandler biddersHandler,
                   BidderDetailsHandler bidderDetailsHandler,
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
-        router.route().handler(TimeoutHandler.create(10000)); // kick off long processing requests
         router.route().handler(cookieHandler);
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
@@ -132,10 +139,8 @@ public class WebConfiguration {
         router.get("/status").handler(statusHandler);
         router.post("/cookie_sync").handler(cookieSyncHandler);
         router.get("/setuid").handler(setuidHandler);
-        router.get("/getuids").handler(getuidsHandler);
         router.post("/optout").handler(optoutHandler);
         router.get("/optout").handler(optoutHandler);
-        router.post("/validate").handler(validateHandler);
         router.get("/bidders/params").handler(bidderParamHandler);
         router.get("/info/bidders").handler(biddersHandler);
         router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
@@ -156,11 +161,6 @@ public class WebConfiguration {
     }
 
     @Bean
-    ValidateHandler schemaValidationHandler() {
-        return ValidateHandler.create("static/pbs_request.json");
-    }
-
-    @Bean
     CorsHandler corsHandler() {
         return CorsHandler.create(".*")
                 .allowCredentials(true)
@@ -178,15 +178,19 @@ public class WebConfiguration {
             CacheService cacheService,
             Metrics metrics,
             HttpAdapterConnector httpAdapterConnector,
-            Clock clock) {
+            Clock clock,
+            GdprService gdprService,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation) {
 
         return new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory, cacheService,
-                metrics, httpAdapterConnector, clock);
+                metrics, httpAdapterConnector, clock, gdprService, hostVendorId, useGeoLocation);
     }
 
     @Bean
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
             @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${auction.max-timeout-ms}") int maxTimeoutMs,
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
@@ -195,7 +199,7 @@ public class WebConfiguration {
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
-        return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, exchangeService,
+        return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, maxTimeoutMs, exchangeService,
                 auctionRequestFactory, uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory);
     }
 
@@ -225,12 +229,18 @@ public class WebConfiguration {
 
     @Bean
     CookieSyncHandler cookieSyncHandler(
+            @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
+            GdprService gdprService,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             CompositeAnalyticsReporter analyticsReporter,
-            Metrics metrics) {
+            Metrics metrics,
+            TimeoutFactory timeoutFactory) {
 
-        return new CookieSyncHandler(uidsCookieService, bidderCatalog, analyticsReporter, metrics);
+        return new CookieSyncHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService, hostVendorId,
+                useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean
@@ -246,11 +256,6 @@ public class WebConfiguration {
 
         return new SetuidHandler(defaultTimeoutMs, uidsCookieService, gdprService, hostVendorId, useGeoLocation,
                 analyticsReporter, metrics, timeoutFactory);
-    }
-
-    @Bean
-    GetuidsHandler getuidsHandler(UidsCookieService uidsCookieService) {
-        return new GetuidsHandler(uidsCookieService);
     }
 
     @Bean

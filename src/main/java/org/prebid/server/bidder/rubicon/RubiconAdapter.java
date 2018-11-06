@@ -101,7 +101,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
-        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adUnitBids.stream()
                 .flatMap(adUnitBid -> createBidRequests(adUnitBid, preBidRequestContext))
@@ -116,7 +116,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static void validateBidRequests(List<BidRequest> bidRequests) {
-        if (bidRequests.size() == 0) {
+        if (bidRequests.isEmpty()) {
             throw new PreBidException("Invalid ad unit/imp");
         }
     }

@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -13,9 +12,12 @@ import org.prebid.server.bidder.rubicon.RubiconAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
 import org.prebid.server.bidder.rubicon.RubiconMetaInfo;
 import org.prebid.server.bidder.rubicon.RubiconUsersyncer;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class RubiconConfiguration extends BidderConfiguration {
@@ -31,11 +33,17 @@ public class RubiconConfiguration extends BidderConfiguration {
     @Value("${adapters.rubicon.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.rubicon.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${adapters.rubicon.XAPI.Username}")
     private String username;
 
     @Value("${adapters.rubicon.XAPI.Password}")
     private String password;
+
+    @Value("${adapters.rubicon.deprecated-names}")
+    private List<String> deprecatedNames;
 
     @Bean
     BidderDeps rubiconBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -48,8 +56,13 @@ public class RubiconConfiguration extends BidderConfiguration {
     }
 
     @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
+    }
+
+    @Override
     public MetaInfo createMetaInfo() {
-        return new RubiconMetaInfo(enabled);
+        return new RubiconMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

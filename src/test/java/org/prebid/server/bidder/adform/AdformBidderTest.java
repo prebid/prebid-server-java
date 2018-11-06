@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
@@ -24,6 +25,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -58,7 +62,9 @@ public class AdformBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpAdform.of(15L, "gross")))).build()))
                 .site(Site.builder().page("www.example.com").build())
-                .user(User.builder().buyeruid("buyeruid").build())
+                .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1))))
+                .user(User.builder().buyeruid("buyeruid").ext(mapper.valueToTree(ExtUser.of(
+                        null, "consent", ExtUserDigiTrust.of("id", 123, 1)))).build())
                 .device(Device.builder().ua("ua").ip("ip").ifa("ifaId").build())
                 .source(Source.builder().tid("tid").build())
                 .build();
@@ -72,7 +78,8 @@ public class AdformBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly(
-                        "http://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&ip=ip&adid=ifaId&pt=gross&bWlkPTE1");
+                        "http://adform.com/openrtb2d?CC=1&adid=ifaId&fd=1&gdpr=1&gdpr_consent=consent&ip=ip&pt=gross"
+                                + "&rp=4&stid=tid&bWlkPTE1");
         assertThat(result.getValue()).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.GET);
 
         assertThat(result.getValue()).
@@ -82,9 +89,12 @@ public class AdformBidderTest extends VertxTest {
                         tuple(HttpHeaders.ACCEPT.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpHeaders.USER_AGENT.toString(), "ua"),
                         tuple(X_FORWARDED_FOR.toString(), "ip"),
-                        tuple(X_REQUEST_AGENT.toString(), "PrebidAdapter 0.1.1"),
+                        tuple(X_REQUEST_AGENT.toString(), "PrebidAdapter 0.1.2"),
                         tuple(HttpHeaders.REFERER.toString(), "www.example.com"),
-                        tuple(HttpHeaders.COOKIE.toString(), "uid=buyeruid"));
+                        // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
+                        tuple(HttpHeaders.COOKIE.toString(),
+                                "uid=buyeruid;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml"
+                                        + "2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"));
     }
 
     @Test
@@ -163,7 +173,7 @@ public class AdformBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://adform.com/openrtb2d/?CC=1&rp=4&fd=1&stid=tid&ip=&bWlkPTE1");
+                .containsExactly("https://adform.com/openrtb2d?CC=1&fd=1&gdpr=&gdpr_consent=&ip=&rp=4&stid=tid&bWlkPTE1");
     }
 
     @Test

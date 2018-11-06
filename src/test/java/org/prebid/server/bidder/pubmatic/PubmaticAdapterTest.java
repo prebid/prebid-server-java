@@ -178,7 +178,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .adUnitCode("adUnitCode1")
@@ -194,7 +194,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .adUnitCode("adUnitCode1")
@@ -295,6 +295,22 @@ public class PubmaticAdapterTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnRequestsWithAppFromPreBidRequestWithNullCookie() {
+        // given
+        preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
+                .app(App.builder().id("appId").build()).user(User.builder().build()), null);
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .extracting(r -> r.getPayload().getApp().getId())
+                .containsOnly("appId");
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnRequestsWithUserFromPreBidRequestIfAppPresent() {
         // given
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), builder -> builder
@@ -315,7 +331,7 @@ public class PubmaticAdapterTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
-        //given
+        // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
                         .mediaTypes(EnumSet.of(MediaType.video, MediaType.banner))
@@ -417,7 +433,72 @@ public class PubmaticAdapterTest extends VertxTest {
                         .bidder(BIDDER)
                         .bidId("bidId")
                         .dealId("dealId")
+                        .mediaType(MediaType.banner)
                         .build());
+    }
+
+    @Test
+    public void extractBidsShouldReturnBidBuilderWithBannerMediaTypeWhenCorrespondingImpWasNotFound() {
+        // given
+        adapterRequest = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"));
+
+        exchangeCall = givenExchangeCallCustomizable(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().build())),
+                bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().impid("adUnitCode").build())).build())));
+
+        // when
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+
+        // then
+        assertThat(bids)
+                .extracting(org.prebid.server.proto.response.Bid::getMediaType)
+                .containsExactly(MediaType.banner);
+    }
+
+    @Test
+    public void extractBidsShouldReturnBidBuilderWithBannerMediaTypeWhenCorrespondingImpHasVideoTypeNull() {
+        // given
+        adapterRequest = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"));
+
+        exchangeCall = givenExchangeCallCustomizable(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode").build())),
+                bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder().impid("adUnitCode").build())).build())));
+
+        // when
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+
+        // then
+        assertThat(bids)
+                .extracting(org.prebid.server.proto.response.Bid::getMediaType)
+                .containsExactly(MediaType.banner);
+    }
+
+    @Test
+    public void extractBidsShouldReturnBidBuilderWithVideoMediaTypeWhenCorrespondingImpHasVideoType() {
+        // given
+        adapterRequest = givenBidderCustomizable(builder -> builder.adUnitCode("adUnitCode"));
+
+        exchangeCall = givenExchangeCallCustomizable(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().id("adUnitCode")
+                        .video(com.iab.openrtb.request.Video.builder().build()).build())),
+                bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder().impid("adUnitCode").build())).build())));
+
+        // when
+        final List<org.prebid.server.proto.response.Bid> bids =
+                adapter.extractBids(adapterRequest, exchangeCall).stream()
+                        .map(org.prebid.server.proto.response.Bid.BidBuilder::build).collect(Collectors.toList());
+
+        // then
+        assertThat(bids)
+                .extracting(org.prebid.server.proto.response.Bid::getMediaType)
+                .containsExactly(MediaType.video);
     }
 
     @Test
@@ -439,7 +520,9 @@ public class PubmaticAdapterTest extends VertxTest {
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode1")),
                 givenAdUnitBidCustomizable(builder -> builder.adUnitCode("adUnitCode2"))));
 
-        exchangeCall = givenExchangeCallCustomizable(identity(),
+        exchangeCall = givenExchangeCallCustomizable(
+                bidRequestBuilder -> bidRequestBuilder.imp(asList(Imp.builder().id("adUnitCode1").build(),
+                        Imp.builder().id("adUnitCode2").build())),
                 bidResponseBuilder -> bidResponseBuilder.id("bidResponseId")
                         .seatbid(singletonList(SeatBid.builder()
                                 .seat("seatId")
@@ -481,6 +564,15 @@ public class PubmaticAdapterTest extends VertxTest {
                     .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
             Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
                     preBidRequestBuilderCustomizer) {
+        return givenPreBidRequestContextCustomizable(preBidRequestContextBuilderCustomizer,
+                preBidRequestBuilderCustomizer, uidsCookie);
+    }
+
+    private PreBidRequestContext givenPreBidRequestContextCustomizable(
+            Function<PreBidRequestContext.PreBidRequestContextBuilder, PreBidRequestContext
+                    .PreBidRequestContextBuilder> preBidRequestContextBuilderCustomizer,
+            Function<PreBidRequest.PreBidRequestBuilder, PreBidRequest.PreBidRequestBuilder>
+                    preBidRequestBuilderCustomizer, UidsCookie uidsCookie) {
 
         final PreBidRequest.PreBidRequestBuilder preBidRequestBuilderMinimal = PreBidRequest.builder()
                 .accountId("accountId");

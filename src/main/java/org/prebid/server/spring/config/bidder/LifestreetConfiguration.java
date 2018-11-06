@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -13,9 +12,12 @@ import org.prebid.server.bidder.lifestreet.LifestreetAdapter;
 import org.prebid.server.bidder.lifestreet.LifestreetBidder;
 import org.prebid.server.bidder.lifestreet.LifestreetMetaInfo;
 import org.prebid.server.bidder.lifestreet.LifestreetUsersyncer;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class LifestreetConfiguration extends BidderConfiguration {
@@ -31,8 +33,14 @@ public class LifestreetConfiguration extends BidderConfiguration {
     @Value("${adapters.lifestreet.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.lifestreet.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
+
+    @Value("${adapters.lifestreet.deprecated-names}")
+    private List<String> deprecatedNames;
 
     @Bean
     BidderDeps lifestreetBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -45,8 +53,13 @@ public class LifestreetConfiguration extends BidderConfiguration {
     }
 
     @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
+    }
+
+    @Override
     protected MetaInfo createMetaInfo() {
-        return new LifestreetMetaInfo(enabled);
+        return new LifestreetMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

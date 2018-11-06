@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -13,9 +12,12 @@ import org.prebid.server.bidder.adform.AdformAdapter;
 import org.prebid.server.bidder.adform.AdformBidder;
 import org.prebid.server.bidder.adform.AdformMetaInfo;
 import org.prebid.server.bidder.adform.AdformUsersyncer;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class AdformConfiguration extends BidderConfiguration {
@@ -31,8 +33,14 @@ public class AdformConfiguration extends BidderConfiguration {
     @Value("${adapters.adform.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.adform.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
+
+    @Value("${adapters.adform.deprecated-names}")
+    private List<String> deprecatedNames;
 
     @Bean
     BidderDeps adformBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -45,8 +53,13 @@ public class AdformConfiguration extends BidderConfiguration {
     }
 
     @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
+    }
+
+    @Override
     protected MetaInfo createMetaInfo() {
-        return new AdformMetaInfo(enabled);
+        return new AdformMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

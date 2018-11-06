@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -12,9 +11,12 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.openx.OpenxBidder;
 import org.prebid.server.bidder.openx.OpenxMetaInfo;
 import org.prebid.server.bidder.openx.OpenxUsersyncer;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class OpenxConfiguration extends BidderConfiguration {
@@ -30,8 +32,14 @@ public class OpenxConfiguration extends BidderConfiguration {
     @Value("${adapters.openx.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.openx.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
+
+    @Value("${adapters.openx.deprecated-names}")
+    private List<String> deprecatedNames;
 
     @Bean
     BidderDeps openxBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -44,8 +52,13 @@ public class OpenxConfiguration extends BidderConfiguration {
     }
 
     @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
+    }
+
+    @Override
     protected MetaInfo createMetaInfo() {
-        return new OpenxMetaInfo(enabled);
+        return new OpenxMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

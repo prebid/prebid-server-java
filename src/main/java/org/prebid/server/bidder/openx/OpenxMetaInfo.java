@@ -10,9 +10,10 @@ public class OpenxMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public OpenxMetaInfo(boolean enabled) {
+    public OpenxMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "team-openx@openx.com",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 69, true);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"),
+                null, 69, pbsEnforcesGdpr);
     }
 
     @Override

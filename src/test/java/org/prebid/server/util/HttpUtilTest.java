@@ -1,6 +1,5 @@
 package org.prebid.server.util;
 
-import com.iab.openrtb.request.Device;
 import io.vertx.core.MultiMap;
 import org.junit.Test;
 
@@ -85,5 +84,23 @@ public class HttpUtilTest {
 
         // then
         assertThat(headers).hasSize(0);
+    }
+
+    @Test
+    public void getDomainFromUrlShouldReturnDomain() {
+        // given and when
+        final String domain = HttpUtil.getDomainFromUrl("http://rubicon.com/ad");
+
+        // then
+        assertThat(domain).isEqualTo("rubicon.com");
+    }
+
+    @Test
+    public void getDomainFromUrlShouldReturnNullIfUrlIsMalformed() {
+        // given and when
+        final String domain = HttpUtil.getDomainFromUrl("rubicon.com");
+
+        // then
+        assertThat(domain).isNull();
     }
 }

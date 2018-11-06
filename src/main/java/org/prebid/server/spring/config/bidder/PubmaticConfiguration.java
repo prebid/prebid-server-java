@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import io.vertx.core.http.HttpClient;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -13,9 +12,12 @@ import org.prebid.server.bidder.pubmatic.PubmaticAdapter;
 import org.prebid.server.bidder.pubmatic.PubmaticBidder;
 import org.prebid.server.bidder.pubmatic.PubmaticMetaInfo;
 import org.prebid.server.bidder.pubmatic.PubmaticUsersyncer;
+import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class PubmaticConfiguration extends BidderConfiguration {
@@ -31,8 +33,14 @@ public class PubmaticConfiguration extends BidderConfiguration {
     @Value("${adapters.pubmatic.usersync-url}")
     private String usersyncUrl;
 
+    @Value("${adapters.pubmatic.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${external-url}")
     private String externalUrl;
+
+    @Value("${adapters.pubmatic.deprecated-names}")
+    private List<String> deprecatedNames;
 
     @Bean
     BidderDeps pubmaticBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -45,8 +53,13 @@ public class PubmaticConfiguration extends BidderConfiguration {
     }
 
     @Override
+    protected List<String> deprecatedNames() {
+        return deprecatedNames;
+    }
+
+    @Override
     protected MetaInfo createMetaInfo() {
-        return new PubmaticMetaInfo(enabled);
+        return new PubmaticMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override

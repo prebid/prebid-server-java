@@ -1,6 +1,22 @@
 package org.prebid.server.metric;
 
 public enum MetricName {
+    // common
+    active_connections,
+
+    // database
+    db_circuitbreaker_opened,
+    db_circuitbreaker_closed,
+    db_query_time,
+
+    // http client
+    httpclient_circuitbreaker_opened,
+    httpclient_circuitbreaker_closed,
+
+    // geo location
+    geolocation_circuitbreaker_opened,
+    geolocation_circuitbreaker_closed,
+
     // auction
     requests,
     app_requests,
@@ -11,7 +27,6 @@ public enum MetricName {
     prices,
     imps_requested,
     bids_received,
-
     adm_bids_received,
     nurl_bids_received,
 
@@ -27,9 +42,11 @@ public enum MetricName {
     gotbids,
     badinput,
     badserverresponse,
+    failedtorequestbids,
     timeout,
     unknown_error,
     err,
+    networkerr,
 
     // cookie sync
     cookie_sync_requests,

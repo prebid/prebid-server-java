@@ -1,14 +1,18 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
  * Defines the contract for bidresponse.seatbid.bid[i].ext.prebid.cache
  */
+@AllArgsConstructor(staticName = "of")
 @Value
-final class ExtResponseCache {
+public class ExtResponseCache {
 
-    String key;
+    CacheAsset bids;
 
-    String url;
+    @JsonProperty("vastXml")
+    CacheAsset vastXml;
 }

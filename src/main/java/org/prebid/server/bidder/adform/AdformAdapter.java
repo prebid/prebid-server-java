@@ -15,11 +15,13 @@ import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.adform.model.AdformBid;
+import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.AdformParams;
 import org.prebid.server.bidder.adform.model.UrlParameters;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.util.HttpUtil;
@@ -35,7 +37,7 @@ import java.util.stream.Collectors;
  */
 public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
 
-    private static final String VERSION = "0.1.1";
+    private static final String VERSION = "0.1.2";
 
     private final Usersyncer usersyncer;
     private final String endpointUrl;
@@ -55,11 +57,13 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 .map(this::toAdformParams)
                 .collect(Collectors.toList());
 
+        final ExtUser extUser = AdformRequestUtil.getExtUser(preBidRequestContext.getPreBidRequest().getUser());
+
         return Collections.singletonList(AdapterHttpRequest.of(
                 HttpMethod.GET,
-                getUrl(preBidRequestContext, adformParams),
+                getUrl(preBidRequestContext, adformParams, extUser),
                 null,
-                headers(preBidRequestContext)));
+                headers(preBidRequestContext, AdformRequestUtil.getAdformDigitrust(extUser))));
     }
 
     @Override
@@ -105,7 +109,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
     /**
      * Creates adform url with parameters
      */
-    private String getUrl(PreBidRequestContext preBidRequestContext, List<AdformParams> adformParams) {
+    private String getUrl(PreBidRequestContext preBidRequestContext, List<AdformParams> adformParams, ExtUser extUser) {
         final Integer secure = preBidRequestContext.getSecure();
         final Device device = preBidRequestContext.getPreBidRequest().getDevice();
         return AdformHttpUtil.buildAdformUrl(
@@ -117,6 +121,9 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .ip(ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""))
                         .advertisingId(device != null ? device.getIfa() : "")
                         .secure(secure != null && secure == 1)
+                        .gdprApplies(AdformRequestUtil.getGdprApplies(preBidRequestContext.getPreBidRequest()
+                                .getRegs()))
+                        .consent(AdformRequestUtil.getConsent(extUser))
                         .build());
     }
 
@@ -134,17 +141,17 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
         return adformParams.stream().map(AdformParams::getPriceType).collect(Collectors.toList());
     }
 
-
     /**
      * Creates adform headers, which stores adform request parameters
      */
-    private MultiMap headers(PreBidRequestContext preBidRequestContext) {
+    private MultiMap headers(PreBidRequestContext preBidRequestContext, AdformDigitrust adformDigitrust) {
         return AdformHttpUtil.buildAdformHeaders(
                 VERSION,
                 ObjectUtils.firstNonNull(preBidRequestContext.getUa(), ""),
                 ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""),
                 preBidRequestContext.getReferer(),
-                preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()));
+                preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()),
+                adformDigitrust);
     }
 
     /**

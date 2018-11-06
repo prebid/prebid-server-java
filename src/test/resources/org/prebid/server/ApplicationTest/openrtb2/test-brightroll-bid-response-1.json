@@ -1,0 +1,21 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "620160380",
+          "impid": "impId17",
+          "price": 8.43,
+          "adm": "adm17",
+          "crid": "crid17",
+          "dealid": "dealId17",
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "seat": "seatId17",
+      "group": 0
+    }
+  ]
+}

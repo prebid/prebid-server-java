@@ -10,9 +10,10 @@ public class LifestreetMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public LifestreetMetaInfo(boolean enabled) {
+    public LifestreetMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "mobile.tech@lifestreet.com",
-                Collections.singletonList("banner"), Arrays.asList("banner", "video"), null, 67, true);
+                Collections.singletonList("banner"), Arrays.asList("banner", "video"),
+                null, 67, pbsEnforcesGdpr);
     }
 
     @Override

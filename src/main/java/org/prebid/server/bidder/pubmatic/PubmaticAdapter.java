@@ -29,6 +29,7 @@ import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pubmatic.model.NormalizedPubmaticParams;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
+import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
@@ -75,7 +76,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     private BidRequest createBidRequest(AdapterRequest adapterRequest, PreBidRequestContext preBidRequestContext) {
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 
-        validateAdUnitBidsMediaTypes(adUnitBids);
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         final List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams =
@@ -269,7 +270,9 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     }
 
     private String makeUserCookie(PreBidRequestContext preBidRequestContext) {
-        final String cookieValue = preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName());
+        final UidsCookie uidsCookie = preBidRequestContext.getUidsCookie();
+        final String cookieValue = uidsCookie != null ? uidsCookie.uidFrom(usersyncer.cookieFamilyName()) : null;
+
         return Cookie.cookie("KADUSERCOOKIE", ObjectUtils.firstNonNull(cookieValue, "")).encode();
     }
 
@@ -277,12 +280,14 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     public List<Bid.BidBuilder> extractBids(AdapterRequest adapterRequest,
                                             ExchangeCall<BidRequest, BidResponse> exchangeCall) {
         return responseBidStream(exchangeCall.getResponse())
-                .map(bid -> toBidBuilder(bid, adapterRequest))
+                .map(bid -> toBidBuilder(bid, adapterRequest, exchangeCall.getRequest().getImp()))
                 .collect(Collectors.toList());
     }
 
-    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest) {
-        final AdUnitBid adUnitBid = lookupBid(adapterRequest.getAdUnitBids(), bid.getImpid());
+    private static Bid.BidBuilder toBidBuilder(com.iab.openrtb.response.Bid bid, AdapterRequest adapterRequest,
+                                               List<Imp> imps) {
+        final String impId = bid.getImpid();
+        final AdUnitBid adUnitBid = lookupBid(adapterRequest.getAdUnitBids(), impId);
         return Bid.builder()
                 .bidder(adUnitBid.getBidderCode())
                 .bidId(adUnitBid.getBidId())
@@ -290,9 +295,22 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 .price(bid.getPrice())
                 .adm(bid.getAdm())
                 .creativeId(bid.getCrid())
+                .mediaType(mediaTypeFor(imps, impId))
                 .width(bid.getW())
                 .height(bid.getH())
                 .dealId(bid.getDealid());
+    }
+
+    private static MediaType mediaTypeFor(List<Imp> imps, String impId) {
+        return imps.stream()
+                .filter(imp -> Objects.equals(imp.getId(), impId))
+                .findAny()
+                .map(PubmaticAdapter::mediaTypeFromImp)
+                .orElse(MediaType.banner);
+    }
+
+    private static MediaType mediaTypeFromImp(Imp imp) {
+        return imp.getVideo() != null ? MediaType.video : MediaType.banner;
     }
 
 }

@@ -171,4 +171,40 @@ public class Metrics extends UpdatableMetrics {
     public void updateGdprMaskedMetric(String bidder) {
         forAdapter(bidder).incCounter(MetricName.gdpr_masked);
     }
+
+    public void updateActiveConnectionsMetrics(boolean openConnection) {
+        if (openConnection) {
+            incCounter(MetricName.active_connections);
+        } else {
+            decCounter(MetricName.active_connections);
+        }
+    }
+
+    public void updateDatabaseQueryTimeMetric(long millis) {
+        updateTimer(MetricName.db_query_time, millis);
+    }
+
+    public void updateDatabaseCircuitBreakerMetric(boolean opened) {
+        if (opened) {
+            incCounter(MetricName.db_circuitbreaker_opened);
+        } else {
+            incCounter(MetricName.db_circuitbreaker_closed);
+        }
+    }
+
+    public void updateHttpClientCircuitBreakerMetric(boolean opened) {
+        if (opened) {
+            incCounter(MetricName.httpclient_circuitbreaker_opened);
+        } else {
+            incCounter(MetricName.httpclient_circuitbreaker_closed);
+        }
+    }
+
+    public void updateGeoLocationCircuitBreakerMetric(boolean opened) {
+        if (opened) {
+            incCounter(MetricName.geolocation_circuitbreaker_opened);
+        } else {
+            incCounter(MetricName.geolocation_circuitbreaker_closed);
+        }
+    }
 }
