@@ -575,8 +575,10 @@ public class RequestValidator {
                         "or include \"format\" elements.", impIndex);
             }
 
-            for (int formatIndex = 0; formatIndex < banner.getFormat().size(); formatIndex++) {
-                validateFormat(banner.getFormat().get(formatIndex), impIndex, formatIndex);
+            if (banner.getFormat() != null) {
+                for (int formatIndex = 0; formatIndex < banner.getFormat().size(); formatIndex++) {
+                    validateFormat(banner.getFormat().get(formatIndex), impIndex, formatIndex);
+                }
             }
         }
     }
