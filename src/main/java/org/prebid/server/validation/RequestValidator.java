@@ -565,7 +565,7 @@ public class RequestValidator {
     }
 
     private void validateBanner(Banner banner, int impIndex) throws ValidationException {
-        if (banner != null ) {
+        if (banner != null) {
             final boolean hasWidth = banner.getW() != null && banner.getW() > 0;
             final boolean hasHeight = banner.getH() != null && banner.getH() > 0;
             final boolean hasSize = hasWidth && hasHeight;
