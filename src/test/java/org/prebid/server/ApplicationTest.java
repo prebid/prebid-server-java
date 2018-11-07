@@ -41,13 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -547,7 +541,7 @@ public class ApplicationTest extends VertxTest {
                 .withVendorListVersion(79)
                 .withRangeEntries(singletonList(new StartEndRangeEntry(1, 100)))
                 .withMaxVendorId(100)
-                .withBitField(new HashSet<>(asList(32, 52)))
+                .withBitField(new HashSet<>(asList(1, 52)))
                 .withAllowedPurposeIds(new HashSet<>(asList(1, 3)))
                 .build());
 

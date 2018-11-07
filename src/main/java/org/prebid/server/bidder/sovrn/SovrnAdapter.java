@@ -39,6 +39,8 @@ import java.util.stream.Collectors;
  */
 public class SovrnAdapter extends OpenrtbAdapter {
 
+    private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
+
     private final String endpointUrl;
 
     public SovrnAdapter(Usersyncer usersyncer, String endpointUrl) {
@@ -50,7 +52,8 @@ public class SovrnAdapter extends OpenrtbAdapter {
     public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
                                                                  PreBidRequestContext preBidRequestContext) {
         final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
-        final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST,
+        final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(
+                HttpMethod.POST,
                 endpointUrl,
                 createBidRequest(adapterRequest, preBidRequestContext),
                 headers(bidRequest));
@@ -140,8 +143,7 @@ public class SovrnAdapter extends OpenrtbAdapter {
         final User user = bidRequest.getUser();
         final String buyeruid = user != null ? StringUtils.trimToNull(user.getBuyeruid()) : null;
         if (buyeruid != null) {
-            headers.add(HttpHeaders.COOKIE.toString(), Cookie.cookie(HttpUtil.LJT_READER_COOKIE_NAME, buyeruid)
-                    .encode());
+            headers.add(HttpHeaders.COOKIE.toString(), Cookie.cookie(LJT_READER_COOKIE_NAME, buyeruid).encode());
         }
         return headers;
     }
