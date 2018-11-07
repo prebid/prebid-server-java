@@ -209,7 +209,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Test
     public void shouldProcessRequestAndAddErrorAboutDeprecatedBidder() {
-        //given
+        // given
         final String invalidBidderName = "invalid";
 
         given(bidderCatalog.isValidName(invalidBidderName)).willReturn(false);
@@ -219,11 +219,11 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(invalidBidderName, 0)));
 
-        //when
+        // when
         final BidResponse bidResponse =
                 exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
 
-        //then
+        // then
         assertThat(bidResponse.getExt()).isEqualTo(mapper.valueToTree(ExtBidResponse.of(null,
                 Collections.singletonMap(invalidBidderName, Collections.singletonList(
                         "invalid has been deprecated and is no longer available. Use valid instead.")),
@@ -1115,17 +1115,17 @@ public class ExchangeServiceTest extends VertxTest {
                         ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null)))))));
 
         // when
-        final BidResponse bidResponse = exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext)
-                .result();
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
 
-        //then
+        // then
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
                 .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .extracting(targeting -> targeting.get("hb_cache_host"),
-                            targeting -> targeting.get("hb_cache_path"),
-                            targeting -> targeting.get("hb_cache_hostpath"))
+                        targeting -> targeting.get("hb_cache_path"),
+                        targeting -> targeting.get("hb_cache_hostpath"))
                 .containsOnly(tuple("someHost", "somePath", "someHostPath"),
-                              tuple(null, null, null));
+                        tuple(null, null, null));
     }
 
     @Test

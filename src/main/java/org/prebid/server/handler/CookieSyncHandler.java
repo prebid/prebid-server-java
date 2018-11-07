@@ -116,50 +116,43 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final Collection<String> biddersToSync = biddersFromRequest == null
                 ? bidderCatalog.names() : biddersFromRequest;
 
+        final Set<Integer> vendorIds = gdprVendorIdsFor(biddersToSync);
+        vendorIds.add(gdprHostVendorId);
+
         final String ip = useGeoLocation ? HttpUtil.ipFrom(context.request()) : null;
         final String gdprAsString = gdpr != null ? gdpr.toString() : null;
-        gdprService.resultByVendor(GDPR_PURPOSES, Collections.singleton(gdprHostVendorId), gdprAsString, gdprConsent,
-                ip, timeoutFactory.create(defaultTimeout))
-                .setHandler(asyncResult -> handleGdprResultForHost(asyncResult, context, uidsCookie, biddersToSync, ip,
-                        gdprAsString, gdprConsent));
+
+        gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, gdprAsString, gdprConsent, ip,
+                timeoutFactory.create(defaultTimeout))
+                .setHandler(asyncResult ->
+                        handleResult(asyncResult, context, uidsCookie, biddersToSync, gdprAsString, gdprConsent));
     }
 
     /**
-     * Handles GDPR verification result for host vendor.
+     * Handles GDPR verification result.
      */
-    private void handleGdprResultForHost(AsyncResult<GdprResponse> asyncResultForHost, RoutingContext context,
-                                         UidsCookie uidsCookie, Collection<String> biddersToSync, String ip,
-                                         String gdpr, String gdprConsent) {
-        if (asyncResultForHost.failed()) {
+    private void handleResult(AsyncResult<GdprResponse> asyncResult, RoutingContext context, UidsCookie uidsCookie,
+                              Collection<String> biddersToSync, String gdpr, String gdprConsent) {
+        if (asyncResult.failed()) {
             respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersToSync);
         } else {
-            final Set<Integer> vendorIds = gdprVendorIdsFor(biddersToSync);
-            gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, gdpr, gdprConsent, ip,
-                    timeoutFactory.create(defaultTimeout))
-                    .setHandler(asyncResultForBidders -> handleGdprResultForBidders(asyncResultForBidders, context,
-                            uidsCookie, biddersToSync, gdpr, gdprConsent));
-        }
-    }
+            final Map<Integer, Boolean> vendorsToGdpr = asyncResult.result().getVendorsToGdpr();
 
-    /**
-     * Handles GDPR verification result for bidders from request.
-     */
-    private void handleGdprResultForBidders(AsyncResult<GdprResponse> asyncResultForBidders, RoutingContext context,
-                                            UidsCookie uidsCookie, Collection<String> biddersToSync,
-                                            String gdpr, String gdprConsent) {
-        if (asyncResultForBidders.failed()) {
-            respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersToSync);
-        } else {
-            final Set<Integer> vendorIds = asyncResultForBidders.result().getVendorsToGdpr().entrySet().stream()
-                    .filter(Map.Entry::getValue) // get bidders passed GDPR verification
-                    .map(Map.Entry::getKey)
-                    .collect(Collectors.toSet());
+            final Boolean gdprResult = vendorsToGdpr.get(gdprHostVendorId);
+            if (gdprResult == null || !gdprResult) { // host vendor should be allowed by GDPR verification
+                respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersToSync);
+            } else {
+                final Set<Integer> vendorIds = vendorsToGdpr.entrySet().stream()
+                        .filter(Map.Entry::getValue) // get only vendors passed GDPR verification
+                        .map(Map.Entry::getKey)
+                        .collect(Collectors.toSet());
 
-            final Set<String> biddersRejectedByGdpr = biddersToSync.stream()
-                    .filter(bidder -> !vendorIds.contains(gdprVendorIdFor(bidder)))
-                    .collect(Collectors.toSet());
+                final Set<String> biddersRejectedByGdpr = biddersToSync.stream()
+                        .filter(bidder -> !vendorIds.contains(gdprVendorIdFor(bidder)))
+                        .collect(Collectors.toSet());
 
-            respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersRejectedByGdpr);
+                respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersRejectedByGdpr);
+            }
         }
     }
 
