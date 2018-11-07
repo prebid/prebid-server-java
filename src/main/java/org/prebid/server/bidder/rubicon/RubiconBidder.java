@@ -87,8 +87,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpRubicon>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpRubicon>> RUBICON_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpRubicon>>() {
             };
 
     private final String endpointUrl;

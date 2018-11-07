@@ -53,7 +53,7 @@ import java.util.stream.Stream;
 
 /**
  * A component that validates {@link BidRequest} objects for openrtb2 auction endpoint.
- * Validations are processed by the validate method and returns {@link ValidationResult}
+ * Validations are processed by the validate method and returns {@link ValidationResult}.
  */
 public class RequestValidator {
 
@@ -65,7 +65,7 @@ public class RequestValidator {
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
-     * properties of bidRequest
+     * properties of bidRequest.
      */
     public RequestValidator(BidderCatalog bidderCatalog, BidderParamValidator bidderParamValidator) {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -197,7 +197,7 @@ public class RequestValidator {
     }
 
     /**
-     * Validates {@link List<ExtRequestTargeting>} as set of ranges.
+     * Validates list of {@link ExtRequestTargeting}s as set of ranges.
      */
     private static void validateGranularityRanges(List<ExtGranularityRange> ranges) throws ValidationException {
         if (CollectionUtils.isEmpty(ranges)) {
@@ -220,7 +220,7 @@ public class RequestValidator {
     }
 
     /**
-     * Validates {@link ExtGranularityRange}s increment
+     * Validates {@link ExtGranularityRange}s increment.
      */
     private static void validateGranularityRangeIncrement(ExtGranularityRange range)
             throws ValidationException {
@@ -440,7 +440,7 @@ public class RequestValidator {
 
         final boolean isNotPresentWidth = image.getW() == null || image.getW() == 0;
         final boolean isNotPresentWidthMin = image.getWmin() == null || image.getWmin() == 0;
-        if (isNotPresentWidth & isNotPresentWidthMin) {
+        if (isNotPresentWidth && isNotPresentWidthMin) {
             throw new ValidationException(
                     "request.imp[%d].native.request.assets[%d].img must contain at least one of \"w\" or \"wmin\"",
                     impIndex, assetIndex);

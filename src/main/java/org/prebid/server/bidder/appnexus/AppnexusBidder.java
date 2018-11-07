@@ -52,8 +52,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold
     private static final int AD_POSITION_BELOW_THE_FOLD = 3; // openrtb.AdPosition.AdPositionBelowTheFold
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpAppnexus>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpAppnexus>>() {
             };
 
     private final String endpointUrl;

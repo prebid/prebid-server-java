@@ -41,7 +41,7 @@ public class PriceGranularity {
 
     /**
      * Creates {@link PriceGranularity} for string representation and puts it to
-     * {@link EnumMap<PriceGranularityType, PriceGranularity>}
+     * {@link EnumMap<PriceGranularityType, PriceGranularity>}.
      */
     private static void putStringPriceGranularity(PriceGranularityType type, Integer precision,
                                                   ExtGranularityRange... ranges) {
@@ -77,7 +77,7 @@ public class PriceGranularity {
     }
 
     /**
-     * Creates {@link PriceGranularity} from {@link List<ExtGranularityRange>} and validates it.
+     * Creates {@link PriceGranularity} from list of {@link ExtGranularityRange}s and validates it.
      */
     private static PriceGranularity createFromRanges(Integer precision, List<ExtGranularityRange> ranges) {
         if (CollectionUtils.isEmpty(ranges)) {
@@ -94,7 +94,7 @@ public class PriceGranularity {
     }
 
     /**
-     * Returns {@link PriceGranularity} by string representation if it is present in map, otherwise returns null
+     * Returns {@link PriceGranularity} by string representation if it is present in map, otherwise returns null.
      */
     public static PriceGranularity createFromString(String stringPriceGranularity) {
         if (isValidStringPriceGranularityType(stringPriceGranularity)) {
@@ -113,21 +113,21 @@ public class PriceGranularity {
     }
 
     /**
-     * Returns {@link List<ExtGranularityRange>}
+     * Returns list of {@link ExtGranularityRange}s.
      */
     public List<ExtGranularityRange> getRanges() {
         return ranges;
     }
 
     /**
-     * Returns max value among all ranges
+     * Returns max value among all ranges.
      */
     public BigDecimal getRangesMax() {
         return rangesMax;
     }
 
     /**
-     * Returns {@link PriceGranularity} precision
+     * Returns {@link PriceGranularity} precision.
      */
     public Integer getPrecision() {
         return precision;
