@@ -23,7 +23,6 @@ public final class HttpUtil {
     public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
     public static final CharSequence DNT_HEADER = HttpHeaders.createOptimized("DNT");
     public static final CharSequence X_REQUEST_AGENT_HEADER = HttpHeaders.createOptimized("X-Request-Agent");
-    public static final String LJT_READER_COOKIE_NAME = "ljt_reader";
 
     private HttpUtil() {
     }
@@ -117,14 +116,13 @@ public final class HttpUtil {
     }
 
     public static String getDomainFromUrl(String url) {
-        String domain = null;
-        if (StringUtils.isNotEmpty(url)) {
-            try {
-                domain = new URL(url).getHost();
-            } catch (MalformedURLException e) {
-                return null;
-            }
+        if (StringUtils.isBlank(url)) {
+            return null;
         }
-        return domain;
+        try {
+            return new URL(url).getHost();
+        } catch (MalformedURLException e) {
+            return null;
+        }
     }
 }
