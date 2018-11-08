@@ -18,6 +18,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -102,6 +103,12 @@ public class ApplicationTest extends VertxTest {
             .setConfig(RestAssuredConfig.config()
                     .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
             .build();
+
+    @BeforeClass
+    public static void setUp() throws IOException {
+        wireMockRule.stubFor(get(urlPathEqualTo("/periodic-update"))
+                .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
+    }
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromDifferentExchanges() throws IOException, JSONException {
@@ -731,10 +738,10 @@ public class ApplicationTest extends VertxTest {
                 .statusCode(200);
     }
 
-    private String jsonFrom(String file) throws IOException {
+    private static String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
-        return mapper.writeValueAsString(mapper.readTree(this.getClass().getResourceAsStream(
-                this.getClass().getSimpleName() + "/" + file)));
+        return mapper.writeValueAsString(mapper.readTree(ApplicationTest.class.getResourceAsStream(
+                ApplicationTest.class.getSimpleName() + "/" + file)));
     }
 
     private static String auctionResponseFrom(String template, Response response, String responseTimePath) {
