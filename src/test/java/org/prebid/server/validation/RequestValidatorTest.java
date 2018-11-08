@@ -314,7 +314,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBannerHasNullFormatAndValidSizes() {
+    public void validateShouldReturnEmptyValidationMessagesWhenBannerHasNullFormatAndValidSizes() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(Imp.builder()
@@ -492,7 +492,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBannerFormatSizesSpecifiedOnly() {
+    public void validateShouldReturnEmptyValidationMessagesWhenBannerFormatSizesSpecifiedOnly() {
         // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(2));
@@ -505,7 +505,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosSpecifiedOnly() {
+    public void validateShouldReturnEmptyValidationMessagesWhenBannerFormatRatiosSpecifiedOnly() {
         // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().wmin(3).wratio(4).hratio(5));
@@ -747,7 +747,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenSitePageIsEmptyString() {
+    public void validateShouldEmptyValidationMessagesWhenSitePageIsEmptyString() {
         // given
         final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
                 siteBuilder -> Site.builder().id("1").page("")).build();
@@ -1202,7 +1202,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithoutErrorMessageWhenAliasesWasUsed() {
+    public void validateShouldReturnEmptyValidationMessagesWhenAliasesWasUsed() {
         // given
         final ObjectNode ext = mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                 singletonMap("alias", "rubicon"), null, null, null, null)));
@@ -1774,7 +1774,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationResultWithOutErrorsWhenNativeVideoIsValid()
+    public void validateShouldReturnEmptyValidationMessagesWhenNativeVideoIsValid()
             throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
@@ -1901,7 +1901,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessageWhenBidderIsKnownAndAdjustmentIsValid() {
+    public void validateShouldEmptyValidationMessagesWhenBidderIsKnownAndAdjustmentIsValid() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(
@@ -1916,7 +1916,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessageWhenBidderIsKnownAliasForCoreBidderAndAdjustmentIsValid() {
+    public void validateShouldEmptyValidationMessagesWhenBidderIsKnownAliasForCoreBidderAndAdjustmentIsValid() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(mapper.valueToTree(ExtBidRequest.of(
