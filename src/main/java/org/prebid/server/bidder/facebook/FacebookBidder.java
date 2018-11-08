@@ -45,9 +45,11 @@ import java.util.stream.Collectors;
 public class FacebookBidder implements Bidder<BidRequest> {
 
     private static final Random RANDOM = new Random();
-    private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
             };
+
     private static final Integer LEGACY_BANNER_WIDTH = 320;
     private static final Integer LEGACY_BANNER_HEIGHT = 50;
 

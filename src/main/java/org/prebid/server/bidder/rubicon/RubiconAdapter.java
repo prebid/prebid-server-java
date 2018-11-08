@@ -116,7 +116,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static void validateBidRequests(List<BidRequest> bidRequests) {
-        if (bidRequests.size() == 0) {
+        if (bidRequests.isEmpty()) {
             throw new PreBidException("Invalid ad unit/imp");
         }
     }

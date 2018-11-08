@@ -41,8 +41,8 @@ import java.util.stream.Collectors;
 
 public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>> ADKERNELADN_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>> ADKERNELADN_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>>() {
             };
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
@@ -96,10 +96,9 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         return adkernelAdnExt;
     }
 
-    //Group impressions by AdKernel-specific parameters `pubId` & `host`
+    // Group impressions by AdKernel-specific parameters `pubId` & `host`.
     private static Map<ExtImpAdkernelAdn, List<Imp>> dispatchImpressions(List<Imp> imps,
                                                                          List<ExtImpAdkernelAdn> impExts) {
-
         final Map<ExtImpAdkernelAdn, List<Imp>> result = new HashMap<>();
 
         for (int i = 0; i < imps.size(); i++) {
@@ -111,9 +110,8 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         return result;
     }
 
-    //Alter impression info to comply with adkernel platform requirements
+    // Alter impression info to comply with adkernel platform requirements.
     private static Imp compatImpression(Imp imp) {
-
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         final Banner compatBanner = imp.getBanner();
 
@@ -147,23 +145,23 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         return impBuilder.build();
     }
 
-    private static List<HttpRequest<BidRequest>> buildAdapterRequests(BidRequest prebidBidrequest,
+    private static List<HttpRequest<BidRequest>> buildAdapterRequests(BidRequest preBidRequest,
                                                                       Map<ExtImpAdkernelAdn, List<Imp>> pubToImps,
                                                                       String endpointUrl) {
         final List<HttpRequest<BidRequest>> result = new ArrayList<>();
 
-        for (ExtImpAdkernelAdn impExt : pubToImps.keySet()) {
-            final BidRequest outgoingRequest = createBidRequest(prebidBidrequest, pubToImps.get(impExt));
+        for (Map.Entry<ExtImpAdkernelAdn, List<Imp>> entry : pubToImps.entrySet()) {
+            final BidRequest outgoingRequest = createBidRequest(preBidRequest, entry.getValue());
             final String body = Json.encode(outgoingRequest);
-            result.add(HttpRequest.of(HttpMethod.POST, buildEndpoint(impExt, endpointUrl), body, headers(),
+            result.add(HttpRequest.of(HttpMethod.POST, buildEndpoint(entry.getKey(), endpointUrl), body, headers(),
                     outgoingRequest));
         }
 
         return result;
     }
 
-    private static BidRequest createBidRequest(BidRequest prebidBidRequest, List<Imp> imps) {
-        final BidRequest.BidRequestBuilder bidRequestBuilder = prebidBidRequest.toBuilder();
+    private static BidRequest createBidRequest(BidRequest preBidRequest, List<Imp> imps) {
+        final BidRequest.BidRequestBuilder bidRequestBuilder = preBidRequest.toBuilder();
 
         final List<Imp> modifiedImps = new ArrayList<>();
         for (Imp imp : imps) {
@@ -175,12 +173,12 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         }
         bidRequestBuilder.imp(modifiedImps);
 
-        final Site site = prebidBidRequest.getSite();
+        final Site site = preBidRequest.getSite();
         if (site != null) {
             bidRequestBuilder.site(site.toBuilder().publisher(null).domain("").build());
         }
 
-        final App app = prebidBidRequest.getApp();
+        final App app = preBidRequest.getApp();
         if (app != null) {
             bidRequestBuilder.app(app.toBuilder().publisher(null).build());
         }
@@ -236,7 +234,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    // getType figures out which media type this bid is for
+    // Figures out which media type this bid is for.
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getVideo() != null) {

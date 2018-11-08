@@ -51,8 +51,8 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
-    private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
             };
 
     /**
@@ -61,23 +61,22 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> imps = request.getImp();
-
         if (CollectionUtils.isEmpty(imps)) {
             return Result.of(Collections.emptyList(),
                     Collections.singletonList(BidderError.badInput("No impression in the bid request")));
         }
+
         final List<BidderError> errors = new ArrayList<>();
+        final BidRequest updateBidRequest = updateBidRequest(request, errors);
 
-        request = updateBidRequest(request, errors);
-
-        if (CollectionUtils.isEmpty(request.getImp())) {
+        if (CollectionUtils.isEmpty(updateBidRequest.getImp())) {
             errors.add(BidderError.badInput("No valid impression in the bid request"));
             return Result.of(Collections.emptyList(), errors);
         }
 
         final String bidRequestBody;
         try {
-            bidRequestBody = Json.encode(request);
+            bidRequestBody = Json.encode(updateBidRequest);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s", e.getMessage())));
             return Result.of(Collections.emptyList(), errors);
@@ -94,8 +93,9 @@ public class BrightrollBidder implements Bidder<BidRequest> {
                 HttpMethod.POST,
                 String.format("%s?publisher=%s", endpointUrl, publisher),
                 bidRequestBody,
-                createHeaders(request.getDevice()),
-                request)), Collections.emptyList());
+                createHeaders(updateBidRequest.getDevice()),
+                updateBidRequest)),
+                Collections.emptyList());
     }
 
     /**
@@ -104,8 +104,9 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     private static BidRequest updateBidRequest(BidRequest bidRequest, List<BidderError> errors) {
         final List<Imp> imps = bidRequest.getImp();
         final boolean requiredUpdate = imps.stream().anyMatch(BrightrollBidder::isRequiredUpdate);
+
         if (requiredUpdate) {
-            bidRequest = bidRequest.toBuilder().imp(imps.stream()
+            return bidRequest.toBuilder().imp(imps.stream()
                     .filter(imp -> isImpValid(imp, errors))
                     .map(BrightrollBidder::updateImpSize)
                     .collect(Collectors.toList())).build();
@@ -143,10 +144,10 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         final Banner banner = imp.getBanner();
         if (banner != null && banner.getW() == null && banner.getH() == null
                 && CollectionUtils.isNotEmpty(banner.getFormat())) {
+
             // update banner with size from first format
             final Format firstFormat = banner.getFormat().get(0);
-
-            imp = imp.toBuilder()
+            return imp.toBuilder()
                     .banner(banner.toBuilder()
                             .w(firstFormat.getW())
                             .h(firstFormat.getH())
@@ -183,6 +184,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         if (impExt == null || impExt.size() == 0) {
             throw new PreBidException("ext.bidder not provided");
         }
+
         final String publisher;
         try {
             publisher = Json.mapper.<ExtPrebid<?, ExtImpBrightroll>>convertValue(impExt,
