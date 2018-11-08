@@ -14,6 +14,8 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +36,17 @@ public class CurrencyConversionService {
     private final HttpClient httpClient;
 
     private Map<String, Map<String, BigDecimal>> latestCurrencyRates = null;
+    private ZonedDateTime lastUpdated;
 
     public CurrencyConversionService(String currencyServerUrl, long refreshPeriod, Vertx vertx, HttpClient httpClient) {
         this.currencyServerUrl = HttpUtil.validateUrl(Objects.requireNonNull(currencyServerUrl));
         this.refreshPeriod = validateRefreshPeriod(refreshPeriod);
         this.vertx = Objects.requireNonNull(vertx);
         this.httpClient = Objects.requireNonNull(httpClient);
+    }
+
+    public ZonedDateTime getLastUpdated() {
+        return lastUpdated;
     }
 
     /**
@@ -98,6 +105,7 @@ public class CurrencyConversionService {
         final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
         if (receivedCurrencyRates != null) {
             latestCurrencyRates = receivedCurrencyRates;
+            lastUpdated = ZonedDateTime.now(Clock.systemUTC());
         }
         return Future.succeededFuture(currencyConversionRates);
     }

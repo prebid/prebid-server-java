@@ -15,6 +15,7 @@ and not the other for an interim period. This page tracks known differences that
 (per-impression, per-account and per-mediaType options are in progress [PR 154](https://github.com/rubicon-project/prebid-server-java/pull/154)),
  PBS-Go supports per-impression, per-responseBid and per-mediaType cache TTL options. Also PBS-Go use 60-seconds buffer to adjust cache TTL value.
 1) PBS-Java supports `ext.prebid.cache.{bids,vastxml}.returnCreative` field to control creative presence in response (`true` by default).
+1) PBS-Java supports checking the latest currency rates details, for example update time. This information is exposed via /currency-rates endpoint on admin port.
 
 ## Minor differences
 
