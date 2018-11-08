@@ -68,8 +68,9 @@ public class HttpBidderRequester<T> implements BidderRequester {
     }
 
     /**
-     * Creates {@link Future<BidderSeatBid>} with empty {@link List<BidderBid>} and {@link List<ExtHttpCall>} with
-     * {@link List<BidderError>}. If errors list is empty, creates error which indicates of bidder unexpected behaviour.
+     * Creates {@link Future<BidderSeatBid>} with empty list of {@link BidderBid}s
+     * and list of {@link ExtHttpCall}s with list of {@link BidderError}s.
+     * If errors list is empty, creates error which indicates of bidder unexpected behaviour.
      */
     private Future<BidderSeatBid> emptyBidderSeatBidWithErrors(List<BidderError> bidderErrors) {
         return Future.succeededFuture(

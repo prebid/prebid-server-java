@@ -42,8 +42,8 @@ import java.util.stream.Collectors;
  */
 public class AdtelligentBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdtelligent>> ADTELLIGENT_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpAdtelligent>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpAdtelligent>> ADTELLIGENT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpAdtelligent>>() {
             };
 
     private final String endpointUrl;

@@ -18,6 +18,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
+import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
@@ -126,7 +127,7 @@ public class ExchangeService {
      * response containing returned bids and additional information in extensions.
      */
     public Future<BidResponse> holdAuction(BidRequest bidRequest, UidsCookie uidsCookie, Timeout timeout,
-                                           MetricsContext metricsContext) {
+                                           MetricsContext metricsContext, RoutingContext context) {
         // extract ext from bid request
         final ExtBidRequest requestExt;
         try {
@@ -135,16 +136,10 @@ public class ExchangeService {
             return Future.failedFuture(e);
         }
 
-        final Map<String, String> aliases = getAliases(requestExt);
-
+        final Map<String, String> aliases = aliases(requestExt);
         final ExtRequestTargeting targeting = targeting(requestExt);
-
-        // build cache specific params holder
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(targeting, requestExt);
-
-        // build targeting keywords creator
-        final TargetingKeywordsCreator keywordsCreator = buildKeywordsCreator(targeting, bidRequest.getApp() != null);
-
+        final TargetingKeywordsCreator keywordsCreator = keywordsCreator(targeting, bidRequest.getApp() != null);
         final String publisherId = publisherId(bidRequest);
 
         final long startTime = clock.millis();
@@ -163,7 +158,8 @@ public class ExchangeService {
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
                 .compose(result ->
                         toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, publisherId, timeout))
-                .compose(bidResponse -> bidResponsePostProcessor.postProcess(bidRequest, uidsCookie, bidResponse));
+                .compose(bidResponse ->
+                        bidResponsePostProcessor.postProcess(context, bidRequest, uidsCookie, bidResponse));
     }
 
     /**
@@ -181,7 +177,7 @@ public class ExchangeService {
     /**
      * Extracts aliases from {@link ExtBidRequest}.
      */
-    private static Map<String, String> getAliases(ExtBidRequest requestExt) {
+    private static Map<String, String> aliases(ExtBidRequest requestExt) {
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
         return aliases != null ? aliases : Collections.emptyMap();
@@ -619,7 +615,7 @@ public class ExchangeService {
      * Returns null if bidrequest.ext.prebid.targeting is missing - it means that no targeting keywords
      * should be included in bid response.
      */
-    private static TargetingKeywordsCreator buildKeywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
+    private static TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting, boolean isApp) {
         return targeting != null
                 ? TargetingKeywordsCreator.create(parsePriceGranularity(targeting.getPricegranularity()),
                 targeting.getIncludewinners(), targeting.getIncludebidderkeys(), isApp)
@@ -1036,7 +1032,8 @@ public class ExchangeService {
                 bid.setAdm(null);
             }
 
-            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId);
+            targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId,
+                    cacheService.getEndpointHost(), cacheService.getEndpointPath(), cacheService.getEndpointHostPath());
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
             cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;

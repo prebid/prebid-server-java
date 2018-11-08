@@ -161,7 +161,7 @@ public class HttpAdapterRequester implements BidderRequester {
     }
 
     /**
-     * Calculates secure type from {@link List<Imp>}. Values of secure in imps should be same, 0 or 1. If different
+     * Calculates secure type from list of {@link Imp}s. Values of secure in imps should be same, 0 or 1. If different
      * values found {@link InvalidRequestException} will be thrown.
      */
     private static Integer toSecure(List<Imp> imps) {
@@ -183,25 +183,26 @@ public class HttpAdapterRequester implements BidderRequester {
     }
 
     /**
-     * Creates {@link Result<AdapterRequest>} from {@link BidRequest}. In case {@link BidRequest} has
-     * empty {@link List<Imp>} or neither of was converted to {@link AdUnitBid}, {@link InvalidRequestException} will
-     * be thrown.
+     * Creates {@link Result<AdapterRequest>} from {@link BidRequest}.
+     * <p>
+     * In case {@link BidRequest} has empty list of {@link Imp}s or neither of was converted to {@link AdUnitBid},
+     * {@link InvalidRequestException} will be thrown.
      */
     private Result<AdapterRequest> toBidder(BidRequest bidRequest) {
-        if (bidRequest.getImp().size() == 0) {
+        if (bidRequest.getImp().isEmpty()) {
             throw new InvalidRequestException(String.format("There no imps in bidRequest for bidder %s", bidderName));
         }
         final Result<List<AdUnitBid>> adUnitBidsResult = toAdUnitBids(bidRequest.getImp());
         final List<AdUnitBid> adUnitBids = adUnitBidsResult.getValue();
         final List<BidderError> errors = adUnitBidsResult.getErrors();
-        if (adUnitBids.size() > 0) {
+        if (!adUnitBids.isEmpty()) {
             return Result.of(AdapterRequest.of(bidderName, adUnitBids), errors);
         }
         throw new InvalidRequestException(messages(errors));
     }
 
     /**
-     * Converts {@link List}&lt;{@link BidderError}&gt; to {@link List}&lt;{@link String}&gt; error messages
+     * Converts {@link List}&lt;{@link BidderError}&gt; to {@link List}&lt;{@link String}&gt; error messages.
      */
     private static List<String> messages(List<BidderError> errors) {
         return CollectionUtils.emptyIfNull(errors).stream().map(BidderError::getMessage).collect(Collectors.toList());
@@ -246,8 +247,8 @@ public class HttpAdapterRequester implements BidderRequester {
     }
 
     /**
-     * Creates sizes {@link List<Format>} from {@link Imp}. In case sizes list is empty, {@link InvalidRequestException}
-     * will be thrown.
+     * Creates sizes list of {@link Format}s from {@link Imp}.
+     * In case sizes list is empty, {@link InvalidRequestException} will be thrown.
      */
     private static List<Format> toAdUnitBidSizes(Imp imp) {
         final List<Format> sizes = new ArrayList<>();
@@ -377,14 +378,14 @@ public class HttpAdapterRequester implements BidderRequester {
     }
 
     /**
-     * Converts {@link List<BidderDebug>} to {@link List<ExtHttpCall>}.
+     * Converts a list of {@link BidderDebug} to list of {@link ExtHttpCall}s.
      */
     private List<ExtHttpCall> toExtHttpCalls(List<BidderDebug> bidderDebugs) {
         return bidderDebugs.stream().map(HttpAdapterRequester::toExtHttpCall).collect(Collectors.toList());
     }
 
     /**
-     * Creates {@link ExtHttpCall} from {@link BidderDebug}
+     * Creates {@link ExtHttpCall} from {@link BidderDebug}.
      */
     private static ExtHttpCall toExtHttpCall(BidderDebug bidderDebug) {
         return ExtHttpCall.builder()

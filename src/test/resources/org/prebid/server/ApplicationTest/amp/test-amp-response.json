@@ -11,6 +11,12 @@
     "hb_bidder_rubicon": "rubicon",
     "hb_creative_loadtype": "html",
     "hb_deal": "dealId1",
-    "rpfl_1001": "2_tier0100"
+    "rpfl_1001": "2_tier0100",
+    "hb_cache_host" : "localhost:8090",
+    "hb_cache_path" : "/cache",
+    "hb_cache_hostpath" : "http://localhost:8090/cache",
+    "hb_cache_host_rubicon" : "localhost:8090",
+    "hb_cache_path_rubicon" : "/cache",
+    "hb_cache_hostpath_rubicon" : "http://localhost:8090/cache"
   }
 }
