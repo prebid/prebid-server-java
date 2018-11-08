@@ -227,11 +227,20 @@ public class GdprService {
     }
 
     /**
-     * Parses consent string to {@link VendorConsent} model or null if GDPR is not 1.
+     * Parses consent string to {@link VendorConsent} model. Returns null if:
+     * <p>
+     * - GDPR flag is not equal to 1
+     * <p>
+     * - consent string is missing
+     * <p>
+     * - parsing of consent string is failed
      */
     private VendorConsent vendorConsentFrom(String gdpr, String gdprConsent) {
+        if (!Objects.equals(gdpr, "1") || StringUtils.isEmpty(gdprConsent)) {
+            return null;
+        }
         try {
-            return Objects.equals(gdpr, "1") ? VendorConsentDecoder.fromBase64String(gdprConsent) : null;
+            return VendorConsentDecoder.fromBase64String(gdprConsent);
         } catch (IllegalArgumentException | IllegalStateException e) {
             logger.warn("Parsing consent string failed with error: {0}", e.getMessage());
             return null;

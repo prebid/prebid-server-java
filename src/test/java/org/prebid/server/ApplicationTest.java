@@ -1236,7 +1236,7 @@ public class ApplicationTest extends VertxTest {
                 .withVendorListVersion(79)
                 .withRangeEntries(singletonList(new StartEndRangeEntry(1, 100)))
                 .withMaxVendorId(100)
-                .withBitField(new HashSet<>(asList(32, 52)))
+                .withBitField(new HashSet<>(asList(1, 52)))
                 .withAllowedPurposeIds(new HashSet<>(asList(1, 3)))
                 .build());
 

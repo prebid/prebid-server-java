@@ -32,6 +32,8 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -69,14 +71,14 @@ public class CacheServiceTest extends VertxTest {
     private Timeout expiredTimeout;
 
     @Before
-    public void setUp() {
+    public void setUp() throws MalformedURLException {
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         timeout = timeoutFactory.create(500L);
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
         cacheService = new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient,
-                "http://cache-service/cache", "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+                new URL("http://cache-service/cache"),"http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
     }
 
     @Test
@@ -90,21 +92,21 @@ public class CacheServiceTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(
                 () -> new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient, null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient, "url", null));
+                () -> new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient, new URL("http://validurl.com"), null));
     }
 
     @Test
     public void getCacheEndpointUrlShouldFailOnInvalidCacheServiceUrl() {
         assertThatIllegalArgumentException().isThrownBy(() ->
-                CacheService.getCacheEndpointUrl("http", "{invalid:host}"));
+                CacheService.getCacheEndpointUrl("http", "{invalid:host}", "cache"));
         assertThatIllegalArgumentException().isThrownBy(() ->
-                CacheService.getCacheEndpointUrl("invalid-schema", "example-server:80808"));
+                CacheService.getCacheEndpointUrl("invalid-schema", "example-server:80808", "cache"));
     }
 
     @Test
     public void getCacheEndpointUrlShouldReturnValidUrl() {
         // when
-        final String result = CacheService.getCacheEndpointUrl("http", "example.com");
+        final String result = CacheService.getCacheEndpointUrl("http", "example.com", "cache").toString();
 
         // then
         assertThat(result).isEqualTo("http://example.com/cache");
@@ -114,15 +116,15 @@ public class CacheServiceTest extends VertxTest {
     public void getCachedAssetUrlTemplateShouldFailOnInvalidCacheServiceUrl() {
         // when and then
         assertThatIllegalArgumentException().isThrownBy(() ->
-                CacheService.getCachedAssetUrlTemplate("http", "{invalid:host}", "qs"));
+                CacheService.getCachedAssetUrlTemplate("http", "{invalid:host}", "cache", "qs"));
         assertThatIllegalArgumentException().isThrownBy(() ->
-                CacheService.getCachedAssetUrlTemplate("invalid-schema", "example-server:80808", "qs"));
+                CacheService.getCachedAssetUrlTemplate("invalid-schema", "example-server:80808", "cache", "qs"));
     }
 
     @Test
     public void getCachedAssetUrlTemplateShouldReturnValidUrl() {
         // when
-        final String result = CacheService.getCachedAssetUrlTemplate("http", "example.com", "qs");
+        final String result = CacheService.getCachedAssetUrlTemplate("http", "example.com", "cache", "qs").toString();
 
         // then
         assertThat(result).isEqualTo("http://example.com/cache?qs");
@@ -225,12 +227,12 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsShouldMakeHttpRequestUsingConfigurationParams() {
+    public void cacheBidsShouldMakeHttpRequestUsingConfigurationParams() throws MalformedURLException {
         // given
         givenHttpClientReturnsResponse(200, null);
 
         cacheService = new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient,
-                "https://cache-service-host:8888/cache", "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
+                new URL("https://cache-service-host:8888/cache"), "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
 
         // when
         cacheService.cacheBids(singleBidList(), timeout);
@@ -406,7 +408,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(accountCacheService, CacheTtl.of(20, null), httpClient,
-                "http://cache-service/cache", "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+                new URL("http://cache-service/cache"),"http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
 
         givenHttpClientReturnsResponse(200, null);
 
@@ -429,7 +431,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
         cacheService = new CacheService(accountCacheService, CacheTtl.of(10, null), httpClient,
-                "http://cache-service/cache", "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+                new URL("http://cache-service/cache"),"http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
 
         givenHttpClientReturnsResponse(200, null);
 
