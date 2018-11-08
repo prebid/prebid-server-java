@@ -17,6 +17,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## HTTP
 - `http.port` - the port to listen on.
+- `http.ssl` - enable SSL/TLS
+- `http.jks-path` - path to the java keystore (if ssl is enabled)
+- `http.jks-password` - password for the keystore (if ssl is enabled)
 
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections.

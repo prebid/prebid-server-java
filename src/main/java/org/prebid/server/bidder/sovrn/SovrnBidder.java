@@ -44,6 +44,8 @@ import java.util.stream.Collectors;
  */
 public class SovrnBidder implements Bidder<BidRequest> {
 
+    private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
+
     private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpSovrn>>() {
             };
@@ -112,8 +114,8 @@ public class SovrnBidder implements Bidder<BidRequest> {
         }
 
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpSovrn>>convertValue(imp.getExt(), SOVRN_EXT_TYPE_REFERENCE)
-                    .getBidder();
+            return Json.mapper.<ExtPrebid<?, ExtImpSovrn>>convertValue(imp.getExt(),
+                    SOVRN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -134,8 +136,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
         final User user = bidRequest.getUser();
         final String buyeruid = user != null ? StringUtils.trimToNull(user.getBuyeruid()) : null;
         if (buyeruid != null) {
-            headers.add(HttpHeaders.COOKIE.toString(), Cookie.cookie(HttpUtil.LJT_READER_COOKIE_NAME,
-                    buyeruid).encode());
+            headers.add(HttpHeaders.COOKIE.toString(), Cookie.cookie(LJT_READER_COOKIE_NAME, buyeruid).encode());
         }
         return headers;
     }
