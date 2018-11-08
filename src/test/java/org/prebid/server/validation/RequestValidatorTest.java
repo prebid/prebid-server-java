@@ -314,6 +314,28 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasNullFormatAndValidSizes() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .w(300)
+                                .h(250)
+                                .format(null)
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNoSizes() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
