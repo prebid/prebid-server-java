@@ -18,6 +18,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -102,6 +103,12 @@ public class ApplicationTest extends VertxTest {
             .setConfig(RestAssuredConfig.config()
                     .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
             .build();
+
+    @BeforeClass
+    public static void setUp() throws IOException {
+        wireMockRule.stubFor(get(urlPathEqualTo("/currency-rates"))
+                .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
+    }
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromConversant() throws IOException, JSONException {
@@ -1388,6 +1395,20 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
+    public void currencyRatesHandlerShouldRespondWithLastUpdateDate() throws IOException {
+        // given
+        final Instant testTime = Instant.now();
+
+        // when
+        final Response response = given(adminSpec).get("/currency-rates");
+
+        // then
+        final String lastUpdateValue = response.jsonPath().getString("last_update");
+        final Instant lastUpdateTime = Instant.parse(lastUpdateValue);
+        assertThat(testTime).isAfter(lastUpdateTime);
+    }
+
+    @Test
     public void invalidateSettingsCacheShouldReturnExpectedResponse() {
         given(adminSpec)
                 .body("{\"requests\":[],\"imps\":[]}")
@@ -1423,10 +1444,10 @@ public class ApplicationTest extends VertxTest {
                 .statusCode(200);
     }
 
-    private String jsonFrom(String file) throws IOException {
+    private static String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
-        return mapper.writeValueAsString(mapper.readTree(this.getClass().getResourceAsStream(
-                this.getClass().getSimpleName() + "/" + file)));
+        return mapper.writeValueAsString(mapper.readTree(ApplicationTest.class.getResourceAsStream(
+                ApplicationTest.class.getSimpleName() + "/" + file)));
     }
 
     private static String auctionResponseFrom(String template, Response response, String responseTimePath, Map<String, String> exchanges) {

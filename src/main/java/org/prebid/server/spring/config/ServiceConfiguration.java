@@ -350,7 +350,9 @@ public class ServiceConfiguration {
             @Value("${auction.currency-rates-url}") String currencyServerUrl,
             Vertx vertx,
             HttpClient httpClient,
-            ContextRunner contextRunner) {
+            ContextRunner contextRunner,
+            // FIXME - 02/11 required dependency for httpClient
+            Metrics metrics) {
 
         final CurrencyConversionService service = new CurrencyConversionService(currencyServerUrl, refreshPeriod,
                 vertx, httpClient);
