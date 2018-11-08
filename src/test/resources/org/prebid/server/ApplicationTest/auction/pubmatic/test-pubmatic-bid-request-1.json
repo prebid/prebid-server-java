@@ -1,0 +1,51 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "adUnitCode9",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "slot9"
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId9",
+      "domain": "example.com"
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "192.168.244.1",
+    "pxratio": 4.2,
+    "language": "en",
+    "ifa": "ifaId",
+    "dnt": 10
+  },
+  "user": {
+    "buyeruid": "PM-UID",
+    "ext": {
+      "consent": "consent1",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 1
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
+  },
+  "at": 1,
+  "tmax": 1000,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  }
+}
