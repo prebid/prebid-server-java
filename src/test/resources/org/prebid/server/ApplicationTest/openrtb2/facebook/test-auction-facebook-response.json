@@ -24,7 +24,13 @@
                 "hb_cache_id": "9bde9bf0-7726-4789-9f5a-b948131d778d",
                 "hb_pb_audienceNetwork": "7.20",
                 "hb_creative_loadtype": "demand_sdk",
-                "hb_deal": "dealId5"
+                "hb_deal": "dealId5",
+                "hb_cache_host": "{{ host }}",
+                "hb_cache_host_audienceNetwork": "{{ host }}",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_path_audienceNetwork": "{{ path }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_hostpath_audienceNetwork": "{{ hostpath }}"
               },
               "cache": {
                 "bids": {

@@ -26,7 +26,13 @@
                 "hb_cache_id": "6fb008f6-9e09-43ad-830b-ffed21345119",
                 "hb_creative_loadtype": "html",
                 "hb_size_eplanning": "300x250",
-                "hb_deal": "dealId15"
+                "hb_deal": "dealId15",
+                "hb_cache_host": "{{ host }}",
+                "hb_cache_host_eplanning": "{{ host }}",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_path_eplanning": "{{ path }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_hostpath_eplanning": "{{ hostpath }}"
               },
               "cache": {
                 "bids": {

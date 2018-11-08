@@ -26,7 +26,13 @@
                 "hb_cache_id": "6da10965-53bf-453e-a890-ea94eeb00765",
                 "hb_pb_somoaudience": "6.70",
                 "hb_creative_loadtype": "html",
-                "hb_deal": "dealId16"
+                "hb_deal": "dealId16",
+                "hb_cache_host": "{{ host }}",
+                "hb_cache_host_somoaudience": "{{ host }}",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_path_somoaudience": "{{ path }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_hostpath_somoaudience": "{{ hostpath }}"
               },
               "cache": {
                 "bids": {

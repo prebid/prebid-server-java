@@ -26,7 +26,13 @@
                 "hb_creative_loadtype": "html",
                 "hb_deal": "dealId17",
                 "hb_size_brightroll": "300x250",
-                "hb_deal_brightroll": "dealId17"
+                "hb_deal_brightroll": "dealId17",
+                "hb_cache_host": "{{ host }}",
+                "hb_cache_host_brightroll": "{{ host }}",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_path_brightroll": "{{ path }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_hostpath_brightroll": "{{ hostpath }}"
               },
               "cache": {
                 "bids": {

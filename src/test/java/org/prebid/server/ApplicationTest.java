@@ -22,18 +22,25 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.account.AccountCacheService;
+import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
+import org.prebid.server.vertx.http.HttpClient;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.net.URL;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -1430,9 +1437,15 @@ public class ApplicationTest extends VertxTest {
     }
 
     private static String auctionResponseFrom(String template, Response response, String responseTimePath, Map<String, String> exchanges) {
+        String host = "localhost:8090"; //{{ host }}
+        String path = "/cache";// {{ path }}
+        String hostPath = "http://localhost:8090/cache"; // {{ hostpath }}
 
         String result = template.replaceAll("\\{\\{ cache_resource_url }}",
-                "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=");
+                "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=")
+                .replaceAll("\\{\\{ host }}", host)
+                .replaceAll("\\{\\{ path }}", path)
+                .replaceAll("\\{\\{ hostpath }}", hostPath);
 
         for (final Map.Entry<String, String> exchangeEntry : exchanges.entrySet()) {
             final String exchange = exchangeEntry.getKey();

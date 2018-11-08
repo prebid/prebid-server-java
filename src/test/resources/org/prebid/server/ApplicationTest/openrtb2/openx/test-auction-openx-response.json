@@ -26,7 +26,13 @@
                 "hb_creative_loadtype": "html",
                 "hb_cache_id_openx": "16649e72-5dd5-4ab9-ab83-df9a5f06d9d1",
                 "hb_deal": "dealId00",
-                "hb_size_openx": "300x250"
+                "hb_size_openx": "300x250",
+                "hb_cache_host": "{{ host }}",
+                "hb_cache_host_openx": "{{ host }}",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_path_openx": "{{ path }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_hostpath_openx": "{{ hostpath }}"
               },
               "cache": {
                 "bids": {
@@ -60,7 +66,13 @@
                 "hb_creative_loadtype": "html",
                 "hb_cache_id_openx": "6f10452f-dbf8-4d5c-9f40-760080e08612",
                 "hb_deal": "dealId00",
-                "hb_size_openx": "300x250"
+                "hb_size_openx": "300x250",
+                "hb_cache_host": "{{ host }}",
+                "hb_cache_host_openx": "{{ host }}",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_path_openx": "{{ path }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_hostpath_openx": "{{ hostpath }}"
               },
               "cache": {
                 "bids": {
@@ -96,7 +108,13 @@
                 "hb_deal": "dealId00",
                 "hb_size_openx": "300x250",
                 "hb_uuid_openx": "18b7676c-f024-4a06-aa1a-5d222a643603",
-                "hb_uuid": "18b7676c-f024-4a06-aa1a-5d222a643603"
+                "hb_uuid": "18b7676c-f024-4a06-aa1a-5d222a643603",
+                "hb_cache_host": "{{ host }}",
+                "hb_cache_host_openx": "{{ host }}",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_path_openx": "{{ path }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_hostpath_openx": "{{ hostpath }}"
               },
               "cache": {
                 "vastXml": {
@@ -136,7 +154,13 @@
                 "hb_deal": "dealId00",
                 "hb_size_openx": "300x250",
                 "hb_uuid_openx": "857b3394-c5ac-402c-9cca-54ae52b927fc",
-                "hb_uuid": "857b3394-c5ac-402c-9cca-54ae52b927fc"
+                "hb_uuid": "857b3394-c5ac-402c-9cca-54ae52b927fc",
+                "hb_cache_host": "{{ host }}",
+                "hb_cache_host_openx": "{{ host }}",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_path_openx": "{{ path }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_hostpath_openx": "{{ hostpath }}"
               },
               "cache": {
                 "vastXml": {
