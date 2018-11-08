@@ -220,7 +220,13 @@
                 "hb_uuid_adkernelAdn": "70dbcfb2-23f6-4c99-892f-28a5956b50fb",
                 "hb_cache_id": "6cf69b42-96f5-4ba1-a984-a9b4d8ff21cf",
                 "hb_pb_adkernelAdn": "1.80",
-                "hb_creative_loadtype": "html"
+                "hb_creative_loadtype": "html",
+                "hb_cache_host": "localhost:8090",
+                "hb_cache_host_adkernelAdn": "localhost:8090",
+                "hb_cache_path": "/cache",
+                "hb_cache_path_adkernelAdn": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_adkernelAdn": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -263,7 +269,13 @@
                 "hb_bidder": "adkernelAdn",
                 "hb_cache_id": "2e7688b2-941a-4494-9d06-966331d61caa",
                 "hb_pb_adkernelAdn": "0.40",
-                "hb_creative_loadtype": "html"
+                "hb_creative_loadtype": "html",
+                "hb_cache_host": "localhost:8090",
+                "hb_cache_host_adkernelAdn": "localhost:8090",
+                "hb_cache_path": "/cache",
+                "hb_cache_path_adkernelAdn": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_adkernelAdn": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -349,7 +361,13 @@
                 "hb_bidder_ix": "ix",
                 "hb_creative_loadtype": "html",
                 "hb_cache_id_ix": "3ed36e9a-c27b-4d68-a82e-536fbf8fd6c1",
-                "hb_deal": "dealId6"
+                "hb_deal": "dealId6",
+                "hb_cache_host": "localhost:8090",
+                "hb_cache_host_ix": "localhost:8090",
+                "hb_cache_path": "/cache",
+                "hb_cache_path_ix": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_ix": "http://localhost:8090/cache"
               },
               "cache": {
                 "bids": {
@@ -385,7 +403,13 @@
                 "hb_bidder": "ix",
                 "hb_creative_loadtype": "html",
                 "hb_cache_id_ix": "969172e8-1699-4235-a2a6-31cab4647a32",
-                "hb_deal": "dealId61"
+                "hb_deal": "dealId61",
+                "hb_cache_host": "localhost:8090",
+                "hb_cache_host_ix": "localhost:8090",
+                "hb_cache_path": "/cache",
+                "hb_cache_path_ix": "/cache",
+                "hb_cache_hostpath": "http://localhost:8090/cache",
+                "hb_cache_hostpath_ix": "http://localhost:8090/cache"
               },
               "cache": {
                 "vastXml": {
