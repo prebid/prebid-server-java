@@ -29,10 +29,10 @@ public class RubiconSizeTest {
                 Format.builder().w(728).h(90).build());
         final List<Integer> sizeIds = Arrays.asList(15, 2, 3);
 
-        //when
+        // when
         final List<Format> result = RubiconSize.idToSize(sizeIds);
 
-        //then
+        // then
         assertThat(result).isEqualTo(formats);
     }
 

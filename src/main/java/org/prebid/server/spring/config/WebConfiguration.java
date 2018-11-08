@@ -7,6 +7,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.JksOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CookieHandler;
@@ -99,11 +100,25 @@ public class WebConfiguration {
     }
 
     @Bean
-    HttpServerOptions httpServerOptions() {
-        return new HttpServerOptions()
+    HttpServerOptions httpServerOptions(@Value("${http.ssl}") boolean ssl,
+                                        @Value("${http.jks-path}") String jksPath,
+                                        @Value("${http.jks-password}") String jksPassword) {
+        final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
                 .setCompressionSupported(true)
                 .setIdleTimeout(10); // kick off long processing requests
+
+        if (ssl) {
+            final JksOptions jksOptions = new JksOptions()
+                    .setPath(jksPath)
+                    .setPassword(jksPassword);
+
+            httpServerOptions
+                    .setSsl(true)
+                    .setKeyStoreOptions(jksOptions);
+        }
+
+        return httpServerOptions;
     }
 
     @Bean
