@@ -237,3 +237,28 @@ for obtaining the `Account` or `AdUnitConfig` by ID for the legacy [auction](../
 Full list of application configuration options can be found [here](../config-app.md).
 
 If you need support for a backend that you don't see, please [contribute it](../contributing.md).
+
+
+## Periodic Updates
+
+An additional service is available for fetching stored request updates periodically from external HTTP API.
+All stored requests are fetched on startup and then refreshed periodically.
+
+It expects the following endpoint to exist remotely:
+
+GET {endpoint} - Returns all the known Stored Requests and Stored Imps.
+GET {endpoint}?last-modified={timestamp} - Returns the Stored Requests and Stored Imps which have been updated since the last timestamp.
+
+Required configuration:
+
+```yaml
+settings:
+  in-memory-cache:
+    http-update:
+      endpoint: http://stored-requests.prebid.com
+      amp_endpoint: http://stored-requests.prebid.com?amp=true
+      refresh-rate: 60000
+      timeout: 2000
+```
+
+Refresh rate can be negative or zero - in such case the data will be fetched once and never updated.
