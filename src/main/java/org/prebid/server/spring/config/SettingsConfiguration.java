@@ -13,6 +13,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.metric.Metrics;
@@ -340,6 +342,9 @@ public class SettingsConfiguration {
         @Autowired
         private VersionHandler versionHandler;
 
+        @Autowired
+        private CurrencyRatesHandler currencyRatesHandler;
+
         @Autowired(required = false)
         private SettingsCacheNotificationHandler cacheNotificationHandler;
 
@@ -368,6 +373,11 @@ public class SettingsConfiguration {
             return VersionHandler.create("git-revision.json");
         }
 
+        @Bean
+        CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
+            return new CurrencyRatesHandler(currencyConversionRates);
+        }
+
         @PostConstruct
         public void startAdminServer() {
             logger.info("Starting Admin Server to serve requests on port {0,number,#}", adminPort);
@@ -375,6 +385,7 @@ public class SettingsConfiguration {
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
+            router.route("/currency-rates").handler(currencyRatesHandler);
             if (cacheNotificationHandler != null) {
                 router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
             }

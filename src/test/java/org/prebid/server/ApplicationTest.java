@@ -110,6 +110,12 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
     }
 
+    @BeforeClass
+    public static void setUp() throws IOException {
+        wireMockRule.stubFor(get(urlPathEqualTo("/currency-rates"))
+                .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
+    }
+
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromDifferentExchanges() throws IOException, JSONException {
         // given
@@ -700,6 +706,20 @@ public class ApplicationTest extends VertxTest {
                 .then()
                 .assertThat()
                 .statusCode(200);
+    }
+
+    @Test
+    public void currencyRatesHandlerShouldRespondWithLastUpdateDate() throws IOException {
+        // given
+        final Instant testTime = Instant.now();
+
+        // when
+        final Response response = given(adminSpec).get("/currency-rates");
+
+        // then
+        final String lastUpdateValue = response.jsonPath().getString("last_update");
+        final Instant lastUpdateTime = Instant.parse(lastUpdateValue);
+        assertThat(testTime).isAfter(lastUpdateTime);
     }
 
     @Test
