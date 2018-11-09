@@ -10,6 +10,7 @@
 - [Adding new bidder](developers/add-new-bidder.md)
 - [Stored Requests](developers/stored-requests.md)
 - [Unit Tests](developers/unit-tests.md)
+- [GDPR](developers/gdpr.md)
 
 ## DevOps
 - [Build](build.md)
