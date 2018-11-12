@@ -18,5 +18,7 @@ public class NormalizedPubmaticParams {
 
     Integer height;
 
-    ObjectNode keyValue;
+    ObjectNode wrapExt;
+
+    ObjectNode keywords;
 }

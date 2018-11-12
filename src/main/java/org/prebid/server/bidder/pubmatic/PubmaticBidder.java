@@ -16,6 +16,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.model.BidderBid;
@@ -23,6 +24,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
@@ -64,13 +66,13 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
 
         String pubId = null;
-        String wrapExt = null;
+        ObjectNode wrapExt = null;
         final List<Imp> parsedImps = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpPubmatic extImpPubmatic = parsePubmaticExt(imp);
-                final Imp parsedImp = parseImpObject(imp, extImpPubmatic);
+                final Imp parsedImp = parseAndValidateImp(imp, extImpPubmatic);
 
                 if (pubId == null) {
                     pubId = extImpPubmatic.getPublisherId();
@@ -91,13 +93,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         requestBuilder.imp(parsedImps);
 
         if (wrapExt != null) {
-            final String stringExt = String.format("{\"wrapper\": %s}", wrapExt);
-            try {
-                final ObjectNode modifiedExt = Json.mapper.readValue(stringExt, ObjectNode.class);
-                requestBuilder.ext(modifiedExt);
-            } catch (IOException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
+            requestBuilder.ext(Json.mapper.valueToTree(PubmaticRequestExt.of(wrapExt)));
         }
 
         modifySiteOrApp(pubId, bidRequest, requestBuilder);
@@ -110,9 +106,8 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                         outgoingRequest)), errors);
     }
 
-    private void modifySiteOrApp(String pubId,
-                                 BidRequest bidRequest,
-                                 BidRequest.BidRequestBuilder bidRequestBuilder) {
+    private static void modifySiteOrApp(String pubId, BidRequest bidRequest,
+                                        BidRequest.BidRequestBuilder bidRequestBuilder) {
         if (bidRequest.getSite() != null) {
             final Site site = bidRequest.getSite();
             if (site.getPublisher() != null) {
@@ -136,7 +131,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String getWrapExt(Imp imp, ExtImpPubmatic extImpPubmatic) {
+    private static ObjectNode getWrapExt(Imp imp, ExtImpPubmatic extImpPubmatic) {
         try {
             Json.mapper.convertValue(extImpPubmatic.getWrapExt(), new TypeReference<Map<String, Integer>>() {
             });
@@ -144,75 +139,73 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("Error in Wrapper Parameters = %s  for ImpID = %s WrapperExt = %s",
                     e.getMessage(), imp.getId(), extImpPubmatic.getWrapExt().toString()));
         }
-        return extImpPubmatic.getWrapExt().toString();
+        return extImpPubmatic.getWrapExt();
     }
 
-    private Imp parseImpObject(Imp imp, ExtImpPubmatic extImpPubmatic) {
-        final Imp.ImpBuilder result = imp.toBuilder();
-
+    private static Imp parseAndValidateImp(Imp imp, ExtImpPubmatic extImpPubmatic) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException(String.format("Invalid MediaType. PubMatic only supports Banner and Video. "
                     + "Ignoring ImpID=%s", imp.getId()));
         }
+
+        final Imp.ImpBuilder result = imp.toBuilder();
         if (imp.getAudio() != null) {
             result.audio(null);
         }
 
-        final String adSlotString = extImpPubmatic.getAdSlot().trim();
-        final String[] adSlot = adSlotString.split("@");
-
         if (imp.getBanner() != null) {
-            if (adSlot.length == 2 && !adSlot[0].equals("") && !adSlot[1].equals("")) {
-                result.tagid(adSlot[0]);
-
-                final String[] adSize = adSlot[1].trim().toLowerCase().split("x");
-                if (adSize.length == 2) {
-                    Integer width;
-                    Integer height;
-                    final String[] heightStr = adSize[1].trim().split(":");
-                    try {
-                        width = Integer.valueOf(adSize[0]);
-                        height = Integer.valueOf(heightStr[0]);
-                    } catch (NumberFormatException e) {
-                        throw new PreBidException("Invalid width or height provided in adSlot");
-                    }
-                    final Banner newBanner = imp.getBanner().toBuilder().w(width).h(height).build();
-                    result.banner(newBanner);
-                } else {
-                    throw new PreBidException("Invalid size provided in adSlot");
-                }
-            } else {
+            final String adSlotString = extImpPubmatic.getAdSlot().trim();
+            final String[] adSlot = adSlotString.split("@");
+            if (adSlot.length != 2 || StringUtils.isBlank(adSlot[0]) || StringUtils.isBlank(adSlot[1])) {
                 throw new PreBidException("Invalid adSlot provided");
             }
+            result.tagid(adSlot[0]);
+
+            final String[] adSize = adSlot[1].trim().toLowerCase().split("x");
+            if (adSize.length != 2) {
+                throw new PreBidException("Invalid size provided in adSlot");
+            }
+
+            Integer width;
+            Integer height;
+            final String[] heightStr = adSize[1].trim().split(":");
+            try {
+                width = Integer.valueOf(adSize[0].trim());
+                height = Integer.valueOf(heightStr[0].trim());
+            } catch (NumberFormatException e) {
+                throw new PreBidException("Invalid width or height provided in adSlot");
+            }
+            final Banner updatedBanner = imp.getBanner().toBuilder().w(width).h(height).build();
+            result.banner(updatedBanner);
         }
 
         if (CollectionUtils.isNotEmpty(extImpPubmatic.getKeywords())) {
-            final String keywordsString = makeKeywordString(extImpPubmatic.getKeywords());
-            try {
-                result.ext(Json.mapper.readValue(keywordsString, ObjectNode.class));
-            } catch (IOException e) {
-                throw new PreBidException(e.getMessage(), e);
-            }
+            result.ext(makeKeywords(extImpPubmatic.getKeywords()));
         } else {
             result.ext(null);
         }
         return result.build();
     }
 
-    private String makeKeywordString(List<ExtImpPubmaticKeyVal> keywords) {
+    private static ObjectNode makeKeywords(List<ExtImpPubmaticKeyVal> keywords) {
         List<String> eachKv = new ArrayList<>();
         for (ExtImpPubmaticKeyVal keyVal : keywords) {
-            if (CollectionUtils.isEmpty(keyVal.getValues())) {
+            if (CollectionUtils.isEmpty(keyVal.getValue())) {
                 logger.error(String.format("No values present for key = %s", keyVal.getKey()));
             } else {
                 eachKv.add(String.format("\"%s\":\"%s\"", keyVal.getKey(),
-                        String.join(",", keyVal.getValues())));
+                        String.join(",", keyVal.getValue())));
             }
         }
-        return "{" + String.join(",", eachKv) + "}";
+        final String keywordsString = "{" + String.join(",", eachKv) + "}";
+        try {
+            return Json.mapper.readValue(keywordsString, ObjectNode.class);
+        } catch (IOException e) {
+            throw new PreBidException(String.format("Failed to create keywords with error: %s", e.getMessage()), e);
+        }
     }
 
-    private ExtImpPubmatic parsePubmaticExt(Imp imp) {
+    private static ExtImpPubmatic parsePubmaticExt(Imp imp) {
         ExtImpPubmatic extImpPubmatic;
         try {
             extImpPubmatic = Json.mapper.<ExtPrebid<?, ExtImpPubmatic>>convertValue(imp.getExt(),
@@ -233,13 +226,13 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse == null || bidResponse.getSeatbid() == null
                 ? Collections.emptyList()
                 : bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
@@ -247,7 +240,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private BidType getMediaTypes(String impId, List<Imp> imps) {
+    private static BidType getMediaTypes(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getVideo() != null) {
                 return BidType.video;

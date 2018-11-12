@@ -24,6 +24,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
@@ -47,7 +48,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class PubmaticBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://hbopenbid.pubmatic.com/translator?source=prebid-server";
+    private static final String ENDPOINT_URL = "http://test.endpoint.com/translator?source=prebid-server";
 
     private PubmaticBidder pubmaticBidder;
 
@@ -161,14 +162,14 @@ public class PubmaticBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 extImpPubmaticBuilder -> extImpPubmaticBuilder
-                        .keywords(singletonList(ExtImpPubmaticKeyVal.builder().key("\"").values(singletonList("\"")).build())));
+                        .keywords(singletonList(ExtImpPubmaticKeyVal.of("\"", singletonList("\"")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unexpected character");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to create keywords with error: Unexpected character");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -199,7 +200,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
@@ -215,7 +216,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
@@ -237,7 +238,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
@@ -255,7 +256,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
@@ -269,13 +270,13 @@ public class PubmaticBidderTest extends VertxTest {
                 identity(),
                 extImpPubmaticBuilder -> extImpPubmaticBuilder
                         .keywords(singletonList(
-                                ExtImpPubmaticKeyVal.builder().key("key2").values(asList("value1", "value2")).build())));
+                                ExtImpPubmaticKeyVal.of("key2", asList("value1", "value2")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
@@ -290,14 +291,14 @@ public class PubmaticBidderTest extends VertxTest {
                 identity(),
                 extImpPubmaticBuilder -> extImpPubmaticBuilder
                         .keywords(asList(
-                                ExtImpPubmaticKeyVal.builder().key("key with empty value").values(emptyList()).build(),
-                                ExtImpPubmaticKeyVal.builder().key("key2").values(asList("value1", "value2")).build())));
+                                ExtImpPubmaticKeyVal.of("key with empty value", emptyList()),
+                                ExtImpPubmaticKeyVal.of("key2", asList("value1", "value2")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
@@ -317,11 +318,12 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getExt)
-                .containsOnly(mapper.readValue("{\"wrapper\":{\"key\":1}}", ObjectNode.class));
+                .containsOnly(mapper.valueToTree(
+                        PubmaticRequestExt.of(mapper.valueToTree(singletonMap("key", 1)))));
     }
 
     @Test
@@ -336,7 +338,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getExt)
@@ -355,7 +357,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite)
@@ -378,7 +380,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
@@ -398,7 +400,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getApp)
@@ -416,9 +418,10 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
+        assertThat(result.getValue()).doesNotContainNull()
+                .hasSize(1).element(0)
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns("http://hbopenbid.pubmatic.com/translator?source=prebid-server", HttpRequest::getUri);
+                .returns("http://test.endpoint.com/translator?source=prebid-server", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(

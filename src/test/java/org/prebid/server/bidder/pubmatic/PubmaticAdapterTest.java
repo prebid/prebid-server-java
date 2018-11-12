@@ -28,6 +28,7 @@ import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
+import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -232,7 +233,8 @@ public class PubmaticAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz", wrapExt, keywords))));
+                        .params(mapper.valueToTree(
+                                PubmaticParams.of("publisherID", "slot42@200x150:zzz", wrapExt, keywords))));
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(
                 builder -> builder
@@ -289,7 +291,8 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .fd(1)
                                 .tid("tid")
                                 .build())
-                        .ext(mapper.readValue("{\"wrapper\":{\"key\":1}}", ObjectNode.class))
+                        .ext(mapper.valueToTree(
+                                PubmaticRequestExt.of(mapper.valueToTree(singletonMap("key", 1)))))
                         .build());
     }
 
