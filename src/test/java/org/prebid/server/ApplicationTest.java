@@ -108,10 +108,6 @@ public class ApplicationTest extends VertxTest {
     public static void setUp() throws IOException {
         wireMockRule.stubFor(get(urlPathEqualTo("/periodic-update"))
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
-    }
-
-    @BeforeClass
-    public static void setUp() throws IOException {
         wireMockRule.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
     }
