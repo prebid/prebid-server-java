@@ -87,7 +87,7 @@ public class RhythmOneBidder implements Bidder<BidRequest> {
                             Json.mapper.createObjectNode(),
                             Json.mapper.valueToTree(extImpRhythmOne)));
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("Failed to create imp.ext with error: %s", e.getMessage()));
         }
         return impExt;
     }

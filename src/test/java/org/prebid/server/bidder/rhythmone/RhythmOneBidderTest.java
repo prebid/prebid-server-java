@@ -112,7 +112,8 @@ public class RhythmOneBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rhythmOneBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
+        assertThat(result.getValue()).doesNotContainNull()
+                .hasSize(1).element(0)
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns("http://test.domain.com/rmp/placement/0/path?z=zone&s2s=true", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
@@ -203,7 +204,7 @@ public class RhythmOneBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfBidRequestHasNoBanner() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfBidRequestHasVideoAndNoBanner() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(builder -> builder.id("123")
