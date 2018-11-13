@@ -17,6 +17,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -242,11 +243,15 @@ public class PubmaticAdapter extends OpenrtbAdapter {
 
         final ObjectNode keyValue;
         final List<String> keywords = makeKeywords(pubmaticParams.getKeywords(), errors);
-        try {
-            keyValue = Json.mapper.readValue("{" + String.join(",", keywords) + "}", ObjectNode.class);
-        } catch (IOException e) {
-            errors.add(String.format("Failed to create keywords with error: %s", e.getMessage()));
-            return null;
+        if (CollectionUtils.isNotEmpty(keywords)) {
+            try {
+                keyValue = Json.mapper.readValue("{" + String.join(",", keywords) + "}", ObjectNode.class);
+            } catch (IOException e) {
+                errors.add(String.format("Failed to create keywords with error: %s", e.getMessage()));
+                return null;
+            }
+        } else {
+            keyValue = null;
         }
 
         return NormalizedPubmaticParams.of(publisherId, adSlot, adSlots[0], width, height, wrapExt, keyValue);
