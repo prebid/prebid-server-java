@@ -179,7 +179,7 @@ public class PubmaticBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 extImpPubmaticBuilder -> extImpPubmaticBuilder
-                        .wrapExt(mapper.valueToTree(singletonMap("key", "invalid value"))));
+                        .wrapper(mapper.valueToTree(singletonMap("key", "invalid value"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
@@ -312,7 +312,7 @@ public class PubmaticBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 extImpPubmaticBuilder -> extImpPubmaticBuilder
-                        .wrapExt(mapper.valueToTree(singletonMap("key", 1))));
+                        .wrapper(mapper.valueToTree(singletonMap("key", 1))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);

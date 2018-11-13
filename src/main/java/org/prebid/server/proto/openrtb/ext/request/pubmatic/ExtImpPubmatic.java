@@ -24,7 +24,7 @@ public class ExtImpPubmatic {
     String adSlot;
 
     @JsonProperty("wrapper")
-    ObjectNode wrapExt;
+    ObjectNode wrapper;
 
     List<ExtImpPubmaticKeyVal> keywords;
 }

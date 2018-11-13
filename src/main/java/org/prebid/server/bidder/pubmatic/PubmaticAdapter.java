@@ -240,32 +240,32 @@ public class PubmaticAdapter extends OpenrtbAdapter {
             wrapExt = null;
         }
 
-        final ObjectNode keyValue = makeKeywords(pubmaticParams.getKeywords(), errors);
+        final ObjectNode keyValue;
+        final List<String> keywords = makeKeywords(pubmaticParams.getKeywords(), errors);
+        try {
+            keyValue = Json.mapper.readValue("{" + String.join(",", keywords) + "}", ObjectNode.class);
+        } catch (IOException e) {
+            errors.add(String.format("Failed to create keywords with error: %s", e.getMessage()));
+            return null;
+        }
 
         return NormalizedPubmaticParams.of(publisherId, adSlot, adSlots[0], width, height, wrapExt, keyValue);
     }
 
-    private static ObjectNode makeKeywords(Map<String, String> keywords, List<String> errors) {
+    private static List<String> makeKeywords(Map<String, String> keywords, List<String> errors) {
         if (keywords == null) {
             return null;
         }
-        final List<String> eachKv = new ArrayList<>();
+        final List<String> keywordPair = new ArrayList<>();
         for (Map.Entry<String, String> entry : keywords.entrySet()) {
             final String key = entry.getKey();
             if (StringUtils.isBlank(keywords.get(key))) {
                 logger.warn(String.format("No values present for key = %s", key));
             } else {
-                eachKv.add(String.format("\"%s\":\"%s\"", key, entry.getValue()));
+                keywordPair.add(String.format("\"%s\":\"%s\"", key, entry.getValue()));
             }
         }
-
-        final String keyValueString = "{" + String.join(",", eachKv) + "}";
-        try {
-            return Json.mapper.readValue(keyValueString, ObjectNode.class);
-        } catch (IOException e) {
-            errors.add(String.format("Failed to create keywords with error: %s", e.getMessage()));
-            return null;
-        }
+        return keywordPair;
     }
 
     private static void logWrongParams(String requestId, String publisherId, AdUnitBid adUnitBid, String errorMessage,
