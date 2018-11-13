@@ -237,7 +237,6 @@ Full list of application configuration options can be found [here](../config-app
 
 If you need support for a backend that you don't see, please [contribute it](../contributing.md).
 
-
 ## Caches and updates
 
 Stored Request data can also be cached or updated while PBS is running.
@@ -254,7 +253,6 @@ At least one ApplicationSettings is _required_ to make use of Stored Requests.
 If more than one ApplicationSettings is defined, they will be ordered and used as fallback data sources.
 This isn't a great idea for Prod in the long-term, but may be useful temporarily if you're trying
 to transition from one backend to another.
-
 
 CacheNotificationListener is used to Save or Invalidate values from the cache.
 
