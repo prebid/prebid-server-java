@@ -28,6 +28,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "buyeruid": "AK-UID",
     "ext": {
       "digitrust": {
         "id": "id",

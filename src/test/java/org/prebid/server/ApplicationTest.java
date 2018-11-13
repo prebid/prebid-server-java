@@ -54,6 +54,7 @@ import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
@@ -138,8 +139,7 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"conversant":"CV-UID"}}
+                // this uids cookie value stands for {"uids":{"conversant":"CV-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImNvbnZlcnNhbnQiOiJDVi1VSUQifX0=")
                 .body(jsonFrom("openrtb2/conversant/test-auction-conversant-request.json"))
                 .post("/openrtb2/auction");
@@ -149,8 +149,8 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(CONVERSANT, "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange");
         exchanges.put(CONVERSANT_ALIAS, null);
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/conversant/test-auction-conversant-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, exchanges);
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/conversant/test-auction-conversant-response.json"),
+                response, exchanges);
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -174,15 +174,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"ix":"IE-UID"}}
+                // this uids cookie value stands for {"uids":{"ix":"IE-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7Iml4IjoiSUUtVUlEIn19")
                 .body(jsonFrom("openrtb2/ix/test-auction-ix-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/ix/test-auction-ix-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(IX, "http://localhost:" + WIREMOCK_PORT + "/ix-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/ix/test-auction-ix-response.json"),
+                response, singletonMap(IX, "http://localhost:" + WIREMOCK_PORT + "/ix-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -206,15 +205,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"audienceNetwork":"FB-UID"}}
+                // this uids cookie value stands for {"uids":{"audienceNetwork":"FB-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/facebook/test-auction-facebook-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/facebook/test-auction-facebook-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(FACEBOOK, "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/facebook/test-auction-facebook-response.json"),
+                response, singletonMap(FACEBOOK, "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -238,15 +236,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"lifestreet":"LS-UID"}}
+                // this uids cookie value stands for {"uids":{"lifestreet":"LS-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImxpZmVzdHJlZXQiOiJMUy1VSUQifX0=")
                 .body(jsonFrom("openrtb2/lifestreet/test-auction-lifestreet-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/lifestreet/test-auction-lifestreet-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(LIFESTREET, "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/lifestreet/test-auction-lifestreet-response.json"),
+                response, singletonMap(LIFESTREET, "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -270,15 +267,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"pulsepoint":"PP-UID"}}
+                // this uids cookie value stands for {"uids":{"pulsepoint":"PP-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7InB1bHNlcG9pbnQiOiJQUC1VSUQifX0=")
                 .body(jsonFrom("openrtb2/pulsepoint/test-auction-pulsepoint-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/pulsepoint/test-auction-pulsepoint-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(PULSEPOINT, "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/pulsepoint/test-auction-pulsepoint-response.json"),
+                response, singletonMap(PULSEPOINT, "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -302,15 +298,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"pubmatic":"PM-UID"}}
+                // this uids cookie value stands for {"uids":{"pubmatic":"PM-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7InB1Ym1hdGljIjoiUE0tVUlEIn19")
                 .body(jsonFrom("openrtb2/pubmatic/test-auction-pubmatic-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/pubmatic/test-auction-pubmatic-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/pubmatic/test-auction-pubmatic-response.json"),
+                response, singletonMap(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -354,15 +349,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"adform":"AF-UID"}}
+                // this uids cookie value stands for {"uids":{"adform":"AF-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImFkZm9ybSI6IkFGLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/adform/test-auction-adform-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/adform/test-auction-adform-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/adform/test-auction-adform-response.json"),
+                response, singletonMap(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
 
@@ -394,15 +388,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"sovrn":"990011"}}
+                // this uids cookie value stands for {"uids":{"sovrn":"990011"}}
                 .cookie("uids", "eyJ1aWRzIjp7InNvdnJuIjoiOTkwMDExIn19")
                 .body(jsonFrom("openrtb2/sovrn/test-auction-sovrn-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/sovrn/test-auction-sovrn-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/sovrn/test-auction-sovrn-response.json"),
+                response, singletonMap(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -427,15 +420,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"adtelligent":"AT-UID"}}
+                // this uids cookie value stands for {"uids":{"adtelligent":"AT-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImFkdGVsbGlnZW50IjoiQVQtVUlEIn19")
                 .body(jsonFrom("openrtb2/adtelligent/test-auction-adtelligent-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/adtelligent/test-auction-adtelligent-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/adtelligent/test-auction-adtelligent-response.json"),
+                response, singletonMap(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -469,12 +461,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"openx":"OX-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7Im9wZW54IjoiT1gtVUlEIn19")
                 .body(jsonFrom("openrtb2/openx/test-auction-openx-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/openx/test-auction-openx-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(OPENX, "http://localhost:" + WIREMOCK_PORT + "/openx-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/openx/test-auction-openx-response.json"),
+                response, singletonMap(OPENX, "http://localhost:" + WIREMOCK_PORT + "/openx-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -506,15 +500,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"brightroll":"BR-UID"}}
+                // this uids cookie value stands for{"uids":{"brightroll":"BR-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImJyaWdodHJvbGwiOiJCUi1VSUQifX0=")
                 .body(jsonFrom("openrtb2/brightroll/test-auction-brightroll-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/brightroll/test-auction-brightroll-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(BRIGHTROLL, "http://localhost:" + WIREMOCK_PORT + "/brightroll-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/brightroll/test-auction-brightroll-response.json"),
+                response, singletonMap(BRIGHTROLL, "http://localhost:" + WIREMOCK_PORT + "/brightroll-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -544,15 +537,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{""eplanning":"EP-UID"}}
+                // this uids cookie value stands for {"uids":{""eplanning":"EP-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7ImVwbGFubmluZyI6IkVQLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/eplanning/test-auction-eplanning-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/eplanning/test-auction-eplanning-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(EPLANNING, "http://localhost:" + WIREMOCK_PORT + "/eplanning-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/eplanning/test-auction-eplanning-response.json"),
+                response, singletonMap(EPLANNING, "http://localhost:" + WIREMOCK_PORT + "/eplanning-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -578,15 +570,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-// 		           this uids cookie value stands for
-//                {"uids":{"somoaudience":"SM-UID"}}
+                // this uids cookie value stands for {"uids":{"somoaudience":"SM-UID"}}
                 .cookie("uids", "eyJ1aWRzIjp7InNvbW9hdWRpZW5jZSI6IlNNLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/somoaudience/test-auction-somoaudience-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/somoaudience/test-auction-somoaudience-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(SOMOAUDIENCE, "http://localhost:" + WIREMOCK_PORT + "/somoaudience-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/somoaudience/test-auction-somoaudience-response.json"),
+                response, singletonMap(SOMOAUDIENCE, "http://localhost:" + WIREMOCK_PORT + "/somoaudience-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -615,11 +606,13 @@ public class ApplicationTest extends VertxTest {
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 .body(jsonFrom("openrtb2/beachfront/test-auction-beachfront-request.json"))
+                // this uids cookie value stands for {"uids":{"beachfront":"BF-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImJlYWNoZnJvbnQiOiJCRi1VSUQifX0=")
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/beachfront/test-auction-beachfront-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(BEACHFRONT, "http://localhost:" + WIREMOCK_PORT + "/beachfront-video-exchange?exchange_id="));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/beachfront/test-auction-beachfront-response.json"),
+                response, singletonMap(BEACHFRONT, "http://localhost:" + WIREMOCK_PORT + "/beachfront-video-exchange?exchange_id="));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -656,12 +649,14 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"adkernelAdn":"AK-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImFka2VybmVsQWRuIjoiQUstVUlEIn19")
                 .body(jsonFrom("openrtb2/adkerneladn/test-auction-adkerneladn-request.json"))
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/adkerneladn/test-auction-adkerneladn-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(ADKERNELADN, "http://localhost:" + WIREMOCK_PORT + "/adkerneladn-exchange"));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/adkerneladn/test-auction-adkerneladn-response.json"),
+                response, singletonMap(ADKERNELADN, "http://localhost:" + WIREMOCK_PORT + "/adkerneladn-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -705,8 +700,7 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for
-//                {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
                 .body(jsonFrom("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-request.json"))
                 .post("/openrtb2/auction");
@@ -717,8 +711,8 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(APPNEXUS, "http://localhost:" + WIREMOCK_PORT + "/appnexus-exchange");
         exchanges.put(APPNEXUS_ALIAS, null);
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, exchanges);
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json"),
+                response, exchanges);
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -747,8 +741,7 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for
-                // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
                 .when()
                 .get("/openrtb2/amp" +
@@ -782,8 +775,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids",
-                        "eyJ1aWRzIjp7ImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCJ9fQ==")
+                //this uids cookie value stands for {"uids":{"audienceNetwork":"FB-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImF1ZGllbmNlTmV0d29yayI6IkZCLVVJRCJ9fQ==")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/facebook/test-auction-facebook-request.json"))
                 .post("/auction");
@@ -795,8 +788,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/facebook/test-auction-facebook-response.json"),
-                response, AUCTION_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(FACEBOOK, "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange"));
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/facebook/test-auction-facebook-response.json"),
+                response, singletonMap(FACEBOOK, "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -819,8 +812,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids",
-                        "eyJ1aWRzIjp7InB1bHNlcG9pbnQiOiJQUC1VSUQifX0=")
+                //this uids cookie value stands for {"uids":{"pulsepoint":"PP-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InB1bHNlcG9pbnQiOiJQUC1VSUQifX0=")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/pulsepoint/test-auction-pulsepoint-request.json"))
                 .post("/auction");
@@ -832,8 +825,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/pulsepoint/test-auction-pulsepoint-response.json"),
-                response, AUCTION_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(PULSEPOINT, "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange"));
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/pulsepoint/test-auction-pulsepoint-response.json"),
+                response, singletonMap(PULSEPOINT, "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -856,8 +849,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids",
-                        "eyJ1aWRzIjp7Iml4IjoiSUUtVUlEIn19")
+                //this uids cookie value stands for {"uids":{"ix":"IE-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7Iml4IjoiSUUtVUlEIn19")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/ix/test-auction-ix-request.json"))
                 .post("/auction");
@@ -869,8 +862,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/ix/test-auction-ix-response.json"),
-                response, AUCTION_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(IX, "http://localhost:" + WIREMOCK_PORT + "/ix-exchange"));
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/ix/test-auction-ix-response.json"),
+                response, singletonMap(IX, "http://localhost:" + WIREMOCK_PORT + "/ix-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -893,8 +886,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids",
-                        "eyJ1aWRzIjp7ImxpZmVzdHJlZXQiOiJMUy1VSUQifX0=")
+                //this uids cookie value stands for {"uids":{"lifestreet":"LS-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImxpZmVzdHJlZXQiOiJMUy1VSUQifX0=")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/lifestreet/test-auction-lifestreet-request.json"))
                 .post("/auction");
@@ -906,8 +899,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/lifestreet/test-auction-lifestreet-response.json"),
-                response, AUCTION_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(LIFESTREET, "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange"));
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/lifestreet/test-auction-lifestreet-response.json"),
+                response, singletonMap(LIFESTREET, "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -930,8 +923,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids",
-                        "eyJ1aWRzIjp7InB1Ym1hdGljIjoiUE0tVUlEIn19")
+                //this uids cookie value stands for {"uids":{"pubmatic":"PM-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InB1Ym1hdGljIjoiUE0tVUlEIn19")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/pubmatic/test-auction-pubmatic-request.json"))
                 .post("/auction");
@@ -943,8 +936,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/pubmatic/test-auction-pubmatic-response.json"),
-                response, AUCTION_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange"));
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/pubmatic/test-auction-pubmatic-response.json"),
+                response, singletonMap(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -967,8 +960,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids",
-                        "eyJ1aWRzIjp7ImNvbnZlcnNhbnQiOiJDVi1VSUQifX0=")
+                //this uids cookie value stands for {"uids":{"conversant":"CV-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImNvbnZlcnNhbnQiOiJDVi1VSUQifX0=")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/conversant/test-auction-conversant-request.json"))
                 .post("/auction");
@@ -984,8 +977,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/conversant/test-auction-conversant-response.json"),
-                response, AUCTION_RESPONSE_TIME_PLACEHOLDER, exchanges);
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/conversant/test-auction-conversant-response.json"),
+                response, exchanges);
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -1015,8 +1008,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids",
-                        "eyJ1aWRzIjp7InNvdnJuIjoiOTkwMDExIn19")
+                //this uids cookie value stands for {"uids":{"sovrn":"990011"}}
+                .cookie("uids", "eyJ1aWRzIjp7InNvdnJuIjoiOTkwMDExIn19")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/sovrn/test-auction-sovrn-request.json"))
                 .post("/auction");
@@ -1028,8 +1021,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/sovrn/test-auction-sovrn-response.json"),
-                response, AUCTION_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange"));
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/sovrn/test-auction-sovrn-response.json"),
+                response, singletonMap(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -1071,8 +1064,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids",
-                        "eyJ1aWRzIjp7ImFkZm9ybSI6IkFGLVVJRCJ9fQ==")
+                //this uids cookie value stands for {"uids":{"adform":"AF-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImFkZm9ybSI6IkFGLVVJRCJ9fQ==")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/adform/test-auction-adform-request.json"))
                 .post("/auction");
@@ -1084,8 +1077,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/adform/test-auction-adform-response.json"),
-                response, AUCTION_RESPONSE_TIME_PLACEHOLDER, Collections.singletonMap(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange"));
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/adform/test-auction-adform-response.json"),
+                response, singletonMap(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -1128,8 +1121,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                .cookie("uids",
-                        "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
+                //this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
                 .queryParam("debug", "1")
                 .body(jsonFrom("auction/rubicon_appnexus/test-auction-rubicon-appnexus-request.json"))
                 .post("/auction");
@@ -1146,8 +1139,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("auction/rubicon_appnexus/test-auction-rubicon-appnexus-response.json"),
-                response, AUCTION_RESPONSE_TIME_PLACEHOLDER, exchanges);
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/rubicon_appnexus/test-auction-rubicon-appnexus-response.json"),
+                response, exchanges);
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
 
@@ -1339,8 +1332,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = auctionResponseFrom(jsonFrom("cache/update/test-auction-response.json"),
-                response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, exchanges);
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("cache/update/test-auction-response.json"),
+                response, exchanges);
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -1408,6 +1401,14 @@ public class ApplicationTest extends VertxTest {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(ApplicationTest.class.getResourceAsStream(
                 ApplicationTest.class.getSimpleName() + "/" + file)));
+    }
+
+    private static String legacyAuctionResponseFrom(String template, Response response, Map<String, String> exchanges) {
+        return auctionResponseFrom(template, response, AUCTION_RESPONSE_TIME_PLACEHOLDER, exchanges);
+    }
+
+    private static String openrtbAuctionResponseFrom(String template, Response response, Map<String, String> exchanges) {
+        return auctionResponseFrom(template, response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, exchanges);
     }
 
     private static String auctionResponseFrom(String template, Response response, String responseTimePath, Map<String, String> exchanges) {
