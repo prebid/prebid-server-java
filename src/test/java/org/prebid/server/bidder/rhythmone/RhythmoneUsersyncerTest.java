@@ -7,7 +7,7 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-public class RhythmOneUsersyncerTest {
+public class RhythmoneUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
@@ -24,7 +24,7 @@ public class RhythmOneUsersyncerTest {
                 "redirect", false);
 
         // when
-        final UsersyncInfo result = new RhythmOneUsersyncer("//usersync.org/",
+        final UsersyncInfo result = new RhythmoneUsersyncer("//usersync.org/",
                 "http://external.org/").usersyncInfo();
 
         // then

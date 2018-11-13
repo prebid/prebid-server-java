@@ -9,11 +9,11 @@ import java.util.Objects;
 /**
  * RhythmOne {@link Usersyncer} implementation
  */
-public class RhythmOneUsersyncer implements Usersyncer {
+public class RhythmoneUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
 
-    public RhythmOneUsersyncer(String usersyncUrl, String externalUrl) {
+    public RhythmoneUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
     }
 

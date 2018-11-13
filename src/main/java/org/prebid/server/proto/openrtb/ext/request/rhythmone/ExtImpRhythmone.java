@@ -9,7 +9,7 @@ import lombok.Value;
  */
 @Builder(toBuilder = true)
 @Value
-public class ExtImpRhythmOne {
+public class ExtImpRhythmone {
 
     @JsonProperty("placementId")
     String placementId;

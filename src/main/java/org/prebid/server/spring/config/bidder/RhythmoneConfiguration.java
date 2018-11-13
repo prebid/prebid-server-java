@@ -8,9 +8,9 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.bidder.rhythmone.RhythmOneBidder;
-import org.prebid.server.bidder.rhythmone.RhythmOneMetaInfo;
-import org.prebid.server.bidder.rhythmone.RhythmOneUsersyncer;
+import org.prebid.server.bidder.rhythmone.RhythmoneBidder;
+import org.prebid.server.bidder.rhythmone.RhythmoneMetaInfo;
+import org.prebid.server.bidder.rhythmone.RhythmoneUsersyncer;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
-public class RhythmOneConfiguration extends BidderConfiguration {
+public class RhythmoneConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "rhythmone";
 
@@ -58,17 +58,17 @@ public class RhythmOneConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new RhythmOneMetaInfo(enabled, pbsEnforcesGdpr);
+        return new RhythmoneMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new RhythmOneUsersyncer(usersyncUrl, externalUrl);
+        return new RhythmoneUsersyncer(usersyncUrl, externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new RhythmOneBidder(endpoint);
+        return new RhythmoneBidder(endpoint);
     }
 
     @Override

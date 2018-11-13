@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.rhythmone.ExtImpRhythmOne;
+import org.prebid.server.proto.openrtb.ext.request.rhythmone.ExtImpRhythmone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -31,17 +31,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class RhythmOneBidder implements Bidder<BidRequest> {
+public class RhythmoneBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpRhythmOne>> RHYTHMONE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpRhythmOne>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpRhythmone>> RHYTHMONE_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpRhythmone>>() {
             };
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
 
-    public RhythmOneBidder(String endpointUrl) {
+    public RhythmoneBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
@@ -53,13 +53,13 @@ public class RhythmOneBidder implements Bidder<BidRequest> {
         final List<Imp> modifiedImps = new ArrayList<>();
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImpRhythmOne parsedImpExt = parseAndValidateImpExt(imp);
+                final ExtImpRhythmone parsedImpExt = parseAndValidateImpExt(imp);
 
                 if (composedUrl == null) {
                     composedUrl = String.format("%s/%s/0/%s?z=%s&s2s=%s", endpointUrl, parsedImpExt.getPlacementId(),
                             parsedImpExt.getPath(), parsedImpExt.getZone(), "true");
                 }
-                final ExtImpRhythmOne modifiedImpExt = parsedImpExt.toBuilder().s2s(true).build();
+                final ExtImpRhythmone modifiedImpExt = parsedImpExt.toBuilder().s2s(true).build();
                 final Imp modifiedImp = imp.toBuilder().ext(impExtToObjectNode(modifiedImpExt)).build();
                 modifiedImps.add(modifiedImp);
             } catch (PreBidException e) {
@@ -79,23 +79,10 @@ public class RhythmOneBidder implements Bidder<BidRequest> {
                         outgoingRequest)), errors);
     }
 
-    private static ObjectNode impExtToObjectNode(ExtImpRhythmOne extImpRhythmOne) {
-        final ObjectNode impExt;
+    private static ExtImpRhythmone parseAndValidateImpExt(Imp imp) {
+        final ExtImpRhythmone impExt;
         try {
-            impExt = Json.mapper.valueToTree(
-                    ExtPrebid.of(
-                            Json.mapper.createObjectNode(),
-                            Json.mapper.valueToTree(extImpRhythmOne)));
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Failed to create imp.ext with error: %s", e.getMessage()));
-        }
-        return impExt;
-    }
-
-    private static ExtImpRhythmOne parseAndValidateImpExt(Imp imp) {
-        final ExtImpRhythmOne impExt;
-        try {
-            impExt = Json.mapper.<ExtPrebid<?, ExtImpRhythmOne>>convertValue(imp.getExt(),
+            impExt = Json.mapper.<ExtPrebid<?, ExtImpRhythmone>>convertValue(imp.getExt(),
                     RHYTHMONE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format(
@@ -106,6 +93,16 @@ public class RhythmOneBidder implements Bidder<BidRequest> {
                 || StringUtils.isBlank(impExt.getPath())) {
             throw new PreBidException(String.format(
                     "placementId | zone | path not provided in imp id=%s. Abort all Request", imp.getId()));
+        }
+        return impExt;
+    }
+
+    private static ObjectNode impExtToObjectNode(ExtImpRhythmone extImpRhythmone) {
+        final ObjectNode impExt;
+        try {
+            impExt = Json.mapper.valueToTree(ExtPrebid.of(null, extImpRhythmone));
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(String.format("Failed to create imp.ext with error: %s", e.getMessage()));
         }
         return impExt;
     }

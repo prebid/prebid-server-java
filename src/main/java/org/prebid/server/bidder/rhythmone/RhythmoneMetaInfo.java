@@ -8,11 +8,11 @@ import java.util.Arrays;
 /**
  * Defines RhythmOne meta info
  */
-public class RhythmOneMetaInfo implements MetaInfo {
+public class RhythmoneMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public RhythmOneMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
+    public RhythmoneMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "support@rhythmone.com",
                 Arrays.asList("banner", "video"), Arrays.asList("banner", "video"),
                 null, 36, pbsEnforcesGdpr);

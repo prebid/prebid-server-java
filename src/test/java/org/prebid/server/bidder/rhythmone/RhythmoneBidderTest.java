@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.rhythmone.ExtImpRhythmOne;
+import org.prebid.server.proto.openrtb.ext.request.rhythmone.ExtImpRhythmone;
 
 import java.util.List;
 import java.util.Map;
@@ -35,20 +35,20 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class RhythmOneBidderTest extends VertxTest {
+public class RhythmoneBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test.domain.com/rmp";
 
-    private RhythmOneBidder rhythmOneBidder;
+    private RhythmoneBidder rhythmoneBidder;
 
     @Before
     public void setUp() {
-        rhythmOneBidder = new RhythmOneBidder(ENDPOINT_URL);
+        rhythmoneBidder = new RhythmoneBidder(ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new RhythmOneBidder("invalid_ulr"));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RhythmoneBidder("invalid_ulr"));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class RhythmOneBidderTest extends VertxTest {
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = rhythmOneBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rhythmoneBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -74,9 +74,9 @@ public class RhythmOneBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                mapper.valueToTree(ExtImpRhythmOne.builder().build())))));
+                                mapper.valueToTree(ExtImpRhythmone.builder().build())))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = rhythmOneBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rhythmoneBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -90,7 +90,7 @@ public class RhythmOneBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = rhythmOneBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rhythmoneBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -98,8 +98,8 @@ public class RhythmOneBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .extracting(node -> node.get("bidder"))
-                .extracting(bidder -> mapper.convertValue(bidder, ExtImpRhythmOne.class))
-                .extracting(ExtImpRhythmOne::getS2s)
+                .extracting(bidder -> mapper.convertValue(bidder, ExtImpRhythmone.class))
+                .extracting(ExtImpRhythmone::getS2s)
                 .containsOnly(true);
     }
 
@@ -109,7 +109,7 @@ public class RhythmOneBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = rhythmOneBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = rhythmoneBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).doesNotContainNull()
@@ -129,7 +129,7 @@ public class RhythmOneBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid body");
 
         // when
-        final Result<List<BidderBid>> result = rhythmOneBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rhythmoneBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -145,7 +145,7 @@ public class RhythmOneBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = rhythmOneBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rhythmoneBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -159,7 +159,7 @@ public class RhythmOneBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = rhythmOneBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rhythmoneBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -176,7 +176,7 @@ public class RhythmOneBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("321"))));
 
         // when
-        final Result<List<BidderBid>> result = rhythmOneBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rhythmoneBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -195,7 +195,7 @@ public class RhythmOneBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = rhythmOneBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rhythmoneBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -213,7 +213,7 @@ public class RhythmOneBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = rhythmOneBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = rhythmoneBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -223,12 +223,12 @@ public class RhythmOneBidderTest extends VertxTest {
 
     @Test
     public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(rhythmOneBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+        assertThat(rhythmoneBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
     private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
                                               Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpRhythmOne.ExtImpRhythmOneBuilder, ExtImpRhythmOne.ExtImpRhythmOneBuilder> extCustomizer) {
+                                              Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
@@ -239,16 +239,16 @@ public class RhythmOneBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpRhythmOne.ExtImpRhythmOneBuilder, ExtImpRhythmOne.ExtImpRhythmOneBuilder> extCustomizer) {
+                                              Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
         return givenBidRequest(identity(), impCustomizer, extCustomizer);
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                Function<ExtImpRhythmOne.ExtImpRhythmOneBuilder, ExtImpRhythmOne.ExtImpRhythmOneBuilder> extCustomizer) {
+                                Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        extCustomizer.apply(ExtImpRhythmOne.builder())
+                        extCustomizer.apply(ExtImpRhythmone.builder())
                                 .placementId("placement")
                                 .path("path")
                                 .zone("zone")
