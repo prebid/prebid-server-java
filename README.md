@@ -47,6 +47,7 @@ metrics:
 cache:
   scheme: http
   host: localhost
+  path: /cache
   query: uuid=%PBS_CACHE_UUID%
 settings:
   filesystem:

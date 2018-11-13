@@ -25,6 +25,7 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
@@ -178,6 +179,61 @@ public class SettingsConfiguration {
                 @Value("${settings.http.amp-endpoint}") String ampEndpoint) {
 
             return new HttpApplicationSettings(httpClient, endpoint, ampEndpoint);
+        }
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache.http-update",
+            name = {"endpoint", "amp-endpoint", "refresh-rate", "timeout"})
+    static class HttpPeriodicRefreshServiceConfiguration {
+
+        @Autowired
+        @Qualifier("settingsCache")
+        SettingsCache settingsCache;
+
+        @Autowired
+        @Qualifier("ampSettingsCache")
+        SettingsCache ampSettingsCache;
+
+        @Value("${settings.in-memory-cache.http-update.endpoint}")
+        String endpoint;
+
+        @Value("${settings.in-memory-cache.http-update.amp-endpoint}")
+        String ampEndpoint;
+
+        @Value("${settings.in-memory-cache.http-update.refresh-rate}")
+        long refreshPeriod;
+
+        @Value("${settings.in-memory-cache.http-update.timeout}")
+        long timeout;
+
+        @Autowired
+        Vertx vertx;
+
+        @Autowired
+        HttpClient httpClient;
+
+        @Autowired
+        ContextRunner contextRunner;
+
+        //FIXME - 05/11 required dependency for httpClient
+        @Autowired
+        Metrics metrics;
+
+        @PostConstruct
+        public void httpPeriodicRefreshService() {
+
+            final HttpPeriodicRefreshService service = new HttpPeriodicRefreshService(settingsCache, endpoint,
+                    refreshPeriod, timeout, vertx, httpClient);
+
+            final HttpPeriodicRefreshService ampService = new HttpPeriodicRefreshService(ampSettingsCache, ampEndpoint,
+                    refreshPeriod, timeout, vertx, httpClient);
+
+            contextRunner.runOnServiceContext(future -> {
+                service.initialize();
+                ampService.initialize();
+                future.complete();
+            });
         }
     }
 
