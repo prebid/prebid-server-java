@@ -223,10 +223,10 @@ public class PubmaticAdapter extends OpenrtbAdapter {
             return null;
         }
 
-        ObjectNode wrapExt = null;
-        if (wrapExt == null && pubmaticParams.getWrapExt() != null) {
+        final ObjectNode wrapExt;
+        if (pubmaticParams.getWrapper() != null) {
             try {
-                Json.mapper.convertValue(pubmaticParams.getWrapExt(), new TypeReference<Map<String, Integer>>() {
+                Json.mapper.convertValue(pubmaticParams.getWrapper(), new TypeReference<Map<String, Integer>>() {
                 });
             } catch (IllegalArgumentException e) {
                 errors.add(String.format("BidID:%s;Error:%s;param:%s",
@@ -235,7 +235,9 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                         "Ignored bid: Wrapper Extension Invalid");
                 return null;
             }
-            wrapExt = pubmaticParams.getWrapExt();
+            wrapExt = pubmaticParams.getWrapper();
+        } else {
+            wrapExt = null;
         }
 
         final ObjectNode keyValue = makeKeywords(pubmaticParams.getKeywords(), errors);

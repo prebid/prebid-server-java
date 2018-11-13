@@ -63,7 +63,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
 
         String pubId = null;
         ObjectNode wrapExt = null;
@@ -90,13 +89,18 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), errors);
         }
 
+        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         requestBuilder.imp(parsedImps);
 
         if (wrapExt != null) {
             requestBuilder.ext(Json.mapper.valueToTree(PubmaticRequestExt.of(wrapExt)));
         }
 
-        modifySiteOrApp(pubId, bidRequest, requestBuilder);
+        if (bidRequest.getSite() != null) {
+            modifySite(pubId, bidRequest, requestBuilder);
+        } else if (bidRequest.getApp() != null) {
+            modifyApp(pubId, bidRequest, requestBuilder);
+        }
 
         final BidRequest outgoingRequest = requestBuilder.build();
         final String body = Json.encode(outgoingRequest);
@@ -106,40 +110,13 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                         outgoingRequest)), errors);
     }
 
-    private static void modifySiteOrApp(String pubId, BidRequest bidRequest,
-                                        BidRequest.BidRequestBuilder bidRequestBuilder) {
-        if (bidRequest.getSite() != null) {
-            final Site site = bidRequest.getSite();
-            if (site.getPublisher() != null) {
-                final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(pubId).build();
-                bidRequestBuilder.site(site.toBuilder().publisher(modifiedPublisher).build());
-            } else {
-                bidRequestBuilder.site(site.toBuilder()
-                        .publisher(Publisher.builder().id(pubId).build())
-                        .build());
-            }
-        } else if (bidRequest.getApp() != null) {
-            final App app = bidRequest.getApp();
-            if (app.getPublisher() != null) {
-                final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(pubId).build();
-                bidRequestBuilder.app(app.toBuilder().publisher(modifiedPublisher).build());
-            } else {
-                bidRequestBuilder.app(app.toBuilder()
-                        .publisher(Publisher.builder().id(pubId).build())
-                        .build());
-            }
-        }
-    }
-
-    private static ObjectNode getWrapExt(Imp imp, ExtImpPubmatic extImpPubmatic) {
+    private static ExtImpPubmatic parsePubmaticExt(Imp imp) {
         try {
-            Json.mapper.convertValue(extImpPubmatic.getWrapExt(), new TypeReference<Map<String, Integer>>() {
-            });
+            return Json.mapper.<ExtPrebid<?, ExtImpPubmatic>>convertValue(imp.getExt(),
+                    PUBMATIC_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Error in Wrapper Parameters = %s  for ImpID = %s WrapperExt = %s",
-                    e.getMessage(), imp.getId(), extImpPubmatic.getWrapExt().toString()));
+            throw new PreBidException(e.getMessage(), e);
         }
-        return extImpPubmatic.getWrapExt();
     }
 
     private static Imp parseAndValidateImp(Imp imp, ExtImpPubmatic extImpPubmatic) {
@@ -188,7 +165,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private static ObjectNode makeKeywords(List<ExtImpPubmaticKeyVal> keywords) {
-        List<String> eachKv = new ArrayList<>();
+        final List<String> eachKv = new ArrayList<>();
         for (ExtImpPubmaticKeyVal keyVal : keywords) {
             if (CollectionUtils.isEmpty(keyVal.getValue())) {
                 logger.error(String.format("No values present for key = %s", keyVal.getKey()));
@@ -205,15 +182,41 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static ExtImpPubmatic parsePubmaticExt(Imp imp) {
-        ExtImpPubmatic extImpPubmatic;
+    private static ObjectNode getWrapExt(Imp imp, ExtImpPubmatic extImpPubmatic) {
         try {
-            extImpPubmatic = Json.mapper.<ExtPrebid<?, ExtImpPubmatic>>convertValue(imp.getExt(),
-                    PUBMATIC_EXT_TYPE_REFERENCE).getBidder();
+            Json.mapper.convertValue(extImpPubmatic.getWrapExt(), new TypeReference<Map<String, Integer>>() {
+            });
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("Error in Wrapper Parameters = %s  for ImpID = %s WrapperExt = %s",
+                    e.getMessage(), imp.getId(), extImpPubmatic.getWrapExt().toString()));
         }
-        return extImpPubmatic;
+        return extImpPubmatic.getWrapExt();
+    }
+
+    private static void modifySite(String pubId, BidRequest bidRequest,
+                                   BidRequest.BidRequestBuilder bidRequestBuilder) {
+        final Site site = bidRequest.getSite();
+        if (site.getPublisher() != null) {
+            final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(pubId).build();
+            bidRequestBuilder.site(site.toBuilder().publisher(modifiedPublisher).build());
+        } else {
+            bidRequestBuilder.site(site.toBuilder()
+                    .publisher(Publisher.builder().id(pubId).build())
+                    .build());
+        }
+    }
+
+    private static void modifyApp(String pubId, BidRequest bidRequest,
+                                  BidRequest.BidRequestBuilder bidRequestBuilder) {
+        final App app = bidRequest.getApp();
+        if (app.getPublisher() != null) {
+            final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(pubId).build();
+            bidRequestBuilder.app(app.toBuilder().publisher(modifiedPublisher).build());
+        } else {
+            bidRequestBuilder.app(app.toBuilder()
+                    .publisher(Publisher.builder().id(pubId).build())
+                    .build());
+        }
     }
 
     @Override

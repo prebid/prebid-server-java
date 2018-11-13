@@ -20,7 +20,7 @@ public class PubmaticMetaInfo implements MetaInfo {
     }
 
     /**
-     * Returns Pubmatic bidder re   lated meta information: maintainer email address and supported media types.
+     * Returns Pubmatic bidder related meta information: maintainer email address and supported media types.
      */
     @Override
     public BidderInfo info() {

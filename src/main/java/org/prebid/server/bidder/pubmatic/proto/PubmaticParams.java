@@ -17,8 +17,7 @@ public class PubmaticParams {
     @JsonProperty("adSlot")
     String adSlot;
 
-    @JsonProperty("wrapper")
-    ObjectNode wrapExt;
+    ObjectNode wrapper;
 
     Map<String, String> keywords;
 }
