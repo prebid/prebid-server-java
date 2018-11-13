@@ -18,6 +18,6 @@ public class ExtImpRhythmone {
 
     String path;
 
-    @JsonProperty(value = "S2S")
+    @JsonProperty("S2S")
     Boolean s2s;
 }
