@@ -12,6 +12,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Deal.DealBuilder;
+import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Format.FormatBuilder;
 import com.iab.openrtb.request.ImageObject;
@@ -1279,7 +1280,113 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.context must be in the range [1, 3]. Got 100");
+                .containsOnly("request.imp[0].native.request.context is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenContentSubTypeOutOfPossibleValuesRange()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(2).contextsubtype(100));
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.contextsubtype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
+
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenContentSubTypeAndContentTypeOutOfPossibleValuesRange()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(2).contextsubtype(11));
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.context is 2, but contextsubtype is 11. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
+
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithEmptyErrorWhenContentSubTypeAndContentTypeValid()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(1).contextsubtype(12).assets(singletonList(Asset.builder().build())));
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenEventTrackersOutOfPossibleValuesRange()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(1).contextsubtype(12).eventtrackers(singletonList(EventTracker.builder()
+                        .event(5).build())).assets(singletonList(Asset.builder().build())));
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.eventtrackers[0].event is invalid. See section 7.6: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43");
+
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenEventTrackerEmptyMethods()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(1).contextsubtype(12).eventtrackers(singletonList(EventTracker.builder()
+                        .event(1).build())).assets(singletonList(Asset.builder().build())));
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.eventtrackers[0].method is required. See section 7.7: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43");
+
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithErrorWhenEventTrackerInvalidMethod()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(1).contextsubtype(12).eventtrackers(singletonList(EventTracker.builder()
+                        .event(1).methods(singletonList(3)).build())).assets(singletonList(Asset.builder().build())));
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.eventtrackers[0].methods[0] is invalid. See section 7.7: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43");
+
+    }
+
+    @Test
+    public void validateShouldReturnValidationResultWithEmptyErrorWhenValidEventTracker()
+            throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithNativeRequest(nativeReqCustomizer ->
+                nativeReqCustomizer.context(1).contextsubtype(12).eventtrackers(singletonList(EventTracker.builder()
+                        .event(1).methods(singletonList(2)).build())).assets(singletonList(Asset.builder().build())));
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
     }
 
     @Test
@@ -1294,7 +1401,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.plcmttype must be in the range [1, 4]. Got 100");
+                .containsOnly("request.imp[0].native.request.plcmttype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=40");
     }
 
     @Test
@@ -1791,7 +1898,8 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].native.request.assets[0].video.protocols[0] must be in the range [1, 10]. Got 0");
     }
 
     @Test

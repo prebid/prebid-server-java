@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.DataObject;
+import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.ImageObject;
 import com.iab.openrtb.request.Imp;
@@ -36,6 +37,13 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.validation.model.ContextSubType;
+import org.prebid.server.validation.model.ContextType;
+import org.prebid.server.validation.model.DataAssetType;
+import org.prebid.server.validation.model.EventTrackingMethod;
+import org.prebid.server.validation.model.EventType;
+import org.prebid.server.validation.model.PlacementType;
+import org.prebid.server.validation.model.Protocol;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
@@ -345,9 +353,10 @@ public class RequestValidator {
 
         final Request nativeRequest = parseNativeRequest(xNative.getRequest(), impIndex);
 
-        validateNativeContext(nativeRequest.getContext(), impIndex);
+        validateNativeContextTypes(nativeRequest.getContext(), nativeRequest.getContextsubtype(), impIndex);
         validateNativePlacementType(nativeRequest.getPlcmttype(), impIndex);
         final List<Asset> updatedAssets = validateAndGetUpdatedNativeAssets(nativeRequest.getAssets(), impIndex);
+        validateNativeEventTrackers(nativeRequest.getEventtrackers(), impIndex);
 
         // modifier was added to reduce memory consumption on updating bidRequest.imp[i].native.request object
         xNative.setRequest(toEncodedRequest(nativeRequest, updatedAssets));
@@ -365,17 +374,64 @@ public class RequestValidator {
         }
     }
 
-    private void validateNativeContext(Integer context, int index) throws ValidationException {
-        if (context != null && (context < 1 || context > 3)) {
+    private void validateNativeContextTypes(Integer context, Integer contextSubType, int index)
+            throws ValidationException {
+        if (context != null && (context < ContextType.CONTENT.getValue() || context > ContextType.PRODUCT.getValue())) {
             throw new ValidationException(
-                    "request.imp[%d].native.request.context must be in the range [1, 3]. Got %d", index, context);
+                    "request.imp[%d].native.request.context is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index);
+        }
+
+        if (contextSubType != null) {
+
+            if (contextSubType < 0) {
+                throw new ValidationException(
+                        "request.imp[%d].native.request.contextsubtype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index
+                );
+            }
+
+            if (contextSubType == 0) {
+                return;
+            }
+
+            if (contextSubType >= 100) {
+                throw new ValidationException(
+                        "request.imp[%d].native.request.contextsubtype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index
+                );
+            }
+
+            if (contextSubType >= ContextSubType.GENERAL.getValue()
+                    && contextSubType <= ContextSubType.USER_GENERATED.getValue()) {
+                if (!context.equals(ContextType.CONTENT.getValue())) {
+                    throw new ValidationException(
+                            "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index, context, contextSubType
+                    );
+                }
+            }
+
+            if (contextSubType >= ContextSubType.SOCIAL.getValue()
+                    && contextSubType <= ContextSubType.CHAT.getValue()) {
+                if (!context.equals(ContextType.SOCIAL.getValue())) {
+                    throw new ValidationException(
+                            "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index, context, contextSubType);
+                }
+            }
+
+            if (contextSubType >= ContextSubType.SELLING.getValue()
+                    && contextSubType <= ContextSubType.PRODUCT_REVIEW.getValue()) {
+                if (!context.equals(ContextType.PRODUCT.getValue())) {
+                    throw new ValidationException(
+                            "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index, context, contextSubType
+                    );
+                }
+            }
         }
     }
 
     private void validateNativePlacementType(Integer placementType, int index) throws ValidationException {
-        if (placementType != null && (placementType < 1 || placementType > 4)) {
+        if (placementType != null && (placementType < PlacementType.FEED.getValue()
+                || placementType > PlacementType.RECOMMENDATION_WIDGET.getValue())) {
             throw new ValidationException(
-                    "request.imp[%d].native.request.plcmttype must be in the range [1, 4]. Got %d",
+                    "request.imp[%d].native.request.plcmttype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=40",
                     index, placementType);
         }
     }
@@ -461,7 +517,7 @@ public class RequestValidator {
         }
 
         final Integer type = data.getType();
-        if (type < 1 || type > 12) {
+        if (type < DataAssetType.SPONSORED.getValue() || type > DataAssetType.CTA_TEXT.getValue()) {
             throw new ValidationException(
                     "request.imp[%d].native.request.assets[%d].data.type must in the range [1, 12]. Got %d.",
                     impIndex, assetIndex, type);
@@ -508,10 +564,47 @@ public class RequestValidator {
 
     private void validateNativeVideoProtocol(Integer protocol, int impIndex, int assetIndex, int protocolIndex)
             throws ValidationException {
-        if (protocol < 0 || protocol > 10) {
+        if (protocol < Protocol.VAST10.getValue() || protocol > Protocol.DAAST10_WRAPPER.getValue()) {
             throw new ValidationException(
                     "request.imp[%d].native.request.assets[%d].video.protocols[%d] must be in the range [1, 10]."
                             + " Got %d", impIndex, assetIndex, protocolIndex, protocol);
+        }
+    }
+
+    private void validateNativeEventTrackers(List<EventTracker> eventTrackers, int impIndex)
+            throws ValidationException {
+
+        if (CollectionUtils.isNotEmpty(eventTrackers)) {
+            for (int eventTrackerIndex = 0; eventTrackerIndex < eventTrackers.size(); eventTrackerIndex++) {
+                validateNativeEventTracker(eventTrackers.get(eventTrackerIndex), impIndex, eventTrackerIndex);
+            }
+        }
+    }
+
+    private void validateNativeEventTracker(EventTracker eventTracker, int impIndex, int eventIndex)
+            throws ValidationException {
+        if (eventTracker != null && (eventTracker.getEvent() < EventType.IMPRESSION.getValue()
+                || eventTracker.getEvent() > EventType.VIEWABLE_VIDEO50.getValue())) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.eventtrackers[%d].event is invalid. See section 7.6: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43", impIndex, eventIndex
+            );
+        }
+
+        List<Integer> methods = eventTracker.getMethods();
+
+        if (CollectionUtils.isEmpty(methods)) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.eventtrackers[%d].method is required. See section 7.7: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43", impIndex, eventIndex
+            );
+        }
+
+        for (int methodIndex = 0; methodIndex < methods.size(); methodIndex++) {
+            if (methods.get(methodIndex) < EventTrackingMethod.IMAGE.getValue()
+                    || methods.get(methodIndex) > EventTrackingMethod.JS.getValue()) {
+                throw new ValidationException(
+                        "request.imp[%d].native.request.eventtrackers[%d].methods[%d] is invalid. See section 7.7: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43", impIndex, eventIndex, methodIndex
+                );
+            }
         }
     }
 
@@ -571,8 +664,8 @@ public class RequestValidator {
             final boolean hasSize = hasWidth && hasHeight;
 
             if (CollectionUtils.isEmpty(banner.getFormat()) && !hasSize) {
-                throw new ValidationException("request.imp[%d].banner has no sizes. Define \"w\" and \"h\", " +
-                        "or include \"format\" elements.", impIndex);
+                throw new ValidationException("request.imp[%d].banner has no sizes. Define \"w\" and \"h\", "
+                        + "or include \"format\" elements.", impIndex);
             }
 
             if (banner.getFormat() != null) {
