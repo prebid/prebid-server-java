@@ -571,8 +571,8 @@ public class RequestValidator {
             final boolean hasSize = hasWidth && hasHeight;
 
             if (CollectionUtils.isEmpty(banner.getFormat()) && !hasSize) {
-                throw new ValidationException("request.imp[%d].banner has no sizes. Define \"w\" and \"h\", " +
-                        "or include \"format\" elements.", impIndex);
+                throw new ValidationException("request.imp[%d].banner has no sizes. Define \"w\" and \"h\", "
+                        + "or include \"format\" elements.", impIndex);
             }
 
             if (banner.getFormat() != null) {
