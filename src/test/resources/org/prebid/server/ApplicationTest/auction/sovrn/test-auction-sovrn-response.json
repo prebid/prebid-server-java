@@ -1,0 +1,47 @@
+{
+  "tid": "tid",
+  "status": "no_cookie",
+  "bidder_status": [
+    {
+      "bidder": "sovrn",
+      "response_time_ms": "{{ sovrn.response_time_ms }}",
+      "num_bids": 1,
+      "debug": [
+        {
+          "request_uri": "{{ sovrn.exchange_uri }}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode11\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"tagId1\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"990011\",\"ext\":{\"consent\":\"consent1\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":1}}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":1}}}",
+          "response_body": "{\"id\":\"bidResponseId11\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode11\",\"price\":5.78,\"adm\":\"adm11\",\"crid\":\"crid11\",\"dealid\":\"dealId11\",\"w\":300,\"h\":250}],\"seat\":\"seatId11\",\"group\":0}]}",
+          "status_code": 200
+        }
+      ]
+    }
+  ],
+  "bids": [
+    {
+      "bid_id": "bidId11",
+      "code": "adUnitCode11",
+      "creative_id": "crid11",
+      "bidder": "sovrn",
+      "price": 5.78,
+      "width": 300,
+      "height": 250,
+      "deal_id": "dealId11",
+      "cache_id": "b5aedfd4-06cb-4a79-bbb8-bfdcb57a29ef",
+      "cache_url": "{{ cache_resource_url }}b5aedfd4-06cb-4a79-bbb8-bfdcb57a29ef",
+      "response_time_ms": "{{ sovrn.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "5.70",
+        "hb_size": "300x250",
+        "hb_bidder_sovrn": "sovrn",
+        "hb_pb_sovrn": "5.70",
+        "hb_bidder": "sovrn",
+        "hb_cache_id": "b5aedfd4-06cb-4a79-bbb8-bfdcb57a29ef",
+        "hb_deal_sovrn": "dealId11",
+        "hb_creative_loadtype": "html",
+        "hb_deal": "dealId11",
+        "hb_size_sovrn": "300x250",
+        "hb_cache_id_sovrn": "b5aedfd4-06cb-4a79-bbb8-bfdcb57a29ef"
+      }
+    }
+  ]
+}
