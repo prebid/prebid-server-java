@@ -1603,6 +1603,32 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldResponseWithErrorWhenRequestsWithUnsupportedCurrency()
+            throws JsonProcessingException {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("bidder", bidderRequester, givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build()))));
+
+        final BidRequest bidRequest = givenBidRequestWithCur(singletonList(givenImp(singletonMap("bidder", 2), identity())),
+                identity(), Collections.singletonList("EUR"));
+
+        // returns the same price as in argument
+        given(currencyService.convertCurrency(any(), any(), any(), any()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(0);
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getErrors()).hasSize(1).containsOnly(
+                entry("bidder", singletonList("EUR is not allowed. Use USD instead")));
+    }
+
+    @Test
     public void shouldIncrementCommonMetrics() {
         // given
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
@@ -1766,6 +1792,11 @@ public class ExchangeServiceTest extends VertxTest {
     private static BidRequest givenBidRequest(
             List<Imp> imp, Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer) {
         return bidRequestBuilderCustomizer.apply(BidRequest.builder().cur(singletonList("USD")).imp(imp)).build();
+    }
+
+    private static BidRequest givenBidRequestWithCur(
+            List<Imp> imp, Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer, List<String> cur) {
+        return bidRequestBuilderCustomizer.apply(BidRequest.builder().cur(cur).imp(imp)).build();
     }
 
     private static BidRequest givenBidRequest(List<Imp> imp) {

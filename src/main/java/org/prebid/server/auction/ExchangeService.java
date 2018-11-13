@@ -87,6 +87,7 @@ import java.util.stream.StreamSupport;
 public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
+    private static final String DEFAULT_CURRENCY = "USD";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
     private static final DecimalFormat ROUND_TWO_DECIMALS =
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
@@ -659,7 +660,7 @@ public class ExchangeService {
         final String adServerCurrency = bidderRequest.getBidRequest().getCur().get(0);
         return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
                 .requestBids(bidderRequest.getBidRequest(), timeout)
-                .map(this::validateAndUpdateResponse)
+                .map(bidderSeatBid -> validateAndUpdateResponse(bidderSeatBid, bidderRequest.getBidRequest().getCur()))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
                         bidPriceAdjustmentFactor))
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
@@ -672,20 +673,45 @@ public class ExchangeService {
      * <p>
      * Returns input argument as the result if no errors found or create new {@link BidderSeatBid} otherwise.
      */
-    private BidderSeatBid validateAndUpdateResponse(BidderSeatBid bidderSeatBid) {
+    private BidderSeatBid validateAndUpdateResponse(BidderSeatBid bidderSeatBid, List<String> requestCurrencies) {
+        if (requestCurrencies.size() == 0) {
+            requestCurrencies = Collections.singletonList(DEFAULT_CURRENCY);
+        }
+
         final List<BidderBid> bids = bidderSeatBid.getBids();
 
         final List<BidderBid> validBids = new ArrayList<>(bids.size());
         final List<BidderError> errors = new ArrayList<>(bidderSeatBid.getErrors());
 
-        for (BidderBid bid : bids) {
-            final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
-            if (validationResult.hasErrors()) {
-                for (String error : validationResult.getErrors()) {
-                    errors.add(BidderError.generic(error));
+        if (bids.size() > 0) {
+            //assume that currencies are the same among all bids
+            String bidsCurrency = bids.get(0).getBidCurrency();
+            if (bidsCurrency == null) {
+                bidsCurrency = DEFAULT_CURRENCY;
+            }
+
+            boolean validCurencyPresent = false;
+            for(String currency : requestCurrencies) {
+                if(currency.equals(bidsCurrency)) {
+                    validCurencyPresent = true;
+                    break;
                 }
+            }
+
+            if (!validCurencyPresent) {
+                String requestCursFormated = requestCurrencies.stream().collect(Collectors.joining(",", "", ""));
+                errors.add(BidderError.generic(String.format("%s is not allowed. Use %s instead", requestCursFormated, bidsCurrency)));
             } else {
-                validBids.add(bid);
+                for (BidderBid bid : bids) {
+                    final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
+                    if (validationResult.hasErrors()) {
+                        for (String error : validationResult.getErrors()) {
+                            errors.add(BidderError.generic(error));
+                        }
+                    } else {
+                        validBids.add(bid);
+                    }
+                }
             }
         }
 

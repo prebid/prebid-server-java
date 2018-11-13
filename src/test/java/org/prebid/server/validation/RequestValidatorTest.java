@@ -158,30 +158,6 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenCurHasMoreThanOneElement() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder().cur(asList("USD", "EUR")).build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.cur can contain exactly one element");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenCurIsEmpty() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder().cur(emptyList()).build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("request.cur can contain exactly one element");
-    }
-
-    @Test
     public void validateShouldReturnValidationMessageWhenExtIsInvalid() {
         // given
         final ObjectNode ext = mapper.createObjectNode();
