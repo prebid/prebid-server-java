@@ -1,0 +1,12 @@
+{
+  "requests": {
+    "id1": {
+      "field1": "field-value1"
+    }
+  },
+  "imps": {
+    "id2": {
+      "field2": "field-value2"
+    }
+  }
+}

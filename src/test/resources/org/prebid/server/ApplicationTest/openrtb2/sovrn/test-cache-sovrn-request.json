@@ -1,0 +1,17 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId13",
+        "price": 4.65904,
+        "adm": "adm 13",
+        "crid": "crid13",
+        "dealid": "dealId13",
+        "w": 300,
+        "h": 250
+      }
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId02",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId011",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId04",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "600527793",
+        "impid": "impId03",
+        "price": 4.65904,
+        "adm": "adm00",
+        "crid": "crid00",
+        "dealid": "dealId00",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "xml",
+      "value": "adm00",
+      "expiry": 120
+    },
+    {
+      "type": "xml",
+      "value": "adm00",
+      "expiry": 120
+    }
+  ]
+}
