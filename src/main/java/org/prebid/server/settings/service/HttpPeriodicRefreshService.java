@@ -24,6 +24,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**<p>
+ * Service that periodically calls external HTTP API for stored request updates.
+ * If refreshRate is negative, then the data will never be refreshed.
+ * <p>
+ * It expects the following endpoint to exist remotely:
+ * <p>
+ * GET {endpoint}
+ *   -- Returns all the known Stored Requests and Stored Imps.
+ * <p>
+ * GET {endpoint}?last-modified={timestamp}
+ *   -- Returns the Stored Requests and Stored Imps which have been updated since the last timestamp.
+ *      This timestamp will be sent in the rfc3339 format, using UTC and no timezone shift.
+ *      For more info, see: https://tools.ietf.org/html/rfc3339
+ * <p>
+ * The responses should be JSON like this:
+ * <pre>
+ * {
+ *   "requests": {
+ *     "request1": { ... stored request data ... },
+ *     "request2": { ... stored request data ... },
+ *     "request3": { ... stored request data ... },
+ *   },
+ *   "imps": {
+ *     "imp1": { ... stored data for imp1 ... },
+ *     "imp2": { ... stored data for imp2 ... },
+ *   }
+ * }
+ * </pre>
+ * <p>
+ * To signal deletions, the endpoint may return { "deleted": true }
+ * in place of the Stored Data if the "last-modified" param existed.
+ */
 public class HttpPeriodicRefreshService {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpPeriodicRefreshService.class);
@@ -62,7 +94,7 @@ public class HttpPeriodicRefreshService {
                 .recover(HttpPeriodicRefreshService::failResponse);
     }
 
-    private HttpRefreshResponse save(HttpRefreshResponse refreshResponse) {
+    private Void save(HttpRefreshResponse refreshResponse) {
         final Map<String, String> requests = parseStoredData(refreshResponse.getRequests(), StoredDataType.request);
         final Map<String, String> imps = parseStoredData(refreshResponse.getImps(), StoredDataType.imp);
 
@@ -74,7 +106,7 @@ public class HttpPeriodicRefreshService {
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
-    private static Future<HttpRefreshResponse> failResponse(Throwable exception) {
+    private static Future<Void> failResponse(Throwable exception) {
         logger.warn("Error occurred while request to currency service", exception);
         return Future.failedFuture(exception);
     }
@@ -132,7 +164,6 @@ public class HttpPeriodicRefreshService {
     }
 
     private HttpRefreshResponse update(HttpRefreshResponse refreshResponse) {
-
         final List<String> invalidatedRequests = getInvalidatedKeys(refreshResponse.getRequests());
         final List<String> invalidatedImps = getInvalidatedKeys(refreshResponse.getImps());
 
@@ -148,7 +179,6 @@ public class HttpPeriodicRefreshService {
     }
 
     private static List<String> getInvalidatedKeys(Map<String, ObjectNode> changes) {
-
         final List<String> result = new ArrayList<>();
 
         for (String id : changes.keySet()) {

@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.proto.response.HttpRefreshResponse;
@@ -30,6 +31,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -71,7 +73,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
         expectedRequests = singletonMap("id1", "{\"field1\":\"field-value1\"}");
         expectedImps = singletonMap("id2", "{\"field2\":\"field-value2\"}");
 
-        given(httpClient.get(eq(ENDPOINT_URL), anyLong()))
+        given(httpClient.get(anyString(), anyLong()))
                 .willReturn(Future.succeededFuture(httpRefreshResponse));
         given(httpClient.get(contains("?last-modified="), anyLong()))
                 .willReturn(Future.succeededFuture(updatedResponse));
@@ -98,10 +100,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     public void shouldCallInvalidateAndSaveWithExpectedParameters() {
         // given
         given(vertx.setPeriodic(anyLong(), any()))
-                .willAnswer(inv -> {
-                    ((Handler<Long>) inv.getArgument(1)).handle(0L);
-                    return 0L;
-                });
+                .willAnswer(withSelfAndPassObjectToHandler(1L));
 
         // when
         httpPeriodicRefreshService = createAndInitService(cacheNotificationListener, ENDPOINT_URL,
@@ -124,11 +123,8 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
                         singletonMap("id2", mapper.createObjectNode().put("field2", "field-value2")))));
 
         given(vertx.setPeriodic(anyLong(), any()))
-                .willAnswer(inv -> {
-                    ((Handler<Long>) inv.getArgument(1)).handle(0L);
-                    return 0L;
-                });
-        given(httpClient.get(startsWith(ENDPOINT_URL + "?last-modified="), anyLong()))
+                .willAnswer(withSelfAndPassObjectToHandler(1L));
+        given(httpClient.get(contains("?last-modified="), anyLong()))
                 .willReturn(Future.succeededFuture(updatedResponse));
 
         // when
@@ -144,13 +140,8 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     @SuppressWarnings("unchecked")
     public void initializeShouldMakeOneInitialRequestAndTwoScheduledRequestsWithParam() {
         // given
-
         given(vertx.setPeriodic(anyLong(), any()))
-                .willAnswer(inv -> {
-                    ((Handler<Long>) inv.getArgument(1)).handle(0L);
-                    ((Handler<Long>) inv.getArgument(1)).handle(0L);
-                    return 0L;
-                });
+                .willAnswer(withSelfAndPassObjectToHandler(1L, 2L));
 
         // when
         httpPeriodicRefreshService = createAndInitService(cacheNotificationListener, ENDPOINT_URL,
@@ -160,7 +151,6 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
         verify(httpClient).get(eq("http://stored-requests.prebid.com"), anyLong());
         verify(httpClient, times(2))
                 .get(startsWith("http://stored-requests.prebid.com?last-modified="), anyLong());
-        vertx.close();
     }
 
     @Test
@@ -170,7 +160,22 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
                 -1, 2000, vertx, httpClient);
 
         // then
+        verify(vertx, never()).setPeriodic(anyLong(), any());
         verify(httpClient).get(anyString(), anyLong());
+    }
+
+    @Test
+    public void shouldModifyEndpointUrlCorrectlyIfUrlHasParameters() {
+        // given
+        given(vertx.setPeriodic(anyLong(), any()))
+                .willAnswer(withSelfAndPassObjectToHandler(1L));
+
+        // when
+        httpPeriodicRefreshService = createAndInitService(cacheNotificationListener, ENDPOINT_URL + "?amp=true",
+                1000, 2000, vertx, httpClient);
+
+        // then
+        verify(httpClient).get(startsWith("http://stored-requests.prebid.com?amp=true&last-modified="), anyLong());
     }
 
     private static HttpPeriodicRefreshService createAndInitService(CacheNotificationListener notificationListener,
@@ -180,5 +185,16 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
                 new HttpPeriodicRefreshService(notificationListener, url, refreshPeriod, timeout, vertx, httpClient);
         httpPeriodicRefreshService.initialize();
         return httpPeriodicRefreshService;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T... objects) {
+        return inv -> {
+            // invoking handler right away passing mock to it
+            for (T obj : objects) {
+                ((Handler<T>) inv.getArgument(1)).handle(obj);
+            }
+            return 0L;
+        };
     }
 }

@@ -184,27 +184,39 @@ public class SettingsConfiguration {
 
     @Configuration
     @ConditionalOnProperty(prefix = "settings.in-memory-cache.http-update",
-            name = {"endpoint", "refresh-rate", "timeout"})
+            name = {"endpoint", "amp-endpoint", "refresh-rate", "timeout"})
     static class HttpPeriodicRefreshServiceConfiguration {
 
         @Autowired
+        @Qualifier("settingsCache")
         SettingsCache settingsCache;
+
+        @Autowired
+        @Qualifier("ampSettingsCache")
+        SettingsCache ampSettingsCache;
+
         @Value("${settings.in-memory-cache.http-update.endpoint}")
         String endpoint;
+
         @Value("${settings.in-memory-cache.http-update.amp-endpoint}")
         String ampEndpoint;
+
         @Value("${settings.in-memory-cache.http-update.refresh-rate}")
         long refreshPeriod;
+
         @Value("${settings.in-memory-cache.http-update.timeout}")
         long timeout;
+
         @Autowired
         Vertx vertx;
+
         @Autowired
         HttpClient httpClient;
+
         @Autowired
         ContextRunner contextRunner;
 
-        //FIXME
+        //FIXME - 05/11 required dependency for httpClient
         @Autowired
         Metrics metrics;
 
@@ -214,7 +226,7 @@ public class SettingsConfiguration {
             final HttpPeriodicRefreshService service = new HttpPeriodicRefreshService(settingsCache, endpoint,
                     refreshPeriod, timeout, vertx, httpClient);
 
-            final HttpPeriodicRefreshService ampService = new HttpPeriodicRefreshService(settingsCache, ampEndpoint,
+            final HttpPeriodicRefreshService ampService = new HttpPeriodicRefreshService(ampSettingsCache, ampEndpoint,
                     refreshPeriod, timeout, vertx, httpClient);
 
             contextRunner.runOnServiceContext(future -> {
