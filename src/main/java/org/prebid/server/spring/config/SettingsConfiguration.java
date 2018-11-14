@@ -13,6 +13,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.metric.Metrics;
@@ -23,6 +25,7 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
@@ -179,6 +182,61 @@ public class SettingsConfiguration {
         }
     }
 
+    @Configuration
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache.http-update",
+            name = {"endpoint", "amp-endpoint", "refresh-rate", "timeout"})
+    static class HttpPeriodicRefreshServiceConfiguration {
+
+        @Autowired
+        @Qualifier("settingsCache")
+        SettingsCache settingsCache;
+
+        @Autowired
+        @Qualifier("ampSettingsCache")
+        SettingsCache ampSettingsCache;
+
+        @Value("${settings.in-memory-cache.http-update.endpoint}")
+        String endpoint;
+
+        @Value("${settings.in-memory-cache.http-update.amp-endpoint}")
+        String ampEndpoint;
+
+        @Value("${settings.in-memory-cache.http-update.refresh-rate}")
+        long refreshPeriod;
+
+        @Value("${settings.in-memory-cache.http-update.timeout}")
+        long timeout;
+
+        @Autowired
+        Vertx vertx;
+
+        @Autowired
+        HttpClient httpClient;
+
+        @Autowired
+        ContextRunner contextRunner;
+
+        //FIXME - 05/11 required dependency for httpClient
+        @Autowired
+        Metrics metrics;
+
+        @PostConstruct
+        public void httpPeriodicRefreshService() {
+
+            final HttpPeriodicRefreshService service = new HttpPeriodicRefreshService(settingsCache, endpoint,
+                    refreshPeriod, timeout, vertx, httpClient);
+
+            final HttpPeriodicRefreshService ampService = new HttpPeriodicRefreshService(ampSettingsCache, ampEndpoint,
+                    refreshPeriod, timeout, vertx, httpClient);
+
+            contextRunner.runOnServiceContext(future -> {
+                service.initialize();
+                ampService.initialize();
+                future.complete();
+            });
+        }
+    }
+
     /**
      * This configuration defines a collection of application settings fetchers and its ordering.
      */
@@ -284,6 +342,9 @@ public class SettingsConfiguration {
         @Autowired
         private VersionHandler versionHandler;
 
+        @Autowired
+        private CurrencyRatesHandler currencyRatesHandler;
+
         @Autowired(required = false)
         private SettingsCacheNotificationHandler cacheNotificationHandler;
 
@@ -312,6 +373,11 @@ public class SettingsConfiguration {
             return VersionHandler.create("git-revision.json");
         }
 
+        @Bean
+        CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
+            return new CurrencyRatesHandler(currencyConversionRates);
+        }
+
         @PostConstruct
         public void startAdminServer() {
             logger.info("Starting Admin Server to serve requests on port {0,number,#}", adminPort);
@@ -319,6 +385,7 @@ public class SettingsConfiguration {
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
+            router.route("/currency-rates").handler(currencyRatesHandler);
             if (cacheNotificationHandler != null) {
                 router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
             }

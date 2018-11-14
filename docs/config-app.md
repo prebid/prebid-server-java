@@ -17,6 +17,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 
 ## HTTP
 - `http.port` - the port to listen on.
+- `http.ssl` - enable SSL/TLS
+- `http.jks-path` - path to the java keystore (if ssl is enabled)
+- `http.jks-password` - password for the keystore (if ssl is enabled)
 
 ## HTTP Client
 - `http-client.max-pool-size` - set the maximum pool size for outgoing connections.
@@ -90,7 +93,8 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 ## Cache
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
-- `cache.query` - appends to `/cache` as query string params (used for legacy Auction requests).
+- `cache.path` - set the external Cache Service path, for example `/cache`
+- `cache.query` - appends to the cache path as query string params (used for legacy Auction requests).
 - `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
 - `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.
 - `cache.account.<ACCOUNT>.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service 
@@ -135,6 +139,10 @@ For caching available next options:
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
 - `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
 available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
+- `settings.in-memory-cache.http-update.endpoint` - the url to fetch stored request updates.
+- `settings.in-memory-cache.http-update.amp-endpoint` - the url to fetch AMP stored request updates.
+- `settings.in-memory-cache.http-update.refresh-rate` - refresh period in ms for stored request updates.
+- `settings.in-memory-cache.http-update.timeout` - timeout for obtaining stored request updates.
 
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.

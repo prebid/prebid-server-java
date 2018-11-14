@@ -1,0 +1,57 @@
+{
+  "account_id": "1001",
+  "tid": "tid",
+  "cache_markup": 1,
+  "sort_bids": 1,
+  "timeout_millis": 1000,
+  "ad_units": [
+    {
+      "code": "adUnitCode9",
+      "sizes": [
+        {
+          "w": 200,
+          "h": 150
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId9",
+          "bidder": "pubmatic",
+          "params": {
+            "publisherId": "publisherId9",
+            "adSlot": "slot9@300x250:zzz"
+          }
+        }
+      ],
+      "media_types": [
+        "banner"
+      ]
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "language": "en",
+    "dnt": 10,
+    "ifa": "ifaId"
+  },
+  "user": {
+    "ext": {
+      "consent": "consent1",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 1
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
+  },
+  "sdk": {
+    "version": "version1",
+    "source": "source1",
+    "platform": "platform1"
+  }
+}

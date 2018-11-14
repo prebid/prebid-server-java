@@ -72,6 +72,9 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private Metrics metrics;
 
+    private final TimeoutFactory timeoutFactory =
+            new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
+
     private CookieSyncHandler cookieSyncHandler;
 
     @Mock
@@ -91,9 +94,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        cookieSyncHandler = new CookieSyncHandler(2000, uidsCookieService, bidderCatalog, gdprService, null, false,
+        cookieSyncHandler = new CookieSyncHandler(2000, uidsCookieService, bidderCatalog, gdprService, 1, false,
                 analyticsReporter, metrics, timeoutFactory);
     }
 
@@ -270,9 +271,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateUnsupportedBidder() throws IOException {
         // given
-        final Map<String, UidWithExpiry> uids = new HashMap<>();
-        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build()));
 
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, "unsupported"), null, null)));
@@ -331,10 +331,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldTolerateRejectedBidderByGdpr() throws IOException {
         // given
-        final Map<String, UidWithExpiry> uids = new HashMap<>();
-        uids.put(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"));
-        uids.put(APPNEXUS, UidWithExpiry.live("12345"));
-        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(Uids.builder().uids(uids).build()));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build()));
 
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null)));
@@ -359,6 +357,38 @@ public class CookieSyncHandlerTest extends VertxTest {
         assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1)
                 .extracting(BidderUsersyncStatus::getBidder, BidderUsersyncStatus::getError)
                 .containsOnly(tuple(APPNEXUS, "Rejected by GDPR"));
+    }
+
+    @Test
+    public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByGdpr() throws IOException {
+        // given
+        cookieSyncHandler = new CookieSyncHandler(2000, uidsCookieService, bidderCatalog, gdprService, null, false,
+                analyticsReporter, metrics, timeoutFactory);
+
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null)));
+
+        givenUsersyncersReturningFamilyName();
+
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
+
+        givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getStatus()).isEqualTo("no_cookie");
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(2)
+                .extracting(BidderUsersyncStatus::getBidder, BidderUsersyncStatus::getError)
+                .containsOnly(
+                        tuple(RUBICON, "Rejected by GDPR"),
+                        tuple(APPNEXUS, "Rejected by GDPR"));
     }
 
     @Test

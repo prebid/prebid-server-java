@@ -88,10 +88,17 @@ import java.util.function.Function;
 
 import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -99,7 +106,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class ExchangeServiceTest extends VertxTest {
@@ -209,7 +219,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Test
     public void shouldProcessRequestAndAddErrorAboutDeprecatedBidder() {
-        //given
+        // given
         final String invalidBidderName = "invalid";
 
         given(bidderCatalog.isValidName(invalidBidderName)).willReturn(false);
@@ -219,11 +229,11 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(invalidBidderName, 0)));
 
-        //when
+        // when
         final BidResponse bidResponse =
                 exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
 
-        //then
+        // then
         assertThat(bidResponse.getExt()).isEqualTo(mapper.valueToTree(ExtBidResponse.of(null,
                 Collections.singletonMap(invalidBidderName, Collections.singletonList(
                         "invalid has been deprecated and is no longer available. Use valid instead.")),
@@ -1086,6 +1096,46 @@ public class ExchangeServiceTest extends VertxTest {
                 .containsOnly(
                         tuple(null, null, null),
                         tuple("bidder2", "videoCacheId2", "videoCacheId2"));
+    }
+
+    @Test
+    public void shouldPopulateHostpathTargetingKeywords() {
+        // given
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid1))));
+
+        final Bid bid2 = Bid.builder().id("bidId2").impid("impId1").price(BigDecimal.valueOf(7.19)).build();
+        givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid2))));
+
+        given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonMap(bid2, CacheIdInfo.of(null, "videoCacheId2"))));
+
+        given(cacheService.getEndpointHost()).willReturn("someHost");
+        given(cacheService.getEndpointPath()).willReturn("somePath");
+        given(cacheService.getEndpointHostPath()).willReturn("someHostPath");
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(doubleMap("bidder1", 1, "bidder2", 2),
+                        builder -> builder.id("impId1").video(Video.builder().build()))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
+                                2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                        BigDecimal.valueOf(0.5))))), null, true, true), null,
+                        ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null)))))));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
+                .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
+                .extracting(targeting -> targeting.get("hb_cache_host"),
+                        targeting -> targeting.get("hb_cache_path"),
+                        targeting -> targeting.get("hb_cache_hostpath"))
+                .containsOnly(tuple("someHost", "somePath", "someHostPath"),
+                        tuple(null, null, null));
     }
 
     @Test
