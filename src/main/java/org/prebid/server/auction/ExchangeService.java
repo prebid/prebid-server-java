@@ -691,16 +691,18 @@ public class ExchangeService {
             }
 
             boolean validCurencyPresent = false;
-            for(String currency : requestCurrencies) {
-                if(currency.equals(bidsCurrency)) {
+            for (String currency : requestCurrencies) {
+                if (currency.equals(bidsCurrency)) {
                     validCurencyPresent = true;
                     break;
                 }
             }
 
             if (!validCurencyPresent) {
-                String requestCursFormated = requestCurrencies.stream().collect(Collectors.joining(",", "", ""));
-                errors.add(BidderError.generic(String.format("%s is not allowed. Use %s instead", requestCursFormated, bidsCurrency)));
+                String requestCursFormated = requestCurrencies.stream()
+                        .collect(Collectors.joining(",", "", ""));
+                errors.add(BidderError.generic(String.format(
+                        "%s is not allowed. Use %s instead", requestCursFormated, bidsCurrency)));
             } else {
                 for (BidderBid bid : bids) {
                     final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());

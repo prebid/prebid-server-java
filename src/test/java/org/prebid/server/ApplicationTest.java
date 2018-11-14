@@ -1414,9 +1414,9 @@ public class ApplicationTest extends VertxTest {
     }
 
     private static String auctionResponseFrom(String template, Response response, String responseTimePath, Map<String, String> exchanges) {
-        String host = "localhost:8090"; //{{ host }}
-        String path = "/cache";// {{ path }}
-        String hostPath = "http://localhost:8090/cache"; // {{ hostpath }}
+        final String host = "localhost:8090";
+        final String path = "/cache";
+        final String hostPath = "http://localhost:8090/cache";
 
         String result = template.replaceAll("\\{\\{ cache_resource_url }}",
                 "http://localhost:" + WIREMOCK_PORT + "/cache?uuid=")

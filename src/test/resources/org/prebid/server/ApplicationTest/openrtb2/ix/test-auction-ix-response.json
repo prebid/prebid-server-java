@@ -6,7 +6,7 @@
         {
           "id": "impId6",
           "impid": "impId6",
-          "price": 3.82879,
+          "price": 4.75,
           "adm": "adm6",
           "crid": "crid6",
           "dealid": "dealId6",
@@ -16,10 +16,10 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb": "3.80",
+                "hb_pb": "4.70",
                 "hb_size_ix": "300x600",
                 "hb_size": "300x600",
-                "hb_pb_ix": "3.80",
+                "hb_pb_ix": "4.70",
                 "hb_deal_ix": "dealId6",
                 "hb_bidder": "ix",
                 "hb_cache_id": "3bd85b54-a5c5-4852-956e-44e8a7b6b5bc",
@@ -46,7 +46,7 @@
         {
           "id": "impId61",
           "impid": "impId61",
-          "price": 3.22425,
+          "price": 4.0,
           "adm": "adm61",
           "crid": "crid61",
           "dealid": "dealId61",
@@ -57,10 +57,10 @@
               "type": "banner",
               "targeting": {
                 "hb_uuid_ix": "5a75ecf0-cae7-4afb-9d8c-13a836b82a9f",
-                "hb_pb_ix": "3.20",
+                "hb_pb_ix": "4.00",
                 "hb_cache_id": "8e270009-c31f-48fb-b14b-13a196291b61",
                 "hb_bidder_ix": "ix",
-                "hb_pb": "3.20",
+                "hb_pb": "4.00",
                 "hb_size_ix": "300x600",
                 "hb_uuid": "5a75ecf0-cae7-4afb-9d8c-13a836b82a9f",
                 "hb_size": "300x600",
@@ -94,7 +94,7 @@
       "group": 0
     }
   ],
-  "cur": "EUR",
+  "cur": "USD",
   "ext": {
     "debug": {
       "httpcalls": {
@@ -175,7 +175,7 @@
         "at": 1,
         "tmax": 1000,
         "cur": [
-          "EUR"
+          "USD"
         ],
         "source": {
           "fd": 1,
