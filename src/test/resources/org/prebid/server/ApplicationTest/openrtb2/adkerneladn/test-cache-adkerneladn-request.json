@@ -1,0 +1,47 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "bid02",
+        "impid": "impId022",
+        "price": 1.81364,
+        "adm": "adm022",
+        "adid": "2002",
+        "adomain": [
+          "video-example.com"
+        ],
+        "cid": "1001",
+        "crid": "crid022",
+        "cat": [
+          "IAB2"
+        ]
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "wehM-93KGr0_0_0",
+        "impid": "impId021",
+        "price": 0.40303,
+        "adm": "adm021",
+        "adid": "19005",
+        "adomain": [
+          "test.com"
+        ],
+        "cid": "3706",
+        "crid": "crid021",
+        "cat": [
+          "IAB2"
+        ],
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "xml",
+      "value": "adm022",
+      "expiry": 120
+    }
+  ]
+}

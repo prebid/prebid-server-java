@@ -1,0 +1,45 @@
+{
+  "tid": "tid",
+  "status": "no_cookie",
+  "bidder_status": [
+    {
+      "bidder": "pulsepoint",
+      "response_time_ms": "{{ pulsepoint.response_time_ms }}",
+      "num_bids": 1,
+      "debug": [
+        {
+          "request_uri": "{{ pulsepoint.exchange_uri }}",
+          "request_body": "{\"id\":\"tid\",\"imp\":[{\"id\":\"adUnitCode6\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"456\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"123\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":10,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"PP-UID\",\"ext\":{\"consent\":\"consent1\",\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":1}}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":1}}}",
+          "response_body": "{\"id\":\"bidResponseId6\",\"seatbid\":[{\"bid\":[{\"impid\":\"adUnitCode6\",\"price\":5.78,\"adm\":\"adm6\",\"crid\":\"crid6\",\"dealid\":\"dealId6\",\"w\":300,\"h\":250}],\"seat\":\"seatId6\",\"group\":0}]}",
+          "status_code": 200
+        }
+      ]
+    }
+  ],
+  "bids": [
+    {
+      "bid_id": "bidId6",
+      "code": "adUnitCode6",
+      "creative_id": "crid6",
+      "media_type": "banner",
+      "bidder": "pulsepoint",
+      "price": 5.78,
+      "width": 300,
+      "height": 250,
+      "cache_id": "9380cf5b-d1d3-4112-ae80-d4420052af3f",
+      "cache_url": "{{ cache_resource_url }}9380cf5b-d1d3-4112-ae80-d4420052af3f",
+      "response_time_ms": "{{ pulsepoint.response_time_ms }}",
+      "ad_server_targeting": {
+        "hb_pb": "5.70",
+        "hb_cache_id_pulsepoint": "9380cf5b-d1d3-4112-ae80-d4420052af3f",
+        "hb_pb_pulsepoint": "5.70",
+        "hb_size_pulsepoint": "300x250",
+        "hb_size": "300x250",
+        "hb_bidder_pulsepoint": "pulsepoint",
+        "hb_bidder": "pulsepoint",
+        "hb_cache_id": "9380cf5b-d1d3-4112-ae80-d4420052af3f",
+        "hb_creative_loadtype": "html"
+      }
+    }
+  ]
+}

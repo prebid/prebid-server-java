@@ -1,0 +1,35 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "impId91",
+        "impid": "impId91",
+        "price": 3.22425,
+        "adm": "adm91",
+        "crid": "crid91",
+        "dealid": "dealId91",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId9",
+        "impid": "impId9",
+        "price": 3.82879,
+        "adm": "adm9",
+        "crid": "crid9",
+        "dealid": "dealId9",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "xml",
+      "value": "adm91",
+      "expiry": 120
+    }
+  ]
+}

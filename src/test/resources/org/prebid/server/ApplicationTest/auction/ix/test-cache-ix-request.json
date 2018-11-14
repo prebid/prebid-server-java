@@ -1,0 +1,12 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "adm": "adm7",
+        "width": 300,
+        "height": 250
+      }
+    }
+  ]
+}
