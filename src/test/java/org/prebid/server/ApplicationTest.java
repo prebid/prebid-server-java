@@ -558,6 +558,13 @@ public class ApplicationTest extends VertxTest {
         // adtelligent bid response for imp 16
         wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("x-openrtb-version", equalTo("2.5"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withHeader("DNT", equalTo("2"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-response-1.json"))));
 
@@ -576,6 +583,8 @@ public class ApplicationTest extends VertxTest {
                 .cookie("uids", "eyJ1aWRzIjp7InNvbW9hdWRpZW5jZSI6IlNNLVVJRCJ9fQ==")
                 .body(jsonFrom("openrtb2/somoaudience/test-auction-somoaudience-request.json"))
                 .post("/openrtb2/auction");
+
+        System.out.println(response.asString());
 
         //then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/somoaudience/test-auction-somoaudience-response.json"),

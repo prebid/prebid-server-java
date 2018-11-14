@@ -335,7 +335,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenSomoaudienceImpExtIsOk() {
         // given
-        final ExtImpSomoaudience ext = ExtImpSomoaudience.of("placementId");
+        final ExtImpSomoaudience ext = ExtImpSomoaudience.of("placementId", null);
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when

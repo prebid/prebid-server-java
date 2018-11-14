@@ -8,4 +8,6 @@ import lombok.Value;
 public class ExtImpSomoaudience {
 
     String placementHash;
+
+    Float bidFloor;
 }
