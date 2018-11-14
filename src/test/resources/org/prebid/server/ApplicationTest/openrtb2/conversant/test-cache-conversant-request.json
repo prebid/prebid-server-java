@@ -1,0 +1,33 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "impId4",
+        "impid": "impId4",
+        "price": 4.83637,
+        "adm": "adm4",
+        "crid": "crid4",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId41",
+        "impid": "impId41",
+        "price": 4.03031,
+        "nurl": "adm41",
+        "crid": "crid41",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "xml",
+      "value": null,
+      "expiry": 120
+    }
+  ]
+}

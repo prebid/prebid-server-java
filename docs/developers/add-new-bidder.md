@@ -70,7 +70,7 @@ Commonly you should write tests for covering:
 - specific cases for composing requests to exchange.
 - specific cases for processing responses from exchange.
 
-Do not forget to add your Bidder to `org.prebid.server.ApplicationTest.openrtb2AuctionShouldRespondWithBidsFromDifferentExchanges` test.
+Do not forget to add your Bidder to `ApplicationTest.java` tests.
 
 We expect to see at least 90% code coverage on each bidder.
 

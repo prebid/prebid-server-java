@@ -1,0 +1,56 @@
+{
+  "account_id": "1001",
+  "tid": "tid",
+  "cache_markup": 1,
+  "sort_bids": 1,
+  "timeout_millis": 1000,
+  "ad_units": [
+    {
+      "code": "adUnitCode8",
+      "sizes": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId8",
+          "bidder": "lifestreet",
+          "params": {
+            "slot_tag": "slot.tag1"
+          }
+        }
+      ],
+      "media_types": [
+        "banner"
+      ]
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "language": "en",
+    "dnt": 10,
+    "ifa": "ifaId"
+  },
+  "user": {
+    "ext": {
+      "consent": "consent1",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 1
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
+  },
+  "sdk": {
+    "version": "version1",
+    "source": "source1",
+    "platform": "platform1"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "adUnitCode10",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ],
+        "w": 300,
+        "h": 250,
+        "pos": 28
+      },
+      "displaymanager": "prebid-s2s",
+      "displaymanagerver": "1.0.1",
+      "tagid": "tagId1",
+      "bidfloor": 7.32,
+      "secure": 42
+    }
+  ],
+  "site": {
+    "id": "siteId1",
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "mobile": 64
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "192.168.244.1",
+    "pxratio": 4.2,
+    "language": "en",
+    "ifa": "ifaId",
+    "dnt": 10
+  },
+  "user": {
+    "buyeruid": "CV-UID",
+    "ext": {
+      "consent": "consent1",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 1
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
+  },
+  "at": 1,
+  "tmax": 1000,
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  }
+}
