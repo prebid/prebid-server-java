@@ -115,7 +115,7 @@ public class RhythmoneBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull()
                 .hasSize(1).element(0)
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns("http://test.domain.com/rmp/placement/0/path?z=zone&s2s=true", HttpRequest::getUri);
+                .returns("http://test.domain.com/rmp/placementId/0/somePath?z=zone1&s2s=true", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
@@ -249,9 +249,9 @@ public class RhythmoneBidderTest extends VertxTest {
                 .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         extCustomizer.apply(ExtImpRhythmone.builder())
-                                .placementId("placement")
-                                .path("path")
-                                .zone("zone")
+                                .placementId("placementId")
+                                .path("somePath")
+                                .zone("zone1")
                                 .build()))))
                 .build();
     }

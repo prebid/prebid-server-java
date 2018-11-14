@@ -1,0 +1,202 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid01",
+          "impid": "impId002",
+          "price": 1.81364,
+          "adm": "adm002",
+          "adid": "29681110",
+          "adomain": [
+            "video-example.com"
+          ],
+          "cid": "1001",
+          "crid": "crid002",
+          "cat": [
+            "IAB2"
+          ],
+          "w": 640,
+          "h": 480,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_id": "d45814b5-1a3d-4864-bc65-8076b162cb48",
+                "hb_uuid_rhythmone": "c2bab0d6-3a78-473d-ba1f-340ed92779d2",
+                "hb_pb": "1.80",
+                "hb_cache_id_rhythmone": "d45814b5-1a3d-4864-bc65-8076b162cb48",
+                "hb_cache_path": "{{ path }}",
+                "hb_uuid": "c2bab0d6-3a78-473d-ba1f-340ed92779d2",
+                "hb_size": "640x480",
+                "hb_bidder": "rhythmone",
+                "hb_cache_path_rhythmone": "{{ path }}",
+                "hb_bidder_rhythmone": "rhythmone",
+                "hb_cache_host_rhythmone": "{{ host }}",
+                "hb_size_rhythmone": "640x480",
+                "hb_cache_host": "{{ host }}",
+                "hb_cache_hostpath_rhythmone": "{{ hostpath }}",
+                "hb_creative_loadtype": "html",
+                "hb_pb_rhythmone": "1.80"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache_resource_url }}d45814b5-1a3d-4864-bc65-8076b162cb48",
+                  "cacheId": "d45814b5-1a3d-4864-bc65-8076b162cb48"
+                },
+                "vastXml": {
+                  "url": "{{ cache_resource_url }}c2bab0d6-3a78-473d-ba1f-340ed92779d2",
+                  "cacheId": "c2bab0d6-3a78-473d-ba1f-340ed92779d2"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "rhythmone",
+      "group": 0
+    }
+  ],
+  "cur": "EUR",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "rhythmone": [
+          {
+            "uri": "{{ rhythmone.exchange_uri }}/72721/0/mvo?z=1r&s2s=true",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId001\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}]},\"ext\":{\"bidder\":{\"placementId\":\"72721\",\"zone\":\"1r\",\"path\":\"mvo\",\"S2S\":true}}},{\"id\":\"impId002\",\"video\":{\"mimes\":[\"video/mp4\"],\"w\":640,\"h\":480,\"skipmin\":0,\"skipafter\":0},\"ext\":{\"bidder\":{\"placementId\":\"72721\",\"zone\":\"1r\",\"path\":\"mvo\",\"S2S\":true}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"RO-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"EUR\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"bid01\",\"impid\":\"impId002\",\"price\":2.25,\"cid\":\"1001\",\"crid\":\"crid002\",\"adid\":\"29681110\",\"adm\":\"adm002\",\"cat\":[\"IAB2\"],\"adomain\":[\"video-example.com\"],\"h\":480,\"w\":640}]}],\"bidid\":\"bid01\"}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId001",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "ext": {
+              "rhythmone": {
+                "placementId": "72721",
+                "path": "mvo",
+                "zone": "1r"
+              }
+            }
+          },
+          {
+            "id": "impId002",
+            "video": {
+              "mimes": [
+                "video/mp4"
+              ],
+              "w": 640,
+              "h": 480,
+              "skipmin": 0,
+              "skipafter": 0
+            },
+            "ext": {
+              "rhythmone": {
+                "placementId": "72721",
+                "path": "mvo",
+                "zone": "1r"
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "EUR"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "errors": {
+      "rhythmone": []
+    },
+    "responsetimemillis": {
+      "rhythmone": "{{ rhythmone.response_time_ms }}"
+    }
+  }
+}
