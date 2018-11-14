@@ -183,14 +183,15 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private static ObjectNode getWrapExt(Imp imp, ExtImpPubmatic extImpPubmatic) {
+        final ObjectNode wrapExt = extImpPubmatic.getWrapper();
         try {
-            Json.mapper.convertValue(extImpPubmatic.getWrapper(), new TypeReference<Map<String, Integer>>() {
+            Json.mapper.convertValue(wrapExt, new TypeReference<Map<String, Integer>>() {
             });
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Error in Wrapper Parameters = %s  for ImpID = %s WrapperExt = %s",
-                    e.getMessage(), imp.getId(), extImpPubmatic.getWrapper().toString()));
+                    e.getMessage(), imp.getId(), wrapExt.toString()));
         }
-        return extImpPubmatic.getWrapper();
+        return wrapExt;
     }
 
     private static void modifySite(String pubId, BidRequest bidRequest,

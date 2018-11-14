@@ -242,7 +242,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         }
 
         final ObjectNode keyValue;
-        final List<String> keywords = makeKeywords(pubmaticParams.getKeywords(), errors);
+        final List<String> keywords = makeKeywords(pubmaticParams.getKeywords());
         if (CollectionUtils.isNotEmpty(keywords)) {
             try {
                 keyValue = Json.mapper.readValue("{" + String.join(",", keywords) + "}", ObjectNode.class);
@@ -257,7 +257,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         return NormalizedPubmaticParams.of(publisherId, adSlot, adSlots[0], width, height, wrapExt, keyValue);
     }
 
-    private static List<String> makeKeywords(Map<String, String> keywords, List<String> errors) {
+    private static List<String> makeKeywords(Map<String, String> keywords) {
         if (keywords == null) {
             return null;
         }
