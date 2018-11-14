@@ -10,23 +10,33 @@
             "h": 250
           }
         ]
-      },
-      "ext": {
-        "somoaudience": {
-          "placement_hash": "placementId"
-        }
       }
     }
   ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
   "device": {
-    "pxratio": 4.2,
+    "ua": "userAgent",
     "dnt": 2,
+    "ip": "192.168.244.1",
+    "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId"
   },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
+  "user": {
+    "buyeruid": "SM-UID",
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
     }
   },
   "test": 1,
@@ -39,54 +49,12 @@
     "fd": 1,
     "tid": "tid"
   },
-  "ext": {
-    "prebid": {
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.8110
-            }
-          }
-        }
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      }
-    }
-  },
-  "user": {
-    "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
-      "consent": "consentValue"
-    }
-  },
   "regs": {
     "ext": {
       "gdpr": 0
     }
+  },
+  "ext": {
+    "prebid": "hb_pbs_1.0.0"
   }
 }

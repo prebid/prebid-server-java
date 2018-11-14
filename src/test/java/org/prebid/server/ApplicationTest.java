@@ -584,8 +584,6 @@ public class ApplicationTest extends VertxTest {
                 .body(jsonFrom("openrtb2/somoaudience/test-auction-somoaudience-request.json"))
                 .post("/openrtb2/auction");
 
-        System.out.println(response.asString());
-
         //then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/somoaudience/test-auction-somoaudience-response.json"),
                 response, singletonMap(SOMOAUDIENCE, "http://localhost:" + WIREMOCK_PORT + "/somoaudience-exchange"));
