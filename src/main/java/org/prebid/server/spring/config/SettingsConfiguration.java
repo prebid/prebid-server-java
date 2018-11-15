@@ -2,21 +2,12 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.handler.BodyHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.handler.CurrencyRatesHandler;
-import org.prebid.server.handler.SettingsCacheNotificationHandler;
-import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
@@ -318,81 +309,5 @@ public class SettingsConfiguration {
         @NotNull
         @Min(1)
         private Integer cacheSize;
-    }
-
-    @Configuration
-    @ConditionalOnProperty(prefix = "admin", name = "port")
-    public static class AdminServerConfiguration {
-
-        private static final Logger logger = LoggerFactory.getLogger(AdminServerConfiguration.class);
-
-        @Autowired
-        private ContextRunner contextRunner;
-
-        @Autowired
-        private Vertx vertx;
-
-        @Autowired
-        private BodyHandler bodyHandler;
-
-        @Autowired
-        private VersionHandler versionHandler;
-
-        @Autowired
-        private CurrencyRatesHandler currencyRatesHandler;
-
-        @Autowired(required = false)
-        private SettingsCacheNotificationHandler cacheNotificationHandler;
-
-        @Autowired(required = false)
-        private SettingsCacheNotificationHandler ampCacheNotificationHandler;
-
-        @Value("${admin.port}")
-        private int adminPort;
-
-        @Bean
-        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
-                havingValue = "true")
-        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache) {
-            return new SettingsCacheNotificationHandler(settingsCache);
-        }
-
-        @Bean
-        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
-                havingValue = "true")
-        SettingsCacheNotificationHandler ampCacheNotificationHandler(SettingsCache ampSettingsCache) {
-            return new SettingsCacheNotificationHandler(ampSettingsCache);
-        }
-
-        @Bean
-        VersionHandler versionHandler() {
-            return VersionHandler.create("git-revision.json");
-        }
-
-        @Bean
-        CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
-            return new CurrencyRatesHandler(currencyConversionRates);
-        }
-
-        @PostConstruct
-        public void startAdminServer() {
-            logger.info("Starting Admin Server to serve requests on port {0,number,#}", adminPort);
-
-            final Router router = Router.router(vertx);
-            router.route().handler(bodyHandler);
-            router.route("/version").handler(versionHandler);
-            router.route("/currency-rates").handler(currencyRatesHandler);
-            if (cacheNotificationHandler != null) {
-                router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
-            }
-            if (ampCacheNotificationHandler != null) {
-                router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
-            }
-
-            contextRunner.<HttpServer>runOnServiceContext(future ->
-                    vertx.createHttpServer().requestHandler(router::accept).listen(adminPort, future));
-
-            logger.info("Successfully started Admin Server");
-        }
     }
 }
