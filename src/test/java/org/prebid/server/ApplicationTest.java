@@ -1,6 +1,5 @@
 package org.prebid.server;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import com.iab.gdpr.consent.VendorConsentEncoder;
 import com.iab.gdpr.consent.implementation.v1.VendorConsentBuilder;
@@ -87,9 +86,6 @@ public class ApplicationTest extends VertxTest {
     private static final int WIREMOCK_PORT = 8090;
     private static final int ADMIN_PORT = 8060;
 
-    private static final String OPENRTB_RESPONSE_TIME_PLACEHOLDER = "ext.responsetimemillis.%s";
-    private static final String AUCTION_RESPONSE_TIME_PLACEHOLDER = "bidder_status.find { it.bidder == '%s' }.response_time_ms";
-
     @ClassRule
     public static final WireMockClassRule wireMockRule = new WireMockClassRule(WIREMOCK_PORT);
     @Rule
@@ -151,7 +147,8 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(CONVERSANT, "http://localhost:" + WIREMOCK_PORT + "/conversant-exchange");
         exchanges.put(CONVERSANT_ALIAS, null);
 
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/conversant/test-auction-conversant-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/conversant/test-auction-conversant-response.json"),
                 response, exchanges);
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -182,7 +179,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/ix/test-auction-ix-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/ix/test-auction-ix-response.json"),
                 response, singletonMap(IX, "http://localhost:" + WIREMOCK_PORT + "/ix-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -213,7 +211,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/facebook/test-auction-facebook-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/facebook/test-auction-facebook-response.json"),
                 response, singletonMap(FACEBOOK, "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -244,7 +243,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/lifestreet/test-auction-lifestreet-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/lifestreet/test-auction-lifestreet-response.json"),
                 response, singletonMap(LIFESTREET, "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -275,7 +275,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/pulsepoint/test-auction-pulsepoint-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/pulsepoint/test-auction-pulsepoint-response.json"),
                 response, singletonMap(PULSEPOINT, "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -306,7 +307,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/pubmatic/test-auction-pubmatic-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/pubmatic/test-auction-pubmatic-response.json"),
                 response, singletonMap(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -357,7 +359,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/adform/test-auction-adform-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/adform/test-auction-adform-response.json"),
                 response, singletonMap(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -396,7 +399,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/sovrn/test-auction-sovrn-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/sovrn/test-auction-sovrn-response.json"),
                 response, singletonMap(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -407,7 +411,7 @@ public class ApplicationTest extends VertxTest {
         //given
         // adtelligent bid response for imp 14
         wireMockRule.stubFor(post(urlPathEqualTo("/adtelligent-exchange"))
-                .withQueryParam("aid", WireMock.equalToJson("1000"))
+                .withQueryParam("aid", equalTo("1000"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-response-1.json"))));
 
@@ -428,7 +432,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/adtelligent/test-auction-adtelligent-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/adtelligent/test-auction-adtelligent-response.json"),
                 response, singletonMap(ADTELLIGENT, "http://localhost:" + WIREMOCK_PORT + "/adtelligent-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -469,7 +474,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/openx/test-auction-openx-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/openx/test-auction-openx-response.json"),
                 response, singletonMap(OPENX, "http://localhost:" + WIREMOCK_PORT + "/openx-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -508,7 +514,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/brightroll/test-auction-brightroll-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/brightroll/test-auction-brightroll-response.json"),
                 response, singletonMap(BRIGHTROLL, "http://localhost:" + WIREMOCK_PORT + "/brightroll-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -545,7 +552,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/eplanning/test-auction-eplanning-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/eplanning/test-auction-eplanning-response.json"),
                 response, singletonMap(EPLANNING, "http://localhost:" + WIREMOCK_PORT + "/eplanning-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -566,7 +574,8 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept-Language", equalTo("en"))
                 .withHeader("DNT", equalTo("2"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/somoaudience/test-somoaudience-bid-response-1.json"))));
 
         // Somoaudience bid response for imp 18
         wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
@@ -579,7 +588,8 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept-Language", equalTo("en"))
                 .withHeader("DNT", equalTo("2"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-response-2.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/somoaudience/test-somoaudience-bid-response-2.json"))));
 
         // Somoaudience bid response for imp 19
         wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
@@ -592,12 +602,14 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept-Language", equalTo("en"))
                 .withHeader("DNT", equalTo("2"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-request-3.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-response-3.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/somoaudience/test-somoaudience-bid-response-3.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-response.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/somoaudience/test-cache-somoaudience-response.json"))));
 
         //when
         final Response response = given(spec)
@@ -611,7 +623,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/somoaudience/test-auction-somoaudience-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/somoaudience/test-auction-somoaudience-response.json"),
                 response, singletonMap(SOMOAUDIENCE, "http://localhost:" + WIREMOCK_PORT + "/somoaudience-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -646,8 +659,10 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/beachfront/test-auction-beachfront-response.json"),
-                response, singletonMap(BEACHFRONT, "http://localhost:" + WIREMOCK_PORT + "/beachfront-video-exchange?exchange_id="));
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/beachfront/test-auction-beachfront-response.json"),
+                response, singletonMap(BEACHFRONT, "http://localhost:" + WIREMOCK_PORT + "/beachfront-video-exchange" +
+                        "?exchange_id="));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -690,7 +705,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/adkerneladn/test-auction-adkerneladn-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/adkerneladn/test-auction-adkerneladn-response.json"),
                 response, singletonMap(ADKERNELADN, "http://localhost:" + WIREMOCK_PORT + "/adkerneladn-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -723,7 +739,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         //then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/rhythmone/test-auction-rhythmone-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/rhythmone/test-auction-rhythmone-response.json"),
                 response, singletonMap(RHYTHMONE, "http://localhost:" + WIREMOCK_PORT + "/rhythmone-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -740,27 +757,33 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("prebid-server/1.0"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
 
         // rubicon bid response for imp 2
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
 
         // appnexus bid response for imp 3
         wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
 
         // appnexus bid response for imp 3 with alias parameters
         wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-response-2.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/rubicon_appnexus/test-appnexus-bid-response-2.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom(
+                        "openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-response.json"))));
 
         // when
         final Response response = given(spec)
@@ -779,7 +802,8 @@ public class ApplicationTest extends VertxTest {
         exchanges.put(APPNEXUS, "http://localhost:" + WIREMOCK_PORT + "/appnexus-exchange");
         exchanges.put(APPNEXUS_ALIAS, null);
 
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json"),
                 response, exchanges);
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -856,7 +880,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/facebook/test-auction-facebook-response.json"),
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom(
+                "auction/facebook/test-auction-facebook-response.json"),
                 response, singletonMap(FACEBOOK, "http://localhost:" + WIREMOCK_PORT + "/facebook-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -893,7 +918,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/pulsepoint/test-auction-pulsepoint-response.json"),
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom(
+                "auction/pulsepoint/test-auction-pulsepoint-response.json"),
                 response, singletonMap(PULSEPOINT, "http://localhost:" + WIREMOCK_PORT + "/pulsepoint-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -930,7 +956,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/ix/test-auction-ix-response.json"),
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom(
+                "auction/ix/test-auction-ix-response.json"),
                 response, singletonMap(IX, "http://localhost:" + WIREMOCK_PORT + "/ix-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -967,7 +994,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/lifestreet/test-auction-lifestreet-response.json"),
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom(
+                "auction/lifestreet/test-auction-lifestreet-response.json"),
                 response, singletonMap(LIFESTREET, "http://localhost:" + WIREMOCK_PORT + "/lifestreet-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -1004,7 +1032,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/pubmatic/test-auction-pubmatic-response.json"),
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom(
+                "auction/pubmatic/test-auction-pubmatic-response.json"),
                 response, singletonMap(PUBMATIC, "http://localhost:" + WIREMOCK_PORT + "/pubmatic-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -1045,7 +1074,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/conversant/test-auction-conversant-response.json"),
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom(
+                "auction/conversant/test-auction-conversant-response.json"),
                 response, exchanges);
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -1089,7 +1119,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/sovrn/test-auction-sovrn-response.json"),
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom(
+                "auction/sovrn/test-auction-sovrn-response.json"),
                 response, singletonMap(SOVRN, "http://localhost:" + WIREMOCK_PORT + "/sovrn-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -1145,7 +1176,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/adform/test-auction-adform-response.json"),
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom(
+                "auction/adform/test-auction-adform-response.json"),
                 response, singletonMap(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange"));
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -1176,12 +1208,15 @@ public class ApplicationTest extends VertxTest {
         // appnexus bid response for ad unit 4
         wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-appnexus-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "auction/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
-                .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/rubicon_appnexus/test-cache-rubicon-appnexus-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom(
+                        "auction/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "auction/rubicon_appnexus/test-cache-rubicon-appnexus-response.json"))));
 
         // when
         final Response response = given(spec)
@@ -1207,7 +1242,8 @@ public class ApplicationTest extends VertxTest {
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
         assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
 
-        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom("auction/rubicon_appnexus/test-auction-rubicon-appnexus-response.json"),
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(jsonFrom(
+                "auction/rubicon_appnexus/test-auction-rubicon-appnexus-response.json"),
                 response, exchanges);
         assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
     }
@@ -1400,7 +1436,8 @@ public class ApplicationTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom("cache/update/test-auction-response.json"),
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(jsonFrom(
+                "cache/update/test-auction-response.json"),
                 response, exchanges);
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -1416,7 +1453,7 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void currencyRatesHandlerShouldRespondWithLastUpdateDate() throws IOException {
+    public void currencyRatesHandlerShouldRespondWithLastUpdateDate() {
         // given
         final Instant testTime = Instant.now();
 
@@ -1472,14 +1509,17 @@ public class ApplicationTest extends VertxTest {
     }
 
     private static String legacyAuctionResponseFrom(String template, Response response, Map<String, String> exchanges) {
-        return auctionResponseFrom(template, response, AUCTION_RESPONSE_TIME_PLACEHOLDER, exchanges);
+        return auctionResponseFrom(template, response,
+                "bidder_status.find { it.bidder == '%s' }.response_time_ms", exchanges);
     }
 
-    private static String openrtbAuctionResponseFrom(String template, Response response, Map<String, String> exchanges) {
-        return auctionResponseFrom(template, response, OPENRTB_RESPONSE_TIME_PLACEHOLDER, exchanges);
+    private static String openrtbAuctionResponseFrom(String template, Response response,
+                                                     Map<String, String> exchanges) {
+        return auctionResponseFrom(template, response, "ext.responsetimemillis.%s", exchanges);
     }
 
-    private static String auctionResponseFrom(String template, Response response, String responseTimePath, Map<String, String> exchanges) {
+    private static String auctionResponseFrom(String template, Response response, String responseTimePath,
+                                              Map<String, String> exchanges) {
         String host = "localhost:8090"; //{{ host }}
         String path = "/cache";// {{ path }}
         String hostPath = "http://localhost:8090/cache"; // {{ hostpath }}
