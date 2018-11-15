@@ -191,10 +191,10 @@ public class AppnexusAdapter extends OpenrtbAdapter {
         return bannerBuilder.build();
     }
 
-    private static Float bidfloor(AppnexusParams params) {
+    private static BigDecimal bidfloor(AppnexusParams params) {
         final BigDecimal reserve = params.getReserve();
         return reserve != null && reserve.compareTo(BigDecimal.ZERO) > 0
-                ? reserve.floatValue()
+                ? reserve
                 : null;
     }
 

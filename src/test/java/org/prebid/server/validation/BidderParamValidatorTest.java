@@ -23,12 +23,15 @@ import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.BDDMockito.given;
 
 public class BidderParamValidatorTest extends VertxTest {
@@ -221,7 +224,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenAdtelligentImpExtIsOk() {
         // given
-        final ExtImpAdtelligent ext = ExtImpAdtelligent.of(15, 1, 2, 3f);
+        final ExtImpAdtelligent ext = ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3));
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
@@ -275,7 +278,7 @@ public class BidderParamValidatorTest extends VertxTest {
         // given
         final ExtImpOpenx ext = ExtImpOpenx.builder()
                 .customParams(Collections.singletonMap("foo", "bar"))
-                .customFloor(0.2f)
+                .customFloor(BigDecimal.valueOf(0.2))
                 .delDomain("se-demo-d.openx.net")
                 .unit("2222")
                 .build();
@@ -293,7 +296,7 @@ public class BidderParamValidatorTest extends VertxTest {
         // given
         final ExtImpOpenx ext = ExtImpOpenx.builder()
                 .customParams(Collections.singletonMap("foo", "bar"))
-                .customFloor(0.2f)
+                .customFloor(BigDecimal.valueOf(0.2))
                 .delDomain("se-demo-d.openx.net")
                 .unit("not-numeric")
                 .build();
@@ -335,7 +338,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenSomoaudienceImpExtIsOk() {
         // given
-        final ExtImpSomoaudience ext = ExtImpSomoaudience.of("placementId");
+        final ExtImpSomoaudience ext = ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.11));
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when

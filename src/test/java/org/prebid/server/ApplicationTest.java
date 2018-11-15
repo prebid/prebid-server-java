@@ -555,11 +555,44 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSomoaudience() throws IOException, JSONException {
         // given
-        // adtelligent bid response for imp 16
+        // Somoaudience bid response for imp 16 & 17
         wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
-                .withQueryParam("s", equalTo("placementId"))
+                .withQueryParam("s", equalTo("placementId02"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("x-openrtb-version", equalTo("2.5"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withHeader("DNT", equalTo("2"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-response-1.json"))));
+
+        // Somoaudience bid response for imp 18
+        wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
+                .withQueryParam("s", equalTo("placementId03"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("x-openrtb-version", equalTo("2.5"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withHeader("DNT", equalTo("2"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-response-2.json"))));
+
+        // Somoaudience bid response for imp 19
+        wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
+                .withQueryParam("s", equalTo("placementId04"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("x-openrtb-version", equalTo("2.5"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("Accept-Language", equalTo("en"))
+                .withHeader("DNT", equalTo("2"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-request-3.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-response-3.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
