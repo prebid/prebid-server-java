@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudien
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,11 +43,13 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
             };
 
     private static final String CONFIG = "hb_pbs_1.0.0";
+    private final ObjectNode requestExtension;
 
     private final String endpointUrl;
 
     public SomoaudienceBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        requestExtension = Json.mapper.valueToTree(SomoaudienceReqExt.of(CONFIG));
     }
 
     @Override
@@ -74,7 +77,8 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         }
 
         for (Imp imp : videoAndNativeImps) {
-            final HttpRequest<BidRequest> videoOrNativeRequest = makeRequest(bidRequest, bannerImps, errors);
+            final HttpRequest<BidRequest> videoOrNativeRequest = makeRequest(
+                    bidRequest, Collections.singletonList(imp), errors);
             if (videoOrNativeRequest != null) {
                 httpRequests.add(videoOrNativeRequest);
             }
@@ -87,58 +91,46 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         final List<Imp> validImps = new ArrayList<>();
         String placementHash = null;
         for (Imp imp : imps) {
-            final ExtImpSomoaudience extImpSomoaudience;
             try {
-                extImpSomoaudience = parseAndValidateImpExt(imp);
+                final ExtImpSomoaudience extImpSomoaudience = parseAndValidateImpExt(imp);
                 placementHash = extImpSomoaudience.getPlacementHash();
-                final Imp modifiedImp = imp.toBuilder().ext(null).bidfloor(extImpSomoaudience.getBidFloor()).build();
+                final BigDecimal bidFloor = extImpSomoaudience.getBidFloor();
+                final Imp modifiedImp = imp.toBuilder()
+                        .ext(null)
+                        .bidfloor(bidFloor != null ? bidFloor.floatValue() : null)
+                        .build();
                 validImps.add(modifiedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
         if (CollectionUtils.isEmpty(validImps)) {
-            errors.add(BidderError.badInput("No valid impressions"));
             return null;
         }
-
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
 
         requestBuilder.imp(validImps);
-        try {
-            requestBuilder.ext(Json.mapper.valueToTree(SomoaudienceReqExt.of(CONFIG)));
-        } catch (IllegalArgumentException e) {
-            errors.add(BidderError.badInput(String.format("Failed to create bid.ext, error: %s", e.getMessage())));
-            return null;
-        }
+        requestBuilder.ext(requestExtension);
 
         final BidRequest outgoingRequest = requestBuilder.build();
         final String body = Json.encode(outgoingRequest);
 
         final MultiMap headers = basicHeaders();
-
         if (outgoingRequest.getDevice() != null) {
-            deviceAdditionalHeaders(headers, outgoingRequest);
+            addDeviceHeaders(headers, outgoingRequest);
         }
-
         final String url = String.format("%s?s=%s", endpointUrl, placementHash);
 
         return HttpRequest.of(HttpMethod.POST, url, body, headers, outgoingRequest);
     }
 
     private static ExtImpSomoaudience parseAndValidateImpExt(Imp imp) {
-        final String impId = imp.getId();
-        if (imp.getAudio() != null) {
-            throw new PreBidException(String.format("ignoring imp id=%s, Somoaudience doesn't support Audio", impId));
-        }
-
         final ObjectNode impExt = imp.getExt();
         if (impExt == null || impExt.size() == 0) {
-            throw new PreBidException(String.format("ignoring imp id=%s, extImpBidder is empty", impId));
+            throw new PreBidException(String.format("ignoring imp id=%s, extImpBidder is empty", imp.getId()));
         }
 
         final ExtImpSomoaudience extImpSomoaudience;
-
         try {
             extImpSomoaudience = Json.mapper.<ExtPrebid<?, ExtImpSomoaudience>>convertValue(imp.getExt(),
                     SOMOAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
@@ -154,12 +146,14 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 .add("x-openrtb-version", "2.5");
     }
 
-    private static void deviceAdditionalHeaders(MultiMap headers, BidRequest bidRequest) {
+    private static void addDeviceHeaders(MultiMap headers, BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
         headers.add("User-Agent", device.getUa());
         headers.add("X-Forwarded-For", device.getIp());
         headers.add("Accept-Language", device.getLanguage());
-        headers.add("DNT", String.valueOf(device.getDnt()));
+
+        final Integer dnt = device.getDnt();
+        headers.add("DNT", dnt != null ? dnt.toString() : null);
     }
 
     /**

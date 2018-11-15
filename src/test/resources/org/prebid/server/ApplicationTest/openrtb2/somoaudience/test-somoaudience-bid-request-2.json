@@ -2,28 +2,21 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId16",
-      "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+      "id": "impId18",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "protocols": [
+          2,
+          5
+        ],
+        "w": 1024,
+        "h": 576,
+        "skipmin": 0,
+        "skipafter": 0
       },
-      "bidfloor": 1.5
-    },
-    {
-      "id": "impId17",
-      "banner": {
-        "format": [
-          {
-            "w": 360,
-            "h": 240
-          }
-        ]
-      },
-      "bidfloor": 1.33
+      "bidfloor": 2.1
     }
   ],
   "site": {
