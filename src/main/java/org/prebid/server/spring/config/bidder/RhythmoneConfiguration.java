@@ -8,10 +8,9 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.bidder.pubmatic.PubmaticAdapter;
-import org.prebid.server.bidder.pubmatic.PubmaticBidder;
-import org.prebid.server.bidder.pubmatic.PubmaticMetaInfo;
-import org.prebid.server.bidder.pubmatic.PubmaticUsersyncer;
+import org.prebid.server.bidder.rhythmone.RhythmoneBidder;
+import org.prebid.server.bidder.rhythmone.RhythmoneMetaInfo;
+import org.prebid.server.bidder.rhythmone.RhythmoneUsersyncer;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -20,30 +19,30 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
-public class PubmaticConfiguration extends BidderConfiguration {
+public class RhythmoneConfiguration extends BidderConfiguration {
 
-    private static final String BIDDER_NAME = "pubmatic";
+    private static final String BIDDER_NAME = "rhythmone";
 
-    @Value("${adapters.pubmatic.enabled}")
+    @Value("${adapters.rhythmone.enabled}")
     private boolean enabled;
 
-    @Value("${adapters.pubmatic.endpoint}")
+    @Value("${adapters.rhythmone.endpoint}")
     private String endpoint;
 
-    @Value("${adapters.pubmatic.usersync-url}")
+    @Value("${adapters.rhythmone.usersync-url}")
     private String usersyncUrl;
 
-    @Value("${adapters.pubmatic.pbs-enforces-gdpr}")
+    @Value("${adapters.rhythmone.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.pubmatic.deprecated-names}")
+    @Value("${adapters.rhythmone.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Bean
-    BidderDeps pubmaticBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+    BidderDeps rhythmOneBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
     }
 
@@ -59,22 +58,22 @@ public class PubmaticConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new PubmaticMetaInfo(enabled, pbsEnforcesGdpr);
+        return new RhythmoneMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new PubmaticUsersyncer(usersyncUrl, externalUrl);
+        return new RhythmoneUsersyncer(usersyncUrl, externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new PubmaticBidder(endpoint);
+        return new RhythmoneBidder(endpoint);
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new PubmaticAdapter(usersyncer, endpoint);
+        return null;
     }
 
     @Override

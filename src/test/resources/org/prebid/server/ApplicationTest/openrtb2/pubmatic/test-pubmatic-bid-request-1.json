@@ -4,11 +4,20 @@
     {
       "id": "impId9",
       "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
         "w": 300,
-        "h": 250,
-        "topframe": 0
+        "h": 250
       },
-      "tagid": "slot9"
+      "tagid": "slot9",
+      "ext": {
+        "pmZoneID": "Zone1,Zone2",
+        "preference": "sports,movies"
+      }
     },
     {
       "id": "impId91",
@@ -19,10 +28,10 @@
         "w": 300,
         "h": 600,
         "skipmin": 0,
-        "skipafter": 0,
-        "playbackmethod": [
-          null
-        ]
+        "skipafter": 0
+      },
+      "ext": {
+        "pmZoneID": "Zone1,Zone2"
       }
     }
   ],
@@ -30,14 +39,13 @@
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId",
-      "domain": "example.com"
+      "id": "publisherId"
     }
   },
   "device": {
-    "ua" : "userAgent",
+    "ua": "userAgent",
     "dnt": 2,
-    "ip" : "192.168.244.1",
+    "ip": "192.168.244.1",
     "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId"
@@ -53,8 +61,12 @@
       "consent": "consentValue"
     }
   },
+  "test": 1,
   "at": 1,
   "tmax": 1000,
+  "cur": [
+    "EUR"
+  ],
   "source": {
     "fd": 1,
     "tid": "tid"
@@ -62,6 +74,12 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "wrapper": {
+      "version": 1,
+      "profile": 5123
     }
   }
 }

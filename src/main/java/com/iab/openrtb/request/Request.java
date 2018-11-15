@@ -48,7 +48,7 @@ public class Request {
     Integer durlsupport;
 
     /** Specifies types of events supported by tracking. */
-    EventTracker eventtrackers;
+    List<EventTracker> eventtrackers;
 
     /** Set to '0' or field absent if doesn't support custom privacy or support unknown, otherwise '1'. */
     Integer privacy;

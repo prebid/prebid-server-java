@@ -2,59 +2,37 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId9",
+      "id": "impId001",
       "banner": {
         "format": [
           {
             "w": 300,
-            "h": 600
+            "h": 250
           }
-        ],
-        "w": 300,
-        "h": 600
+        ]
       },
       "ext": {
-        "pubmatic": {
-          "adSlot": "slot9@300x250:zzz",
-          "publisherId": "publisherId",
-          "keywords": [{
-            "key": "pmZoneID",
-            "value": ["Zone1", "Zone2"]
-          },
-            {
-              "key": "preference",
-              "value": ["sports", "movies"]
-            }
-          ],
-          "wrapper": {
-            "version": 1,
-            "profile": 5123
-          }
+        "rhythmone": {
+          "placementId": "72721",
+          "path": "mvo",
+          "zone": "1r"
         }
       }
     },
     {
-      "id": "impId91",
+      "id": "impId002",
       "video": {
         "mimes": [
-          "mimes"
+          "video/mp4"
         ],
-        "w": 300,
-        "h": 600
+        "w": 640,
+        "h": 480
       },
       "ext": {
-        "pubmatic": {
-          "adSlot": "slot9@300x250:zzz",
-          "publisherId": "publisherId",
-          "keywords": [{
-            "key": "pmZoneID",
-            "value": ["Zone1", "Zone2"]
-          }
-          ],
-          "wrapper": {
-            "version": 1,
-            "profile": 5123
-          }
+        "rhythmone": {
+          "placementId": "72721",
+          "path": "mvo",
+          "zone": "1r"
         }
       }
     }
