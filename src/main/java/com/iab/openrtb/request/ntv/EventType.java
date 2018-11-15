@@ -1,4 +1,4 @@
-package org.prebid.server.validation.model;
+package com.iab.openrtb.request.ntv;
 
 public enum EventType {
 

@@ -1,4 +1,4 @@
-package org.prebid.server.validation.model;
+package com.iab.openrtb.request.ntv;
 
 /**
  * Options for the various bid response protocols that could be supported by an exchange.

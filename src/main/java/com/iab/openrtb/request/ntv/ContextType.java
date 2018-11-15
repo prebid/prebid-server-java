@@ -1,4 +1,4 @@
-package org.prebid.server.validation.model;
+package com.iab.openrtb.request.ntv;
 
 /**
  * The context in which the ad appears - what type of content is surrounding the ad on the

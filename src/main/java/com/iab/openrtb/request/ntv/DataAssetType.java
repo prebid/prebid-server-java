@@ -1,4 +1,4 @@
-package org.prebid.server.validation.model;
+package com.iab.openrtb.request.ntv;
 
 /**
  * Below is a list of common asset element types of native advertising at the time of writing this spec.

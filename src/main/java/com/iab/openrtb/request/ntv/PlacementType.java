@@ -1,4 +1,4 @@
-package org.prebid.server.validation.model;
+package com.iab.openrtb.request.ntv;
 
 /**
  * The FORMAT of the ad you are purchasing, separate from the surrounding context
