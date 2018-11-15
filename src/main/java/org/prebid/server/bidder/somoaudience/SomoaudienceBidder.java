@@ -97,7 +97,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 final BigDecimal bidFloor = extImpSomoaudience.getBidFloor();
                 final Imp modifiedImp = imp.toBuilder()
                         .ext(null)
-                        .bidfloor(bidFloor != null ? bidFloor.floatValue() : null)
+                        .bidfloor(bidFloor)
                         .build();
                 validImps.add(modifiedImp);
             } catch (PreBidException e) {
@@ -116,8 +116,9 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         final String body = Json.encode(outgoingRequest);
 
         final MultiMap headers = basicHeaders();
-        if (outgoingRequest.getDevice() != null) {
-            addDeviceHeaders(headers, outgoingRequest);
+        final Device requestDevice = outgoingRequest.getDevice();
+        if (requestDevice != null) {
+            addDeviceHeaders(headers, requestDevice);
         }
         final String url = String.format("%s?s=%s", endpointUrl, placementHash);
 
@@ -146,14 +147,13 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 .add("x-openrtb-version", "2.5");
     }
 
-    private static void addDeviceHeaders(MultiMap headers, BidRequest bidRequest) {
-        final Device device = bidRequest.getDevice();
+    private static void addDeviceHeaders(MultiMap headers, Device device) {
         headers.add("User-Agent", device.getUa());
         headers.add("X-Forwarded-For", device.getIp());
         headers.add("Accept-Language", device.getLanguage());
 
         final Integer dnt = device.getDnt();
-        headers.add("DNT", dnt != null ? dnt.toString() : null);
+        headers.add("DNT", dnt != null ? dnt.toString() : "0");
     }
 
     /**

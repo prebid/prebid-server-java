@@ -237,7 +237,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .extracting(res -> mapper.readValue(res.getBody(), BidRequest.class))
                 .element(0).extracting(BidRequest::getImp).hasSize(1)
                 .containsOnly(singletonList(Imp.builder()
-                        .bidfloor(10f)
+                        .bidfloor(BigDecimal.valueOf(10))
                         .tagid("tagid")
                         .ext(mapper.valueToTree(
                                 AppnexusImpExt.of(AppnexusImpExtAppnexus.of(20, null, null, null, null))))

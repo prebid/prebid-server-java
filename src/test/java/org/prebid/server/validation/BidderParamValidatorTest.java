@@ -224,7 +224,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenAdtelligentImpExtIsOk() {
         // given
-        final ExtImpAdtelligent ext = ExtImpAdtelligent.of(15, 1, 2, 3f);
+        final ExtImpAdtelligent ext = ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3));
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
@@ -278,7 +278,7 @@ public class BidderParamValidatorTest extends VertxTest {
         // given
         final ExtImpOpenx ext = ExtImpOpenx.builder()
                 .customParams(Collections.singletonMap("foo", "bar"))
-                .customFloor(0.2f)
+                .customFloor(BigDecimal.valueOf(0.2))
                 .delDomain("se-demo-d.openx.net")
                 .unit("2222")
                 .build();
@@ -296,7 +296,7 @@ public class BidderParamValidatorTest extends VertxTest {
         // given
         final ExtImpOpenx ext = ExtImpOpenx.builder()
                 .customParams(Collections.singletonMap("foo", "bar"))
-                .customFloor(0.2f)
+                .customFloor(BigDecimal.valueOf(0.2))
                 .delDomain("se-demo-d.openx.net")
                 .unit("not-numeric")
                 .build();
@@ -338,7 +338,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenSomoaudienceImpExtIsOk() {
         // given
-        final ExtImpSomoaudience ext = ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.1111));
+        final ExtImpSomoaudience ext = ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.11));
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when

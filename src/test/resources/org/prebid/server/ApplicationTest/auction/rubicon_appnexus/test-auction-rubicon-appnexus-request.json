@@ -128,7 +128,7 @@
               }
             ],
             "traffic_source_code": "trafficSourceCode1",
-            "reserve": 1,
+            "reserve": 1.0,
             "position": "above"
           }
         }

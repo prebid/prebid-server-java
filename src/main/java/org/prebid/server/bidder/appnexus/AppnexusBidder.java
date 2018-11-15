@@ -136,7 +136,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         final BigDecimal reserve = appnexusExt.getReserve();
         if (reserve != null && reserve.compareTo(BigDecimal.ZERO) > 0) {
-            impBuilder.bidfloor(reserve.floatValue()); // This will be broken for non-USD currency.
+            impBuilder.bidfloor(reserve); // This will be broken for non-USD currency.
         }
 
         return ImpWithMemberId.of(impBuilder.build(), appnexusExt.getMember());

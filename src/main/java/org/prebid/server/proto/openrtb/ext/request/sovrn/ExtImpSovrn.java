@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.math.BigDecimal;
+
 @Value
 @AllArgsConstructor(staticName = "of")
 public class ExtImpSovrn {
@@ -14,5 +16,5 @@ public class ExtImpSovrn {
     @JsonProperty("tagId")
     String legacyTagId;
 
-    Float bidfloor;
+    BigDecimal bidfloor;
 }
