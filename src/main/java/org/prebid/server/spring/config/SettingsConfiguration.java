@@ -216,10 +216,6 @@ public class SettingsConfiguration {
         @Autowired
         ContextRunner contextRunner;
 
-        //FIXME - 05/11 required dependency for httpClient
-        @Autowired
-        Metrics metrics;
-
         @PostConstruct
         public void httpPeriodicRefreshService() {
 
