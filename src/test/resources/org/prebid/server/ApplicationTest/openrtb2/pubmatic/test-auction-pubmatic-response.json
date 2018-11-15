@@ -1,0 +1,270 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "158758924",
+          "impid": "impId9",
+          "price": 3.82879,
+          "adm": "adm9",
+          "crid": "crid9",
+          "dealid": "dealId9",
+          "w": 300,
+          "h": 600,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_pb_pubmatic": "3.80",
+                "hb_cache_hostpath_pubmatic": "{{ hostpath }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_path_pubmatic": "{{ path }}",
+                "hb_cache_id": "5b3d85c1-d23c-43b7-82e6-56d475cabcac",
+                "hb_deal_pubmatic": "dealId9",
+                "hb_bidder_pubmatic": "pubmatic",
+                "hb_cache_host_pubmatic": "{{ host }}",
+                "hb_pb": "3.80",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_id_pubmatic": "5b3d85c1-d23c-43b7-82e6-56d475cabcac",
+                "hb_size": "300x600",
+                "hb_bidder": "pubmatic",
+                "hb_cache_host": "{{ host }}",
+                "hb_creative_loadtype": "html",
+                "hb_deal": "dealId9",
+                "hb_size_pubmatic": "300x600"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache_resource_url }}5b3d85c1-d23c-43b7-82e6-56d475cabcac",
+                  "cacheId": "5b3d85c1-d23c-43b7-82e6-56d475cabcac"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "113343587",
+          "impid": "impId91",
+          "price": 3.22425,
+          "adm": "adm91",
+          "crid": "crid91",
+          "dealid": "dealId91",
+          "w": 300,
+          "h": 600,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "targeting": {
+                "hb_pb_pubmatic": "3.20",
+                "hb_cache_hostpath_pubmatic": "{{ hostpath }}",
+                "hb_cache_hostpath": "{{ hostpath }}",
+                "hb_cache_path_pubmatic": "{{ path }}",
+                "hb_cache_id": "19fdd2e5-8bd5-498d-abde-73ed5405c11e",
+                "hb_deal_pubmatic": "dealId91",
+                "hb_bidder_pubmatic": "pubmatic",
+                "hb_cache_host_pubmatic": "{{ host }}",
+                "hb_pb": "3.20",
+                "hb_cache_path": "{{ path }}",
+                "hb_cache_id_pubmatic": "19fdd2e5-8bd5-498d-abde-73ed5405c11e",
+                "hb_uuid": "1c3196ef-e6a6-435f-bfe9-70de0d774979",
+                "hb_size": "300x600",
+                "hb_uuid_pubmatic": "1c3196ef-e6a6-435f-bfe9-70de0d774979",
+                "hb_bidder": "pubmatic",
+                "hb_cache_host": "{{ host }}",
+                "hb_creative_loadtype": "html",
+                "hb_deal": "dealId91",
+                "hb_size_pubmatic": "300x600"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache_resource_url }}19fdd2e5-8bd5-498d-abde-73ed5405c11e",
+                  "cacheId": "19fdd2e5-8bd5-498d-abde-73ed5405c11e"
+                },
+                "vastXml": {
+                  "url": "{{ cache_resource_url }}1c3196ef-e6a6-435f-bfe9-70de0d774979",
+                  "cacheId": "1c3196ef-e6a6-435f-bfe9-70de0d774979"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "seat": "pubmatic",
+      "group": 0
+    }
+  ],
+  "cur": "EUR",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "pubmatic": [
+          {
+            "uri": "{{ pubmatic.exchange_uri }}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId9\",\"banner\":{\"format\":[{\"w\":300,\"h\":600}],\"w\":300,\"h\":250},\"tagid\":\"slot9\",\"ext\":{\"pmZoneID\":\"Zone1,Zone2\",\"preference\":\"sports,movies\"}},{\"id\":\"impId91\",\"video\":{\"mimes\":[\"mimes\"],\"w\":300,\"h\":600,\"skipmin\":0,\"skipafter\":0},\"ext\":{\"pmZoneID\":\"Zone1,Zone2\"}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"publisherId\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"PM-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"EUR\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"wrapper\":{\"version\":1,\"profile\":5123}}}",
+            "responsebody": "{\"id\":\"bidResponseId9\",\"seatbid\":[{\"bid\":[{\"id\":\"158758924\",\"impid\":\"impId9\",\"price\":4.75,\"adm\":\"adm9\",\"crid\":\"crid9\",\"dealid\":\"dealId9\",\"w\":300,\"h\":600},{\"id\":\"113343587\",\"impid\":\"impId91\",\"price\":4.0,\"adm\":\"adm91\",\"crid\":\"crid91\",\"dealid\":\"dealId91\",\"w\":300,\"h\":600}],\"seat\":\"seatId9\",\"group\":0}]}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId9",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 600
+                }
+              ],
+              "w": 300,
+              "h": 600
+            },
+            "ext": {
+              "pubmatic": {
+                "adSlot": "slot9@300x250:zzz",
+                "publisherId": "publisherId",
+                "keywords": [
+                  {
+                    "key": "pmZoneID",
+                    "value": [
+                      "Zone1",
+                      "Zone2"
+                    ]
+                  },
+                  {
+                    "key": "preference",
+                    "value": [
+                      "sports",
+                      "movies"
+                    ]
+                  }
+                ],
+                "wrapper": {
+                  "version": 1,
+                  "profile": 5123
+                }
+              }
+            }
+          },
+          {
+            "id": "impId91",
+            "video": {
+              "mimes": [
+                "mimes"
+              ],
+              "w": 300,
+              "h": 600,
+              "skipmin": 0,
+              "skipafter": 0
+            },
+            "ext": {
+              "pubmatic": {
+                "adSlot": "slot9@300x250:zzz",
+                "publisherId": "publisherId",
+                "keywords": [
+                  {
+                    "key": "pmZoneID",
+                    "value": [
+                      "Zone1",
+                      "Zone2"
+                    ]
+                  }
+                ],
+                "wrapper": {
+                  "version": 1,
+                  "profile": 5123
+                }
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "publisherId"
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "dnt": 2,
+          "ip": "192.168.244.1",
+          "pxratio": 4.2,
+          "language": "en",
+          "ifa": "ifaId"
+        },
+        "user": {
+          "ext": {
+            "digitrust": {
+              "id": "id",
+              "keyv": 123,
+              "pref": 0
+            },
+            "consent": "consentValue"
+          }
+        },
+        "test": 1,
+        "at": 1,
+        "tmax": 1000,
+        "cur": [
+          "EUR"
+        ],
+        "source": {
+          "fd": 1,
+          "tid": "tid"
+        },
+        "regs": {
+          "ext": {
+            "gdpr": 0
+          }
+        },
+        "ext": {
+          "prebid": {
+            "aliases": {
+              "appnexusAlias": "appnexus",
+              "conversantAlias": "conversant"
+            },
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "currency": {
+                "rates": {
+                  "EUR": {
+                    "USD": 1.2406
+                  },
+                  "USD": {
+                    "EUR": 0.811
+                  }
+                }
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            }
+          }
+        }
+      }
+    },
+    "errors": {
+      "pubmatic": []
+    },
+    "responsetimemillis": {
+      "pubmatic": "{{ pubmatic.response_time_ms }}"
+    }
+  }
+}

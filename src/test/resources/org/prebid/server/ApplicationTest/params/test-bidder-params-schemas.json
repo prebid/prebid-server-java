@@ -167,6 +167,34 @@
       "publisher"
     ]
   },
+  "rhythmone": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Rhythmone Adapter Params",
+    "description": "A schema which validates params accepted by the Rhythmone adapter",
+    "type": "object",
+    "properties": {
+      "placementId": {
+        "type": "string",
+        "description": "An ID which is used to frame Rhythmone ad tag",
+        "minLength": 1
+      },
+      "path": {
+        "type": "string",
+        "description": "An ID which is used to frame Rhythmone ad tag",
+        "minLength": 1
+      },
+      "zone": {
+        "type": "string",
+        "description": "An ID which is used to frame Rhythmone ad tag",
+        "minLength": 1
+      }
+    },
+    "required": [
+      "placementId",
+      "path",
+      "zone"
+    ]
+  },
   "audienceNetwork": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Facebook Audience Network Adapter Params",
@@ -328,6 +356,47 @@
       "adSlot": {
         "type": "string",
         "description": "An ID which identifies the ad slot"
+      },
+      "wrapper": {
+        "type": "object",
+        "description": "Specifies pubmatic openwrap configuration for a publisher",
+        "properties": {
+          "profile": {
+            "type": "integer",
+            "description": "An ID which identifies the openwrap profile of publisher"
+          },
+          "version": {
+            "type": "integer",
+            "description": "An ID which identifies version of the openwrap profile"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "keywords": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "description": "A key with one or more values associated with it. These are used in buy-side segment targeting.",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "value": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "key",
+            "value"
+          ]
+        }
       }
     },
     "required": [

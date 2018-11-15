@@ -1,0 +1,85 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId9",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "slot9",
+      "ext": {
+        "pmZoneID": "Zone1,Zone2",
+        "preference": "sports,movies"
+      }
+    },
+    {
+      "id": "impId91",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "w": 300,
+        "h": 600,
+        "skipmin": 0,
+        "skipafter": 0
+      },
+      "ext": {
+        "pmZoneID": "Zone1,Zone2"
+      }
+    }
+  ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "dnt": 2,
+    "ip": "192.168.244.1",
+    "pxratio": 4.2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "user": {
+    "buyeruid": "PM-UID",
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
+  },
+  "test": 1,
+  "at": 1,
+  "tmax": 1000,
+  "cur": [
+    "EUR"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "wrapper": {
+      "version": 1,
+      "profile": 5123
+    }
+  }
+}

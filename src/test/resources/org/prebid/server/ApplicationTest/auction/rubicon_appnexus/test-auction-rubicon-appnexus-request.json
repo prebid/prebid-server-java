@@ -1,0 +1,179 @@
+{
+  "account_id": "1001",
+  "tid": "tid",
+  "cache_markup": 1,
+  "sort_bids": 1,
+  "timeout_millis": 1000,
+  "ad_units": [
+    {
+      "code": "adUnitCode1",
+      "sizes": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId1",
+          "bidder": "rubicon",
+          "params": {
+            "accountId": 2001,
+            "siteId": 3001,
+            "zoneId": 4001,
+            "inventory": {
+              "rating": [
+                "5-star"
+              ],
+              "prodtype": [
+                "tech"
+              ]
+            },
+            "visitor": {
+              "ucat": [
+                "new"
+              ],
+              "search": [
+                "iphone"
+              ]
+            },
+            "video": {
+              "size_id": 15,
+              "skip": 5,
+              "skipdelay": 1
+            }
+          }
+        }
+      ],
+      "media_types": [
+        "video"
+      ],
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "minduration": 20,
+        "maxduration": 60,
+        "startdelay": 5,
+        "skippable": 5,
+        "playback_method": 1,
+        "protocols": [
+          1
+        ]
+      }
+    },
+    {
+      "code": "adUnitCode2",
+      "sizes": [
+        {
+          "w": 300,
+          "h": 600
+        }
+      ],
+      "config_id": "14062",
+      "media_types": [
+        "banner"
+      ]
+    },
+    {
+      "code": "adUnitCode3",
+      "sizes": [
+        {
+          "w": 768,
+          "h": 1024
+        },
+        {
+          "w": 980,
+          "h": 400
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId3",
+          "bidder": "rubicon",
+          "params": {
+            "accountId": 2001,
+            "siteId": 3001,
+            "zoneId": 4001
+          }
+        }
+      ],
+      "media_types": [
+        "banner"
+      ]
+    },
+    {
+      "code": "adUnitCode4",
+      "sizes": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "bids": [
+        {
+          "bid_id": "bidId4",
+          "bidder": "appnexus",
+          "params": {
+            "placement_id": 9848285,
+            "inv_code": "invCode1",
+            "member": "member1",
+            "keywords": [
+              {
+                "key": "k1",
+                "value": [
+                  "v1",
+                  "v2"
+                ]
+              }
+            ],
+            "traffic_source_code": "trafficSourceCode1",
+            "reserve": 1,
+            "position": "above"
+          }
+        }
+      ],
+      "media_types": [
+        "video"
+      ],
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "minduration": 20,
+        "maxduration": 60,
+        "startdelay": 5,
+        "playback_method": 1,
+        "protocols": [
+          1
+        ]
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "language": "en",
+    "dnt": 10,
+    "ifa": "ifaId"
+  },
+  "user": {
+    "ext": {
+      "consent": "consent1",
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 1
+      }
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 1
+    }
+  },
+  "sdk": {
+    "version": "version1",
+    "source": "source1",
+    "platform": "platform1"
+  }
+}

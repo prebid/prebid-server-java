@@ -188,7 +188,6 @@ The Stored BidRequest will be applied first, and then the Stored Imps after.
 If a Stored BidRequest includes Imps with their own Stored Request IDs,
 then the data for those Stored Imps not be resolved.
 
-
 ## Alternate backends
 
 Stored Requests do not need to be saved to files. Other backends are supported with different 
@@ -237,3 +236,51 @@ for obtaining the `Account` or `AdUnitConfig` by ID for the legacy [auction](../
 Full list of application configuration options can be found [here](../config-app.md).
 
 If you need support for a backend that you don't see, please [contribute it](../contributing.md).
+
+## Caches and updates
+
+Stored Request data can also be cached or updated while PBS is running.
+Conceptually, Stored Request data is managed by the following components in the code:
+
+**ApplicationSettings**: Implementations of this interface pull data directly from a backend.
+**SettingsCache**: Duplicates data which the ApplicationSettings _could_ find so that it can be accessed more quickly.
+**CacheNotificationListener**: Provides interface apply changes to Stored Request data.
+
+ApplicationSettings and methods of updating Stored Request data at runtime can also be chosen 
+in the the app config.
+At least one ApplicationSettings is _required_ to make use of Stored Requests.
+
+If more than one ApplicationSettings is defined, they will be ordered and used as fallback data sources.
+This isn't a great idea for Prod in the long-term, but may be useful temporarily if you're trying
+to transition from one backend to another.
+
+CacheNotificationListener is used to Save or Invalidate values from the cache.
+
+Here is an example configuration file which looks for Stored Requests first from Postgres, and then from an HTTP endpoint.
+It will use an in-memory LRU cache to store data locally, and poll another HTTP endpoint to listen for updates.
+
+```yaml
+settings:
+  database:
+    type: postgres
+    host: localhost
+    port: 5432
+    dbname: database-name
+    user: username
+    password: password
+    stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)
+    amp-stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)
+  http:
+    endpoint: http://stored-requests.prebid.com
+    amp-endpoint: http://stored-requests.prebid.com?amp=true
+  in-memory-cache:
+    cache-size: 10000
+    ttl-seconds: 360
+    http-update:
+      endpoint: http://stored-requests.prebid.com
+      amp-endpoint: http://stored-requests.prebid.com?amp=true
+      refresh-rate: 60000
+      timeout: 2000
+```
+
+Refresh rate can be negative or zero - in such case the data will be fetched once and never updated.

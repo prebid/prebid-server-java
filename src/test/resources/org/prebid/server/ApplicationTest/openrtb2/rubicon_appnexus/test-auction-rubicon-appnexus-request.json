@@ -1,0 +1,208 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "minduration": 20,
+        "maxduration": 60,
+        "protocols": [
+          1
+        ],
+        "w": 300,
+        "h": 250,
+        "startdelay": 5,
+        "skipmin": 0,
+        "skipafter": 0,
+        "playbackmethod": [
+          1
+        ]
+      },
+      "ext": {
+        "rubicon": {
+          "accountId": 2001,
+          "siteId": 3001,
+          "zoneId": 4001,
+          "inventory": {
+            "rating": [
+              "5-star"
+            ],
+            "prodtype": [
+              "tech"
+            ]
+          },
+          "visitor": {
+            "ucat": [
+              "new"
+            ],
+            "search": [
+              "iphone"
+            ]
+          },
+          "video": {
+            "size_id": 15,
+            "skip": 5,
+            "skipdelay": 1
+          }
+        }
+      }
+    },
+    {
+      "ext": {
+        "prebid": {
+          "storedrequest": {
+            "id": "test-rubicon-stored-request-2"
+          }
+        }
+      }
+    },
+    {
+      "id": "impId3",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ]
+      },
+      "ext": {
+        "appnexus": {
+          "member": "103",
+          "inv_code": "abc",
+          "reserve": 1.0,
+          "position": "below",
+          "traffic_source_code": "trafficSource",
+          "keywords": [
+            {
+              "key": "foo",
+              "value": [
+                "bar",
+                "baz"
+              ]
+            }
+          ]
+        },
+        "appnexusAlias": {
+          "member": "104",
+          "inv_code": "abc",
+          "reserve": 1.0,
+          "position": "above",
+          "traffic_source_code": "trafficSourceAlias",
+          "keywords": [
+            {
+              "key": "foo",
+              "value": [
+                "barAlias",
+                "bazAlias"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "impId131",
+      "native": {
+        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}},{\"required\":1,\"img\":{\"type\":3,\"wmin\":1,\"hmin\":1}},{\"required\":0,\"data\":{\"len\":200}},{\"required\":0,\"data\":{\"type\":2,\"len\":15000}},{\"required\":0,\"data\":{\"len\":40}},{\"required\":0,\"data\":{\"type\":11}}]}",
+        "ver": "1.1"
+      },
+      "ext": {
+        "appnexus": {
+          "placement_id": 9880618
+        }
+      }
+    },
+    {
+      "id": "impId32",
+      "audio": {
+        "mimes": [
+          "video/mp4"
+        ]
+      },
+      "ext": {
+        "appnexus": {
+          "placement_id": 10433394
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "dnt": 2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "site": {
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "test": 1,
+  "at": 1,
+  "tmax": 1000,
+  "cur": [
+    "EUR"
+  ],
+  "source": {
+    "fd": 1,
+    "tid": "tid"
+  },
+  "ext": {
+    "prebid": {
+      "aliases": {
+        "appnexusAlias": "appnexus",
+        "conversantAlias": "conversant"
+      },
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        }
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      }
+    }
+  },
+  "user": {
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}
