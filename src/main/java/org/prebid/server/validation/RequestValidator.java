@@ -377,62 +377,55 @@ public class RequestValidator {
     private void validateNativeContextTypes(Integer context, Integer contextSubType, int index)
             throws ValidationException {
 
+        final int type = context != null ? context.intValue() : 0;
+        final int subType = contextSubType != null ? contextSubType.intValue() : 0;
 
-        if (context != null) {
-            final int type = context;
-            if (type < ContextType.CONTENT.getValue() || type > ContextType.PRODUCT.getValue()) {
+        if (type != 0 && (type < ContextType.CONTENT.getValue() || type > ContextType.PRODUCT.getValue())) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.context is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index);
+        }
+
+        if (subType < 0) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.contextsubtype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index
+            );
+        }
+
+        if (subType == 0) {
+            return;
+        }
+
+        if (subType >= 100) {
+            throw new ValidationException(
+                    "request.imp[%d].native.request.contextsubtype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index
+            );
+        }
+
+        if (subType >= ContextSubType.GENERAL.getValue()
+                && subType <= ContextSubType.USER_GENERATED.getValue()) {
+            if (type != ContextType.CONTENT.getValue()) {
                 throw new ValidationException(
-                        "request.imp[%d].native.request.context is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index);
-            }
-
-            if (contextSubType != null) {
-                final int subType = contextSubType;
-
-                if (subType < 0) {
-                    throw new ValidationException(
-                            "request.imp[%d].native.request.contextsubtype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index
-                    );
-                }
-
-                if (subType == 0) {
-                    return;
-                }
-
-                if (subType >= 100) {
-                    throw new ValidationException(
-                            "request.imp[%d].native.request.contextsubtype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index
-                    );
-                }
-
-                if (subType >= ContextSubType.GENERAL.getValue()
-                        && subType <= ContextSubType.USER_GENERATED.getValue()) {
-                    if (type != ContextType.CONTENT.getValue()) {
-                        throw new ValidationException(
-                                "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index, context, contextSubType
-                        );
-                    }
-                }
-
-                if (subType >= ContextSubType.SOCIAL.getValue()
-                        && subType <= ContextSubType.CHAT.getValue()) {
-                    if (type != ContextType.SOCIAL.getValue()) {
-                        throw new ValidationException(
-                                "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index, context, contextSubType);
-                    }
-                }
-
-                if (subType >= ContextSubType.SELLING.getValue()
-                        && subType <= ContextSubType.PRODUCT_REVIEW.getValue()) {
-                    if (type != ContextType.PRODUCT.getValue()) {
-                        throw new ValidationException(
-                                "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index, context, contextSubType
-                        );
-                    }
-                }
+                        "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index, context, contextSubType
+                );
             }
         }
 
+        if (subType >= ContextSubType.SOCIAL.getValue()
+                && subType <= ContextSubType.CHAT.getValue()) {
+            if (type != ContextType.SOCIAL.getValue()) {
+                throw new ValidationException(
+                        "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index, context, contextSubType);
+            }
+        }
 
+        if (subType >= ContextSubType.SELLING.getValue()
+                && subType <= ContextSubType.PRODUCT_REVIEW.getValue()) {
+            if (type != ContextType.PRODUCT.getValue()) {
+                throw new ValidationException(
+                        "request.imp[%d].native.request.context is %d, but contextsubtype is %d. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39", index, context, contextSubType
+                );
+            }
+        }
     }
 
     private void validateNativePlacementType(Integer placementType, int index) throws ValidationException {
@@ -592,9 +585,9 @@ public class RequestValidator {
     private void validateNativeEventTracker(EventTracker eventTracker, int impIndex, int eventIndex)
             throws ValidationException {
         if (eventTracker != null) {
-            final Integer event = eventTracker.getEvent();
+            final int event = eventTracker.getEvent() != null ? eventTracker.getEvent().intValue() : 0;
 
-            if (event != null && (event < EventType.IMPRESSION.getValue()
+            if (event != 0 && (event < EventType.IMPRESSION.getValue()
                     || event > EventType.VIEWABLE_VIDEO50.getValue())) {
                 throw new ValidationException(
                         "request.imp[%d].native.request.eventtrackers[%d].event is invalid. See section 7.6: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43", impIndex, eventIndex
@@ -610,7 +603,7 @@ public class RequestValidator {
             }
 
             for (int methodIndex = 0; methodIndex < methods.size(); methodIndex++) {
-                int method = methods.get(methodIndex);
+                int method = methods.get(methodIndex) != null ? methods.get(methodIndex).intValue() : 0;
                 if (method < EventTrackingMethod.IMAGE.getValue()
                         || method > EventTrackingMethod.JS.getValue()) {
                     throw new ValidationException(
