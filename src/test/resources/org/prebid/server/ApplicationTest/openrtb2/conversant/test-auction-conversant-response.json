@@ -219,7 +219,6 @@
         "ext": {
           "prebid": {
             "aliases": {
-              "appnexusAlias": "appnexus",
               "conversantAlias": "conversant"
             },
             "targeting": {

@@ -57,7 +57,7 @@
       "httpcalls": {
         "beachfront": [
           {
-            "uri": "{{ beachfront.exchange_uri }}beachfrontAppId&prebidserver",
+            "uri": "{{ beachfront.exchange_uri }}/video?exchange_id=beachfrontAppId&prebidserver",
             "requestbody": "{\"isPrebid\":true,\"appId\":\"beachfrontAppId\",\"domain\":\"example.com\",\"imp\":[{\"video\":{},\"bidfloor\":1.0,\"id\":0,\"impid\":\"impId18\"}],\"site\":{\"page\":\"http://www.example.com\"},\"device\":{\"ua\":\"userAgent\",\"geo\":{\"ip\":\"192.168.244.1\"}},\"user\":{\"buyeruid\":\"BF-UID\"},\"cur\":[\"USD\"]}",
             "responsebody": "{\"id\":\"tid\",\"seatbid\":[{\"bid\":[{\"id\":\"62016038043\",\"impid\":\"impId18\",\"price\":8.43,\"adm\":\"adm18\",\"nurl\":\"nurl181\\\"nurl182\\\"nurl183\",\"crid\":\"crid18\",\"dealid\":\"dealId18\",\"w\":300,\"h\":250}],\"seat\":\"seatId18\",\"group\":0}]}",
             "status": 200
