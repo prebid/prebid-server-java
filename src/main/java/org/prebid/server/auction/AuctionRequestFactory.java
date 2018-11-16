@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -101,7 +102,7 @@ public class AuctionRequestFactory {
 
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
-                    .site(populatedSite != null ? populatedSite : bidRequest.getSite())
+                    .site(populatedSite)
                     .user(populatedUser != null ? populatedUser : bidRequest.getUser())
                     .imp(populatedImps != null ? populatedImps : imps)
                     // set the auction type to 1 if it wasn't on the request,
@@ -240,8 +241,7 @@ public class AuctionRequestFactory {
      * and the request contains necessary info (domain, page).
      */
     private Site populateSite(Site site, HttpServerRequest request) {
-        Site result = null;
-
+        final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
         final String page = site != null ? site.getPage() : null;
         final String domain = site != null ? site.getDomain() : null;
 
@@ -250,16 +250,14 @@ public class AuctionRequestFactory {
             if (StringUtils.isNotBlank(referer)) {
                 try {
                     final String parsedDomain = paramsExtractor.domainFrom(referer);
-                    final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
                     builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
                     builder.page(StringUtils.isNotBlank(page) ? page : referer);
-                    result = builder.build();
                 } catch (PreBidException e) {
                     logger.warn("Error occurred while populating bid request", e);
                 }
             }
         }
-        return result;
+        return builder.ext(Json.mapper.valueToTree(ExtSite.of(0))).build();
     }
 
     /**

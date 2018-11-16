@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -121,8 +122,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(populatedBidRequest.getSite()).isEqualTo(
-                Site.builder().page("http://example.com").domain("example.com").build());
+        assertThat(populatedBidRequest.getSite()).isEqualTo(Site.builder()
+                .page("http://example.com")
+                .domain("example.com")
+                .ext(mapper.valueToTree(ExtSite.of(0)))
+                .build());
         assertThat(populatedBidRequest.getDevice()).isEqualTo(
                 Device.builder().ip("192.168.244.1").ua("UnitTest").build());
         assertThat(populatedBidRequest.getUser()).isEqualTo(User.builder().id("userId").build());
@@ -185,7 +189,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldNotSetFieldsFromHeadersIfRequestFieldsNotEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("test.com").page("http://test.com").build())
+                .site(Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.valueToTree(ExtSite.of(0))).build())
                 .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
                 .user(User.builder().id("userId").build())
                 .cur(singletonList("USD"))
@@ -202,11 +207,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(populatedBidRequest).isSameAs(bidRequest);
+        assertThat(populatedBidRequest).isEqualTo(bidRequest);
     }
 
     @Test
-    public void shouldNotSetSiteIfNoReferer() {
+    public void shouldAlwaysSetSiteExt() {
         // given
         givenValidBidRequest();
 
@@ -214,7 +219,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(populatedBidRequest.getSite()).isNull();
+        assertThat(populatedBidRequest.getSite()).isEqualTo(
+                Site.builder().ext(mapper.valueToTree(ExtSite.of(0))).build());
     }
 
     @Test
@@ -228,7 +234,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest result = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("home.com").ext(mapper.valueToTree(ExtSite.of(0))).build());
     }
 
     @Test
@@ -244,7 +251,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest result = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("home.com").ext(mapper.valueToTree(ExtSite.of(0))).build());
     }
 
     @Test

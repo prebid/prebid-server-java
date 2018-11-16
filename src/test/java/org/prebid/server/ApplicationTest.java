@@ -361,7 +361,6 @@ public class ApplicationTest extends VertxTest {
                 response, singletonMap(ADFORM, "http://localhost:" + WIREMOCK_PORT + "/adform-exchange"));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
-
     }
 
     @Test

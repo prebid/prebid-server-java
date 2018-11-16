@@ -22,6 +22,13 @@ import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
+import com.iab.openrtb.request.ntv.ContextSubType;
+import com.iab.openrtb.request.ntv.ContextType;
+import com.iab.openrtb.request.ntv.DataAssetType;
+import com.iab.openrtb.request.ntv.EventTrackingMethod;
+import com.iab.openrtb.request.ntv.EventType;
+import com.iab.openrtb.request.ntv.PlacementType;
+import com.iab.openrtb.request.ntv.Protocol;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -34,16 +41,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
-import com.iab.openrtb.request.ntv.ContextSubType;
-import com.iab.openrtb.request.ntv.ContextType;
-import com.iab.openrtb.request.ntv.DataAssetType;
-import com.iab.openrtb.request.ntv.EventTrackingMethod;
-import com.iab.openrtb.request.ntv.EventType;
-import com.iab.openrtb.request.ntv.PlacementType;
-import com.iab.openrtb.request.ntv.Protocol;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
@@ -269,9 +270,23 @@ public class RequestValidator {
     }
 
     private void validateSite(Site site) throws ValidationException {
-        if (site != null && StringUtils.isBlank(site.getId()) && StringUtils.isBlank(site.getPage())) {
-            throw new ValidationException(
-                    "request.site should include at least one of request.site.id or request.site.page");
+        if (site != null) {
+            if (StringUtils.isBlank(site.getId()) && StringUtils.isBlank(site.getPage())) {
+                throw new ValidationException(
+                        "request.site should include at least one of request.site.id or request.site.page");
+            }
+
+            if (site.getExt() != null && site.getExt().size() > 0) {
+                try {
+                    final ExtSite extSite = Json.mapper.treeToValue(site.getExt(), ExtSite.class);
+                    final Integer amp = extSite.getAmp();
+                    if (amp != null && (amp < 0 || amp > 1)) {
+                        throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");
+                    }
+                } catch (JsonProcessingException e) {
+                    throw new ValidationException("request.site.ext object is not valid: %s", e.getMessage());
+                }
+            }
         }
     }
 

@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -90,6 +91,10 @@ public class AmpRequestFactory {
                             impSize));
         }
 
+        if (bidRequest.getApp() != null) {
+            throw new InvalidRequestException("request.app must not exist in AMP stored requests.");
+        }
+
         if (bidRequest.getExt() == null) {
             throw new InvalidRequestException("AMP requests require Ext to be set");
         }
@@ -152,21 +157,23 @@ public class AmpRequestFactory {
      * This method extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
     private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
-        final Site updatedSite = overrideSitePage(bidRequest.getSite(), request);
+        final Site updatedSite = overrideSite(bidRequest.getSite(), request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
         final Long updatedTimeout = updateTimeout(request);
 
         return updateBidRequest(bidRequest, updatedSite, updatedImp, updatedTimeout);
     }
 
-    private static Site overrideSitePage(Site site, HttpServerRequest request) {
+    private static Site overrideSite(Site site, HttpServerRequest request) {
+        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
         final String canonicalUrl = canonicalUrl(request);
-        if (StringUtils.isBlank(canonicalUrl)) {
-            return site;
+        if (StringUtils.isNotBlank(canonicalUrl)) {
+            siteBuilder.page(canonicalUrl);
         }
 
-        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
-        return siteBuilder.page(canonicalUrl).build();
+        return siteBuilder
+                .ext(Json.mapper.valueToTree(ExtSite.of(1)))
+                .build();
     }
 
     private Imp overrideImp(Imp imp, HttpServerRequest request) {
