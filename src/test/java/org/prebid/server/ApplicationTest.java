@@ -1516,10 +1516,10 @@ public class ApplicationTest extends VertxTest {
         final String cacheEndpoint = "http://" + hostAndPort + cachePath;
 
         String result = jsonFrom(templatePath)
-                .replaceAll("\\{\\{ cache_resource_url }}", cacheEndpoint + "?uuid=")
-                .replaceAll("\\{\\{ host }}", hostAndPort)
-                .replaceAll("\\{\\{ path }}", cachePath)
-                .replaceAll("\\{\\{ hostpath }}", cacheEndpoint);
+                .replaceAll("\\{\\{ cache.resource_url }}", cacheEndpoint + "?uuid=")
+                .replaceAll("\\{\\{ cache.host }}", hostAndPort)
+                .replaceAll("\\{\\{ cache.path }}", cachePath)
+                .replaceAll("\\{\\{ cache.hostpath }}", cacheEndpoint);
 
         for (final String bidder : bidders) {
             result = result.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",

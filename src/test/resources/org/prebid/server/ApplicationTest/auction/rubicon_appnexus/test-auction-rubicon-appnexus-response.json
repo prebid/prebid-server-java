@@ -53,7 +53,7 @@
       "height": 250,
       "deal_id": "dealId4",
       "cache_id": "724b4488-f344-4e73-b79a-07e302176875",
-      "cache_url": "{{ cache_resource_url }}724b4488-f344-4e73-b79a-07e302176875",
+      "cache_url": "{{ cache.resource_url }}724b4488-f344-4e73-b79a-07e302176875",
       "response_time_ms": "{{ appnexus.response_time_ms }}",
       "ad_server_targeting": {
         "hb_pb": "5.70",
@@ -80,7 +80,7 @@
       "height": 250,
       "deal_id": "dealId1",
       "cache_id": "7d57932e-0b73-4835-a9a8-155aa145f6be",
-      "cache_url": "{{ cache_resource_url }}7d57932e-0b73-4835-a9a8-155aa145f6be",
+      "cache_url": "{{ cache.resource_url }}7d57932e-0b73-4835-a9a8-155aa145f6be",
       "response_time_ms": "{{ rubicon.response_time_ms }}",
       "ad_server_targeting": {
         "hb_pb": "8.40",
@@ -108,7 +108,7 @@
       "height": 600,
       "deal_id": "dealId2",
       "cache_id": "24eae0fc-1070-4a4e-a16d-401be6a3de2a",
-      "cache_url": "{{ cache_resource_url }}24eae0fc-1070-4a4e-a16d-401be6a3de2a",
+      "cache_url": "{{ cache.resource_url }}24eae0fc-1070-4a4e-a16d-401be6a3de2a",
       "response_time_ms": "{{ rubicon.response_time_ms }}",
       "ad_server_targeting": {
         "hb_pb": "4.20",
