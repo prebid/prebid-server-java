@@ -643,9 +643,11 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom(
-                        "openrtb2/somoaudience/test-cache-somoaudience-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json"), true, false))
+                .willReturn(aResponse()
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName", "openrtb2/somoaudience/test-cache-matcher-somoaudience.json")
+                ));
 
         // when
         final Response response = given(spec)
