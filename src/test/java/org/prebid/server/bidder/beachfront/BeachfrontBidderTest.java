@@ -351,7 +351,7 @@ public class BeachfrontBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnBannerRequestWithPopulatedFields() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("impId1").bidfloor(1.0f).banner(Banner.builder().format(asList(
+                .imp(singletonList(Imp.builder().id("impId1").bidfloor(BigDecimal.valueOf(1.0)).banner(Banner.builder().format(asList(
                         Format.builder().w(100).h(200).build(), Format.builder().w(300).h(400).build())).build())
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
@@ -376,7 +376,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         tuple(HttpHeaders.COOKIE.toString(), "UserID=userId; __io_cid=buyeruid"));
 
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
-                BeachfrontBannerRequest.builder().slots(singletonList(BeachfrontSlot.of("impId1", "appIdExt", 1.0f,
+                BeachfrontBannerRequest.builder().slots(singletonList(BeachfrontSlot.of("impId1", "appIdExt", BigDecimal.valueOf(1.0),
                         asList(BeachfrontSize.of(100, 200), BeachfrontSize.of(300, 400)))))
                         .domain("rubicon.com").page("appId").deviceOs("os").deviceModel("model")
                         .ua("ua").dnt(5).user("buyeruid").adapterName("BF_PREBID_S2S").adapterVersion("0.1.1")
@@ -434,11 +434,11 @@ public class BeachfrontBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder().id("impId1").banner(Banner.builder()
                         .format(singletonList(Format.builder().w(100).h(200).build())).build())
-                        .bidfloor(1f)
+                        .bidfloor(BigDecimal.valueOf(1.0))
                         .ext(Json.mapper.createObjectNode().put("bidder", 5))
                         .build(), Imp.builder().id("impId2").banner(Banner.builder()
                         .format(singletonList(Format.builder().w(200).h(300).build())).build())
-                        .bidfloor(2f)
+                        .bidfloor(BigDecimal.valueOf(2))
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f)))).build()))
                 .build();
 
@@ -455,8 +455,8 @@ public class BeachfrontBidderTest extends VertxTest {
                         + " org.prebid.server.proto.openrtb.ext.ExtPrebid[\"bidder\"])");
 
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(Json.mapper.writeValueAsString(
-                BeachfrontBannerRequest.builder().slots(asList(BeachfrontSlot.of(null, null, 1.0f,
-                        singletonList(BeachfrontSize.of(100, 200))), BeachfrontSlot.of("impId2", "appIdExt", 2f,
+                BeachfrontBannerRequest.builder().slots(asList(BeachfrontSlot.of(null, null, BigDecimal.valueOf(1.0),
+                        singletonList(BeachfrontSize.of(100, 200))), BeachfrontSlot.of("impId2", "appIdExt", BigDecimal.valueOf(2),
                         singletonList(BeachfrontSize.of(200, 300))))).adapterName("BF_PREBID_S2S")
                         .adapterVersion("0.1.1").build()));
     }
@@ -682,7 +682,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().id("reqId").impid("slotId")
-                .price(BigDecimal.valueOf(1.0f)).adm("crid1\"crid2\"crid3").crid("crid2").w(300).h(200).build(),
+                        .price(BigDecimal.valueOf(1.0f)).adm("crid1\"crid2\"crid3").crid("crid2").w(300).h(200).build(),
                 BidType.banner, "USD"));
     }
 

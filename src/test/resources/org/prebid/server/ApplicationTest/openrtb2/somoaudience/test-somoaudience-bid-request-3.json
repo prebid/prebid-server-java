@@ -2,28 +2,12 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId16",
-      "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+      "id": "impId19",
+      "native": {
+        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"id\":0,\"required\":1,\"title\":{\"len\":500}}]}",
+        "ver": "1.1"
       },
-      "bidfloor": 1.5
-    },
-    {
-      "id": "impId17",
-      "banner": {
-        "format": [
-          {
-            "w": 360,
-            "h": 240
-          }
-        ]
-      },
-      "bidfloor": 1.33
+      "bidfloor": 1.9
     }
   ],
   "site": {
@@ -31,9 +15,6 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
     }
   },
   "device": {

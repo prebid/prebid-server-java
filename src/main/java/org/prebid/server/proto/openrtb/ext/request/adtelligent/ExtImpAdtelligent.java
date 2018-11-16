@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.math.BigDecimal;
+
 /**
  * Defines the contract for bidrequest.imp[i].ext.adtelligent
  */
@@ -33,5 +35,5 @@ public class ExtImpAdtelligent {
      * Defines the contract for bidrequest.imp[i].ext.adtelligent.bigFloor
      */
     @JsonProperty("bigFloor")
-    Float bigFloor;
+    BigDecimal bigFloor;
 }
