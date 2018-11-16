@@ -39,25 +39,7 @@ public class PriceGranularity {
                 range(20, 0.5));
     }
 
-    /**
-     * Creates {@link PriceGranularity} for string representation and puts it to
-     * {@link EnumMap<PriceGranularityType, PriceGranularity>}.
-     */
-    private static void putStringPriceGranularity(PriceGranularityType type, Integer precision,
-                                                  ExtGranularityRange... ranges) {
-        STRING_TO_CUSTOM_PRICE_GRANULARITY.put(type,
-                PriceGranularity.createFromRanges(precision, Arrays.asList(ranges)));
-    }
-
-    /**
-     * Creates {@link ExtGranularityRange`} from given precision, min, max and increment parameters.
-     */
-    private static ExtGranularityRange range(int max, double increment) {
-        return ExtGranularityRange.of(BigDecimal.valueOf(max), BigDecimal.valueOf(increment));
-    }
-
-    public static final PriceGranularity DEFAULT = STRING_TO_CUSTOM_PRICE_GRANULARITY
-            .get(PriceGranularityType.med);
+    static final PriceGranularity DEFAULT = STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.med);
 
     private List<ExtGranularityRange> ranges;
     private BigDecimal rangesMax;
@@ -72,8 +54,51 @@ public class PriceGranularity {
     /**
      * Creates {@link PriceGranularity} from {@link ExtPriceGranularity}.
      */
-    public static PriceGranularity createFromExtPriceGranularity(ExtPriceGranularity extPriceGranularity) {
+    static PriceGranularity createFromExtPriceGranularity(ExtPriceGranularity extPriceGranularity) {
         return createFromRanges(extPriceGranularity.getPrecision(), extPriceGranularity.getRanges());
+    }
+
+    /**
+     * Returns {@link PriceGranularity} by string representation if it is present in map, otherwise returns null.
+     */
+    static PriceGranularity createFromString(String stringPriceGranularity) {
+        if (isValidStringPriceGranularityType(stringPriceGranularity)) {
+            return STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.valueOf(stringPriceGranularity));
+        } else {
+            throw new PreBidException(String.format(
+                    "Invalid string price granularity with value: %s", stringPriceGranularity));
+        }
+    }
+
+    /**
+     * Returns list of {@link ExtGranularityRange}s.
+     */
+    public List<ExtGranularityRange> getRanges() {
+        return ranges;
+    }
+
+    /**
+     * Returns max value among all ranges.
+     */
+    BigDecimal getRangesMax() {
+        return rangesMax;
+    }
+
+    /**
+     * Returns {@link PriceGranularity} precision.
+     */
+    public Integer getPrecision() {
+        return precision;
+    }
+
+    /**
+     * Creates {@link PriceGranularity} for string representation and puts it to
+     * {@link EnumMap<PriceGranularityType, PriceGranularity>}.
+     */
+    private static void putStringPriceGranularity(PriceGranularityType type, Integer precision,
+                                                  ExtGranularityRange... ranges) {
+        STRING_TO_CUSTOM_PRICE_GRANULARITY.put(type,
+                PriceGranularity.createFromRanges(precision, Arrays.asList(ranges)));
     }
 
     /**
@@ -94,15 +119,10 @@ public class PriceGranularity {
     }
 
     /**
-     * Returns {@link PriceGranularity} by string representation if it is present in map, otherwise returns null.
+     * Creates {@link ExtGranularityRange`} from given precision, min, max and increment parameters.
      */
-    public static PriceGranularity createFromString(String stringPriceGranularity) {
-        if (isValidStringPriceGranularityType(stringPriceGranularity)) {
-            return STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.valueOf(stringPriceGranularity));
-        } else {
-            throw new PreBidException(String.format(
-                    "Invalid string price granularity with value: %s", stringPriceGranularity));
-        }
+    private static ExtGranularityRange range(int max, double increment) {
+        return ExtGranularityRange.of(BigDecimal.valueOf(max), BigDecimal.valueOf(increment));
     }
 
     /**
@@ -110,26 +130,5 @@ public class PriceGranularity {
      */
     private static boolean isValidStringPriceGranularityType(String stringPriceGranularity) {
         return EnumUtils.isValidEnum(PriceGranularityType.class, stringPriceGranularity);
-    }
-
-    /**
-     * Returns list of {@link ExtGranularityRange}s.
-     */
-    public List<ExtGranularityRange> getRanges() {
-        return ranges;
-    }
-
-    /**
-     * Returns max value among all ranges.
-     */
-    public BigDecimal getRangesMax() {
-        return rangesMax;
-    }
-
-    /**
-     * Returns {@link PriceGranularity} precision.
-     */
-    public Integer getPrecision() {
-        return precision;
     }
 }
