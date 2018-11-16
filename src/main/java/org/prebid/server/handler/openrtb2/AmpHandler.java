@@ -28,6 +28,7 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.model.BidderErrorInfo;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -165,7 +166,9 @@ public class AmpHandler implements Handler<RoutingContext> {
         final ExtResponseDebug extResponseDebug = Objects.equals(bidRequest.getTest(), 1)
                 ? extResponseDebugFrom(bidResponse) : null;
 
-        return AmpResponse.of(targeting, extResponseDebug);
+        final Map<String, List<BidderErrorInfo>> errors = errorsFrom(bidResponse);
+
+        return AmpResponse.of(targeting, extResponseDebug, errors);
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -224,6 +227,17 @@ public class AmpHandler implements Handler<RoutingContext> {
                     String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
         }
         return extBidResponse != null ? extBidResponse.getDebug() : null;
+    }
+
+    private static Map<String, List<BidderErrorInfo>> errorsFrom(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse;
+        try {
+            extBidResponse = Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(
+                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
+        }
+        return extBidResponse != null ? extBidResponse.getErrors() : null;
     }
 
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,

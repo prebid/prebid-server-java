@@ -30,6 +30,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.BidderErrorInfo;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheContext;
@@ -1068,9 +1069,9 @@ public class ExchangeService {
                 : null;
         final ExtResponseDebug extResponseDebug = httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null;
 
-        final Map<String, List<String>> errors = new HashMap<>();
+        final Map<String, List<BidderErrorInfo>> errors = new HashMap<>();
         for (BidderResponse bidderResponse : results) {
-            errors.put(bidderResponse.getBidder(), messages(bidderResponse.getSeatBid().getErrors()));
+            errors.put(bidderResponse.getBidder(), errorsDetails(bidderResponse.getSeatBid().getErrors()));
         }
 
         errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
@@ -1081,7 +1082,7 @@ public class ExchangeService {
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
     }
 
-    private Map<String, List<String>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
+    private Map<String, List<BidderErrorInfo>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
         return bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
                 .flatMap(imp -> asStream(imp.getExt().fieldNames()))
@@ -1091,8 +1092,9 @@ public class ExchangeService {
                         bidder -> Collections.singletonList(bidderCatalog.errorForDeprecatedName(bidder))));
     }
 
-    private static List<String> messages(List<BidderError> errors) {
-        return CollectionUtils.emptyIfNull(errors).stream().map(BidderError::getMessage).collect(Collectors.toList());
+    private static List<BidderErrorInfo> errorsDetails(List<BidderError> errors) {
+        return CollectionUtils.emptyIfNull(errors).stream().map(bidderError -> BidderErrorInfo.builder()
+                .code(bidderError.getCode()).message(bidderError.getMessage()).build()).collect(Collectors.toList());
     }
 
     /**

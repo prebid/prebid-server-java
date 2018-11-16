@@ -73,7 +73,15 @@ A sample response payload looks like this:
     "hb_pb_appnexus": "0.50",
     "hb_size": "300x250",
     "hb_size_appnexus": "300x250"
-  }
+  },
+   "errors": {
+          "openx":[
+              {
+                 "code": 1, 
+                 "message": "The request exceeded the timeout allocated"
+              }
+          ]
+      }
 }
 ```
 

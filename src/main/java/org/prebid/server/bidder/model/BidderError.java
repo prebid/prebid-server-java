@@ -14,28 +14,30 @@ public class BidderError {
 
     Type type;
 
+    int code;
+
     public static BidderError create(String message, Type type) {
-        return BidderError.of(message, type);
+        return BidderError.of(message, type, type.getErrorCode());
     }
 
     public static BidderError generic(String message) {
-        return BidderError.of(message, Type.generic);
+        return BidderError.of(message, Type.generic, Type.generic.getErrorCode());
     }
 
     public static BidderError badInput(String message) {
-        return BidderError.of(message, Type.bad_input);
+        return BidderError.of(message, Type.bad_input, Type.bad_input.getErrorCode());
     }
 
     public static BidderError badServerResponse(String message) {
-        return BidderError.of(message, Type.bad_server_response);
+        return BidderError.of(message, Type.bad_server_response, Type.bad_server_response.getErrorCode());
     }
 
     public static BidderError failedToRequestBids(String message) {
-        return BidderError.of(message, Type.failed_to_request_bids);
+        return BidderError.of(message, Type.failed_to_request_bids, Type.failed_to_request_bids.getErrorCode());
     }
 
     public static BidderError timeout(String message) {
-        return BidderError.of(message, Type.timeout);
+        return BidderError.of(message, Type.timeout, Type.timeout.getErrorCode());
     }
 
     public enum Type {
@@ -45,7 +47,7 @@ public class BidderError {
          * Error of this type will not be written to the app log, since it's not an actionable item for the Prebid
          * Server hosts.
          */
-        bad_input,
+        bad_input(2),
 
         /**
          * Should be used when returning errors which are caused by bad/unexpected behavior on the remote server.
@@ -58,7 +60,7 @@ public class BidderError {
          * These should not be used to log _connection_ errors (e.g. "couldn't find host"), which may indicate config
          * issues for the PBS host company
          */
-        bad_server_response,
+        bad_server_response(3),
 
         /**
          * Covers the case where a bidder failed to generate any http requests to get bids, but did not generate any
@@ -67,9 +69,19 @@ public class BidderError {
          * generate an error explaining the deficiency. Otherwise it will be extremely difficult to debug the reason
          * why a bidder is not bidding.
          */
-        failed_to_request_bids,
+        failed_to_request_bids(4),
 
-        timeout,
-        generic
+        timeout(1),
+        generic(999);
+
+        private final Integer errorCode;
+
+        Type(final Integer errorCode) {
+            this.errorCode = errorCode;
+        }
+
+        public Integer getErrorCode() {
+            return errorCode;
+        }
     }
 }

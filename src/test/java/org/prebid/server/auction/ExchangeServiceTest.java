@@ -37,6 +37,7 @@ import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.BidderErrorInfo;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.account.AccountCacheService;
@@ -225,7 +226,10 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isValidName(invalidBidderName)).willReturn(false);
         given(bidderCatalog.isDeprecatedName(invalidBidderName)).willReturn(true);
         given(bidderCatalog.errorForDeprecatedName(invalidBidderName)).willReturn(
-                "invalid has been deprecated and is no longer available. Use valid instead.");
+                BidderErrorInfo.builder()
+                        .code(BidderError.Type.bad_input.getErrorCode())
+                        .message("invalid has been deprecated and is no longer available. Use valid instead.")
+                        .build());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(invalidBidderName, 0)));
 
@@ -236,7 +240,10 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         assertThat(bidResponse.getExt()).isEqualTo(mapper.valueToTree(ExtBidResponse.of(null,
                 Collections.singletonMap(invalidBidderName, Collections.singletonList(
-                        "invalid has been deprecated and is no longer available. Use valid instead.")),
+                        BidderErrorInfo.builder()
+                                .code(BidderError.Type.bad_input.getErrorCode())
+                                .message("invalid has been deprecated and is no longer available. Use valid instead.")
+                                .build())),
                 new HashMap<>(), null)));
     }
 
@@ -775,8 +782,14 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getResponsetimemillis()).hasSize(2).containsOnlyKeys("bidder1", "bidder2");
         assertThat(ext.getErrors()).hasSize(2).containsOnly(
-                entry("bidder1", singletonList("bidder1_error1")),
-                entry("bidder2", asList("bidder2_error1", "bidder2_error2")));
+                entry("bidder1", singletonList(BidderErrorInfo.builder()
+                        .code(BidderError.Type.bad_server_response.getErrorCode())
+                        .message("bidder1_error1").build())),
+                entry("bidder2", asList(BidderErrorInfo.builder()
+                        .code(BidderError.Type.bad_server_response.getErrorCode())
+                        .message("bidder2_error1").build(), BidderErrorInfo.builder()
+                        .code(BidderError.Type.bad_server_response.getErrorCode())
+                        .message("bidder2_error2").build())));
     }
 
     @Test
@@ -946,7 +959,10 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).hasSize(1).containsOnly(
-                entry("bidder1", singletonList("bid validation error")));
+                entry("bidder1", singletonList(BidderErrorInfo.builder()
+                        .code(BidderError.Type.generic.getErrorCode())
+                        .message("bid validation error")
+                        .build())));
     }
 
     @Test
@@ -1548,7 +1564,10 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid).isEmpty();
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).hasSize(1).containsOnly(
-                entry("bidder", singletonList("no currency conversion available")));
+                entry("bidder", singletonList(BidderErrorInfo.builder()
+                        .code(BidderError.Type.generic.getErrorCode())
+                        .message("no currency conversion available")
+                        .build())));
     }
 
     @Test
@@ -1599,7 +1618,10 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(Bid::getPrice).containsExactly(BigDecimal.valueOf(10.0));
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).hasSize(1).containsOnly(
-                entry("bidder", singletonList("no currency conversion available")));
+                entry("bidder", singletonList(BidderErrorInfo.builder()
+                        .code(BidderError.Type.generic.getErrorCode())
+                        .message("no currency conversion available")
+                        .build())));
     }
 
     @Test

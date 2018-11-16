@@ -522,7 +522,10 @@
     },
     "errors": {
       "appnexus": [
-        "Appnexus doesn't support audio Imps. Ignoring Imp ID=impId32"
+        {
+          "code": 2,
+          "message": "Appnexus doesn't support audio Imps. Ignoring Imp ID=impId32"
+        }
       ],
       "appnexusAlias": [],
       "rubicon": []
