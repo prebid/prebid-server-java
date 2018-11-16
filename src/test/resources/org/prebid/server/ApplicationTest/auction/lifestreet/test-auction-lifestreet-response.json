@@ -27,7 +27,7 @@
       "height": 250,
       "deal_id": "dealId8",
       "cache_id": "7a68398e-c00f-4ca9-88bb-9078a15e7e26",
-      "cache_url": "{{ cache_resource_url }}7a68398e-c00f-4ca9-88bb-9078a15e7e26",
+      "cache_url": "{{ cache.resource_url }}7a68398e-c00f-4ca9-88bb-9078a15e7e26",
       "response_time_ms": "{{ lifestreet.response_time_ms }}",
       "ad_server_targeting": {
         "hb_pb": "5.70",
