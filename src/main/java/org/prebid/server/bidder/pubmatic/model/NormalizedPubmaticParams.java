@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.pubmatic.model;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -16,4 +17,8 @@ public class NormalizedPubmaticParams {
     Integer width;
 
     Integer height;
+
+    ObjectNode wrapExt;
+
+    ObjectNode keywords;
 }

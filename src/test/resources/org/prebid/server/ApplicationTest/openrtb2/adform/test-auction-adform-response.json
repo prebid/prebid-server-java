@@ -24,16 +24,16 @@
                 "hb_bidder_adform": "adform",
                 "hb_creative_loadtype": "html",
                 "hb_pb_adform": "8.40",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_adform": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_adform": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_adform": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_adform": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_adform": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_adform": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
+                  "url": "{{ cache.resource_url }}ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
                   "cacheId": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce"
                 }
               }

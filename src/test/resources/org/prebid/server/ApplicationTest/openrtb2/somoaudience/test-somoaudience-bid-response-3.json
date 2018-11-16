@@ -1,0 +1,26 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bidId04",
+          "impid": "impId19",
+          "price": 10.000000,
+          "adid": "adid19",
+          "adm": "{\"assets\":[{\"id\": 0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}],\"jstracker\":\"<script src=\\\"http://www.dummyurl.js\\\"></script>\"}",
+          "adomain": [
+            "appnexus.com"
+          ],
+          "iurl": "http://nym1-ib.adnxs.com/cr?id=69595837",
+          "cid": "cid19",
+          "crid": "crid19",
+          "cat": [
+            "IAB3-1"
+          ]
+        }
+      ],
+      "seat": "seatId03"
+    }
+  ]
+}

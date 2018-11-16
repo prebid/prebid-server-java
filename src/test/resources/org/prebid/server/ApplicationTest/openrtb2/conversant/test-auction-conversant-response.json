@@ -24,16 +24,16 @@
                 "hb_cache_id": "c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
                 "hb_creative_loadtype": "html",
                 "hb_size_conversant": "300x600",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_conversant": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_conversant": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_conversant": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_conversant": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_conversant": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_conversant": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
+                  "url": "{{ cache.resource_url }}c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
                   "cacheId": "c9eb3deb-2054-40f5-9cf3-f9047dc240a2"
                 }
               }
@@ -63,20 +63,20 @@
                 "hb_creative_loadtype": "html",
                 "hb_size_conversant": "300x600",
                 "hb_uuid_conversant": "86720a1b-e025-4404-8522-c4dd3333096e",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_conversant": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_conversant": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_conversant": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_conversant": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_conversant": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_conversant": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}8f17dd0b-e615-48d1-a7b1-08a704aae48d",
+                  "url": "{{ cache.resource_url }}8f17dd0b-e615-48d1-a7b1-08a704aae48d",
                   "cacheId": "8f17dd0b-e615-48d1-a7b1-08a704aae48d"
                 },
                 "vastXml": {
-                  "url": "{{ cache_resource_url }}86720a1b-e025-4404-8522-c4dd3333096e",
+                  "url": "{{ cache.resource_url }}86720a1b-e025-4404-8522-c4dd3333096e",
                   "cacheId": "86720a1b-e025-4404-8522-c4dd3333096e"
                 }
               }
@@ -229,7 +229,6 @@
         "ext": {
           "prebid": {
             "aliases": {
-              "appnexusAlias": "appnexus",
               "conversantAlias": "conversant"
             },
             "targeting": {

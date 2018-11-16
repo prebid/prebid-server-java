@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -18,7 +19,7 @@ public class ExtImpOpenx {
     String delDomain;
 
     @JsonProperty("customFloor")
-    Float customFloor;
+    BigDecimal customFloor;
 
     @JsonProperty("customParams")
     Map<String, String> customParams;

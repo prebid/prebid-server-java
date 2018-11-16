@@ -4,7 +4,7 @@
     {
       "bid": [
         {
-          "id": "620160380",
+          "id": "bidId01",
           "impid": "impId16",
           "price": 8.43,
           "adm": "adm16",
@@ -12,10 +12,19 @@
           "dealid": "dealId16",
           "w": 300,
           "h": 250
+        },
+        {
+          "id": "bidId02",
+          "impid": "impId17",
+          "price": 7.99,
+          "adm": "adm17",
+          "crid": "crid17",
+          "dealid": "dealId17",
+          "w": 360,
+          "h": 240
         }
       ],
-      "seat": "seatId16",
-      "group": 0
+      "seat": "seatId01"
     }
   ]
 }

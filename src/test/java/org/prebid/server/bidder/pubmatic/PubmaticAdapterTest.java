@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.pubmatic;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -27,6 +28,7 @@ import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
+import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -36,6 +38,7 @@ import org.prebid.server.proto.request.Video;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.MediaType;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.EnumSet;
 import java.util.List;
@@ -44,9 +47,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
@@ -113,7 +124,7 @@ public class PubmaticAdapterTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("Incorrect adSlot / Publisher param");
+                .hasMessageStartingWith("Incorrect adSlot / Publisher param, Error list: [");
     }
 
     @Test
@@ -123,15 +134,15 @@ public class PubmaticAdapterTest extends VertxTest {
         adapterRequest = AdapterRequest.of(BIDDER, asList(
                 givenAdUnitBidCustomizable(identity()),
                 givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
-                        PubmaticParams.of(null, null)))),
+                        PubmaticParams.of(null, null, null, null)))),
                 givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
-                        PubmaticParams.of("publisherID", null)))),
+                        PubmaticParams.of("publisherID", null, null, null)))),
                 givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
-                        PubmaticParams.of("publisherID", "slot42")))),
+                        PubmaticParams.of("publisherID", "slot42", null, null)))),
                 givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
-                        PubmaticParams.of("publisherID", "slot42@200")))),
+                        PubmaticParams.of("publisherID", "slot42@200", null, null)))),
                 givenAdUnitBidCustomizable(builder -> builder.params(mapper.valueToTree(
-                        PubmaticParams.of("publisherID", "slot42@200xNonNumber"))))));
+                        PubmaticParams.of("publisherID", "slot42@200xNonNumber", null, null))))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -164,7 +175,7 @@ public class PubmaticAdapterTest extends VertxTest {
         // given
         adapterRequest = givenBidderCustomizable(
                 builder -> builder
-                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
+                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz", null, null))));
 
         given(uidsCookie.uidFrom(eq(BIDDER))).willReturn("buyerUid");
 
@@ -210,8 +221,11 @@ public class PubmaticAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnRequestsWithExpectedFields() {
+    public void makeHttpRequestsShouldReturnRequestsWithExpectedFields() throws IOException {
         // given
+        final ObjectNode wrapExt = mapper.valueToTree(singletonMap("key", 1));
+        final Map<String, String> keywords = singletonMap("key1", "value1");
+
         adapterRequest = givenBidderCustomizable(
                 builder -> builder
                         .bidderCode(BIDDER)
@@ -219,7 +233,8 @@ public class PubmaticAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz"))));
+                        .params(mapper.valueToTree(
+                                PubmaticParams.of("publisherID", "slot42@200x150:zzz", wrapExt, keywords))));
 
         preBidRequestContext = givenPreBidRequestContextCustomizable(
                 builder -> builder
@@ -256,6 +271,7 @@ public class PubmaticAdapterTest extends VertxTest {
                                         .h(150)
                                         .topframe(1)
                                         .build())
+                                .ext(mapper.readValue("{\"key1\":\"value1\"}", ObjectNode.class))
                                 .build()))
                         .site(Site.builder()
                                 .domain("example.com")
@@ -275,7 +291,48 @@ public class PubmaticAdapterTest extends VertxTest {
                                 .fd(1)
                                 .tid("tid")
                                 .build())
+                        .ext(mapper.valueToTree(
+                                PubmaticRequestExt.of(mapper.valueToTree(singletonMap("key", 1)))))
                         .build());
+    }
+
+    @Test
+    public void makeHttpRequestShouldNotChangeExtIfWrapExtIsMissing() {
+        // given
+        adapterRequest = givenBidderCustomizable(
+                builder -> builder
+                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz",
+                                null, null))));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .extracting(AdapterHttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .containsNull();
+    }
+
+    @Test
+    public void makeHttpRequestShouldNotChangeImpExtIfKeywordsAreMissing() {
+        // given
+        adapterRequest = givenBidderCustomizable(
+                builder -> builder
+                        .params(mapper.valueToTree(PubmaticParams.of("publisherID", "slot42@200x150:zzz",
+                                null, null))));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .extracting(AdapterHttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsNull();
     }
 
     @Test
@@ -445,7 +502,7 @@ public class PubmaticAdapterTest extends VertxTest {
         exchangeCall = givenExchangeCallCustomizable(
                 bidRequestBuilder -> bidRequestBuilder.imp(singletonList(Imp.builder().build())),
                 bidResponseBuilder -> bidResponseBuilder.seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder().impid("adUnitCode").build())).build())));
+                        .bid(singletonList(Bid.builder().impid("adUnitCode").build())).build())));
 
         // when
         final List<org.prebid.server.proto.response.Bid> bids =
@@ -550,7 +607,7 @@ public class PubmaticAdapterTest extends VertxTest {
             Function<AdUnitBid.AdUnitBidBuilder, AdUnitBid.AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(480).h(320).build()))
-                .params(mapper.valueToTree(PubmaticParams.of("publisherId1", "slot1@300x250:zzz")))
+                .params(mapper.valueToTree(PubmaticParams.of("publisherId1", "slot1@300x250:zzz", null, null)))
                 .mediaTypes(singleton(MediaType.banner));
 
         final AdUnitBid.AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer

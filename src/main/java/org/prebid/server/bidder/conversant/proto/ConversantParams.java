@@ -3,6 +3,7 @@ package org.prebid.server.bidder.conversant.proto;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Builder
@@ -17,7 +18,7 @@ public class ConversantParams {
 
     Integer position;
 
-    Float bidfloor;
+    BigDecimal bidfloor;
 
     Integer mobile;
 

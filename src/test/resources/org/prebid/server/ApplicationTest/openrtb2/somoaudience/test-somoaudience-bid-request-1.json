@@ -11,11 +11,19 @@
           }
         ]
       },
-      "ext": {
-        "bidder": {
-          "placement_hash": "placementId"
-        }
-      }
+      "bidfloor": 1.5
+    },
+    {
+      "id": "impId17",
+      "banner": {
+        "format": [
+          {
+            "w": 360,
+            "h": 240
+          }
+        ]
+      },
+      "bidfloor": 1.33
     }
   ],
   "site": {
@@ -60,40 +68,6 @@
     }
   },
   "ext": {
-    "prebid": {
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "currency": {
-          "rates": {
-            "EUR": {
-              "USD": 1.2406
-            },
-            "USD": {
-              "EUR": 0.8110
-            }
-          }
-        },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "cache": {
-        "bids": {},
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      }
-    }
+    "prebid": "hb_pbs_1.0.0"
   }
 }
