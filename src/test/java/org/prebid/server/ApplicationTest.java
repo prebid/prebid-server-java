@@ -1,7 +1,16 @@
 package org.prebid.server;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
+import com.github.tomakehurst.wiremock.common.FileSource;
+import com.github.tomakehurst.wiremock.extension.Parameters;
+import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
+import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import com.iab.gdpr.consent.VendorConsentEncoder;
 import com.iab.gdpr.consent.implementation.v1.VendorConsentBuilder;
@@ -17,6 +26,7 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.BeforeClass;
@@ -53,6 +63,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static io.restassured.RestAssured.given;
+import static io.restassured.RestAssured.trustStore;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -93,8 +104,24 @@ public class ApplicationTest extends VertxTest {
     private static final String AUCTION_RESPONSE_TIME_PLACEHOLDER = "bidder_status.find { it.bidder == '%s' }.response_time_ms";
 
     @ClassRule
-    public static final WireMockClassRule wireMockRule = new WireMockClassRule(WIREMOCK_PORT);
-//    public static final WireMockClassRule wireMockRule =  new WireMockClassRule(wireMockConfig().port(WIREMOCK_PORT).notifier(new ConsoleNotifier(true)));
+    public static final WireMockClassRule wireMockRule = new WireMockClassRule(wireMockConfig().port(WIREMOCK_PORT).extensions(new ResponseTransformer() {
+        @Override
+        public com.github.tomakehurst.wiremock.http.Response transform(Request request, com.github.tomakehurst.wiremock.http.Response response, FileSource files, Parameters parameters) {
+            String newResponse = cacheResponseFromRequestJson(request.getBodyAsString(), parameters.getString("matcherName"));
+            return com.github.tomakehurst.wiremock.http.Response.response().body(newResponse).status(200).build();
+        }
+
+        @Override
+        public String getName() {
+            return "cache-response-transformer";
+        }
+
+        @Override
+        public boolean applyGlobally() {
+            return false;
+        }
+    }));
+
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
 
@@ -135,8 +162,11 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-cache-conversant-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/test-cache-conversant-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-cache-conversant-request.json"), true, false))
+                .willReturn(aResponse()
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName", "openrtb2/conversant/test-cache-matcher-conversant.json")
+                ));
 
         //when
         final Response response = given(spec)
@@ -170,8 +200,11 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-cache-ix-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-cache-ix-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-cache-ix-request.json"), true, false))
+                .willReturn(aResponse()
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName", "openrtb2/ix/test-cache-matcher-ix.json")
+                ));
 
         //when
         final Response response = given(spec)
@@ -294,8 +327,11 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/pubmatic/test-cache-pubmatic-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/pubmatic/test-cache-pubmatic-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/pubmatic/test-cache-pubmatic-request.json"), true, false))
+                .willReturn(aResponse()
+                .withTransformers("cache-response-transformer")
+                .withTransformerParameter("matcherName", "openrtb2/pubmatic/test-cache-matcher-pubmatic.json")
+        ));
 
         //when
         final Response response = given(spec)
@@ -457,9 +493,11 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/openx/test-cache-openx-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/openx/test-cache-openx-response.json"))));
-
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/openx/test-cache-openx-request.json"), true, false))
+                .willReturn(aResponse()
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName", "openrtb2/openx/test-cache-matcher-openx.json")
+                ));
         //when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
@@ -696,8 +734,11 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json"), true, false))
+                .willReturn(aResponse()
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName", "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")
+                ));
 
         // when
         final Response response = given(spec)
@@ -737,8 +778,11 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("amp/test-cache-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("amp/test-cache-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("amp/test-cache-request.json"), true, false))
+                .willReturn(aResponse()
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName", "amp/test-cache-matcher-amp.json")
+                ));
 
         // when and then
         final Response response = given(spec)
@@ -1406,6 +1450,37 @@ public class ApplicationTest extends VertxTest {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(ApplicationTest.class.getResourceAsStream(
                 ApplicationTest.class.getSimpleName() + "/" + file)));
+    }
+
+    private static String cacheResponseFromRequestJson(String requestAsString, String requestCacheIdMapFile) {
+        ArrayNode responseArray = mapper.createArrayNode();
+
+        try {
+            JsonNode jsonNodeRequest = mapper.readTree(requestAsString);
+            JsonNode jsonNodeMatcher = mapper.readTree(ApplicationTest.class.getResourceAsStream(ApplicationTest.class.getSimpleName() + "/" + requestCacheIdMapFile));
+            ArrayNode puts = (ArrayNode) jsonNodeRequest.get("puts");
+
+            for (JsonNode putItem : puts) {
+                if (putItem.get("type").textValue().equals("json")) {
+                    String id = putItem.get("value").get("id").textValue() + "@" + putItem.get("value").get("price").doubleValue();
+                    String uuid = jsonNodeMatcher.get(id).textValue();
+                    responseArray.add(mapper.createObjectNode().put("uuid", uuid));
+                } else {
+                    String id = putItem.get("value").textValue();
+                    if(id == null) { //workaround for conversant
+                        id = "null";
+                    }
+                    String uuid = jsonNodeMatcher.get(id).textValue();
+                    responseArray.add( mapper.createObjectNode().put("uuid", uuid));
+                }
+            }
+
+            ObjectNode response = mapper.createObjectNode();
+            response.put("responses", responseArray);
+            return mapper.writeValueAsString(response);
+        } catch (IOException e) {
+            return mapper.createObjectNode().toString();
+        }
     }
 
     private static String legacyAuctionResponseFrom(String template, Response response, Map<String, String> exchanges) {

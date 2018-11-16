@@ -131,7 +131,17 @@
               "targeting": {
                 "hb_bidder_appnexusAlias": "appnexusAlias",
                 "hb_pb_appnexusAlias": "4.00",
-                "hb_size_appnexusAlias": "300x250"
+                "hb_size_appnexusAlias": "300x250",
+                "hb_cache_id_appnexusAlias": "91912e5b-dfa8-42bc-9c7e-df6ce0449c19",
+                "hb_cache_host_appnexusAlias": "{{ host }}",
+                "hb_cache_path_appnexusAlias": "{{ path }}",
+                "hb_cache_hostpath_appnexusAlias": "{{ hostpath }}"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache_resource_url }}91912e5b-dfa8-42bc-9c7e-df6ce0449c19",
+                  "cacheId": "91912e5b-dfa8-42bc-9c7e-df6ce0449c19"
+                }
               }
             },
             "bidder": {
