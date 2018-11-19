@@ -24,16 +24,16 @@
                 "hb_bidder": "pulsepoint",
                 "hb_cache_id": "b537fcb1-28c9-4cd1-bf74-abc7730fd1f4",
                 "hb_creative_loadtype": "html",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_pulsepoint": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_pulsepoint": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_pulsepoint": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_pulsepoint": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_pulsepoint": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_pulsepoint": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}b537fcb1-28c9-4cd1-bf74-abc7730fd1f4",
+                  "url": "{{ cache.resource_url }}b537fcb1-28c9-4cd1-bf74-abc7730fd1f4",
                   "cacheId": "b537fcb1-28c9-4cd1-bf74-abc7730fd1f4"
                 }
               }

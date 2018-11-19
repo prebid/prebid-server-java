@@ -25,16 +25,16 @@
                 "hb_pb_audienceNetwork": "7.20",
                 "hb_creative_loadtype": "demand_sdk",
                 "hb_deal": "dealId5",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_audienceNetwork": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_audienceNetwork": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_audienceNetwork": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_audienceNetwork": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_audienceNetwork": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_audienceNetwork": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}9bde9bf0-7726-4789-9f5a-b948131d778d",
+                  "url": "{{ cache.resource_url }}9bde9bf0-7726-4789-9f5a-b948131d778d",
                   "cacheId": "9bde9bf0-7726-4789-9f5a-b948131d778d"
                 }
               }

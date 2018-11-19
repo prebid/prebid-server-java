@@ -11,11 +11,13 @@
           }
         ]
       },
+      "bidfloor": 20,
       "ext": {
         "adtelligent": {
           "aid": 1000,
           "placementId": 10,
-          "siteId": 1234
+          "siteId": 1234,
+          "bidFloor": 20
         }
       }
     }
@@ -66,10 +68,6 @@
   },
   "ext": {
     "prebid": {
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

@@ -32,8 +32,8 @@ public class ExtImpAdtelligent {
     Integer siteId;
 
     /**
-     * Defines the contract for bidrequest.imp[i].ext.adtelligent.bigFloor
+     * Defines the contract for bidrequest.imp[i].ext.adtelligent.bidFloor
      */
-    @JsonProperty("bigFloor")
-    BigDecimal bigFloor;
+    @JsonProperty("bidFloor")
+    BigDecimal bidFloor;
 }

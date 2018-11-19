@@ -2,7 +2,7 @@ package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -20,7 +20,7 @@ class UpdatableMetrics {
     UpdatableMetrics(MetricRegistry metricRegistry, CounterType counterType, Function<MetricName, String> nameCreator) {
         this.metricRegistry = metricRegistry;
         this.nameCreator = nameCreator;
-        metricNames = new HashMap<>();
+        metricNames = new EnumMap<>(MetricName.class);
 
         switch (counterType) {
             case flushingCounter:
@@ -42,32 +42,32 @@ class UpdatableMetrics {
     /**
      * Increments metric's counter.
      */
-    protected void incCounter(MetricName metricName) {
+    void incCounter(MetricName metricName) {
         incCounter(metricName, 1);
     }
 
     /**
      * Increments metric's counter on a given value.
      */
-    protected void incCounter(MetricName metricName, long value) {
+    void incCounter(MetricName metricName, long value) {
         incrementer.accept(metricRegistry, name(metricName), value);
     }
 
-    protected void decCounter(MetricName metricName) {
+    void decCounter(MetricName metricName) {
         metricRegistry.counter(name(metricName)).dec();
     }
 
     /**
      * Updates metric's timer with a given value.
      */
-    protected void updateTimer(MetricName metricName, long millis) {
+    void updateTimer(MetricName metricName, long millis) {
         metricRegistry.timer(name(metricName)).update(millis, TimeUnit.MILLISECONDS);
     }
 
     /**
      * Updates metric's histogram with a given value.
      */
-    protected void updateHistogram(MetricName metricName, long value) {
+    void updateHistogram(MetricName metricName, long value) {
         // by default histograms with exponentially decaying reservoir (size=1028, alpha=0.015) are created
         metricRegistry.histogram(name(metricName)).update(value);
     }

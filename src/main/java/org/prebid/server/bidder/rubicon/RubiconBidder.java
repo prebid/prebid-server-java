@@ -228,7 +228,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private boolean isMetricSupported(Metric metric) {
-        return supportedVendors.contains(metric.getVendor()) && metric.getType().equals("viewability");
+        return supportedVendors.contains(metric.getVendor()) && Objects.equals(metric.getType(), "viewability");
     }
 
     private RubiconImpExt makeImpExt(ExtImpRubicon rubiconImpExt, Imp imp) {

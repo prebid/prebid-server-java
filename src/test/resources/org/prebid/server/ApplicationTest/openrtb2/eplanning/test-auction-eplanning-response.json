@@ -27,16 +27,16 @@
                 "hb_creative_loadtype": "html",
                 "hb_size_eplanning": "300x250",
                 "hb_deal": "dealId15",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_eplanning": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_eplanning": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_eplanning": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_eplanning": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_eplanning": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_eplanning": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}6fb008f6-9e09-43ad-830b-ffed21345119",
+                  "url": "{{ cache.resource_url }}6fb008f6-9e09-43ad-830b-ffed21345119",
                   "cacheId": "6fb008f6-9e09-43ad-830b-ffed21345119"
                 }
               }

@@ -30,20 +30,20 @@
                 "hb_cache_id": "2d20ad14-7070-4edd-8b9f-fbb11eb53de9",
                 "hb_pb_adkernelAdn": "1.80",
                 "hb_creative_loadtype": "html",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_adkernelAdn": "{{ host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_adkernelAdn": "{{ cache.host }}",
                 "hb_cache_path": "/cache",
                 "hb_cache_path_adkernelAdn": "/cache",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_adkernelAdn": "{{ hostpath }}"
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_adkernelAdn": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}2d20ad14-7070-4edd-8b9f-fbb11eb53de9",
+                  "url": "{{ cache.resource_url }}2d20ad14-7070-4edd-8b9f-fbb11eb53de9",
                   "cacheId": "2d20ad14-7070-4edd-8b9f-fbb11eb53de9"
                 },
                 "vastXml": {
-                  "url": "{{ cache_resource_url }}a3558327-7696-4606-a5e9-43413bd7faea",
+                  "url": "{{ cache.resource_url }}a3558327-7696-4606-a5e9-43413bd7faea",
                   "cacheId": "a3558327-7696-4606-a5e9-43413bd7faea"
                 }
               }
@@ -79,16 +79,16 @@
                 "hb_cache_id": "aedec380-879a-4029-8e7a-5a51676c887c",
                 "hb_pb_adkernelAdn": "0.40",
                 "hb_creative_loadtype": "html",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_adkernelAdn": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_adkernelAdn": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_adkernelAdn": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_adkernelAdn": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_adkernelAdn": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_adkernelAdn": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}aedec380-879a-4029-8e7a-5a51676c887c",
+                  "url": "{{ cache.resource_url }}aedec380-879a-4029-8e7a-5a51676c887c",
                   "cacheId": "aedec380-879a-4029-8e7a-5a51676c887c"
                 }
               }

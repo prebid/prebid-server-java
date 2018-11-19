@@ -229,8 +229,8 @@ public class AmpRequestFactory {
         } else {
             final List<Format> multiSizeFormats = StringUtils.isNotBlank(multiSizeParam)
                     ? parseMultiSizeParam(multiSizeParam)
-                    : null;
-            if (CollectionUtils.isNotEmpty(multiSizeFormats)) {
+                    : Collections.emptyList();
+            if (!multiSizeFormats.isEmpty()) {
                 overrideFormats = multiSizeFormats;
             } else if (width != 0 && height != 0) {
                 overrideFormats = Collections.singletonList(Format.builder().w(width).h(height).build());
@@ -301,14 +301,14 @@ public class AmpRequestFactory {
         for (String format : formatStrings) {
             final String[] widthHeight = format.split("x", NO_LIMIT_SPLIT_MODE);
             if (widthHeight.length != 2) {
-                return null;
+                return Collections.emptyList();
             }
 
             final Integer width = parseIntOrZero(widthHeight[0]);
             final Integer height = parseIntOrZero(widthHeight[1]);
 
             if (width == 0 && height == 0) {
-                return null;
+                return Collections.emptyList();
             }
 
             formats.add(Format.builder()

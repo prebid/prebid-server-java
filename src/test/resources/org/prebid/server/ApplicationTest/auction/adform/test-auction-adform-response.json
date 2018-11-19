@@ -26,7 +26,7 @@
       "width": 400,
       "height": 300,
       "cache_id": "6e07e8e2-fc58-4bb0-8d66-2277589bd27c",
-      "cache_url": "{{ cache_resource_url }}6e07e8e2-fc58-4bb0-8d66-2277589bd27c",
+      "cache_url": "{{ cache.resource_url }}6e07e8e2-fc58-4bb0-8d66-2277589bd27c",
       "response_time_ms": "{{ adform.response_time_ms }}",
       "ad_server_targeting": {
         "hb_pb": "10.50",
