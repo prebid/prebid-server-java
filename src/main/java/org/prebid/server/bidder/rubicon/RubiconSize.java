@@ -11,9 +11,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @EqualsAndHashCode
-public final class RubiconSize {
+final class RubiconSize {
 
     private static final Map<RubiconSize, Integer> SIZES = new HashMap<>();
+    private static final Comparator<Integer> COMPARATOR = new MASComparator().thenComparing(Comparator.naturalOrder());
 
     static {
         SIZES.put(size(468, 60), 1);
@@ -73,11 +74,11 @@ public final class RubiconSize {
         return new RubiconSize(w, h);
     }
 
-    public static Integer toId(Format size) {
+    static Integer toId(Format size) {
         return SIZES.getOrDefault(size(size.getW(), size.getH()), 0);
     }
 
-    public static List<Format> idToSize(List<Integer> sizeIds) {
+    static List<Format> idToSize(List<Integer> sizeIds) {
         final List<Format> result = new ArrayList<>();
         for (Integer id : sizeIds) {
             final List<Format> idResult = SIZES.keySet().stream()
@@ -93,13 +94,12 @@ public final class RubiconSize {
     }
 
     // MAS comparator stuff
-    private static final Comparator<Integer> COMPARATOR = new MASComparator().thenComparing(Comparator.naturalOrder());
 
     /**
      * This comparator is used to sort size ids with intention to pick primary one. Sort order must be 15,2,9 in that
      * order, then ascending order.
      */
-    public static Comparator<Integer> comparator() {
+    static Comparator<Integer> comparator() {
         return COMPARATOR;
     }
 

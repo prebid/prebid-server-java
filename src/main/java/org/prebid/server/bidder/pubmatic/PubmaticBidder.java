@@ -85,7 +85,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (parsedImps.size() == 0) {
+        if (parsedImps.isEmpty()) {
             return Result.of(Collections.emptyList(), errors);
         }
 

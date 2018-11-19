@@ -117,29 +117,27 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
         impBuilder.ext(null); // do not forward ext to adkernel platform
 
-        if (compatBanner != null) {
+        if (compatBanner != null && compatBanner.getW() == null && compatBanner.getH() == null) {
             //As banner.w/h are required fields for adkernel adn platform - take the first format entry
-            if (compatBanner.getW() == null && compatBanner.getH() == null) {
-                final List<Format> compatBannerFormat = compatBanner.getFormat();
+            final List<Format> compatBannerFormat = compatBanner.getFormat();
 
-                if (CollectionUtils.isEmpty(compatBannerFormat)) {
-                    throw new PreBidException("Expected at least one banner.format entry or explicit w/h");
-                }
-
-                final Format format = compatBannerFormat.get(0);
-                final Banner.BannerBuilder bannerBuilder = compatBanner.toBuilder();
-
-                if (compatBannerFormat.size() > 1) {
-                    bannerBuilder.format(compatBannerFormat.subList(1, compatBannerFormat.size()));
-                } else {
-                    bannerBuilder.format(Collections.emptyList());
-                }
-                bannerBuilder
-                        .w(format.getW())
-                        .h(format.getH());
-
-                impBuilder.banner(bannerBuilder.build());
+            if (CollectionUtils.isEmpty(compatBannerFormat)) {
+                throw new PreBidException("Expected at least one banner.format entry or explicit w/h");
             }
+
+            final Format format = compatBannerFormat.get(0);
+            final Banner.BannerBuilder bannerBuilder = compatBanner.toBuilder();
+
+            if (compatBannerFormat.size() > 1) {
+                bannerBuilder.format(compatBannerFormat.subList(1, compatBannerFormat.size()));
+            } else {
+                bannerBuilder.format(Collections.emptyList());
+            }
+            bannerBuilder
+                    .w(format.getW())
+                    .h(format.getH());
+
+            impBuilder.banner(bannerBuilder.build());
         }
 
         return impBuilder.build();

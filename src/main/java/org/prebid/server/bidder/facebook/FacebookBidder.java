@@ -205,10 +205,8 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
 
         final Video video = imp.getVideo();
-        if (imp.getVideo() != null) {
-            if (CollectionUtils.isEmpty(video.getMimes())) {
-                throw new PreBidException("audienceNetwork doesn't support video type with no video data");
-            }
+        if (video != null && CollectionUtils.isEmpty(video.getMimes())) {
+            throw new PreBidException("audienceNetwork doesn't support video type with no video data");
         }
     }
 

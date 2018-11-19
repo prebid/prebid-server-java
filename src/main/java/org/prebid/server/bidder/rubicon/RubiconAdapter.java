@@ -360,10 +360,9 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static MediaType mediaTypeFor(BidRequest bidRequest) {
         final MediaType mediaType = MediaType.banner;
-        if (bidRequest != null && CollectionUtils.isNotEmpty(bidRequest.getImp())) {
-            if (bidRequest.getImp().get(0).getVideo() != null) {
-                return MediaType.video;
-            }
+        if (bidRequest != null && CollectionUtils.isNotEmpty(bidRequest.getImp())
+                && bidRequest.getImp().get(0).getVideo() != null) {
+            return MediaType.video;
         }
         return mediaType;
     }
