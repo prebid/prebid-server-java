@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -92,7 +93,7 @@ public class Imp {
     String tagid;
 
     /** Minimum bid for this impression expressed in CPM. */
-    Float bidfloor;
+    BigDecimal bidfloor;
 
     /**
      * Currency specified using ISO-4217 alpha codes. This may be different from

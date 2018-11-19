@@ -27,16 +27,16 @@
                 "hb_cache_id_openx": "bdf4b96c-3d1a-4c92-b8da-aece5d514e0b",
                 "hb_deal": "dealId00",
                 "hb_size_openx": "300x250",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_openx": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_openx": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_openx": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_openx": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_openx": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}bdf4b96c-3d1a-4c92-b8da-aece5d514e0b",
+                  "url": "{{ cache.resource_url }}bdf4b96c-3d1a-4c92-b8da-aece5d514e0b",
                   "cacheId": "bdf4b96c-3d1a-4c92-b8da-aece5d514e0b"
                 }
               }
@@ -67,16 +67,16 @@
                 "hb_cache_id_openx": "827f68ed-03d5-4dad-8794-4518f01fbfb8",
                 "hb_deal": "dealId00",
                 "hb_size_openx": "300x250",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_openx": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_openx": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_openx": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_openx": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_openx": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}827f68ed-03d5-4dad-8794-4518f01fbfb8",
+                  "url": "{{ cache.resource_url }}827f68ed-03d5-4dad-8794-4518f01fbfb8",
                   "cacheId": "827f68ed-03d5-4dad-8794-4518f01fbfb8"
                 }
               }
@@ -109,20 +109,20 @@
                 "hb_size_openx": "300x250",
                 "hb_uuid_openx": "857b3394-c5ac-402c-9cca-54ae52b927fc",
                 "hb_uuid": "857b3394-c5ac-402c-9cca-54ae52b927fc",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_openx": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_openx": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_openx": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_openx": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_openx": "{{ cache.hostpath }}"
               },
               "cache": {
                 "vastXml": {
-                  "url": "{{ cache_resource_url }}857b3394-c5ac-402c-9cca-54ae52b927fc",
+                  "url": "{{ cache.resource_url }}857b3394-c5ac-402c-9cca-54ae52b927fc",
                   "cacheId": "857b3394-c5ac-402c-9cca-54ae52b927fc"
                 },
                 "bids": {
-                  "url": "{{ cache_resource_url }}6f10452f-dbf8-4d5c-9f40-760080e08612",
+                  "url": "{{ cache.resource_url }}6f10452f-dbf8-4d5c-9f40-760080e08612",
                   "cacheId": "6f10452f-dbf8-4d5c-9f40-760080e08612"
                 }
               }
@@ -155,20 +155,20 @@
                 "hb_size_openx": "300x250",
                 "hb_uuid_openx": "18b7676c-f024-4a06-aa1a-5d222a643603",
                 "hb_uuid": "18b7676c-f024-4a06-aa1a-5d222a643603",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_openx": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_openx": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_openx": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_openx": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_openx": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_openx": "{{ cache.hostpath }}"
               },
               "cache": {
                 "vastXml": {
-                  "url": "{{ cache_resource_url }}18b7676c-f024-4a06-aa1a-5d222a643603",
+                  "url": "{{ cache.resource_url }}18b7676c-f024-4a06-aa1a-5d222a643603",
                   "cacheId": "18b7676c-f024-4a06-aa1a-5d222a643603"
                 },
                 "bids": {
-                  "url": "{{ cache_resource_url }}16649e72-5dd5-4ab9-ab83-df9a5f06d9d1",
+                  "url": "{{ cache.resource_url }}16649e72-5dd5-4ab9-ab83-df9a5f06d9d1",
                   "cacheId": "16649e72-5dd5-4ab9-ab83-df9a5f06d9d1"
                 }
               }

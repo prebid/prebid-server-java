@@ -27,7 +27,7 @@
       "height": 250,
       "deal_id": "dealId11",
       "cache_id": "b5aedfd4-06cb-4a79-bbb8-bfdcb57a29ef",
-      "cache_url": "{{ cache_resource_url }}b5aedfd4-06cb-4a79-bbb8-bfdcb57a29ef",
+      "cache_url": "{{ cache.resource_url }}b5aedfd4-06cb-4a79-bbb8-bfdcb57a29ef",
       "response_time_ms": "{{ sovrn.response_time_ms }}",
       "ad_server_targeting": {
         "hb_pb": "5.70",

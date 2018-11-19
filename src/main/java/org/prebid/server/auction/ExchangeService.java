@@ -1100,9 +1100,8 @@ public class ExchangeService {
             final String cacheId = isWinningBid ? winningBidsWithCacheIds.get(bid).getCacheId() : null;
             final String videoCacheId = isWinningBid ? winningBidsWithCacheIds.get(bid).getVideoCacheId() : null;
 
-            if (videoCacheId != null && !cacheInfo.returnCreativeVideoBids) {
-                bid.setAdm(null);
-            } else if (cacheId != null && !cacheInfo.returnCreativeBids) {
+            if ((videoCacheId != null && !cacheInfo.returnCreativeVideoBids)
+                    || (cacheId != null && !cacheInfo.returnCreativeBids)) {
                 bid.setAdm(null);
             }
 

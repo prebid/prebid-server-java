@@ -3,7 +3,7 @@
     {
       "type": "json",
       "value": {
-        "id": "620160380",
+        "id": "bidId01",
         "impid": "impId16",
         "price": 8.43,
         "adm": "adm16",
@@ -12,6 +12,55 @@
         "w": 300,
         "h": 250
       }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bidId04",
+        "impid": "impId19",
+        "price": 8.06062,
+        "adm": "{\"assets\":[{\"id\": 0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}],\"jstracker\":\"<script src=\\\"http://www.dummyurl.js\\\"></script>\"}",
+        "adid": "adid19",
+        "adomain": [
+          "appnexus.com"
+        ],
+        "iurl": "http://nym1-ib.adnxs.com/cr?id=69595837",
+        "cid": "cid19",
+        "crid": "crid19",
+        "cat": [
+          "IAB3-1"
+        ]
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bidId03",
+        "impid": "impId18",
+        "price": 8.05256,
+        "adm": "adm18",
+        "crid": "crid18",
+        "w": 1024,
+        "h": 576
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bidId02",
+        "impid": "impId17",
+        "price": 6.44043,
+        "adm": "adm17",
+        "crid": "crid17",
+        "dealid": "dealId17",
+        "w": 360,
+        "h": 240
+      }
+    },
+    {
+      "type": "xml",
+      "value": "adm18",
+      "expiry": 120
     }
   ]
 }

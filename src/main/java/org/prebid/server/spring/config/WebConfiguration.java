@@ -25,27 +25,33 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.ConnectionHandler;
 import org.prebid.server.handler.CookieSyncHandler;
+import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.OptoutHandler;
+import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
+import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -316,6 +322,82 @@ public class WebConfiguration {
 
         Set<String> getCustomTargetingSet() {
             return new HashSet<>(customTargeting);
+        }
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "admin", name = "port")
+    static class AdminServerConfiguration {
+
+        private static final Logger logger = LoggerFactory.getLogger(AdminServerConfiguration.class);
+
+        @Autowired
+        private ContextRunner contextRunner;
+
+        @Autowired
+        private Vertx vertx;
+
+        @Autowired
+        private BodyHandler bodyHandler;
+
+        @Autowired
+        private VersionHandler versionHandler;
+
+        @Autowired
+        private CurrencyRatesHandler currencyRatesHandler;
+
+        @Autowired(required = false)
+        private SettingsCacheNotificationHandler cacheNotificationHandler;
+
+        @Autowired(required = false)
+        private SettingsCacheNotificationHandler ampCacheNotificationHandler;
+
+        @Value("${admin.port}")
+        private int adminPort;
+
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+                havingValue = "true")
+        SettingsCacheNotificationHandler cacheNotificationHandler(SettingsCache settingsCache) {
+            return new SettingsCacheNotificationHandler(settingsCache);
+        }
+
+        @Bean
+        @ConditionalOnProperty(prefix = "settings.in-memory-cache", name = "notification-endpoints-enabled",
+                havingValue = "true")
+        SettingsCacheNotificationHandler ampCacheNotificationHandler(SettingsCache ampSettingsCache) {
+            return new SettingsCacheNotificationHandler(ampSettingsCache);
+        }
+
+        @Bean
+        VersionHandler versionHandler() {
+            return VersionHandler.create("git-revision.json");
+        }
+
+        @Bean
+        CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
+            return new CurrencyRatesHandler(currencyConversionRates);
+        }
+
+        @PostConstruct
+        public void startAdminServer() {
+            logger.info("Starting Admin Server to serve requests on port {0,number,#}", adminPort);
+
+            final Router router = Router.router(vertx);
+            router.route().handler(bodyHandler);
+            router.route("/version").handler(versionHandler);
+            router.route("/currency-rates").handler(currencyRatesHandler);
+            if (cacheNotificationHandler != null) {
+                router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
+            }
+            if (ampCacheNotificationHandler != null) {
+                router.route("/storedrequests/amp").handler(ampCacheNotificationHandler);
+            }
+
+            contextRunner.<HttpServer>runOnServiceContext(future ->
+                    vertx.createHttpServer().requestHandler(router::accept).listen(adminPort, future));
+
+            logger.info("Successfully started Admin Server");
         }
     }
 }

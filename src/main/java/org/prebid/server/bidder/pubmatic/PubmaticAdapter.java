@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.pubmatic;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -29,6 +30,7 @@ import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pubmatic.model.NormalizedPubmaticParams;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
+import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.request.PreBidRequest;
@@ -36,9 +38,12 @@ import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.util.HttpUtil;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -97,19 +102,37 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
                 .regs(preBidRequest.getRegs())
+                .ext(makeBidExt(adUnitBidsWithParams))
                 .build();
+    }
+
+    // Parse Wrapper Extension i.e. ProfileID and VersionID only once per request
+    private static ObjectNode makeBidExt(List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams) {
+        final ObjectNode wrapExt = adUnitBidsWithParams.stream()
+                .map(AdUnitBidWithParams::getParams)
+                .filter(Objects::nonNull)
+                .map(NormalizedPubmaticParams::getWrapExt)
+                .filter(Objects::nonNull)
+                .findFirst().orElse(null);
+
+        if (wrapExt != null) {
+            return Json.mapper.valueToTree(PubmaticRequestExt.of(wrapExt));
+        }
+        return null;
     }
 
     private static List<AdUnitBidWithParams<NormalizedPubmaticParams>> createAdUnitBidsWithParams(
             List<AdUnitBid> adUnitBids, String requestId) {
-
+        final List<String> errors = new ArrayList<>();
         final List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidWithParams = adUnitBids.stream()
-                .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid, parseAndValidateParams(adUnitBid, requestId)))
+                .map(adUnitBid -> AdUnitBidWithParams.of(adUnitBid,
+                        parseAndValidateParams(adUnitBid, requestId, errors)))
                 .collect(Collectors.toList());
 
         // at least one adUnitBid of banner type must be with valid params
         if (adUnitBidWithParams.stream().noneMatch(PubmaticAdapter::isValidParams)) {
-            throw new PreBidException("Incorrect adSlot / Publisher param");
+            throw new PreBidException("Incorrect adSlot / Publisher param, "
+                    + "Error list: [" + String.join(",", errors) + "]");
         }
 
         return adUnitBidWithParams;
@@ -126,9 +149,12 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                 || ObjectUtils.allNotNull(params.getTagId(), params.getWidth(), params.getHeight());
     }
 
-    private static NormalizedPubmaticParams parseAndValidateParams(AdUnitBid adUnitBid, String requestId) {
+    private static NormalizedPubmaticParams parseAndValidateParams(AdUnitBid adUnitBid,
+                                                                   String requestId, List<String> errors) {
         final ObjectNode params = adUnitBid.getParams();
+        final String bidId = adUnitBid.getBidId();
         if (params == null) {
+            errors.add(paramError(bidId, "Params section is missing", null));
             logWrongParams(requestId, null, adUnitBid, "Ignored bid: invalid JSON  [%s] err [%s]", null,
                     "params section is missing");
             return null;
@@ -138,30 +164,35 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         try {
             pubmaticParams = Json.mapper.convertValue(params, PubmaticParams.class);
         } catch (IllegalArgumentException e) {
+            errors.add(paramError(bidId, "Invalid BidParam", params));
             logWrongParams(requestId, null, adUnitBid, "Ignored bid: invalid JSON  [%s] err [%s]", params, e);
             return null;
         }
 
         final String publisherId = pubmaticParams.getPublisherId();
         if (StringUtils.isEmpty(publisherId)) {
+            errors.add(paramError(bidId, "Missing PubID", params));
             logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: Publisher Id missing");
             return null;
         }
 
         final String adSlot = StringUtils.trimToNull(pubmaticParams.getAdSlot());
         if (StringUtils.isEmpty(adSlot)) {
+            errors.add(paramError(bidId, "Missing AdSlot", params));
             logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: adSlot missing");
             return null;
         }
 
         final String[] adSlots = adSlot.split("@");
         if (adSlots.length != 2 || StringUtils.isEmpty(adSlots[0]) || StringUtils.isEmpty(adSlots[1])) {
+            errors.add(paramError(bidId, "Invalid AdSlot", params));
             logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot [%s]", adSlot);
             return null;
         }
 
         final String[] adSizes = adSlots[1].toLowerCase().split("x");
         if (adSizes.length != 2) {
+            errors.add(paramError(bidId, "Invalid AdSize", params));
             logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSize [%s]", adSlots[1]);
             return null;
         }
@@ -170,6 +201,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         try {
             width = Integer.parseInt(adSizes[0].trim());
         } catch (NumberFormatException e) {
+            errors.add(paramError(bidId, "Invalid Width", params));
             logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot width [%s]", adSizes[0]);
             return null;
         }
@@ -179,11 +211,61 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         try {
             height = Integer.parseInt(adSizeHeights[0].trim());
         } catch (NumberFormatException e) {
+            errors.add(paramError(bidId, "Invalid Height", params));
             logWrongParams(requestId, publisherId, adUnitBid, "Ignored bid: invalid adSlot height [%s]", adSizes[0]);
             return null;
         }
 
-        return NormalizedPubmaticParams.of(publisherId, adSlot, adSlots[0], width, height);
+        final ObjectNode wrapExt;
+        if (pubmaticParams.getWrapper() != null) {
+            try {
+                Json.mapper.convertValue(pubmaticParams.getWrapper(), new TypeReference<Map<String, Integer>>() {
+                });
+            } catch (IllegalArgumentException e) {
+                errors.add(paramError(bidId, "Invalid WrapperExt", params));
+                logWrongParams(requestId, pubmaticParams.getPublisherId(), adUnitBid,
+                        "Ignored bid: Wrapper Extension Invalid");
+                return null;
+            }
+            wrapExt = pubmaticParams.getWrapper();
+        } else {
+            wrapExt = null;
+        }
+
+        final ObjectNode keyValue;
+        final List<String> keywords = makeKeywords(pubmaticParams.getKeywords());
+        if (!keywords.isEmpty()) {
+            try {
+                keyValue = Json.mapper.readValue("{" + String.join(",", keywords) + "}", ObjectNode.class);
+            } catch (IOException e) {
+                errors.add(String.format("Failed to create keywords with error: %s", e.getMessage()));
+                return null;
+            }
+        } else {
+            keyValue = null;
+        }
+
+        return NormalizedPubmaticParams.of(publisherId, adSlot, adSlots[0], width, height, wrapExt, keyValue);
+    }
+
+    private static String paramError(String bidId, String message, ObjectNode params) {
+        return String.format("BidID:%s;Error:%s;param:%s", bidId, message, params);
+    }
+
+    private static List<String> makeKeywords(Map<String, String> keywords) {
+        if (keywords == null) {
+            return Collections.emptyList();
+        }
+        final List<String> keywordPair = new ArrayList<>();
+        for (Map.Entry<String, String> entry : keywords.entrySet()) {
+            final String key = entry.getKey();
+            if (StringUtils.isBlank(entry.getValue())) {
+                logger.warn(String.format("No values present for key = %s", key));
+            } else {
+                keywordPair.add(String.format("\"%s\":\"%s\"", key, entry.getValue()));
+            }
+        }
+        return keywordPair;
     }
 
     private static void logWrongParams(String requestId, String publisherId, AdUnitBid adUnitBid, String errorMessage,
@@ -210,6 +292,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
                         .instl(adUnitBid.getInstl())
                         .secure(preBidRequestContext.getSecure())
                         .tagid(mediaType == MediaType.banner && params != null ? params.getTagId() : null)
+                        .ext(params != null ? params.getKeywords() : null)
                         .build());
     }
 
@@ -312,5 +395,4 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     private static MediaType mediaTypeFromImp(Imp imp) {
         return imp.getVideo() != null ? MediaType.video : MediaType.banner;
     }
-
 }

@@ -17,7 +17,19 @@
         "pubmatic": {
           "adSlot": "slot9@300x250:zzz",
           "publisherId": "publisherId",
-          "tagId": "tagId"
+          "keywords": [{
+            "key": "pmZoneID",
+            "value": ["Zone1", "Zone2"]
+          },
+            {
+              "key": "preference",
+              "value": ["sports", "movies"]
+            }
+          ],
+          "wrapper": {
+            "version": 1,
+            "profile": 5123
+          }
         }
       }
     },
@@ -34,7 +46,15 @@
         "pubmatic": {
           "adSlot": "slot9@300x250:zzz",
           "publisherId": "publisherId",
-          "tagId": "tagId"
+          "keywords": [{
+            "key": "pmZoneID",
+            "value": ["Zone1", "Zone2"]
+          }
+          ],
+          "wrapper": {
+            "version": 1,
+            "profile": 5123
+          }
         }
       }
     }

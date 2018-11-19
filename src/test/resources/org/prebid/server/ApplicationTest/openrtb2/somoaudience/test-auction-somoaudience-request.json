@@ -13,7 +13,58 @@
       },
       "ext": {
         "somoaudience": {
-          "placement_hash": "placementId"
+          "placement_hash": "placementId01",
+          "bid_floor": 1.5
+        }
+      }
+    },
+    {
+      "id": "impId17",
+      "banner": {
+        "format": [
+          {
+            "w": 360,
+            "h": 240
+          }
+        ]
+      },
+      "ext": {
+        "somoaudience": {
+          "placement_hash": "placementId02",
+          "bid_floor": 1.33
+        }
+      }
+    },
+    {
+      "id": "impId18",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "protocols": [
+          2,
+          5
+        ],
+        "w": 1024,
+        "h": 576
+      },
+      "ext": {
+        "somoaudience": {
+          "placement_hash": "placementId03",
+          "bid_floor": 2.1
+        }
+      }
+    },
+    {
+      "id": "impId19",
+      "native": {
+        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}}]}",
+        "ver": "1.1"
+      },
+      "ext": {
+        "somoaudience": {
+          "placement_hash": "placementId04",
+          "bid_floor": 1.9
         }
       }
     }

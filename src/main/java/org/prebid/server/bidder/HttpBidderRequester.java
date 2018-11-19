@@ -53,6 +53,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
     /**
      * Executes given request to a given bidder.
      */
+    @Override
     public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout) {
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
 

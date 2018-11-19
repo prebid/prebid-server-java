@@ -122,6 +122,12 @@ adapters:
     usersync-url: //bh.contextweb.com/rtset?pid=561205&ev=1&rurl=
     pbs-enforces-gdpr: true
     deprecated-names:
+  rhythmone:
+    enabled: false
+    endpoint: http://tag.1rx.io/rmp
+    usersync-url: //sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir=
+    pbs-enforces-gdpr: true
+    deprecated-names:
   rubicon:
     enabled: false
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
