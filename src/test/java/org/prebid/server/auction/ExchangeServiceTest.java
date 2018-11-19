@@ -1816,11 +1816,6 @@ public class ExchangeServiceTest extends VertxTest {
         return bidRequestBuilderCustomizer.apply(BidRequest.builder().cur(singletonList("USD")).imp(imp)).build();
     }
 
-    private static BidRequest givenBidRequestWithCur(
-            List<Imp> imp, Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer, List<String> cur) {
-        return bidRequestBuilderCustomizer.apply(BidRequest.builder().cur(cur).imp(imp)).build();
-    }
-
     private static BidRequest givenBidRequest(List<Imp> imp) {
         return givenBidRequest(imp, identity());
     }

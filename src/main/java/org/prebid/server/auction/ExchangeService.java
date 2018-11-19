@@ -694,59 +694,23 @@ public class ExchangeService {
                                            List<BidderError> errors) {
         if (bids.size() > 0) {
             //assume that currencies are the same among all bids
-            String bidsCurrency = nonNullCurrencyOtherwiseDefault(bids.get(0).getBidCurrency());
+            final String bidsCurrency = nonNullCurrencyOtherwiseDefault(bids.get(0).getBidCurrency());
 
-            boolean sameCurrenciesAcrossAllBids = isValidCurrencyPresent(bids);
-
-            if (!sameCurrenciesAcrossAllBids) {
+            if (bids.stream().map(BidderBid::getBidCurrency).distinct().count() != 1) {
                 errors.add(BidderError.generic("Bid currencies mismatch found. "
                         + "Expected all bids to have the same currencies."));
                 return false;
             }
 
-            boolean validCurrencyPresent = isValidCurrencyPresent(requestCurrencies, bidsCurrency);
-
-            if (!validCurrencyPresent) {
-                final String requestCursFormatted = requestCurrencies.stream()
-                        .collect(Collectors.joining(","));
+            if (!requestCurrencies.contains(bidsCurrency)) {
                 errors.add(BidderError.generic(String.format(
                         "Bid currency is not allowed. Was %s, wants: [%s]",
-                        requestCursFormatted, bidsCurrency)));
+                        String.join(",", requestCurrencies), bidsCurrency)));
                 return false;
             }
         }
 
         return true;
-    }
-
-    private boolean isValidCurrencyPresent(List<BidderBid> bids) {
-        boolean sameCurrenciesAcrossAllBids = true;
-
-        String currency = "";
-
-        for (BidderBid bid : bids) {
-            String localCurrency = nonNullCurrencyOtherwiseDefault(bid.getBidCurrency());
-            if (StringUtils.isBlank(currency)) {
-                currency = localCurrency;
-            } else if (!currency.equals(localCurrency)) {
-                sameCurrenciesAcrossAllBids = false;
-            }
-        }
-
-        return sameCurrenciesAcrossAllBids;
-    }
-
-    private boolean isValidCurrencyPresent(List<String> requestCurrencies, String bidsCurrency) {
-        boolean validCurrencyPresent = false;
-
-        for (String currency : requestCurrencies) {
-            if (currency.equals(bidsCurrency)) {
-                validCurrencyPresent = true;
-                break;
-            }
-        }
-
-        return validCurrencyPresent;
     }
 
     private String nonNullCurrencyOtherwiseDefault(String cur) {
