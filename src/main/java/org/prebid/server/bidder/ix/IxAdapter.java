@@ -2,12 +2,14 @@ package org.prebid.server.bidder.ix;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -24,13 +26,13 @@ import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * ix {@link Adapter} implementation.
@@ -39,6 +41,9 @@ public class IxAdapter extends OpenrtbAdapter {
 
     private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
             Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
+
+    // maximum number of bid requests
+    private static final int REQUEST_LIMIT = 20;
 
     private final String endpointUrl;
 
@@ -52,10 +57,28 @@ public class IxAdapter extends OpenrtbAdapter {
                                                                  PreBidRequestContext preBidRequestContext) {
         validatePreBidRequest(preBidRequestContext.getPreBidRequest());
 
-        final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
-        final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST, endpointUrl,
-                bidRequest, headers());
-        return Collections.singletonList(httpRequest);
+        final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
+
+        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
+
+        final List<BidRequest> prioritizedRequests = new ArrayList<>();
+        final List<BidRequest> otherRequests = adUnitBids.stream()
+                .map(adUnitBid -> createBidRequests(adUnitBid, prioritizedRequests, preBidRequestContext))
+                .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
+
+        prioritizedRequests.addAll(otherRequests);
+
+        final List<AdapterHttpRequest<BidRequest>> requests = prioritizedRequests.stream()
+                .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl, bidRequest, headers()))
+                // cap the number of requests to requestLimit
+                .limit(REQUEST_LIMIT)
+                .collect(Collectors.toList());
+
+        if (CollectionUtils.isEmpty(requests)) {
+            throw new PreBidException("Invalid ad unit/imp");
+        }
+
+        return requests;
     }
 
     private static void validatePreBidRequest(PreBidRequest preBidRequest) {
@@ -64,31 +87,42 @@ public class IxAdapter extends OpenrtbAdapter {
         }
     }
 
-    private BidRequest createBidRequest(AdapterRequest adapterRequest, PreBidRequestContext preBidRequestContext) {
-        final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
+    private List<BidRequest> createBidRequests(AdUnitBid adUnitBid, List<BidRequest> prioritizedRequests,
+                                               PreBidRequestContext preBidRequestContext) {
 
-        validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
+        final List<BidRequest> requests = new ArrayList<>();
 
-        final List<Imp> imps = makeImps(adUnitBids, preBidRequestContext);
-        validateImps(imps);
+        final List<Format> sizes = adUnitBid.getSizes();
+        for (Format size : sizes) {
 
-        final String siteId = adUnitBids.stream()
-                .map(IxAdapter::parseAndValidateParams)
-                .map(IxParams::getSiteId)
-                .reduce((first, second) -> second).orElse(null);
+            final IxParams ixParams = parseAndValidateParams(adUnitBid);
 
-        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        return BidRequest.builder()
-                .id(preBidRequest.getTid())
-                .at(1)
-                .tmax(preBidRequest.getTimeoutMillis())
-                .imp(imps)
-                .site(makeSite(preBidRequestContext, siteId))
-                .device(deviceBuilder(preBidRequestContext).build())
-                .user(makeUser(preBidRequestContext))
-                .source(makeSource(preBidRequestContext))
-                .regs(preBidRequest.getRegs())
-                .build();
+            final List<Imp> imps = makeImps(copyAdUnitBidWithSingleSize(adUnitBid, size), preBidRequestContext);
+            validateImps(imps);
+
+            final String siteId = ixParams.getSiteId();
+
+            final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+            final BidRequest request = BidRequest.builder()
+                    .id(preBidRequest.getTid())
+                    .at(1)
+                    .tmax(preBidRequest.getTimeoutMillis())
+                    .imp(imps)
+                    .site(makeSite(preBidRequestContext, siteId))
+                    .device(deviceBuilder(preBidRequestContext).build())
+                    .user(makeUser(preBidRequestContext))
+                    .source(makeSource(preBidRequestContext))
+                    .regs(preBidRequest.getRegs())
+                    .build();
+
+            // prioritize slots over sizes
+            if (sizes.indexOf(size) == 0) {
+                prioritizedRequests.add(request);
+            } else {
+                requests.add(request);
+            }
+        }
+        return requests;
     }
 
     private static IxParams parseAndValidateParams(AdUnitBid adUnitBid) {
@@ -114,13 +148,11 @@ public class IxAdapter extends OpenrtbAdapter {
         return params;
     }
 
-    private static List<Imp> makeImps(List<AdUnitBid> adUnitBids, PreBidRequestContext preBidRequestContext) {
-        return adUnitBids.stream()
-                .flatMap(adUnitBid -> makeImpsForAdUnitBid(adUnitBid, preBidRequestContext))
-                .collect(Collectors.toList());
+    private static AdUnitBid copyAdUnitBidWithSingleSize(AdUnitBid adUnitBid, Format singleSize) {
+        return adUnitBid.toBuilder().sizes(Collections.singletonList(singleSize)).build();
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
+    private static List<Imp> makeImps(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
         final String adUnitCode = adUnitBid.getAdUnitCode();
         return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
@@ -128,7 +160,8 @@ public class IxAdapter extends OpenrtbAdapter {
                         .instl(adUnitBid.getInstl())
                         .secure(preBidRequestContext.getSecure())
                         .tagid(adUnitCode)
-                        .build());
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid) {
