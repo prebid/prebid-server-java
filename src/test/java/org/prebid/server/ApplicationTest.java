@@ -34,6 +34,10 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.server.cache.proto.request.BidCacheRequest;
+import org.prebid.server.cache.proto.request.PutObject;
+import org.prebid.server.cache.proto.response.BidCacheResponse;
+import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -48,6 +52,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
@@ -99,23 +104,7 @@ public class ApplicationTest extends VertxTest {
     private static final int ADMIN_PORT = 8060;
 
     @ClassRule
-    public static final WireMockClassRule wireMockRule = new WireMockClassRule(wireMockConfig().port(WIREMOCK_PORT).extensions(new ResponseTransformer() {
-        @Override
-        public com.github.tomakehurst.wiremock.http.Response transform(Request request, com.github.tomakehurst.wiremock.http.Response response, FileSource files, Parameters parameters) {
-            String newResponse = cacheResponseFromRequestJson(request.getBodyAsString(), parameters.getString("matcherName"));
-            return com.github.tomakehurst.wiremock.http.Response.response().body(newResponse).status(200).build();
-        }
-
-        @Override
-        public String getName() {
-            return "cache-response-transformer";
-        }
-
-        @Override
-        public boolean applyGlobally() {
-            return false;
-        }
-    }));
+    public static final WireMockClassRule wireMockRule = new WireMockClassRule(wireMockConfig().port(WIREMOCK_PORT).extensions(CacheResponseTransformer.class));
 
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
@@ -1545,34 +1534,34 @@ public class ApplicationTest extends VertxTest {
                 ApplicationTest.class.getSimpleName() + "/" + file)));
     }
 
-    private static String cacheResponseFromRequestJson(String requestAsString, String requestCacheIdMapFile) {
-        ArrayNode responseArray = mapper.createArrayNode();
+    private static String cacheResponseFromRequestJson(String requestAsString, String requestCacheIdMapFile) throws
+            IOException {
+        List<CacheObject> responseCacheObjects = new ArrayList<>();
 
         try {
-            JsonNode jsonNodeRequest = mapper.readTree(requestAsString);
-            JsonNode jsonNodeMatcher = mapper.readTree(ApplicationTest.class.getResourceAsStream(ApplicationTest.class.getSimpleName() + "/" + requestCacheIdMapFile));
-            ArrayNode puts = (ArrayNode) jsonNodeRequest.get("puts");
+            final BidCacheRequest cacheRequest = mapper.treeToValue(mapper.readTree(requestAsString), BidCacheRequest.class);
+            final JsonNode jsonNodeMatcher = mapper.readTree(ApplicationTest.class.getResourceAsStream(ApplicationTest.class.getSimpleName() + "/" + requestCacheIdMapFile));
+            final List<PutObject> puts = cacheRequest.getPuts();
 
-            for (JsonNode putItem : puts) {
-                if (putItem.get("type").textValue().equals("json")) {
-                    String id = putItem.get("value").get("id").textValue() + "@" + putItem.get("value").get("price").doubleValue();
+            for (PutObject putItem : puts) {
+                if (putItem.getType().equals("json")) {
+                    String id = putItem.getValue().get("id").textValue() + "@" + putItem.getValue().get("price");
                     String uuid = jsonNodeMatcher.get(id).textValue();
-                    responseArray.add(mapper.createObjectNode().put("uuid", uuid));
+                    responseCacheObjects.add(CacheObject.of(uuid));
                 } else {
-                    String id = putItem.get("value").textValue();
+                    String id = putItem.getValue().textValue();
                     if(id == null) { //workaround for conversant
                         id = "null";
                     }
                     String uuid = jsonNodeMatcher.get(id).textValue();
-                    responseArray.add( mapper.createObjectNode().put("uuid", uuid));
+                    responseCacheObjects.add(CacheObject.of(uuid));
                 }
             }
 
-            ObjectNode response = mapper.createObjectNode();
-            response.put("responses", responseArray);
-            return mapper.writeValueAsString(response);
+            final BidCacheResponse bidCacheResponse = BidCacheResponse.of(responseCacheObjects);
+            return Json.encode(bidCacheResponse);
         } catch (IOException e) {
-            return mapper.createObjectNode().toString();
+           throw new IOException("Error while matching cache ids");
         }
     }
 
@@ -1623,5 +1612,28 @@ public class ApplicationTest extends VertxTest {
 
     private static Uids decodeUids(String value) {
         return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
+    }
+
+    public static class CacheResponseTransformer extends ResponseTransformer {
+        @Override
+        public com.github.tomakehurst.wiremock.http.Response transform(Request request, com.github.tomakehurst.wiremock.http.Response response, FileSource files, Parameters parameters) {
+            final String newResponse;
+            try {
+                newResponse = cacheResponseFromRequestJson(request.getBodyAsString(), parameters.getString("matcherName"));
+            } catch (IOException e) {
+                return com.github.tomakehurst.wiremock.http.Response.response().body(e.getMessage()).status(500).build();
+            }
+            return com.github.tomakehurst.wiremock.http.Response.response().body(newResponse).status(200).build();
+        }
+
+        @Override
+        public String getName() {
+            return "cache-response-transformer";
+        }
+
+        @Override
+        public boolean applyGlobally() {
+            return false;
+        }
     }
 }
