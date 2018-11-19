@@ -656,7 +656,6 @@ public class ExchangeService {
                                                Map<String, Map<String, BigDecimal>> currencyConversionRates) {
         final String bidder = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidder);
-        // bidrequest.cur should always have only one currency in list, all other cases discarded by RequestValidator
         final String adServerCurrency = bidderRequest.getBidRequest().getCur().get(0);
         return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
                 .requestBids(bidderRequest.getBidRequest(), timeout)
@@ -674,47 +673,16 @@ public class ExchangeService {
      * Returns input argument as the result if no errors found or create new {@link BidderSeatBid} otherwise.
      */
     private BidderSeatBid validateAndUpdateResponse(BidderSeatBid bidderSeatBid, List<String> requestCurrencies) {
-        if (requestCurrencies.size() == 0) {
-            requestCurrencies = Collections.singletonList(DEFAULT_CURRENCY);
-        }
+        final List<String> effectiveRequestCurrencies = requestCurrencies.isEmpty()
+                ? Collections.singletonList(DEFAULT_CURRENCY) : requestCurrencies;
 
         final List<BidderBid> bids = bidderSeatBid.getBids();
 
         final List<BidderBid> validBids = new ArrayList<>(bids.size());
         final List<BidderError> errors = new ArrayList<>(bidderSeatBid.getErrors());
 
-        if (bids.size() > 0) {
-            //assume that currencies are the same among all bids
-            String bidsCurrency = bids.get(0).getBidCurrency();
-            if (bidsCurrency == null) {
-                bidsCurrency = DEFAULT_CURRENCY;
-            }
-
-            boolean validCurencyPresent = false;
-            for (String currency : requestCurrencies) {
-                if (currency.equals(bidsCurrency)) {
-                    validCurencyPresent = true;
-                    break;
-                }
-            }
-
-            if (!validCurencyPresent) {
-                String requestCursFormated = requestCurrencies.stream()
-                        .collect(Collectors.joining(",", "", ""));
-                errors.add(BidderError.generic(String.format(
-                        "%s is not allowed. Use %s instead", requestCursFormated, bidsCurrency)));
-            } else {
-                for (BidderBid bid : bids) {
-                    final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
-                    if (validationResult.hasErrors()) {
-                        for (String error : validationResult.getErrors()) {
-                            errors.add(BidderError.generic(error));
-                        }
-                    } else {
-                        validBids.add(bid);
-                    }
-                }
-            }
+        if (isValidCurFromResponse(effectiveRequestCurrencies, bids, errors)) {
+            validateResponseBids(bids, validBids, errors);
         }
 
         return validBids.size() == bids.size()
@@ -722,11 +690,88 @@ public class ExchangeService {
                 : BidderSeatBid.of(validBids, bidderSeatBid.getHttpCalls(), errors);
     }
 
+    private boolean isValidCurFromResponse(List<String> requestCurrencies, List<BidderBid> bids,
+                                           List<BidderError> errors) {
+        if (bids.size() > 0) {
+            //assume that currencies are the same among all bids
+            String bidsCurrency = nonNullCurrencyOtherwiseDefault(bids.get(0).getBidCurrency());
+
+            boolean sameCurrenciesAcrossAllBids = isValidCurrencyPresent(bids);
+
+            if (!sameCurrenciesAcrossAllBids) {
+                errors.add(BidderError.generic("Bid currencies mismatch found. "
+                        + "Expected all bids to have the same currencies."));
+                return false;
+            }
+
+            boolean validCurrencyPresent = isValidCurrencyPresent(requestCurrencies, bidsCurrency);
+
+            if (!validCurrencyPresent) {
+                final String requestCursFormatted = requestCurrencies.stream()
+                        .collect(Collectors.joining(","));
+                errors.add(BidderError.generic(String.format(
+                        "Bid currency is not allowed. Was %s, wants: [%s]",
+                        requestCursFormatted, bidsCurrency)));
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean isValidCurrencyPresent(List<BidderBid> bids) {
+        boolean sameCurrenciesAcrossAllBids = true;
+
+        String currency = "";
+
+        for (BidderBid bid : bids) {
+            String localCurrency = nonNullCurrencyOtherwiseDefault(bid.getBidCurrency());
+            if (StringUtils.isBlank(currency)) {
+                currency = localCurrency;
+            } else if (!currency.equals(localCurrency)) {
+                sameCurrenciesAcrossAllBids = false;
+            }
+        }
+
+        return sameCurrenciesAcrossAllBids;
+    }
+
+    private boolean isValidCurrencyPresent(List<String> requestCurrencies, String bidsCurrency) {
+        boolean validCurrencyPresent = false;
+
+        for (String currency : requestCurrencies) {
+            if (currency.equals(bidsCurrency)) {
+                validCurrencyPresent = true;
+                break;
+            }
+        }
+
+        return validCurrencyPresent;
+    }
+
+    private String nonNullCurrencyOtherwiseDefault(String cur) {
+        return ObjectUtils.firstNonNull(cur, DEFAULT_CURRENCY);
+    }
+
+    private void validateResponseBids(List<BidderBid> bids, List<BidderBid> validBids, List<BidderError> errors) {
+        for (BidderBid bid : bids) {
+            final ValidationResult validationResult = responseBidValidator.validate(bid.getBid());
+            if (validationResult.hasErrors()) {
+                for (String error : validationResult.getErrors()) {
+                    errors.add(BidderError.generic(error));
+                }
+            } else {
+                validBids.add(bid);
+            }
+        }
+    }
+
     /**
      * Performs changes on {@link Bid}s price depends on different between adServerCurrency and bidCurrency,
      * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
      * <p>
-     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
+     * This method should always be invoked after
+     * {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List<String>)}
      * to make sure {@link Bid#price} is not empty.
      */
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
@@ -785,7 +830,8 @@ public class ExchangeService {
     /**
      * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
      * 'prices' metrics for each {@link BidderResponse}
-     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid)}
+     * This method should always be invoked after
+     * {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List<String>)}
      * to make sure {@link Bid#price} is not empty.
      */
     private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
