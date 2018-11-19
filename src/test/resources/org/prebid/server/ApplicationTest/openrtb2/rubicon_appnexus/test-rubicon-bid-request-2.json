@@ -85,8 +85,7 @@
   "ext": {
     "prebid": {
       "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
+        "appnexusAlias": "appnexus"
       },
       "targeting": {
         "pricegranularity": {

@@ -3,6 +3,7 @@ package org.prebid.server.metric;
 import com.codahale.metrics.MetricRegistry;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -35,7 +36,7 @@ public class Metrics extends UpdatableMetrics {
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
         adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
-        requestMetrics = new HashMap<>();
+        requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);

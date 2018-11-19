@@ -95,7 +95,7 @@ public class StoredRequestProcessor {
         return storedDataFuture
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed: %s", exception.getMessage()))))
-                .compose(result -> result.getErrors().size() > 0
+                .compose(result -> !result.getErrors().isEmpty()
                         ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
                         : Future.succeededFuture(result))
                 .map(result -> mergeBidRequestAndImps(bidRequest, storedBidRequestId,

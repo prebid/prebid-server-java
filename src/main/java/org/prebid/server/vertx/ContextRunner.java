@@ -56,13 +56,22 @@ public class ContextRunner {
 
         for (int i = 0; i < times; i++) {
             final Context context = contextFactory.get();
-            context.runOnContext(v -> action.handle(Future.<T>future().setHandler(ar -> {
+
+            final Future<T> future = Future.<T>future().setHandler(ar -> {
                 if (ar.failed()) {
                     logger.fatal("Fatal error occurred while running action on Vertx context", ar.cause());
                     actionFailed.compareAndSet(false, true);
                 }
                 completionLatch.countDown();
-            })));
+            });
+
+            context.runOnContext(v -> {
+                try {
+                    action.handle(future);
+                } catch (RuntimeException e) {
+                    future.fail(e);
+                }
+            });
         }
 
         try {

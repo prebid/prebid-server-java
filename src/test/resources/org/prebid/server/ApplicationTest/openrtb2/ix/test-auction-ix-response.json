@@ -27,16 +27,16 @@
                 "hb_creative_loadtype": "html",
                 "hb_cache_id_ix": "3bd85b54-a5c5-4852-956e-44e8a7b6b5bc",
                 "hb_deal": "dealId6",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_ix": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_ix": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_ix": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_ix": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_ix": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_ix": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache_resource_url }}3bd85b54-a5c5-4852-956e-44e8a7b6b5bc",
+                  "url": "{{ cache.resource_url }}3bd85b54-a5c5-4852-956e-44e8a7b6b5bc",
                   "cacheId": "3bd85b54-a5c5-4852-956e-44e8a7b6b5bc"
                 }
               }
@@ -69,20 +69,20 @@
                 "hb_creative_loadtype": "html",
                 "hb_cache_id_ix": "8e270009-c31f-48fb-b14b-13a196291b61",
                 "hb_deal": "dealId61",
-                "hb_cache_host": "{{ host }}",
-                "hb_cache_host_ix": "{{ host }}",
-                "hb_cache_path": "{{ path }}",
-                "hb_cache_path_ix": "{{ path }}",
-                "hb_cache_hostpath": "{{ hostpath }}",
-                "hb_cache_hostpath_ix": "{{ hostpath }}"
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_cache_host_ix": "{{ cache.host }}",
+                "hb_cache_path": "{{ cache.path }}",
+                "hb_cache_path_ix": "{{ cache.path }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_cache_hostpath_ix": "{{ cache.hostpath }}"
               },
               "cache": {
                 "vastXml": {
-                  "url": "{{ cache_resource_url }}5a75ecf0-cae7-4afb-9d8c-13a836b82a9f",
+                  "url": "{{ cache.resource_url }}5a75ecf0-cae7-4afb-9d8c-13a836b82a9f",
                   "cacheId": "5a75ecf0-cae7-4afb-9d8c-13a836b82a9f"
                 },
                 "bids": {
-                  "url": "{{ cache_resource_url }}8e270009-c31f-48fb-b14b-13a196291b61",
+                  "url": "{{ cache.resource_url }}8e270009-c31f-48fb-b14b-13a196291b61",
                   "cacheId": "8e270009-c31f-48fb-b14b-13a196291b61"
                 }
               }
