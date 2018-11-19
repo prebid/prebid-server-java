@@ -3,22 +3,9 @@
     {
       "type": "json",
       "value": {
-        "id": "bidId01",
-        "impid": "impId16",
-        "price": 8.43,
-        "adm": "adm16",
-        "crid": "crid16",
-        "dealid": "dealId16",
-        "w": 300,
-        "h": 250
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "bidId04",
         "impid": "impId19",
-        "price": 8.06062,
+        "price": 10,
         "adm": "{\"assets\":[{\"id\": 0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}],\"jstracker\":\"<script src=\\\"http://www.dummyurl.js\\\"></script>\"}",
         "adid": "adid19",
         "adomain": [
@@ -35,26 +22,39 @@
     {
       "type": "json",
       "value": {
-        "id": "bidId03",
-        "impid": "impId18",
-        "price": 8.05256,
-        "adm": "adm18",
-        "crid": "crid18",
-        "w": 1024,
-        "h": 576
-      }
-    },
-    {
-      "type": "json",
-      "value": {
         "id": "bidId02",
         "impid": "impId17",
-        "price": 6.44043,
+        "price": 7.99,
         "adm": "adm17",
         "crid": "crid17",
         "dealid": "dealId17",
         "w": 360,
         "h": 240
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bidId01",
+        "impid": "impId16",
+        "price": 8.43,
+        "adm": "adm16",
+        "crid": "crid16",
+        "dealid": "dealId16",
+        "w": 300,
+        "h": 250
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bidId03",
+        "impid": "impId18",
+        "price": 9.99,
+        "adm": "adm18",
+        "crid": "crid18",
+        "w": 1024,
+        "h": 576
       }
     },
     {
