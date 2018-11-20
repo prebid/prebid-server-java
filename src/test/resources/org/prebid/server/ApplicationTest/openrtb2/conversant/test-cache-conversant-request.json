@@ -38,7 +38,7 @@
     },
     {
       "type": "xml",
-      "value": null,
+      "value": "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm41]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>",
       "expiry": 120
     }
   ]

@@ -1550,9 +1550,6 @@ public class ApplicationTest extends VertxTest {
                     responseCacheObjects.add(CacheObject.of(uuid));
                 } else {
                     String id = putItem.getValue().textValue();
-                    if(id == null) { //workaround for conversant
-                        id = "null";
-                    }
                     String uuid = jsonNodeMatcher.get(id).textValue();
                     responseCacheObjects.add(CacheObject.of(uuid));
                 }
