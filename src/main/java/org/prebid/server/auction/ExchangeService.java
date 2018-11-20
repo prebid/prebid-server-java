@@ -695,18 +695,21 @@ public class ExchangeService {
                                            List<BidderError> errors) {
         if (bids.size() > 0) {
             //assume that currencies are the same among all bids
-            final String bidsCurrency = nonNullCurrencyOtherwiseDefault(bids.get(0).getBidCurrency());
+            final List<String> bidderCurrencies = bids.stream()
+                    .map(bid -> ObjectUtils.firstNonNull(bid.getBidCurrency(), DEFAULT_CURRENCY))
+                    .distinct()
+                    .collect(Collectors.toList());
 
-            if (bids.stream().map(BidderBid::getBidCurrency).distinct().count() != 1) {
+            if (bidderCurrencies.size() > 1) {
                 errors.add(BidderError.generic("Bid currencies mismatch found. "
                         + "Expected all bids to have the same currencies."));
                 return false;
             }
 
-            if (!requestCurrencies.contains(bidsCurrency)) {
+            if (!requestCurrencies.contains(bidderCurrencies.get(0))) {
                 errors.add(BidderError.generic(String.format(
                         "Bid currency is not allowed. Was %s, wants: [%s]",
-                        String.join(",", requestCurrencies), bidsCurrency)));
+                        String.join(",", requestCurrencies), bidderCurrencies.get(0))));
                 return false;
             }
         }
