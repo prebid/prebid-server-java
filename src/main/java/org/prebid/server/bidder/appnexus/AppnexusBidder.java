@@ -155,7 +155,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             impBuilder.bidfloor(reserve); // This will be broken for non-USD currency.
         }
 
-        if (StringUtils.isBlank(imp.getDisplaymanagerver())) {
+        // Populate imp.displaymanagerver if the SDK failed to do it.
+        if (StringUtils.isBlank(imp.getDisplaymanagerver()) && StringUtils.isNotBlank(defaultDisplayManagerVer)) {
             impBuilder.displaymanagerver(defaultDisplayManagerVer);
         }
 

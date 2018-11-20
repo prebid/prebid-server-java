@@ -196,6 +196,29 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfItExists() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .app(App.builder()
+                                .ext(mapper.valueToTree(ExtApp.of(ExtAppPrebid.of("some source", "any version"))))
+                                .build()),
+                builder -> builder.banner(Banner.builder().build()).displaymanagerver("string exists"),
+                builder -> builder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .containsOnly("string exists");
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetRequestUrlWithMemberIdParam() {
         // given
         final BidRequest bidRequest = givenBidRequest(
