@@ -280,8 +280,10 @@ which only supports `banner`.
 
 In cases like these, the bidder can ignore the `video` impression and bid on the `banner` one.
 However, the publisher can improve performance by only offering impressions which the bidder supports.
+
 For example, a request may return this in `response.ext`
- ```
+
+ ``` 
 {
   "errors": {
     "appnexus": [
@@ -299,7 +301,9 @@ For example, a request may return this in `response.ext`
   }
 }
 ```
+
  The codes currently defined are:
+ 
  ```
 0   NoErrorCode
 1   TimeoutCode
@@ -307,6 +311,7 @@ For example, a request may return this in `response.ext`
 3   BadServerResponseCode
 999 UnknownErrorCode
 ```
+
 #### Debugging
 
 `response.ext.debug.httpcalls.{bidder}` will be populated **only if** `request.test` **was set to 1**.

@@ -30,7 +30,6 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.BidderErrorInfo;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheContext;
@@ -56,6 +55,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
@@ -1069,7 +1069,7 @@ public class ExchangeService {
                 : null;
         final ExtResponseDebug extResponseDebug = httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null;
 
-        final Map<String, List<BidderErrorInfo>> errors = new HashMap<>();
+        final Map<String, List<ExtBidderError>> errors = new HashMap<>();
         for (BidderResponse bidderResponse : results) {
             errors.put(bidderResponse.getBidder(), errorsDetails(bidderResponse.getSeatBid().getErrors()));
         }
@@ -1082,19 +1082,20 @@ public class ExchangeService {
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
     }
 
-    private Map<String, List<BidderErrorInfo>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
+    private Map<String, List<ExtBidderError>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
         return bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
                 .flatMap(imp -> asStream(imp.getExt().fieldNames()))
                 .distinct()
                 .filter(bidderCatalog::isDeprecatedName)
                 .collect(Collectors.toMap(Function.identity(),
-                        bidder -> Collections.singletonList(bidderCatalog.errorForDeprecatedName(bidder))));
+                        bidder -> Collections.singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
+                                bidderCatalog.errorForDeprecatedName(bidder)))));
     }
 
-    private static List<BidderErrorInfo> errorsDetails(List<BidderError> errors) {
-        return CollectionUtils.emptyIfNull(errors).stream().map(bidderError -> BidderErrorInfo.builder()
-                .code(bidderError.getCode()).message(bidderError.getMessage()).build()).collect(Collectors.toList());
+    private static List<ExtBidderError> errorsDetails(List<BidderError> errors) {
+        return CollectionUtils.emptyIfNull(errors).stream().map(bidderError -> ExtBidderError.of(
+                bidderError.getType().getCode(), bidderError.getMessage())).collect(Collectors.toList());
     }
 
     /**

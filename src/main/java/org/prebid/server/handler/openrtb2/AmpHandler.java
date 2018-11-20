@@ -28,7 +28,6 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.model.BidderErrorInfo;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -41,6 +40,7 @@ import org.prebid.server.metric.model.MetricsContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.AmpResponse;
 import org.prebid.server.util.HttpUtil;
@@ -162,11 +162,15 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
                 .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight));
 
+        final ExtBidResponse extBidResponse = extResponseFrom(bidResponse);
+
         // fetch debug information from response if requested
         final ExtResponseDebug extResponseDebug = Objects.equals(bidRequest.getTest(), 1)
-                ? extResponseDebugFrom(bidResponse) : null;
+                ? extResponseDebugFrom(extBidResponse) : null;
 
-        final Map<String, List<BidderErrorInfo>> errors = errorsFrom(bidResponse);
+        // fetch errors information from response if requested
+        final Map<String, List<ExtBidderError>> errors = Objects.equals(bidRequest.getTest(), 1)
+                ? errorsFrom(extBidResponse) : null;
 
         return AmpResponse.of(targeting, extResponseDebug, errors);
     }
@@ -218,7 +222,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
     }
 
-    private static ExtResponseDebug extResponseDebugFrom(BidResponse bidResponse) {
+    private static ExtBidResponse extResponseFrom(BidResponse bidResponse) {
         final ExtBidResponse extBidResponse;
         try {
             extBidResponse = Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
@@ -226,17 +230,14 @@ public class AmpHandler implements Handler<RoutingContext> {
             throw new PreBidException(
                     String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
         }
+        return extBidResponse;
+    }
+
+    private static ExtResponseDebug extResponseDebugFrom(ExtBidResponse extBidResponse) {
         return extBidResponse != null ? extBidResponse.getDebug() : null;
     }
 
-    private static Map<String, List<BidderErrorInfo>> errorsFrom(BidResponse bidResponse) {
-        final ExtBidResponse extBidResponse;
-        try {
-            extBidResponse = Json.mapper.convertValue(bidResponse.getExt(), EXT_BID_RESPONSE_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Critical error while unpacking AMP bid response: %s", e.getMessage()), e);
-        }
+    private static Map<String, List<ExtBidderError>> errorsFrom(ExtBidResponse extBidResponse) {
         return extBidResponse != null ? extBidResponse.getErrors() : null;
     }
 

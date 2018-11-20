@@ -14,30 +14,28 @@ public class BidderError {
 
     Type type;
 
-    int code;
-
     public static BidderError create(String message, Type type) {
-        return BidderError.of(message, type, type.getErrorCode());
+        return BidderError.of(message, type);
     }
 
     public static BidderError generic(String message) {
-        return BidderError.of(message, Type.generic, Type.generic.getErrorCode());
+        return BidderError.of(message, Type.generic);
     }
 
     public static BidderError badInput(String message) {
-        return BidderError.of(message, Type.bad_input, Type.bad_input.getErrorCode());
+        return BidderError.of(message, Type.bad_input);
     }
 
     public static BidderError badServerResponse(String message) {
-        return BidderError.of(message, Type.bad_server_response, Type.bad_server_response.getErrorCode());
+        return BidderError.of(message, Type.bad_server_response);
     }
 
     public static BidderError failedToRequestBids(String message) {
-        return BidderError.of(message, Type.failed_to_request_bids, Type.failed_to_request_bids.getErrorCode());
+        return BidderError.of(message, Type.failed_to_request_bids);
     }
 
     public static BidderError timeout(String message) {
-        return BidderError.of(message, Type.timeout, Type.timeout.getErrorCode());
+        return BidderError.of(message, Type.timeout);
     }
 
     public enum Type {
@@ -74,14 +72,14 @@ public class BidderError {
         timeout(1),
         generic(999);
 
-        private final Integer errorCode;
+        private final Integer code;
 
         Type(final Integer errorCode) {
-            this.errorCode = errorCode;
+            this.code = errorCode;
         }
 
-        public Integer getErrorCode() {
-            return errorCode;
+        public Integer getCode() {
+            return code;
         }
     }
 }

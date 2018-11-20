@@ -18,14 +18,5 @@
     "hb_cache_host_rubicon": "localhost:8090",
     "hb_cache_path_rubicon": "/cache",
     "hb_cache_hostpath_rubicon": "http://localhost:8090/cache"
-  },
-  "errors": {
-    "appnexus": [
-      {
-        "code": 3,
-        "message": "Unexpected status code: 404. Run with request.test = 1 for more info"
-      }
-    ],
-    "rubicon": []
   }
 }
