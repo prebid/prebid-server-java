@@ -15,7 +15,7 @@
         "pos": 3
       },
       "tagid": "abc",
-      "bidfloor": 1.0,
+      "bidfloor": 1,
       "secure": 1,
       "ext": {
         "appnexus": {
@@ -38,6 +38,11 @@
   "cur": [
     "USD"
   ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
   "ext": {
     "prebid": {
       "targeting": {
@@ -74,11 +79,6 @@
       "cache": {
         "bids": {}
       }
-    }
-  },
-  "regs": {
-    "ext": {
-      "gdpr": 0
     }
   }
 }

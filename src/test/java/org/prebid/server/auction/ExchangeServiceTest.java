@@ -22,10 +22,12 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
@@ -100,6 +102,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
@@ -1452,8 +1455,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(7.19)).build();
         givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid1))));
-        givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(
-                givenBid(bid2))));
+        givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid2))));
 
         // imp ids are not really used for matching, included them here for clarity
         final Imp imp1 = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
@@ -1476,7 +1478,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(cacheService).cacheBidsOpenrtb(
-                eq(asList(bid1, bid2)), eq(asList(imp1, imp2)),
+                InAnyOrderListMatcher.inAnyOrderListMatcherEq(asList(bid1, bid2)), eq(asList(imp1, imp2)),
                 eq(CacheContext.of(true, null, false, null)),
                 eq(""), eq(timeout));
     }
@@ -1879,4 +1881,24 @@ public class ExchangeServiceTest extends VertxTest {
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
         return new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr));
     }
+
+    private static class InAnyOrderListMatcher implements ArgumentMatcher<List> {
+
+        private final List expected;
+
+        InAnyOrderListMatcher(List expected) {
+            this.expected = expected;
+        }
+
+        @Override
+        public boolean matches(List argument) {
+            return CollectionUtils.isEqualCollection(expected, argument);
+        }
+
+
+        static List inAnyOrderListMatcherEq(List expected) {
+            return argThat(new InAnyOrderListMatcher(expected));
+        }
+    }
+
 }
