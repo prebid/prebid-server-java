@@ -19,12 +19,12 @@
                 "hb_cache_host_somoaudience": "{{ cache.host }}",
                 "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_size_somoaudience": "300x250",
-                "hb_cache_id": "0bd56608-42fe-47f6-b2ec-bca5f3905dc5",
+                "hb_cache_id": "6da10965-53bf-453e-a890-ea94eeb00765",
                 "hb_pb_somoaudience": "8.40",
                 "hb_cache_hostpath_somoaudience": "{{ cache.hostpath }}",
                 "hb_pb": "8.40",
                 "hb_bidder_somoaudience": "somoaudience",
-                "hb_cache_id_somoaudience": "0bd56608-42fe-47f6-b2ec-bca5f3905dc5",
+                "hb_cache_id_somoaudience": "6da10965-53bf-453e-a890-ea94eeb00765",
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "300x250",
                 "hb_deal_somoaudience": "dealId16",
@@ -36,8 +36,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache.resource_url }}0bd56608-42fe-47f6-b2ec-bca5f3905dc5",
-                  "cacheId": "0bd56608-42fe-47f6-b2ec-bca5f3905dc5"
+                  "url": "{{ cache.resource_url }}6da10965-53bf-453e-a890-ea94eeb00765",
+                  "cacheId": "6da10965-53bf-453e-a890-ea94eeb00765"
                 }
               }
             }
@@ -59,12 +59,12 @@
                 "hb_cache_host_somoaudience": "{{ cache.host }}",
                 "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_size_somoaudience": "360x240",
-                "hb_cache_id": "2bf317a1-d300-42df-97d5-8ae4a3fef9e3",
+                "hb_cache_id": "9ce56613-4f34-4b28-8a1e-69683ad26b99",
                 "hb_pb_somoaudience": "7.90",
                 "hb_cache_hostpath_somoaudience": "{{ cache.hostpath }}",
                 "hb_pb": "7.90",
                 "hb_bidder_somoaudience": "somoaudience",
-                "hb_cache_id_somoaudience": "2bf317a1-d300-42df-97d5-8ae4a3fef9e3",
+                "hb_cache_id_somoaudience": "9ce56613-4f34-4b28-8a1e-69683ad26b99",
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "360x240",
                 "hb_deal_somoaudience": "dealId17",
@@ -76,8 +76,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache.resource_url }}2bf317a1-d300-42df-97d5-8ae4a3fef9e3",
-                  "cacheId": "2bf317a1-d300-42df-97d5-8ae4a3fef9e3"
+                  "url": "{{ cache.resource_url }}9ce56613-4f34-4b28-8a1e-69683ad26b99",
+                  "cacheId": "9ce56613-4f34-4b28-8a1e-69683ad26b99"
                 }
               }
             }
@@ -98,12 +98,12 @@
                 "hb_cache_host_somoaudience": "{{ cache.host }}",
                 "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_size_somoaudience": "1024x576",
-                "hb_cache_id": "9ce56613-4f34-4b28-8a1e-69683ad26b99",
+                "hb_cache_id": "0bd56608-42fe-47f6-b2ec-bca5f3905dc5",
                 "hb_pb_somoaudience": "9.90",
                 "hb_cache_hostpath_somoaudience": "{{ cache.hostpath }}",
                 "hb_pb": "9.90",
                 "hb_bidder_somoaudience": "somoaudience",
-                "hb_cache_id_somoaudience": "9ce56613-4f34-4b28-8a1e-69683ad26b99",
+                "hb_cache_id_somoaudience": "0bd56608-42fe-47f6-b2ec-bca5f3905dc5",
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_uuid": "8aa68c39-680d-46f5-ba83-fcd761d436fe",
                 "hb_size": "1024x576",
@@ -115,8 +115,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache.resource_url }}9ce56613-4f34-4b28-8a1e-69683ad26b99",
-                  "cacheId": "9ce56613-4f34-4b28-8a1e-69683ad26b99"
+                  "url": "{{ cache.resource_url }}0bd56608-42fe-47f6-b2ec-bca5f3905dc5",
+                  "cacheId": "0bd56608-42fe-47f6-b2ec-bca5f3905dc5"
                 },
                 "vastXml": {
                   "url": "{{ cache.resource_url }}8aa68c39-680d-46f5-ba83-fcd761d436fe",
@@ -147,12 +147,12 @@
               "targeting": {
                 "hb_cache_host_somoaudience": "{{ cache.host }}",
                 "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_id": "6da10965-53bf-453e-a890-ea94eeb00765",
+                "hb_cache_id": "2bf317a1-d300-42df-97d5-8ae4a3fef9e3",
                 "hb_pb_somoaudience": "10.00",
                 "hb_cache_hostpath_somoaudience": "{{ cache.hostpath }}",
                 "hb_pb": "10.00",
                 "hb_bidder_somoaudience": "somoaudience",
-                "hb_cache_id_somoaudience": "6da10965-53bf-453e-a890-ea94eeb00765",
+                "hb_cache_id_somoaudience": "2bf317a1-d300-42df-97d5-8ae4a3fef9e3",
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_bidder": "somoaudience",
                 "hb_cache_host": "{{ cache.host }}",
@@ -161,8 +161,8 @@
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache.resource_url }}6da10965-53bf-453e-a890-ea94eeb00765",
-                  "cacheId": "6da10965-53bf-453e-a890-ea94eeb00765"
+                  "url": "{{ cache.resource_url }}2bf317a1-d300-42df-97d5-8ae4a3fef9e3",
+                  "cacheId": "2bf317a1-d300-42df-97d5-8ae4a3fef9e3"
                 }
               }
             }
