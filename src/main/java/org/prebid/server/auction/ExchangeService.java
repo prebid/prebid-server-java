@@ -706,19 +706,16 @@ public class ExchangeService {
                 return false;
             }
 
-            if (!requestCurrencies.contains(bidderCurrencies.get(0))) {
+            final String bidderCurrency = bidderCurrencies.get(0);
+            if (!requestCurrencies.contains(bidderCurrency)) {
                 errors.add(BidderError.generic(String.format(
                         "Bid currency is not allowed. Was %s, wants: [%s]",
-                        String.join(",", requestCurrencies), bidderCurrencies.get(0))));
+                        String.join(",", requestCurrencies), bidderCurrency)));
                 return false;
             }
         }
 
         return true;
-    }
-
-    private String nonNullCurrencyOtherwiseDefault(String cur) {
-        return ObjectUtils.firstNonNull(cur, DEFAULT_CURRENCY);
     }
 
     private void validateResponseBids(List<BidderBid> bids, List<BidderBid> validBids, List<BidderError> errors) {
