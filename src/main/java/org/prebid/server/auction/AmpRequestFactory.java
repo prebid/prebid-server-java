@@ -167,35 +167,20 @@ public class AmpRequestFactory {
     private static Site overrideSite(Site site, HttpServerRequest request) {
         final String canonicalUrl = canonicalUrl(request);
 
-        Site.SiteBuilder siteBuilder;
-        if (site == null) {
-            siteBuilder = Site.builder();
+        final ObjectNode siteExt = site != null ? site.getExt() : null;
+        final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
+
+        if (StringUtils.isNotBlank(canonicalUrl) || shouldSetExtAmp) {
+            final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
             if (StringUtils.isNotBlank(canonicalUrl)) {
                 siteBuilder.page(canonicalUrl);
             }
-            return siteBuilder
-                    .ext(Json.mapper.valueToTree(ExtSite.of(1)))
-                    .build();
-        } else {
-            final ObjectNode siteExt = site.getExt();
-            if (siteExt == null || siteExt.get("amp") == null || siteExt.get("amp").intValue() != 1) {
-                siteBuilder = site.toBuilder();
-                if (StringUtils.isNotBlank(canonicalUrl)) {
-                    siteBuilder.page(canonicalUrl);
-                }
-                return siteBuilder
-                        .ext(Json.mapper.valueToTree(ExtSite.of(1)))
-                        .build();
-            } else {
-                if (StringUtils.isBlank(canonicalUrl)) {
-                    return site;
-                } else {
-                    return site.toBuilder()
-                            .page(canonicalUrl)
-                            .build();
-                }
+            if (shouldSetExtAmp) {
+                siteBuilder.ext(Json.mapper.valueToTree(ExtSite.of(1)));
             }
+            return siteBuilder.build();
         }
+        return site;
     }
 
     private Imp overrideImp(Imp imp, HttpServerRequest request) {

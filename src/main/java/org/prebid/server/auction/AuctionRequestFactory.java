@@ -245,6 +245,8 @@ public class AuctionRequestFactory {
 
         final String page = site != null ? site.getPage() : null;
         final String domain = site != null ? site.getDomain() : null;
+        final ObjectNode siteExt = site != null ? site.getExt() : null;
+        final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
 
         if (StringUtils.isBlank(page) || StringUtils.isBlank(domain)) {
             final String referer = paramsExtractor.refererFrom(request);
@@ -254,20 +256,19 @@ public class AuctionRequestFactory {
                     final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
                     builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
                     builder.page(StringUtils.isNotBlank(page) ? page : referer);
-                    if (site == null || site.getExt() == null
-                            || site.getExt().get("amp") == null || site.getExt().get("amp").intValue() != 0) {
+                    if (shouldSetExtAmp) {
                         builder.ext(Json.mapper.valueToTree(ExtSite.of(0)));
                     }
                     result = builder.build();
                 } catch (PreBidException e) {
                     logger.warn("Error occurred while populating bid request", e);
                 }
+            } else if (shouldSetExtAmp) {
+                final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
+                result = builder.ext(Json.mapper.valueToTree(ExtSite.of(0))).build();
             }
-        } else {
-            final ObjectNode siteExt = site.getExt();
-            if (siteExt == null || siteExt.get("amp") == null || siteExt.get("amp").intValue() != 0) {
-                result = site.toBuilder().ext(Json.mapper.valueToTree(ExtSite.of(0))).build();
-            }
+        } else if (shouldSetExtAmp){
+            result = site.toBuilder().ext(Json.mapper.valueToTree(ExtSite.of(0))).build();
         }
         return result;
     }
