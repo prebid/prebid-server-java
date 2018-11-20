@@ -455,14 +455,40 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldAlwaysReturnBidRequestWithSiteExt() {
+    public void shouldSetBidRequestSiteExt() {
+        // given
+        given(httpRequest.getParam("curl")).willReturn("");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), any()))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getExt)
+                .containsOnly(mapper.valueToTree(ExtSite.of(1)));
+    }
+
+    @Test
+    public void shouldModifyBidRequestSiteExtIfValueIsNotOne() {
         // given
         given(httpRequest.getParam("curl")).willReturn("");
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
                         .ext(mapper.valueToTree(ExtBidRequest.of(null)))
-                        .site(null),
+                        .site(Site.builder().ext(mapper.valueToTree(ExtSite.of(0))).build()),
                 Imp.builder().build());
 
         given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));

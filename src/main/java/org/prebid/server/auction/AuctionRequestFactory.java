@@ -102,7 +102,7 @@ public class AuctionRequestFactory {
 
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
-                    .site(populatedSite)
+                    .site(populatedSite != null ? populatedSite : bidRequest.getSite())
                     .user(populatedUser != null ? populatedUser : bidRequest.getUser())
                     .imp(populatedImps != null ? populatedImps : imps)
                     // set the auction type to 1 if it wasn't on the request,
@@ -241,7 +241,8 @@ public class AuctionRequestFactory {
      * and the request contains necessary info (domain, page).
      */
     private Site populateSite(Site site, HttpServerRequest request) {
-        final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
+        Site result = null;
+
         final String page = site != null ? site.getPage() : null;
         final String domain = site != null ? site.getDomain() : null;
 
@@ -250,14 +251,25 @@ public class AuctionRequestFactory {
             if (StringUtils.isNotBlank(referer)) {
                 try {
                     final String parsedDomain = paramsExtractor.domainFrom(referer);
+                    final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
                     builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
                     builder.page(StringUtils.isNotBlank(page) ? page : referer);
+                    if (site == null || site.getExt() == null
+                            || site.getExt().get("amp") == null || site.getExt().get("amp").intValue() != 0) {
+                        builder.ext(Json.mapper.valueToTree(ExtSite.of(0)));
+                    }
+                    result = builder.build();
                 } catch (PreBidException e) {
                     logger.warn("Error occurred while populating bid request", e);
                 }
             }
+        } else {
+            final ObjectNode siteExt = site.getExt();
+            if (siteExt == null || siteExt.get("amp") == null || siteExt.get("amp").intValue() != 0) {
+                result = site.toBuilder().ext(Json.mapper.valueToTree(ExtSite.of(0))).build();
+            }
         }
-        return builder.ext(Json.mapper.valueToTree(ExtSite.of(0))).build();
+        return result;
     }
 
     /**

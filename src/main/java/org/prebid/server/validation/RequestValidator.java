@@ -275,9 +275,10 @@ public class RequestValidator {
                         "request.site should include at least one of request.site.id or request.site.page");
             }
 
-            if (site.getExt() != null && site.getExt().size() > 0) {
+            final ObjectNode siteExt = site.getExt();
+            if (siteExt != null && siteExt.size() > 0) {
                 try {
-                    final ExtSite extSite = Json.mapper.treeToValue(site.getExt(), ExtSite.class);
+                    final ExtSite extSite = Json.mapper.treeToValue(siteExt, ExtSite.class);
                     final Integer amp = extSite.getAmp();
                     if (amp != null && (amp < 0 || amp > 1)) {
                         throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");

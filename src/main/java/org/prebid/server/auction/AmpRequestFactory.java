@@ -165,15 +165,37 @@ public class AmpRequestFactory {
     }
 
     private static Site overrideSite(Site site, HttpServerRequest request) {
-        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
         final String canonicalUrl = canonicalUrl(request);
-        if (StringUtils.isNotBlank(canonicalUrl)) {
-            siteBuilder.page(canonicalUrl);
-        }
 
-        return siteBuilder
-                .ext(Json.mapper.valueToTree(ExtSite.of(1)))
-                .build();
+        Site.SiteBuilder siteBuilder;
+        if (site == null) {
+            siteBuilder = Site.builder();
+            if (StringUtils.isNotBlank(canonicalUrl)) {
+                siteBuilder.page(canonicalUrl);
+            }
+            return siteBuilder
+                    .ext(Json.mapper.valueToTree(ExtSite.of(1)))
+                    .build();
+        } else {
+            final ObjectNode siteExt = site.getExt();
+            if (siteExt == null || siteExt.get("amp") == null || siteExt.get("amp").intValue() != 1) {
+                siteBuilder = site.toBuilder();
+                if (StringUtils.isNotBlank(canonicalUrl)) {
+                    siteBuilder.page(canonicalUrl);
+                }
+                return siteBuilder
+                        .ext(Json.mapper.valueToTree(ExtSite.of(1)))
+                        .build();
+            } else {
+                if (StringUtils.isBlank(canonicalUrl)) {
+                    return site;
+                } else {
+                    return site.toBuilder()
+                            .page(canonicalUrl)
+                            .build();
+                }
+            }
+        }
     }
 
     private Imp overrideImp(Imp imp, HttpServerRequest request) {
