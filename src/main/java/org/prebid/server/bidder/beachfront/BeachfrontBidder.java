@@ -14,7 +14,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -26,11 +25,9 @@ import org.prebid.server.bidder.BidderUtil;
 import org.prebid.server.bidder.beachfront.model.BeachfrontBannerRequest;
 import org.prebid.server.bidder.beachfront.model.BeachfrontRequests;
 import org.prebid.server.bidder.beachfront.model.BeachfrontResponseSlot;
-import org.prebid.server.bidder.beachfront.model.BeachfrontSite;
 import org.prebid.server.bidder.beachfront.model.BeachfrontSize;
 import org.prebid.server.bidder.beachfront.model.BeachfrontSlot;
 import org.prebid.server.bidder.beachfront.model.BeachfrontVideoDevice;
-import org.prebid.server.bidder.beachfront.model.BeachfrontVideoGeo;
 import org.prebid.server.bidder.beachfront.model.BeachfrontVideoImp;
 import org.prebid.server.bidder.beachfront.model.BeachfrontVideoRequest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -60,7 +57,7 @@ import java.util.stream.Collectors;
 public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
 
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
-    private static final String BEACHFRONT_VERSION = "0.1.1";
+    private static final String BEACHFRONT_VERSION = "0.2.1";
     private static final String VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
@@ -125,21 +122,9 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
                 HttpRequest.of(HttpMethod.POST,
                         endpoint,
                         Json.encode(beachfrontBannerRequest),
-                        makeBannerHeaders(bidRequest.getUser()),
+                        BidderUtil.headers(),
                         BeachfrontRequests.of(beachfrontBannerRequest, null))),
                 makeBadInputErrors(errors));
-    }
-
-    /**
-     * Creates http headers for banner endpoint
-     */
-    private static MultiMap makeBannerHeaders(User user) {
-        final MultiMap headers = BidderUtil.headers();
-        if (user != null) {
-            headers.add(HttpHeaders.COOKIE, String.format("UserID=%s; __io_cid=%s",
-                    StringUtils.stripToEmpty(user.getId()), StringUtils.stripToEmpty(user.getBuyeruid())));
-        }
-        return headers;
     }
 
     /**
@@ -165,7 +150,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         return beachfrontVideoRequestBuilder
                 .imp(beachfrontVideoImps)
                 .device(device != null
-                        ? BeachfrontVideoDevice.of(device.getUa(), null, BeachfrontVideoGeo.of(device.getIp()))
+                        ? BeachfrontVideoDevice.of(device.getUa(), device.getIp(), "1")
                         : null)
                 .appId(latestExtImpBeachfront.getAppId())
                 .user(user != null ? makeUserForVideoRequest(user) : null)
@@ -185,12 +170,13 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
             if (video != null) {
                 final BeachfrontSize beachfrontSize = BeachfrontSize.of(video.getW(), video.getH());
                 final ExtImpBeachfront extImpBeachfront;
+                final Integer secured = imp.getSecure() != null ? imp.getSecure() : 0;
 
                 try {
                     extImpBeachfront = getExtImpBeachfront(imp);
                 } catch (PreBidException ex) {
                     errors.add(ex.getMessage());
-                    beachfrontVideoImps.add(BeachfrontVideoImp.of(beachfrontSize, null, null, null));
+                    beachfrontVideoImps.add(BeachfrontVideoImp.of(beachfrontSize, null, null, null, secured));
                     continue;
                 }
 
@@ -198,7 +184,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
 
                 beachfrontVideoImps.add(BeachfrontVideoImp.of(beachfrontSize,
                         extImpBeachfront.getBidfloor(),
-                        beachfrontVideoImps.size(), imp.getId()));
+                        beachfrontVideoImps.size(), imp.getId(), secured));
             }
         }
 
@@ -216,24 +202,20 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     private static void populateVideoRequestDomainAndSite(App app, Site site,
                                                           BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
                                                                   videoRequestBuilder) {
-        String resolvedDomain = null;
-        BeachfrontSite resolvedBeachfrontSite = null;
         if (app != null) {
             final String domain = app.getDomain();
             if (StringUtils.isNotEmpty(domain)) {
-                resolvedDomain = domain;
-                resolvedBeachfrontSite = BeachfrontSite.of(app.getId());
+                videoRequestBuilder.site(Site.builder().domain(domain).page(app.getId()).build());
             }
         } else if (site != null) {
             final String page = site.getPage();
             if (StringUtils.isNotEmpty(page)) {
                 final String domain = site.getDomain();
-                resolvedDomain = StringUtils.isEmpty(domain) ? HttpUtil.getDomainFromUrl(page) : domain;
-                resolvedBeachfrontSite = BeachfrontSite.of(page);
+                final String resolvedDomain = StringUtils.isEmpty(domain) ? HttpUtil.getDomainFromUrl(page) : domain;
+
+                videoRequestBuilder.site(Site.builder().domain(resolvedDomain).page(page).build());
             }
         }
-        videoRequestBuilder.domain(resolvedDomain)
-                .site(resolvedBeachfrontSite);
     }
 
     /**
@@ -271,10 +253,20 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         populateDomainPageFieldsForBannerRequest(bidRequest.getApp(), bidRequest.getSite(), beachfrontRequestsBuilder);
 
         final User user = bidRequest.getUser();
+        if (user != null) {
+            beachfrontRequestsBuilder.user(User.builder().id(user.getId()).buyeruid(user.getBuyeruid()).build());
+        }
+
+        final Integer secure = imps.stream()
+                .map(Imp::getSecure)
+                .filter(Objects::nonNull)
+                .reduce((f, s) -> s)
+                .orElse(null);
 
         return beachfrontRequestsBuilder
+                .requestId(bidRequest.getId())
                 .slots(beachfrontSlots)
-                .user(user != null ? user.getBuyeruid() : null)
+                .secure(secure)
                 .build();
     }
 
@@ -420,7 +412,11 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
             return makeErrorResponse(errors);
         }
 
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+        if (bidResponse == null) {
+            return Result.emptyWithError(BidderError.badServerResponse("Received a null response from beachfront"));
+        }
+
+        if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Result.of(Collections.emptyList(), Collections.emptyList());
         }
 

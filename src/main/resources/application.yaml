@@ -62,10 +62,10 @@ adapters:
     deprecated-names:
   beachfront:
     enabled: false
-    banner-endpoint: https://display.bfmio.com/prebid_display
+    banner-endpoint: http://display.bfmio.com/prebid_display
     video-endpoint: https://reachms.bfmio.com/bid.json?exchange_id=
     usersync-url: //sync.bfmio.com/syncb?pid=
-    platform-id: 142
+    platform-id: 155
     pbs-enforces-gdpr: true
     deprecated-names:
   brightroll:
