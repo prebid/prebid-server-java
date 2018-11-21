@@ -71,6 +71,12 @@ public class IxAdapter extends OpenrtbAdapter {
                 .collect(Collectors.toList());
     }
 
+    private static void validatePreBidRequest(PreBidRequest preBidRequest) {
+        if (preBidRequest.getApp() != null) {
+            throw new PreBidException("ix doesn't support apps");
+        }
+    }
+
     private List<BidRequest> makeRequests(List<AdUnitBid> adUnitBids, PreBidRequestContext preBidRequestContext) {
         final List<BidRequest> prioritizedRequests = new ArrayList<>();
         final List<BidRequest> regularRequests = new ArrayList<>();
@@ -91,12 +97,6 @@ public class IxAdapter extends OpenrtbAdapter {
                 // cap the number of requests to requestLimit
                 .limit(REQUEST_LIMIT)
                 .collect(Collectors.toList());
-    }
-
-    private static void validatePreBidRequest(PreBidRequest preBidRequest) {
-        if (preBidRequest.getApp() != null) {
-            throw new PreBidException("ix doesn't support apps");
-        }
     }
 
     private BidRequest createBidRequest(AdUnitBid adUnitBid, Format size, PreBidRequestContext preBidRequestContext) {
