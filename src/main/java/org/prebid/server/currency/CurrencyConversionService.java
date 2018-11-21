@@ -125,7 +125,7 @@ public class CurrencyConversionService {
     public BigDecimal convertCurrency(BigDecimal price,
                                       Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                       String adServerCurrency,
-                                      String bidCurrency) {
+                                      String bidCurrency, Integer priceGranularityPrecision) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
         final String effectiveBidCurrency = bidCurrency != null ? bidCurrency : DEFAULT_BID_CURRENCY;
@@ -149,7 +149,7 @@ public class CurrencyConversionService {
             throw new PreBidException("no currency conversion available");
         }
 
-        return price.divide(conversionRate, conversionRate.precision(), BigDecimal.ROUND_HALF_EVEN);
+        return price.divide(conversionRate, priceGranularityPrecision + 1, BigDecimal.ROUND_HALF_EVEN);
     }
 
     /**

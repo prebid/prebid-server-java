@@ -153,7 +153,7 @@ public class ExchangeService {
                 .compose(bidderRequests -> CompositeFuture.join(bidderRequests.stream()
                         .map(bidderRequest -> requestBids(bidderRequest, startTime,
                                 auctionTimeout(timeout, cacheInfo.doCaching), aliases, bidAdjustments(requestExt),
-                                currencyRates(targeting)))
+                                currencyRates(targeting), priceGranularity(targeting).getPrecision()))
                         .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<BidderResponse>list)
@@ -215,6 +215,15 @@ public class ExchangeService {
      */
     private static Map<String, Map<String, BigDecimal>> currencyRates(ExtRequestTargeting targeting) {
         return targeting != null && targeting.getCurrency() != null ? targeting.getCurrency().getRates() : null;
+    }
+
+    private static PriceGranularity priceGranularity(ExtRequestTargeting targeting) {
+        if (targeting != null && targeting.getPricegranularity() != null) {
+            return PriceGranularity.createFromExtPriceGranularity(
+                    parsePriceGranularity(targeting.getPricegranularity()));
+        }
+
+        return PriceGranularity.DEFAULT;
     }
 
     /**
@@ -655,7 +664,8 @@ public class ExchangeService {
      */
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, Timeout timeout,
                                                Map<String, String> aliases, Map<String, BigDecimal> bidAdjustments,
-                                               Map<String, Map<String, BigDecimal>> currencyConversionRates) {
+                                               Map<String, Map<String, BigDecimal>> currencyConversionRates,
+                                               Integer priceGranularityPrecision) {
         final String bidder = bidderRequest.getBidder();
         final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidder);
         final String adServerCurrency = bidderRequest.getBidRequest().getCur().get(0);
@@ -663,7 +673,7 @@ public class ExchangeService {
                 .requestBids(bidderRequest.getBidRequest(), timeout)
                 .map(bidderSeatBid -> validateAndUpdateResponse(bidderSeatBid, bidderRequest.getBidRequest().getCur()))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
-                        bidPriceAdjustmentFactor))
+                        bidPriceAdjustmentFactor, priceGranularityPrecision))
                 .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
     }
 
@@ -742,7 +752,8 @@ public class ExchangeService {
      */
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
                                                Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                               String adServerCurrency, BigDecimal priceAdjustmentFactor) {
+                                               String adServerCurrency, BigDecimal priceAdjustmentFactor,
+                                               Integer priceGranularityPrecision) {
         final List<BidderBid> bidderBids = bidderSeatBid.getBids();
         if (bidderBids.isEmpty()) {
             return bidderSeatBid;
@@ -757,7 +768,7 @@ public class ExchangeService {
             final BigDecimal price = bid.getPrice();
             try {
                 final BigDecimal convertedPrice = currencyService.convertCurrency(price,
-                        requestCurrencyRates, adServerCurrency, bidCurrency);
+                        requestCurrencyRates, adServerCurrency, bidCurrency, priceGranularityPrecision);
 
                 final BigDecimal adjustedPrice = priceAdjustmentFactor != null
                         && priceAdjustmentFactor.compareTo(BigDecimal.ONE) != 0
