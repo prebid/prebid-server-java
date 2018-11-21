@@ -44,6 +44,9 @@ public class BeachfrontConfiguration extends BidderConfiguration {
     @Value("${adapters.beachfront.deprecated-names}")
     private List<String> deprecatedNames;
 
+    @Value("${adapters.beachfront.aliases}")
+    private List<String> aliases;
+
     @Bean
     BidderDeps beachfrontBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
@@ -57,6 +60,11 @@ public class BeachfrontConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

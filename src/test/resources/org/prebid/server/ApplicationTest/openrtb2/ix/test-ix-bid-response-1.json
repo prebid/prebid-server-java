@@ -1,5 +1,5 @@
 {
-  "id": "bidResponseId6",
+  "id": "bidResponseId01",
   "seatbid": [
     {
       "bid": [
@@ -12,20 +12,9 @@
           "dealid": "dealId6",
           "w": 300,
           "h": 600
-        },
-        {
-          "id": "894859517",
-          "impid": "impId61",
-          "price": 4.00,
-          "adm": "adm61",
-          "crid": "crid61",
-          "dealid": "dealId61",
-          "w": 300,
-          "h": 600
         }
       ],
-      "seat": "seatId6",
-      "group": 0
+      "seat": "seatId6"
     }
   ]
 }

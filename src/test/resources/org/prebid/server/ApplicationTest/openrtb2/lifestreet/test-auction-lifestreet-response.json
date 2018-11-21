@@ -65,6 +65,9 @@
           "page": "http://www.example.com",
           "publisher": {
             "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
           }
         },
         "device": {
@@ -141,8 +144,14 @@
     },
     "errors": {
       "lifestreet": [
-        "Media Type is not defined for Bid",
-        "Media Type is not defined for Bid"
+        {
+          "code": 3,
+          "message": "Media Type is not defined for Bid"
+        },
+        {
+          "code": 3,
+          "message": "Media Type is not defined for Bid"
+        }
       ]
     },
     "responsetimemillis": {

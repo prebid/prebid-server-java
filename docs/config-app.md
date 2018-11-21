@@ -34,7 +34,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO 4217 codes for the representation of currencies.
+- `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.currency-rates-refresh-period-ms` - default refresh period for currency rates updates.
 - `auction.currency-rates-url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
@@ -59,6 +59,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync-url` - the url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
+- `adapters.<BIDDER_NAME>.aliases` - comma separated aliases of bidder.
 
 But feel free to add additional bidder's specific options.
 

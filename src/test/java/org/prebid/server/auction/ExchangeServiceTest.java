@@ -22,10 +22,12 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
@@ -37,6 +39,7 @@ import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.account.AccountCacheService;
@@ -100,6 +103,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
@@ -236,7 +240,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         assertThat(bidResponse.getExt()).isEqualTo(mapper.valueToTree(ExtBidResponse.of(null,
                 Collections.singletonMap(invalidBidderName, Collections.singletonList(
-                        "invalid has been deprecated and is no longer available. Use valid instead.")),
+                        ExtBidderError.of(BidderError.Type.bad_input.getCode(),
+                                "invalid has been deprecated and is no longer available. Use valid instead."))),
                 new HashMap<>(), null)));
     }
 
@@ -775,8 +780,11 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getResponsetimemillis()).hasSize(2).containsOnlyKeys("bidder1", "bidder2");
         assertThat(ext.getErrors()).hasSize(2).containsOnly(
-                entry("bidder1", singletonList("bidder1_error1")),
-                entry("bidder2", asList("bidder2_error1", "bidder2_error2")));
+                entry("bidder1", singletonList(ExtBidderError.of(BidderError.Type.bad_server_response.getCode(),
+                        "bidder1_error1"))),
+                entry("bidder2", asList(ExtBidderError.of(BidderError.Type.bad_server_response.getCode(),
+                        "bidder2_error1"), ExtBidderError.of(BidderError.Type.bad_server_response.getCode(),
+                        "bidder2_error2"))));
     }
 
     @Test
@@ -946,7 +954,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).hasSize(1).containsOnly(
-                entry("bidder1", singletonList("bid validation error")));
+                entry("bidder1", singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                        "bid validation error"))));
     }
 
     @Test
@@ -1452,8 +1461,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(7.19)).build();
         givenHttpConnector("bidder1", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid1))));
-        givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(
-                givenBid(bid2))));
+        givenHttpConnector("bidder2", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid2))));
 
         // imp ids are not really used for matching, included them here for clarity
         final Imp imp1 = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
@@ -1476,7 +1484,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(cacheService).cacheBidsOpenrtb(
-                eq(asList(bid1, bid2)), eq(asList(imp1, imp2)),
+                InAnyOrderListMatcher.inAnyOrderListMatcherEq(asList(bid1, bid2)), eq(asList(imp1, imp2)),
                 eq(CacheContext.of(true, null, false, null)),
                 eq(""), eq(timeout));
     }
@@ -1548,7 +1556,8 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid).isEmpty();
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).hasSize(1).containsOnly(
-                entry("bidder", singletonList("no currency conversion available")));
+                entry("bidder", singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                        "no currency conversion available"))));
     }
 
     @Test
@@ -1599,7 +1608,58 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(Bid::getPrice).containsExactly(BigDecimal.valueOf(10.0));
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).hasSize(1).containsOnly(
-                entry("bidder", singletonList("no currency conversion available")));
+                entry("bidder", singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                        "no currency conversion available"))));
+    }
+
+    @Test
+    public void shouldRespondWithErrorWhenBidsWithUnsupportedCurrency()
+            throws JsonProcessingException {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("bidder", bidderRequester, givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build()))));
+
+        final BidRequest bidRequest = BidRequest.builder().cur(Collections.singletonList("EUR"))
+                .imp(singletonList(givenImp(singletonMap("bidder", 2), identity()))).build();
+
+        // returns the same price as in argument
+        given(currencyService.convertCurrency(any(), any(), any(), any()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(0);
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("bidder",
+                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                        "Bid currency is not allowed. Was EUR, wants: [USD]"))));
+    }
+
+    @Test
+    public void shouldRespondWithErrorWhenBidsWithDifferentCurrencies() throws JsonProcessingException {
+        // given
+        given(bidderCatalog.isValidName(anyString())).willReturn(true);
+
+        given(bidderRequester.requestBids(any(), any()))
+                .willReturn(Future.succeededFuture(givenSeatBid(asList(
+                        BidderBid.of(Bid.builder().price(TEN).build(), BidType.banner, "EUR"),
+                        BidderBid.of(Bid.builder().price(TEN).build(), BidType.banner, "USD")))));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)),
+                builder -> builder.site(Site.builder().build()));
+
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        assertThat(bidResponse.getSeatbid()).hasSize(0);
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("somebidder",
+                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                        "Bid currencies mismatch found. Expected all bids to have the same currencies."))));
     }
 
     @Test
@@ -1831,4 +1891,24 @@ public class ExchangeServiceTest extends VertxTest {
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
         return new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr));
     }
+
+    private static class InAnyOrderListMatcher implements ArgumentMatcher<List> {
+
+        private final List expected;
+
+        InAnyOrderListMatcher(List expected) {
+            this.expected = expected;
+        }
+
+        @Override
+        public boolean matches(List argument) {
+            return CollectionUtils.isEqualCollection(expected, argument);
+        }
+
+
+        static List inAnyOrderListMatcherEq(List expected) {
+            return argThat(new InAnyOrderListMatcher(expected));
+        }
+    }
+
 }
