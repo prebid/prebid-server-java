@@ -247,22 +247,25 @@ public class AuctionRequestFactory {
         final String domain = site != null ? site.getDomain() : null;
         final ObjectNode siteExt = site != null ? site.getExt() : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
-        final boolean shouldModifyPageOrDomain = StringUtils.isBlank(page) || StringUtils.isBlank(domain);
         final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(ExtSite.of(0)) : null;
-        final String referer = shouldModifyPageOrDomain ? paramsExtractor.refererFrom(request) : null;
 
+        String referer = null;
         String parsedDomain = null;
-        if (StringUtils.isNotBlank(referer)) {
-            try {
-                parsedDomain = paramsExtractor.domainFrom(referer);
-            } catch (PreBidException e) {
-                logger.warn("Error occurred while populating bid request", e);
+        if (StringUtils.isBlank(page) || StringUtils.isBlank(domain)) {
+            referer = paramsExtractor.refererFrom(request);
+            if (StringUtils.isNotBlank(referer)) {
+                try {
+                    parsedDomain = paramsExtractor.domainFrom(referer);
+                } catch (PreBidException e) {
+                    logger.warn("Error occurred while populating bid request", e);
+                }
             }
         }
+        final boolean shouldModifyPageOrDomain = referer != null && parsedDomain != null;
 
         if (shouldModifyPageOrDomain || shouldSetExtAmp) {
             final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
-            if (shouldModifyPageOrDomain && StringUtils.isNotBlank(referer) && parsedDomain != null) {
+            if (shouldModifyPageOrDomain) {
                 builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
                 builder.page(StringUtils.isNotBlank(page) ? page : referer);
             }
