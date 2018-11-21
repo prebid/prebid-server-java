@@ -18,7 +18,7 @@ public class ExtBidResponse {
     /**
      * Defines the contract for bidresponse.ext.errors
      */
-    Map<String, List<String>> errors;
+    Map<String, List<ExtBidderError>> errors;
 
     /**
      * Defines the contract for bidresponse.ext.responsetimemillis

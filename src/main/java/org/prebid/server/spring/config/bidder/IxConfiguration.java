@@ -36,6 +36,9 @@ public class IxConfiguration extends BidderConfiguration {
     @Value("${adapters.ix.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
+    @Value("${external-url}")
+    private String externalUrl;
+
     @Value("${adapters.ix.deprecated-names}")
     private List<String> deprecatedNames;
 
@@ -74,7 +77,7 @@ public class IxConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new IxUsersyncer(usersyncUrl);
+        return new IxUsersyncer(usersyncUrl, externalUrl);
     }
 
     @Override

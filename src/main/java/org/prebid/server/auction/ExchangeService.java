@@ -55,6 +55,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
@@ -1074,9 +1075,9 @@ public class ExchangeService {
                 : null;
         final ExtResponseDebug extResponseDebug = httpCalls != null ? ExtResponseDebug.of(httpCalls, bidRequest) : null;
 
-        final Map<String, List<String>> errors = new HashMap<>();
+        final Map<String, List<ExtBidderError>> errors = new HashMap<>();
         for (BidderResponse bidderResponse : results) {
-            errors.put(bidderResponse.getBidder(), messages(bidderResponse.getSeatBid().getErrors()));
+            errors.put(bidderResponse.getBidder(), errorsDetails(bidderResponse.getSeatBid().getErrors()));
         }
 
         errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
@@ -1087,18 +1088,20 @@ public class ExchangeService {
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
     }
 
-    private Map<String, List<String>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
+    private Map<String, List<ExtBidderError>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
         return bidRequest.getImp().stream()
                 .filter(imp -> imp.getExt() != null)
                 .flatMap(imp -> asStream(imp.getExt().fieldNames()))
                 .distinct()
                 .filter(bidderCatalog::isDeprecatedName)
                 .collect(Collectors.toMap(Function.identity(),
-                        bidder -> Collections.singletonList(bidderCatalog.errorForDeprecatedName(bidder))));
+                        bidder -> Collections.singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
+                                bidderCatalog.errorForDeprecatedName(bidder)))));
     }
 
-    private static List<String> messages(List<BidderError> errors) {
-        return CollectionUtils.emptyIfNull(errors).stream().map(BidderError::getMessage).collect(Collectors.toList());
+    private static List<ExtBidderError> errorsDetails(List<BidderError> errors) {
+        return CollectionUtils.emptyIfNull(errors).stream().map(bidderError -> ExtBidderError.of(
+                bidderError.getType().getCode(), bidderError.getMessage())).collect(Collectors.toList());
     }
 
     /**
