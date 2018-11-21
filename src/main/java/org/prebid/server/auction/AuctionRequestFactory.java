@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -244,20 +245,34 @@ public class AuctionRequestFactory {
 
         final String page = site != null ? site.getPage() : null;
         final String domain = site != null ? site.getDomain() : null;
+        final ObjectNode siteExt = site != null ? site.getExt() : null;
+        final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
+        final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(ExtSite.of(0)) : null;
 
+        String referer = null;
+        String parsedDomain = null;
         if (StringUtils.isBlank(page) || StringUtils.isBlank(domain)) {
-            final String referer = paramsExtractor.refererFrom(request);
+            referer = paramsExtractor.refererFrom(request);
             if (StringUtils.isNotBlank(referer)) {
                 try {
-                    final String parsedDomain = paramsExtractor.domainFrom(referer);
-                    final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
-                    builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
-                    builder.page(StringUtils.isNotBlank(page) ? page : referer);
-                    result = builder.build();
+                    parsedDomain = paramsExtractor.domainFrom(referer);
                 } catch (PreBidException e) {
                     logger.warn("Error occurred while populating bid request", e);
                 }
             }
+        }
+        final boolean shouldModifyPageOrDomain = referer != null && parsedDomain != null;
+
+        if (shouldModifyPageOrDomain || shouldSetExtAmp) {
+            final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
+            if (shouldModifyPageOrDomain) {
+                builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
+                builder.page(StringUtils.isNotBlank(page) ? page : referer);
+            }
+            if (shouldSetExtAmp) {
+                builder.ext(modifiedSiteExt);
+            }
+            result = builder.build();
         }
         return result;
     }

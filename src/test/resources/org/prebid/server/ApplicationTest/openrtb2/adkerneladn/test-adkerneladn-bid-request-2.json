@@ -17,7 +17,10 @@
   ],
   "site": {
     "domain": "",
-    "page": "http://www.example.com"
+    "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    }
   },
   "device": {
     "ua": "userAgent",

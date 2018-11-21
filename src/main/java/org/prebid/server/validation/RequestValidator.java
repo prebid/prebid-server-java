@@ -41,6 +41,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -268,9 +269,24 @@ public class RequestValidator {
     }
 
     private void validateSite(Site site) throws ValidationException {
-        if (site != null && StringUtils.isBlank(site.getId()) && StringUtils.isBlank(site.getPage())) {
-            throw new ValidationException(
-                    "request.site should include at least one of request.site.id or request.site.page");
+        if (site != null) {
+            if (StringUtils.isBlank(site.getId()) && StringUtils.isBlank(site.getPage())) {
+                throw new ValidationException(
+                        "request.site should include at least one of request.site.id or request.site.page");
+            }
+
+            final ObjectNode siteExt = site.getExt();
+            if (siteExt != null && siteExt.size() > 0) {
+                try {
+                    final ExtSite extSite = Json.mapper.treeToValue(siteExt, ExtSite.class);
+                    final Integer amp = extSite.getAmp();
+                    if (amp != null && (amp < 0 || amp > 1)) {
+                        throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");
+                    }
+                } catch (JsonProcessingException e) {
+                    throw new ValidationException("request.site.ext object is not valid: %s", e.getMessage());
+                }
+            }
         }
     }
 

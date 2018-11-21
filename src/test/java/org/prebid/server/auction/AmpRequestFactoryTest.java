@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -29,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -40,7 +42,9 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -116,6 +120,25 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages())
                 .hasSize(1).containsOnly("data for tag_id 'tagId' includes 2 imp elements. Only one is allowed");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfStoredBidRequestHasApp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder().build()))
+                .build();
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
+        assertThat(((InvalidRequestException) future.cause()).getMessages())
+                .hasSize(1).containsOnly("request.app must not exist in AMP stored requests.");
     }
 
     @Test
@@ -432,6 +455,32 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldSetBidRequestSiteExt() {
+        // given
+        given(httpRequest.getParam("curl")).willReturn("");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .ext(mapper.valueToTree(ExtBidRequest.of(null))),
+                Imp.builder().build());
+
+        given(storedRequestProcessor.processAmpRequest(anyString())).willReturn(Future.succeededFuture(bidRequest));
+        given(auctionRequestFactory.fillImplicitParameters(any(), any()))
+                .willAnswer(answerWithFirstArgument());
+        given(auctionRequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+
+        // when
+        final Future<BidRequest> future = factory.fromRequest(routingContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(singletonList(future.result()))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getExt)
+                .containsOnly(mapper.valueToTree(ExtSite.of(1)));
+    }
+
+    @Test
     public void shouldReturnBidRequestWithOverriddenSitePageByCurlParamValue() {
         // given
         given(httpRequest.getParam("curl")).willReturn("overridden-site-page");
@@ -454,8 +503,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(singletonList(future.result()))
                 .extracting(BidRequest::getSite)
-                .extracting(Site::getPage)
-                .containsOnly("overridden-site-page");
+                .extracting(Site::getPage, Site::getExt)
+                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1))));
     }
 
     @Test
@@ -481,8 +530,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(singletonList(future.result()))
                 .extracting(BidRequest::getSite)
-                .extracting(Site::getPage)
-                .containsOnly("overridden-site-page");
+                .extracting(Site::getPage, Site::getExt)
+                .containsOnly(tuple("overridden-site-page", mapper.valueToTree(ExtSite.of(1))));
     }
 
     @Test
