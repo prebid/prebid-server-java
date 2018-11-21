@@ -162,11 +162,11 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Updates {@link Imp} with bigfloor if it is present in imp.ext.bidder
+     * Updates {@link Imp} with bidfloor if it is present in imp.ext.bidder
      */
     private Imp updateImp(Imp imp, ExtImpAdtelligent extImpAdtelligent) {
         final AdtelligentImpExt adtelligentImpExt = AdtelligentImpExt.of(extImpAdtelligent);
-        final BigDecimal bidFloor = extImpAdtelligent.getBigFloor();
+        final BigDecimal bidFloor = extImpAdtelligent.getBidFloor();
         return imp.toBuilder()
                 .bidfloor(bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0 ? bidFloor : imp.getBidfloor())
                 .ext(Json.mapper.valueToTree(adtelligentImpExt))
