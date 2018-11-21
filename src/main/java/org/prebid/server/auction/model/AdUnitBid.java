@@ -10,7 +10,7 @@ import org.prebid.server.proto.response.MediaType;
 import java.util.List;
 import java.util.Set;
 
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class AdUnitBid {
 
