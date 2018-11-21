@@ -103,7 +103,17 @@
               "targeting": {
                 "hb_bidder_conversantAlias": "conversantAlias",
                 "hb_pb_conversantAlias": "4.00",
-                "hb_size_conversantAlias": "300x600"
+                "hb_size_conversantAlias": "300x600",
+                "hb_cache_host_conversantAlias": "{{ cache.host }}",
+                "hb_cache_path_conversantAlias": "{{ cache.path }}",
+                "hb_cache_hostpath_conversantAlias": "{{ cache.hostpath }}",
+                "hb_cache_id_conversantAlias": "8300a9d5-4654-4406-b6b9-7bc5060e8a36"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache_resource_url }}8300a9d5-4654-4406-b6b9-7bc5060e8a36",
+                  "cacheId": "8300a9d5-4654-4406-b6b9-7bc5060e8a36"
+                }
               }
             }
           }
