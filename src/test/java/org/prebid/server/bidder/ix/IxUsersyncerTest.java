@@ -10,7 +10,7 @@ public class IxUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer(null, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer(null, null));
         assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer("some_url", null));
     }
 

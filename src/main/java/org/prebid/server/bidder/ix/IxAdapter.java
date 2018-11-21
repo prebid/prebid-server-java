@@ -82,12 +82,14 @@ public class IxAdapter extends OpenrtbAdapter {
         final List<BidRequest> regularRequests = new ArrayList<>();
 
         for (AdUnitBid adUnitBid : adUnitBids) {
-            final List<Format> sizes = adUnitBid.getSizes();
-            for (Format size : sizes) {
-                final BidRequest bidRequest = createBidRequest(adUnitBid, size, preBidRequestContext);
+            final IxParams ixParams = parseAndValidateParams(adUnitBid);
+            boolean isFirstSize = true;
+            for (Format size : adUnitBid.getSizes()) {
+                final BidRequest bidRequest = createBidRequest(adUnitBid, ixParams, size, preBidRequestContext);
                 // prioritize slots over sizes
-                if (sizes.indexOf(size) == 0) {
+                if (isFirstSize) {
                     prioritizedRequests.add(bidRequest);
+                    isFirstSize = false;
                 } else {
                     regularRequests.add(bidRequest);
                 }
@@ -99,19 +101,18 @@ public class IxAdapter extends OpenrtbAdapter {
                 .collect(Collectors.toList());
     }
 
-    private BidRequest createBidRequest(AdUnitBid adUnitBid, Format size, PreBidRequestContext preBidRequestContext) {
-        final IxParams ixParams = parseAndValidateParams(adUnitBid);
+    private BidRequest createBidRequest(AdUnitBid adUnitBid, IxParams ixParams, Format size,
+                                        PreBidRequestContext preBidRequestContext) {
         final List<Imp> imps = makeImps(copyAdUnitBidWithSingleSize(adUnitBid, size), preBidRequestContext);
         validateImps(imps);
 
-        final String siteId = ixParams.getSiteId();
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         return BidRequest.builder()
                 .id(preBidRequest.getTid())
                 .at(1)
                 .tmax(preBidRequest.getTimeoutMillis())
                 .imp(imps)
-                .site(makeSite(preBidRequestContext, siteId))
+                .site(makeSite(preBidRequestContext, ixParams.getSiteId()))
                 .device(deviceBuilder(preBidRequestContext).build())
                 .user(makeUser(preBidRequestContext))
                 .source(makeSource(preBidRequestContext))
