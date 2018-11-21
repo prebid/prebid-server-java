@@ -101,8 +101,14 @@
         "ix": [
           {
             "uri": "{{ ix.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId6\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250,\"topframe\":0},\"tagid\":\"impId6\"},{\"id\":\"impId61\",\"video\":{\"mimes\":[\"mimes\"],\"w\":300,\"h\":250,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[null]},\"tagid\":\"impId61\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"10002\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"IE-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}}}",
-            "responsebody": "{\"id\":\"bidResponseId6\",\"seatbid\":[{\"bid\":[{\"id\":\"975135373\",\"impid\":\"impId6\",\"price\":4.75,\"adm\":\"adm6\",\"crid\":\"crid6\",\"dealid\":\"dealId6\",\"w\":300,\"h\":600},{\"id\":\"894859517\",\"impid\":\"impId61\",\"price\":4.0,\"adm\":\"adm61\",\"crid\":\"crid61\",\"dealid\":\"dealId61\",\"w\":300,\"h\":600}],\"seat\":\"seatId6\",\"group\":0}]}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId6\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250,\"topframe\":0},\"tagid\":\"impId6\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"10002\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"IE-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}}}",
+            "responsebody": "{\"id\":\"bidResponseId01\",\"seatbid\":[{\"bid\":[{\"id\":\"975135373\",\"impid\":\"impId6\",\"price\":4.75,\"adm\":\"adm6\",\"crid\":\"crid6\",\"dealid\":\"dealId6\",\"w\":300,\"h\":600}],\"seat\":\"seatId6\"}]}",
+            "status": 200
+          },
+          {
+            "uri": "{{ ix.exchange_uri }}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId61\",\"video\":{\"mimes\":[\"mimes\"],\"w\":300,\"h\":250,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[null]},\"tagid\":\"impId61\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"10002\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"IE-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}}}",
+            "responsebody": "{\"id\":\"bidResponseId02\",\"seatbid\":[{\"bid\":[{\"id\":\"894859517\",\"impid\":\"impId61\",\"price\":4.0,\"adm\":\"adm61\",\"crid\":\"crid61\",\"dealid\":\"dealId61\",\"w\":300,\"h\":600}],\"seat\":\"seatId6\"}]}",
             "status": 200
           }
         ]
