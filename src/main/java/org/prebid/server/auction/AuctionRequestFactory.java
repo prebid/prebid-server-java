@@ -247,6 +247,7 @@ public class AuctionRequestFactory {
         final String domain = site != null ? site.getDomain() : null;
         final ObjectNode siteExt = site != null ? site.getExt() : null;
         final boolean shouldSetExtAmp = siteExt == null || siteExt.get("amp") == null;
+        final ObjectNode modifiedSiteExt = shouldSetExtAmp ? Json.mapper.valueToTree(ExtSite.of(0)) : null;
 
         if (StringUtils.isBlank(page) || StringUtils.isBlank(domain)) {
             final String referer = paramsExtractor.refererFrom(request);
@@ -257,7 +258,7 @@ public class AuctionRequestFactory {
                     builder.domain(StringUtils.isNotBlank(domain) ? domain : parsedDomain);
                     builder.page(StringUtils.isNotBlank(page) ? page : referer);
                     if (shouldSetExtAmp) {
-                        builder.ext(Json.mapper.valueToTree(ExtSite.of(0)));
+                        builder.ext(modifiedSiteExt);
                     }
                     result = builder.build();
                 } catch (PreBidException e) {
@@ -265,10 +266,10 @@ public class AuctionRequestFactory {
                 }
             } else if (shouldSetExtAmp) {
                 final Site.SiteBuilder builder = site == null ? Site.builder() : site.toBuilder();
-                result = builder.ext(Json.mapper.valueToTree(ExtSite.of(0))).build();
+                result = builder.ext(modifiedSiteExt).build();
             }
-        } else if (shouldSetExtAmp){
-            result = site.toBuilder().ext(Json.mapper.valueToTree(ExtSite.of(0))).build();
+        } else if (shouldSetExtAmp) {
+            result = site.toBuilder().ext(modifiedSiteExt).build();
         }
         return result;
     }
