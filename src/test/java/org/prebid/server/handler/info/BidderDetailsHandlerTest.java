@@ -15,9 +15,14 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.proto.response.BidderInfo;
 
-import static java.util.Collections.*;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -97,6 +102,22 @@ public class BidderDetailsHandlerTest extends VertxTest {
                 eq("{\"enabled\":true,\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
                         + "{\"app\":{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}},"
                         + "\"gdpr\":{\"vendorId\":0,\"enforced\":true}}"));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedBodyForBidderAlias() {
+        // given
+        given(bidderCatalog.isAlias(anyString())).willReturn(true);
+        given(bidderCatalog.nameByAlias(anyString())).willReturn("bidderName1");
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(
+                eq("{\"enabled\":true,\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
+                        + "{\"app\":{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}},"
+                        + "\"gdpr\":{\"vendorId\":0,\"enforced\":true},\"aliasOf\":\"bidderName1\"}"));
     }
 
     private static BidderInfo givenBidderInfo() {

@@ -36,11 +36,14 @@ public class AdformConfiguration extends BidderConfiguration {
     @Value("${adapters.adform.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${external-url}")
-    private String externalUrl;
-
     @Value("${adapters.adform.deprecated-names}")
     private List<String> deprecatedNames;
+
+    @Value("${adapters.adform.aliases}")
+    private List<String> aliases;
+
+    @Value("${external-url}")
+    private String externalUrl;
 
     @Bean
     BidderDeps adformBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -55,6 +58,11 @@ public class AdformConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override
