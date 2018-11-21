@@ -35,11 +35,14 @@ public class OpenxConfiguration extends BidderConfiguration {
     @Value("${adapters.openx.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${external-url}")
-    private String externalUrl;
-
     @Value("${adapters.openx.deprecated-names}")
     private List<String> deprecatedNames;
+
+    @Value("${adapters.openx.aliases}")
+    private List<String> aliases;
+
+    @Value("${external-url}")
+    private String externalUrl;
 
     @Bean
     BidderDeps openxBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -54,6 +57,11 @@ public class OpenxConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

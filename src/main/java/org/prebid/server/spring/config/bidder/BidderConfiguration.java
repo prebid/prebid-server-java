@@ -35,12 +35,15 @@ public abstract class BidderConfiguration {
         final BidderRequester bidderRequester = createBidderRequester(httpClient, bidder, adapter, usersyncer,
                 httpAdapterConnector);
 
-        return BidderDeps.of(bidderName, deprecatedNames(), metaInfo, usersyncer, bidder, adapter, bidderRequester);
+        return BidderDeps.of(bidderName, deprecatedNames(), aliases(), metaInfo, usersyncer, bidder, adapter,
+                bidderRequester);
     }
 
     protected abstract String bidderName();
 
     protected abstract List<String> deprecatedNames();
+
+    protected abstract List<String> aliases();
 
     protected abstract MetaInfo createMetaInfo();
 

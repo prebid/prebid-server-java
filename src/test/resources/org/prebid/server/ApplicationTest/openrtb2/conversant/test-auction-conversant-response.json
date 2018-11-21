@@ -6,7 +6,7 @@
         {
           "id": "impId4",
           "impid": "impId4",
-          "price": 4.83637,
+          "price": 6.0,
           "adm": "adm4",
           "crid": "crid4",
           "w": 300,
@@ -15,10 +15,10 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb": "4.80",
+                "hb_pb": "6.00",
                 "hb_cache_id_conversant": "c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
                 "hb_size": "300x600",
-                "hb_pb_conversant": "4.80",
+                "hb_pb_conversant": "6.00",
                 "hb_bidder_conversant": "conversant",
                 "hb_bidder": "conversant",
                 "hb_cache_id": "c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
@@ -43,7 +43,7 @@
         {
           "id": "impId41",
           "impid": "impId41",
-          "price": 4.03031,
+          "price": 5.00,
           "nurl": "adm41",
           "crid": "crid41",
           "w": 300,
@@ -52,11 +52,11 @@
             "prebid": {
               "type": "video",
               "targeting": {
-                "hb_pb": "4.00",
+                "hb_pb": "5.00",
                 "hb_cache_id_conversant": "8f17dd0b-e615-48d1-a7b1-08a704aae48d",
                 "hb_uuid": "86720a1b-e025-4404-8522-c4dd3333096e",
                 "hb_size": "300x600",
-                "hb_pb_conversant": "4.00",
+                "hb_pb_conversant": "5.00",
                 "hb_bidder_conversant": "conversant",
                 "hb_bidder": "conversant",
                 "hb_cache_id": "8f17dd0b-e615-48d1-a7b1-08a704aae48d",
@@ -92,7 +92,7 @@
         {
           "id": "impId4",
           "impid": "impId4",
-          "price": 4.03031,
+          "price": 5.00,
           "adm": "adm4",
           "crid": "crid4",
           "w": 300,
@@ -102,7 +102,7 @@
               "type": "banner",
               "targeting": {
                 "hb_bidder_conversantAlias": "conversantAlias",
-                "hb_pb_conversantAlias": "4.00",
+                "hb_pb_conversantAlias": "5.00",
                 "hb_size_conversantAlias": "300x600",
                 "hb_cache_host_conversantAlias": "{{ cache.host }}",
                 "hb_cache_path_conversantAlias": "{{ cache.path }}",
@@ -123,7 +123,7 @@
       "group": 0
     }
   ],
-  "cur": "EUR",
+  "cur": "USD",
   "ext": {
     "debug": {
       "httpcalls": {
@@ -191,6 +191,9 @@
           "page": "http://www.example.com",
           "publisher": {
             "id": "publisherId"
+          },
+          "ext": {
+            "amp": 0
           }
         },
         "device": {
@@ -215,7 +218,7 @@
         "at": 1,
         "tmax": 1000,
         "cur": [
-          "EUR"
+          "USD"
         ],
         "source": {
           "fd": 1,

@@ -174,10 +174,15 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromIx() throws IOException, JSONException {
         // given
-        // ix bid response for imp 6 and imp 61
+        // ix bid response for imp 6
         wireMockRule.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response-1.json"))));
+
+        // ix bid response for imp 61
+        wireMockRule.stubFor(post(urlPathEqualTo("/ix-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response-2.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
@@ -387,7 +392,6 @@ public class ApplicationTest extends VertxTest {
                 response, singletonList(ADFORM));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
-
     }
 
     @Test
@@ -1550,9 +1554,6 @@ public class ApplicationTest extends VertxTest {
                     responseCacheObjects.add(CacheObject.of(uuid));
                 } else {
                     String id = putItem.getValue().textValue();
-                    if(id == null) { //workaround for conversant
-                        id = "null";
-                    }
                     String uuid = jsonNodeMatcher.get(id).textValue();
                     responseCacheObjects.add(CacheObject.of(uuid));
                 }

@@ -17,7 +17,10 @@
   ],
   "site": {
     "domain": "",
-    "page": "http://www.example.com"
+    "page": "http://www.example.com",
+    "ext": {
+      "amp": 0
+    }
   },
   "device": {
     "ua": "userAgent",
@@ -42,7 +45,7 @@
   "at": 1,
   "tmax": 1000,
   "cur": [
-    "EUR"
+    "USD"
   ],
   "source": {
     "fd": 1,

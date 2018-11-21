@@ -36,11 +36,14 @@ public class AppnexusConfiguration extends BidderConfiguration {
     @Value("${adapters.appnexus.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${external-url}")
-    private String externalUrl;
-
     @Value("${adapters.appnexus.deprecated-names}")
     private List<String> deprecatedNames;
+
+    @Value("${adapters.appnexus.aliases}")
+    private List<String> aliases;
+
+    @Value("${external-url}")
+    private String externalUrl;
 
     @Bean
     BidderDeps appnexusBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -55,6 +58,11 @@ public class AppnexusConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

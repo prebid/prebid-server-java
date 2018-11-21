@@ -78,13 +78,16 @@
   "site": {
     "publisher": {
       "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "test": 1,
   "at": 1,
   "tmax": 1000,
   "cur": [
-    "EUR"
+    "USD"
   ],
   "source": {
     "fd": 1,

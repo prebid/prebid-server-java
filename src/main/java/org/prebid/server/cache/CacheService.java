@@ -313,7 +313,15 @@ public class CacheService {
      * Makes XML type {@link PutObject} from {@link com.iab.openrtb.response.Bid}. Used for OpenRTB auction request.
      */
     private static PutObject createXmlPutObjectOpenrtb(CacheBid cacheBid) {
-        return PutObject.of("xml", new TextNode(cacheBid.getBid().getAdm()), cacheBid.getTtl());
+        if (cacheBid.getBid().getAdm() == null) {
+            return PutObject.of("xml", new TextNode("<VAST version=\"3.0\"><Ad><Wrapper>"
+                    + "<AdSystem>prebid.org wrapper</AdSystem>"
+                    + "<VASTAdTagURI><![CDATA[" + cacheBid.getBid().getNurl() + "]]></VASTAdTagURI>"
+                    + "<Impression></Impression><Creatives></Creatives>"
+                    + "</Wrapper></Ad></VAST>"), cacheBid.getTtl());
+        } else {
+            return PutObject.of("xml", new TextNode(cacheBid.getBid().getAdm()), cacheBid.getTtl());
+        }
     }
 
     /**

@@ -5,7 +5,7 @@
       "value": {
         "id": "326132363",
         "impid": "impId1",
-        "price": 9.74528,
+        "price": 12.09,
         "adm": "adm1",
         "crid": "crid1",
         "dealid": "dealId1",
@@ -30,7 +30,7 @@
       "value": {
         "id": "7706636740145184841",
         "impid": "impId1",
-        "price": 4.43334,
+        "price": 5.5,
         "adm": "some-test-ad",
         "adid": "29681110",
         "adomain": [

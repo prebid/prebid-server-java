@@ -5,7 +5,19 @@
       "value": {
         "id": "impId4",
         "impid": "impId4",
-        "price": 4.83637,
+        "price": 5,
+        "adm": "adm4",
+        "crid": "crid4",
+        "w": 300,
+        "h": 600
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "impId4",
+        "impid": "impId4",
+        "price": 6,
         "adm": "adm4",
         "crid": "crid4",
         "w": 300,
@@ -17,7 +29,7 @@
       "value": {
         "id": "impId41",
         "impid": "impId41",
-        "price": 4.03031,
+        "price": 5,
         "nurl": "adm41",
         "crid": "crid41",
         "w": 300,
@@ -25,20 +37,8 @@
       }
     },
     {
-      "type": "json",
-      "value": {
-        "id": "impId4",
-        "impid": "impId4",
-        "price": 4.03031,
-        "adm": "adm4",
-        "crid": "crid4",
-        "w": 300,
-        "h": 600
-      }
-    },
-    {
       "type": "xml",
-      "value": null,
+      "value": "<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm41]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>",
       "expiry": 120
     }
   ]

@@ -15,6 +15,9 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
@@ -40,7 +43,7 @@
   "at": 1,
   "tmax": 1000,
   "cur": [
-    "EUR"
+    "USD"
   ],
   "source": {
     "fd": 1,

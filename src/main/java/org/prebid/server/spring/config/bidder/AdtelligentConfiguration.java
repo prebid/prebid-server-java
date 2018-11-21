@@ -35,11 +35,19 @@ public class AdtelligentConfiguration extends BidderConfiguration {
     @Value("${adapters.adtelligent.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
+    @Value("${adapters.adtelligent.deprecated-names}")
+    private List<String> deprecatedNames;
+
+    @Value("${adapters.adtelligent.aliases}")
+    private List<String> aliases;
+
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.adtelligent.deprecated-names}")
-    private List<String> deprecatedNames;
+    @Bean
+    BidderDeps adtelligentBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        return bidderDeps(httpClient, httpAdapterConnector);
+    }
 
     @Override
     protected String bidderName() {
@@ -51,9 +59,9 @@ public class AdtelligentConfiguration extends BidderConfiguration {
         return deprecatedNames;
     }
 
-    @Bean
-    BidderDeps adtelligentBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
-        return bidderDeps(httpClient, httpAdapterConnector);
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

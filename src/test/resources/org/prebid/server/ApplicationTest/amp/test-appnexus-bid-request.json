@@ -27,7 +27,10 @@
   ],
   "site": {
     "domain": "example.com",
-    "page": "https://google.com"
+    "page": "https://google.com",
+    "ext": {
+      "amp": 1
+    }
   },
   "device": {
     "ua": "userAgent",
@@ -36,7 +39,7 @@
   "at": 1,
   "tmax": 9999970,
   "cur": [
-    "EUR"
+    "USD"
   ],
   "regs": {
     "ext": {
