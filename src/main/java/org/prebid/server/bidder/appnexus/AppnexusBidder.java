@@ -71,19 +71,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
-
-        String defaultDisplayManagerVer = null;
-        if (bidRequest.getApp() != null) {
-            try {
-                final ExtAppPrebid prebid = Json.mapper.convertValue(bidRequest.getApp().getExt(),
-                        ExtApp.class).getPrebid();
-                if (prebid != null) {
-                    defaultDisplayManagerVer = String.format("%s-%s", prebid.getSource(), prebid.getVersion());
-                }
-            } catch (IllegalArgumentException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
-        }
+        final String defaultDisplayManagerVer = makeDefaultDisplayManagerVer(bidRequest, errors);
 
         final List<Imp> processedImps = new ArrayList<>();
         final Set<String> memberIds = new HashSet<>();
@@ -119,6 +107,21 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return Result.of(
                 Collections.singletonList(HttpRequest.of(HttpMethod.POST, url, body, BidderUtil.headers(),
                         outgoingRequest)), errors);
+    }
+
+    private static String makeDefaultDisplayManagerVer(BidRequest bidRequest, List<BidderError> errors) {
+        if (bidRequest.getApp() != null) {
+            try {
+                final ExtAppPrebid prebid = Json.mapper.convertValue(bidRequest.getApp().getExt(),
+                        ExtApp.class).getPrebid();
+                if (prebid != null) {
+                    return String.format("%s-%s", prebid.getSource(), prebid.getVersion());
+                }
+            } catch (IllegalArgumentException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+        return null;
     }
 
     /**
