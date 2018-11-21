@@ -111,7 +111,11 @@ The only exception here is the top-level `BidResponse`, because it's bidder-inde
 `ext.{anyBidderCode}` and `ext.bidder` extensions are defined by bidders.
 `ext.prebid` extensions are defined by Prebid Server.
 
-Exceptions are made for DigiTrust and GDPR, so that we define `ext` according to the official recommendations.
+Exceptions are made for extensions with "standard" recommendations:
+
+- `request.user.ext.digitrust` -- To support Digitrust support
+- `request.regs.ext.gdpr` and `request.user.ext.consent` -- To support GDPR
+- `request.site.ext.amp` -- To identify AMP as the request source
 
 #### Bid Adjustments
  
@@ -167,7 +171,7 @@ The list of price granularity ranges must be given in order of increasing `max` 
 
 For backwards compatibility the following strings will also be allowed as price granularity definitions. There is no guarantee that these will be honored in the future. "One of ['low', 'med', 'high', 'auto', 'dense']" See [price granularity definitions](http://prebid.org/prebid-mobile/adops-price-granularity.html)
 
-`currency` is used for conversion between bid currency returned by bidder and adServer currency defined in request or prebid server configuration. If AdServer currency was not defined neither in request or config, prebid server will not fire request for bidders in such case. Currency support works in pair with custom price granularity, which should be defined for specific currency in request.  Important note: PBS uses ISO 4217 Codes for the representation of currencies.
+`currency` is used for conversion between bid currency returned by bidder and adServer currency defined in request or prebid server configuration. If AdServer currency was not defined neither in request or config, prebid server will not fire request for bidders in such case. Currency support works in pair with custom price granularity, which should be defined for specific currency in request.  Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 One of "includewinners" or "includebidderkeys" must be true (both default to true if unset). If both were false, then no targeting keys would be set, which is better configured by omitting targeting altogether.
 

@@ -42,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -772,6 +773,52 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.site should include at least one of request.site.id or request.site.page");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenSiteExtAmpIsNegative() {
+        // given
+        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
+                siteBuilder -> Site.builder().id("id").page("page").ext(mapper.valueToTree(ExtSite.of(-1)))).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.site.ext.amp must be either 1, 0, or undefined");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenSiteExtAmpIsGreaterThanOne() {
+        // given
+        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
+                siteBuilder -> Site.builder().id("id").page("page").ext(mapper.valueToTree(ExtSite.of(2)))).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.site.ext.amp must be either 1, 0, or undefined");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenSiteExtCannotBeParsed() {
+        // given
+        final BidRequest bidRequest = overwriteSite(validBidRequestBuilder(),
+                siteBuilder -> Site.builder()
+                        .id("id")
+                        .page("page")
+                        .ext(mapper.createObjectNode().put("amp", "value")))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0)).startsWith("request.site.ext object is not valid: ");
     }
 
     @Test

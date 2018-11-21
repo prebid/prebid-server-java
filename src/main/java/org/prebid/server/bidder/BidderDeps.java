@@ -20,7 +20,20 @@ public class BidderDeps {
      */
     String name;
 
+    /**
+     * Bidder's deprecated names.
+     * <p>
+     * Appropriate error message will be added to response.ext.errors.{bidder}
+     * in case of bidder determined as deprecated.
+     */
     List<String> deprecatedNames;
+
+    /**
+     * Bidder's aliases.
+     * <p>
+     * Indicates predefined synonyms for bidder along with regular name.
+     */
+    List<String> aliases;
 
     /**
      * Bidder's meta information is used in {@link org.prebid.server.handler.info.BidderDetailsHandler} handler

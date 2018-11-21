@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -8,6 +9,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -16,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -24,14 +27,18 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -48,6 +55,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
+    private BidderCatalog bidderCatalog;
+    @Mock
     private RequestValidator requestValidator;
 
     private AuctionRequestFactory factory;
@@ -58,7 +67,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Before
     public void setUp() {
         factory = new AuctionRequestFactory(2000L, Integer.MAX_VALUE, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, requestValidator);
+                uidsCookieService, bidderCatalog, requestValidator);
     }
 
     @Test
@@ -80,7 +89,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
         factory = new AuctionRequestFactory(2000L, 1, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, requestValidator);
+                uidsCookieService, bidderCatalog, requestValidator);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -121,8 +130,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(populatedBidRequest.getSite()).isEqualTo(
-                Site.builder().page("http://example.com").domain("example.com").build());
+        assertThat(populatedBidRequest.getSite()).isEqualTo(Site.builder()
+                .page("http://example.com")
+                .domain("example.com")
+                .ext(mapper.valueToTree(ExtSite.of(0)))
+                .build());
         assertThat(populatedBidRequest.getDevice()).isEqualTo(
                 Device.builder().ip("192.168.244.1").ua("UnitTest").build());
         assertThat(populatedBidRequest.getUser()).isEqualTo(User.builder().id("userId").build());
@@ -185,7 +197,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldNotSetFieldsFromHeadersIfRequestFieldsNotEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("test.com").page("http://test.com").build())
+                .site(Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.valueToTree(ExtSite.of(0))).build())
                 .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
                 .user(User.builder().id("userId").build())
                 .cur(singletonList("USD"))
@@ -206,7 +219,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetSiteIfNoReferer() {
+    public void shouldSetSiteExtIfNoReferer() {
         // given
         givenValidBidRequest();
 
@@ -214,7 +227,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(populatedBidRequest.getSite()).isNull();
+        assertThat(populatedBidRequest.getSite())
+                .extracting(Site::getExt)
+                .containsOnly(mapper.valueToTree(ExtSite.of(0)));
     }
 
     @Test
@@ -228,7 +243,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest result = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("home.com").ext(mapper.valueToTree(ExtSite.of(0))).build());
     }
 
     @Test
@@ -244,7 +260,59 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest result = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("home.com").ext(mapper.valueToTree(ExtSite.of(0))).build());
+    }
+
+    @Test
+    public void shouldSetSiteExtAmpIfSiteHasNoExt() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().domain("test.com").page("http://test.com").build())
+                .build());
+        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.valueToTree(ExtSite.of(0))).build());
+    }
+
+    @Test
+    public void shouldSetSiteExtAmpIfSiteExtHasNoAmp() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.createObjectNode()).build())
+                .build());
+        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.valueToTree(ExtSite.of(0))).build());
+    }
+
+    @Test
+    public void shouldSetSiteExtAmpIfNoReferer() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().domain("test.com").page("http://test.com").build())
+                .build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.valueToTree(ExtSite.of(0))).build());
     }
 
     @Test
@@ -313,6 +381,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldConvertStringPriceGranularityViewToCustom() {
         // given
         givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(new TextNode("low"), null, null, null), null, null))))
                 .build());
@@ -356,6 +425,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldSetDefaultPriceGranularityIfPriceGranularityNodeIsMissed() {
         // given
         givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(null, null, null, null), null, null))))
                 .build());
@@ -381,6 +451,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldSetDefaultIncludeWinnersIfIncludeWinnersIsMissed() {
         // given
         givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(null, null, null, null), null, null))))
                 .build());
@@ -405,6 +476,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldSetDefaultIncludeBidderKeysIfIncludeBidderKeysIsMissed() {
         // given
         givenBidRequest(BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
                         null, null, ExtRequestTargeting.of(null, null, null, null), null, null))))
                 .build());
@@ -423,6 +495,46 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getIncludebidderkeys)
                 .containsOnly(true);
+    }
+
+    @Test
+    public void shouldAddMissingAliases() {
+        // given
+        final Imp imp1 = Imp.builder()
+                .ext((ObjectNode) Json.mapper.createObjectNode()
+                        .set("requestScopedBidderAlias", Json.mapper.createObjectNode()))
+                .build();
+        final Imp imp2 = Imp.builder()
+                .ext((ObjectNode) Json.mapper.createObjectNode()
+                        .set("configScopedBidderAlias", Json.mapper.createObjectNode()))
+                .build();
+
+        givenBidRequest(BidRequest.builder()
+                .imp(asList(imp1, imp2))
+                .ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        singletonMap("requestScopedBidderAlias", "bidder1"), null,
+                        ExtRequestTargeting.of(null, null, null, null), null, null))))
+                .build());
+
+        given(bidderCatalog.isAlias("configScopedBidderAlias")).willReturn(true);
+        given(bidderCatalog.nameByAlias("configScopedBidderAlias")).willReturn("bidder2");
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+
+        // result was wrapped to list because extracting method works different on iterable and not iterable objects,
+        // which force to make type casting or exception handling in lambdas
+        assertThat(singletonList(result))
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, ExtBidRequest.class))
+                .extracting(ExtBidRequest::getPrebid)
+                .flatExtracting(extRequestPrebid -> extRequestPrebid.getAliases().entrySet())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("requestScopedBidderAlias", "bidder1"),
+                        tuple("configScopedBidderAlias", "bidder2"));
     }
 
     @Test

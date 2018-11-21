@@ -35,11 +35,14 @@ public class RhythmoneConfiguration extends BidderConfiguration {
     @Value("${adapters.rhythmone.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${external-url}")
-    private String externalUrl;
-
     @Value("${adapters.rhythmone.deprecated-names}")
     private List<String> deprecatedNames;
+
+    @Value("${adapters.rhythmone.aliases}")
+    private List<String> aliases;
+
+    @Value("${external-url}")
+    private String externalUrl;
 
     @Bean
     BidderDeps rhythmOneBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -54,6 +57,11 @@ public class RhythmoneConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

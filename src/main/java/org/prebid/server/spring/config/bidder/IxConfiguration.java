@@ -42,6 +42,9 @@ public class IxConfiguration extends BidderConfiguration {
     @Value("${adapters.ix.deprecated-names}")
     private List<String> deprecatedNames;
 
+    @Value("${adapters.ix.aliases}")
+    private List<String> aliases;
+
     @Bean
     BidderDeps ixBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && endpoint == null) {
@@ -60,6 +63,11 @@ public class IxConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override
