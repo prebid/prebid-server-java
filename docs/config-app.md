@@ -59,6 +59,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync-url` - the url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
+- `adapters.<BIDDER_NAME>.aliases` - comma separated aliases of bidder.
 
 But feel free to add additional bidder's specific options.
 
