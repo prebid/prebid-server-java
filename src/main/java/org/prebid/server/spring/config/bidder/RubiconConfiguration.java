@@ -45,6 +45,9 @@ public class RubiconConfiguration extends BidderConfiguration {
     @Value("${adapters.rubicon.deprecated-names}")
     private List<String> deprecatedNames;
 
+    @Value("${adapters.rubicon.aliases}")
+    private List<String> aliases;
+
     @Bean
     BidderDeps rubiconBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         return bidderDeps(httpClient, httpAdapterConnector);
@@ -58,6 +61,11 @@ public class RubiconConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

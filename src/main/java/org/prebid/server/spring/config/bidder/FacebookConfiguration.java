@@ -46,6 +46,9 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Value("${adapters.facebook.deprecated-names}")
     private List<String> deprecatedNames;
 
+    @Value("${adapters.facebook.aliases}")
+    private List<String> aliases;
+
     @Bean
     BidderDeps facebookBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
         if (enabled && (usersyncUrl == null || platformId == null)) {
@@ -64,6 +67,11 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

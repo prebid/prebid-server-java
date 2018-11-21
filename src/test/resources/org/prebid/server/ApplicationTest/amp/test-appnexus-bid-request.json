@@ -27,7 +27,10 @@
   ],
   "site": {
     "domain": "example.com",
-    "page": "https://google.com"
+    "page": "https://google.com",
+    "ext": {
+      "amp": 1
+    }
   },
   "device": {
     "ua": "userAgent",

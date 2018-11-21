@@ -78,6 +78,9 @@
   "site": {
     "publisher": {
       "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "test": 1,

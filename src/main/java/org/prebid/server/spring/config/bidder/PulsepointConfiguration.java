@@ -36,11 +36,14 @@ public class PulsepointConfiguration extends BidderConfiguration {
     @Value("${adapters.pulsepoint.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${external-url}")
-    private String externalUrl;
-
     @Value("${adapters.pulsepoint.deprecated-names}")
     private List<String> deprecatedNames;
+
+    @Value("${adapters.pulsepoint.aliases}")
+    private List<String> aliases;
+
+    @Value("${external-url}")
+    private String externalUrl;
 
     @Bean
     BidderDeps pulsepointBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -55,6 +58,11 @@ public class PulsepointConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

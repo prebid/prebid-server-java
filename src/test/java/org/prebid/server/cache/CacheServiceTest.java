@@ -271,6 +271,32 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void cacheBidsOpenrtbShouldWrapEmtpyAdMFieldUsingNurlFieldValue() throws IOException {
+        // given
+        givenHttpClientReturnsResponse(200, null);
+
+        // when
+        final com.iab.openrtb.response.Bid bid1 = givenBidOpenrtb(builder -> builder.impid("impId1").adm("adm1"));
+        final com.iab.openrtb.response.Bid bid2 = givenBidOpenrtb(builder -> builder.impid("impId1").nurl("adm2"));
+        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        cacheService.cacheBidsOpenrtb(
+                asList(bid1, bid2), asList(imp1),
+                CacheContext.of(true, null, true, null), null, timeout);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(4)
+                .containsOnly(
+                        PutObject.of("json", mapper.valueToTree(bid1), null),
+                        PutObject.of("json", mapper.valueToTree(bid2), null),
+                        PutObject.of("xml", new TextNode("adm1"), null),
+                        PutObject.of("xml", new TextNode("<VAST version=\"3.0\"><Ad><Wrapper><AdSystem>" +
+                                "prebid.org wrapper</AdSystem><VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression>" +
+                                "</Impression><Creatives></Creatives></Wrapper></Ad></VAST>"), null)
+                );
+    }
+
+    @Test
     public void cacheBidsShouldReturnExpectedResult() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(

@@ -36,8 +36,14 @@ public class IxConfiguration extends BidderConfiguration {
     @Value("${adapters.ix.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
+    @Value("${external-url}")
+    private String externalUrl;
+
     @Value("${adapters.ix.deprecated-names}")
     private List<String> deprecatedNames;
+
+    @Value("${adapters.ix.aliases}")
+    private List<String> aliases;
 
     @Bean
     BidderDeps ixBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -60,13 +66,18 @@ public class IxConfiguration extends BidderConfiguration {
     }
 
     @Override
+    protected List<String> aliases() {
+        return aliases;
+    }
+
+    @Override
     protected MetaInfo createMetaInfo() {
         return new IxMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new IxUsersyncer(usersyncUrl);
+        return new IxUsersyncer(usersyncUrl, externalUrl);
     }
 
     @Override

@@ -18,16 +18,26 @@ public class BidderCatalog {
             + "longer available. Use %s instead.";
 
     private final Map<String, BidderDeps> bidderDepsMap;
-
     private final Map<String, String> deprecatedNameToError = new HashMap<>();
+    private final Map<String, String> aliases = new HashMap<>();
 
     public BidderCatalog(List<BidderDeps> bidderDeps) {
         bidderDepsMap = Objects.requireNonNull(bidderDeps).stream()
                 .collect(Collectors.toMap(BidderDeps::getName, Function.identity()));
 
-        bidderDeps.forEach(deps ->
-                deprecatedNameToError.putAll(createErrorsForDeprecatedNames(deps.getDeprecatedNames(),
-                        deps.getName())));
+        for (BidderDeps deps : bidderDeps) {
+            deprecatedNameToError.putAll(createErrorsForDeprecatedNames(deps.getDeprecatedNames(), deps.getName()));
+            aliases.putAll(createAliases(deps.getAliases(), deps.getName()));
+        }
+    }
+
+    private Map<String, String> createErrorsForDeprecatedNames(List<String> deprecatedNames, String name) {
+        return deprecatedNames.stream().collect(Collectors.toMap(Function.identity(),
+                deprecatedName -> String.format(ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED, deprecatedName, name)));
+    }
+
+    private Map<String, String> createAliases(List<String> aliases, String name) {
+        return aliases.stream().collect(Collectors.toMap(Function.identity(), ignored -> name));
     }
 
     /**
@@ -44,17 +54,32 @@ public class BidderCatalog {
         return bidderDepsMap.containsKey(name);
     }
 
+    /**
+     * Tells if given name corresponds to any of the registered deprecated bidder's name.
+     */
     public boolean isDeprecatedName(String name) {
         return deprecatedNameToError.containsKey(name);
     }
 
+    /**
+     * Returns associated error for given bidder's name.
+     */
     public String errorForDeprecatedName(String name) {
         return deprecatedNameToError.get(name);
     }
 
-    private Map<String, String> createErrorsForDeprecatedNames(List<String> deprecatedNames, String name) {
-        return deprecatedNames.stream().collect(Collectors.toMap(deprecatedName -> deprecatedName,
-                deprecatedName -> String.format(ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED, deprecatedName, name)));
+    /**
+     * Tells if given name corresponds to any of the registered bidder's alias.
+     */
+    public boolean isAlias(String name) {
+        return aliases.containsKey(name);
+    }
+
+    /**
+     * Returns original bidder's name for given alias.
+     */
+    public String nameByAlias(String alias) {
+        return aliases.get(alias);
     }
 
     /**

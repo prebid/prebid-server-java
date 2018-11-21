@@ -2,34 +2,27 @@
   "id": "tid",
   "imp": [
     {
-      "id": "impId03",
+      "id": "impId61",
       "video": {
         "mimes": [
-          "video/x-flv",
-          "video/mp4"
+          "mimes"
         ],
-        "w": 900,
+        "w": 300,
         "h": 250,
         "skipmin": 0,
-        "skipafter": 0
+        "skipafter": 0,
+        "playbackmethod": [
+          null
+        ]
       },
-      "tagid": "539439964",
-      "bidfloor": 0.1,
-      "ext": {
-        "customParams": {
-          "foo": "bar"
-        }
-      }
+      "tagid": "impId61"
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
-    },
-    "ext": {
-      "amp": 0
+      "id": "10002"
     }
   },
   "device": {
@@ -41,7 +34,7 @@
     "ifa": "ifaId"
   },
   "user": {
-    "buyeruid":"OX-UID",
+    "buyeruid": "IE-UID",
     "ext": {
       "digitrust": {
         "id": "id",
@@ -51,12 +44,8 @@
       "consent": "consentValue"
     }
   },
-  "test": 1,
   "at": 1,
   "tmax": 1000,
-  "cur": [
-    "USD"
-  ],
   "source": {
     "fd": 1,
     "tid": "tid"
@@ -65,9 +54,5 @@
     "ext": {
       "gdpr": 0
     }
-  },
-  "ext": {
-    "delDomain": "se-demo-d.openx.net",
-    "bc": "hb_pbs_1.0.0"
   }
 }

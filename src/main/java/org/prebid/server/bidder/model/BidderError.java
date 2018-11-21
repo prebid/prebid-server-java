@@ -45,7 +45,7 @@ public class BidderError {
          * Error of this type will not be written to the app log, since it's not an actionable item for the Prebid
          * Server hosts.
          */
-        bad_input,
+        bad_input(2),
 
         /**
          * Should be used when returning errors which are caused by bad/unexpected behavior on the remote server.
@@ -58,7 +58,7 @@ public class BidderError {
          * These should not be used to log _connection_ errors (e.g. "couldn't find host"), which may indicate config
          * issues for the PBS host company
          */
-        bad_server_response,
+        bad_server_response(3),
 
         /**
          * Covers the case where a bidder failed to generate any http requests to get bids, but did not generate any
@@ -67,9 +67,19 @@ public class BidderError {
          * generate an error explaining the deficiency. Otherwise it will be extremely difficult to debug the reason
          * why a bidder is not bidding.
          */
-        failed_to_request_bids,
+        failed_to_request_bids(4),
 
-        timeout,
-        generic
+        timeout(1),
+        generic(999);
+
+        private final Integer code;
+
+        Type(final Integer errorCode) {
+            this.code = errorCode;
+        }
+
+        public Integer getCode() {
+            return code;
+        }
     }
 }

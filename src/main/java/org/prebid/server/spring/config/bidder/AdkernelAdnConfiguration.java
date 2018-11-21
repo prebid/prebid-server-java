@@ -35,11 +35,14 @@ public class AdkernelAdnConfiguration extends BidderConfiguration {
     @Value("${adapters.adkerneladn.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${external-url}")
-    private String externalUrl;
-
     @Value("${adapters.adkerneladn.deprecated-names}")
     private List<String> deprecatedNames;
+
+    @Value("${adapters.adkerneladn.aliases}")
+    private List<String> aliases;
+
+    @Value("${external-url}")
+    private String externalUrl;
 
     @Bean
     BidderDeps adkernelAdnBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -54,6 +57,11 @@ public class AdkernelAdnConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

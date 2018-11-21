@@ -35,11 +35,14 @@ public class SomoaudienceConfiguration extends BidderConfiguration {
     @Value("${adapters.somoaudience.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${external-url}")
-    private String externalUrl;
-
     @Value("${adapters.somoaudience.deprecated-names}")
     private List<String> deprecatedNames;
+
+    @Value("${adapters.somoaudience.aliases}")
+    private List<String> aliases;
+
+    @Value("${external-url}")
+    private String externalUrl;
 
     @Bean
     BidderDeps somoaudienceBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -54,6 +57,11 @@ public class SomoaudienceConfiguration extends BidderConfiguration {
     @Override
     protected List<String> deprecatedNames() {
         return deprecatedNames;
+    }
+
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override
