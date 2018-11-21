@@ -35,11 +35,19 @@ public class EplanningConfiguration extends BidderConfiguration {
     @Value("${adapters.eplanning.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
+    @Value("${adapters.eplanning.deprecated-names}")
+    private List<String> deprecatedNames;
+
+    @Value("${adapters.eplanning.aliases}")
+    private List<String> aliases;
+
     @Value("${external-url}")
     private String externalUrl;
 
-    @Value("${adapters.eplanning.deprecated-names}")
-    private List<String> deprecatedNames;
+    @Bean
+    BidderDeps eplanningBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+        return bidderDeps(httpClient, httpAdapterConnector);
+    }
 
     @Override
     protected String bidderName() {
@@ -51,9 +59,9 @@ public class EplanningConfiguration extends BidderConfiguration {
         return deprecatedNames;
     }
 
-    @Bean
-    BidderDeps eplanningBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
-        return bidderDeps(httpClient, httpAdapterConnector);
+    @Override
+    protected List<String> aliases() {
+        return aliases;
     }
 
     @Override

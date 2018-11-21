@@ -134,10 +134,11 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
+            BidderCatalog bidderCatalog,
             RequestValidator requestValidator) {
 
         return new AuctionRequestFactory(defaultTimeout, maxRequestSize, adServerCurrency, storedRequestProcessor,
-                implicitParametersExtractor, uidsCookieService, requestValidator);
+                implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator);
     }
 
     @Bean
