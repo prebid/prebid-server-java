@@ -144,10 +144,6 @@ public class RequestValidator {
             throw new ValidationException(
                     "currency was not defined either in request.cur or in configuration field adServerCurrency");
         }
-
-        if (currencies.size() != 1) {
-            throw new ValidationException("request.cur can contain exactly one element");
-        }
     }
 
     private void validateBidAdjustmentFactors(Map<String, BigDecimal> adjustmentFactors, Map<String, String> aliases)

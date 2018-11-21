@@ -15,7 +15,7 @@
   "at": 1,
   "tmax": 1900,
   "cur": [
-    "EUR"
+    "USD"
   ],
   "ext": {
     "prebid": {

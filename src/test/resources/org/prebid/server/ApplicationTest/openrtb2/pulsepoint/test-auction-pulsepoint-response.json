@@ -6,7 +6,7 @@
         {
           "id": "impId8",
           "impid": "impId8",
-          "price": 3.82879,
+          "price": 4.75,
           "adm": "adm8",
           "crid": "crid8",
           "w": 300,
@@ -15,9 +15,9 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb": "3.80",
+                "hb_pb": "4.70",
                 "hb_cache_id_pulsepoint": "b537fcb1-28c9-4cd1-bf74-abc7730fd1f4",
-                "hb_pb_pulsepoint": "3.80",
+                "hb_pb_pulsepoint": "4.70",
                 "hb_size_pulsepoint": "300x600",
                 "hb_size": "300x600",
                 "hb_bidder_pulsepoint": "pulsepoint",
@@ -45,7 +45,7 @@
       "group": 0
     }
   ],
-  "cur": "EUR",
+  "cur": "USD",
   "ext": {
     "debug": {
       "httpcalls": {
@@ -133,7 +133,7 @@
         "at": 1,
         "tmax": 1000,
         "cur": [
-          "EUR"
+          "USD"
         ],
         "source": {
           "fd": 1,

@@ -6,7 +6,7 @@
         {
           "id": "impId12",
           "impid": "impId12",
-          "price": 8.46365,
+          "price": 10.5,
           "adm": "banner",
           "crid": "crid12",
           "w": 400,
@@ -15,7 +15,7 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb": "8.40",
+                "hb_pb": "10.50",
                 "hb_size_adform": "400x300",
                 "hb_size": "400x300",
                 "hb_bidder": "adform",
@@ -23,7 +23,7 @@
                 "hb_cache_id": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
                 "hb_bidder_adform": "adform",
                 "hb_creative_loadtype": "html",
-                "hb_pb_adform": "8.40",
+                "hb_pb_adform": "10.50",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_adform": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
@@ -45,7 +45,7 @@
       "group": 0
     }
   ],
-  "cur": "EUR",
+  "cur": "USD",
   "ext": {
     "debug": {
       "httpcalls": {
@@ -110,7 +110,7 @@
         "at": 1,
         "tmax": 1000,
         "cur": [
-          "EUR"
+          "USD"
         ],
         "source": {
           "fd": 1,

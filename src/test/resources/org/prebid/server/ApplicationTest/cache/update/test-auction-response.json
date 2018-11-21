@@ -6,7 +6,7 @@
         {
           "id": "466223845",
           "impid": "impId-cache-update",
-          "price": 3.43382,
+          "price": 4.26,
           "adm": "adm2",
           "crid": "crid2",
           "dealid": "dealId2",
@@ -16,8 +16,8 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_pb": "3.40",
-                "hb_pb_rubicon": "3.40",
+                "hb_pb": "4.20",
+                "hb_pb_rubicon": "4.20",
                 "hb_deal_rubicon": "dealId2",
                 "hb_size": "120x600",
                 "hb_bidder": "rubicon",
@@ -34,7 +34,7 @@
       "group": 0
     }
   ],
-  "cur": "EUR",
+  "cur": "USD",
   "ext": {
     "debug": {
       "httpcalls": {
@@ -91,7 +91,7 @@
         "at": 1,
         "tmax": 1900,
         "cur": [
-          "EUR"
+          "USD"
         ],
         "ext": {
           "prebid": {

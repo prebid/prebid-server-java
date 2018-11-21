@@ -1613,6 +1613,56 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithErrorWhenBidsWithUnsupportedCurrency()
+            throws JsonProcessingException {
+        // given
+        final BidderRequester bidderRequester = mock(BidderRequester.class);
+        givenHttpConnector("bidder", bidderRequester, givenSeatBid(singletonList(
+                givenBid(Bid.builder().price(BigDecimal.valueOf(2.0)).build()))));
+
+        final BidRequest bidRequest = BidRequest.builder().cur(Collections.singletonList("EUR"))
+                .imp(singletonList(givenImp(singletonMap("bidder", 2), identity()))).build();
+
+        // returns the same price as in argument
+        given(currencyService.convertCurrency(any(), any(), any(), any()))
+                .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(0);
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("bidder",
+                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                        "Bid currency is not allowed. Was EUR, wants: [USD]"))));
+    }
+
+    @Test
+    public void shouldRespondWithErrorWhenBidsWithDifferentCurrencies() throws JsonProcessingException {
+        // given
+        given(bidderCatalog.isValidName(anyString())).willReturn(true);
+
+        given(bidderRequester.requestBids(any(), any()))
+                .willReturn(Future.succeededFuture(givenSeatBid(asList(
+                        BidderBid.of(Bid.builder().price(TEN).build(), BidType.banner, "EUR"),
+                        BidderBid.of(Bid.builder().price(TEN).build(), BidType.banner, "USD")))));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)),
+                builder -> builder.site(Site.builder().build()));
+
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        assertThat(bidResponse.getSeatbid()).hasSize(0);
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("somebidder",
+                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                        "Bid currencies mismatch found. Expected all bids to have the same currencies."))));
+    }
+
+    @Test
     public void shouldIncrementCommonMetrics() {
         // given
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
