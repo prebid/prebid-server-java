@@ -1634,8 +1634,9 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(0);
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.getErrors()).hasSize(1).containsOnly(
-                entry("bidder", singletonList("Bid currency is not allowed. Was EUR, wants: [USD]")));
+        assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("bidder",
+                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                        "Bid currency is not allowed. Was EUR, wants: [USD]"))));
     }
 
     @Test
@@ -1656,8 +1657,9 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(bidResponse.getSeatbid()).hasSize(0);
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.getErrors()).hasSize(1).containsOnly(
-                entry("somebidder", singletonList("Bid currencies mismatch found. Expected all bids to have the same currencies.")));
+        assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("somebidder",
+                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                        "Bid currencies mismatch found. Expected all bids to have the same currencies."))));
     }
 
     @Test
