@@ -29,6 +29,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -69,11 +71,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
+        final String defaultDisplayManagerVer = makeDefaultDisplayManagerVer(bidRequest, errors);
+
         final List<Imp> processedImps = new ArrayList<>();
         final Set<String> memberIds = new HashSet<>();
         for (final Imp imp : bidRequest.getImp()) {
             try {
-                final ImpWithMemberId impWithMemberId = makeImpWithMemberId(imp);
+                final ImpWithMemberId impWithMemberId = makeImpWithMemberId(imp, defaultDisplayManagerVer);
                 processedImps.add(impWithMemberId.getImp());
                 memberIds.add(impWithMemberId.getMemberId());
             } catch (PreBidException e) {
@@ -105,6 +109,26 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                         outgoingRequest)), errors);
     }
 
+    private static String makeDefaultDisplayManagerVer(BidRequest bidRequest, List<BidderError> errors) {
+        if (bidRequest.getApp() != null) {
+            try {
+                final ExtAppPrebid prebid = Json.mapper.convertValue(bidRequest.getApp().getExt(),
+                        ExtApp.class).getPrebid();
+                if (prebid != null) {
+                    final String source = prebid.getSource();
+                    final String version = prebid.getVersion();
+
+                    if (source != null && version != null) {
+                        return String.format("%s-%s", source, version);
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+        return null;
+    }
+
     /**
      * The Appnexus API requires a Member ID in the URL if it present in the request. This means the request may fail
      * if different impressions have different member IDs.
@@ -117,7 +141,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static ImpWithMemberId makeImpWithMemberId(Imp imp) {
+    private static ImpWithMemberId makeImpWithMemberId(Imp imp, String defaultDisplayManagerVer) {
         if (imp.getAudio() != null) {
             throw new PreBidException(
                     String.format("Appnexus doesn't support audio Imps. Ignoring Imp ID=%s", imp.getId()));
@@ -137,6 +161,11 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final BigDecimal reserve = appnexusExt.getReserve();
         if (reserve != null && reserve.compareTo(BigDecimal.ZERO) > 0) {
             impBuilder.bidfloor(reserve); // This will be broken for non-USD currency.
+        }
+
+        // Populate imp.displaymanagerver if the SDK failed to do it.
+        if (StringUtils.isBlank(imp.getDisplaymanagerver()) && StringUtils.isNotBlank(defaultDisplayManagerVer)) {
+            impBuilder.displaymanagerver(defaultDisplayManagerVer);
         }
 
         return ImpWithMemberId.of(impBuilder.build(), appnexusExt.getMember());
