@@ -24,19 +24,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/**<p>
+/**
+ * <p>
  * Service that periodically calls external HTTP API for stored request updates.
  * If refreshRate is negative, then the data will never be refreshed.
  * <p>
  * It expects the following endpoint to exist remotely:
  * <p>
  * GET {endpoint}
- *   -- Returns all the known Stored Requests and Stored Imps.
+ * -- Returns all the known Stored Requests and Stored Imps.
  * <p>
  * GET {endpoint}?last-modified={timestamp}
- *   -- Returns the Stored Requests and Stored Imps which have been updated since the last timestamp.
- *      This timestamp will be sent in the rfc3339 format, using UTC and no timezone shift.
- *      For more info, see: https://tools.ietf.org/html/rfc3339
+ * -- Returns the Stored Requests and Stored Imps which have been updated since the last timestamp.
+ * This timestamp will be sent in the rfc3339 format, using UTC and no timezone shift.
+ * For more info, see: https://tools.ietf.org/html/rfc3339
  * <p>
  * The responses should be JSON like this:
  * <pre>
@@ -181,11 +182,11 @@ public class HttpPeriodicRefreshService {
     private static List<String> getInvalidatedKeys(Map<String, ObjectNode> changes) {
         final List<String> result = new ArrayList<>();
 
-        for (String id : changes.keySet()) {
-            final ObjectNode jsonNodes = changes.get(id);
+        for (Map.Entry<String, ObjectNode> entry : changes.entrySet()) {
+            final ObjectNode jsonNodes = entry.getValue();
             final JsonNode deleted = jsonNodes.get("deleted");
             if (deleted != null && deleted.asBoolean()) {
-                result.add(id);
+                result.add(entry.getKey());
             }
         }
         return result;

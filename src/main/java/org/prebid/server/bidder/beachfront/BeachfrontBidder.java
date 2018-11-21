@@ -224,12 +224,12 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
                 resolvedDomain = domain;
                 resolvedBeachfrontSite = BeachfrontSite.of(app.getId());
             }
-        } else {
-            final String page = site != null ? site.getPage() : null;
+        } else if (site != null) {
+            final String page = site.getPage();
             if (StringUtils.isNotEmpty(page)) {
                 final String domain = site.getDomain();
                 resolvedDomain = StringUtils.isEmpty(domain) ? HttpUtil.getDomainFromUrl(page) : domain;
-                resolvedBeachfrontSite = BeachfrontSite.of(site.getPage());
+                resolvedBeachfrontSite = BeachfrontSite.of(page);
             }
         }
         videoRequestBuilder.domain(resolvedDomain)

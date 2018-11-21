@@ -44,16 +44,15 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
     private static final String VERSION = "2.5";
     private static final CharSequence OPEN_RTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
+    private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
+            };
 
     private final String endpointUrl;
 
     public BrightrollBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
-
-    private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
-            };
 
     /**
      * Creates POST HTTP requests which should be made to fetch bids.

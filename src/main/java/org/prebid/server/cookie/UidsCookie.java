@@ -27,7 +27,7 @@ public class UidsCookie {
      * otherwise true
      */
     public static boolean isFacebookSentinel(String familyName, String uid) {
-        return Objects.equals(familyName, "audienceNetwork") && uid.equals("0");
+        return Objects.equals(familyName, "audienceNetwork") && Objects.equals(uid, "0");
     }
 
     /**
@@ -96,7 +96,7 @@ public class UidsCookie {
     /**
      * Converts {@link Uids} to JSON string.
      */
-    public String toJson() {
+    String toJson() {
         return Json.encode(uids);
     }
 

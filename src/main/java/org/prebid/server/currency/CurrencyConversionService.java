@@ -128,23 +128,21 @@ public class CurrencyConversionService {
                                       String bidCurrency) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
-        if (bidCurrency == null) {
-            bidCurrency = DEFAULT_BID_CURRENCY;
-        }
+        final String effectiveBidCurrency = bidCurrency != null ? bidCurrency : DEFAULT_BID_CURRENCY;
 
-        if (Objects.equals(adServerCurrency, bidCurrency)) {
+        if (Objects.equals(adServerCurrency, effectiveBidCurrency)) {
             return price;
         }
 
         // get conversion rate from request currency rates if it is present
         BigDecimal conversionRate = null;
         if (requestCurrencyRates != null) {
-            conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, bidCurrency);
+            conversionRate = getConversionRate(requestCurrencyRates, adServerCurrency, effectiveBidCurrency);
         }
 
         // if conversion rate from requestCurrency was not found, try the same from latest currencies
         if (conversionRate == null) {
-            conversionRate = getConversionRate(latestCurrencyRates, adServerCurrency, bidCurrency);
+            conversionRate = getConversionRate(latestCurrencyRates, adServerCurrency, effectiveBidCurrency);
         }
 
         if (conversionRate == null) {
