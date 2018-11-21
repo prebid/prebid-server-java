@@ -392,7 +392,6 @@ public class ApplicationTest extends VertxTest {
                 response, singletonList(ADFORM));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
-
     }
 
     @Test

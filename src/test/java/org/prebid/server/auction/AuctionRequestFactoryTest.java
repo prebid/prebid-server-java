@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -129,8 +130,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(populatedBidRequest.getSite()).isEqualTo(
-                Site.builder().page("http://example.com").domain("example.com").build());
+        assertThat(populatedBidRequest.getSite()).isEqualTo(Site.builder()
+                .page("http://example.com")
+                .domain("example.com")
+                .ext(mapper.valueToTree(ExtSite.of(0)))
+                .build());
         assertThat(populatedBidRequest.getDevice()).isEqualTo(
                 Device.builder().ip("192.168.244.1").ua("UnitTest").build());
         assertThat(populatedBidRequest.getUser()).isEqualTo(User.builder().id("userId").build());
@@ -193,7 +197,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldNotSetFieldsFromHeadersIfRequestFieldsNotEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().domain("test.com").page("http://test.com").build())
+                .site(Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.valueToTree(ExtSite.of(0))).build())
                 .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
                 .user(User.builder().id("userId").build())
                 .cur(singletonList("USD"))
@@ -214,7 +219,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotSetSiteIfNoReferer() {
+    public void shouldSetSiteExtIfNoReferer() {
         // given
         givenValidBidRequest();
 
@@ -222,7 +227,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest populatedBidRequest = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(populatedBidRequest.getSite()).isNull();
+        assertThat(populatedBidRequest.getSite())
+                .extracting(Site::getExt)
+                .containsOnly(mapper.valueToTree(ExtSite.of(0)));
     }
 
     @Test
@@ -236,7 +243,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest result = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("home.com").ext(mapper.valueToTree(ExtSite.of(0))).build());
     }
 
     @Test
@@ -252,7 +260,59 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest result = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(result.getSite()).isEqualTo(Site.builder().domain("home.com").build());
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("home.com").ext(mapper.valueToTree(ExtSite.of(0))).build());
+    }
+
+    @Test
+    public void shouldSetSiteExtAmpIfSiteHasNoExt() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().domain("test.com").page("http://test.com").build())
+                .build());
+        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.valueToTree(ExtSite.of(0))).build());
+    }
+
+    @Test
+    public void shouldSetSiteExtAmpIfSiteExtHasNoAmp() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.createObjectNode()).build())
+                .build());
+        givenImplicitParams("http://anotherexample.com", "anotherexample.com", "192.168.244.2", "UnitTest2");
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.valueToTree(ExtSite.of(0))).build());
+    }
+
+    @Test
+    public void shouldSetSiteExtAmpIfNoReferer() {
+        // given
+        givenBidRequest(BidRequest.builder()
+                .site(Site.builder().domain("test.com").page("http://test.com").build())
+                .build());
+
+        // when
+        final BidRequest result = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(result.getSite()).isEqualTo(
+                Site.builder().domain("test.com").page("http://test.com")
+                        .ext(mapper.valueToTree(ExtSite.of(0))).build());
     }
 
     @Test
