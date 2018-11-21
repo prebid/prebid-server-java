@@ -115,7 +115,12 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 final ExtAppPrebid prebid = Json.mapper.convertValue(bidRequest.getApp().getExt(),
                         ExtApp.class).getPrebid();
                 if (prebid != null) {
-                    return String.format("%s-%s", prebid.getSource(), prebid.getVersion());
+                    final String source = prebid.getSource();
+                    final String version = prebid.getVersion();
+
+                    if (source != null && version != null) {
+                        return String.format("%s-%s", source, version);
+                    }
                 }
             } catch (IllegalArgumentException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
