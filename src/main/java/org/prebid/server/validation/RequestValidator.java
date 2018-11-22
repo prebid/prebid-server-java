@@ -3,6 +3,7 @@ package org.prebid.server.validation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -35,6 +36,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -128,6 +130,7 @@ public class RequestValidator {
                 throw new ValidationException("request.site or request.app must be defined, but not both");
             }
             validateSite(bidRequest.getSite());
+            validateApp(bidRequest.getApp());
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
         } catch (ValidationException ex) {
@@ -282,6 +285,16 @@ public class RequestValidator {
                 } catch (JsonProcessingException e) {
                     throw new ValidationException("request.site.ext object is not valid: %s", e.getMessage());
                 }
+            }
+        }
+    }
+
+    private void validateApp(App app) throws ValidationException {
+        if (app != null && app.getExt() != null) {
+            try {
+                Json.mapper.treeToValue(app.getExt(), ExtApp.class);
+            } catch (JsonProcessingException e) {
+                throw new ValidationException("request.app.ext object is not valid: %s", e.getMessage());
             }
         }
     }

@@ -798,6 +798,29 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenAppExtIsNotValid() {
+        // given
+        final ObjectNode invalidExt = mapper.createObjectNode();
+        invalidExt.put("prebid", "invalid");
+
+        final BidRequest bidRequest = overwriteApp(
+                BidRequest.builder()
+                        .id("123")
+                        .cur(singletonList("USD"))
+                        .imp(singletonList(validImpBuilder().build())),
+                appBuilder -> App.builder()
+                        .id("3").ext(invalidExt))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).element(0).asString()
+                .startsWith("request.app.ext object is not valid: ");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenRequestAppAndRequestSiteBothMissed() {
         // given
         final BidRequest.BidRequestBuilder bidRequestBuilder = overwriteSite(validBidRequestBuilder(),
