@@ -1,23 +1,23 @@
 {
   "isPrebid": true,
   "appId": "beachfrontAppId",
-  "domain": "example.com",
   "imp": [
     {
       "video": {},
       "bidfloor": 1.0,
       "id": 0,
-      "impid": "impId18"
+      "impid": "impId18",
+      "secure": 0
     }
   ],
   "site": {
+    "domain": "example.com",
     "page": "http://www.example.com"
   },
   "device": {
     "ua": "userAgent",
-    "geo": {
-      "ip": "192.168.244.1"
-    }
+    "ip": "192.168.244.1",
+    "js": "1"
   },
   "user": {
     "buyeruid": "BF-UID"

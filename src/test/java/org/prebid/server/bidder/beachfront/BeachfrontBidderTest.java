@@ -89,6 +89,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId").video(Video.builder().w(300).h(400).build())
+                        .secure(1)
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
                         .build()))
                 .user(User.builder().id("userId").buyeruid("buyerId").build())
@@ -111,12 +112,32 @@ public class BeachfrontBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
                 BeachfrontVideoRequest.builder().isPrebid(true).appId("appIdExt")
-                        .imp(singletonList(BeachfrontVideoImp.of(BeachfrontSize.of(300, 400), 1f, 0, "impId", 0)))
+                        .imp(singletonList(BeachfrontVideoImp.of(BeachfrontSize.of(300, 400), 1f, 0, "impId", 1)))
                         .site(Site.builder().domain("appDomain").page("appId").build())
                         .device(BeachfrontVideoDevice.of("ua", "127.0.0.1", "1"))
                         .user(User.builder().id("userId").buyeruid("buyerId").build())
                         .cur(singletonList("USD"))
                         .build()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetSecuredZeroForVideoImpIfNotPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().video(Video.builder().build())
+                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BeachfrontRequests>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).extracting(HttpRequest::getBody)
+                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .flatExtracting(BeachfrontVideoRequest::getImp)
+                .extracting(BeachfrontVideoImp::getSecure)
+                .containsOnly(0);
     }
 
     @Test
@@ -216,6 +237,25 @@ public class BeachfrontBidderTest extends VertxTest {
                 .extracting(BeachfrontVideoRequest::getSite)
                 .extracting(Site::getDomain)
                 .containsOnly("domain.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetVideoRequestSiteIfBothAppAndSiteAreAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().video(Video.builder().build())
+                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BeachfrontRequests>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).extracting(HttpRequest::getBody)
+                .extracting(s -> Json.mapper.readValue(s, BeachfrontVideoRequest.class))
+                .extracting(BeachfrontVideoRequest::getSite)
+                .containsNull();
     }
 
     @Test
@@ -352,10 +392,11 @@ public class BeachfrontBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnBannerRequestWithPopulatedFields() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
+                .id("request id")
                 .imp(singletonList(Imp.builder().id("impId1").bidfloor(BigDecimal.valueOf(1.0)).banner(Banner.builder().format(asList(
                         Format.builder().w(100).h(200).build(), Format.builder().w(300).h(400).build())).build())
                         .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
-                        .build()))
+                        .secure(1).build()))
                 .device(Device.builder().ip("127.0.0.1").model("model").os("os").dnt(5).ua("ua").build())
                 .user(User.builder().buyeruid("buyeruid").id("userId").build())
                 .app(App.builder().domain("rubicon.com").id("appId").build())
@@ -380,11 +421,12 @@ public class BeachfrontBidderTest extends VertxTest {
                         .domain("rubicon.com").page("appId").deviceOs("os").deviceModel("model")
                         .ua("ua").dnt(5).user(User.builder().id("userId").buyeruid("buyeruid").build())
                         .adapterName("BF_PREBID_S2S").adapterVersion("0.2.1")
-                        .ip("127.0.0.1").build()));
+                        .ip("127.0.0.1").secure(1).requestId("request id")
+                        .build()));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnBannerRequestWithoutCookieHeader() {
+    public void makeHttpRequestsShouldNotSetBannerRequestUserIfUserIsAbsent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build())
@@ -396,11 +438,51 @@ public class BeachfrontBidderTest extends VertxTest {
         final Result<List<HttpRequest<BeachfrontRequests>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).
-                flatExtracting(res -> res.getHeaders().entries())
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple(HttpHeaders.CONTENT_TYPE.toString(), APPLICATION_JSON),
-                        tuple(HttpHeaders.ACCEPT.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
+        assertThat(result.getValue()).extracting(HttpRequest::getBody)
+                .extracting(s -> Json.mapper.readValue(s, BeachfrontBannerRequest.class))
+                .extracting(BeachfrontBannerRequest::getUser)
+                .containsNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetBannerRequestSecureFromLastImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(Imp.builder().banner(Banner.builder().build())
+                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                                .secure(1).build(),
+                        Imp.builder().banner(Banner.builder().build())
+                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                                .secure(0).build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BeachfrontRequests>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).extracting(HttpRequest::getBody)
+                .extracting(s -> Json.mapper.readValue(s, BeachfrontBannerRequest.class))
+                .extracting(BeachfrontBannerRequest::getSecure)
+                .containsOnly(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetBannerRequestSecureIfNoSecureInImps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder().build())
+                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpBeachfront.of("appIdExt", 1f))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BeachfrontRequests>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).extracting(HttpRequest::getBody)
+                .extracting(s -> Json.mapper.readValue(s, BeachfrontBannerRequest.class))
+                .extracting(BeachfrontBannerRequest::getSecure)
+                .containsNull();
     }
 
     @Test
@@ -568,22 +650,6 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenBidResponseIsNullForVideoResponse() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder().id("bidRequestId")
-                .imp(singletonList(Imp.builder().video(Video.builder().build()).build())).build();
-
-        final HttpCall<BeachfrontRequests> httpCall = givenHttpCall(null, null);
-
-        // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).extracting(BidderError::getMessage).containsOnly("Failed to decode: null",
-                "Failed to process the beachfront response");
-    }
-
-    @Test
     public void makeBidsShouldReturnEmptyBidsListWhenSeatBidIsNullForVideoResponse() throws JsonProcessingException {
         // given
         final String response = mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build());
@@ -650,19 +716,17 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorsWhenBannerResponseBodyIsNull() {
+    public void makeBidsShouldReturnErrorWhenResponseBodyIsNull() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().id("bidRequestId")
-                .imp(singletonList(Imp.builder().banner(Banner.builder().build()).build())).build();
-
         final HttpCall<BeachfrontRequests> httpCall = givenHttpCall(null, null);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, BidRequest.builder().build());
 
         // then
-        assertThat(result.getErrors()).extracting(BidderError::getMessage).containsOnly("Response body cant be null",
-                "Failed to process the beachfront response");
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .containsOnly("Received a null response from beachfront");
     }
 
     @Test

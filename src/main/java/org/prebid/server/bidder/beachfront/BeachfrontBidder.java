@@ -145,7 +145,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
 
-        populateVideoRequestDomainAndSite(app, site, beachfrontVideoRequestBuilder);
+        populateVideoRequestSitePageAndDomain(app, site, beachfrontVideoRequestBuilder);
 
         return beachfrontVideoRequestBuilder
                 .imp(beachfrontVideoImps)
@@ -199,8 +199,8 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     /**
      * Creates {@link BeachfrontVideoRequest} domain from {@link App} or {@link Site}.
      */
-    private static void populateVideoRequestDomainAndSite(App app, Site site,
-                                                          BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
+    private static void populateVideoRequestSitePageAndDomain(App app, Site site,
+                                                              BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
                                                                   videoRequestBuilder) {
         if (app != null) {
             final String domain = app.getDomain();
@@ -240,21 +240,22 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      */
     private static BeachfrontBannerRequest makeBannerRequest(BidRequest bidRequest, List<Imp> imps,
                                                              List<String> errors) {
-        final BeachfrontBannerRequest.BeachfrontBannerRequestBuilder beachfrontRequestsBuilder =
+        final BeachfrontBannerRequest.BeachfrontBannerRequestBuilder beachfrontBannerRequestBuilder =
                 BeachfrontBannerRequest.builder().adapterName(BEACHFRONT_NAME).adapterVersion(BEACHFRONT_VERSION);
 
         final List<BeachfrontSlot> beachfrontSlots = makeBeachfrontSlots(imps, errors);
 
         final Device device = bidRequest.getDevice();
         if (device != null) {
-            populateDeviceFields(beachfrontRequestsBuilder, bidRequest.getDevice());
+            populateDeviceFields(beachfrontBannerRequestBuilder, bidRequest.getDevice());
         }
 
-        populateDomainPageFieldsForBannerRequest(bidRequest.getApp(), bidRequest.getSite(), beachfrontRequestsBuilder);
+        populateDomainPageFieldsForBannerRequest(bidRequest.getApp(), bidRequest.getSite(),
+                beachfrontBannerRequestBuilder);
 
         final User user = bidRequest.getUser();
         if (user != null) {
-            beachfrontRequestsBuilder.user(User.builder().id(user.getId()).buyeruid(user.getBuyeruid()).build());
+            beachfrontBannerRequestBuilder.user(User.builder().id(user.getId()).buyeruid(user.getBuyeruid()).build());
         }
 
         final Integer secure = imps.stream()
@@ -263,7 +264,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
                 .reduce((f, s) -> s)
                 .orElse(null);
 
-        return beachfrontRequestsBuilder
+        return beachfrontBannerRequestBuilder
                 .requestId(bidRequest.getId())
                 .slots(beachfrontSlots)
                 .secure(secure)
@@ -392,6 +393,11 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      */
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BeachfrontRequests> httpCall, BidRequest bidRequest) {
+        final String bodyString = httpCall.getResponse().getBody();
+        if (StringUtils.isBlank(bodyString)) {
+            return Result.emptyWithError(BidderError.badServerResponse("Received a null response from beachfront"));
+        }
+
         final String id = bidRequest.getId();
         return getBidType(bidRequest.getImp()) == BidType.video
                 ? processVideoResponse(httpCall, id)
@@ -410,10 +416,6 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         } catch (DecodeException ex) {
             errors.add(BidderError.badServerResponse(ex.getMessage()));
             return makeErrorResponse(errors);
-        }
-
-        if (bidResponse == null) {
-            return Result.emptyWithError(BidderError.badServerResponse("Received a null response from beachfront"));
         }
 
         if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
@@ -446,7 +448,6 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     private Result<List<BidderBid>> processBannerResponse(HttpCall<BeachfrontRequests> httpCall, String id) {
         final List<BidderError> errors = new ArrayList<>();
         final String responseBody = httpCall.getResponse().getBody();
-
         final List<BeachfrontResponseSlot> responseSlots;
         try {
             responseSlots = makeBeachfrontResponseSlots(responseBody);
@@ -468,10 +469,6 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      * Throws {@link PreBidException} in case of failure.
      */
     private static List<BeachfrontResponseSlot> makeBeachfrontResponseSlots(String responseBody) {
-        if (responseBody == null) {
-            throw new PreBidException("Response body cant be null");
-        }
-
         try {
             return Json.mapper.readValue(responseBody, Json.mapper.getTypeFactory()
                     .constructCollectionType(List.class, BeachfrontResponseSlot.class));
