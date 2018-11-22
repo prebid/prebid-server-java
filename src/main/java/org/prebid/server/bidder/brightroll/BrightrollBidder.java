@@ -98,25 +98,29 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     }
 
     /**
-     * Updates {@link BidRequest} with {@link Imp}s if something changed or dropped from the list.
+     * Updates {@link BidRequest} with default auction type
+     * and {@link Imp}s if something changed or dropped from the list.
      */
     private static BidRequest updateBidRequest(BidRequest bidRequest, List<BidderError> errors) {
-        final List<Imp> imps = bidRequest.getImp();
-        final boolean requiredUpdate = imps.stream().anyMatch(BrightrollBidder::isRequiredUpdate);
+        final BidRequest.BidRequestBuilder builder = bidRequest.toBuilder();
+        //Defaulting to first price auction for all prebid requests
+        builder.at(1);
 
-        if (requiredUpdate) {
-            return bidRequest.toBuilder().imp(imps.stream()
+        final List<Imp> imps = bidRequest.getImp();
+        final boolean requiresImpsUpdate = imps.stream().anyMatch(BrightrollBidder::isUpdateRequired);
+        if (requiresImpsUpdate) {
+            builder.imp(imps.stream()
                     .filter(imp -> isImpValid(imp, errors))
                     .map(BrightrollBidder::updateImpSize)
-                    .collect(Collectors.toList())).build();
+                    .collect(Collectors.toList()));
         }
-        return bidRequest;
+        return builder.build();
     }
 
     /**
      * Checks if {@link Imp} requires changes.
      */
-    private static boolean isRequiredUpdate(Imp imp) {
+    private static boolean isUpdateRequired(Imp imp) {
         final Banner banner = imp.getBanner();
         return (banner == null && imp.getVideo() == null)
                 || (banner != null && banner.getW() == null && banner.getH() == null
