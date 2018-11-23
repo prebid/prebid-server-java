@@ -132,7 +132,7 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      * request to video endpoint.
      */
     private static BeachfrontVideoRequest makeVideoRequest(BidRequest bidRequest, List<String> errors) {
-        final BeachfrontVideoRequest.BeachfrontVideoRequestBuilder beachfrontVideoRequestBuilder
+        final BeachfrontVideoRequest.BeachfrontVideoRequestBuilder requestBuilder
                 = BeachfrontVideoRequest.builder().cur(Collections.singletonList("USD")).isPrebid(true);
 
         final List<BeachfrontVideoImp> beachfrontVideoImps = new ArrayList<>();
@@ -140,14 +140,12 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final ExtImpBeachfront latestExtImpBeachfront = makeVideoImpsAndGetExtImpBeachfront(bidRequest, errors,
                 beachfrontVideoImps);
 
+        populateVideoRequestSite(bidRequest.getApp(), bidRequest.getSite(), requestBuilder);
+
         final Device device = bidRequest.getDevice();
         final User user = bidRequest.getUser();
-        final App app = bidRequest.getApp();
-        final Site site = bidRequest.getSite();
 
-        populateVideoRequestSitePageAndDomain(app, site, beachfrontVideoRequestBuilder);
-
-        return beachfrontVideoRequestBuilder
+        return requestBuilder
                 .imp(beachfrontVideoImps)
                 .device(device != null
                         ? BeachfrontVideoDevice.of(device.getUa(), device.getIp(), "1")
@@ -199,9 +197,9 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
     /**
      * Creates {@link BeachfrontVideoRequest} domain from {@link App} or {@link Site}.
      */
-    private static void populateVideoRequestSitePageAndDomain(App app, Site site,
-                                                              BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
-                                                                  videoRequestBuilder) {
+    private static void populateVideoRequestSite(App app, Site site,
+                                                 BeachfrontVideoRequest.BeachfrontVideoRequestBuilder
+                                                         videoRequestBuilder) {
         if (app != null) {
             final String domain = app.getDomain();
             if (StringUtils.isNotEmpty(domain)) {
@@ -240,31 +238,31 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
      */
     private static BeachfrontBannerRequest makeBannerRequest(BidRequest bidRequest, List<Imp> imps,
                                                              List<String> errors) {
-        final BeachfrontBannerRequest.BeachfrontBannerRequestBuilder beachfrontBannerRequestBuilder =
+        final BeachfrontBannerRequest.BeachfrontBannerRequestBuilder requestBuilder =
                 BeachfrontBannerRequest.builder().adapterName(BEACHFRONT_NAME).adapterVersion(BEACHFRONT_VERSION);
 
         final List<BeachfrontSlot> beachfrontSlots = makeBeachfrontSlots(imps, errors);
 
         final Device device = bidRequest.getDevice();
         if (device != null) {
-            populateDeviceFields(beachfrontBannerRequestBuilder, bidRequest.getDevice());
+            populateDeviceFields(requestBuilder, bidRequest.getDevice());
         }
 
         populateDomainPageFieldsForBannerRequest(bidRequest.getApp(), bidRequest.getSite(),
-                beachfrontBannerRequestBuilder);
+                requestBuilder);
 
         final User user = bidRequest.getUser();
         if (user != null) {
-            beachfrontBannerRequestBuilder.user(User.builder().id(user.getId()).buyeruid(user.getBuyeruid()).build());
+            requestBuilder.user(User.builder().id(user.getId()).buyeruid(user.getBuyeruid()).build());
         }
 
         final Integer secure = imps.stream()
                 .map(Imp::getSecure)
                 .filter(Objects::nonNull)
-                .reduce((f, s) -> s)
+                .reduce((first, second) -> second)
                 .orElse(null);
 
-        return beachfrontBannerRequestBuilder
+        return requestBuilder
                 .requestId(bidRequest.getId())
                 .slots(beachfrontSlots)
                 .secure(secure)
