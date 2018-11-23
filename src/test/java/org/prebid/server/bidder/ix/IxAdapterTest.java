@@ -176,7 +176,7 @@ public class IxAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFailIfMediaTypeIsVideoAndMimesListIsEmpty() {
+    public void makeHttpRequestsShouldIgnoreVideoMediaTypeAndFail() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
@@ -189,7 +189,7 @@ public class IxAdapterTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("Invalid AdUnit: VIDEO media type with no video data");
+                .hasMessage("openRTB bids need at least one Imp");
     }
 
     @Test
@@ -380,7 +380,7 @@ public class IxAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
+    public void makeHttpRequestsShouldReturnOneRequestWithBannerIfAdUnitContainsBannerAndVideoMediaTypes() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
@@ -398,9 +398,9 @@ public class IxAdapterTest extends VertxTest {
 
         // then
         assertThat(httpRequests).hasSize(1)
-                .flatExtracting(r -> r.getPayload().getImp()).hasSize(2)
+                .flatExtracting(r -> r.getPayload().getImp()).hasSize(1)
                 .extracting(imp -> imp.getVideo() == null, imp -> imp.getBanner() == null)
-                .containsOnly(tuple(true, false), tuple(false, true));
+                .containsOnly(tuple(true, false));
     }
 
     @Test

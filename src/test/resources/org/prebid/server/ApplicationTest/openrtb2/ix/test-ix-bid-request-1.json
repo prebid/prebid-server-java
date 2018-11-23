@@ -14,7 +14,12 @@
         "h": 250,
         "topframe": 0
       },
-      "tagid": "impId6"
+      "tagid": "impId6",
+      "ext": {
+        "bidder": {
+          "siteId": "10002"
+        }
+      }
     }
   ],
   "site": {
@@ -22,6 +27,9 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "10002"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
@@ -43,8 +51,12 @@
       "consent": "consentValue"
     }
   },
+  "test": 1,
   "at": 1,
   "tmax": 1000,
+  "cur": [
+    "USD"
+  ],
   "source": {
     "fd": 1,
     "tid": "tid"
@@ -52,6 +64,43 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "aliases": {
+        "appnexusAlias": "appnexus",
+        "conversantAlias": "conversant"
+      },
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.811
+            }
+          }
+        },
+        "includewinners": true,
+        "includebidderkeys": true
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      }
     }
   }
 }
