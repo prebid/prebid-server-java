@@ -142,9 +142,13 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBannerTopFrameIfAbsent() {
+    public void makeHttpRequestsShouldSetImpTagIdFromImpId() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder()
+                        .id("123")
+                        .format(singletonList(Format.builder().w(300).h(200).build()))
+                        .build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
@@ -154,9 +158,8 @@ public class IxBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .extracting(Banner::getTopframe)
-                .containsOnly(0);
+                .extracting(Imp::getTagid)
+                .containsOnly("123");
     }
 
     @Test
@@ -200,7 +203,7 @@ public class IxBidderTest extends VertxTest {
                 .extracting(Imp::getBanner)
                 .containsOnly(Banner.builder()
                         .format(singletonList(Format.builder().w(300).h(200).build()))
-                        .topframe(0).w(300).h(200)
+                        .w(300).h(200)
                         .build());
     }
 

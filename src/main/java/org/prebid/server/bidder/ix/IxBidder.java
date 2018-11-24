@@ -72,7 +72,8 @@ public class IxBidder implements Bidder<BidRequest> {
             try {
                 validateImp(imp);
                 final ExtImpIx extImpIx = parseAndValidateIxExt(imp);
-                prepareRequests(bidRequest, imp, extImpIx, prioritizedRequests, regularRequests);
+                final BidRequest.BidRequestBuilder requestBuilder = modifyRequest(bidRequest, extImpIx);
+                makeRequests(requestBuilder, imp, prioritizedRequests, regularRequests);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -94,25 +95,45 @@ public class IxBidder implements Bidder<BidRequest> {
         return Result.of(httpRequests, errors);
     }
 
-    private static void prepareRequests(BidRequest bidRequest, Imp imp, ExtImpIx extImpIx,
-                                        List<BidRequest> prioritizedRequests, List<BidRequest> regularRequests) {
+    private static void validateImp(Imp imp) {
+        if (imp.getBanner() == null) {
+            throw new PreBidException(String.format("Invalid MediaType. Ix supports only Banner type. "
+                    + "Ignoring ImpID=%s", imp.getId()));
+        }
+    }
 
+    private static ExtImpIx parseAndValidateIxExt(Imp imp) {
+        final ExtImpIx extImpIx;
+        try {
+            extImpIx = Json.mapper.<ExtPrebid<?, ExtImpIx>>convertValue(imp.getExt(),
+                    IX_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+
+        if (StringUtils.isBlank(extImpIx.getSiteId())) {
+            throw new PreBidException("Missing siteId param");
+        }
+        return extImpIx;
+    }
+
+    private static BidRequest.BidRequestBuilder modifyRequest(BidRequest bidRequest, ExtImpIx extImpIx) {
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         final Site site = bidRequest.getSite();
         final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
         final Site modifiedSite = siteBuilder.publisher(Publisher.builder()
                 .id(extImpIx.getSiteId()).build()).build();
+        return requestBuilder.site(modifiedSite);
+    }
 
-        requestBuilder.site(modifiedSite);
+    private static void makeRequests(BidRequest.BidRequestBuilder requestBuilder, Imp imp,
+                                     List<BidRequest> prioritizedRequests, List<BidRequest> regularRequests) {
 
         final Banner banner = imp.getBanner();
         List<Format> formats = banner.getFormat();
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         final Banner.BannerBuilder bannerBuilder = imp.getBanner().toBuilder();
-        final Integer topFrame = imp.getBanner().getTopframe();
-        bannerBuilder.topframe(topFrame == null ? 0 : topFrame);
         impBuilder.tagid(imp.getId());
-        //impBuilder.ext(null);
         if (CollectionUtils.isEmpty(formats)) {
             bannerBuilder.format(Collections.singletonList(
                     Format.builder().w(banner.getW()).h(banner.getH()).build()));
@@ -140,28 +161,6 @@ public class IxBidder implements Bidder<BidRequest> {
                 }
             }
         }
-    }
-
-    private static void validateImp(Imp imp) {
-        if (imp.getBanner() == null) {
-            throw new PreBidException(String.format("Invalid MediaType. Ix supports only Banner type. "
-                    + "Ignoring ImpID=%s", imp.getId()));
-        }
-    }
-
-    private static ExtImpIx parseAndValidateIxExt(Imp imp) {
-        final ExtImpIx extImpIx;
-        try {
-            extImpIx = Json.mapper.<ExtPrebid<?, ExtImpIx>>convertValue(imp.getExt(),
-                    IX_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-
-        if (StringUtils.isBlank(extImpIx.getSiteId())) {
-            throw new PreBidException("Missing siteId param");
-        }
-        return extImpIx;
     }
 
     @Override
