@@ -128,12 +128,12 @@ public class IxBidder implements Bidder<BidRequest> {
 
     private static void makeRequests(BidRequest.BidRequestBuilder requestBuilder, Imp imp,
                                      List<BidRequest> prioritizedRequests, List<BidRequest> regularRequests) {
-
         final Banner banner = imp.getBanner();
-        List<Format> formats = banner.getFormat();
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         final Banner.BannerBuilder bannerBuilder = imp.getBanner().toBuilder();
         impBuilder.tagid(imp.getId());
+
+        List<Format> formats = banner.getFormat();
         if (CollectionUtils.isEmpty(formats)) {
             bannerBuilder.format(Collections.singletonList(
                     Format.builder().w(banner.getW()).h(banner.getH()).build()));
