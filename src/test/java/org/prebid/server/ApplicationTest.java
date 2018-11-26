@@ -1,12 +1,6 @@
 package org.prebid.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
@@ -26,7 +20,6 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.BeforeClass;
@@ -66,7 +59,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static io.restassured.RestAssured.given;
-import static io.restassured.RestAssured.trustStore;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -256,6 +248,11 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-response-2.json"))));
 
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/lifestreet/test-cache-lifestreet-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/lifestreet/test-cache-lifestreet-response.json"))));
+
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
@@ -319,9 +316,9 @@ public class ApplicationTest extends VertxTest {
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/pubmatic/test-cache-pubmatic-request.json"), true, false))
                 .willReturn(aResponse()
-                .withTransformers("cache-response-transformer")
-                .withTransformerParameter("matcherName", "openrtb2/pubmatic/test-cache-matcher-pubmatic.json")
-        ));
+                        .withTransformers("cache-response-transformer")
+                        .withTransformerParameter("matcherName", "openrtb2/pubmatic/test-cache-matcher-pubmatic.json")
+                ));
 
         // when
         final Response response = given(spec)
@@ -1562,7 +1559,7 @@ public class ApplicationTest extends VertxTest {
             final BidCacheResponse bidCacheResponse = BidCacheResponse.of(responseCacheObjects);
             return Json.encode(bidCacheResponse);
         } catch (IOException e) {
-           throw new IOException("Error while matching cache ids");
+            throw new IOException("Error while matching cache ids");
         }
     }
 
