@@ -71,9 +71,7 @@ public class IxBidder implements Bidder<BidRequest> {
             }
             try {
                 validateImp(imp);
-                final ExtImpIx extImpIx = parseAndValidateIxExt(imp);
-                final BidRequest.BidRequestBuilder requestBuilder = modifyRequest(bidRequest, extImpIx);
-                makeRequests(requestBuilder, imp, prioritizedRequests, regularRequests);
+                makeRequests(bidRequest, imp, prioritizedRequests, regularRequests);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -82,10 +80,6 @@ public class IxBidder implements Bidder<BidRequest> {
         final List<BidRequest> modifiedRequests = Stream.concat(prioritizedRequests.stream(), regularRequests.stream())
                 .limit(REQUEST_LIMIT)
                 .collect(Collectors.toList());
-
-        if (CollectionUtils.isEmpty(modifiedRequests)) {
-            return Result.of(Collections.emptyList(), errors);
-        }
 
         final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
                 .map(request -> HttpRequest.of(HttpMethod.POST, endpointUrl, Json.encode(request),
@@ -102,32 +96,11 @@ public class IxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static ExtImpIx parseAndValidateIxExt(Imp imp) {
-        final ExtImpIx extImpIx;
-        try {
-            extImpIx = Json.mapper.<ExtPrebid<?, ExtImpIx>>convertValue(imp.getExt(),
-                    IX_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-
-        if (StringUtils.isBlank(extImpIx.getSiteId())) {
-            throw new PreBidException("Missing siteId param");
-        }
-        return extImpIx;
-    }
-
-    private static BidRequest.BidRequestBuilder modifyRequest(BidRequest bidRequest, ExtImpIx extImpIx) {
+    private static void makeRequests(BidRequest bidRequest, Imp imp, List<BidRequest> prioritizedRequests,
+                                     List<BidRequest> regularRequests) {
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
-        final Site site = bidRequest.getSite();
-        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
-        final Site modifiedSite = siteBuilder.publisher(Publisher.builder()
-                .id(extImpIx.getSiteId()).build()).build();
-        return requestBuilder.site(modifiedSite);
-    }
+        requestBuilder.site(modifySite(bidRequest, parseAndValidateImpExt(imp)));
 
-    private static void makeRequests(BidRequest.BidRequestBuilder requestBuilder, Imp imp,
-                                     List<BidRequest> prioritizedRequests, List<BidRequest> regularRequests) {
         final Banner banner = imp.getBanner();
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         final Banner.BannerBuilder bannerBuilder = imp.getBanner().toBuilder();
@@ -161,6 +134,28 @@ public class IxBidder implements Bidder<BidRequest> {
                 }
             }
         }
+    }
+
+    private static ExtImpIx parseAndValidateImpExt(Imp imp) {
+        final ExtImpIx extImpIx;
+        try {
+            extImpIx = Json.mapper.<ExtPrebid<?, ExtImpIx>>convertValue(imp.getExt(),
+                    IX_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+
+        if (StringUtils.isBlank(extImpIx.getSiteId())) {
+            throw new PreBidException("Missing siteId param");
+        }
+        return extImpIx;
+    }
+
+    private static Site modifySite(BidRequest bidRequest, ExtImpIx extImpIx) {
+        final Site site = bidRequest.getSite();
+        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
+        return siteBuilder.publisher(Publisher.builder()
+                .id(extImpIx.getSiteId()).build()).build();
     }
 
     @Override
