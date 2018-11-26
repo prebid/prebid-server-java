@@ -104,14 +104,9 @@ public class IxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtSiteIdIsNullOrBlank() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
-                                .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(null))))
-                                .build(),
-                        Imp.builder()
-                                .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(""))))
-                                .build()))
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(null))))),
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("")))))))
                 .build();
 
         // when
@@ -211,16 +206,14 @@ public class IxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCreateOneRequestPerImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder()
-                                        .format(singletonList(Format.builder().w(300).h(200).build())).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("1"))))
-                                .build(),
-                        Imp.builder()
+                                        .format(singletonList(Format.builder().w(300).h(200).build())).build())),
+                        givenImp(impBuilder -> impBuilder
+                                .id("321")
                                 .banner(Banner.builder()
-                                        .format(singletonList(Format.builder().w(600).h(400).build())).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("2"))))
-                                .build()))
+                                        .format(singletonList(Format.builder().w(600).h(400).build())).build()))))
                 .build();
 
 
@@ -231,10 +224,9 @@ public class IxBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher)
-                .extracting(Publisher::getId)
-                .containsOnly("1", "2");
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsOnly("123", "321");
     }
 
     @Test
