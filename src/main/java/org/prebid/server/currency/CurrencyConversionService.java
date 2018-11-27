@@ -29,6 +29,8 @@ public class CurrencyConversionService {
     private static final Logger logger = LoggerFactory.getLogger(CurrencyConversionService.class);
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    //this number is chosen because of PriceGranularities default precision value of 2 + 1 for better accuracy
+    private static final int DEFAULT_PRICE_PRECISION = 3;
 
     private final String currencyServerUrl;
     private final long refreshPeriod;
@@ -125,7 +127,7 @@ public class CurrencyConversionService {
     public BigDecimal convertCurrency(BigDecimal price,
                                       Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                       String adServerCurrency,
-                                      String bidCurrency, Integer priceGranularityPrecision) {
+                                      String bidCurrency) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
         final String effectiveBidCurrency = bidCurrency != null ? bidCurrency : DEFAULT_BID_CURRENCY;
@@ -149,7 +151,7 @@ public class CurrencyConversionService {
             throw new PreBidException("no currency conversion available");
         }
 
-        return price.divide(conversionRate, priceGranularityPrecision + 1, BigDecimal.ROUND_HALF_EVEN);
+        return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, BigDecimal.ROUND_HALF_EVEN);
     }
 
     /**
