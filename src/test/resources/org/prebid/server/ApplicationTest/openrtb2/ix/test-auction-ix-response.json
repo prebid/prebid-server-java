@@ -4,7 +4,7 @@
     {
       "bid": [
         {
-          "id": "impId6",
+          "id": "975135373",
           "impid": "impId6",
           "price": 4.75,
           "adm": "adm6",
@@ -16,76 +16,45 @@
             "prebid": {
               "type": "banner",
               "targeting": {
+                "hb_cache_hostpath_ix": "{{ cache.hostpath }}",
+                "hb_cache_hostpath": "{{ cache.hostpath }}",
+                "hb_pb_ix": "4.70",
+                "hb_cache_id": "8e270009-c31f-48fb-b14b-13a196291b61",
+                "hb_bidder_ix": "ix",
                 "hb_pb": "4.70",
                 "hb_size_ix": "300x600",
-                "hb_size": "300x600",
-                "hb_pb_ix": "4.70",
-                "hb_deal_ix": "dealId6",
-                "hb_bidder": "ix",
-                "hb_cache_id": "3bd85b54-a5c5-4852-956e-44e8a7b6b5bc",
-                "hb_bidder_ix": "ix",
-                "hb_creative_loadtype": "html",
-                "hb_cache_id_ix": "3bd85b54-a5c5-4852-956e-44e8a7b6b5bc",
-                "hb_deal": "dealId6",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_ix": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_cache_path_ix": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_ix": "{{ cache.hostpath }}"
+                "hb_size": "300x600",
+                "hb_deal_ix": "dealId6",
+                "hb_bidder": "ix",
+                "hb_cache_host_ix": "{{ cache.host }}",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_creative_loadtype": "html",
+                "hb_cache_id_ix": "8e270009-c31f-48fb-b14b-13a196291b61",
+                "hb_deal": "dealId6"
               },
               "cache": {
                 "bids": {
-                  "url": "{{ cache.resource_url }}3bd85b54-a5c5-4852-956e-44e8a7b6b5bc",
-                  "cacheId": "3bd85b54-a5c5-4852-956e-44e8a7b6b5bc"
+                  "url": "{{ cache.resource_url }}8e270009-c31f-48fb-b14b-13a196291b61",
+                  "cacheId": "8e270009-c31f-48fb-b14b-13a196291b61"
                 }
               }
             }
           }
         },
         {
-          "id": "impId61",
-          "impid": "impId61",
-          "price": 4.0,
-          "adm": "adm61",
-          "crid": "crid61",
-          "dealid": "dealId61",
-          "w": 300,
-          "h": 600,
+          "id": "894859517",
+          "impid": "impId6",
+          "price": 3.75,
+          "adm": "adm6",
+          "crid": "crid6",
+          "dealid": "dealId6",
+          "w": 600,
+          "h": 480,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_uuid_ix": "5a75ecf0-cae7-4afb-9d8c-13a836b82a9f",
-                "hb_pb_ix": "4.00",
-                "hb_cache_id": "8e270009-c31f-48fb-b14b-13a196291b61",
-                "hb_bidder_ix": "ix",
-                "hb_pb": "4.00",
-                "hb_size_ix": "300x600",
-                "hb_uuid": "5a75ecf0-cae7-4afb-9d8c-13a836b82a9f",
-                "hb_size": "300x600",
-                "hb_deal_ix": "dealId61",
-                "hb_bidder": "ix",
-                "hb_creative_loadtype": "html",
-                "hb_cache_id_ix": "8e270009-c31f-48fb-b14b-13a196291b61",
-                "hb_deal": "dealId61",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_ix": "{{ cache.host }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_ix": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_ix": "{{ cache.hostpath }}"
-              },
-              "cache": {
-                "vastXml": {
-                  "url": "{{ cache.resource_url }}5a75ecf0-cae7-4afb-9d8c-13a836b82a9f",
-                  "cacheId": "5a75ecf0-cae7-4afb-9d8c-13a836b82a9f"
-                },
-                "bids": {
-                  "url": "{{ cache.resource_url }}8e270009-c31f-48fb-b14b-13a196291b61",
-                  "cacheId": "8e270009-c31f-48fb-b14b-13a196291b61"
-                }
-              }
+              "type": "banner"
             }
           }
         }
@@ -101,14 +70,14 @@
         "ix": [
           {
             "uri": "{{ ix.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId6\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250,\"topframe\":0},\"tagid\":\"impId6\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"10002\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"IE-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}}}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId6\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"w\":300,\"h\":250},\"tagid\":\"impId6\",\"ext\":{\"bidder\":{\"siteId\":\"10002\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"10002\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"IE-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
             "responsebody": "{\"id\":\"bidResponseId01\",\"seatbid\":[{\"bid\":[{\"id\":\"975135373\",\"impid\":\"impId6\",\"price\":4.75,\"adm\":\"adm6\",\"crid\":\"crid6\",\"dealid\":\"dealId6\",\"w\":300,\"h\":600}],\"seat\":\"seatId6\"}]}",
             "status": 200
           },
           {
             "uri": "{{ ix.exchange_uri }}",
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId61\",\"video\":{\"mimes\":[\"mimes\"],\"w\":300,\"h\":250,\"skipmin\":0,\"skipafter\":0,\"playbackmethod\":[null]},\"tagid\":\"impId61\"}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"10002\"}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"IE-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"at\":1,\"tmax\":1000,\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}}}",
-            "responsebody": "{\"id\":\"bidResponseId02\",\"seatbid\":[{\"bid\":[{\"id\":\"894859517\",\"impid\":\"impId61\",\"price\":4.0,\"adm\":\"adm61\",\"crid\":\"crid61\",\"dealid\":\"dealId61\",\"w\":300,\"h\":600}],\"seat\":\"seatId6\"}]}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId6\",\"banner\":{\"format\":[{\"w\":600,\"h\":480}],\"w\":600,\"h\":480},\"tagid\":\"impId6\",\"ext\":{\"bidder\":{\"siteId\":\"10002\"}}}],\"site\":{\"domain\":\"example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"id\":\"10002\"},\"ext\":{\"amp\":0}},\"device\":{\"ua\":\"userAgent\",\"dnt\":2,\"ip\":\"192.168.244.1\",\"pxratio\":4.2,\"language\":\"en\",\"ifa\":\"ifaId\"},\"user\":{\"buyeruid\":\"IE-UID\",\"ext\":{\"digitrust\":{\"id\":\"id\",\"keyv\":123,\"pref\":0},\"consent\":\"consentValue\"}},\"test\":1,\"at\":1,\"tmax\":1000,\"cur\":[\"USD\"],\"source\":{\"fd\":1,\"tid\":\"tid\"},\"regs\":{\"ext\":{\"gdpr\":0}},\"ext\":{\"prebid\":{\"aliases\":{\"appnexusAlias\":\"appnexus\",\"conversantAlias\":\"conversant\"},\"targeting\":{\"pricegranularity\":{\"precision\":2,\"ranges\":[{\"max\":20,\"increment\":0.1}]},\"currency\":{\"rates\":{\"EUR\":{\"USD\":1.2406},\"USD\":{\"EUR\":0.811}}},\"includewinners\":true,\"includebidderkeys\":true},\"cache\":{\"bids\":{},\"vastxml\":{\"ttlseconds\":120}}}}}",
+            "responsebody": "{\"id\":\"bidResponseId02\",\"seatbid\":[{\"bid\":[{\"id\":\"894859517\",\"impid\":\"impId6\",\"price\":3.75,\"adm\":\"adm6\",\"crid\":\"crid6\",\"dealid\":\"dealId6\",\"w\":600,\"h\":480}],\"seat\":\"seatId6\"}]}",
             "status": 200
           }
         ]
@@ -123,27 +92,14 @@
                 {
                   "w": 300,
                   "h": 250
+                },
+                {
+                  "w": 600,
+                  "h": 480
                 }
               ],
               "w": 300,
               "h": 250
-            },
-            "ext": {
-              "ix": {
-                "siteId": "10002"
-              }
-            }
-          },
-          {
-            "id": "impId61",
-            "video": {
-              "mimes": [
-                "mimes"
-              ],
-              "w": 300,
-              "h": 250,
-              "skipmin": 0,
-              "skipafter": 0
             },
             "ext": {
               "ix": {
