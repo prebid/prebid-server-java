@@ -33,7 +33,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
-import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -178,20 +177,6 @@ public class SettingsConfiguration {
             name = {"endpoint", "amp-endpoint", "refresh-rate", "timeout"})
     static class HttpPeriodicRefreshServiceConfiguration {
 
-        @Autowired
-        @Qualifier("settingsCache")
-        SettingsCache settingsCache;
-
-        @Autowired
-        @Qualifier("ampSettingsCache")
-        SettingsCache ampSettingsCache;
-
-        @Value("${settings.in-memory-cache.http-update.endpoint}")
-        String endpoint;
-
-        @Value("${settings.in-memory-cache.http-update.amp-endpoint}")
-        String ampEndpoint;
-
         @Value("${settings.in-memory-cache.http-update.refresh-rate}")
         long refreshPeriod;
 
@@ -204,23 +189,21 @@ public class SettingsConfiguration {
         @Autowired
         HttpClient httpClient;
 
-        @Autowired
-        ContextRunner contextRunner;
+        @Bean
+        public HttpPeriodicRefreshService httpPeriodicRefreshService(
+                @Value("${settings.in-memory-cache.http-update.endpoint}") String endpoint,
+                SettingsCache settingsCache) {
 
-        @PostConstruct
-        public void httpPeriodicRefreshService() {
+            return new HttpPeriodicRefreshService(settingsCache, endpoint, refreshPeriod, timeout, vertx, httpClient);
+        }
 
-            final HttpPeriodicRefreshService service = new HttpPeriodicRefreshService(settingsCache, endpoint,
-                    refreshPeriod, timeout, vertx, httpClient);
+        @Bean
+        public HttpPeriodicRefreshService ampHttpPeriodicRefreshService(
+                @Value("${settings.in-memory-cache.http-update.amp-endpoint}") String ampEndpoint,
+                SettingsCache ampSettingsCache) {
 
-            final HttpPeriodicRefreshService ampService = new HttpPeriodicRefreshService(ampSettingsCache, ampEndpoint,
-                    refreshPeriod, timeout, vertx, httpClient);
-
-            contextRunner.runOnServiceContext(future -> {
-                service.initialize();
-                ampService.initialize();
-                future.complete();
-            });
+            return new HttpPeriodicRefreshService(ampSettingsCache, ampEndpoint, refreshPeriod, timeout, vertx,
+                    httpClient);
         }
     }
 
