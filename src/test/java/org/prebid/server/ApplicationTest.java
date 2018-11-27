@@ -146,11 +146,8 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-cache-conversant-request.json"), true, false))
-                .willReturn(aResponse()
-                        .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName", "openrtb2/conversant/test-cache-matcher-conversant.json")
-                ));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-cache-conversant-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/test-cache-conversant-response.json"))));
 
         // when
         final Response response = given(spec)

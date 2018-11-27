@@ -11,11 +11,15 @@
           }
         ],
         "w": 300,
-        "h": 600,
-        "topframe": 0
+        "h": 600
       },
       "displaymanager": "prebid-s2s",
-      "displaymanagerver": "1.0.1"
+      "displaymanagerver": "1.0.1",
+      "ext": {
+        "bidder": {
+          "site_id": "siteId"
+        }
+      }
     },
     {
       "id": "impId41",
@@ -26,24 +30,32 @@
         "w": 300,
         "h": 600,
         "skipmin": 0,
-        "skipafter": 0,
-        "playbackmethod": [
-          null
-        ]
+        "skipafter": 0
       },
       "displaymanager": "prebid-s2s",
-      "displaymanagerver": "1.0.1"
+      "displaymanagerver": "1.0.1",
+      "ext": {
+        "bidder": {
+          "site_id": "siteId"
+        }
+      }
     }
   ],
   "site": {
     "id": "siteId",
     "domain": "example.com",
-    "page": "http://www.example.com"
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
+    }
   },
   "device": {
-    "ua" : "userAgent",
+    "ua": "userAgent",
     "dnt": 2,
-    "ip" : "192.168.244.1",
+    "ip": "192.168.244.1",
     "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId"
@@ -59,8 +71,12 @@
       "consent": "consentValue"
     }
   },
+  "test": 1,
   "at": 1,
   "tmax": 1000,
+  "cur": [
+    "USD"
+  ],
   "source": {
     "fd": 1,
     "tid": "tid"
@@ -68,6 +84,42 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "aliases": {
+        "conversantAlias": "conversant"
+      },
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.811
+            }
+          }
+        },
+        "includewinners": true,
+        "includebidderkeys": true
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      }
     }
   }
 }
