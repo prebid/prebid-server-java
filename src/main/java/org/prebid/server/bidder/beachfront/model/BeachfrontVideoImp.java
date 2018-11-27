@@ -14,4 +14,6 @@ public class BeachfrontVideoImp {
     Integer id;
 
     String impid;
+
+    Integer secure;
 }

@@ -22,12 +22,10 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
-import org.apache.commons.collections4.CollectionUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
@@ -39,7 +37,6 @@ import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.account.AccountCacheService;
@@ -72,6 +69,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.response.BidderInfo;
@@ -1484,7 +1482,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(cacheService).cacheBidsOpenrtb(
-                InAnyOrderListMatcher.inAnyOrderListMatcherEq(asList(bid1, bid2)), eq(asList(imp1, imp2)),
+                argThat(t -> t.containsAll(asList(bid1, bid2))), eq(asList(imp1, imp2)),
                 eq(CacheContext.of(true, null, false, null)),
                 eq(""), eq(timeout));
     }
@@ -1891,24 +1889,4 @@ public class ExchangeServiceTest extends VertxTest {
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceGdpr) {
         return new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(gdprVendorId, enforceGdpr));
     }
-
-    private static class InAnyOrderListMatcher implements ArgumentMatcher<List> {
-
-        private final List expected;
-
-        InAnyOrderListMatcher(List expected) {
-            this.expected = expected;
-        }
-
-        @Override
-        public boolean matches(List argument) {
-            return CollectionUtils.isEqualCollection(expected, argument);
-        }
-
-
-        static List inAnyOrderListMatcherEq(List expected) {
-            return argThat(new InAnyOrderListMatcher(expected));
-        }
-    }
-
 }
