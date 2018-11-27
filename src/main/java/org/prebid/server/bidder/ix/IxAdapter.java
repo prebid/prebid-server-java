@@ -28,7 +28,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -40,8 +39,7 @@ import java.util.stream.Stream;
  */
 public class IxAdapter extends OpenrtbAdapter {
 
-    private static final Set<MediaType> ALLOWED_MEDIA_TYPES =
-            Collections.unmodifiableSet(EnumSet.of(MediaType.banner, MediaType.video));
+    private static final Set<MediaType> ALLOWED_MEDIA_TYPES = Collections.singleton(MediaType.banner);
 
     // maximum number of bid requests
     private static final int REQUEST_LIMIT = 20;
@@ -162,15 +160,9 @@ public class IxAdapter extends OpenrtbAdapter {
     private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
-        switch (mediaType) {
-            case video:
-                impBuilder.video(videoBuilder(adUnitBid).build());
-                break;
-            case banner:
-                impBuilder.banner(bannerBuilder(adUnitBid).build());
-                break;
-            default:
-                // unknown media type, just skip it
+        // if media type is not banner - just skip it
+        if (mediaType == MediaType.banner) {
+            impBuilder.banner(bannerBuilder(adUnitBid).build());
         }
         return impBuilder;
     }

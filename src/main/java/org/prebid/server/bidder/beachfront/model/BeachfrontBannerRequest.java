@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.beachfront.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iab.openrtb.request.User;
 import lombok.Builder;
 import lombok.Value;
 
@@ -20,7 +21,7 @@ public class BeachfrontBannerRequest {
 
     String search;
 
-    String secure;
+    Integer secure;
 
     @JsonProperty("deviceOs")
     String deviceOs;
@@ -35,7 +36,7 @@ public class BeachfrontBannerRequest {
 
     Integer dnt;
 
-    String user;
+    User user;
 
     @JsonProperty("adapterName")
     String adapterName;
@@ -44,4 +45,7 @@ public class BeachfrontBannerRequest {
     String adapterVersion;
 
     String ip;
+
+    @JsonProperty("requestId")
+    String requestId;
 }

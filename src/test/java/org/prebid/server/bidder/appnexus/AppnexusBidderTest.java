@@ -2,6 +2,7 @@ package org.prebid.server.bidder.appnexus;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -32,6 +33,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
@@ -93,6 +96,26 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldAddErrorIfAppExtPrebidCouldNotbeParsed() {
+        // given
+        final ObjectNode badAppExtPrebid = mapper.createObjectNode();
+        badAppExtPrebid.put("prebid", "bad value");
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.app(App.builder().ext(badAppExtPrebid).build()),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder.placementId(20).invCode("invCode"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot construct instance of");
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -147,6 +170,52 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput("All request.imp[i].ext.appnexus.member params must match. "
                         + "Request contained: member2, member1"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetImpDisplaymanagerverFromAppExtPrebid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .app(App.builder()
+                                .ext(mapper.valueToTree(ExtApp.of(ExtAppPrebid.of("some source", "any version"))))
+                                .build()),
+                builder -> builder.banner(Banner.builder().build()),
+                builder -> builder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .containsOnly("some source-any version");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfItExists() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .app(App.builder()
+                                .ext(mapper.valueToTree(ExtApp.of(ExtAppPrebid.of("some source", "any version"))))
+                                .build()),
+                builder -> builder.banner(Banner.builder().build()).displaymanagerver("string exists"),
+                builder -> builder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .containsOnly("string exists");
     }
 
     @Test
