@@ -29,6 +29,8 @@ public class CurrencyConversionService {
     private static final Logger logger = LoggerFactory.getLogger(CurrencyConversionService.class);
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
+    //this number is chosen because of PriceGranularities default precision value of 2 + 1 for better accuracy
+    private static final int DEFAULT_PRICE_PRECISION = 3;
 
     private final String currencyServerUrl;
     private final long refreshPeriod;
@@ -149,7 +151,7 @@ public class CurrencyConversionService {
             throw new PreBidException("no currency conversion available");
         }
 
-        return price.divide(conversionRate, conversionRate.precision(), BigDecimal.ROUND_HALF_EVEN);
+        return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, BigDecimal.ROUND_HALF_EVEN);
     }
 
     /**
