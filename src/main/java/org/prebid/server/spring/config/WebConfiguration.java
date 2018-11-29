@@ -1,5 +1,9 @@
 package org.prebid.server.spring.config;
 
+import com.codahale.metrics.MetricRegistry;
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.dropwizard.DropwizardExports;
+import io.prometheus.client.vertx.MetricsHandler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -398,6 +402,38 @@ public class WebConfiguration {
                     vertx.createHttpServer().requestHandler(router::accept).listen(adminPort, future));
 
             logger.info("Successfully started Admin Server");
+        }
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "prometheus", name = "port")
+    static class PrometheusServerConfiguration {
+        private static final Logger logger = LoggerFactory.getLogger(AdminServerConfiguration.class);
+
+        @Autowired
+        private ContextRunner contextRunner;
+
+        @Autowired
+        private Vertx vertx;
+
+        @Autowired
+        private MetricRegistry metricRegistry;
+
+        @Value("${prometheus.port}")
+        private int prometheusPort;
+
+        @PostConstruct
+        public void startPrometheusServer() {
+            logger.info("Starting Prometheus Server on port {0,number,#}", prometheusPort);
+            final Router router = Router.router(vertx);
+            router.route("/metrics").handler(new MetricsHandler());
+
+            CollectorRegistry.defaultRegistry.register(new DropwizardExports(metricRegistry));
+
+            contextRunner.<HttpServer>runOnServiceContext(future ->
+                    vertx.createHttpServer().requestHandler(router::accept).listen(prometheusPort, future));
+
+            logger.info("Successfully started Prometheus Server");
         }
     }
 }
