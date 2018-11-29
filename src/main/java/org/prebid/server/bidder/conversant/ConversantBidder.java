@@ -73,6 +73,18 @@ public class ConversantBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
+        final BidRequest outgoingRequest = createBidRequest(bidRequest, errors);
+        if (outgoingRequest == null) {
+            return Result.of(Collections.emptyList(), errors);
+        }
+
+        final String body = Json.encode(outgoingRequest);
+
+        return Result.of(Collections.singletonList(
+                HttpRequest.of(HttpMethod.POST, endpointUrl, body, BidderUtil.headers(), outgoingRequest)), errors);
+    }
+
+    private static BidRequest createBidRequest(BidRequest bidRequest, List<BidderError> errors) {
         final List<Imp> modifiedImps = new ArrayList<>();
         Integer extMobile = null;
         String extSiteId = null;
@@ -90,18 +102,13 @@ public class ConversantBidder implements Bidder<BidRequest> {
             }
         }
         if (modifiedImps.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return null;
         }
 
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
-        requestBuilder.imp(modifiedImps);
-        requestBuilder.site(modifySite(bidRequest.getSite(), extSiteId, extMobile));
-
-        final BidRequest outgoingRequest = requestBuilder.build();
-        final String body = Json.encode(outgoingRequest);
-
-        return Result.of(Collections.singletonList(
-                HttpRequest.of(HttpMethod.POST, endpointUrl, body, BidderUtil.headers(), outgoingRequest)), errors);
+        return bidRequest.toBuilder()
+                .imp(modifiedImps)
+                .site(modifySite(bidRequest.getSite(), extSiteId, extMobile))
+                .build();
     }
 
     private static void validateImp(Imp imp) {
@@ -112,7 +119,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private static ExtImpConversant parseAndValidateImpExt(Imp imp) {
-        ExtImpConversant extImpConversant;
+        final ExtImpConversant extImpConversant;
         try {
             extImpConversant = Json.mapper.<ExtPrebid<?, ExtImpConversant>>convertValue(imp.getExt(),
                     CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
@@ -125,16 +132,6 @@ public class ConversantBidder implements Bidder<BidRequest> {
         }
 
         return extImpConversant;
-    }
-
-    private static Site modifySite(Site site, String extSiteId, Integer extMobile) {
-        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
-        if (extMobile != null) {
-            siteBuilder.mobile(extMobile);
-        }
-        return siteBuilder
-                .id(extSiteId)
-                .build();
     }
 
     private static Imp modifyImp(Imp imp, ExtImpConversant impExt) {
@@ -178,8 +175,8 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private static Integer makePosition(Integer position, Integer videoPos) {
-        videoPos = videoPos != null && AD_POSITIONS.contains(videoPos) ? videoPos : null;
-        return position != null && AD_POSITIONS.contains(position) ? position : videoPos;
+        final Integer pos = videoPos != null && AD_POSITIONS.contains(videoPos) ? videoPos : null;
+        return position != null && AD_POSITIONS.contains(position) ? position : pos;
     }
 
     private static List<Integer> makeApi(List<Integer> extApi, List<Integer> videoApi) {
@@ -192,6 +189,16 @@ public class ConversantBidder implements Bidder<BidRequest> {
         final List<Integer> protocols = CollectionUtils.isNotEmpty(extProtocols) ? extProtocols : videoProtocols;
         return CollectionUtils.isNotEmpty(protocols)
                 ? protocols.stream().filter(PROTOCOLS::contains).collect(Collectors.toList()) : videoProtocols;
+    }
+
+    private static Site modifySite(Site site, String extSiteId, Integer extMobile) {
+        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
+        if (extMobile != null) {
+            siteBuilder.mobile(extMobile);
+        }
+        return siteBuilder
+                .id(extSiteId)
+                .build();
     }
 
     @Override
