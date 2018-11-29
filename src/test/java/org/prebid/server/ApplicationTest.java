@@ -249,6 +249,11 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-response-2.json"))));
 
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/lifestreet/test-cache-lifestreet-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/lifestreet/test-cache-lifestreet-response.json"))));
+
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
