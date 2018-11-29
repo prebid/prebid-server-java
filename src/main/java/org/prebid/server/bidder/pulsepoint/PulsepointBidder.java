@@ -140,7 +140,7 @@ public class PulsepointBidder implements Bidder<BidRequest> {
 
     private static Site modifySite(Site site, String publisherId) {
         final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
-        final Publisher modifiedPublisher = site == null
+        final Publisher modifiedPublisher = site == null || site.getPublisher() == null
                 ? Publisher.builder().id(publisherId).build()
                 : site.getPublisher().toBuilder().id(publisherId).build();
         return siteBuilder
@@ -150,7 +150,7 @@ public class PulsepointBidder implements Bidder<BidRequest> {
 
     private static App modifyApp(App app, String publisherId) {
         final App.AppBuilder appBuilder = app == null ? App.builder() : app.toBuilder();
-        final Publisher modifiedPublisher = app == null
+        final Publisher modifiedPublisher = app == null || app.getPublisher() == null
                 ? Publisher.builder().id(publisherId).build()
                 : app.getPublisher().toBuilder().id(publisherId).build();
         return appBuilder
