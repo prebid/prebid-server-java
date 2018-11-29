@@ -99,7 +99,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, GBP, null);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(0.69901))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(0.699))).isEqualTo(0);
     }
 
     @Test
@@ -112,7 +112,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, GBP, EUR);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(0.86468))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(0.865))).isEqualTo(0);
     }
 
     @Test
@@ -125,7 +125,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR, GBP);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.1565))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(1.156))).isEqualTo(0);
     }
 
     @Test
@@ -139,7 +139,20 @@ public class CurrencyConversionServiceTest extends VertxTest {
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR, GBP);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.16271))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(1.163))).isEqualTo(0);
+    }
+
+    @Test
+    public void convertCurrencyShouldReturnConvertedBySingleDigitMultiplierPrice() {
+        // given
+        final Map<String, Map<String, BigDecimal>> requestConversionRates = new HashMap<>();
+        requestConversionRates.put(EUR, singletonMap(USD, BigDecimal.valueOf(0.5)));
+
+        // when
+        final BigDecimal price = currencyService.convertCurrency(new BigDecimal("1.23"), requestConversionRates, EUR, USD);
+
+        // then
+        assertThat(price.compareTo(BigDecimal.valueOf(2.460))).isEqualTo(0);
     }
 
 
@@ -162,7 +175,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE, requestConversionRates, EUR, UAH);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.1565))).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.valueOf(1.156))).isEqualTo(0);
     }
 
     @Test

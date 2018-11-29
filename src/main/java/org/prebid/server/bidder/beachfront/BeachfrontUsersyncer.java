@@ -20,7 +20,7 @@ public class BeachfrontUsersyncer implements Usersyncer {
      * Creates {@link UsersyncInfo} from usersyncUrl and platformId
      */
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String platformId) {
-        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, platformId), "redirect", false);
+        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, platformId), "iframe", false);
     }
 
     /**

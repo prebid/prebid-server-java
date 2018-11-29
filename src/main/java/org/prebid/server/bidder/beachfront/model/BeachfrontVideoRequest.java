@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.beachfront.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import lombok.Builder;
 import lombok.Value;
@@ -17,13 +18,11 @@ public class BeachfrontVideoRequest {
     @JsonProperty("appId")
     String appId;
 
-    String domain;
-
     String id;
 
     List<BeachfrontVideoImp> imp;
 
-    BeachfrontSite site;
+    Site site;
 
     BeachfrontVideoDevice device;
 
