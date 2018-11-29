@@ -187,7 +187,8 @@
       "pulsepoint": []
     },
     "responsetimemillis": {
-      "pulsepoint": "{{ pulsepoint.response_time_ms }}"
+      "pulsepoint": "{{ pulsepoint.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }

@@ -169,7 +169,8 @@
       "sovrn": []
     },
     "responsetimemillis": {
-      "sovrn": "{{ sovrn.response_time_ms }}"
+      "sovrn": "{{ sovrn.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }

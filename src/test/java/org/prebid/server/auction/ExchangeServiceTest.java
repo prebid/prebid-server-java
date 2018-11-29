@@ -1848,6 +1848,33 @@ public class ExchangeServiceTest extends VertxTest {
                         "Error occurred while trying to cache : error"))));
     }
 
+    @Test
+    public void shouldContainCacheResponseTime() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").price(BigDecimal.ONE).build();
+        givenHttpConnector("bidder", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
+
+        given(cacheService.cacheBidsOpenrtb(anyList(), anyList(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonMap(bid, CacheIdInfo.of("cacheId", null))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder", 1), builder -> builder.id("impId"))),
+                builder -> builder.ext(mapper.valueToTree(ExtBidRequest.of(ExtRequestPrebid.of(
+                        null, null, ExtRequestTargeting.of(Json.mapper.valueToTree(ExtPriceGranularity.of(
+                                2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                        BigDecimal.valueOf(0.5))))), null, true, true), null,
+                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))))));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getResponsetimemillis()).contains(entry("cache", 0));
+    }
+
     private BidRequest captureBidRequest() {
         final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
         verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());

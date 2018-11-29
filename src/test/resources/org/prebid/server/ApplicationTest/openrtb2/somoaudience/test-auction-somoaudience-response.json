@@ -357,7 +357,8 @@
       "somoaudience": []
     },
     "responsetimemillis": {
-      "somoaudience": "{{ somoaudience.response_time_ms }}"
+      "somoaudience": "{{ somoaudience.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }

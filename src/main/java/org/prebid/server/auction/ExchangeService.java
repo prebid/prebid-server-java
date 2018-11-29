@@ -89,6 +89,7 @@ import java.util.stream.StreamSupport;
 public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
+    private static final String CACHE = "cache";
     private static final String DEFAULT_CURRENCY = "USD";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
     private static final DecimalFormat ROUND_TWO_DECIMALS =
@@ -869,10 +870,12 @@ public class ExchangeService {
         populateWinningBids(keywordsCreator, bidderResponses, bids, winningBids, winningBidsByBidder);
         final List<String> errors = new ArrayList<>();
 
+        long cacheStartTime = cacheInfo.doCaching ? clock.millis() : -1;
+
         return toBidsWithCacheIds(bids, bidRequest.getImp(), keywordsCreator, cacheInfo, publisherId,
                 timeout, errors)
                 .map(bidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        bidsWithCacheIds, winningBids, winningBidsByBidder, cacheInfo, errors));
+                        bidsWithCacheIds, winningBids, winningBidsByBidder, cacheInfo, errors, cacheStartTime));
     }
 
     /**
@@ -1022,7 +1025,7 @@ public class ExchangeService {
                                                    TargetingKeywordsCreator keywordsCreator,
                                                    Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBids,
                                                    Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
-                                                   List<String> errors) {
+                                                   List<String> errors, long cacheStartTime) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
@@ -1030,7 +1033,7 @@ public class ExchangeService {
                                 winningBidsByBidder, cacheInfo))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, errors);
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, errors, cacheStartTime);
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -1115,7 +1118,7 @@ public class ExchangeService {
      * bidders
      */
     private ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
-                                            List<String> prebidErrors) {
+                                            List<String> prebidErrors, long cacheStartTime) {
         final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream().collect(
                 Collectors.toMap(BidderResponse::getBidder, r -> ListUtils.emptyIfNull(r.getSeatBid().getHttpCalls())))
@@ -1133,6 +1136,10 @@ public class ExchangeService {
 
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
+
+        if (cacheStartTime != -1) {
+            responseTimeMillis.put(CACHE, responseTime(cacheStartTime));
+        }
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
     }

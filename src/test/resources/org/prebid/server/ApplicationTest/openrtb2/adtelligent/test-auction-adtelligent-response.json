@@ -166,7 +166,8 @@
       "adtelligent": []
     },
     "responsetimemillis": {
-      "adtelligent": "{{ adtelligent.response_time_ms }}"
+      "adtelligent": "{{ adtelligent.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }
