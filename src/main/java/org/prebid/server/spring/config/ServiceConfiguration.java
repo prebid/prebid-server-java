@@ -34,7 +34,6 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
-import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
@@ -155,6 +154,42 @@ public class ServiceConfiguration {
             HttpClient httpClient) {
 
         return new GoogleRecaptchaVerifier(httpClient, recaptchaUrl, recaptchaSecret);
+    }
+
+    @Bean
+    @Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
+    @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "false",
+            matchIfMissing = true)
+    BasicHttpClient basicHttpClient(
+            Vertx vertx,
+            @Value("${http-client.max-pool-size}") int maxPoolSize,
+            @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs) {
+
+        return createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs);
+    }
+
+    @Bean
+    @Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
+    @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "true")
+    CircuitBreakerSecuredHttpClient circuitBreakerSecuredHttpClient(
+            Vertx vertx,
+            Metrics metrics,
+            @Value("${http-client.max-pool-size}") int maxPoolSize,
+            @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs,
+            @Value("${http-client.circuit-breaker.opening-threshold}") int openingThreshold,
+            @Value("${http-client.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
+            @Value("${http-client.circuit-breaker.closing-interval-ms}") long closingIntervalMs) {
+
+        final HttpClient httpClient = createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs);
+        return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics, openingThreshold, openingIntervalMs,
+                closingIntervalMs);
+    }
+
+    private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs) {
+        final HttpClientOptions options = new HttpClientOptions()
+                .setMaxPoolSize(maxPoolSize)
+                .setConnectTimeout(connectTimeoutMs);
+        return new BasicHttpClient(vertx.createHttpClient(options));
     }
 
     @Bean
@@ -310,76 +345,12 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    CurrencyConversionService currencyConversionRates(
+    CurrencyConversionService currencyConversionService(
             @Value("${auction.currency-rates-refresh-period-ms}") long refreshPeriod,
             @Value("${auction.currency-rates-url}") String currencyServerUrl,
             Vertx vertx,
-            HttpClient httpClient,
-            ContextRunner contextRunner) {
+            HttpClient httpClient) {
 
-        final CurrencyConversionService service = new CurrencyConversionService(currencyServerUrl, refreshPeriod,
-                vertx, httpClient);
-
-        contextRunner.runOnServiceContext(future -> {
-            service.initialize();
-            future.complete();
-        });
-
-        return service;
-    }
-
-    /**
-     * {@link HttpClient} configured in its own configuration class to overcome deadlock that may happen due to lazy
-     * creation of {@link HttpClient} instances.
-     * <p>
-     * Since {@link HttpClient} bean is defined as scoped proxy its instances are created lazily on demand. This
-     * leads to a situation when other beans using {@link HttpClient} during initialization trigger creation of
-     * {@link HttpClient}s dependencies like {@link Metrics} causing deadlock on this resource:
-     * org.springframework.beans.factory.support.DefaultSingletonBeanRegistry#singletonObjects
-     * <p>
-     * Having {@link HttpClient}s dependencies declared as {@link Autowired} beans in this configuration is an
-     * attempt to ensure that they are constructed before {@link HttpClient} is used within other beans.
-     */
-    @Configuration
-    static class HttpClientConfiguration {
-
-        @Autowired
-        private Vertx vertx;
-
-        @Autowired
-        private Metrics metrics;
-
-        @Bean
-        @Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
-        @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "false",
-                matchIfMissing = true)
-        BasicHttpClient basicHttpClient(
-                @Value("${http-client.max-pool-size}") int maxPoolSize,
-                @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs) {
-
-            return createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs);
-        }
-
-        @Bean
-        @Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.INTERFACES)
-        @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "true")
-        CircuitBreakerSecuredHttpClient circuitBreakerSecuredHttpClient(
-                @Value("${http-client.max-pool-size}") int maxPoolSize,
-                @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs,
-                @Value("${http-client.circuit-breaker.opening-threshold}") int openingThreshold,
-                @Value("${http-client.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
-                @Value("${http-client.circuit-breaker.closing-interval-ms}") long closingIntervalMs) {
-
-            final HttpClient httpClient = createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs);
-            return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics, openingThreshold, openingIntervalMs,
-                    closingIntervalMs);
-        }
-
-        private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs) {
-            final HttpClientOptions options = new HttpClientOptions()
-                    .setMaxPoolSize(maxPoolSize)
-                    .setConnectTimeout(connectTimeoutMs);
-            return new BasicHttpClient(vertx.createHttpClient(options));
-        }
+        return new CurrencyConversionService(currencyServerUrl, refreshPeriod, vertx, httpClient);
     }
 }
