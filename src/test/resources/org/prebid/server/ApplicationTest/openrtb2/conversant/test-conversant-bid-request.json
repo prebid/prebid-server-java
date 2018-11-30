@@ -88,9 +88,6 @@
   },
   "ext": {
     "prebid": {
-      "aliases": {
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,

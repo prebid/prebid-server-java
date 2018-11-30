@@ -14,23 +14,8 @@
         "h": 600
       },
       "ext": {
-        "conversant": {
-          "site_id": "siteId"
-        }
-      }
-    },
-    {
-      "id": "impId41",
-      "video": {
-        "mimes": [
-          "mimes"
-        ],
-        "w": 300,
-        "h": 600
-      },
-      "ext": {
-        "conversant": {
-          "site_id": "siteId"
+        "conversantAlias": {
+          "site_id": "siteId2"
         }
       }
     }
@@ -58,6 +43,9 @@
   },
   "ext": {
     "prebid": {
+      "aliases": {
+        "conversantAlias": "conversant"
+      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
