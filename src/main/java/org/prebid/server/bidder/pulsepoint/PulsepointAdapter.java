@@ -165,15 +165,9 @@ public class PulsepointAdapter extends OpenrtbAdapter {
                                                       NormalizedPulsepointParams params) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
-        switch (mediaType) {
-            case video:
-                impBuilder.video(videoBuilder(adUnitBid).build());
-                break;
-            case banner:
-                impBuilder.banner(makeBanner(adUnitBid, params.getAdSizeWidth(), params.getAdSizeHeight()));
-                break;
-            default:
-                // unknown media type, just skip it
+        // if media type is not banner - just skip it
+        if (mediaType == MediaType.banner) {
+            impBuilder.banner(makeBanner(adUnitBid, params.getAdSizeWidth(), params.getAdSizeHeight()));
         }
         return impBuilder;
     }

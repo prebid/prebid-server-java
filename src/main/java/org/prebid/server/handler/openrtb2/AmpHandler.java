@@ -100,8 +100,6 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        final AmpEvent.AmpEventBuilder ampEventBuilder = AmpEvent.builder();
-
         // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
         // for bids. However, tmax may be defined in the Stored Request data.
         // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
@@ -109,14 +107,17 @@ public class AmpHandler implements Handler<RoutingContext> {
         final long startTime = clock.millis();
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
-
         metrics.updateSafariRequestsMetric(isSafari);
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
+        final AmpEvent.AmpEventBuilder ampEventBuilder = AmpEvent.builder()
+                .context(context)
+                .uidsCookie(uidsCookie);
+
         ampRequestFactory.fromRequest(context)
-                .map(bidRequest ->
-                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
+                .map(bidRequest -> addToEvent(bidRequest, ampEventBuilder::bidRequest, bidRequest))
+                .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
                 .compose(bidRequest ->
                         exchangeService.holdAuction(bidRequest, uidsCookie, timeout(bidRequest, startTime),
                                 METRICS_CONTEXT, context)

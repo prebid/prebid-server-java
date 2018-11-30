@@ -72,8 +72,6 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder();
-
         // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
         // for bids. However, tmax may be defined in the Stored Request data.
         // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
@@ -81,27 +79,30 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final long startTime = clock.millis();
 
         final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
-
         metrics.updateSafariRequestsMetric(isSafari);
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
+
+        final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
+                .context(context)
+                .uidsCookie(uidsCookie);
+
         auctionRequestFactory.fromRequest(context)
-                .map(bidRequest -> addToEvent(bidRequest, bidRequest, auctionEventBuilder::bidRequest))
-                .map(bidRequest ->
-                        updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
+                .map(bidRequest -> addToEvent(bidRequest, auctionEventBuilder::bidRequest, bidRequest))
+                .map(bidRequest -> updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest, uidsCookie, isSafari))
                 .map(bidRequest -> Tuple2.of(bidRequest, toMetricsContext(bidRequest)))
                 .compose((Tuple2<BidRequest, MetricsContext> result) ->
                         exchangeService.holdAuction(result.getLeft(), uidsCookie, timeout(result.getLeft(), startTime),
                                 result.getRight(), context)
                                 .map(bidResponse -> Tuple2.of(bidResponse, result.getRight())))
                 .map((Tuple2<BidResponse, MetricsContext> result) ->
-                        addToEvent(result, result.getLeft(), auctionEventBuilder::bidResponse))
+                        addToEvent(result.getLeft(), auctionEventBuilder::bidResponse, result))
                 .setHandler(responseResult -> handleResult(responseResult, auctionEventBuilder, context, startTime));
     }
 
-    private static <T, R> R addToEvent(R returnValue, T field, Consumer<T> consumer) {
+    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
         consumer.accept(field);
-        return returnValue;
+        return result;
     }
 
     private BidRequest updateAppAndNoCookieAndImpsRequestedMetrics(BidRequest bidRequest, UidsCookie uidsCookie,
