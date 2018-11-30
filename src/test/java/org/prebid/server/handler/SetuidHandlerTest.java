@@ -22,6 +22,7 @@ import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprResponse;
@@ -40,7 +41,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anySet;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class SetuidHandlerTest extends VertxTest {
 
@@ -141,10 +147,10 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithErrorIfGdprProcessingFails() {
+    public void shouldRespondWithBadRequestStatusIfGdprProcessingFailsWithInvalidRequestException() {
         // given
         given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
-                .willReturn(Future.failedFuture("gdpr exception"));
+                .willReturn(Future.failedFuture(new InvalidRequestException("gdpr exception")));
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
@@ -159,7 +165,30 @@ public class SetuidHandlerTest extends VertxTest {
         // then
         verify(routingContext, never()).addCookie(any());
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("gdpr exception"));
+        verify(httpResponse).end(eq("GDPR processing failed with error: gdpr exception"));
+        verifyNoMoreInteractions(httpResponse);
+    }
+
+    @Test
+    public void shouldRespondWithInternalServerErrorStatusIfGdprProcessingFailsWithUnexpectedException() {
+        // given
+        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
+                .willReturn(Future.failedFuture("unexpected error"));
+
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(routingContext, never()).addCookie(any());
+        verify(httpResponse).setStatusCode(eq(500));
+        verify(httpResponse).end(eq("Unexpected GDPR processing error"));
         verifyNoMoreInteractions(httpResponse);
     }
 
