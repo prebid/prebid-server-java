@@ -73,8 +73,11 @@ public class ConversantBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        final BidRequest outgoingRequest = createBidRequest(bidRequest, errors);
-        if (outgoingRequest == null) {
+        final BidRequest outgoingRequest;
+        try {
+            outgoingRequest = createBidRequest(bidRequest, errors);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
             return Result.of(Collections.emptyList(), errors);
         }
 
@@ -102,7 +105,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
             }
         }
         if (modifiedImps.isEmpty()) {
-            return null;
+            throw new PreBidException("No valid impressions");
         }
 
         return bidRequest.toBuilder()
@@ -175,8 +178,11 @@ public class ConversantBidder implements Bidder<BidRequest> {
     }
 
     private static Integer makePosition(Integer position, Integer videoPos) {
-        final Integer pos = videoPos != null && AD_POSITIONS.contains(videoPos) ? videoPos : null;
-        return position != null && AD_POSITIONS.contains(position) ? position : pos;
+        return isValidPosition(position) ? position : isValidPosition(videoPos) ? videoPos : null;
+    }
+
+    private static boolean isValidPosition(Integer position) {
+        return position != null && AD_POSITIONS.contains(position);
     }
 
     private static List<Integer> makeApi(List<Integer> extApi, List<Integer> videoApi) {
