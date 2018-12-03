@@ -2141,6 +2141,26 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
     }
 
+    @Test
+    public void validateShouldReturnValidationMessageWhenRequestHaveDuplicatedImpIds() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(asList(Imp.builder()
+                                .id("11")
+                                .build(),
+                        Imp.builder()
+                                .id("11")
+                                .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                "request.imp[0].id and request.imp[1].id are both \"11\". Imp IDs must be unique.");
+    }
+
     private static BidRequest.BidRequestBuilder validBidRequestBuilder() {
         return BidRequest.builder().id("1").tmax(300L)
                 .cur(singletonList("USD"))

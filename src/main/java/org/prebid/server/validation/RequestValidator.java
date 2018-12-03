@@ -53,6 +53,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -118,6 +119,23 @@ public class RequestValidator {
 
             if (CollectionUtils.isEmpty(bidRequest.getImp())) {
                 throw new ValidationException("request.imp must contain at least one element");
+            }
+
+            final List<Imp> imps = bidRequest.getImp();
+            final List<String> errors = new ArrayList<>();
+            final Map<String, Integer> uniqueImps = new HashMap<>();
+            for (int i = 0; i < imps.size(); i++) {
+                if (uniqueImps.get(imps.get(i).getId()) != null) {
+                    errors.add(String.format(
+                            "request.imp[%d].id and request.imp[%d].id are both \"%s\". Imp IDs must be unique.",
+                            uniqueImps.get(imps.get(i).getId()), i, imps.get(i).getId()));
+                }
+
+                uniqueImps.put(imps.get(i).getId(), i);
+            }
+
+            if (errors.size() > 0) {
+                throw new ValidationException(String.join(System.lineSeparator(), errors));
             }
 
             for (int index = 0; index < bidRequest.getImp().size(); index++) {
