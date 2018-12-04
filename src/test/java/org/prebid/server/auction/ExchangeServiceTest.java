@@ -1740,7 +1740,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
 
         // then
-        verify(bidResponsePostProcessor).postProcess(any(), same(bidRequest), same(uidsCookie), any());
+        verify(bidResponsePostProcessor).postProcess(any(), same(uidsCookie), same(bidRequest), any());
     }
 
     @Test
@@ -1812,7 +1812,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(extractedBid -> toExtPrebid(extractedBid.getExt()).getPrebid().getCache())
                 .extracting(ExtResponseCache::getBids, ExtResponseCache::getVastXml)
                 .containsExactly(tuple(CacheAsset.of(null, "cacheId"), null));
-
     }
 
     private BidRequest captureBidRequest() {
