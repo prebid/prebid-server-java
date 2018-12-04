@@ -220,6 +220,7 @@ public class PulsepointBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetSitePublisherIdFromLastImpExt() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().build())
                 .imp(asList(givenImp(identity()),
                         givenImp(impBuilder -> impBuilder
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
@@ -243,6 +244,7 @@ public class PulsepointBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetAppPublisherIdFromLastImpExt() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().build())
                 .imp(asList(givenImp(identity()),
                         givenImp(impBuilder -> impBuilder
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,

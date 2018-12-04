@@ -54,11 +54,6 @@
       "amp": 0
     }
   },
-  "app": {
-    "publisher": {
-      "id": "321"
-    }
-  },
   "device": {
     "ua": "userAgent",
     "dnt": 2,
