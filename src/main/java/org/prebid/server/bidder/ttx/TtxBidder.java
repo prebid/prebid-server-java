@@ -9,6 +9,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -18,8 +19,8 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.ttx.proto.ImpExtTtx;
 import org.prebid.server.bidder.ttx.proto.TtxImpExt;
+import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
@@ -59,7 +60,13 @@ public class TtxBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), errors);
         }
 
-        final String body = Json.encode(outgoingRequest);
+        String body;
+        try {
+            body = Json.encode(outgoingRequest);
+        } catch (EncodeException e) {
+            errors.add(BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
+            return Result.of(Collections.emptyList(), errors);
+        }
 
         return Result.of(Collections.singletonList(
                 HttpRequest.of(HttpMethod.POST, endpointUrl, body, BidderUtil.headers(), outgoingRequest)), errors);
@@ -74,7 +81,7 @@ public class TtxBidder implements Bidder<BidRequest> {
 
         final String zoneId = extImpTtx.getZoneId();
         final TtxImpExt ttxImpExt = TtxImpExt.of(
-                ImpExtTtx.of(extImpTtx.getProductId(), StringUtils.isNotBlank(zoneId) ? zoneId : null));
+                TtxImpExtTtx.of(extImpTtx.getProductId(), StringUtils.isNotBlank(zoneId) ? zoneId : null));
 
         final Imp modifiedFirstImp = firstImp.toBuilder().ext(Json.mapper.valueToTree(ttxImpExt)).build();
 
@@ -83,8 +90,9 @@ public class TtxBidder implements Bidder<BidRequest> {
             requestBuilder.imp(Collections.singletonList(modifiedFirstImp));
         } else {
             final List<Imp> subList = imps.subList(1, imps.size());
-            final ArrayList<Imp> modifiedImps = new ArrayList<>(subList);
-            modifiedImps.add(0, modifiedFirstImp);
+            final List<Imp> modifiedImps = new ArrayList<>(subList.size() + 1);
+            modifiedImps.add(modifiedFirstImp);
+            modifiedImps.addAll(subList);
             requestBuilder.imp(modifiedImps);
         }
 

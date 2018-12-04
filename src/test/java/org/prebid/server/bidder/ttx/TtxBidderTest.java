@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.ttx.proto.ImpExtTtx;
+import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
 import org.prebid.server.bidder.ttx.proto.TtxImpExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
@@ -127,7 +127,7 @@ public class TtxBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(
-                        mapper.valueToTree(TtxImpExt.of(ImpExtTtx.of("productId", "zoneId"))),
+                        mapper.valueToTree(TtxImpExt.of(TtxImpExtTtx.of("productId", "zoneId"))),
                         mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "3"))));
     }
 

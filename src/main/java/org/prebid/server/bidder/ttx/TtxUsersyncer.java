@@ -23,7 +23,8 @@ public class TtxUsersyncer implements Usersyncer {
      * Creates {@link UsersyncInfo} from usersyncUrl, externalUrl and partnerId
      */
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl, String partnerId) {
-        final String redirectUri = HttpUtil.encodeUrl(externalUrl) + "%2Fsetuid%3Fbidder%3Dttx%26uid%3D33XUSERID33X";
+        final String redirectUri = HttpUtil.encodeUrl(externalUrl)
+                + "%2Fsetuid%3Fbidder%3Dttx%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}%26uid%3D33XUSERID33X";
         final String syncerUrl = StringUtils.isBlank(partnerId)
                 ? "/"
                 : String.format("%s/?ri=%s&ru=%s", usersyncUrl, partnerId, redirectUri);

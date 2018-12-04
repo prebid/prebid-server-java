@@ -7,5 +7,5 @@ import lombok.Value;
 @Value
 public class TtxImpExt {
 
-    ImpExtTtx ttx;
+    TtxImpExtTtx ttx;
 }
