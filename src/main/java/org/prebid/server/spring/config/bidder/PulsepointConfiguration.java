@@ -5,7 +5,7 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderRequester;
 import org.prebid.server.bidder.HttpAdapterConnector;
-import org.prebid.server.bidder.HttpAdapterRequester;
+import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.pulsepoint.PulsepointAdapter;
@@ -77,7 +77,7 @@ public class PulsepointConfiguration extends BidderConfiguration {
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new PulsepointBidder();
+        return new PulsepointBidder(endpoint);
     }
 
     @Override
@@ -88,6 +88,6 @@ public class PulsepointConfiguration extends BidderConfiguration {
     @Override
     protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
                                                     Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
-        return new HttpAdapterRequester(BIDDER_NAME, adapter, usersyncer, httpAdapterConnector);
+        return new HttpBidderRequester<>(bidder, httpClient);
     }
 }
