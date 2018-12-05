@@ -27,6 +27,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.CacheResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -868,14 +869,11 @@ public class ExchangeService {
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, bids, winningBids, winningBidsByBidder);
-        final List<String> errors = new ArrayList<>();
-
-        long cacheStartTime = cacheInfo.doCaching ? clock.millis() : -1;
 
         return toBidsWithCacheIds(bids, bidRequest.getImp(), keywordsCreator, cacheInfo, publisherId,
-                timeout, errors)
-                .map(bidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        bidsWithCacheIds, winningBids, winningBidsByBidder, cacheInfo, errors, cacheStartTime));
+                timeout)
+                .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
+                        cacheResult, winningBids, winningBidsByBidder, cacheInfo));
     }
 
     /**
@@ -963,14 +961,16 @@ public class ExchangeService {
     /**
      * Corresponds cacheId (or null if not present) to each {@link Bid}.
      */
-    private Future<Map<Bid, CacheIdInfo>> toBidsWithCacheIds(
+    private Future<CacheResult> toBidsWithCacheIds(
             Set<Bid> bids, List<Imp> imps, TargetingKeywordsCreator keywordsCreator,
-            BidRequestCacheInfo cacheInfo, String publisherId, Timeout timeout, List<String> errors) {
-        final Future<Map<Bid, CacheIdInfo>> result;
+            BidRequestCacheInfo cacheInfo, String publisherId, Timeout timeout) {
+        final Future<CacheResult> result;
+        final List<String> errors = new ArrayList<>();
 
         if (!cacheInfo.doCaching) {
-            result = Future.succeededFuture(toMapBidsWithEmptyCacheIds(bids));
+            result = toMapBidsWithEmptyCacheIds(bids);
         } else {
+            long startTime = clock.millis();
             // do not submit bids with zero CPM to prebid cache
             final List<Bid> bidsWithNonZeroCpm = bids.stream()
                     .filter(bid -> keywordsCreator.isNonZeroCpm(bid.getPrice()))
@@ -980,14 +980,15 @@ public class ExchangeService {
                     cacheInfo.shouldCacheBids, cacheInfo.cacheBidsTtl, cacheInfo.shouldCacheVideoBids,
                     cacheInfo.cacheVideoBidsTtl), publisherId, timeout)
                     .recover(throwable -> logCacheErrorAndReturnEmptyList(throwable, errors))
-                    .map(bidToCacheId -> addNotCachedBids(bidToCacheId, bids));
+                    .map(bidToCacheId -> addNotCachedBids(bidToCacheId, bids))
+                    .map(bidToCacheId -> CacheResult.of(bidToCacheId, errors, responseTime(startTime)));
         }
 
         return result;
     }
 
     private Future<Map<Bid, CacheIdInfo>> logCacheErrorAndReturnEmptyList(Throwable throwable, List<String> errors) {
-        errors.add("Error occurred while trying to cache : " + throwable.getMessage());
+        errors.add("Error occurred while trying to cache bids. Message : " + throwable.getMessage());
 
         return Future.succeededFuture(Collections.emptyMap());
     }
@@ -1011,10 +1012,11 @@ public class ExchangeService {
     /**
      * Creates a map with {@link Bid} as a key and null as a value.
      */
-    private static Map<Bid, CacheIdInfo> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
+    private static Future<CacheResult> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
         final Map<Bid, CacheIdInfo> result = new HashMap<>(bids.size());
         bids.forEach(bid -> result.put(bid, CacheIdInfo.of(null, null)));
-        return result;
+
+        return Future.succeededFuture(CacheResult.of(result, Collections.emptyList(), -1));
     }
 
     /**
@@ -1023,17 +1025,17 @@ public class ExchangeService {
      */
     private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                    TargetingKeywordsCreator keywordsCreator,
-                                                   Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBids,
-                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
-                                                   List<String> errors, long cacheStartTime) {
+                                                   CacheResult cacheResult, Set<Bid> winningBids,
+                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
-                        toSeatBid(bidderResponse, keywordsCreator, bidsWithCacheIds, winningBids,
+                        toSeatBid(bidderResponse, keywordsCreator, cacheResult, winningBids,
                                 winningBidsByBidder, cacheInfo))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, errors, cacheStartTime);
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult.getErrors(),
+                cacheResult.getExecutionTime());
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -1050,7 +1052,7 @@ public class ExchangeService {
      * extension field populated.
      */
     private SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
-                              Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBid,
+                              CacheResult cacheResult, Set<Bid> winningBid,
                               Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
         final String bidder = bidderResponse.getBidder();
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
@@ -1061,7 +1063,7 @@ public class ExchangeService {
                 .group(0)
                 .bid(bidderSeatBid.getBids().stream()
                         .map(bidderBid ->
-                                toBid(bidderBid, bidder, keywordsCreator, bidsWithCacheIds, winningBid,
+                                toBid(bidderBid, bidder, keywordsCreator, cacheResult.getCacheBids(), winningBid,
                                         winningBidsByBidder, cacheInfo))
                         .collect(Collectors.toList()));
 
@@ -1118,7 +1120,7 @@ public class ExchangeService {
      * bidders
      */
     private ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
-                                            List<String> prebidErrors, long cacheStartTime) {
+                                            List<String> prebidErrors, int cacheExecutionTime) {
         final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream().collect(
                 Collectors.toMap(BidderResponse::getBidder, r -> ListUtils.emptyIfNull(r.getSeatBid().getHttpCalls())))
@@ -1137,8 +1139,8 @@ public class ExchangeService {
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
-        if (cacheStartTime != -1) {
-            responseTimeMillis.put(CACHE, responseTime(cacheStartTime));
+        if (cacheExecutionTime != -1) {
+            responseTimeMillis.put(CACHE, cacheExecutionTime);
         }
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);

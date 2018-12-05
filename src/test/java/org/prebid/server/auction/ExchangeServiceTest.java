@@ -1845,7 +1845,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).contains(entry("prebid",
                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
-                        "Error occurred while trying to cache : error"))));
+                        "Error occurred while trying to cache bids. Message : error"))));
     }
 
     @Test
@@ -1872,7 +1872,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
-        assertThat(ext.getResponsetimemillis()).contains(entry("cache", 0));
+        assertThat(ext.getResponsetimemillis()).containsKeys("cache");
     }
 
     private BidRequest captureBidRequest() {
