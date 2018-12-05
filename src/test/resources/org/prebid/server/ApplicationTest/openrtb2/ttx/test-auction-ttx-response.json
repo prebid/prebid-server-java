@@ -166,7 +166,8 @@
       "ttx": []
     },
     "responsetimemillis": {
-      "ttx": "{{ ttx.response_time_ms }}"
+      "ttx": "{{ ttx.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }
