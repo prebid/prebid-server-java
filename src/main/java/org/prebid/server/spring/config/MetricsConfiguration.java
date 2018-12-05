@@ -182,7 +182,7 @@ public class MetricsConfiguration {
         @Autowired
         private MetricRegistry metricRegistry;
 
-        @Value("${prometheus.port}")
+        @Value("${metrics.prometheus.port}")
         private int prometheusPort;
 
         @PostConstruct
