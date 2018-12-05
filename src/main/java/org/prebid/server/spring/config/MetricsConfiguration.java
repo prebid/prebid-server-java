@@ -7,7 +7,14 @@ import com.codahale.metrics.graphite.GraphiteReporter;
 import com.izettle.metrics.influxdb.InfluxDbHttpSender;
 import com.izettle.metrics.influxdb.InfluxDbReporter;
 import com.izettle.metrics.influxdb.InfluxDbSender;
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.dropwizard.DropwizardExports;
+import io.prometheus.client.vertx.MetricsHandler;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.Router;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.metric.AccountMetricsVerbosity;
@@ -15,6 +22,7 @@ import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.vertx.CloseableAdapter;
+import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -158,5 +166,37 @@ public class MetricsConfiguration {
         private AccountMetricsVerbosityLevel defaultVerbosity;
         private List<String> basicVerbosity = new ArrayList<>();
         private List<String> detailedVerbosity = new ArrayList<>();
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "metrics.prometheus", name = "port")
+    static class PrometheusServerConfiguration {
+        private static final Logger logger = LoggerFactory.getLogger(WebConfiguration.AdminServerConfiguration.class);
+
+        @Autowired
+        private ContextRunner contextRunner;
+
+        @Autowired
+        private Vertx vertx;
+
+        @Autowired
+        private MetricRegistry metricRegistry;
+
+        @Value("${prometheus.port}")
+        private int prometheusPort;
+
+        @PostConstruct
+        public void startPrometheusServer() {
+            logger.info("Starting Prometheus Server on port {0,number,#}", prometheusPort);
+            final Router router = Router.router(vertx);
+            router.route("/metrics").handler(new MetricsHandler());
+
+            CollectorRegistry.defaultRegistry.register(new DropwizardExports(metricRegistry));
+
+            contextRunner.<HttpServer>runOnServiceContext(future ->
+                    vertx.createHttpServer().requestHandler(router::accept).listen(prometheusPort, future));
+
+            logger.info("Successfully started Prometheus Server");
+        }
     }
 }
