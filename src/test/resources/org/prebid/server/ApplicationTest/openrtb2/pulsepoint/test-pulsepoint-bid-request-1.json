@@ -11,23 +11,53 @@
           }
         ],
         "w": 300,
-        "h": 250,
-        "topframe": 0
+        "h": 250
       },
-      "tagid": "456"
+      "tagid": "456",
+      "ext": {
+        "bidder": {
+          "cp": 123,
+          "ct": 456,
+          "cf": "300x250"
+        }
+      }
+    },
+    {
+      "id": "impId81",
+      "banner": {
+        "format": [
+          {
+            "w": 400,
+            "h": 200
+          }
+        ],
+        "w": 120,
+        "h": 180
+      },
+      "tagid": "654",
+      "ext": {
+        "bidder": {
+          "cp": 321,
+          "ct": 654,
+          "cf": "120x180"
+        }
+      }
     }
   ],
   "site": {
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "123"
+      "id": "321"
+    },
+    "ext": {
+      "amp": 0
     }
   },
   "device": {
-    "ua" : "userAgent",
+    "ua": "userAgent",
     "dnt": 2,
-    "ip" : "192.168.244.1",
+    "ip": "192.168.244.1",
     "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId"
@@ -43,8 +73,12 @@
       "consent": "consentValue"
     }
   },
+  "test": 1,
   "at": 1,
   "tmax": 1000,
+  "cur": [
+    "USD"
+  ],
   "source": {
     "fd": 1,
     "tid": "tid"
@@ -52,6 +86,43 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "aliases": {
+        "appnexusAlias": "appnexus",
+        "conversantAlias": "conversant"
+      },
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.811
+            }
+          }
+        },
+        "includewinners": true,
+        "includebidderkeys": true
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      }
     }
   }
 }

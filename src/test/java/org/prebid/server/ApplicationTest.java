@@ -57,7 +57,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static io.restassured.RestAssured.given;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -83,6 +83,7 @@ public class ApplicationTest extends VertxTest {
     private static final String ADFORM = "adform";
     private static final String BRIGHTROLL = "brightroll";
     private static final String SOVRN = "sovrn";
+    private static final String TTX = "ttx";
     private static final String OPENX = "openx";
     private static final String ADTELLIGENT = "adtelligent";
     private static final String EPLANNING = "eplanning";
@@ -95,8 +96,10 @@ public class ApplicationTest extends VertxTest {
     private static final int WIREMOCK_PORT = 8090;
     private static final int ADMIN_PORT = 8060;
 
+    @SuppressWarnings("unchecked")
     @ClassRule
-    public static final WireMockClassRule wireMockRule = new WireMockClassRule(wireMockConfig().port(WIREMOCK_PORT).extensions(CacheResponseTransformer.class));
+    public static final WireMockClassRule wireMockRule =
+            new WireMockClassRule(options().port(WIREMOCK_PORT).extensions(CacheResponseTransformer.class));
 
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
@@ -128,21 +131,13 @@ public class ApplicationTest extends VertxTest {
         // given
         // conversant bid response for imp 4
         wireMockRule.stubFor(post(urlPathEqualTo("/conversant-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-conversant-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/test-conversant-bid-response-1.json"))));
-
-        // conversant bid response for imp 4 with alias parameters
-        wireMockRule.stubFor(post(urlPathEqualTo("/conversant-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-conversant-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/test-conversant-bid-response-2.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-conversant-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/test-conversant-bid-response.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-cache-conversant-request.json"), true, false))
-                .willReturn(aResponse()
-                        .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName", "openrtb2/conversant/test-cache-matcher-conversant.json")
-                ));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/test-cache-conversant-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/test-cache-conversant-response.json"))));
 
         // when
         final Response response = given(spec)
@@ -158,6 +153,38 @@ public class ApplicationTest extends VertxTest {
         // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/conversant/test-auction-conversant-response.json",
+                response, singletonList(CONVERSANT));
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithBidsFromConversantAlias() throws IOException, JSONException {
+        // given
+        // conversant bid response for imp 4 with alias parameters
+        wireMockRule.stubFor(post(urlPathEqualTo("/conversant-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/alias/test-conversant-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/alias/test-conversant-bid-response.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/alias/test-cache-conversant-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/alias/test-cache-conversant-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"conversant":"CV-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImNvbnZlcnNhbnQiOiJDVi1VSUQifX0=")
+                .body(jsonFrom("openrtb2/conversant/alias/test-auction-conversant-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/conversant/alias/test-auction-conversant-response.json",
                 response, asList(CONVERSANT, CONVERSANT_ALIAS));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -245,6 +272,11 @@ public class ApplicationTest extends VertxTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/lifestreet/test-lifestreet-bid-response-2.json"))));
 
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/lifestreet/test-cache-lifestreet-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/lifestreet/test-cache-lifestreet-response.json"))));
+
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
@@ -306,11 +338,12 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/pubmatic/test-cache-pubmatic-request.json"), true, false))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/pubmatic/test-cache-pubmatic-request.json"), true,
+                        false))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName", "openrtb2/pubmatic/test-cache-matcher-pubmatic.json")
-                ));
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/pubmatic/test-cache-matcher-pubmatic.json")));
 
         // when
         final Response response = given(spec)
@@ -418,6 +451,38 @@ public class ApplicationTest extends VertxTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/sovrn/test-auction-sovrn-response.json",
                 response, singletonList(SOVRN));
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithBidsFrom33Across() throws IOException, JSONException {
+        // given
+        // 33Across bid response for imp 001
+        wireMockRule.stubFor(post(urlPathEqualTo("/ttx-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/ttx/test-ttx-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/ttx/test-ttx-bid-response-1.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/ttx/test-cache-ttx-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/ttx/test-cache-ttx-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"ttx":"TTX-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InR0eCI6IlRUWC1VSUQifX0=")
+                .body(jsonFrom("openrtb2/ttx/test-auction-ttx-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/ttx/test-auction-ttx-response.json",
+                response, singletonList(TTX));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
@@ -625,11 +690,12 @@ public class ApplicationTest extends VertxTest {
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json"), true, false))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-cache-somoaudience-request.json"),
+                        true, false))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName", "openrtb2/somoaudience/test-cache-matcher-somoaudience.json")
-                ));
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/somoaudience/test-cache-matcher-somoaudience.json")));
 
         // when
         final Response response = given(spec)
@@ -803,7 +869,8 @@ public class ApplicationTest extends VertxTest {
                         "openrtb2/rubicon_appnexus/test-cache-rubicon-appnexus-request.json"), true, false))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
-                        .withTransformerParameter("matcherName", "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")
+                        .withTransformerParameter("matcherName",
+                                "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")
                 ));
 
         // when
@@ -1532,8 +1599,9 @@ public class ApplicationTest extends VertxTest {
         List<CacheObject> responseCacheObjects = new ArrayList<>();
 
         try {
-            final BidCacheRequest cacheRequest = mapper.treeToValue(mapper.readTree(requestAsString), BidCacheRequest.class);
-            final JsonNode jsonNodeMatcher = mapper.readTree(ApplicationTest.class.getResourceAsStream(ApplicationTest.class.getSimpleName() + "/" + requestCacheIdMapFile));
+            final BidCacheRequest cacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
+            final JsonNode jsonNodeMatcher =
+                    mapper.readTree(ApplicationTest.class.getResourceAsStream(ApplicationTest.class.getSimpleName() + "/" + requestCacheIdMapFile));
             final List<PutObject> puts = cacheRequest.getPuts();
 
             for (PutObject putItem : puts) {
@@ -1606,10 +1674,14 @@ public class ApplicationTest extends VertxTest {
 
     public static class CacheResponseTransformer extends ResponseTransformer {
         @Override
-        public com.github.tomakehurst.wiremock.http.Response transform(Request request, com.github.tomakehurst.wiremock.http.Response response, FileSource files, Parameters parameters) {
+        public com.github.tomakehurst.wiremock.http.Response transform(
+                Request request, com.github.tomakehurst.wiremock.http.Response response, FileSource files,
+                Parameters parameters) {
+
             final String newResponse;
             try {
-                newResponse = cacheResponseFromRequestJson(request.getBodyAsString(), parameters.getString("matcherName"));
+                newResponse = cacheResponseFromRequestJson(request.getBodyAsString(),
+                        parameters.getString("matcherName"));
             } catch (IOException e) {
                 return com.github.tomakehurst.wiremock.http.Response.response().body(e.getMessage()).status(500).build();
             }

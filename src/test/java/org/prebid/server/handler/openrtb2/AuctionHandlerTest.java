@@ -39,7 +39,10 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -416,6 +419,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
+                .context(routingContext)
+                .uidsCookie(uidsCookie)
                 .status(400)
                 .errors(singletonList("Request is invalid"))
                 .build());
@@ -424,8 +429,9 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldPassInternalServerErrorEventToAnalyticsReporterIfAuctionFails() {
         // given
+        final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
         given(auctionRequestFactory.fromRequest(any()))
-                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
+                .willReturn(Future.succeededFuture(bidRequest));
 
         given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
                 .willThrow(new RuntimeException("Unexpected exception"));
@@ -436,7 +442,9 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .bidRequest(BidRequest.builder().imp(emptyList()).build())
+                .context(routingContext)
+                .uidsCookie(uidsCookie)
+                .bidRequest(bidRequest)
                 .status(500)
                 .errors(singletonList("Unexpected exception"))
                 .build());
@@ -445,8 +453,9 @@ public class AuctionHandlerTest extends VertxTest {
     @Test
     public void shouldPassSuccessfulEventToAnalyticsReporter() {
         // given
+        final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
         given(auctionRequestFactory.fromRequest(any()))
-                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
+                .willReturn(Future.succeededFuture(bidRequest));
 
         given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
@@ -457,7 +466,9 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .bidRequest(BidRequest.builder().imp(emptyList()).build())
+                .context(routingContext)
+                .uidsCookie(uidsCookie)
+                .bidRequest(bidRequest)
                 .bidResponse(BidResponse.builder().build())
                 .status(200)
                 .errors(emptyList())

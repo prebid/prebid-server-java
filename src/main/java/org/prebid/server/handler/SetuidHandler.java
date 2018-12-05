@@ -3,6 +3,8 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
@@ -10,6 +12,7 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.model.GdprPurpose;
@@ -23,6 +26,8 @@ import java.util.Objects;
 import java.util.Set;
 
 public class SetuidHandler implements Handler<RoutingContext> {
+
+    private static final Logger logger = LoggerFactory.getLogger(SetuidHandler.class);
 
     private static final Set<GdprPurpose> GDPR_PURPOSES =
             Collections.unmodifiableSet(EnumSet.of(GdprPurpose.informationStorageAndAccess));
@@ -90,8 +95,15 @@ public class SetuidHandler implements Handler<RoutingContext> {
             final String body;
 
             if (gdprProcessingFailed) {
-                status = HttpResponseStatus.BAD_REQUEST.code();
-                body = asyncResult.cause().getMessage();
+                final Throwable exception = asyncResult.cause();
+                if (exception instanceof InvalidRequestException) {
+                    status = HttpResponseStatus.BAD_REQUEST.code();
+                    body = String.format("GDPR processing failed with error: %s", exception.getMessage());
+                } else {
+                    status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+                    body = "Unexpected GDPR processing error";
+                    logger.warn(body, exception);
+                }
             } else {
                 status = HttpResponseStatus.OK.code();
                 body = "The gdpr_consent param prevents cookies from being saved";
