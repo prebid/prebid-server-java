@@ -75,8 +75,14 @@ public class PulsepointBidder implements Bidder<BidRequest> {
 
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         requestBuilder.imp(modifiedImps);
-        requestBuilder.site(modifySite(bidRequest.getSite(), publisherId));
-        requestBuilder.app(modifyApp(bidRequest.getApp(), publisherId));
+
+        final Site site = bidRequest.getSite();
+        final App app = bidRequest.getApp();
+        if (site != null) {
+            requestBuilder.site(modifySite(site, publisherId));
+        } else if (app != null) {
+            requestBuilder.app(modifyApp(app, publisherId));
+        }
 
         final BidRequest outgoingRequest = requestBuilder.build();
         final String body = Json.encode(outgoingRequest);
@@ -139,22 +145,18 @@ public class PulsepointBidder implements Bidder<BidRequest> {
     }
 
     private static Site modifySite(Site site, String publisherId) {
-        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
-        final Publisher modifiedPublisher = site == null || site.getPublisher() == null
-                ? Publisher.builder().id(publisherId).build()
-                : site.getPublisher().toBuilder().id(publisherId).build();
-        return siteBuilder
-                .publisher(modifiedPublisher)
+        return site.toBuilder()
+                .publisher(site.getPublisher() == null
+                        ? Publisher.builder().id(publisherId).build()
+                        : site.getPublisher().toBuilder().id(publisherId).build())
                 .build();
     }
 
     private static App modifyApp(App app, String publisherId) {
-        final App.AppBuilder appBuilder = app == null ? App.builder() : app.toBuilder();
-        final Publisher modifiedPublisher = app == null || app.getPublisher() == null
-                ? Publisher.builder().id(publisherId).build()
-                : app.getPublisher().toBuilder().id(publisherId).build();
-        return appBuilder
-                .publisher(modifiedPublisher)
+        return app.toBuilder()
+                .publisher(app.getPublisher() == null
+                        ? Publisher.builder().id(publisherId).build()
+                        : app.getPublisher().toBuilder().id(publisherId).build())
                 .build();
     }
 
