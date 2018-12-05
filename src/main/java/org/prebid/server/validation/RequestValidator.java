@@ -125,13 +125,14 @@ public class RequestValidator {
             final List<String> errors = new ArrayList<>();
             final Map<String, Integer> uniqueImps = new HashMap<>();
             for (int i = 0; i < imps.size(); i++) {
-                if (uniqueImps.get(imps.get(i).getId()) != null) {
+                String impId = imps.get(i).getId();
+                if (uniqueImps.get(impId) != null) {
                     errors.add(String.format(
                             "request.imp[%d].id and request.imp[%d].id are both \"%s\". Imp IDs must be unique.",
-                            uniqueImps.get(imps.get(i).getId()), i, imps.get(i).getId()));
+                            uniqueImps.get(impId), i, impId));
                 }
 
-                uniqueImps.put(imps.get(i).getId(), i);
+                uniqueImps.put(impId, i);
             }
 
             if (errors.size() > 0) {
