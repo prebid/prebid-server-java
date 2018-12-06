@@ -107,11 +107,12 @@ public class SettingsConfiguration {
 
         @Bean
         JDBCClient vertxJdbcClient(Vertx vertx, StoredRequestsDatabaseProperties storedRequestsDatabaseProperties) {
-            final String jdbcUrl = String.format("%s//%s:%d/%s?useSSL=false",
+            final String jdbcUrl = String.format("%s//%s:%d/%s?%s",
                     storedRequestsDatabaseProperties.getType().jdbcUrlPrefix,
                     storedRequestsDatabaseProperties.getHost(),
                     storedRequestsDatabaseProperties.getPort(),
-                    storedRequestsDatabaseProperties.getDbname());
+                    storedRequestsDatabaseProperties.getDbname(),
+                    storedRequestsDatabaseProperties.getType().jdbcUrlSuffix);
 
             return JDBCClient.createShared(vertx, new JsonObject()
                     .put("url", jdbcUrl)
@@ -150,11 +151,12 @@ public class SettingsConfiguration {
 
         @AllArgsConstructor
         private enum DbType {
-            postgres("jdbc:postgresql:", "org.postgresql.Driver"),
-            mysql("jdbc:mysql:", "com.mysql.cj.jdbc.Driver");
+            postgres("org.postgresql.Driver", "jdbc:postgresql:", "ssl=false&socketTimeout=1&tcpKeepAlive=true"),
+            mysql("com.mysql.cj.jdbc.Driver", "jdbc:mysql:", "useSSL=false&socketTimeout=1000&tcpKeepAlive=true");
 
-            private final String jdbcUrlPrefix;
             private final String jdbcDriver;
+            private final String jdbcUrlPrefix;
+            private final String jdbcUrlSuffix;
         }
     }
 
