@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -166,28 +167,27 @@ public class FacebookAdapter extends OpenrtbAdapter {
                                       PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
 
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
-                        .id(adUnitBid.getAdUnitCode())
-                        .instl(adUnitBid.getInstl())
-                        .secure(preBidRequestContext.getSecure())
-                        .tagid(adUnitBidWithParams.getParams().getPlacementId())
-                        .build())
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+        if (CollectionUtils.isEmpty(mediaTypes)) {
+            return Collections.emptyList();
+        }
+
+        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid)
+                .id(adUnitBid.getAdUnitCode())
+                .instl(adUnitBid.getInstl())
+                .secure(preBidRequestContext.getSecure())
+                .tagid(adUnitBidWithParams.getParams().getPlacementId())
+                .build())
                 .collect(Collectors.toList());
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid) {
+    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes, AdUnitBid adUnitBid) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
-
-        switch (mediaType) {
-            case video:
-                impBuilder.video(videoBuilder(adUnitBid).build());
-                break;
-            case banner:
-                impBuilder.banner(makeBanner(adUnitBid));
-                break;
-            default:
-                // unknown media type, just skip it
+        if (mediaTypes.contains(MediaType.video)) {
+            impBuilder.video(videoBuilder(adUnitBid).build());
+        }
+        if (mediaTypes.contains(MediaType.banner)) {
+            impBuilder.banner(makeBanner(adUnitBid));
         }
         return impBuilder;
     }

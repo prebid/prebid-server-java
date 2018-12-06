@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -152,21 +153,25 @@ public class PulsepointAdapter extends OpenrtbAdapter {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final NormalizedPulsepointParams params = adUnitBidWithParams.getParams();
 
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
-                        .id(adUnitBid.getAdUnitCode())
-                        .instl(adUnitBid.getInstl())
-                        .secure(preBidRequestContext.getSecure())
-                        .tagid(params.getTagId())
-                        .build());
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+        if (CollectionUtils.isEmpty(mediaTypes)) {
+            return Stream.empty();
+        }
+
+        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid, params)
+                .id(adUnitBid.getAdUnitCode())
+                .instl(adUnitBid.getInstl())
+                .secure(preBidRequestContext.getSecure())
+                .tagid(params.getTagId())
+                .build());
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
+    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaType, AdUnitBid adUnitBid,
                                                       NormalizedPulsepointParams params) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
         // if media type is not banner - just skip it
-        if (mediaType == MediaType.banner) {
+        if (mediaType.contains(MediaType.banner)) {
             impBuilder.banner(makeBanner(adUnitBid, params.getAdSizeWidth(), params.getAdSizeHeight()));
         }
         return impBuilder;

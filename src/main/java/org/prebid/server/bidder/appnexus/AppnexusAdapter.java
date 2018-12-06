@@ -152,29 +152,29 @@ public class AppnexusAdapter extends OpenrtbAdapter {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final AppnexusParams params = adUnitBidWithParams.getParams();
 
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
-                        .id(adUnitBid.getAdUnitCode())
-                        .instl(adUnitBid.getInstl())
-                        .secure(preBidRequestContext.getSecure())
-                        .tagid(StringUtils.stripToNull(params.getInvCode()))
-                        .bidfloor(bidfloor(params))
-                        .ext(Json.mapper.valueToTree(makeImpExt(params)))
-                        .build());
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+        if (CollectionUtils.isEmpty(mediaTypes)) {
+            return Stream.empty();
+        }
+
+        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid, params)
+                .id(adUnitBid.getAdUnitCode())
+                .instl(adUnitBid.getInstl())
+                .secure(preBidRequestContext.getSecure())
+                .tagid(StringUtils.stripToNull(params.getInvCode()))
+                .bidfloor(bidfloor(params))
+                .ext(Json.mapper.valueToTree(makeImpExt(params)))
+                .build());
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid, AppnexusParams params) {
+    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes,
+                                                      AdUnitBid adUnitBid, AppnexusParams params) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
-
-        switch (mediaType) {
-            case video:
-                impBuilder.video(videoBuilder(adUnitBid).build());
-                break;
-            case banner:
-                impBuilder.banner(makeBanner(adUnitBid, params.getPosition()));
-                break;
-            default:
-                // unknown media type, just skip it
+        if (mediaTypes.contains(MediaType.banner)) {
+            impBuilder.banner(makeBanner(adUnitBid, params.getPosition()));
+        }
+        if (mediaTypes.contains(MediaType.video)) {
+            impBuilder.video(videoBuilder(adUnitBid).build());
         }
         return impBuilder;
     }

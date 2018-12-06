@@ -177,15 +177,20 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static Stream<Imp> makeImps(AdUnitBid adUnitBid, RubiconParams rubiconParams,
                                         PreBidRequestContext preBidRequestContext) {
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
+
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .filter(mediaType -> isValidAdUnitBidMediaType(mediaType, adUnitBid))
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, rubiconParams))
-                .map(impBuilder -> impBuilder
-                        .id(adUnitBid.getAdUnitCode())
-                        .secure(preBidRequestContext.getSecure())
-                        .instl(adUnitBid.getInstl())
-                        .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)))
-                        .build());
+                .collect(Collectors.toSet());
+        if (CollectionUtils.isEmpty(mediaTypes)) {
+            return Stream.empty();
+        }
+
+        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid, rubiconParams)
+                .id(adUnitBid.getAdUnitCode())
+                .secure(preBidRequestContext.getSecure())
+                .instl(adUnitBid.getInstl())
+                .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)))
+                .build());
     }
 
     private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
@@ -200,18 +205,14 @@ public class RubiconAdapter extends OpenrtbAdapter {
         }
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
+    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes, AdUnitBid adUnitBid,
                                                       RubiconParams rubiconParams) {
         final Imp.ImpBuilder builder = Imp.builder();
-        switch (mediaType) {
-            case video:
-                builder.video(makeVideo(adUnitBid, rubiconParams.getVideo()));
-                break;
-            case banner:
-                builder.banner(makeBanner(adUnitBid));
-                break;
-            default:
-                // unknown media type, just skip it
+        if (mediaTypes.contains(MediaType.banner)) {
+            builder.banner(makeBanner(adUnitBid));
+        }
+        if (mediaTypes.contains(MediaType.video)) {
+            builder.video(makeVideo(adUnitBid, rubiconParams.getVideo()));
         }
         return builder;
     }

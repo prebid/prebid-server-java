@@ -147,21 +147,26 @@ public class IxAdapter extends OpenrtbAdapter {
 
     private static List<Imp> makeImps(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
         final String adUnitCode = adUnitBid.getAdUnitCode();
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
-                        .id(adUnitCode)
-                        .instl(adUnitBid.getInstl())
-                        .secure(preBidRequestContext.getSecure())
-                        .tagid(adUnitCode)
-                        .build())
+
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+        if (CollectionUtils.isEmpty(mediaTypes)) {
+            return Collections.emptyList();
+        }
+
+        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid)
+                .id(adUnitCode)
+                .instl(adUnitBid.getInstl())
+                .secure(preBidRequestContext.getSecure())
+                .tagid(adUnitCode)
+                .build())
                 .collect(Collectors.toList());
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid) {
+    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes, AdUnitBid adUnitBid) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
 
         // if media type is not banner - just skip it
-        if (mediaType == MediaType.banner) {
+        if (mediaTypes.contains(MediaType.banner)) {
             impBuilder.banner(bannerBuilder(adUnitBid).build());
         }
         return impBuilder;

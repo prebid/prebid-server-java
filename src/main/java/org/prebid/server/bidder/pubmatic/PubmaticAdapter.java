@@ -17,6 +17,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
@@ -286,29 +287,28 @@ public class PubmaticAdapter extends OpenrtbAdapter {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final NormalizedPubmaticParams params = adUnitBidWithParams.getParams();
 
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
-                        .id(adUnitBid.getAdUnitCode())
-                        .instl(adUnitBid.getInstl())
-                        .secure(preBidRequestContext.getSecure())
-                        .tagid(mediaType == MediaType.banner && params != null ? params.getTagId() : null)
-                        .ext(params != null ? params.getKeywords() : null)
-                        .build());
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+        if (CollectionUtils.isEmpty(mediaTypes)) {
+            return Stream.empty();
+        }
+
+        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid, params)
+                .id(adUnitBid.getAdUnitCode())
+                .instl(adUnitBid.getInstl())
+                .secure(preBidRequestContext.getSecure())
+                .tagid(mediaTypes.contains(MediaType.banner) && params != null ? params.getTagId() : null)
+                .ext(params != null ? params.getKeywords() : null)
+                .build());
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
+    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes, AdUnitBid adUnitBid,
                                                       NormalizedPubmaticParams params) {
         final Imp.ImpBuilder impBuilder = Imp.builder();
-
-        switch (mediaType) {
-            case video:
-                impBuilder.video(videoBuilder(adUnitBid).build());
-                break;
-            case banner:
-                impBuilder.banner(makeBanner(adUnitBid, params));
-                break;
-            default:
-                // unknown media type, just skip it
+        if (mediaTypes.contains(MediaType.banner)) {
+            impBuilder.banner(makeBanner(adUnitBid, params));
+        }
+        if (mediaTypes.contains(MediaType.video)) {
+            impBuilder.video(videoBuilder(adUnitBid).build());
         }
         return impBuilder;
     }
