@@ -3,6 +3,7 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.file.FileSystem;
+import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.prebid.server.json.ObjectMapperConfigurer;
 import org.prebid.server.vertx.ContextRunner;
@@ -18,8 +19,12 @@ public class VertxConfiguration {
     }
 
     @Bean
-    Vertx vertx(@Value("${vertx.worker-pool-size}") Integer workerPoolSize) {
-        return Vertx.vertx(new VertxOptions().setWorkerPoolSize(workerPoolSize));
+    Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize) {
+        return Vertx.vertx(new VertxOptions()
+                .setWorkerPoolSize(workerPoolSize)
+                .setMetricsOptions(new DropwizardMetricsOptions()
+                        .setEnabled(true)
+                        .setRegistryName(MetricsConfiguration.METRIC_REGISTRY_NAME)));
     }
 
     @Bean
