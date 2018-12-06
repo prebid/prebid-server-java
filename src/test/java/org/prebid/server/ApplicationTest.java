@@ -1715,6 +1715,14 @@ public class ApplicationTest extends VertxTest {
             expectedResponseJson = expectedResponseJson.replaceAll("\"\\{\\{ " + bidder + "\\.response_time_ms }}\"",
                     responseTime.toString());
         }
+
+        final Object cacheVal = response.path("ext.responsetimemillis.cache");
+        final Integer cacheResponseTime = val instanceof Integer ? (Integer) cacheVal : null;
+        if (cacheResponseTime != null) {
+            expectedResponseJson = expectedResponseJson.replaceAll("\"\\{\\{ cache\\.response_time_ms }}\"",
+                    cacheResponseTime.toString());
+        }
+
         return expectedResponseJson;
     }
 

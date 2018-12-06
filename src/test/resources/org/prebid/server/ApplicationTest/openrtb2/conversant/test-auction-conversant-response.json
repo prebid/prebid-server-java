@@ -228,7 +228,8 @@
       "conversant": []
     },
     "responsetimemillis": {
-      "conversant": "{{ conversant.response_time_ms }}"
+      "conversant": "{{ conversant.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }

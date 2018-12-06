@@ -171,7 +171,8 @@
       "beachfront": []
     },
     "responsetimemillis": {
-      "beachfront": "{{ beachfront.response_time_ms }}"
+      "beachfront": "{{ beachfront.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }

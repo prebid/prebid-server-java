@@ -545,7 +545,8 @@
     "responsetimemillis": {
       "appnexus": "{{ appnexus.response_time_ms }}",
       "appnexusAlias": "{{ appnexusAlias.response_time_ms }}",
-      "rubicon": "{{ rubicon.response_time_ms }}"
+      "rubicon": "{{ rubicon.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }

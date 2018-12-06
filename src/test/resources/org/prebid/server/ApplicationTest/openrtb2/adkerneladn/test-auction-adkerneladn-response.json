@@ -246,7 +246,8 @@
       "adkernelAdn": []
     },
     "responsetimemillis": {
-      "adkernelAdn": "{{ adkernelAdn.response_time_ms }}"
+      "adkernelAdn": "{{ adkernelAdn.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }

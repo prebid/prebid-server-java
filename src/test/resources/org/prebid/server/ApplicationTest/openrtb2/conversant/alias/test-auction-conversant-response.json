@@ -168,7 +168,8 @@
       "conversantAlias": []
     },
     "responsetimemillis": {
-      "conversantAlias": "{{ conversantAlias.response_time_ms }}"
+      "conversantAlias": "{{ conversantAlias.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }
