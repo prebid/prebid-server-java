@@ -19,6 +19,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
@@ -27,7 +28,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.CacheResult;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -968,7 +968,8 @@ public class ExchangeService {
         final List<String> errors = new ArrayList<>();
 
         if (!cacheInfo.doCaching) {
-            result = toMapBidsWithEmptyCacheIds(bids);
+            result = Future.succeededFuture(CacheResult.of(toMapBidsWithEmptyCacheIds(bids), Collections.emptyList(),
+                    null));
         } else {
             long startTime = clock.millis();
             // do not submit bids with zero CPM to prebid cache
@@ -979,7 +980,7 @@ public class ExchangeService {
             result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroCpm, imps, CacheContext.of(
                     cacheInfo.shouldCacheBids, cacheInfo.cacheBidsTtl, cacheInfo.shouldCacheVideoBids,
                     cacheInfo.cacheVideoBidsTtl), publisherId, timeout)
-                    .recover(throwable -> logCacheErrorAndReturnEmptyList(throwable, errors))
+                    .recover(throwable -> processCacheServiceError(throwable, errors))
                     .map(bidToCacheId -> addNotCachedBids(bidToCacheId, bids))
                     .map(bidToCacheId -> CacheResult.of(bidToCacheId, errors, responseTime(startTime)));
         }
@@ -987,7 +988,7 @@ public class ExchangeService {
         return result;
     }
 
-    private Future<Map<Bid, CacheIdInfo>> logCacheErrorAndReturnEmptyList(Throwable throwable, List<String> errors) {
+    private Future<Map<Bid, CacheIdInfo>> processCacheServiceError(Throwable throwable, List<String> errors) {
         errors.add("Error occurred while trying to cache bids. Message : " + throwable.getMessage());
 
         return Future.succeededFuture(Collections.emptyMap());
@@ -1012,11 +1013,11 @@ public class ExchangeService {
     /**
      * Creates a map with {@link Bid} as a key and null as a value.
      */
-    private static Future<CacheResult> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
+    private static Map<Bid, CacheIdInfo> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
         final Map<Bid, CacheIdInfo> result = new HashMap<>(bids.size());
         bids.forEach(bid -> result.put(bid, CacheIdInfo.of(null, null)));
 
-        return Future.succeededFuture(CacheResult.of(result, Collections.emptyList(), -1));
+        return result;
     }
 
     /**
@@ -1120,7 +1121,7 @@ public class ExchangeService {
      * bidders
      */
     private ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
-                                            List<String> prebidErrors, int cacheExecutionTime) {
+                                            List<String> cacheErrors, Integer cacheExecutionTime) {
         final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream().collect(
                 Collectors.toMap(BidderResponse::getBidder, r -> ListUtils.emptyIfNull(r.getSeatBid().getHttpCalls())))
@@ -1134,12 +1135,12 @@ public class ExchangeService {
 
         errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
 
-        errors.putAll(putPrebidErrors(prebidErrors));
+        errors.putAll(extractCacheErrors(cacheErrors));
 
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
 
-        if (cacheExecutionTime != -1) {
+        if (cacheExecutionTime != null) {
             responseTimeMillis.put(CACHE, cacheExecutionTime);
         }
 
@@ -1157,8 +1158,8 @@ public class ExchangeService {
                                 bidderCatalog.errorForDeprecatedName(bidder)))));
     }
 
-    private Map<String, List<ExtBidderError>> putPrebidErrors(List<String> errors) {
-        List<ExtBidderError> extBidderErrors = errors.stream()
+    private Map<String, List<ExtBidderError>> extractCacheErrors(List<String> cacheErrors) {
+        List<ExtBidderError> extBidderErrors = cacheErrors.stream()
                 .map(error -> ExtBidderError.of(BidderError.Type.generic.getCode(), error))
                 .collect(Collectors.toList());
 
@@ -1207,4 +1208,16 @@ public class ExchangeService {
                     .build();
         }
     }
+
+    @Value
+    @AllArgsConstructor(staticName = "of")
+    private static class CacheResult {
+
+        Map<Bid, CacheIdInfo> cacheBids;
+
+        List<String> errors;
+
+        Integer executionTime;
+    }
+
 }
