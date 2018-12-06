@@ -70,27 +70,28 @@ import static org.assertj.core.api.Assertions.within;
 @TestPropertySource(locations = "classpath:org/prebid/server/ApplicationTest/test-application.properties")
 public class ApplicationTest extends VertxTest {
 
-    private static final String RUBICON = "rubicon";
-    private static final String APPNEXUS = "appnexus";
-    private static final String FACEBOOK = "audienceNetwork";
+    private static final String ADFORM = "adform";
     private static final String ADKERNELADN = "adkernelAdn";
-    private static final String RHYTHMONE = "rhythmone";
-    private static final String PULSEPOINT = "pulsepoint";
+    private static final String ADTELLIGENT = "adtelligent";
+    private static final String APPNEXUS = "appnexus";
+    private static final String APPNEXUS_ALIAS = "appnexusAlias";
+    private static final String APPNEXUS_CONFIGURED_ALIAS = "districtm";
+    private static final String BEACHFRONT = "beachfront";
+    private static final String BRIGHTROLL = "brightroll";
+    private static final String CONVERSANT = "conversant";
+    private static final String CONVERSANT_ALIAS = "conversantAlias";
+    private static final String EPLANNING = "eplanning";
+    private static final String FACEBOOK = "audienceNetwork";
     private static final String IX = "ix";
     private static final String LIFESTREET = "lifestreet";
+    private static final String OPENX = "openx";
     private static final String PUBMATIC = "pubmatic";
-    private static final String CONVERSANT = "conversant";
-    private static final String ADFORM = "adform";
-    private static final String BRIGHTROLL = "brightroll";
+    private static final String PULSEPOINT = "pulsepoint";
+    private static final String RHYTHMONE = "rhythmone";
+    private static final String RUBICON = "rubicon";
+    private static final String SOMOAUDIENCE = "somoaudience";
     private static final String SOVRN = "sovrn";
     private static final String TTX = "ttx";
-    private static final String OPENX = "openx";
-    private static final String ADTELLIGENT = "adtelligent";
-    private static final String EPLANNING = "eplanning";
-    private static final String SOMOAUDIENCE = "somoaudience";
-    private static final String BEACHFRONT = "beachfront";
-    private static final String APPNEXUS_ALIAS = "appnexusAlias";
-    private static final String CONVERSANT_ALIAS = "conversantAlias";
 
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
@@ -164,12 +165,14 @@ public class ApplicationTest extends VertxTest {
         // conversant bid response for imp 4 with alias parameters
         wireMockRule.stubFor(post(urlPathEqualTo("/conversant-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/alias/test-conversant-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/alias/test-conversant-bid-response.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/conversant/alias/test-conversant-bid-response.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/conversant/alias/test-cache-conversant-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/conversant/alias/test-cache-conversant-response.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/conversant/alias/test-cache-conversant-response.json"))));
 
         // when
         final Response response = given(spec)
@@ -494,12 +497,14 @@ public class ApplicationTest extends VertxTest {
         wireMockRule.stubFor(post(urlPathEqualTo("/adtelligent-exchange"))
                 .withQueryParam("aid", equalTo("1000"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/adtelligent/test-adtelligent-bid-response-1.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adtelligent/test-cache-adtelligent-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adtelligent/test-cache-adtelligent-response.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/adtelligent/test-cache-adtelligent-response.json"))));
 
         // when
         final Response response = given(spec)
@@ -646,7 +651,7 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSomoaudience() throws IOException, JSONException {
         // given
-        // Somoaudience bid response for imp 16 & 17
+        // somoaudience bid response for imp 16 & 17
         wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId02"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -660,7 +665,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/somoaudience/test-somoaudience-bid-response-1.json"))));
 
-        // Somoaudience bid response for imp 18
+        // somoaudience bid response for imp 18
         wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId03"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -674,7 +679,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/somoaudience/test-somoaudience-bid-response-2.json"))));
 
-        // Somoaudience bid response for imp 19
+        // somoaudience bid response for imp 19
         wireMockRule.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
                 .withQueryParam("s", equalTo("placementId04"))
                 .withHeader("Accept", equalTo("application/json"))
@@ -708,7 +713,7 @@ public class ApplicationTest extends VertxTest {
                 .body(jsonFrom("openrtb2/somoaudience/test-auction-somoaudience-request.json"))
                 .post("/openrtb2/auction");
 
-        //then
+        // then
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/somoaudience/test-auction-somoaudience-response.json",
                 response, singletonList(SOMOAUDIENCE));
@@ -762,7 +767,8 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-response-1.json"))));
 
         // adkernelAdn bid response for imp 022
         wireMockRule.stubFor(post(urlPathEqualTo("/adkernelAdn-exchange"))
@@ -771,12 +777,14 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("x-openrtb-version", equalTo("2.5"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-response-2.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-response-2.json"))));
 
         // pre-bid cache
         wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adkerneladn/test-cache-adkerneladn-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adkerneladn/test-cache-adkerneladn-response.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/adkerneladn/test-cache-adkerneladn-response.json"))));
 
         // when
         final Response response = given(spec)
@@ -944,7 +952,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("auction/facebook/test-facebook-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/facebook/test-cache-facebook-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/facebook/test-cache-facebook-response.json"))));
 
@@ -982,7 +990,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("auction/pulsepoint/test-pulsepoint-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/pulsepoint/test-cache-pulsepoint-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/pulsepoint/test-cache-pulsepoint-response.json"))));
 
@@ -1014,13 +1022,13 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void auctionShouldRespondWithBidsFromIx() throws IOException {
         // given
-        // pulsepoint bid response for ad unit 7
+        // ix bid response for ad unit 7
         wireMockRule.stubFor(post(urlPathEqualTo("/ix-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/ix/test-ix-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/ix/test-ix-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/ix/test-cache-ix-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/ix/test-cache-ix-response.json"))));
 
@@ -1052,13 +1060,13 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void auctionShouldRespondWithBidsFromLifestreet() throws IOException {
         // given
-        // pulsepoint bid response for ad unit 8
+        // lifestreet bid response for ad unit 8
         wireMockRule.stubFor(post(urlPathEqualTo("/lifestreet-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/lifestreet/test-lifestreet-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/lifestreet/test-lifestreet-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/lifestreet/test-cache-lifestreet-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/lifestreet/test-cache-lifestreet-response.json"))));
 
@@ -1090,13 +1098,13 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void auctionShouldRespondWithBidsFromPubmatic() throws IOException {
         // given
-        // pulsepoint bid response for ad unit 9
+        // pubmatic bid response for ad unit 9
         wireMockRule.stubFor(post(urlPathEqualTo("/pubmatic-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/pubmatic/test-pubmatic-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/pubmatic/test-pubmatic-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/pubmatic/test-cache-pubmatic-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/pubmatic/test-cache-pubmatic-response.json"))));
 
@@ -1128,13 +1136,13 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void auctionShouldRespondWithBidsFromConversant() throws IOException {
         // given
-        // pulsepoint bid response for ad unit 10
+        // conversant bid response for ad unit 10
         wireMockRule.stubFor(post(urlPathEqualTo("/conversant-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/conversant/test-conversant-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/conversant/test-conversant-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/conversant/test-cache-conversant-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/conversant/test-cache-conversant-response.json"))));
 
@@ -1164,6 +1172,44 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
+    public void auctionShouldRespondWithBidsFromAppnexusAlias() throws IOException {
+        // given
+        // appnexus bid response for ad unit 4
+        wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("auction/districtm/test-districtm-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/districtm/test-districtm-bid-response-1.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("auction/districtm/test-cache-districtm-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("auction/districtm/test-cache-districtm-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"adnxs":"12345"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImFkbnhzIjoiMTIzNDUifX0=")
+                .queryParam("debug", "1")
+                .body(jsonFrom("auction/districtm/test-auction-districtm-request.json"))
+                .post("/auction");
+
+        // then
+        assertThat(response.header("Cache-Control")).isEqualTo("no-cache, no-store, must-revalidate");
+        assertThat(response.header("Pragma")).isEqualTo("no-cache");
+        assertThat(response.header("Expires")).isEqualTo("0");
+        assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
+        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://www.example.com");
+
+        final String expectedAuctionResponse = legacyAuctionResponseFrom(
+                "auction/districtm/test-auction-districtm-response.json",
+                response, asList(APPNEXUS, APPNEXUS_CONFIGURED_ALIAS));
+        assertThat(response.asString()).isEqualTo(expectedAuctionResponse);
+    }
+
+    @Test
     public void auctionShouldRespondWithBidsFromSovrn() throws IOException {
         // given
         // sovrn bid response for ad unit 11
@@ -1179,7 +1225,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("auction/sovrn/test-sovrn-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/sovrn/test-cache-sovrn-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/sovrn/test-cache-sovrn-response.json"))));
 
@@ -1236,7 +1282,7 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("auction/adform/test-adform-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom("auction/adform/test-cache-adform-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("auction/adform/test-cache-adform-response.json"))));
 
@@ -1276,26 +1322,29 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("prebid-server/1.0"))
                 .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
 
         // rubicon bid response for ad unit 2
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
 
         // rubicon bid response for ad unit 3
         wireMockRule.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-request-3.json")))
-                .willReturn(aResponse().withBody(jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-3.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("auction/rubicon_appnexus/test-rubicon-bid-response-3.json"))));
 
         // appnexus bid response for ad unit 4
         wireMockRule.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("auction/rubicon_appnexus/test-appnexus-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom(
-                        "auction/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("auction/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
 
         // pre-bid cache
-        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))//
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToJson(jsonFrom(
                         "auction/rubicon_appnexus/test-cache-rubicon-appnexus-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
@@ -1601,7 +1650,8 @@ public class ApplicationTest extends VertxTest {
         try {
             final BidCacheRequest cacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
             final JsonNode jsonNodeMatcher =
-                    mapper.readTree(ApplicationTest.class.getResourceAsStream(ApplicationTest.class.getSimpleName() + "/" + requestCacheIdMapFile));
+                    mapper.readTree(ApplicationTest.class.getResourceAsStream(
+                            ApplicationTest.class.getSimpleName() + "/" + requestCacheIdMapFile));
             final List<PutObject> puts = cacheRequest.getPuts();
 
             for (PutObject putItem : puts) {
@@ -1683,7 +1733,10 @@ public class ApplicationTest extends VertxTest {
                 newResponse = cacheResponseFromRequestJson(request.getBodyAsString(),
                         parameters.getString("matcherName"));
             } catch (IOException e) {
-                return com.github.tomakehurst.wiremock.http.Response.response().body(e.getMessage()).status(500).build();
+                return com.github.tomakehurst.wiremock.http.Response.response()
+                        .body(e.getMessage())
+                        .status(500)
+                        .build();
             }
             return com.github.tomakehurst.wiremock.http.Response.response().body(newResponse).status(200).build();
         }

@@ -17,12 +17,12 @@ public interface BidResponsePostProcessor {
      * This method is called when auction is finished.
      *
      * @param context     represents initial web request
-     * @param bidRequest  original auction request
      * @param uidsCookie  auction request {@link Uids} container
+     * @param bidRequest  original auction request
      * @param bidResponse auction result
      * @return a {@link Future} with (possibly modified) auction result
      */
-    Future<BidResponse> postProcess(RoutingContext context, BidRequest bidRequest, UidsCookie uidsCookie,
+    Future<BidResponse> postProcess(RoutingContext context, UidsCookie uidsCookie, BidRequest bidRequest,
                                     BidResponse bidResponse);
 
     /**
@@ -37,7 +37,7 @@ public interface BidResponsePostProcessor {
      */
     class NoOpBidResponsePostProcessor implements BidResponsePostProcessor {
         @Override
-        public Future<BidResponse> postProcess(RoutingContext context, BidRequest bidRequest, UidsCookie uidsCookie,
+        public Future<BidResponse> postProcess(RoutingContext context, UidsCookie uidsCookie, BidRequest bidRequest,
                                                BidResponse bidResponse) {
             return Future.succeededFuture(bidResponse);
         }

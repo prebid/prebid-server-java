@@ -162,7 +162,7 @@ public class ExchangeService {
                 .compose(result ->
                         toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, publisherId, timeout))
                 .compose(bidResponse ->
-                        bidResponsePostProcessor.postProcess(context, bidRequest, uidsCookie, bidResponse));
+                        bidResponsePostProcessor.postProcess(context, uidsCookie, bidRequest, bidResponse));
     }
 
     /**
@@ -270,7 +270,7 @@ public class ExchangeService {
                 ? removeBuyersidsFromUserExtPrebid(extUser) : null;
         final ExtRegs extRegs = extRegs(bidRequest.getRegs());
 
-        // Splits the input request into requests which are sanitized for each bidder. Intended behavior is:
+        // splits the input request into requests which are sanitized for each bidder. Intended behavior is:
         // - bidrequest.imp[].ext will only contain the "prebid" field and a "bidder" field which has the params for
         // the intended Bidder.
         // - bidrequest.user.buyeruid will be set to that Bidder's ID.
@@ -278,6 +278,13 @@ public class ExchangeService {
         return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
                 .map(gdprResponse -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
                         userExtNode, extRegs, aliases, imps, gdprResponse.getVendorsToGdpr()));
+    }
+
+    /**
+     * Checks if bidder name is valid in case when bidder can also be alias name.
+     */
+    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
+        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
     }
 
     /**
@@ -539,13 +546,6 @@ public class ExchangeService {
     }
 
     /**
-     * Checks if bidder name is valid in case when bidder can also be alias name.
-     */
-    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
-        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
-    }
-
-    /**
      * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
      */
     private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
@@ -736,8 +736,7 @@ public class ExchangeService {
      * Performs changes on {@link Bid}s price depends on different between adServerCurrency and bidCurrency,
      * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
      * <p>
-     * This method should always be invoked after
-     * {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List<String>)}
+     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List)}
      * to make sure {@link Bid#price} is not empty.
      */
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
@@ -796,8 +795,8 @@ public class ExchangeService {
     /**
      * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
      * 'prices' metrics for each {@link BidderResponse}
-     * This method should always be invoked after
-     * {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List<String>)}
+     * <p>
+     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List)}
      * to make sure {@link Bid#price} is not empty.
      */
     private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
