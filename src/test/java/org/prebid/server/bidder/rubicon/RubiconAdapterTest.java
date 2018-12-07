@@ -241,7 +241,7 @@ public class RubiconAdapterTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("Invalid ad unit/imp");
+                .hasMessage("No valid media types");
     }
 
     @Test

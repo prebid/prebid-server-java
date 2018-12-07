@@ -179,15 +179,18 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
     private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams,
                                PreBidRequestContext preBidRequestContext) {
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
+                .filter(mediaType -> isValidAdUnitBidMediaType(mediaType, adUnitBid))
+                .collect(Collectors.toSet());
+        if (mediaTypes.isEmpty()) {
+            throw new PreBidException("No valid media types");
+        }
+
         final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id(adUnitBid.getAdUnitCode())
                 .secure(preBidRequestContext.getSecure())
                 .instl(adUnitBid.getInstl())
                 .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)));
-
-        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .filter(mediaType -> isValidAdUnitBidMediaType(mediaType, adUnitBid))
-                .collect(Collectors.toSet());
 
         if (mediaTypes.contains(MediaType.banner)) {
             impBuilder.banner(makeBanner(adUnitBid));

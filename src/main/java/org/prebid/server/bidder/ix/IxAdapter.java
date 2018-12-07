@@ -104,7 +104,6 @@ public class IxAdapter extends OpenrtbAdapter {
                 .collect(Collectors.toList());
     }
 
-
     private static IxParams parseAndValidateParams(AdUnitBid adUnitBid) {
         final ObjectNode paramsNode = adUnitBid.getParams();
         if (paramsNode == null) {
