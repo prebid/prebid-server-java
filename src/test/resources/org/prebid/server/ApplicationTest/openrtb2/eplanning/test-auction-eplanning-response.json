@@ -167,7 +167,8 @@
       "eplanning": []
     },
     "responsetimemillis": {
-      "eplanning": "{{ eplanning.response_time_ms }}"
+      "eplanning": "{{ eplanning.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }

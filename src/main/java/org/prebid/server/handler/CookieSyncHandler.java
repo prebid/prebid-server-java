@@ -129,6 +129,33 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     /**
+     * Fetches GDPR Vendor IDs for given bidders.
+     */
+    private Set<Integer> gdprVendorIdsFor(Collection<String> bidders) {
+        return bidders.stream()
+                .map(this::gdprVendorIdFor)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Fetches GDPR Vendor ID for given bidder.
+     */
+    private Integer gdprVendorIdFor(String bidder) {
+        final String resolvedBidder = bidderNameFor(bidder);
+        return bidderCatalog.isActive(resolvedBidder)
+                ? bidderCatalog.metaInfoByName(resolvedBidder).info().getGdpr().getVendorId()
+                : null;
+    }
+
+    /**
+     * Determines original bidder's name.
+     */
+    private String bidderNameFor(String bidder) {
+        return bidderCatalog.isAlias(bidder) ? bidderCatalog.nameByAlias(bidder) : bidder;
+    }
+
+    /**
      * Handles GDPR verification result.
      */
     private void handleResult(AsyncResult<GdprResponse> asyncResult, RoutingContext context, UidsCookie uidsCookie,
@@ -157,31 +184,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     /**
-     * Fetches GDPR Vendor IDs for given bidders.
-     */
-    private Set<Integer> gdprVendorIdsFor(Collection<String> bidders) {
-        return bidders.stream()
-                .map(this::gdprVendorIdFor)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-    }
-
-    /**
-     * Fetches GDPR Vendor ID for given bidder.
-     */
-    private Integer gdprVendorIdFor(String bidder) {
-        return bidderCatalog.isActive(bidder)
-                ? bidderCatalog.metaInfoByName(bidder).info().getGdpr().getVendorId()
-                : null;
-    }
-
-    /**
      * Make HTTP response for given bidders.
      */
     private void respondWith(RoutingContext context, UidsCookie uidsCookie, String gdpr, String gdprConsent,
                              Collection<String> bidders, Collection<String> biddersRejectedByGdpr) {
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
-                .map(bidderName -> bidderStatusFor(bidderName, uidsCookie, biddersRejectedByGdpr, gdpr, gdprConsent))
+                .map(bidder -> bidderStatusFor(bidder, uidsCookie, biddersRejectedByGdpr, gdpr, gdprConsent))
                 .filter(Objects::nonNull) // skip bidder with live Uid
                 .collect(Collectors.toList());
 
@@ -201,29 +209,30 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     /**
      * Creates {@link BidderUsersyncStatus} for given bidder.
      */
-    private BidderUsersyncStatus bidderStatusFor(String bidderName, UidsCookie uidsCookie,
+    private BidderUsersyncStatus bidderStatusFor(String bidder, UidsCookie uidsCookie,
                                                  Collection<String> biddersRejectedByGdpr, String gdpr,
                                                  String gdprConsent) {
         final BidderUsersyncStatus result;
+        final boolean isNotAlias = !bidderCatalog.isAlias(bidder);
 
-        if (!bidderCatalog.isValidName(bidderName)) {
-            result = bidderStatusBuilder(bidderName)
+        if (isNotAlias && !bidderCatalog.isValidName(bidder)) {
+            result = bidderStatusBuilder(bidder)
                     .error("Unsupported bidder")
                     .build();
-        } else if (!bidderCatalog.isActive(bidderName)) {
-            result = bidderStatusBuilder(bidderName)
+        } else if (isNotAlias && !bidderCatalog.isActive(bidder)) {
+            result = bidderStatusBuilder(bidder)
                     .error(String.format("%s is not configured properly on this Prebid Server deploy. "
                             + "If you believe this should work, contact the company hosting the service "
-                            + "and tell them to check their configuration.", bidderName))
+                            + "and tell them to check their configuration.", bidder))
                     .build();
-        } else if (biddersRejectedByGdpr.contains(bidderName)) {
-            result = bidderStatusBuilder(bidderName)
+        } else if (isNotAlias && biddersRejectedByGdpr.contains(bidder)) {
+            result = bidderStatusBuilder(bidder)
                     .error("Rejected by GDPR")
                     .build();
         } else {
-            final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderName);
+            final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
             if (!uidsCookie.hasLiveUidFrom(usersyncer.cookieFamilyName())) {
-                result = bidderStatusBuilder(bidderName)
+                result = bidderStatusBuilder(bidder)
                         .noCookie(true)
                         .usersync(usersyncer.usersyncInfo().withGdpr(gdpr, gdprConsent))
                         .build();
@@ -235,7 +244,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private static BidderUsersyncStatus.BidderUsersyncStatusBuilder bidderStatusBuilder(String bidderName) {
-        return BidderUsersyncStatus.builder().bidder(bidderName);
+    private static BidderUsersyncStatus.BidderUsersyncStatusBuilder bidderStatusBuilder(String bidder) {
+        return BidderUsersyncStatus.builder().bidder(bidder);
     }
 }

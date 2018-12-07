@@ -18,8 +18,11 @@ import org.prebid.server.auction.model.AdapterResponse;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
+import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
+import org.prebid.server.bidder.MetaInfo;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
 import org.prebid.server.exception.InvalidRequestException;
@@ -117,7 +120,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .map(this::updateAccountRequestAndRequestTimeMetric)
 
                 .compose((Tuple2<PreBidRequestContext, Account> result) ->
-                        CompositeFuture.join(submitRequestsToAdapters(result.getLeft()))
+                        CompositeFuture.join(submitRequestsToExchanges(result.getLeft()))
                                 .map(bidderResults -> Tuple3.of(result.getLeft(), result.getRight(),
                                         bidderResults.<AdapterResponse>list())))
 
@@ -175,20 +178,40 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return Future.failedFuture(new PreBidException(message, exception));
     }
 
-    private List<Future> submitRequestsToAdapters(PreBidRequestContext preBidRequestContext) {
+    private List<Future> submitRequestsToExchanges(PreBidRequestContext preBidRequestContext) {
         return preBidRequestContext.getAdapterRequests().stream()
-                .filter(ar -> bidderCatalog.isValidAdapterName(ar.getBidderCode()))
-                .map(ar -> httpAdapterConnector.call(bidderCatalog.adapterByName(ar.getBidderCode()),
-                        bidderCatalog.usersyncerByName(ar.getBidderCode()), ar, preBidRequestContext))
+                .filter(ar -> isValidAdapterName(ar.getBidderCode()))
+                .map(ar -> httpAdapterConnector.call(adapterByName(ar.getBidderCode()),
+                        usersyncerByName(ar.getBidderCode()), ar, preBidRequestContext))
                 .collect(Collectors.toList());
+    }
+
+    private String adapterNameFor(String name) {
+        return bidderCatalog.isAlias(name) ? bidderCatalog.nameByAlias(name) : name;
+    }
+
+    private boolean isValidAdapterName(String name) {
+        return bidderCatalog.isValidAdapterName(adapterNameFor(name));
+    }
+
+    private Adapter<?, ?> adapterByName(String name) {
+        return bidderCatalog.adapterByName(adapterNameFor(name));
+    }
+
+    private Usersyncer usersyncerByName(String name) {
+        return bidderCatalog.usersyncerByName(adapterNameFor(name));
+    }
+
+    private MetaInfo metaInfoByName(String name) {
+        return bidderCatalog.metaInfoByName(adapterNameFor(name));
     }
 
     private Future<Map<Integer, Boolean>> resolveVendorsToGdpr(PreBidRequestContext preBidRequestContext,
                                                                List<AdapterResponse> adapterResponses) {
         final Set<Integer> vendorIds = adapterResponses.stream()
                 .map(adapterResponse -> adapterResponse.getBidderStatus().getBidder())
-                .filter(bidderCatalog::isActive)
-                .map(bidder -> bidderCatalog.metaInfoByName(bidder).info().getGdpr().getVendorId())
+                .filter(this::isValidAdapterName)
+                .map(bidder -> metaInfoByName(bidder).info().getGdpr().getVendorId())
                 .collect(Collectors.toSet());
 
         final boolean hostVendorIdIsMissing = gdprHostVendorId != null && !vendorIds.contains(gdprHostVendorId);
@@ -250,7 +273,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private BidderStatus updateBidderStatus(BidderStatus bidderStatus, Map<Integer, Boolean> vendorsToGdpr) {
-        final int vendorId = bidderCatalog.metaInfoByName(bidderStatus.getBidder()).info().getGdpr().getVendorId();
+        final int vendorId = metaInfoByName(bidderStatus.getBidder()).info().getGdpr().getVendorId();
         return Objects.equals(vendorsToGdpr.get(vendorId), true)
                 ? bidderStatus
                 : bidderStatus.toBuilder().usersync(null).build();
@@ -283,8 +306,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
     private Stream<BidderStatus> invalidBidderStatuses(PreBidRequestContext preBidRequestContext) {
         return preBidRequestContext.getAdapterRequests().stream()
-                .filter(b -> !bidderCatalog.isValidName(b.getBidderCode()))
-                .map(b -> BidderStatus.builder().bidder(b.getBidderCode()).error("Unsupported bidder").build());
+                .filter(ar -> !bidderCatalog.isValidName(adapterNameFor(ar.getBidderCode())))
+                .map(ar -> BidderStatus.builder().bidder(ar.getBidderCode()).error("Unsupported bidder").build());
     }
 
     private void updateBidResultMetrics(AdapterResponse adapterResponse, PreBidRequestContext preBidRequestContext) {

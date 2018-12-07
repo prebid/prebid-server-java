@@ -267,7 +267,8 @@
       "pubmatic": []
     },
     "responsetimemillis": {
-      "pubmatic": "{{ pubmatic.response_time_ms }}"
+      "pubmatic": "{{ pubmatic.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
     }
   }
 }

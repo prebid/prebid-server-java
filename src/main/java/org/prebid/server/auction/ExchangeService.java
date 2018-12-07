@@ -19,6 +19,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
@@ -89,6 +90,7 @@ import java.util.stream.StreamSupport;
 public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
+    private static final String CACHE = "cache";
     private static final String DEFAULT_CURRENCY = "USD";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
     private static final DecimalFormat ROUND_TWO_DECIMALS =
@@ -162,7 +164,7 @@ public class ExchangeService {
                 .compose(result ->
                         toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, publisherId, timeout))
                 .compose(bidResponse ->
-                        bidResponsePostProcessor.postProcess(context, bidRequest, uidsCookie, bidResponse));
+                        bidResponsePostProcessor.postProcess(context, uidsCookie, bidRequest, bidResponse));
     }
 
     /**
@@ -270,7 +272,7 @@ public class ExchangeService {
                 ? removeBuyersidsFromUserExtPrebid(extUser) : null;
         final ExtRegs extRegs = extRegs(bidRequest.getRegs());
 
-        // Splits the input request into requests which are sanitized for each bidder. Intended behavior is:
+        // splits the input request into requests which are sanitized for each bidder. Intended behavior is:
         // - bidrequest.imp[].ext will only contain the "prebid" field and a "bidder" field which has the params for
         // the intended Bidder.
         // - bidrequest.user.buyeruid will be set to that Bidder's ID.
@@ -278,6 +280,13 @@ public class ExchangeService {
         return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
                 .map(gdprResponse -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
                         userExtNode, extRegs, aliases, imps, gdprResponse.getVendorsToGdpr()));
+    }
+
+    /**
+     * Checks if bidder name is valid in case when bidder can also be alias name.
+     */
+    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
+        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
     }
 
     /**
@@ -539,13 +548,6 @@ public class ExchangeService {
     }
 
     /**
-     * Checks if bidder name is valid in case when bidder can also be alias name.
-     */
-    private boolean isValidBidder(String bidder, Map<String, String> aliases) {
-        return bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder);
-    }
-
-    /**
      * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link BidderRequest}
      */
     private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests, UidsCookie uidsCookie,
@@ -736,8 +738,7 @@ public class ExchangeService {
      * Performs changes on {@link Bid}s price depends on different between adServerCurrency and bidCurrency,
      * and adjustment factor. Will drop bid if currency conversion is needed but not possible.
      * <p>
-     * This method should always be invoked after
-     * {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List<String>)}
+     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List)}
      * to make sure {@link Bid#price} is not empty.
      */
     private BidderSeatBid applyBidPriceChanges(BidderSeatBid bidderSeatBid,
@@ -796,8 +797,8 @@ public class ExchangeService {
     /**
      * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
      * 'prices' metrics for each {@link BidderResponse}
-     * This method should always be invoked after
-     * {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List<String>)}
+     * <p>
+     * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List)}
      * to make sure {@link Bid#price} is not empty.
      */
     private List<BidderResponse> updateMetricsFromResponses(List<BidderResponse> bidderResponses, String publisherId) {
@@ -870,8 +871,8 @@ public class ExchangeService {
 
         return toBidsWithCacheIds(bids, bidRequest.getImp(), keywordsCreator, cacheInfo, publisherId,
                 timeout)
-                .map(bidsWithCacheIds -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        bidsWithCacheIds, winningBids, winningBidsByBidder, cacheInfo));
+                .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
+                        cacheResult, winningBids, winningBidsByBidder, cacheInfo));
     }
 
     /**
@@ -959,14 +960,17 @@ public class ExchangeService {
     /**
      * Corresponds cacheId (or null if not present) to each {@link Bid}.
      */
-    private Future<Map<Bid, CacheIdInfo>> toBidsWithCacheIds(
+    private Future<CacheResult> toBidsWithCacheIds(
             Set<Bid> bids, List<Imp> imps, TargetingKeywordsCreator keywordsCreator,
             BidRequestCacheInfo cacheInfo, String publisherId, Timeout timeout) {
-        final Future<Map<Bid, CacheIdInfo>> result;
+        final Future<CacheResult> result;
+        final List<String> errors = new ArrayList<>();
 
         if (!cacheInfo.doCaching) {
-            result = Future.succeededFuture(toMapBidsWithEmptyCacheIds(bids));
+            result = Future.succeededFuture(CacheResult.of(toMapBidsWithEmptyCacheIds(bids), Collections.emptyList(),
+                    null));
         } else {
+            long startTime = clock.millis();
             // do not submit bids with zero CPM to prebid cache
             final List<Bid> bidsWithNonZeroCpm = bids.stream()
                     .filter(bid -> keywordsCreator.isNonZeroCpm(bid.getPrice()))
@@ -975,11 +979,18 @@ public class ExchangeService {
             result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroCpm, imps, CacheContext.of(
                     cacheInfo.shouldCacheBids, cacheInfo.cacheBidsTtl, cacheInfo.shouldCacheVideoBids,
                     cacheInfo.cacheVideoBidsTtl), publisherId, timeout)
-                    .recover(throwable -> Future.succeededFuture(Collections.emptyMap())) // skip cache errors
-                    .map(bidToCacheId -> addNotCachedBids(bidToCacheId, bids));
+                    .recover(throwable -> processCacheServiceError(throwable, errors))
+                    .map(bidToCacheId -> addNotCachedBids(bidToCacheId, bids))
+                    .map(bidToCacheId -> CacheResult.of(bidToCacheId, errors, responseTime(startTime)));
         }
 
         return result;
+    }
+
+    private Future<Map<Bid, CacheIdInfo>> processCacheServiceError(Throwable throwable, List<String> errors) {
+        errors.add("Error occurred while trying to cache bids. Message : " + throwable.getMessage());
+
+        return Future.succeededFuture(Collections.emptyMap());
     }
 
     /**
@@ -1004,6 +1015,7 @@ public class ExchangeService {
     private static Map<Bid, CacheIdInfo> toMapBidsWithEmptyCacheIds(Set<Bid> bids) {
         final Map<Bid, CacheIdInfo> result = new HashMap<>(bids.size());
         bids.forEach(bid -> result.put(bid, CacheIdInfo.of(null, null)));
+
         return result;
     }
 
@@ -1013,16 +1025,17 @@ public class ExchangeService {
      */
     private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                    TargetingKeywordsCreator keywordsCreator,
-                                                   Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBids,
+                                                   CacheResult cacheResult, Set<Bid> winningBids,
                                                    Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
-                        toSeatBid(bidderResponse, keywordsCreator, bidsWithCacheIds, winningBids,
+                        toSeatBid(bidderResponse, keywordsCreator, cacheResult, winningBids,
                                 winningBidsByBidder, cacheInfo))
                 .collect(Collectors.toList());
 
-        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest);
+        final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult.getErrors(),
+                cacheResult.getExecutionTime());
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
@@ -1039,7 +1052,7 @@ public class ExchangeService {
      * extension field populated.
      */
     private SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
-                              Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBid,
+                              CacheResult cacheResult, Set<Bid> winningBid,
                               Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
         final String bidder = bidderResponse.getBidder();
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
@@ -1050,7 +1063,7 @@ public class ExchangeService {
                 .group(0)
                 .bid(bidderSeatBid.getBids().stream()
                         .map(bidderBid ->
-                                toBid(bidderBid, bidder, keywordsCreator, bidsWithCacheIds, winningBid,
+                                toBid(bidderBid, bidder, keywordsCreator, cacheResult.getCacheBids(), winningBid,
                                         winningBidsByBidder, cacheInfo))
                         .collect(Collectors.toList()));
 
@@ -1106,7 +1119,8 @@ public class ExchangeService {
      * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
      * bidders
      */
-    private ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest) {
+    private ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
+                                            List<String> cacheErrors, Integer cacheExecutionTime) {
         final Map<String, List<ExtHttpCall>> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? results.stream().collect(
                 Collectors.toMap(BidderResponse::getBidder, r -> ListUtils.emptyIfNull(r.getSeatBid().getHttpCalls())))
@@ -1120,8 +1134,14 @@ public class ExchangeService {
 
         errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
 
+        errors.putAll(extractCacheErrors(cacheErrors));
+
         final Map<String, Integer> responseTimeMillis = results.stream()
                 .collect(Collectors.toMap(BidderResponse::getBidder, BidderResponse::getResponseTime));
+
+        if (cacheExecutionTime != null) {
+            responseTimeMillis.put(CACHE, cacheExecutionTime);
+        }
 
         return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
     }
@@ -1135,6 +1155,18 @@ public class ExchangeService {
                 .collect(Collectors.toMap(Function.identity(),
                         bidder -> Collections.singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
                                 bidderCatalog.errorForDeprecatedName(bidder)))));
+    }
+
+    private Map<String, List<ExtBidderError>> extractCacheErrors(List<String> cacheErrors) {
+        List<ExtBidderError> extBidderErrors = cacheErrors.stream()
+                .map(error -> ExtBidderError.of(BidderError.Type.generic.getCode(), error))
+                .collect(Collectors.toList());
+
+        if (extBidderErrors.size() > 0) {
+            return Collections.singletonMap(PREBID_EXT, extBidderErrors);
+        }
+
+        return Collections.emptyMap();
     }
 
     private static List<ExtBidderError> errorsDetails(List<BidderError> errors) {
@@ -1175,4 +1207,16 @@ public class ExchangeService {
                     .build();
         }
     }
+
+    @Value
+    @AllArgsConstructor(staticName = "of")
+    private static class CacheResult {
+
+        Map<Bid, CacheIdInfo> cacheBids;
+
+        List<String> errors;
+
+        Integer executionTime;
+    }
+
 }
