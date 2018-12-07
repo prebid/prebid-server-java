@@ -147,29 +147,21 @@ public class IxAdapter extends OpenrtbAdapter {
 
     private static List<Imp> makeImps(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
         final String adUnitCode = adUnitBid.getAdUnitCode();
-
         final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
         if (CollectionUtils.isEmpty(mediaTypes)) {
             return Collections.emptyList();
         }
 
-        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid)
+        final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id(adUnitCode)
                 .instl(adUnitBid.getInstl())
                 .secure(preBidRequestContext.getSecure())
-                .tagid(adUnitCode)
-                .build())
-                .collect(Collectors.toList());
-    }
+                .tagid(adUnitCode);
 
-    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes, AdUnitBid adUnitBid) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
-
-        // if media type is not banner - just skip it
         if (mediaTypes.contains(MediaType.banner)) {
             impBuilder.banner(bannerBuilder(adUnitBid).build());
         }
-        return impBuilder;
+        return Collections.singletonList(impBuilder.build());
     }
 
     private static Site makeSite(PreBidRequestContext preBidRequestContext, String siteId) {

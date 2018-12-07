@@ -117,19 +117,24 @@ public class LifestreetAdapter extends OpenrtbAdapter {
                                       PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final LifestreetParams params = adUnitBidWithParams.getParams();
-
         final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
         if (CollectionUtils.isEmpty(mediaTypes)) {
             return Collections.emptyList();
         }
 
-        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid)
+        final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id(adUnitBid.getAdUnitCode())
                 .instl(adUnitBid.getInstl())
                 .secure(preBidRequestContext.getSecure())
-                .tagid(params.getSlotTag())
-                .build())
-                .collect(Collectors.toList());
+                .tagid(params.getSlotTag());
+
+        if (mediaTypes.contains(MediaType.video)) {
+            impBuilder.video(videoBuilder(adUnitBid).build());
+        }
+        if (mediaTypes.contains(MediaType.banner)) {
+            impBuilder.banner(makeBanner(adUnitBid));
+        }
+        return Collections.singletonList(impBuilder.build());
     }
 
     private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes, AdUnitBid adUnitBid) {

@@ -124,7 +124,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     private Stream<BidRequest> createBidRequests(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
         final RubiconParams rubiconParams = parseAndValidateRubiconParams(adUnitBid);
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        return makeImps(adUnitBid, rubiconParams, preBidRequestContext)
+        return makeImp(adUnitBid, rubiconParams, preBidRequestContext)
                 .map(imp -> BidRequest.builder()
                         .id(preBidRequest.getTid())
                         .app(makeApp(rubiconParams, preBidRequestContext))
@@ -175,8 +175,8 @@ public class RubiconAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static Stream<Imp> makeImps(AdUnitBid adUnitBid, RubiconParams rubiconParams,
-                                        PreBidRequestContext preBidRequestContext) {
+    private static Stream<Imp> makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams,
+                                       PreBidRequestContext preBidRequestContext) {
 
         final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .filter(mediaType -> isValidAdUnitBidMediaType(mediaType, adUnitBid))
@@ -185,12 +185,19 @@ public class RubiconAdapter extends OpenrtbAdapter {
             return Stream.empty();
         }
 
-        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid, rubiconParams)
+        final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id(adUnitBid.getAdUnitCode())
                 .secure(preBidRequestContext.getSecure())
                 .instl(adUnitBid.getInstl())
-                .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)))
-                .build());
+                .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)));
+
+        if (mediaTypes.contains(MediaType.banner)) {
+            impBuilder.banner(makeBanner(adUnitBid));
+        }
+        if (mediaTypes.contains(MediaType.video)) {
+            impBuilder.video(makeVideo(adUnitBid, rubiconParams.getVideo()));
+        }
+        return Stream.of(impBuilder.build());
     }
 
     private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
@@ -203,18 +210,6 @@ public class RubiconAdapter extends OpenrtbAdapter {
             default:
                 return false;
         }
-    }
-
-    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes, AdUnitBid adUnitBid,
-                                                      RubiconParams rubiconParams) {
-        final Imp.ImpBuilder builder = Imp.builder();
-        if (mediaTypes.contains(MediaType.banner)) {
-            builder.banner(makeBanner(adUnitBid));
-        }
-        if (mediaTypes.contains(MediaType.video)) {
-            builder.video(makeVideo(adUnitBid, rubiconParams.getVideo()));
-        }
-        return builder;
     }
 
     private static RubiconImpExt makeImpExt(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {

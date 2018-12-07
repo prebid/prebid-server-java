@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * AppNexus {@link Adapter} implementation.
@@ -143,40 +142,37 @@ public class AppnexusAdapter extends OpenrtbAdapter {
     private static List<Imp> makeImps(List<AdUnitBidWithParams<AppnexusParams>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
-                .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
+                .filter(AppnexusAdapter::containsAnyAllowedMediaType)
+                .map(adUnitBidWithParams -> makeImp(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<AppnexusParams> adUnitBidWithParams,
-                                                    PreBidRequestContext preBidRequestContext) {
+    private static boolean containsAnyAllowedMediaType(AdUnitBidWithParams<AppnexusParams> adUnitBidWithParams) {
+        return CollectionUtils.containsAny(adUnitBidWithParams.getAdUnitBid().getMediaTypes(), ALLOWED_MEDIA_TYPES);
+    }
+
+    private static Imp makeImp(AdUnitBidWithParams<AppnexusParams> adUnitBidWithParams,
+                               PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final AppnexusParams params = adUnitBidWithParams.getParams();
 
-        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
-        if (CollectionUtils.isEmpty(mediaTypes)) {
-            return Stream.empty();
-        }
-
-        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid, params)
+        final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id(adUnitBid.getAdUnitCode())
                 .instl(adUnitBid.getInstl())
                 .secure(preBidRequestContext.getSecure())
                 .tagid(StringUtils.stripToNull(params.getInvCode()))
                 .bidfloor(bidfloor(params))
-                .ext(Json.mapper.valueToTree(makeImpExt(params)))
-                .build());
-    }
+                .ext(Json.mapper.valueToTree(makeImpExt(params)));
 
-    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes,
-                                                      AdUnitBid adUnitBid, AppnexusParams params) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
         if (mediaTypes.contains(MediaType.banner)) {
             impBuilder.banner(makeBanner(adUnitBid, params.getPosition()));
         }
         if (mediaTypes.contains(MediaType.video)) {
             impBuilder.video(videoBuilder(adUnitBid).build());
         }
-        return impBuilder;
+
+        return impBuilder.build();
     }
 
     private static Banner makeBanner(AdUnitBid adUnitBid, String position) {

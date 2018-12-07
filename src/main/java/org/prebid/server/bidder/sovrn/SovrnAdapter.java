@@ -106,7 +106,7 @@ public class SovrnAdapter extends OpenrtbAdapter {
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
                 .filter(SovrnAdapter::isSupportedMediaType)
-                .map(adUnitBidWithParams -> makeImpForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
+                .map(adUnitBidWithParams -> makeImp(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
@@ -114,8 +114,8 @@ public class SovrnAdapter extends OpenrtbAdapter {
         return sovrnAdUnitBidWithParams.getAdUnitBid().getMediaTypes().contains(MediaType.banner);
     }
 
-    private static Imp makeImpForAdUnitBid(AdUnitBidWithParams<SovrnParams> adUnitBidWithParams,
-                                           PreBidRequestContext preBidRequestContext) {
+    private static Imp makeImp(AdUnitBidWithParams<SovrnParams> adUnitBidWithParams,
+                               PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final SovrnParams params = adUnitBidWithParams.getParams();
 

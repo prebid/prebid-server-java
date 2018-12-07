@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Pulsepoint {@link Adapter} implementation.
@@ -144,37 +143,32 @@ public class PulsepointAdapter extends OpenrtbAdapter {
     private static List<Imp> makeImps(List<AdUnitBidWithParams<NormalizedPulsepointParams>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
-                .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
+                .filter(PulsepointAdapter::containsAnyAllowedMediaType)
+                .map(adUnitBidWithParams -> makeImp(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<NormalizedPulsepointParams> adUnitBidWithParams,
-                                                    PreBidRequestContext preBidRequestContext) {
+    private static boolean containsAnyAllowedMediaType(
+            AdUnitBidWithParams<NormalizedPulsepointParams> adUnitBidWithParams) {
+        return CollectionUtils.containsAny(adUnitBidWithParams.getAdUnitBid().getMediaTypes(), ALLOWED_MEDIA_TYPES);
+    }
+
+    private static Imp makeImp(AdUnitBidWithParams<NormalizedPulsepointParams> adUnitBidWithParams,
+                               PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final NormalizedPulsepointParams params = adUnitBidWithParams.getParams();
 
-        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
-        if (CollectionUtils.isEmpty(mediaTypes)) {
-            return Stream.empty();
-        }
-
-        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid, params)
+        final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id(adUnitBid.getAdUnitCode())
                 .instl(adUnitBid.getInstl())
                 .secure(preBidRequestContext.getSecure())
-                .tagid(params.getTagId())
-                .build());
-    }
+                .tagid(params.getTagId());
 
-    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaType, AdUnitBid adUnitBid,
-                                                      NormalizedPulsepointParams params) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
-
-        // if media type is not banner - just skip it
-        if (mediaType.contains(MediaType.banner)) {
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+        if (mediaTypes.contains(MediaType.banner)) {
             impBuilder.banner(makeBanner(adUnitBid, params.getAdSizeWidth(), params.getAdSizeHeight()));
         }
-        return impBuilder;
+        return impBuilder.build();
     }
 
     private static Banner makeBanner(AdUnitBid adUnitBid, Integer width, Integer height) {

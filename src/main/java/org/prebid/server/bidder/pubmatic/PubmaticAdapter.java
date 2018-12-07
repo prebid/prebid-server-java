@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Pubmatic {@link Adapter} implementation.
@@ -278,39 +277,35 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     private static List<Imp> makeImps(List<AdUnitBidWithParams<NormalizedPubmaticParams>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
-                .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
+                .filter(PubmaticAdapter::containsAnyAllowedMediaType)
+                .map(adUnitBidWithParams -> makeImp(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<NormalizedPubmaticParams> adUnitBidWithParams,
-                                                    PreBidRequestContext preBidRequestContext) {
+    private static boolean containsAnyAllowedMediaType(
+            AdUnitBidWithParams<NormalizedPubmaticParams> adUnitBidWithParams) {
+        return CollectionUtils.containsAny(adUnitBidWithParams.getAdUnitBid().getMediaTypes(), ALLOWED_MEDIA_TYPES);
+    }
+
+    private static Imp makeImp(AdUnitBidWithParams<NormalizedPubmaticParams> adUnitBidWithParams,
+                               PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final NormalizedPubmaticParams params = adUnitBidWithParams.getParams();
 
         final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
-        if (CollectionUtils.isEmpty(mediaTypes)) {
-            return Stream.empty();
-        }
-
-        return Stream.of(impBuilderWithMedia(mediaTypes, adUnitBid, params)
+        final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id(adUnitBid.getAdUnitCode())
                 .instl(adUnitBid.getInstl())
                 .secure(preBidRequestContext.getSecure())
                 .tagid(mediaTypes.contains(MediaType.banner) && params != null ? params.getTagId() : null)
-                .ext(params != null ? params.getKeywords() : null)
-                .build());
-    }
-
-    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes, AdUnitBid adUnitBid,
-                                                      NormalizedPubmaticParams params) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
+                .ext(params != null ? params.getKeywords() : null);
         if (mediaTypes.contains(MediaType.banner)) {
             impBuilder.banner(makeBanner(adUnitBid, params));
         }
         if (mediaTypes.contains(MediaType.video)) {
             impBuilder.video(videoBuilder(adUnitBid).build());
         }
-        return impBuilder;
+        return impBuilder.build();
     }
 
     private static Banner makeBanner(AdUnitBid adUnitBid, NormalizedPubmaticParams params) {
