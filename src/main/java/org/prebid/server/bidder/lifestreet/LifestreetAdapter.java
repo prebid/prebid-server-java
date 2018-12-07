@@ -142,17 +142,6 @@ public class LifestreetAdapter extends OpenrtbAdapter {
         return impBuilder.build();
     }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(Set<MediaType> mediaTypes, AdUnitBid adUnitBid) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
-        if (mediaTypes.contains(MediaType.video)) {
-            impBuilder.video(videoBuilder(adUnitBid).build());
-        }
-        if (mediaTypes.contains(MediaType.banner)) {
-            impBuilder.banner(makeBanner(adUnitBid));
-        }
-        return impBuilder;
-    }
-
     private static Banner makeBanner(AdUnitBid adUnitBid) {
         return bannerBuilder(adUnitBid)
                 .format(null)
