@@ -178,7 +178,7 @@ public class LifestreetAdapterTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("openRTB bids need at least one Imp");
+                .hasMessage("Invalid ad unit/imp");
     }
 
     @Test
