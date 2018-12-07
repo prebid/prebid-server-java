@@ -202,7 +202,7 @@ public class IxAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                        .params(mapper.valueToTree(IxParams.of("486"))));
+                        .params(mapper.valueToTree(IxParams.of("486", asList(300, 250)))));
 
         preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
@@ -307,6 +307,30 @@ public class IxAdapterTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnListWithOnlyOneRequestWithValidSizesFromParams() {
+        // given
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
+                givenAdUnitBid(builder -> builder
+                        .adUnitCode("adUnitCode1")
+                        .sizes(asList(Format.builder().w(300).h(250).build(),
+                                Format.builder().w(300).h(300).build()))
+                        .params(mapper.valueToTree(IxParams.of("486", asList(300, 250))))
+                )));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .extracting(AdapterHttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .containsOnly(Format.builder().w(300).h(250).build());
+    }
+
+    @Test
     public void makeHttpRequestsShouldPrioritizeSlotsOverSizes() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, asList(
@@ -317,7 +341,7 @@ public class IxAdapterTest extends VertxTest {
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode2")
                         .sizes(singletonList(Format.builder().w(600).h(480).build())))
-                ));
+        ));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -491,7 +515,7 @@ public class IxAdapterTest extends VertxTest {
     private static AdUnitBid givenAdUnitBid(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(mapper.valueToTree(IxParams.of("42")))
+                .params(mapper.valueToTree(IxParams.of("42", null)))
                 .mediaTypes(singleton(MediaType.banner));
 
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer

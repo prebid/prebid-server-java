@@ -105,8 +105,10 @@ public class IxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
-                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(null))))),
-                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("")))))))
+                        givenImp(impBuilder -> impBuilder.ext(
+                                mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(null, null))))),
+                        givenImp(impBuilder -> impBuilder.ext(
+                                mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("", null)))))))
                 .build();
 
         // when
@@ -250,6 +252,30 @@ public class IxBidderTest extends VertxTest {
                 .extracting(Publisher::getId)
                 // both from same imp (same imp.ext.siteId)
                 .containsOnly("site id");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateOnlyOneRequestWithValidSizesFromImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("site id", asList(600, 400)))))
+                        .banner(Banner.builder()
+                                .format(asList(Format.builder().w(300).h(200).build(),
+                                        Format.builder().w(600).h(400).build()))
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .containsOnly(Format.builder().w(600).h(400).build());
     }
 
     @Test
@@ -430,7 +456,7 @@ public class IxBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("site id")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("site id", null)))))
                 .build();
     }
 

@@ -81,9 +81,13 @@ public class IxAdapter extends OpenrtbAdapter {
 
         for (AdUnitBid adUnitBid : adUnitBids) {
             final IxParams ixParams = parseAndValidateParams(adUnitBid);
+            final List<Integer> ixParamsSizes = ixParams.getSizes();
             boolean isFirstSize = true;
-            for (Format size : adUnitBid.getSizes()) {
-                final BidRequest bidRequest = createBidRequest(adUnitBid, ixParams, size, preBidRequestContext);
+            for (Format format : adUnitBid.getSizes()) {
+                if (CollectionUtils.isNotEmpty(ixParamsSizes) && !isValidIxSize(format, ixParamsSizes)) {
+                    continue;
+                }
+                final BidRequest bidRequest = createBidRequest(adUnitBid, ixParams, format, preBidRequestContext);
                 // prioritize slots over sizes
                 if (isFirstSize) {
                     prioritizedRequests.add(bidRequest);
@@ -97,25 +101,6 @@ public class IxAdapter extends OpenrtbAdapter {
                 // cap the number of requests to requestLimit
                 .limit(REQUEST_LIMIT)
                 .collect(Collectors.toList());
-    }
-
-    private BidRequest createBidRequest(AdUnitBid adUnitBid, IxParams ixParams, Format size,
-                                        PreBidRequestContext preBidRequestContext) {
-        final List<Imp> imps = makeImps(copyAdUnitBidWithSingleSize(adUnitBid, size), preBidRequestContext);
-        validateImps(imps);
-
-        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        return BidRequest.builder()
-                .id(preBidRequest.getTid())
-                .at(1)
-                .tmax(preBidRequest.getTimeoutMillis())
-                .imp(imps)
-                .site(makeSite(preBidRequestContext, ixParams.getSiteId()))
-                .device(deviceBuilder(preBidRequestContext).build())
-                .user(makeUser(preBidRequestContext))
-                .source(makeSource(preBidRequestContext))
-                .regs(preBidRequest.getRegs())
-                .build();
     }
 
     private static IxParams parseAndValidateParams(AdUnitBid adUnitBid) {
@@ -139,6 +124,29 @@ public class IxAdapter extends OpenrtbAdapter {
         }
 
         return params;
+    }
+
+    private static boolean isValidIxSize(Format format, List<Integer> sizes) {
+        return format.getW().equals(sizes.get(0)) && format.getH().equals(sizes.get(1));
+    }
+
+    private BidRequest createBidRequest(AdUnitBid adUnitBid, IxParams ixParams, Format size,
+                                        PreBidRequestContext preBidRequestContext) {
+        final List<Imp> imps = makeImps(copyAdUnitBidWithSingleSize(adUnitBid, size), preBidRequestContext);
+        validateImps(imps);
+
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        return BidRequest.builder()
+                .id(preBidRequest.getTid())
+                .at(1)
+                .tmax(preBidRequest.getTimeoutMillis())
+                .imp(imps)
+                .site(makeSite(preBidRequestContext, ixParams.getSiteId()))
+                .device(deviceBuilder(preBidRequestContext).build())
+                .user(makeUser(preBidRequestContext))
+                .source(makeSource(preBidRequestContext))
+                .regs(preBidRequest.getRegs())
+                .build();
     }
 
     private static AdUnitBid copyAdUnitBidWithSingleSize(AdUnitBid adUnitBid, Format singleSize) {
