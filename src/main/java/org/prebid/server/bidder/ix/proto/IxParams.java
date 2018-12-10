@@ -14,5 +14,5 @@ public class IxParams {
     String siteId;
 
     @JsonProperty("size")
-    List<Integer> sizes;
+    List<Integer> size;
 }

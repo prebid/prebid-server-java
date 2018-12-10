@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -79,8 +80,9 @@ public class IxBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid MediaType. Ix supports only Banner type. Ignoring ImpID=123"));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(BidderError.badInput("Invalid MediaType. Ix supports only Banner type. Ignoring ImpID=123"),
+                        BidderError.badInput("No valid impressions in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -95,7 +97,7 @@ public class IxBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(2);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
     }
@@ -115,8 +117,30 @@ public class IxBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsOnly(BidderError.badInput("Missing siteId param"));
+        assertThat(result.getErrors()).hasSize(3)
+                .containsOnly(BidderError.badInput("Missing siteId param"),
+                        BidderError.badInput("No valid impressions in the bid request"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtSizeIsInvalid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder.ext(
+                                mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("siteId", emptyList()))))),
+                        givenImp(impBuilder -> impBuilder.ext(
+                                mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of("siteId", singletonList(1))))))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(3)
+                .containsOnly(BidderError.badInput("Incorrect Size, expected at least 2 values"),
+                        BidderError.badInput("No valid impressions in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 

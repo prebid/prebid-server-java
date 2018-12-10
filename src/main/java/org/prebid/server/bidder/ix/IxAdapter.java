@@ -81,7 +81,7 @@ public class IxAdapter extends OpenrtbAdapter {
 
         for (AdUnitBid adUnitBid : adUnitBids) {
             final IxParams ixParams = parseAndValidateParams(adUnitBid);
-            final List<Integer> ixParamsSizes = ixParams.getSizes();
+            final List<Integer> ixParamsSizes = ixParams.getSize();
             boolean isFirstSize = true;
             for (Format format : adUnitBid.getSizes()) {
                 if (CollectionUtils.isNotEmpty(ixParamsSizes) && !isValidIxSize(format, ixParamsSizes)) {
@@ -123,11 +123,15 @@ public class IxAdapter extends OpenrtbAdapter {
             throw new PreBidException("Missing siteId param");
         }
 
+        final List<Integer> size = params.getSize();
+        if (size != null && size.size() < 2) {
+            throw new PreBidException("Incorrect Size param: expected at least 2 values");
+        }
         return params;
     }
 
     private static boolean isValidIxSize(Format format, List<Integer> sizes) {
-        return format.getW().equals(sizes.get(0)) && format.getH().equals(sizes.get(1));
+        return Objects.equals(format.getW(), sizes.get(0)) && Objects.equals(format.getH(), sizes.get(1));
     }
 
     private BidRequest createBidRequest(AdUnitBid adUnitBid, IxParams ixParams, Format size,

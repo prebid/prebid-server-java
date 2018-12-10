@@ -80,6 +80,10 @@ public class IxBidder implements Bidder<BidRequest> {
         final List<BidRequest> modifiedRequests = Stream.concat(prioritizedRequests.stream(), regularRequests.stream())
                 .limit(REQUEST_LIMIT)
                 .collect(Collectors.toList());
+        if (modifiedRequests.isEmpty()) {
+            errors.add(BidderError.badInput("No valid impressions in the bid request"));
+            return Result.of(Collections.emptyList(), errors);
+        }
 
         final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
                 .map(request -> HttpRequest.of(HttpMethod.POST, endpointUrl, Json.encode(request),
@@ -96,26 +100,48 @@ public class IxBidder implements Bidder<BidRequest> {
         }
     }
 
+    private static void makeRequests(BidRequest bidRequest, Imp imp, List<BidRequest> prioritizedRequests,
+                                     List<BidRequest> regularRequests) {
+        List<Format> formats = imp.getBanner().getFormat();
+        if (CollectionUtils.isEmpty(formats)) {
+            formats = makeFormatFromBannerWidthAndHeight(imp);
+        }
+        final ExtImpIx extImpIx = parseAndValidateImpExt(imp);
+        final List<BidRequest> modifiedBidRequests = createBidRequest(bidRequest, imp, formats, extImpIx);
+        if (!modifiedBidRequests.isEmpty()) {
+            if (modifiedBidRequests.size() == 1) {
+                prioritizedRequests.addAll(modifiedBidRequests);
+            } else {
+                prioritizedRequests.add(modifiedBidRequests.get(0));
+                regularRequests.addAll(modifiedBidRequests.subList(1, modifiedBidRequests.size()));
+            }
+        }
+    }
+
     private static List<Format> makeFormatFromBannerWidthAndHeight(Imp imp) {
         final Banner banner = imp.getBanner();
         return Collections.singletonList(
                 Format.builder().w(banner.getW()).h(banner.getH()).build());
     }
 
-    private static void makeRequests(BidRequest bidRequest, Imp imp, List<BidRequest> prioritizedRequests,
-                                     List<BidRequest> regularRequests) {
-        final ExtImpIx extImpIx = parseAndValidateImpExt(imp);
-        List<Format> formats = imp.getBanner().getFormat();
-        if (CollectionUtils.isEmpty(formats)) {
-            formats = makeFormatFromBannerWidthAndHeight(imp);
+    private static ExtImpIx parseAndValidateImpExt(Imp imp) {
+        final ExtImpIx extImpIx;
+        try {
+            extImpIx = Json.mapper.<ExtPrebid<?, ExtImpIx>>convertValue(imp.getExt(),
+                    IX_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
         }
-        final List<BidRequest> modifiedBidRequests = createBidRequest(bidRequest, imp, formats, extImpIx);
-        if (modifiedBidRequests.size() == 1) {
-            prioritizedRequests.addAll(modifiedBidRequests);
-        } else {
-            prioritizedRequests.add(modifiedBidRequests.get(0));
-            regularRequests.addAll(modifiedBidRequests.subList(1, modifiedBidRequests.size()));
+
+        if (StringUtils.isBlank(extImpIx.getSiteId())) {
+            throw new PreBidException("Missing siteId param");
         }
+
+        final List<Integer> size = extImpIx.getSize();
+        if (size != null && size.size() < 2) {
+            throw new PreBidException("Incorrect Size, expected at least 2 values");
+        }
+        return extImpIx;
     }
 
     private static List<BidRequest> createBidRequest(BidRequest bidRequest, Imp imp,
@@ -127,7 +153,7 @@ public class IxBidder implements Bidder<BidRequest> {
             formats = formats.subList(0, REQUEST_LIMIT);
         }
 
-        final List<Integer> sizes = extImpIx.getSizes();
+        final List<Integer> sizes = extImpIx.getSize();
         final List<BidRequest> requests = new ArrayList<>();
         for (Format format : formats) {
             if (CollectionUtils.isNotEmpty(sizes) && !isValidIxSize(format, sizes)) {
@@ -147,19 +173,8 @@ public class IxBidder implements Bidder<BidRequest> {
         return requests;
     }
 
-    private static ExtImpIx parseAndValidateImpExt(Imp imp) {
-        final ExtImpIx extImpIx;
-        try {
-            extImpIx = Json.mapper.<ExtPrebid<?, ExtImpIx>>convertValue(imp.getExt(),
-                    IX_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-
-        if (StringUtils.isBlank(extImpIx.getSiteId())) {
-            throw new PreBidException("Missing siteId param");
-        }
-        return extImpIx;
+    private static boolean isValidIxSize(Format format, List<Integer> sizes) {
+        return Objects.equals(format.getW(), sizes.get(0)) && Objects.equals(format.getH(), sizes.get(1));
     }
 
     private static Site modifySite(BidRequest bidRequest, ExtImpIx extImpIx) {
@@ -167,10 +182,6 @@ public class IxBidder implements Bidder<BidRequest> {
         final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
         return siteBuilder.publisher(Publisher.builder()
                 .id(extImpIx.getSiteId()).build()).build();
-    }
-
-    private static boolean isValidIxSize(Format format, List<Integer> sizes) {
-        return format.getW().equals(sizes.get(0)) && format.getH().equals(sizes.get(1));
     }
 
     @Override

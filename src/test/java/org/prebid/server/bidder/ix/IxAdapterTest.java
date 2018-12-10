@@ -160,6 +160,20 @@ public class IxAdapterTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldFailIfAdUnitBidParamSizeIsInvalid() {
+        // given
+        final ObjectNode params = mapper.createObjectNode();
+        params.put("siteId", "id");
+        params.set("size", mapper.valueToTree(singletonList(33)));
+        adapterRequest = givenBidder(builder -> builder.params(params));
+
+        // when and then
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
+                .isExactlyInstanceOf(PreBidException.class)
+                .hasMessage("Incorrect Size param: expected at least 2 values");
+    }
+
+    @Test
     public void makeHttpRequestsShouldFailIfMediaTypeIsEmpty() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
