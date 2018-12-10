@@ -721,8 +721,8 @@ public class RequestValidator {
 
     private void validateBanner(Banner banner, int impIndex) throws ValidationException {
         if (banner != null) {
-            final boolean hasWidth = banner.getW() != null && banner.getW() > 0;
-            final boolean hasHeight = banner.getH() != null && banner.getH() > 0;
+            final boolean hasWidth = hasPositiveValue(banner.getW());
+            final boolean hasHeight = hasPositiveValue(banner.getH());
             final boolean hasSize = hasWidth && hasHeight;
 
             if (CollectionUtils.isEmpty(banner.getFormat()) && !hasSize) {
@@ -739,11 +739,11 @@ public class RequestValidator {
     }
 
     private void validateFormat(Format format, int impIndex, int formatIndex) throws ValidationException {
-        final boolean usesH = hasValue(format.getH());
-        final boolean usesW = hasValue(format.getW());
-        final boolean usesWmin = hasValue(format.getWmin());
-        final boolean usesWratio = hasValue(format.getWratio());
-        final boolean usesHratio = hasValue(format.getHratio());
+        final boolean usesH = hasPositiveValue(format.getH());
+        final boolean usesW = hasPositiveValue(format.getW());
+        final boolean usesWmin = hasPositiveValue(format.getWmin());
+        final boolean usesWratio = hasPositiveValue(format.getWratio());
+        final boolean usesHratio = hasPositiveValue(format.getHratio());
         final boolean usesHW = usesH || usesW;
         final boolean usesRatios = usesWmin || usesWratio || usesHratio;
 
@@ -760,12 +760,12 @@ public class RequestValidator {
         }
 
         if (usesHW && (!usesH || !usesW)) {
-            throw new ValidationException("Request imp[%d].banner.format[%d] must define non-zero"
+            throw new ValidationException("Request imp[%d].banner.format[%d] must define a positive"
                     + " \"h\" and \"w\" properties", impIndex, formatIndex);
         }
 
         if (usesRatios && (!usesWmin || !usesWratio || !usesHratio)) {
-            throw new ValidationException("Request imp[%d].banner.format[%d] must define non-zero"
+            throw new ValidationException("Request imp[%d].banner.format[%d] must define a positive"
                     + " \"wmin\", \"wratio\", and \"hratio\" properties", impIndex, formatIndex);
         }
     }
@@ -803,7 +803,7 @@ public class RequestValidator {
         }
     }
 
-    private static boolean hasValue(Integer value) {
-        return value != null && value != 0;
+    private static boolean hasPositiveValue(Integer value) {
+        return value != null && value > 0;
     }
 }

@@ -425,6 +425,52 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNegativeWidth() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .h(600)
+                                .w(-300)
+                                .format(emptyList())
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNegativeHeight() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .h(-300)
+                                .w(600)
+                                .format(emptyList())
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatHWAndRatiosPresent() {
         // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
@@ -521,7 +567,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
     }
 
     @Test
@@ -535,7 +581,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
     }
 
     @Test
@@ -549,7 +595,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
     }
 
     @Test
@@ -563,7 +609,35 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerFormatHeightIsNegative() {
+        // given
+        final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
+                formatBuilder -> Format.builder().h(-1).w(2));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerFormatWidthIsNegative() {
+        // given
+        final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
+                formatBuilder -> Format.builder().h(2).w(-1));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
     }
 
     @Test
@@ -578,7 +652,7 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Request imp[0].banner.format[0] must define"
-                        + " non-zero \"wmin\", \"wratio\", and \"hratio\" properties");
+                        + " a positive \"wmin\", \"wratio\", and \"hratio\" properties");
     }
 
     @Test
@@ -592,7 +666,21 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly("Request imp[0].banner.format[0] must define "
-                + "non-zero \"wmin\", \"wratio\", and \"hratio\" properties");
+                + "a positive \"wmin\", \"wratio\", and \"hratio\" properties");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWMinIsNegative() {
+        // given
+        final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
+                formatBuilder -> Format.builder().wmin(-1).wratio(2).hratio(1));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly("Request imp[0].banner.format[0] must define "
+                + "a positive \"wmin\", \"wratio\", and \"hratio\" properties");
     }
 
     @Test
@@ -606,7 +694,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\","
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\","
                         + " and \"hratio\" properties");
     }
 
@@ -621,7 +709,22 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and "
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and "
+                        + "\"hratio\" properties");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndWRatioIsNegative() {
+        // given
+        final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
+                formatBuilder -> Format.builder().wmin(1).wratio(-1).hratio(1));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and "
                         + "\"hratio\" properties");
     }
 
@@ -636,7 +739,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and"
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and"
                         + " \"hratio\" properties");
     }
 
@@ -651,7 +754,22 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define non-zero \"wmin\", \"wratio\", and"
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and"
+                        + " \"hratio\" properties");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerFormatRatiosUsedAndHRatioIsNegative() {
+        // given
+        final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
+                formatBuilder -> Format.builder().wmin(1).wratio(5).hratio(-1));
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and"
                         + " \"hratio\" properties");
     }
 
