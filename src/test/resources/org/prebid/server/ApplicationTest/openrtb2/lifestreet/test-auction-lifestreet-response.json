@@ -30,7 +30,6 @@
                 "hb_pb_lifestreet": "4.70",
                 "hb_bidder": "lifestreet",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_cache_id_lifestreet": "04f8b42b-7927-4930-a0b1-0ab16a441e91",
                 "hb_deal": "dealId7"
               },
@@ -71,7 +70,6 @@
                 "hb_pb_lifestreet": "3.70",
                 "hb_bidder": "lifestreet",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_cache_id_lifestreet": "f0bfa534-ca56-42bc-9b91-a801f8f202c2",
                 "hb_deal": "dealId71",
                 "hb_uuid_lifestreet": "7e5320e5-ad46-439e-a7eb-f4cb826d8ab6"

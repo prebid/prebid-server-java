@@ -30,7 +30,6 @@
                 "hb_size": "300x600",
                 "hb_bidder": "pubmatic",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_deal": "dealId9",
                 "hb_size_pubmatic": "300x600"
               },
@@ -72,7 +71,6 @@
                 "hb_uuid_pubmatic": "1c3196ef-e6a6-435f-bfe9-70de0d774979",
                 "hb_bidder": "pubmatic",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_deal": "dealId91",
                 "hb_size_pubmatic": "300x600"
               },

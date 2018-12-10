@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Used throughout Prebid to create targeting keys as keys which can be used in an ad server like DFP.
@@ -61,22 +60,6 @@ public class TargetingKeywordsCreator {
      * Stores the deal ID for the given bid
      */
     private static final String HB_DEAL_KEY = "hb_deal";
-    /**
-     * Used exclusively by Prebid Mobile to accomodate Facebook.
-     * <p>
-     * Facebook requires that ads from their network be loaded using their own SDK.
-     * <p>
-     * Other demand sources are happy to let Prebid Mobile use a Webview.
-     */
-    private static final String HB_CREATIVE_LOADTYPE_KEY = "hb_creative_loadtype";
-    /**
-     * Used as a value for HB_CREATIVE_LOADTYPE_KEY
-     */
-    private static final String HB_CREATIVE_LOADTYPE_DEMAND_SDK_VALUE = "demand_sdk";
-    /**
-     * Used as a value for HB_CREATIVE_LOADTYPE_KEY
-     */
-    private static final String HB_CREATIVE_LOADTYPE_HTML_VALUE = "html";
     /**
      * Used as a value for HB_ENV_KEY
      */
@@ -195,15 +178,7 @@ public class TargetingKeywordsCreator {
             keywordMap.put(HB_ENV_KEY, HB_ENV_APP_VALUE);
         }
 
-        final Map<String, String> keywords = keywordMap.asMap();
-
-        // For the top bid, we want to put the following additional key
-        if (winningBid) {
-            keywords.put(HB_CREATIVE_LOADTYPE_KEY,
-                    Objects.equals(bidder, "audienceNetwork")
-                            ? HB_CREATIVE_LOADTYPE_DEMAND_SDK_VALUE : HB_CREATIVE_LOADTYPE_HTML_VALUE);
-        }
-        return keywords;
+        return keywordMap.asMap();
     }
 
     /**

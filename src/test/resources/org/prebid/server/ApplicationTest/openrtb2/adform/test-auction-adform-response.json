@@ -22,7 +22,6 @@
                 "hb_cache_id_adform": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
                 "hb_cache_id": "ca2a4dd3-f974-4eff-be5c-986bf4e083ce",
                 "hb_bidder_adform": "adform",
-                "hb_creative_loadtype": "html",
                 "hb_pb_adform": "10.50",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_adform": "{{ cache.host }}",

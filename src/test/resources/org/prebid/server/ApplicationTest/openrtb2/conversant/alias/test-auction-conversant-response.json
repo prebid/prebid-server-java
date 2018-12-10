@@ -31,7 +31,6 @@
                 "hb_cache_hostpath_conversantAlias": "{{ cache.hostpath }}",
                 "hb_deal_conversantAlias": "dealId4",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_deal": "dealId4"
               },
               "cache": {

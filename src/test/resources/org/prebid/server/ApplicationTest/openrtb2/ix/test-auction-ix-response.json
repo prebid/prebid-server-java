@@ -30,7 +30,6 @@
                 "hb_bidder": "ix",
                 "hb_cache_host_ix": "{{ cache.host }}",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_cache_id_ix": "8e270009-c31f-48fb-b14b-13a196291b61",
                 "hb_deal": "dealId6"
               },

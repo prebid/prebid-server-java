@@ -63,7 +63,6 @@
         "hb_bidder": "appnexus",
         "hb_deal_appnexus": "dealId4",
         "hb_cache_id": "724b4488-f344-4e73-b79a-07e302176875",
-        "hb_creative_loadtype": "html",
         "hb_size_appnexus": "300x250",
         "hb_deal": "dealId4",
         "hb_cache_id_appnexus": "724b4488-f344-4e73-b79a-07e302176875"
@@ -92,7 +91,6 @@
         "hb_size_rubicon": "300x250",
         "hb_bidder_rubicon": "rubicon",
         "hb_cache_id": "7d57932e-0b73-4835-a9a8-155aa145f6be",
-        "hb_creative_loadtype": "html",
         "hb_deal": "dealId1",
         "rpfl_1001": "2_tier0100"
       }
@@ -120,10 +118,8 @@
         "hb_size_rubicon": "300x600",
         "hb_bidder_rubicon": "rubicon",
         "hb_cache_id": "24eae0fc-1070-4a4e-a16d-401be6a3de2a",
-        "hb_creative_loadtype": "html",
         "hb_deal": "dealId2"
       }
     }
-
   ]
 }

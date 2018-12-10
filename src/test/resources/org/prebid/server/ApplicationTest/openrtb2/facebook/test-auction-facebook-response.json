@@ -23,7 +23,6 @@
                 "hb_bidder": "audienceNetwork",
                 "hb_cache_id": "9bde9bf0-7726-4789-9f5a-b948131d778d",
                 "hb_pb_audienceNetwork": "9.00",
-                "hb_creative_loadtype": "demand_sdk",
                 "hb_deal": "dealId5",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_audienceNetwork": "{{ cache.host }}",
