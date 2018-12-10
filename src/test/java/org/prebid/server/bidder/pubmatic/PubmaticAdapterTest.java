@@ -387,7 +387,7 @@ public class PubmaticAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
+    public void makeHttpRequestsShouldReturnListWithOneRequestWithOneImpIfAdUnitContainsBannerAndVideoMediaTypes() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBidCustomizable(builder -> builder
@@ -408,12 +408,10 @@ public class PubmaticAdapterTest extends VertxTest {
                 .flatExtracting(r -> r.getPayload().getImp())
                 .containsOnly(
                         Imp.builder()
-                                .video(com.iab.openrtb.request.Video.builder().w(480).h(320)
-                                        .mimes(singletonList("Mime1")).playbackmethod(singletonList(1)).build())
-                                .build(),
-                        Imp.builder()
                                 .banner(Banner.builder().w(300).h(250).build())
                                 .tagid("slot1")
+                                .video(com.iab.openrtb.request.Video.builder().w(480).h(320)
+                                        .mimes(singletonList("Mime1")).playbackmethod(singletonList(1)).build())
                                 .build()
                 );
     }

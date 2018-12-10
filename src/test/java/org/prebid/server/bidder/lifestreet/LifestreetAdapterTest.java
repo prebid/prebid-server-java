@@ -178,7 +178,7 @@ public class LifestreetAdapterTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
-                .hasMessage("openRTB bids need at least one Imp");
+                .hasMessage("Invalid ad unit/imp");
     }
 
     @Test
@@ -285,7 +285,7 @@ public class LifestreetAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnTwoRequestsIfAdUnitContainsBannerAndVideoMediaTypes() {
+    public void makeHttpRequestsShouldReturnOneRequestWithOneImpIfAdUnitContainsBannerAndVideoMediaTypes() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
@@ -302,10 +302,10 @@ public class LifestreetAdapterTest extends VertxTest {
                 preBidRequestContext);
 
         // then
-        assertThat(httpRequests).hasSize(2)
+        assertThat(httpRequests).hasSize(1)
                 .flatExtracting(r -> r.getPayload().getImp())
                 .extracting(imp -> imp.getVideo() == null, imp -> imp.getBanner() == null)
-                .containsOnly(tuple(true, false), tuple(false, true));
+                .containsOnly(tuple(false, false));
     }
 
     @Test
