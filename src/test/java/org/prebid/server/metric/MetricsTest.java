@@ -490,24 +490,6 @@ public class MetricsTest {
     }
 
     @Test
-    public void shouldIncrementActiveConnectionsMetrics() {
-        // when
-        metrics.updateActiveConnectionsMetrics(true);
-
-        // then
-        assertThat(metricRegistry.counter("active_connections").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void shouldDecrementActiveConnectionsMetrics() {
-        // when
-        metrics.updateActiveConnectionsMetrics(false);
-
-        // then
-        assertThat(metricRegistry.counter("active_connections").getCount()).isEqualTo(-1);
-    }
-
-    @Test
     public void shouldUpdateDatabaseQueryTimeMetric() {
         // when
         metrics.updateDatabaseQueryTimeMetric(456L);

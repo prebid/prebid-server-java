@@ -1,9 +1,6 @@
 package org.prebid.server.metric;
 
 public enum MetricName {
-    // common
-    active_connections,
-
     // database
     db_circuitbreaker_opened,
     db_circuitbreaker_closed,

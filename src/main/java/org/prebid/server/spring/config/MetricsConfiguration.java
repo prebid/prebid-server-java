@@ -1,7 +1,9 @@
 package org.prebid.server.spring.config;
 
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
+import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import com.izettle.metrics.influxdb.InfluxDbHttpSender;
@@ -44,13 +46,16 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class MetricsConfiguration {
 
+    static final String METRIC_REGISTRY_NAME = "metric-registry";
+
     @Autowired(required = false)
     private List<ScheduledReporter> reporters = Collections.emptyList();
+
     @Autowired
     private Vertx vertx;
 
     @Bean
-    @ConditionalOnProperty(prefix = "metrics.graphite", name = "host")
+    @ConditionalOnProperty(prefix = "metrics.graphite", name = "enabled", havingValue = "true")
     ScheduledReporter graphiteReporter(GraphiteProperties graphiteProperties, MetricRegistry metricRegistry) {
         final Graphite graphite = new Graphite(graphiteProperties.getHost(), graphiteProperties.getPort());
         final ScheduledReporter reporter = GraphiteReporter.forRegistry(metricRegistry)
@@ -62,7 +67,7 @@ public class MetricsConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "metrics.influxdb", name = "host")
+    @ConditionalOnProperty(prefix = "metrics.influxdb", name = "enabled", havingValue = "true")
     ScheduledReporter influxdbReporter(InfluxdbProperties influxdbProperties, MetricRegistry metricRegistry)
             throws Exception {
         final InfluxDbSender influxDbSender = new InfluxDbHttpSender(
@@ -82,6 +87,15 @@ public class MetricsConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "metrics.console", name = "enabled", havingValue = "true")
+    ScheduledReporter consoleReporter(ConsoleProperties consoleProperties, MetricRegistry metricRegistry) {
+        final ScheduledReporter reporter = ConsoleReporter.forRegistry(metricRegistry).build();
+        reporter.start(consoleProperties.getInterval(), TimeUnit.SECONDS);
+
+        return reporter;
+    }
+
+    @Bean
     Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry,
                     AccountMetricsVerbosity accountMetricsVerbosity) {
         return new Metrics(metricRegistry, counterType, accountMetricsVerbosity);
@@ -89,7 +103,7 @@ public class MetricsConfiguration {
 
     @Bean
     MetricRegistry metricRegistry() {
-        return new MetricRegistry();
+        return SharedMetricRegistries.getOrCreate(METRIC_REGISTRY_NAME);
     }
 
     @Bean
@@ -107,7 +121,7 @@ public class MetricsConfiguration {
 
     @Component
     @ConfigurationProperties(prefix = "metrics.graphite")
-    @ConditionalOnProperty(prefix = "metrics.graphite", name = "host")
+    @ConditionalOnProperty(prefix = "metrics.graphite", name = "enabled", havingValue = "true")
     @Validated
     @Data
     @NoArgsConstructor
@@ -126,7 +140,7 @@ public class MetricsConfiguration {
 
     @Component
     @ConfigurationProperties(prefix = "metrics.influxdb")
-    @ConditionalOnProperty(prefix = "metrics.influxdb", name = "host")
+    @ConditionalOnProperty(prefix = "metrics.influxdb", name = "enabled", havingValue = "true")
     @Validated
     @Data
     @NoArgsConstructor
@@ -150,6 +164,19 @@ public class MetricsConfiguration {
         @NotNull
         @Min(1)
         private Integer readTimeout;
+        @NotNull
+        @Min(1)
+        private Integer interval;
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "metrics.console")
+    @ConditionalOnProperty(prefix = "metrics.console", name = "enabled", havingValue = "true")
+    @Validated
+    @Data
+    @NoArgsConstructor
+    private static class ConsoleProperties {
+
         @NotNull
         @Min(1)
         private Integer interval;
