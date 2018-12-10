@@ -3,9 +3,11 @@
 This document describes all metrics collected and submitted to configured backends by the Prebid Server.
 
 ## System metrics
-- `vertx.http.servers.0.0.0.0:[PORT].open-netsockets.count` - current number of open connections
+- `vertx.http.servers.[IP]:[PORT].open-netsockets.count` - current number of open connections
 
-where [PORT] should be equal to `http.port` configuration property. 
+where:
+- `[IP]` should be equal to IP address of bound network interface on cluster node for Prebid Server (for example: `0.0.0.0`).
+- `[PORT]` should be equal to `http.port` configuration property.
 
 Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.io/docs/vertx-dropwizard-metrics/java/#_the_metrics) page.
 
