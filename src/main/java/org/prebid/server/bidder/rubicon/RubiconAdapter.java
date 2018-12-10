@@ -68,7 +68,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * <a href="https://rubiconproject.com">Rubicon Project</a> {@link Adapter} implementation.
@@ -103,16 +102,20 @@ public class RubiconAdapter extends OpenrtbAdapter {
 
         validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
-        final List<AdapterHttpRequest<BidRequest>> httpRequests = adUnitBids.stream()
-                .flatMap(adUnitBid -> createBidRequests(adUnitBid, preBidRequestContext))
-                .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl, bidRequest, headers))
+        final List<BidRequest> requests = adUnitBids.stream()
+                .filter(RubiconAdapter::containsAnyAllowedMediaType)
+                .map(adUnitBid -> createBidRequests(adUnitBid, preBidRequestContext))
                 .collect(Collectors.toList());
 
-        validateBidRequests(httpRequests.stream()
-                .map(AdapterHttpRequest::getPayload)
-                .collect(Collectors.toList()));
+        validateBidRequests(requests);
 
-        return httpRequests;
+        return requests.stream()
+                .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl, bidRequest, headers))
+                .collect(Collectors.toList());
+    }
+
+    private static boolean containsAnyAllowedMediaType(AdUnitBid adUnitBid) {
+        return CollectionUtils.containsAny(adUnitBid.getMediaTypes(), ALLOWED_MEDIA_TYPES);
     }
 
     private static void validateBidRequests(List<BidRequest> bidRequests) {
@@ -121,22 +124,21 @@ public class RubiconAdapter extends OpenrtbAdapter {
         }
     }
 
-    private Stream<BidRequest> createBidRequests(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
+    private BidRequest createBidRequests(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
         final RubiconParams rubiconParams = parseAndValidateRubiconParams(adUnitBid);
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        return makeImps(adUnitBid, rubiconParams, preBidRequestContext)
-                .map(imp -> BidRequest.builder()
-                        .id(preBidRequest.getTid())
-                        .app(makeApp(rubiconParams, preBidRequestContext))
-                        .at(1)
-                        .tmax(preBidRequest.getTimeoutMillis())
-                        .imp(Collections.singletonList(imp))
-                        .site(makeSite(rubiconParams, preBidRequestContext))
-                        .device(makeDevice(preBidRequestContext))
-                        .user(makeUser(rubiconParams, preBidRequestContext))
-                        .source(makeSource(preBidRequestContext))
-                        .regs(preBidRequest.getRegs())
-                        .build());
+        return BidRequest.builder()
+                .id(preBidRequest.getTid())
+                .app(makeApp(rubiconParams, preBidRequestContext))
+                .at(1)
+                .tmax(preBidRequest.getTimeoutMillis())
+                .imp(Collections.singletonList(makeImp(adUnitBid, rubiconParams, preBidRequestContext)))
+                .site(makeSite(rubiconParams, preBidRequestContext))
+                .device(makeDevice(preBidRequestContext))
+                .user(makeUser(rubiconParams, preBidRequestContext))
+                .source(makeSource(preBidRequestContext))
+                .regs(preBidRequest.getRegs())
+                .build();
     }
 
     private RubiconParams parseAndValidateRubiconParams(AdUnitBid adUnitBid) {
@@ -175,17 +177,28 @@ public class RubiconAdapter extends OpenrtbAdapter {
                 .build();
     }
 
-    private static Stream<Imp> makeImps(AdUnitBid adUnitBid, RubiconParams rubiconParams,
-                                        PreBidRequestContext preBidRequestContext) {
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
+    private static Imp makeImp(AdUnitBid adUnitBid, RubiconParams rubiconParams,
+                               PreBidRequestContext preBidRequestContext) {
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
                 .filter(mediaType -> isValidAdUnitBidMediaType(mediaType, adUnitBid))
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, rubiconParams))
-                .map(impBuilder -> impBuilder
-                        .id(adUnitBid.getAdUnitCode())
-                        .secure(preBidRequestContext.getSecure())
-                        .instl(adUnitBid.getInstl())
-                        .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)))
-                        .build());
+                .collect(Collectors.toSet());
+        if (mediaTypes.isEmpty()) {
+            throw new PreBidException("No valid media types");
+        }
+
+        final Imp.ImpBuilder impBuilder = Imp.builder()
+                .id(adUnitBid.getAdUnitCode())
+                .secure(preBidRequestContext.getSecure())
+                .instl(adUnitBid.getInstl())
+                .ext(Json.mapper.valueToTree(makeImpExt(rubiconParams, preBidRequestContext)));
+
+        if (mediaTypes.contains(MediaType.banner)) {
+            impBuilder.banner(makeBanner(adUnitBid));
+        }
+        if (mediaTypes.contains(MediaType.video)) {
+            impBuilder.video(makeVideo(adUnitBid, rubiconParams.getVideo()));
+        }
+        return impBuilder.build();
     }
 
     private static boolean isValidAdUnitBidMediaType(MediaType mediaType, AdUnitBid adUnitBid) {
@@ -198,22 +211,6 @@ public class RubiconAdapter extends OpenrtbAdapter {
             default:
                 return false;
         }
-    }
-
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
-                                                      RubiconParams rubiconParams) {
-        final Imp.ImpBuilder builder = Imp.builder();
-        switch (mediaType) {
-            case video:
-                builder.video(makeVideo(adUnitBid, rubiconParams.getVideo()));
-                break;
-            case banner:
-                builder.banner(makeBanner(adUnitBid));
-                break;
-            default:
-                // unknown media type, just skip it
-        }
-        return builder;
     }
 
     private static RubiconImpExt makeImpExt(RubiconParams rubiconParams, PreBidRequestContext preBidRequestContext) {

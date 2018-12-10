@@ -66,15 +66,18 @@ But feel free to add additional bidder's specific options.
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.
 
-Metrics can be submitted simultaneously to many backends. Currently we support `graphite` and `influxdb`.
+So far metrics cannot be submitted simultaneously to many backends. Currently we support `graphite` and `influxdb`. 
+Also, for debug purposes you can use `console` as metrics backend.
 
 For `graphite` backend type available next options:
+- `metrics.graphite.enabled` - if equals to `true` then `graphite` will be used to submit metrics.
 - `metrics.graphite.prefix` - the prefix of all metric names.
 - `metrics.graphite.host` - the graphite host for sending statistics.
 - `metrics.graphite.port` - the graphite port for sending statistics.
 - `metrics.graphite.interval` - interval in seconds between successive sending metrics.
 
 For `influxdb` backend type available next options:
+- `metrics.influxdb.enabled` - if equals to `true` then `influxdb` will be used to submit metrics.
 - `metrics.influxdb.prefix` - the prefix of all metric names.
 - `metrics.influxdb.protocol` - external service destination protocol.
 - `metrics.influxdb.host` - the influxDb host for sending metrics.
@@ -84,6 +87,10 @@ For `influxdb` backend type available next options:
 - `metrics.influxdb.connectTimeout` - the connect timeout.
 - `metrics.influxdb.readTimeout` - the response timeout.
 - `metrics.influxdb.interval` - interval in seconds between successive sending metrics.
+
+For `console` backend type available next options:
+- `metrics.console.enabled` - if equals to `true` then `console` will be used to submit metrics.
+- `metrics.console.interval` - interval in seconds between successive sending metrics.
 
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.

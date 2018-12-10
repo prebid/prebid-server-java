@@ -2,6 +2,15 @@
 
 This document describes all metrics collected and submitted to configured backends by the Prebid Server.
 
+## System metrics
+- `vertx.http.servers.[IP]:[PORT].open-netsockets.count` - current number of open connections
+
+where:
+- `[IP]` should be equal to IP address of bound network interface on cluster node for Prebid Server (for example: `0.0.0.0`).
+- `[PORT]` should be equal to `http.port` configuration property.
+
+Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.io/docs/vertx-dropwizard-metrics/java/#_the_metrics) page.
+
 ## General auction metrics
 - `app_requests` - number of requests received from applications
 - `no_cookie_requests` - number of requests without `uids` cookie or with one that didn't contain at least one live UID
@@ -10,7 +19,6 @@ This document describes all metrics collected and submitted to configured backen
 - `request_time` - timer tracking how long did it take for Prebid Server to serve a request
 - `imps_requested` - number if impressions requested
 - `requests.(ok|badinput|err|networkerr).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
-- `active_connections` - current number of open connections
 - `db_circuitbreaker_opened` - number of how many times database circuit breaker was opened (database is unavailable)
 - `db_circuitbreaker_closed` - number of how many times database circuit breaker was closed (database is available again)
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query

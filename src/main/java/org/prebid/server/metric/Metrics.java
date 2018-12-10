@@ -173,14 +173,6 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(bidder).incCounter(MetricName.gdpr_masked);
     }
 
-    public void updateActiveConnectionsMetrics(boolean openConnection) {
-        if (openConnection) {
-            incCounter(MetricName.active_connections);
-        } else {
-            decCounter(MetricName.active_connections);
-        }
-    }
-
     public void updateDatabaseQueryTimeMetric(long millis) {
         updateTimer(MetricName.db_query_time, millis);
     }

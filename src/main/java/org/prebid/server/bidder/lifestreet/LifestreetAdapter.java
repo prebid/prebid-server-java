@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -30,7 +31,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Lifestreet {@link Adapter} implementation.
@@ -54,8 +54,15 @@ public class LifestreetAdapter extends OpenrtbAdapter {
 
         validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
 
-        return createAdUnitBidsWithParams(adUnitBids).stream()
-                .flatMap(adUnitBidWithParams -> createBidRequests(adUnitBidWithParams, preBidRequestContext))
+        final List<BidRequest> requests = createAdUnitBidsWithParams(adUnitBids).stream()
+                .filter(LifestreetAdapter::containsAnyAllowedMediaType)
+                .map(adUnitBidWithParams -> createBidRequests(adUnitBidWithParams, preBidRequestContext))
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(requests)) {
+            throw new PreBidException("Invalid ad unit/imp");
+        }
+
+        return requests.stream()
                 .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl, bidRequest, headers()))
                 .collect(Collectors.toList());
     }
@@ -91,56 +98,48 @@ public class LifestreetAdapter extends OpenrtbAdapter {
         return params;
     }
 
-    private Stream<BidRequest> createBidRequests(AdUnitBidWithParams<LifestreetParams> adUnitBidWithParams,
-                                                 PreBidRequestContext preBidRequestContext) {
-        final List<Imp> imps = makeImps(adUnitBidWithParams, preBidRequestContext);
-        validateImps(imps);
-
-        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        return imps.stream()
-                .map(imp -> BidRequest.builder()
-                        .id(preBidRequest.getTid())
-                        .at(1)
-                        .tmax(preBidRequest.getTimeoutMillis())
-                        .imp(Collections.singletonList(imp))
-                        .app(preBidRequest.getApp())
-                        .site(makeSite(preBidRequestContext))
-                        .device(deviceBuilder(preBidRequestContext).build())
-                        .user(makeUser(preBidRequestContext))
-                        .source(makeSource(preBidRequestContext))
-                        .regs(preBidRequest.getRegs())
-                        .build());
+    private static boolean containsAnyAllowedMediaType(AdUnitBidWithParams<LifestreetParams> adUnitBidWithParams) {
+        return CollectionUtils.containsAny(adUnitBidWithParams.getAdUnitBid().getMediaTypes(), ALLOWED_MEDIA_TYPES);
     }
 
-    private static List<Imp> makeImps(AdUnitBidWithParams<LifestreetParams> adUnitBidWithParams,
-                                      PreBidRequestContext preBidRequestContext) {
+    private BidRequest createBidRequests(AdUnitBidWithParams<LifestreetParams> adUnitBidWithParams,
+                                         PreBidRequestContext preBidRequestContext) {
+        final Imp imp = makeImp(adUnitBidWithParams, preBidRequestContext);
+
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        return BidRequest.builder()
+                .id(preBidRequest.getTid())
+                .at(1)
+                .tmax(preBidRequest.getTimeoutMillis())
+                .imp(Collections.singletonList(imp))
+                .app(preBidRequest.getApp())
+                .site(makeSite(preBidRequestContext))
+                .device(deviceBuilder(preBidRequestContext).build())
+                .user(makeUser(preBidRequestContext))
+                .source(makeSource(preBidRequestContext))
+                .regs(preBidRequest.getRegs())
+                .build();
+    }
+
+    private static Imp makeImp(AdUnitBidWithParams<LifestreetParams> adUnitBidWithParams,
+                               PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final LifestreetParams params = adUnitBidWithParams.getParams();
 
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
-                        .id(adUnitBid.getAdUnitCode())
-                        .instl(adUnitBid.getInstl())
-                        .secure(preBidRequestContext.getSecure())
-                        .tagid(params.getSlotTag())
-                        .build())
-                .collect(Collectors.toList());
-    }
+        final Imp.ImpBuilder impBuilder = Imp.builder()
+                .id(adUnitBid.getAdUnitCode())
+                .instl(adUnitBid.getInstl())
+                .secure(preBidRequestContext.getSecure())
+                .tagid(params.getSlotTag());
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
-
-        switch (mediaType) {
-            case video:
-                impBuilder.video(videoBuilder(adUnitBid).build());
-                break;
-            case banner:
-                impBuilder.banner(makeBanner(adUnitBid));
-                break;
-            default:
-                // unknown media type, just skip it
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+        if (mediaTypes.contains(MediaType.video)) {
+            impBuilder.video(videoBuilder(adUnitBid).build());
         }
-        return impBuilder;
+        if (mediaTypes.contains(MediaType.banner)) {
+            impBuilder.banner(makeBanner(adUnitBid));
+        }
+        return impBuilder.build();
     }
 
     private static Banner makeBanner(AdUnitBid adUnitBid) {

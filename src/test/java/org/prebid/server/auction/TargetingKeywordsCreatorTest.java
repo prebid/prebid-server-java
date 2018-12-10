@@ -119,8 +119,7 @@ public class TargetingKeywordsCreatorTest {
                 entry("hb_bidder", "bidder1"),
                 entry("hb_cache_id", "cacheId1"),
                 entry("hb_size", "50x100"),
-                entry("hb_deal", "dealId1"),
-                entry("hb_creative_loadtype", "html"));
+                entry("hb_deal", "dealId1"));
     }
 
     @Test
@@ -145,7 +144,6 @@ public class TargetingKeywordsCreatorTest {
                 entry("hb_bidder", "bidder1"),
                 entry("hb_size", "50x100"),
                 entry("hb_deal", "dealId1"),
-                entry("hb_creative_loadtype", "html"),
                 entry("hb_cache_id", "cacheId1"),
                 entry("hb_cache_id_bidder1", "cacheId1"),
                 entry("hb_uuid", "videoCacheId1"),
@@ -190,32 +188,6 @@ public class TargetingKeywordsCreatorTest {
 
         // then
         assertThat(keywords).contains(entry("hb_pb", "3.80"));
-    }
-
-    @Test
-    public void shouldReturnDemandSdkLoadtypeForAudienceNetworkBidder() {
-        // given
-        final Bid bid = Bid.builder().bidder("audienceNetwork").price(BigDecimal.ONE).build();
-
-        // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create((String) null, true, true, false)
-                .makeFor(bid, true);
-
-        // then
-        assertThat(keywords).contains(entry("hb_creative_loadtype", "demand_sdk"));
-    }
-
-    @Test
-    public void shouldReturnDemandSdkLoadtypeForAudienceNetworkBidderOpenrtb() {
-        // given
-        final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
-
-        // when
-        final Map<String, String> keywords = TargetingKeywordsCreator.create((String) null, true, true, false)
-                .makeFor(bid, "audienceNetwork", true, null, null, null, null, null);
-
-        // then
-        assertThat(keywords).contains(entry("hb_creative_loadtype", "demand_sdk"));
     }
 
     @Test

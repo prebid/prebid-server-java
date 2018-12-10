@@ -31,7 +31,6 @@
                 "hb_bidder_pulsepoint": "pulsepoint",
                 "hb_bidder": "pulsepoint",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_deal": "dealId8"
               },
               "cache": {
@@ -71,7 +70,6 @@
                 "hb_bidder_pulsepoint": "pulsepoint",
                 "hb_bidder": "pulsepoint",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_deal": "dealId81"
               },
               "cache": {
