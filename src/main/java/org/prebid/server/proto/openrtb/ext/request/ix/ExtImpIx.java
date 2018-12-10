@@ -13,6 +13,5 @@ public class ExtImpIx {
     @JsonProperty("siteId")
     String siteId;
 
-    @JsonProperty("size")
     List<Integer> size;
 }

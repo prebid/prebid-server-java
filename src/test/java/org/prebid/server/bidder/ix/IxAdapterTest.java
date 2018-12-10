@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.ix;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -149,9 +148,8 @@ public class IxAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamPublisherIdIsMissing() {
         // given
-        final ObjectNode params = mapper.createObjectNode();
-        params.set("siteId", null);
-        adapterRequest = givenBidder(builder -> builder.params(params));
+        adapterRequest = givenBidder(builder -> builder.params(
+                mapper.valueToTree(IxParams.of(null, null))));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
@@ -162,10 +160,8 @@ public class IxAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamSizeIsInvalid() {
         // given
-        final ObjectNode params = mapper.createObjectNode();
-        params.put("siteId", "id");
-        params.set("size", mapper.valueToTree(singletonList(33)));
-        adapterRequest = givenBidder(builder -> builder.params(params));
+        adapterRequest = givenBidder(builder -> builder.params(
+                mapper.valueToTree(IxParams.of("id", singletonList(33)))));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
