@@ -80,15 +80,18 @@ public class IxAdapter extends OpenrtbAdapter {
         final List<BidRequest> regularRequests = new ArrayList<>();
 
         for (AdUnitBid adUnitBid : adUnitBids) {
-            final IxParams ixParams = parseAndValidateParams(adUnitBid);
-
             final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
             if (!mediaTypes.contains(MediaType.banner)) {
                 continue;
             }
+            final IxParams ixParams = parseAndValidateParams(adUnitBid);
+            final List<Integer> ixParamsSizes = ixParams.getSize();
             boolean isFirstSize = true;
-            for (Format size : adUnitBid.getSizes()) {
-                final BidRequest bidRequest = createBidRequest(adUnitBid, ixParams, size, preBidRequestContext);
+            for (Format format : adUnitBid.getSizes()) {
+                if (CollectionUtils.isNotEmpty(ixParamsSizes) && !isValidIxSize(format, ixParamsSizes)) {
+                    continue;
+                }
+                final BidRequest bidRequest = createBidRequest(adUnitBid, ixParams, format, preBidRequestContext);
                 // prioritize slots over sizes
                 if (isFirstSize) {
                     prioritizedRequests.add(bidRequest);
@@ -123,7 +126,16 @@ public class IxAdapter extends OpenrtbAdapter {
         if (StringUtils.isBlank(siteId)) {
             throw new PreBidException("Missing siteId param");
         }
+
+        final List<Integer> size = params.getSize();
+        if (size != null && size.size() < 2) {
+            throw new PreBidException("Incorrect Size param: expected at least 2 values");
+        }
         return params;
+    }
+
+    private static boolean isValidIxSize(Format format, List<Integer> sizes) {
+        return Objects.equals(format.getW(), sizes.get(0)) && Objects.equals(format.getH(), sizes.get(1));
     }
 
     private BidRequest createBidRequest(AdUnitBid adUnitBid, IxParams ixParams, Format size,

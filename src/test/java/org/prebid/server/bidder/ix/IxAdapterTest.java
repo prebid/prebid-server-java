@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.ix;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -149,14 +148,25 @@ public class IxAdapterTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfAdUnitBidParamPublisherIdIsMissing() {
         // given
-        final ObjectNode params = mapper.createObjectNode();
-        params.set("siteId", null);
-        adapterRequest = givenBidder(builder -> builder.params(params));
+        adapterRequest = givenBidder(builder -> builder.params(
+                mapper.valueToTree(IxParams.of(null, null))));
 
         // when and then
         assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
                 .isExactlyInstanceOf(PreBidException.class)
                 .hasMessage("Missing siteId param");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFailIfAdUnitBidParamSizeIsInvalid() {
+        // given
+        adapterRequest = givenBidder(builder -> builder.params(
+                mapper.valueToTree(IxParams.of("id", singletonList(33)))));
+
+        // when and then
+        assertThatThrownBy(() -> adapter.makeHttpRequests(adapterRequest, preBidRequestContext))
+                .isExactlyInstanceOf(PreBidException.class)
+                .hasMessage("Incorrect Size param: expected at least 2 values");
     }
 
     @Test
@@ -202,7 +212,7 @@ public class IxAdapterTest extends VertxTest {
                         .instl(1)
                         .topframe(1)
                         .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                        .params(mapper.valueToTree(IxParams.of("486"))));
+                        .params(mapper.valueToTree(IxParams.of("486", asList(300, 250)))));
 
         preBidRequestContext = givenPreBidRequestContext(
                 builder -> builder
@@ -307,6 +317,30 @@ public class IxAdapterTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnListWithOnlyOneRequestWithValidSizesFromParams() {
+        // given
+        adapterRequest = AdapterRequest.of(BIDDER, singletonList(
+                givenAdUnitBid(builder -> builder
+                        .adUnitCode("adUnitCode1")
+                        .sizes(asList(Format.builder().w(300).h(250).build(),
+                                Format.builder().w(300).h(300).build()))
+                        .params(mapper.valueToTree(IxParams.of("486", asList(300, 250))))
+                )));
+
+        // when
+        final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
+                preBidRequestContext);
+
+        // then
+        assertThat(httpRequests).hasSize(1)
+                .extracting(AdapterHttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .containsOnly(Format.builder().w(300).h(250).build());
+    }
+
+    @Test
     public void makeHttpRequestsShouldPrioritizeSlotsOverSizes() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, asList(
@@ -317,7 +351,7 @@ public class IxAdapterTest extends VertxTest {
                 givenAdUnitBid(builder -> builder
                         .adUnitCode("adUnitCode2")
                         .sizes(singletonList(Format.builder().w(600).h(480).build())))
-                ));
+        ));
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
@@ -491,7 +525,7 @@ public class IxAdapterTest extends VertxTest {
     private static AdUnitBid givenAdUnitBid(Function<AdUnitBidBuilder, AdUnitBidBuilder> adUnitBidBuilderCustomizer) {
         final AdUnitBidBuilder adUnitBidBuilderMinimal = AdUnitBid.builder()
                 .sizes(singletonList(Format.builder().w(300).h(250).build()))
-                .params(mapper.valueToTree(IxParams.of("42")))
+                .params(mapper.valueToTree(IxParams.of("42", null)))
                 .mediaTypes(singleton(MediaType.banner));
 
         final AdUnitBidBuilder adUnitBidBuilderCustomized = adUnitBidBuilderCustomizer
