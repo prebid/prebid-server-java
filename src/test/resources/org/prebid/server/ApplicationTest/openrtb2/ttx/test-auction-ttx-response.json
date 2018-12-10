@@ -28,8 +28,7 @@
                 "hb_size": "300x250",
                 "hb_bidder": "ttx",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_hostpath_ttx": "{{ cache.hostpath }}",
-                "hb_creative_loadtype": "html"
+                "hb_cache_hostpath_ttx": "{{ cache.hostpath }}"
               },
               "cache": {
                 "bids": {

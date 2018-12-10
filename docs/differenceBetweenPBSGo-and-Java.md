@@ -27,6 +27,7 @@ and not the other for an interim period. This page tracks known differences that
 - PBS-Go fixed the IndexExchange-vs-IX issue. PBS-Java fix is in progress.
 - PBS-Java Rubicon adapter removes `req.cur` from request to XAPI.
 - PBS-Go use "60 seconds buffer + {bid,imp,mediaType}TTL" approach to determine caching TTL period.
+- PBS-Java has different names for system metrics. For example instead of `active_connections` it uses `vertx.http.servers.[IP]:[PORT].open-netsockets.count`. See [Metrics](metrics.md) for details.
 
 ## GDPR differences
 - PBS-Java supports geo location service interface to determine the country for incoming client request (the host company should provide its own implementation).

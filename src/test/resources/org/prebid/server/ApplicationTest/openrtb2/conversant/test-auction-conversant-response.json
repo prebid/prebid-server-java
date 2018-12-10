@@ -30,7 +30,6 @@
                 "hb_bidder_conversant": "conversant",
                 "hb_bidder": "conversant",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_deal": "dealId4",
                 "hb_cache_host_conversant": "{{ cache.host }}"
               },
@@ -72,7 +71,6 @@
                 "hb_bidder_conversant": "conversant",
                 "hb_bidder": "conversant",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_creative_loadtype": "html",
                 "hb_deal": "dealId41",
                 "hb_cache_host_conversant": "{{ cache.host }}"
               },

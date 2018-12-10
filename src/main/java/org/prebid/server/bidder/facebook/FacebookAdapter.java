@@ -11,6 +11,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -39,7 +40,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Facebook {@link Adapter} implementation.
@@ -86,8 +86,15 @@ public class FacebookAdapter extends OpenrtbAdapter {
         validateAdUnitBidsMediaTypes(adUnitBids, ALLOWED_MEDIA_TYPES);
         validateAdUnitBidsBannerMediaType(adUnitBids);
 
-        return createAdUnitBidsWithParams(adUnitBids).stream()
-                .flatMap(adUnitBidWithParams -> createBidRequests(adUnitBidWithParams, preBidRequestContext))
+        final List<BidRequest> requests = createAdUnitBidsWithParams(adUnitBids).stream()
+                .filter(FacebookAdapter::containsAnyAllowedMediaType)
+                .map(adUnitBidWithParams -> createBidRequest(adUnitBidWithParams, preBidRequestContext))
+                .collect(Collectors.toList());
+        if (requests.isEmpty()) {
+            throw new PreBidException("Invalid ad unit/imp");
+        }
+
+        return requests.stream()
                 .map(bidRequest -> AdapterHttpRequest.of(HttpMethod.POST, endpointUrl(), bidRequest, headers()))
                 .collect(Collectors.toList());
     }
@@ -140,56 +147,50 @@ public class FacebookAdapter extends OpenrtbAdapter {
         return NormalizedFacebookParams.of(placementId, placementIdSplit[0]);
     }
 
-    private Stream<BidRequest> createBidRequests(AdUnitBidWithParams<NormalizedFacebookParams> adUnitBidWithParams,
-                                                 PreBidRequestContext preBidRequestContext) {
-        final List<Imp> imps = makeImps(adUnitBidWithParams, preBidRequestContext);
-        validateImps(imps);
+    private static boolean containsAnyAllowedMediaType(
+            AdUnitBidWithParams<NormalizedFacebookParams> adUnitBidWithParams) {
+        return CollectionUtils.containsAny(adUnitBidWithParams.getAdUnitBid().getMediaTypes(), ALLOWED_MEDIA_TYPES);
+    }
+
+    private BidRequest createBidRequest(AdUnitBidWithParams<NormalizedFacebookParams> adUnitBidWithParams,
+                                        PreBidRequestContext preBidRequestContext) {
+        final Imp imp = makeImp(adUnitBidWithParams, preBidRequestContext);
 
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        return imps.stream()
-                .map(imp -> BidRequest.builder()
-                        .id(preBidRequest.getTid())
-                        .at(1)
-                        .tmax(preBidRequest.getTimeoutMillis())
-                        .imp(Collections.singletonList(imp))
-                        .app(makeApp(preBidRequestContext, adUnitBidWithParams.getParams()))
-                        .site(makeSite(preBidRequestContext, adUnitBidWithParams.getParams()))
-                        .device(deviceBuilder(preBidRequestContext).build())
-                        .user(makeUser(preBidRequestContext))
-                        .source(makeSource(preBidRequestContext))
-                        .regs(preBidRequest.getRegs())
-                        .ext(platformJson)
-                        .build());
+        return BidRequest.builder()
+                .id(preBidRequest.getTid())
+                .at(1)
+                .tmax(preBidRequest.getTimeoutMillis())
+                .imp(Collections.singletonList(imp))
+                .app(makeApp(preBidRequestContext, adUnitBidWithParams.getParams()))
+                .site(makeSite(preBidRequestContext, adUnitBidWithParams.getParams()))
+                .device(deviceBuilder(preBidRequestContext).build())
+                .user(makeUser(preBidRequestContext))
+                .source(makeSource(preBidRequestContext))
+                .regs(preBidRequest.getRegs())
+                .ext(platformJson)
+                .build();
     }
 
-    private static List<Imp> makeImps(AdUnitBidWithParams<NormalizedFacebookParams> adUnitBidWithParams,
-                                      PreBidRequestContext preBidRequestContext) {
+    private static Imp makeImp(AdUnitBidWithParams<NormalizedFacebookParams> adUnitBidWithParams,
+                               PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
 
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
-                        .id(adUnitBid.getAdUnitCode())
-                        .instl(adUnitBid.getInstl())
-                        .secure(preBidRequestContext.getSecure())
-                        .tagid(adUnitBidWithParams.getParams().getPlacementId())
-                        .build())
-                .collect(Collectors.toList());
-    }
+        final Imp.ImpBuilder impBuilder = Imp.builder()
+                .id(adUnitBid.getAdUnitCode())
+                .instl(adUnitBid.getInstl())
+                .secure(preBidRequestContext.getSecure())
+                .tagid(adUnitBidWithParams.getParams().getPlacementId());
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
-
-        switch (mediaType) {
-            case video:
-                impBuilder.video(videoBuilder(adUnitBid).build());
-                break;
-            case banner:
-                impBuilder.banner(makeBanner(adUnitBid));
-                break;
-            default:
-                // unknown media type, just skip it
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+        if (mediaTypes.contains(MediaType.video)) {
+            impBuilder.video(videoBuilder(adUnitBid).build());
         }
-        return impBuilder;
+        if (mediaTypes.contains(MediaType.banner)) {
+            impBuilder.banner(makeBanner(adUnitBid));
+        }
+
+        return impBuilder.build();
     }
 
     private static Banner makeBanner(AdUnitBid adUnitBid) {

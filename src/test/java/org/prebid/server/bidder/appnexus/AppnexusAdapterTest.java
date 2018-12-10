@@ -50,9 +50,18 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.from;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
@@ -317,7 +326,7 @@ public class AppnexusAdapterTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnListWithOneRequestIfAdUnitContainsBannerAndVideoMediaTypes() {
+    public void makeHttpRequestsShouldReturnListWithOneRequestWithOneImpIfAdUnitContainsBannerAndVideoMediaTypes() {
         // given
         adapterRequest = AdapterRequest.of(BIDDER, singletonList(
                 givenAdUnitBid(builder -> builder
@@ -340,15 +349,10 @@ public class AppnexusAdapterTest extends VertxTest {
                 .flatExtracting(r -> r.getPayload().getImp())
                 .containsOnly(
                         Imp.builder()
-                                .video(com.iab.openrtb.request.Video.builder().w(300).h(250).mimes(
-                                        singletonList("Mime")).playbackmethod(singletonList(1)).build())
-                                .tagid("30011")
-                                .ext(mapper.valueToTree(AppnexusImpExt.of(
-                                        AppnexusImpExtAppnexus.of(9848285, null, null, null, null))))
-                                .build(),
-                        Imp.builder()
                                 .banner(Banner.builder().w(300).h(250).format(
                                         singletonList(Format.builder().w(300).h(250).build())).build())
+                                .video(com.iab.openrtb.request.Video.builder().w(300).h(250).mimes(
+                                        singletonList("Mime")).playbackmethod(singletonList(1)).build())
                                 .tagid("30011")
                                 .ext(mapper.valueToTree(AppnexusImpExt.of(
                                         AppnexusImpExtAppnexus.of(9848285, null, null, null, null))))
@@ -540,7 +544,7 @@ public class AppnexusAdapterTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall).stream())
+                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall))
                 .withMessage("bidResponse.bid.ext should be defined for appnexus");
     }
 
@@ -564,7 +568,7 @@ public class AppnexusAdapterTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall).stream())
+                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall))
                 .withMessage("bidResponse.bid.ext.appnexus should be defined");
     }
 
@@ -589,7 +593,7 @@ public class AppnexusAdapterTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall).stream())
+                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall))
                 .withMessage("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
     }
 
@@ -614,7 +618,7 @@ public class AppnexusAdapterTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall).stream())
+                .isThrownBy(() -> adapter.extractBids(adapterRequest, exchangeCall))
                 .withMessage("Unrecognized bid_ad_type in response from appnexus: 42");
     }
 

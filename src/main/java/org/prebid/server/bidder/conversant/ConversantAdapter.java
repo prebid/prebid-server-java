@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -35,7 +36,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Conversant {@link Adapter} implementation.
@@ -129,25 +129,38 @@ public class ConversantAdapter extends OpenrtbAdapter {
     private static List<Imp> makeImps(List<AdUnitBidWithParams<ConversantParams>> adUnitBidsWithParams,
                                       PreBidRequestContext preBidRequestContext) {
         return adUnitBidsWithParams.stream()
-                .flatMap(adUnitBidWithParams -> makeImpsForAdUnitBid(adUnitBidWithParams, preBidRequestContext))
+                .filter(ConversantAdapter::containsAnyAllowedMediaType)
+                .map(adUnitBidWithParams -> makeImp(adUnitBidWithParams, preBidRequestContext))
                 .collect(Collectors.toList());
     }
 
-    private static Stream<Imp> makeImpsForAdUnitBid(AdUnitBidWithParams<ConversantParams> adUnitBidWithParams,
-                                                    PreBidRequestContext preBidRequestContext) {
+    private static boolean containsAnyAllowedMediaType(AdUnitBidWithParams<ConversantParams> adUnitBidWithParams) {
+        return CollectionUtils.containsAny(adUnitBidWithParams.getAdUnitBid().getMediaTypes(), ALLOWED_MEDIA_TYPES);
+    }
+
+    private static Imp makeImp(AdUnitBidWithParams<ConversantParams> adUnitBidWithParams,
+                               PreBidRequestContext preBidRequestContext) {
         final AdUnitBid adUnitBid = adUnitBidWithParams.getAdUnitBid();
         final ConversantParams params = adUnitBidWithParams.getParams();
 
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid, params)
-                        .id(adUnitBid.getAdUnitCode())
-                        .instl(adUnitBid.getInstl())
-                        .secure(makeSecure(preBidRequestContext, params))
-                        .displaymanager("prebid-s2s")
-                        .displaymanagerver("1.0.1")
-                        .bidfloor(params.getBidfloor())
-                        .tagid(params.getTagId())
-                        .build());
+        final Imp.ImpBuilder impBuilder = Imp.builder()
+                .id(adUnitBid.getAdUnitCode())
+                .instl(adUnitBid.getInstl())
+                .secure(makeSecure(preBidRequestContext, params))
+                .displaymanager("prebid-s2s")
+                .displaymanagerver("1.0.1")
+                .bidfloor(params.getBidfloor())
+                .tagid(params.getTagId());
+
+        final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+        if (mediaTypes.contains(MediaType.banner)) {
+            impBuilder.banner(makeBanner(adUnitBid, params));
+        }
+        if (mediaTypes.contains(MediaType.video)) {
+            impBuilder.video(makeVideo(adUnitBid, params));
+        }
+
+        return impBuilder.build();
     }
 
     private static Integer makeSecure(PreBidRequestContext preBidRequestContext, ConversantParams params) {
@@ -156,23 +169,6 @@ public class ConversantAdapter extends OpenrtbAdapter {
         final boolean validSecure = secure != null && secure != 0;
         final Integer secureInParams = params.getSecure();
         return !validSecure && secureInParams != null ? secureInParams : secure;
-    }
-
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid,
-                                                      ConversantParams params) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
-
-        switch (mediaType) {
-            case video:
-                impBuilder.video(makeVideo(adUnitBid, params));
-                break;
-            case banner:
-                impBuilder.banner(makeBanner(adUnitBid, params));
-                break;
-            default:
-                // unknown media type, just skip it
-        }
-        return impBuilder;
     }
 
     private static Video makeVideo(AdUnitBid adUnitBid, ConversantParams params) {

@@ -81,6 +81,11 @@ public class IxAdapter extends OpenrtbAdapter {
 
         for (AdUnitBid adUnitBid : adUnitBids) {
             final IxParams ixParams = parseAndValidateParams(adUnitBid);
+
+            final Set<MediaType> mediaTypes = allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES);
+            if (!mediaTypes.contains(MediaType.banner)) {
+                continue;
+            }
             boolean isFirstSize = true;
             for (Format size : adUnitBid.getSizes()) {
                 final BidRequest bidRequest = createBidRequest(adUnitBid, ixParams, size, preBidRequestContext);
@@ -97,25 +102,6 @@ public class IxAdapter extends OpenrtbAdapter {
                 // cap the number of requests to requestLimit
                 .limit(REQUEST_LIMIT)
                 .collect(Collectors.toList());
-    }
-
-    private BidRequest createBidRequest(AdUnitBid adUnitBid, IxParams ixParams, Format size,
-                                        PreBidRequestContext preBidRequestContext) {
-        final List<Imp> imps = makeImps(copyAdUnitBidWithSingleSize(adUnitBid, size), preBidRequestContext);
-        validateImps(imps);
-
-        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
-        return BidRequest.builder()
-                .id(preBidRequest.getTid())
-                .at(1)
-                .tmax(preBidRequest.getTimeoutMillis())
-                .imp(imps)
-                .site(makeSite(preBidRequestContext, ixParams.getSiteId()))
-                .device(deviceBuilder(preBidRequestContext).build())
-                .user(makeUser(preBidRequestContext))
-                .source(makeSource(preBidRequestContext))
-                .regs(preBidRequest.getRegs())
-                .build();
     }
 
     private static IxParams parseAndValidateParams(AdUnitBid adUnitBid) {
@@ -137,34 +123,41 @@ public class IxAdapter extends OpenrtbAdapter {
         if (StringUtils.isBlank(siteId)) {
             throw new PreBidException("Missing siteId param");
         }
-
         return params;
+    }
+
+    private BidRequest createBidRequest(AdUnitBid adUnitBid, IxParams ixParams, Format size,
+                                        PreBidRequestContext preBidRequestContext) {
+        final Imp imp = makeImp(copyAdUnitBidWithSingleSize(adUnitBid, size), preBidRequestContext);
+
+        final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
+        return BidRequest.builder()
+                .id(preBidRequest.getTid())
+                .at(1)
+                .tmax(preBidRequest.getTimeoutMillis())
+                .imp(Collections.singletonList(imp))
+                .site(makeSite(preBidRequestContext, ixParams.getSiteId()))
+                .device(deviceBuilder(preBidRequestContext).build())
+                .user(makeUser(preBidRequestContext))
+                .source(makeSource(preBidRequestContext))
+                .regs(preBidRequest.getRegs())
+                .build();
     }
 
     private static AdUnitBid copyAdUnitBidWithSingleSize(AdUnitBid adUnitBid, Format singleSize) {
         return adUnitBid.toBuilder().sizes(Collections.singletonList(singleSize)).build();
     }
 
-    private static List<Imp> makeImps(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
+    private static Imp makeImp(AdUnitBid adUnitBid, PreBidRequestContext preBidRequestContext) {
         final String adUnitCode = adUnitBid.getAdUnitCode();
-        return allowedMediaTypes(adUnitBid, ALLOWED_MEDIA_TYPES).stream()
-                .map(mediaType -> impBuilderWithMedia(mediaType, adUnitBid)
-                        .id(adUnitCode)
-                        .instl(adUnitBid.getInstl())
-                        .secure(preBidRequestContext.getSecure())
-                        .tagid(adUnitCode)
-                        .build())
-                .collect(Collectors.toList());
-    }
 
-    private static Imp.ImpBuilder impBuilderWithMedia(MediaType mediaType, AdUnitBid adUnitBid) {
-        final Imp.ImpBuilder impBuilder = Imp.builder();
-
-        // if media type is not banner - just skip it
-        if (mediaType == MediaType.banner) {
-            impBuilder.banner(bannerBuilder(adUnitBid).build());
-        }
-        return impBuilder;
+        return Imp.builder()
+                .id(adUnitCode)
+                .instl(adUnitBid.getInstl())
+                .banner(bannerBuilder(adUnitBid).build())
+                .secure(preBidRequestContext.getSecure())
+                .tagid(adUnitCode)
+                .build();
     }
 
     private static Site makeSite(PreBidRequestContext preBidRequestContext, String siteId) {

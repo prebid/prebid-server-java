@@ -20,8 +20,7 @@ public class ConnectionHandler implements Handler<HttpConnection> {
 
     @Override
     public void handle(HttpConnection connection) {
-        metrics.updateActiveConnectionsMetrics(true);
-
-        connection.closeHandler(ignored -> metrics.updateActiveConnectionsMetrics(false));
+        // todo: add error metrics here
+        // connection.exceptionHandler(throwable -> {});
     }
 }

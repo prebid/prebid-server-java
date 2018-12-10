@@ -38,7 +38,6 @@
                 "hb_size_rhythmone": "640x480",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_hostpath_rhythmone": "{{ cache.hostpath }}",
-                "hb_creative_loadtype": "html",
                 "hb_pb_rhythmone": "2.20"
               },
               "cache": {
