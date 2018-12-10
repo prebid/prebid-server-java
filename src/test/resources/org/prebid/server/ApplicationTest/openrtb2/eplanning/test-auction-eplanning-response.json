@@ -24,7 +24,6 @@
                 "hb_bidder_eplanning": "eplanning",
                 "hb_bidder": "eplanning",
                 "hb_cache_id": "6fb008f6-9e09-43ad-830b-ffed21345119",
-                "hb_creative_loadtype": "html",
                 "hb_size_eplanning": "300x250",
                 "hb_deal": "dealId15",
                 "hb_cache_host": "{{ cache.host }}",

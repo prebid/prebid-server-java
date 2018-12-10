@@ -31,7 +31,6 @@
                 "hb_bidder": "somoaudience",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_path_somoaudience": "{{ cache.path }}",
-                "hb_creative_loadtype": "html",
                 "hb_deal": "dealId16"
               },
               "cache": {
@@ -71,7 +70,6 @@
                 "hb_bidder": "somoaudience",
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_path_somoaudience": "{{ cache.path }}",
-                "hb_creative_loadtype": "html",
                 "hb_deal": "dealId17"
               },
               "cache": {
@@ -110,8 +108,7 @@
                 "hb_bidder": "somoaudience",
                 "hb_uuid_somoaudience": "8aa68c39-680d-46f5-ba83-fcd761d436fe",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_path_somoaudience": "{{ cache.path }}",
-                "hb_creative_loadtype": "html"
+                "hb_cache_path_somoaudience": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {
@@ -156,8 +153,7 @@
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_bidder": "somoaudience",
                 "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_path_somoaudience": "{{ cache.path }}",
-                "hb_creative_loadtype": "html"
+                "hb_cache_path_somoaudience": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {
