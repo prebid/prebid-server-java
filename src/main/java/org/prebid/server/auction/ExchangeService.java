@@ -200,7 +200,7 @@ public class ExchangeService {
 
         final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher);
 
-        return publisher != null ? publisher.getId() : StringUtils.EMPTY;
+        return publisher != null && publisher.getId() != null ? publisher.getId() : StringUtils.EMPTY;
     }
 
     /**
