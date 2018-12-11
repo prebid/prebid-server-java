@@ -375,9 +375,6 @@
         }
       }
     },
-    "errors": {
-      "openx": []
-    },
     "responsetimemillis": {
       "openx": "{{ openx.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"

@@ -162,9 +162,6 @@
         }
       }
     },
-    "errors": {
-      "eplanning": []
-    },
     "responsetimemillis": {
       "eplanning": "{{ eplanning.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"

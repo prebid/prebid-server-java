@@ -1129,11 +1129,13 @@ public class ExchangeService {
 
         final Map<String, List<ExtBidderError>> errors = new HashMap<>();
         for (BidderResponse bidderResponse : results) {
-            errors.put(bidderResponse.getBidder(), errorsDetails(bidderResponse.getSeatBid().getErrors()));
+            final List<BidderError> bidderErrors = bidderResponse.getSeatBid().getErrors();
+            if (CollectionUtils.isNotEmpty(bidderErrors)) {
+                errors.put(bidderResponse.getBidder(), errorsDetails(bidderErrors));
+            }
         }
 
         errors.putAll(extractDeprecatedBiddersErrors(bidRequest));
-
         errors.putAll(extractCacheErrors(cacheErrors));
 
         final Map<String, Integer> responseTimeMillis = results.stream()
@@ -1143,7 +1145,7 @@ public class ExchangeService {
             responseTimeMillis.put(CACHE, cacheExecutionTime);
         }
 
-        return ExtBidResponse.of(extResponseDebug, errors, responseTimeMillis, null);
+        return ExtBidResponse.of(extResponseDebug, errors.isEmpty() ? null : errors, responseTimeMillis, null);
     }
 
     private Map<String, List<ExtBidderError>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {

@@ -194,9 +194,6 @@
         }
       }
     },
-    "errors": {
-      "rhythmone": []
-    },
     "responsetimemillis": {
       "rhythmone": "{{ rhythmone.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"

@@ -159,9 +159,6 @@
         }
       }
     },
-    "errors": {
-      "adform": []
-    },
     "responsetimemillis": {
       "adform": "{{ adform.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"

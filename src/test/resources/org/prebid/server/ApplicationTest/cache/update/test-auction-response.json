@@ -126,9 +126,6 @@
         }
       }
     },
-    "errors": {
-      "rubicon": []
-    },
     "responsetimemillis": {
       "rubicon": "{{ rubicon.response_time_ms }}"
     }
