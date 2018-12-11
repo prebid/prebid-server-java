@@ -756,7 +756,7 @@ public class RequestValidator {
         if (!usesHW && !usesRatios) {
             throw new ValidationException("Request imp[%d].banner.format[%d] should define *either*"
                     + " {w, h} (for static size requirements) *or* {wmin, wratio, hratio} (for flexible sizes) "
-                    + "to be non-zero", impIndex, formatIndex);
+                    + "to be non-zero positive", impIndex, formatIndex);
         }
 
         if (usesHW && (!usesH || !usesW)) {

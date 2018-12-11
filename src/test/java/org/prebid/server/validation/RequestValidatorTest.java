@@ -553,7 +553,7 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Request imp[0].banner.format[0] should define *either* {w, h} (for static size "
-                        + "requirements) *or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero");
+                        + "requirements) *or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero positive");
     }
 
     @Test
@@ -567,7 +567,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties");
     }
 
     @Test
@@ -581,7 +581,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties");
     }
 
     @Test
@@ -595,7 +595,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties");
     }
 
     @Test
@@ -609,7 +609,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties");
     }
 
     @Test
@@ -623,7 +623,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties");
     }
 
     @Test
@@ -637,7 +637,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"h\" and \"w\" properties");
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties");
     }
 
     @Test
@@ -652,7 +652,7 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Request imp[0].banner.format[0] must define"
-                        + " a positive \"wmin\", \"wratio\", and \"hratio\" properties");
+                        + " a valid \"wmin\", \"wratio\", and \"hratio\" properties");
     }
 
     @Test
@@ -666,7 +666,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly("Request imp[0].banner.format[0] must define "
-                + "a positive \"wmin\", \"wratio\", and \"hratio\" properties");
+                + "a valid \"wmin\", \"wratio\", and \"hratio\" properties");
     }
 
     @Test
@@ -680,7 +680,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly("Request imp[0].banner.format[0] must define "
-                + "a positive \"wmin\", \"wratio\", and \"hratio\" properties");
+                + "a valid \"wmin\", \"wratio\", and \"hratio\" properties");
     }
 
     @Test
@@ -694,7 +694,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\","
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"wmin\", \"wratio\","
                         + " and \"hratio\" properties");
     }
 
@@ -709,7 +709,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and "
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"wmin\", \"wratio\", and "
                         + "\"hratio\" properties");
     }
 
@@ -724,7 +724,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and "
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"wmin\", \"wratio\", and "
                         + "\"hratio\" properties");
     }
 
@@ -739,7 +739,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and"
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"wmin\", \"wratio\", and"
                         + " \"hratio\" properties");
     }
 
@@ -754,7 +754,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and"
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"wmin\", \"wratio\", and"
                         + " \"hratio\" properties");
     }
 
@@ -769,7 +769,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Request imp[0].banner.format[0] must define a positive \"wmin\", \"wratio\", and"
+                .containsOnly("Request imp[0].banner.format[0] must define a valid \"wmin\", \"wratio\", and"
                         + " \"hratio\" properties");
     }
 
