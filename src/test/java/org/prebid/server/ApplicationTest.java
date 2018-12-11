@@ -486,6 +486,7 @@ public class ApplicationTest extends VertxTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/ttx/test-auction-ttx-response.json",
                 response, singletonList(TTX));
+        System.out.println(response.asString());
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }

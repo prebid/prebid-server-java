@@ -1848,6 +1848,25 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotContainErrorsIfBidderErrorsAreEmpty() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").price(BigDecimal.ONE).build();
+        givenHttpConnector("bidder", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder", 1), builder -> builder.id("impId"))));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getErrors()).isNull();
+    }
+
+    @Test
     public void shouldContainCacheResponseTime() throws JsonProcessingException {
         // given
         final Bid bid = Bid.builder().id("bidId").impid("impId").price(BigDecimal.ONE).build();

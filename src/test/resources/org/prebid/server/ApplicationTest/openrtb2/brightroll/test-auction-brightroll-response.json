@@ -164,9 +164,6 @@
         }
       }
     },
-    "errors": {
-      "brightroll": []
-    },
     "responsetimemillis": {
       "brightroll": "{{ brightroll.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
