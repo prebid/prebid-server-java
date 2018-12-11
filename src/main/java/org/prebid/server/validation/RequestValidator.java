@@ -760,12 +760,12 @@ public class RequestValidator {
         }
 
         if (usesHW && (!usesH || !usesW)) {
-            throw new ValidationException("Request imp[%d].banner.format[%d] must define a positive"
+            throw new ValidationException("Request imp[%d].banner.format[%d] must define a valid"
                     + " \"h\" and \"w\" properties", impIndex, formatIndex);
         }
 
         if (usesRatios && (!usesWmin || !usesWratio || !usesHratio)) {
-            throw new ValidationException("Request imp[%d].banner.format[%d] must define a positive"
+            throw new ValidationException("Request imp[%d].banner.format[%d] must define a valid"
                     + " \"wmin\", \"wratio\", and \"hratio\" properties", impIndex, formatIndex);
         }
     }
