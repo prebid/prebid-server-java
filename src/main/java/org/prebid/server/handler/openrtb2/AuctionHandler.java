@@ -128,22 +128,24 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private void handleResult(AsyncResult<Tuple2<BidResponse, MetricsContext>> responseResult,
                               AuctionEvent.AuctionEventBuilder auctionEventBuilder, RoutingContext context,
                               long startTime) {
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped.");
-            return;
-        }
-
         final boolean responseSucceeded = responseResult.succeeded();
 
         final MetricName requestType = responseSucceeded
                 ? responseResult.result().getRight().getRequestType()
                 : MetricName.openrtb2web;
+
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped.");
+            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+            return;
+        }
+
+        context.response().exceptionHandler(throwable -> handleResponseException(throwable, requestType));
+
         final MetricName requestStatus;
         final int status;
         final List<String> errorMessages;
-
-        context.response().exceptionHandler(throwable -> handleResponseException(throwable, requestType));
 
         if (responseSucceeded) {
             context.response()

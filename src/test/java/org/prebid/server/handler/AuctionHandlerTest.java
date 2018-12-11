@@ -727,6 +727,22 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldUpdateNetworkErrorMetricIfClientClosedConnection() {
+        // given
+        givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
+
+        givenBidderRespondingWithBids(RUBICON, identity(), "bidId1");
+
+        given(routingContext.response().closed()).willReturn(true);
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.legacy), eq(MetricName.networkerr));
+    }
+
+    @Test
     public void shouldRespondWithNoUsersyncInfoForAllBiddersIfHostVendorDeniesGdpr() throws IOException {
         // given
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());

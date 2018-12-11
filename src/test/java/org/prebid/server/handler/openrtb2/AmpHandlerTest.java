@@ -441,6 +441,25 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldUpdateNetworkErrorMetricIfClientClosedConnection() {
+        // given
+        given(ampRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(BidRequest.builder().imp(emptyList()).build()));
+
+        given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
+                .willReturn(givenBidResponse(mapper.valueToTree(
+                        ExtPrebid.of(ExtBidPrebid.of(null, null, null), null))));
+
+        given(routingContext.response().closed()).willReturn(true);
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.networkerr));
+    }
+
+    @Test
     public void shouldPassBadRequestEventToAnalyticsReporterIfBidRequestIsInvalid() {
         // given
         given(ampRequestFactory.fromRequest(any()))
