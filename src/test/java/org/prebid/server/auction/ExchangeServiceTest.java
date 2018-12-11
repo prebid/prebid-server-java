@@ -1688,6 +1688,23 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldUseEmptyStringIfPublisherIdIsNull() {
+        // given
+        given(bidderCatalog.isValidName(anyString())).willReturn(true);
+        given(bidderRequester.requestBids(any(), any()))
+                .willReturn(Future.succeededFuture(givenSeatBid(singletonList(
+                        givenBid(Bid.builder().price(TEN).build())))));
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)),
+                builder -> builder.site(Site.builder().publisher(Publisher.builder().build()).build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        verify(metrics).updateAccountRequestMetrics(eq(""), eq(MetricName.openrtb2web));
+    }
+
+    @Test
     public void shouldIncrementNoBidRequestsMetric() {
         // given
         given(bidderRequester.requestBids(any(), any()))
