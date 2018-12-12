@@ -244,16 +244,14 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private void handleResult(AsyncResult<AmpResponse> responseResult, AmpEvent.AmpEventBuilder ampEventBuilder,
                               RoutingContext context, long startTime) {
+        final MetricName requestType = METRICS_CONTEXT.getRequestType();
+
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped.");
+            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
             return;
         }
-
-        final MetricName requestType = METRICS_CONTEXT.getRequestType();
-        final MetricName requestStatus;
-        final int status;
-        final List<String> errorMessages;
 
         context.response().exceptionHandler(throwable -> handleResponseException(throwable, requestType));
 
@@ -264,6 +262,10 @@ public class AmpHandler implements Handler<RoutingContext> {
         context.response()
                 .putHeader("AMP-Access-Control-Allow-Source-Origin", origin)
                 .putHeader("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+
+        final MetricName requestStatus;
+        final int status;
+        final List<String> errorMessages;
 
         if (responseResult.succeeded()) {
             context.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
@@ -312,7 +314,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
         if (origin == null) {
             // Just to be safe
-            origin = ObjectUtils.firstNonNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
+            origin = ObjectUtils.defaultIfNull(context.request().headers().get("Origin"), StringUtils.EMPTY);
         }
         return origin;
     }
