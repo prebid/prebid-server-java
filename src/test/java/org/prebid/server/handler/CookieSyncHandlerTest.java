@@ -57,6 +57,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -176,6 +177,22 @@ public class CookieSyncHandlerTest extends VertxTest {
         verify(httpResponse).setStatusMessage(eq("gdpr_consent is required if gdpr is 1"));
         verify(httpResponse).end();
         verifyNoMoreInteractions(httpResponse, bidderCatalog);
+    }
+
+    @Test
+    public void shouldNotSendResponseIfClientClosedConnection() {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.of(emptyList(), null, null)));
+
+        givenGdprServiceReturningResult(emptyMap());
+
+        given(routingContext.response().closed()).willReturn(true);
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse, never()).end();
     }
 
     @Test

@@ -408,7 +408,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private void respondWith(PreBidResponse response, RoutingContext context, long startTime) {
         // don't send the response if client has gone
         if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped.");
+            logger.warn("The client already closed connection, response will be skipped");
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
             return;
         }

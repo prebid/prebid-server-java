@@ -143,7 +143,6 @@ public class SetuidHandlerTest extends VertxTest {
         verify(routingContext, never()).addCookie(any());
         verify(httpResponse).setStatusCode(eq(200));
         verify(httpResponse).end(eq("The gdpr_consent param prevents cookies from being saved"));
-        verifyNoMoreInteractions(httpResponse);
     }
 
     @Test
@@ -166,7 +165,6 @@ public class SetuidHandlerTest extends VertxTest {
         verify(routingContext, never()).addCookie(any());
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("GDPR processing failed with error: gdpr exception"));
-        verifyNoMoreInteractions(httpResponse);
     }
 
     @Test
@@ -189,7 +187,6 @@ public class SetuidHandlerTest extends VertxTest {
         verify(routingContext, never()).addCookie(any());
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Unexpected GDPR processing error"));
-        verifyNoMoreInteractions(httpResponse);
     }
 
     @Test
@@ -327,6 +324,24 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateCookieSyncBadRequestMetric();
+    }
+
+    @Test
+    public void shouldNotSendResponseIfClientClosedConnection() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("uid");
+
+        given(routingContext.response().closed()).willReturn(true);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse, never()).end();
     }
 
     @Test
