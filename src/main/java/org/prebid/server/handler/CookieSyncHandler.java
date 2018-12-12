@@ -188,6 +188,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      */
     private void respondWith(RoutingContext context, UidsCookie uidsCookie, String gdpr, String gdprConsent,
                              Collection<String> bidders, Collection<String> biddersRejectedByGdpr) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped");
+            return;
+        }
+
         final List<BidderUsersyncStatus> bidderStatuses = bidders.stream()
                 .map(bidder -> bidderStatusFor(bidder, uidsCookie, biddersRejectedByGdpr, gdpr, gdprConsent))
                 .filter(Objects::nonNull) // skip bidder with live Uid

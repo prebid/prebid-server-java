@@ -179,6 +179,20 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotSendResponseIfClientClosedConnection() {
+        // given
+        given(ampRequestFactory.fromRequest(any())).willReturn(Future.failedFuture(new RuntimeException()));
+
+        given(routingContext.response().closed()).willReturn(true);
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse, never()).end(anyString());
+    }
+
+    @Test
     public void shouldRespondWithExpectedResponse() {
         // given
         given(ampRequestFactory.fromRequest(any()))

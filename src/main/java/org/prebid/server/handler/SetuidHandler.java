@@ -84,6 +84,12 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void handleResult(AsyncResult<GdprResponse> asyncResult, RoutingContext context,
                               UidsCookie uidsCookie, String bidder) {
+        // don't send the response if client has gone
+        if (context.response().closed()) {
+            logger.warn("The client already closed connection, response will be skipped");
+            return;
+        }
+
         final boolean gdprProcessingFailed = asyncResult.failed();
         final boolean allowedCookie = !gdprProcessingFailed && asyncResult.result().getVendorsToGdpr().values()
                 .iterator().next();
