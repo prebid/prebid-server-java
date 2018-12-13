@@ -236,11 +236,13 @@ public class ExchangeServiceTest extends VertxTest {
                 exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
 
         // then
-        assertThat(bidResponse.getExt()).isEqualTo(mapper.valueToTree(ExtBidResponse.of(null,
-                Collections.singletonMap(invalidBidderName, Collections.singletonList(
+        assertThat(bidResponse.getExt()).isEqualTo(mapper.valueToTree(ExtBidResponse.builder().debug(null)
+                .errors(Collections.singletonMap(invalidBidderName, Collections.singletonList(
                         ExtBidderError.of(BidderError.Type.bad_input.getCode(),
-                                "invalid has been deprecated and is no longer available. Use valid instead."))),
-                new HashMap<>(), null)));
+                                "invalid has been deprecated and is no longer available. Use valid instead."))))
+                .responsetimemillis(new HashMap<>())
+                .usersync(null)
+                .build()));
     }
 
     @Test
@@ -1881,6 +1883,26 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).isNull();
+    }
+
+    @Test
+    public void shouldContaintBidRequestTmax() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").price(BigDecimal.ONE).build();
+        givenHttpConnector("bidder", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                // imp ids are not really used for matching, included them here for clarity
+                givenImp(singletonMap("bidder", 1), builder -> builder.id("impId"))),
+                builder -> builder.tmax(5000L));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
+        assertThat(ext.getTmaxrequest()).isEqualTo(5000L);
     }
 
     @Test

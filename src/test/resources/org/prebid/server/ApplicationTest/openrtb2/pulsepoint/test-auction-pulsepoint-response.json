@@ -228,6 +228,7 @@
     "responsetimemillis": {
       "pulsepoint": "{{ pulsepoint.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
-    }
+    },
+    "tmaxrequest": 1000
   }
 }
