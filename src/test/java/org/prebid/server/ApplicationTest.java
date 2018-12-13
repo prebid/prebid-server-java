@@ -82,6 +82,7 @@ public class ApplicationTest extends VertxTest {
     private static final String CONVERSANT_ALIAS = "conversantAlias";
     private static final String EPLANNING = "eplanning";
     private static final String FACEBOOK = "audienceNetwork";
+    private static final String GUMGUM = "gumgum";
     private static final String IX = "ix";
     private static final String LIFESTREET = "lifestreet";
     private static final String OPENX = "openx";
@@ -486,6 +487,38 @@ public class ApplicationTest extends VertxTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/ttx/test-auction-ttx-response.json",
                 response, singletonList(TTX));
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithBidsFromGumGum() throws IOException, JSONException {
+        // given
+        // GumGum bid response for imp 001 and 002
+        wireMockRule.stubFor(post(urlPathEqualTo("/gumgum-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/gumgum/test-gumgum-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/gumgum/test-gumgum-bid-response-1.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/gumgum/test-cache-gumgum-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/gumgum/test-cache-gumgum-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"ttx":"TTX-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InR0eCI6IlRUWC1VSUQifX0=")
+                .body(jsonFrom("openrtb2/gumgum/test-auction-gumgum-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/gumgum/test-auction-gumgum-response.json",
+                response, singletonList(GUMGUM));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
