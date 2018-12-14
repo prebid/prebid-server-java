@@ -510,8 +510,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"ttx":"TTX-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InR0eCI6IlRUWC1VSUQifX0=")
+                // this uids cookie value stands for {"uids":{"gum":"GUM-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7Imd1bSI6IkdVTS1VSUQifX0=")
                 .body(jsonFrom("openrtb2/gumgum/test-auction-gumgum-request.json"))
                 .post("/openrtb2/auction");
 
