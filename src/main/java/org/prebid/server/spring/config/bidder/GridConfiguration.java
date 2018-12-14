@@ -21,7 +21,7 @@ import java.util.List;
 @Configuration
 public class GridConfiguration extends BidderConfiguration {
 
-    private static final String BIDDER_NAME = "rhythmone";
+    private static final String BIDDER_NAME = "grid";
 
     @Value("${adapters.grid.enabled}")
     private boolean enabled;

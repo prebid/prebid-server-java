@@ -200,6 +200,14 @@
       "zone"
     ]
   },
+  "grid": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "TheMediaGrid Adapter Params",
+    "description": "A schema which validates params accepted by TheMediaGrid adapter",
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
   "audienceNetwork": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Facebook Audience Network Adapter Params",
