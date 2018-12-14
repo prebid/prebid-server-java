@@ -16,15 +16,32 @@
       }
     }
   ],
+  "site": {
+    "domain": "example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "publisherId"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
   "device": {
-    "pxratio": 4.2,
+    "ua": "userAgent",
     "dnt": 2,
+    "ip": "192.168.244.1",
+    "pxratio": 4.2,
     "language": "en",
     "ifa": "ifaId"
   },
-  "site": {
-    "publisher": {
-      "id": "publisherId"
+  "user": {
+    "ext": {
+      "digitrust": {
+        "id": "id",
+        "keyv": 123,
+        "pref": 0
+      },
+      "consent": "consentValue"
     }
   },
   "test": 1,
@@ -36,6 +53,11 @@
   "source": {
     "fd": 1,
     "tid": "tid"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
   },
   "ext": {
     "prebid": {
@@ -59,10 +81,12 @@
               "USD": 1.2406
             },
             "USD": {
-              "EUR": 0.8110
+              "EUR": 0.811
             }
           }
-        }
+        },
+        "includewinners": true,
+        "includebidderkeys": true
       },
       "cache": {
         "bids": {},
@@ -70,21 +94,6 @@
           "ttlseconds": 120
         }
       }
-    }
-  },
-  "user": {
-    "ext": {
-      "digitrust": {
-        "id": "id",
-        "keyv": 123,
-        "pref": 0
-      },
-      "consent": "consentValue"
-    }
-  },
-  "regs": {
-    "ext": {
-      "gdpr": 0
     }
   }
 }
