@@ -104,7 +104,7 @@ adapters:
   gumgum:
       enabled: false
       endpoint: https://g2.gumgum.com/providers/prbds2s/bid
-      nonSecureEndpoint: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
+      usersync-url: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
       pbs-enforces-gdpr: true
       deprecated-names:
       aliases:
