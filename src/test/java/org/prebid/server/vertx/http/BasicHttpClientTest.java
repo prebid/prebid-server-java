@@ -3,31 +3,48 @@ package org.prebid.server.vertx.http;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.unit.Async;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.concurrent.TimeoutException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+@RunWith(VertxUnitRunner.class)
 public class BasicHttpClientTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private Vertx vertx;
     @Mock
     private io.vertx.core.http.HttpClient wrappedHttpClient;
 
@@ -50,12 +67,13 @@ public class BasicHttpClientTest {
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
         given(httpClientResponse.exceptionHandler(any())).willReturn(httpClientResponse);
 
-        httpClient = new BasicHttpClient(wrappedHttpClient);
+        httpClient = new BasicHttpClient(vertx, wrappedHttpClient);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new BasicHttpClient(null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicHttpClient(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicHttpClient(vertx, null));
     }
 
     @Test
@@ -84,7 +102,7 @@ public class BasicHttpClientTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("response")));
 
         // when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 0L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 1L);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -97,7 +115,7 @@ public class BasicHttpClientTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
 
         // when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 0L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 1L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -114,11 +132,109 @@ public class BasicHttpClientTest {
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception")));
 
         // when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 0L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, null, 1L);
 
         // then
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).hasMessage("Response exception");
+    }
+
+    @Test
+    public void requestShouldFailsIfHttpRequestTimedOut(TestContext context) {
+        // given
+        final Vertx vertx = Vertx.vertx();
+        final BasicHttpClient httpClient = new BasicHttpClient(vertx, vertx.createHttpClient());
+        final int serverPort = 7777;
+
+        startServer(context, serverPort, 2000L, 0L);
+
+        // when
+        final Async async = context.async();
+        final Future<?> future = httpClient.get("http://localhost:" + serverPort, 1000L);
+        future.setHandler(ar -> async.complete());
+        async.await();
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(TimeoutException.class)
+                .hasMessageStartingWith("The timeout period of 1000ms has been exceeded");
+    }
+
+    @Test
+    public void requestShouldFailsIfHttpResponseTimedOut(TestContext context) {
+        // given
+        final Vertx vertx = Vertx.vertx();
+        final BasicHttpClient httpClient = new BasicHttpClient(vertx, vertx.createHttpClient());
+        final int serverPort = 8888;
+
+        startServer(context, serverPort, 0L, 2000L);
+
+        // when
+        final Async async = context.async();
+        final Future<?> future = httpClient.get("http://localhost:" + serverPort, 1000L);
+        future.setHandler(ar -> async.complete());
+        async.await();
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(TimeoutException.class)
+                .hasMessage("Timed out while waiting for response");
+    }
+
+    /**
+     * The server returns entire response or body with delay.
+     */
+    private static void startServer(TestContext context, int port, long entireResponseDelay, long bodyResponseDelay) {
+        final Async async = context.async();
+
+        new Thread(() -> {
+            try (ServerSocket serverSocket = new ServerSocket(port)) {
+                async.complete();
+
+                try (Socket clientSocket = serverSocket.accept()) {
+                    try (BufferedWriter out = new BufferedWriter(
+                            new OutputStreamWriter(clientSocket.getOutputStream()))) {
+
+                        // waiting for the response
+                        if (entireResponseDelay > 0) {
+                            sleep(entireResponseDelay);
+                        }
+
+                        out.write("HTTP/1.1 200 OK");
+                        out.newLine();
+
+                        out.write("Content-Length: 6"); // set body size greater then length of "start" word
+                        out.newLine();
+
+                        out.newLine();
+                        out.write("start");
+                        out.flush();
+
+                        // waiting for the rest of body
+                        if (bodyResponseDelay > 0) {
+                            sleep(bodyResponseDelay);
+                        }
+
+                        out.write("finish");
+                        out.flush();
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
+
+        async.await();
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @SuppressWarnings("unchecked")
