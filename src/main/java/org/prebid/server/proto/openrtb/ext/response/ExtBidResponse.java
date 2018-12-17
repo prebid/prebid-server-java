@@ -26,7 +26,15 @@ public class ExtBidResponse {
     Map<String, Integer> responsetimemillis;
 
     /**
+     * RequestTimeoutMillis returns the timeout used in the auction.
+     * This is useful if the timeout is saved in the Stored Request on the server.
+     * Clients can run one auction, and then use this to set better connection timeouts on future auction requests.
+     */
+    Long tmaxrequest;
+
+    /**
      * Defines the contract for bidresponse.ext.usersync
      */
     Map<String, ExtResponseSyncData> usersync;
+
 }

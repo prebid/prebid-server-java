@@ -1,0 +1,28 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "bid001",
+        "impid": "impId001",
+        "price": 1.25,
+        "adm": "adm001",
+        "adid": "adid001",
+        "cid": "cid001",
+        "crid": "crid001"
+      }
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "bid002",
+        "impid": "impId002",
+        "price": 2,
+        "adm": "adm002",
+        "adid": "adid002",
+        "cid": "cid002",
+        "crid": "crid002"
+      }
+    }
+  ]
+}
