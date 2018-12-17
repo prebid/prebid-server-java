@@ -7,7 +7,6 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import lombok.Data;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.Objects;
@@ -36,12 +35,11 @@ public class BasicHttpClient implements HttpClient {
         if (timeoutMs <= 0) {
             failResponse(new TimeoutException("Timeout has been exceeded"), future);
         } else {
-            final HttpClientRequest httpClientRequest = httpClient.requestAbs(method, url)
-                    .setTimeout(timeoutMs); // request timeout
+            final HttpClientRequest httpClientRequest = httpClient.requestAbs(method, url);
 
             // Vert.x HttpClientRequest timeout doesn't aware of case when a part of the response body is received,
-            // but remaining response part is delayed. So, we involve overall response timeout to fix it.
-            final long timerId = setResponseTimeout(timeoutMs, httpClientRequest, future);
+            // but remaining part is delayed. So, overall request/response timeout is involved to fix it.
+            final long timerId = vertx.setTimer(timeoutMs, id -> handleTimeout(future, timeoutMs));
 
             httpClientRequest
                     .handler(response -> handleResponse(response, future, timerId))
@@ -61,27 +59,10 @@ public class BasicHttpClient implements HttpClient {
         return future;
     }
 
-    /**
-     * Returns Vert.x Timer ID which fails the given {@link Future} in case of response obtaining is timed out.
-     */
-    private long setResponseTimeout(long timeoutMs, HttpClientRequest httpClientRequest,
-                                    Future<HttpClientResponse> future) {
-        final TimerId timerId = new TimerId();
-
-        // Start timer after the connection is established to be in-sync with request timeout.
-        httpClientRequest.connectionHandler(connection -> timerId.setValue(
-                vertx.setTimer(timeoutMs, id -> handleResponseTimeout(httpClientRequest, future))));
-
-        return timerId.getValue();
-    }
-
-    private void handleResponseTimeout(HttpClientRequest httpClientRequest, Future<HttpClientResponse> future) {
+    private void handleTimeout(Future<HttpClientResponse> future, long timeoutMs) {
         if (!future.isComplete()) {
-            failResponse(new TimeoutException("Timed out while waiting for response"), future);
-
-            // Close connection after failing result.
-            // Note: this will result "io.vertx.core.VertxException: Connection was closed" if close it first!
-            httpClientRequest.reset();
+            failResponse(new TimeoutException(
+                    String.format("Timeout period of %dms has been exceeded", timeoutMs)), future);
         }
     }
 
@@ -109,16 +90,5 @@ public class BasicHttpClient implements HttpClient {
         logger.warn("HTTP client error", exception);
 
         future.tryFail(exception);
-    }
-
-    /**
-     * Holds timer ID value.
-     * <p>
-     * This is because we cannot set primitive long inside HttpClientRequest.connectionHandler().
-     */
-    @Data
-    private static class TimerId {
-
-        long value;
     }
 }

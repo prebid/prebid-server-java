@@ -26,12 +26,12 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -62,18 +62,11 @@ public class BasicHttpClientTest {
         given(httpClientRequest.handler(any())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
         given(httpClientRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        given(httpClientRequest.setTimeout(anyLong())).willReturn(httpClientRequest);
 
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
         given(httpClientResponse.exceptionHandler(any())).willReturn(httpClientResponse);
 
         httpClient = new BasicHttpClient(vertx, wrappedHttpClient);
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new BasicHttpClient(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new BasicHttpClient(vertx, null));
     }
 
     @Test
@@ -88,12 +81,11 @@ public class BasicHttpClientTest {
         // then
         verify(wrappedHttpClient).requestAbs(eq(HttpMethod.POST), eq("url"));
         verify(httpClientRequest.headers()).addAll(eq(headers));
-        verify(httpClientRequest).setTimeout(eq(500L));
         verify(httpClientRequest).end(eq("body"));
     }
 
     @Test
-    public void requestShouldSucceedsIfHttpRequestSucceeds() {
+    public void requestShouldSucceedIfHttpRequestSucceeds() {
         // given
         given(httpClientRequest.handler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(httpClientResponse));
@@ -109,7 +101,7 @@ public class BasicHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsIfHttpRequestFails() {
+    public void requestShouldFailIfHttpRequestFails() {
         // given
         given(httpClientRequest.exceptionHandler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
@@ -123,7 +115,7 @@ public class BasicHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsIfHttpResponseFails() {
+    public void requestShouldFailIfHttpResponseFails() {
         // given
         given(httpClientRequest.handler(any()))
                 .willAnswer(withSelfAndPassObjectToHandler(httpClientResponse));
@@ -140,13 +132,13 @@ public class BasicHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailsIfHttpRequestTimedOut(TestContext context) {
+    public void requestShouldFailIfHttpRequestTimedOut(TestContext context) {
         // given
         final Vertx vertx = Vertx.vertx();
         final BasicHttpClient httpClient = new BasicHttpClient(vertx, vertx.createHttpClient());
         final int serverPort = 7777;
 
-        startServer(context, serverPort, 2000L, 0L);
+        startServer(serverPort, 2000L, 0L);
 
         // when
         final Async async = context.async();
@@ -158,17 +150,17 @@ public class BasicHttpClientTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause())
                 .isInstanceOf(TimeoutException.class)
-                .hasMessageStartingWith("The timeout period of 1000ms has been exceeded");
+                .hasMessageStartingWith("Timeout period of 1000ms has been exceeded");
     }
 
     @Test
-    public void requestShouldFailsIfHttpResponseTimedOut(TestContext context) {
+    public void requestShouldFailIfHttpResponseTimedOut(TestContext context) {
         // given
         final Vertx vertx = Vertx.vertx();
         final BasicHttpClient httpClient = new BasicHttpClient(vertx, vertx.createHttpClient());
         final int serverPort = 8888;
 
-        startServer(context, serverPort, 0L, 2000L);
+        startServer(serverPort, 0L, 2000L);
 
         // when
         final Async async = context.async();
@@ -180,18 +172,18 @@ public class BasicHttpClientTest {
         assertThat(future.failed()).isTrue();
         assertThat(future.cause())
                 .isInstanceOf(TimeoutException.class)
-                .hasMessage("Timed out while waiting for response");
+                .hasMessage("Timeout period of 1000ms has been exceeded");
     }
 
     /**
      * The server returns entire response or body with delay.
      */
-    private static void startServer(TestContext context, int port, long entireResponseDelay, long bodyResponseDelay) {
-        final Async async = context.async();
+    private static void startServer(int port, long entireResponseDelay, long bodyResponseDelay) {
+        final CountDownLatch completionLatch = new CountDownLatch(1);
 
         new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(port)) {
-                async.complete();
+                completionLatch.countDown();
 
                 try (Socket clientSocket = serverSocket.accept()) {
                     try (BufferedWriter out = new BufferedWriter(
@@ -226,7 +218,11 @@ public class BasicHttpClientTest {
             }
         }).start();
 
-        async.await();
+        try {
+            completionLatch.await(10L, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void sleep(long millis) {
