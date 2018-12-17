@@ -72,7 +72,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
 
         final MultiMap headers = makeHeaders(bidRequest);
 
-        return Result.of(createHttpRequests(impExts, modifiedImps, bidRequest, headers, errors), errors);
+        return Result.of(createHttpRequests(impExts, modifiedImps, bidRequest, headers), errors);
     }
 
     /**
@@ -184,28 +184,23 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
     }
 
     private List<HttpRequest<BidRequest>> createHttpRequests(List<T> impExts, List<Imp> modifiedImps,
-                                                             BidRequest bidRequest, MultiMap headers,
-                                                             List<BidderError> errors) {
+                                                             BidRequest bidRequest, MultiMap headers) {
         if (bidderType.equals(BidderType.REQUEST_PER_IMP)) {
             return modifiedImps.stream()
-                    .map(imp -> makeRequest(impExts, Collections.singletonList(imp), bidRequest, headers, errors))
+                    .map(imp -> makeRequest(impExts, Collections.singletonList(imp), bidRequest, headers))
                     .collect(Collectors.toList());
         } else {
             return Collections.singletonList(
-                    makeRequest(impExts, modifiedImps, bidRequest, headers, errors));
+                    makeRequest(impExts, modifiedImps, bidRequest, headers));
         }
     }
 
     private HttpRequest<BidRequest> makeRequest(List<T> impExts, List<Imp> modifiedImps, BidRequest bidRequest,
-                                                MultiMap headers, List<BidderError> errors) {
+                                                MultiMap headers) {
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         requestBuilder.imp(modifiedImps);
 
-        try {
-            modifyRequest(bidRequest, requestBuilder, impExts, modifiedImps);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-        }
+        modifyRequest(bidRequest, requestBuilder, impExts, modifiedImps);
 
         final BidRequest outgoingRequest = requestBuilder.build();
         final String body = Json.encode(outgoingRequest);
