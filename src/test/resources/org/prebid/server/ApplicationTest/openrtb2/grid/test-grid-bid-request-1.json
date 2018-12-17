@@ -35,6 +35,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "buyeruid": "GRID-UID",
     "ext": {
       "digitrust": {
         "id": "id",

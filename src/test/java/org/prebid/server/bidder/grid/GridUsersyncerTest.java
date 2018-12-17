@@ -10,7 +10,7 @@ public class GridUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new GridUsersyncer(null, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new GridUsersyncer(null, null));
         assertThatNullPointerException().isThrownBy(() -> new GridUsersyncer("some_url", null));
     }
 

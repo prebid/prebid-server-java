@@ -32,7 +32,7 @@ public class GridUsersyncer implements Usersyncer {
      */
     @Override
     public String cookieFamilyName() {
-        return "rhythmone";
+        return "grid";
     }
 
     /**
