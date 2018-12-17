@@ -262,8 +262,8 @@ public class AmpHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any(), any(), any(), any(), any()))
                 .willReturn(givenBidResponseWithExt(mapper.valueToTree(
-                        ExtBidResponse.builder().debug(ExtResponseDebug.of(null, bidRequest))
-                                .errors(null).responsetimemillis(null).tmaxrequest(null).usersync(null).build())));
+                        ExtBidResponse.of(ExtResponseDebug.of(null, bidRequest),
+                                null, null, null, null))));
 
         // when
         ampHandler.handle(routingContext);

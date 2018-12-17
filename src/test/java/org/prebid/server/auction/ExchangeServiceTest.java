@@ -236,13 +236,11 @@ public class ExchangeServiceTest extends VertxTest {
                 exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
 
         // then
-        assertThat(bidResponse.getExt()).isEqualTo(mapper.valueToTree(ExtBidResponse.builder().debug(null)
-                .errors(Collections.singletonMap(invalidBidderName, Collections.singletonList(
+        assertThat(bidResponse.getExt()).isEqualTo(mapper.valueToTree(ExtBidResponse.of(null,
+                Collections.singletonMap(invalidBidderName, Collections.singletonList(
                         ExtBidderError.of(BidderError.Type.bad_input.getCode(),
-                                "invalid has been deprecated and is no longer available. Use valid instead."))))
-                .responsetimemillis(new HashMap<>())
-                .usersync(null)
-                .build()));
+                                "invalid has been deprecated and is no longer available. Use valid instead."))),
+                new HashMap<>(), null, null)));
     }
 
     @Test
@@ -1886,7 +1884,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldContaintBidRequestTmax() throws JsonProcessingException {
+    public void shouldContainBidRequestTmax() throws JsonProcessingException {
         // given
         final Bid bid = Bid.builder().id("bidId").impid("impId").price(BigDecimal.ONE).build();
         givenHttpConnector("bidder", mock(BidderRequester.class), givenSeatBid(singletonList(givenBid(bid))));

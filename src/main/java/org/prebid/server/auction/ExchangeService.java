@@ -1146,13 +1146,8 @@ public class ExchangeService {
             responseTimeMillis.put(CACHE, cacheExecutionTime);
         }
 
-        return ExtBidResponse.builder()
-                .debug(extResponseDebug)
-                .errors(errors.isEmpty() ? null : errors)
-                .responsetimemillis(responseTimeMillis)
-                .tmaxrequest(bidRequest.getTmax())
-                .usersync(null)
-                .build();
+        return ExtBidResponse.of(extResponseDebug, errors.isEmpty() ? null : errors,
+                responseTimeMillis, bidRequest.getTmax(), null);
     }
 
     private Map<String, List<ExtBidderError>> extractDeprecatedBiddersErrors(BidRequest bidRequest) {
