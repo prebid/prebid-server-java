@@ -9,11 +9,11 @@ import java.util.Objects;
 /**
  * GumGum {@link Usersyncer} implementation
  */
-public class GumGumUsersyncer implements Usersyncer {
+public class GumgumUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
 
-    public GumGumUsersyncer(String usersyncUrl, String externalUrl) {
+    public GumgumUsersyncer(String usersyncUrl, String externalUrl) {
         usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
     }
 

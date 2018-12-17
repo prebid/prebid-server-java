@@ -5,7 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtImpGumGum {
+public class ExtImpGumgum {
 
     String zone;
 }

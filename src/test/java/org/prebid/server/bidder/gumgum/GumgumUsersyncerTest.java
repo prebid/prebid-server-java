@@ -6,12 +6,12 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-public class GumGumUsersyncerTest {
+public class GumgumUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new GumGumUsersyncer(null, "some_url"));
-        assertThatNullPointerException().isThrownBy(() -> new GumGumUsersyncer("some_url", null));
+        assertThatNullPointerException().isThrownBy(() -> new GumgumUsersyncer(null, null));
+        assertThatNullPointerException().isThrownBy(() -> new GumgumUsersyncer("some_url", null));
     }
 
     @Test
@@ -23,7 +23,7 @@ public class GumGumUsersyncerTest {
                 "redirect", false);
 
         // when
-        final UsersyncInfo result = new GumGumUsersyncer("//usersync.org/",
+        final UsersyncInfo result = new GumgumUsersyncer("//usersync.org/",
                 "http://external.org/").usersyncInfo();
 
         // then

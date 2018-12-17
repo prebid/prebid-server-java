@@ -8,9 +8,9 @@ import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.bidder.gumgum.GumGumBidder;
-import org.prebid.server.bidder.gumgum.GumGumMetaInfo;
-import org.prebid.server.bidder.gumgum.GumGumUsersyncer;
+import org.prebid.server.bidder.gumgum.GumgumBidder;
+import org.prebid.server.bidder.gumgum.GumgumMetaInfo;
+import org.prebid.server.bidder.gumgum.GumgumUsersyncer;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
-public class GumGumConfiguration extends BidderConfiguration {
+public class GumgumConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "gumgum";
 
@@ -66,17 +66,17 @@ public class GumGumConfiguration extends BidderConfiguration {
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new GumGumMetaInfo(enabled, pbsEnforcesGdpr);
+        return new GumgumMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new GumGumUsersyncer(usersyncUrl, externalUrl);
+        return new GumgumUsersyncer(usersyncUrl, externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new GumGumBidder(endpoint);
+        return new GumgumBidder(endpoint);
     }
 
     @Override

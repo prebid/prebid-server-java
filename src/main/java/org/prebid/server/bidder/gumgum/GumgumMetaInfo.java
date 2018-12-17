@@ -8,11 +8,11 @@ import java.util.Collections;
 /**
  * Defines GumGum meta info
  */
-public class GumGumMetaInfo implements MetaInfo {
+public class GumgumMetaInfo implements MetaInfo {
 
     private BidderInfo bidderInfo;
 
-    public GumGumMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
+    public GumgumMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "pubtech@gumgum.com",
                 Collections.emptyList(), Collections.singletonList("banner"),
                 null, 61, pbsEnforcesGdpr);

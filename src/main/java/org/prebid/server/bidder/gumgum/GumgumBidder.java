@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumGum;
+import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -35,17 +35,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class GumGumBidder implements Bidder<BidRequest> {
+public class GumgumBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpGumGum>> GUMGUM_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpGumGum>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpGumgum>>() {
             };
 
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
 
-    public GumGumBidder(String endpointUrl) {
+    public GumgumBidder(String endpointUrl) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
@@ -77,7 +77,7 @@ public class GumGumBidder implements Bidder<BidRequest> {
         String trackingId = null;
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImpGumGum impExt = parseImpExt(imp);
+                final ExtImpGumgum impExt = parseImpExt(imp);
                 if (imp.getBanner() != null) {
                     modifiedImps.add(modifyImp(imp));
                     trackingId = impExt.getZone();
@@ -98,9 +98,9 @@ public class GumGumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static ExtImpGumGum parseImpExt(Imp imp) {
+    private static ExtImpGumgum parseImpExt(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, ExtImpGumGum>>convertValue(imp.getExt(),
+            return Json.mapper.<ExtPrebid<?, ExtImpGumgum>>convertValue(imp.getExt(),
                     GUMGUM_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
@@ -109,9 +109,10 @@ public class GumGumBidder implements Bidder<BidRequest> {
 
     private static Imp modifyImp(Imp imp) {
         final Banner banner = imp.getBanner();
-        if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
-            final Format format = banner.getFormat().get(0);
-            final Banner modifiedBanner = banner.toBuilder().w(format.getW()).h(format.getH()).build();
+        final List<Format> format = banner.getFormat();
+        if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(format)) {
+            final Format firstFormat = format.get(0);
+            final Banner modifiedBanner = banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
             return imp.toBuilder()
                     .banner(modifiedBanner)
                     .build();
