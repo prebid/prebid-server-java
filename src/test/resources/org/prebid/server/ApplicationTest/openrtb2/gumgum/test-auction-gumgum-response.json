@@ -229,6 +229,7 @@
     "responsetimemillis": {
       "cache": "{{ cache.response_time_ms }}",
       "gumgum": "{{ gumgum.response_time_ms }}"
-    }
+    },
+    "tmaxrequest": 1000
   }
 }

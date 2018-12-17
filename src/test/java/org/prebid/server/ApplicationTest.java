@@ -82,6 +82,7 @@ public class ApplicationTest extends VertxTest {
     private static final String CONVERSANT_ALIAS = "conversantAlias";
     private static final String EPLANNING = "eplanning";
     private static final String FACEBOOK = "audienceNetwork";
+    private static final String GRID = "grid";
     private static final String GUMGUM = "gumgum";
     private static final String IX = "ix";
     private static final String LIFESTREET = "lifestreet";
@@ -487,6 +488,38 @@ public class ApplicationTest extends VertxTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/ttx/test-auction-ttx-response.json",
                 response, singletonList(TTX));
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithBidsFromTheMediaGrid() throws IOException, JSONException {
+        // given
+        // TheMediaGrid bid response for imp 001
+        wireMockRule.stubFor(post(urlPathEqualTo("/grid-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/grid/test-grid-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/grid/test-grid-bid-response-1.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/grid/test-cache-grid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/grid/test-cache-grid-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"grid":"GRID-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImdyaWQiOiJHUklELVVJRCJ9fQ==")
+                .body(jsonFrom("openrtb2/grid/test-auction-grid-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/grid/test-auction-grid-response.json",
+                response, singletonList(GRID));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
