@@ -30,5 +30,4 @@ public class RhythmoneUsersyncerTest {
         // then
         assertThat(result).isEqualTo(expected);
     }
-
 }
