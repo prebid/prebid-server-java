@@ -101,6 +101,20 @@ adapters:
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
+  grid:
+    enabled: false
+    endpoint: http://grid.bidswitch.net/sp_bid?sp=prebid
+    usersync-url: http://grid.bidswitch.net/sp_sync?sp_id=prebid&redir=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+  gumgum:
+      enabled: false
+      endpoint: https://g2.gumgum.com/providers/prbds2s/bid
+      usersync-url: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
+      pbs-enforces-gdpr: true
+      deprecated-names:
+      aliases:
   ix:
     enabled: false
     endpoint: http://appnexus-us-east.lb.indexww.com/transbidder?p=184932

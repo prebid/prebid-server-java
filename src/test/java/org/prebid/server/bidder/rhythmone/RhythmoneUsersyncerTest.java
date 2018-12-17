@@ -11,7 +11,7 @@ public class RhythmoneUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer(null, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer(null, null));
         assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer("some_url", null));
     }
 
@@ -30,5 +30,4 @@ public class RhythmoneUsersyncerTest {
         // then
         assertThat(result).isEqualTo(expected);
     }
-
 }

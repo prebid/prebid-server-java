@@ -238,11 +238,6 @@ public class RhythmoneBidderTest extends VertxTest {
         return givenBidRequest(identity(), impCustomizer, identity());
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
-        return givenBidRequest(identity(), impCustomizer, extCustomizer);
-    }
-
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                 Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
         return impCustomizer.apply(Imp.builder()
