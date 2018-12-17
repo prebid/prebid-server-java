@@ -165,6 +165,7 @@
     "responsetimemillis": {
       "eplanning": "{{ eplanning.response_time_ms }}",
       "cache": "{{ cache.response_time_ms }}"
-    }
+    },
+    "tmaxrequest": 1000
   }
 }
