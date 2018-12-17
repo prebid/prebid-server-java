@@ -88,7 +88,14 @@ public class PulsepointBidder implements Bidder<BidRequest> {
         final String body = Json.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.of(HttpMethod.POST, endpointUrl, body, BidderUtil.headers(), outgoingRequest)), errors);
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .body(body)
+                        .headers(BidderUtil.headers())
+                        .payload(outgoingRequest)
+                        .build()),
+                errors);
     }
 
     private static void validateImp(Imp imp) {

@@ -49,7 +49,14 @@ public class GridBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.of(HttpMethod.POST, endpointUrl, body, BidderUtil.headers(), bidRequest)), errors);
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .body(body)
+                        .headers(BidderUtil.headers())
+                        .payload(bidRequest)
+                        .build()),
+                errors);
     }
 
     @Override

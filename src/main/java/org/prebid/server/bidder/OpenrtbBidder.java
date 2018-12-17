@@ -205,7 +205,13 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = requestBuilder.build();
         final String body = Json.encode(outgoingRequest);
 
-        return HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers, outgoingRequest);
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .body(body)
+                .headers(headers)
+                .payload(outgoingRequest)
+                .build();
     }
 
     /**

@@ -151,8 +151,13 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         for (Map.Entry<ExtImpAdkernelAdn, List<Imp>> entry : pubToImps.entrySet()) {
             final BidRequest outgoingRequest = createBidRequest(preBidRequest, entry.getValue());
             final String body = Json.encode(outgoingRequest);
-            result.add(HttpRequest.of(HttpMethod.POST, buildEndpoint(entry.getKey(), endpointUrl), body, headers(),
-                    outgoingRequest));
+            result.add(HttpRequest.<BidRequest>builder()
+                    .method(HttpMethod.POST)
+                    .uri(buildEndpoint(entry.getKey(), endpointUrl))
+                    .body(body)
+                    .headers(headers())
+                    .payload(outgoingRequest)
+                    .build());
         }
 
         return result;

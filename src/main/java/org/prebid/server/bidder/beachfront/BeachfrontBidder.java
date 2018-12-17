@@ -103,10 +103,14 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final BeachfrontVideoRequest beachfrontVideoRequest = makeVideoRequest(bidRequest, errors);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.of(HttpMethod.POST,
-                        String.format("%s%s%s", endpoint, beachfrontVideoRequest.getAppId(), VIDEO_ENDPOINT_SUFFIX),
-                        Json.encode(beachfrontVideoRequest), VIDEO_HEADERS,
-                        BeachfrontRequests.of(null, beachfrontVideoRequest))),
+                HttpRequest.<BeachfrontRequests>builder()
+                        .method(HttpMethod.POST)
+                        .uri(String.format("%s%s%s", endpoint, beachfrontVideoRequest.getAppId(),
+                                VIDEO_ENDPOINT_SUFFIX))
+                        .body(Json.encode(beachfrontVideoRequest))
+                        .headers(VIDEO_HEADERS)
+                        .payload(BeachfrontRequests.of(null, beachfrontVideoRequest))
+                        .build()),
                 makeBadInputErrors(errors));
     }
 
@@ -119,11 +123,13 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final BeachfrontBannerRequest beachfrontBannerRequest = makeBannerRequest(bidRequest, bidRequest.getImp(),
                 errors);
         return Result.of(Collections.singletonList(
-                HttpRequest.of(HttpMethod.POST,
-                        endpoint,
-                        Json.encode(beachfrontBannerRequest),
-                        BidderUtil.headers(),
-                        BeachfrontRequests.of(beachfrontBannerRequest, null))),
+                HttpRequest.<BeachfrontRequests>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpoint)
+                        .body(Json.encode(beachfrontBannerRequest))
+                        .headers(BidderUtil.headers())
+                        .payload(BeachfrontRequests.of(beachfrontBannerRequest, null))
+                        .build()),
                 makeBadInputErrors(errors));
     }
 

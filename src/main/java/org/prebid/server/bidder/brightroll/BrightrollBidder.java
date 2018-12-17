@@ -88,12 +88,14 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(ex.getMessage())));
         }
 
-        return Result.of(Collections.singletonList(HttpRequest.of(
-                HttpMethod.POST,
-                String.format("%s?publisher=%s", endpointUrl, publisher),
-                bidRequestBody,
-                createHeaders(updateBidRequest.getDevice()),
-                updateBidRequest)),
+        return Result.of(Collections.singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(String.format("%s?publisher=%s", endpointUrl, publisher))
+                        .body(bidRequestBody)
+                        .headers(createHeaders(updateBidRequest.getDevice()))
+                        .payload(updateBidRequest)
+                        .build()),
                 Collections.emptyList());
     }
 

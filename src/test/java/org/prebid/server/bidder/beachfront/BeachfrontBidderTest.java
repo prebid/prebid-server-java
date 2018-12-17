@@ -800,8 +800,12 @@ public class BeachfrontBidderTest extends VertxTest {
 
     private static HttpCall<BeachfrontRequests> givenHttpCall(String body, BeachfrontVideoRequest
             beachfrontVideoRequest) {
-        return HttpCall.success(HttpRequest.of(HttpMethod.POST, null, body, null,
-                BeachfrontRequests.of(null, beachfrontVideoRequest)),
+        return HttpCall.success(
+                HttpRequest.<BeachfrontRequests>builder()
+                        .method(HttpMethod.POST)
+                        .body(body)
+                        .payload(BeachfrontRequests.of(null, beachfrontVideoRequest))
+                        .build(),
                 HttpResponse.of(200, null, body), null);
     }
 }
