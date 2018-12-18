@@ -6,10 +6,11 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -33,14 +34,13 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
-    private final BidderType bidderType;
-    private final TypeReference<ExtPrebid<?, T>> extType;
+    private final RequestCreationStrategy requestCreationStrategy;
+    private final TypeReference<ExtPrebid<?, T>> extType = new TypeReference<ExtPrebid<?, T>>() {
+    };
 
-    protected OpenrtbBidder(String endpointUrl, BidderType bidderType) {
+    protected OpenrtbBidder(String endpointUrl, RequestCreationStrategy requestCreationStrategy) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.bidderType = bidderType;
-        this.extType = new TypeReference<ExtPrebid<?, T>>() {
-        };
+        this.requestCreationStrategy = Objects.requireNonNull(requestCreationStrategy);
     }
 
     @Override
@@ -52,27 +52,25 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        final List<Imp> modifiedImps = new ArrayList<>();
-        final List<T> impExts = new ArrayList<>();
+        final List<ImpWithExt<T>> modifiedImpsWithExts = new ArrayList<>();
         for (Imp imp : bidRequest.getImp()) {
+            final T impExt;
             try {
                 validateImp(imp);
-                final T impExt = parseImpExt(imp, extType);
+                impExt = parseImpExt(imp);
                 validateImpExt(impExt, imp);
-                modifiedImps.add(modifyImp(imp, impExt));
-                impExts.add(impExt);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
+            modifiedImpsWithExts.add(new ImpWithExt<>(modifyImp(imp, impExt), impExt));
         }
-        if (modifiedImps.isEmpty()) {
+        if (modifiedImpsWithExts.isEmpty()) {
             errors.add(BidderError.badInput("No valid impression in the bid request"));
             return Result.of(Collections.emptyList(), errors);
         }
 
-        final MultiMap headers = makeHeaders(bidRequest);
-
-        return Result.of(createHttpRequests(impExts, modifiedImps, bidRequest, headers), errors);
+        return Result.of(createHttpRequests(bidRequest, modifiedImpsWithExts), errors);
     }
 
     /**
@@ -95,7 +93,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
     /**
      * A hook for bidder-specific single impression validation if any is required.
      * Note that the method is executed in a loop, therefore, if given impression
-     * is invalid- throwing an exception will skip it.
+     * is invalid - throwing an exception will skip it.
      * <p>
      * E.g., if bidder accepts only banner requests - check if request.imp[i].banner !=null
      * <p>
@@ -109,9 +107,9 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
     protected void validateImp(Imp imp) throws PreBidException {
     }
 
-    private T parseImpExt(Imp imp, TypeReference typeReference) {
+    private T parseImpExt(Imp imp) {
         try {
-            return Json.mapper.<ExtPrebid<?, T>>convertValue(imp.getExt(), typeReference).getBidder();
+            return Json.mapper.<ExtPrebid<?, T>>convertValue(imp.getExt(), extType).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -155,52 +153,39 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      * @param imp    - original request impression that can be modified
      * @param impExt - impression extension that can contain an information to modify its impression
      * @return - unmodified (default) or modified impression
-     * @throws PreBidException - if any errors occur or an additional validation is required
      */
-    protected Imp modifyImp(Imp imp, T impExt) throws PreBidException {
+    protected Imp modifyImp(Imp imp, T impExt) {
         return imp;
     }
 
-    /**
-     * A hook for request headers changes if any are required.
-     * <p>
-     * By default, sets the following headers:
-     * "Content-Type" : "application/json;charset=utf-8"
-     * "Accept" : "application/json"
-     * <p>
-     * Outgoing request headers can vary depending on bidder-specific logic.
-     * E.g., bidder would add additional headers depending on incoming request details:
-     * <p>
-     * if (bidRequest.getDevice() != null) {
-     * return BidderUtil.headers()
-     *                  .add("Additional-Header", "specific-value");
-     * }
-     *
-     * @param bidRequest - incoming bid request.
-     * @return - headers multimap to be used in http request.
-     */
-    protected MultiMap makeHeaders(BidRequest bidRequest) {
-        return BidderUtil.headers();
-    }
-
-    private List<HttpRequest<BidRequest>> createHttpRequests(List<T> impExts, List<Imp> modifiedImps,
-                                                             BidRequest bidRequest, MultiMap headers) {
-        if (bidderType.equals(BidderType.REQUEST_PER_IMP)) {
-            return modifiedImps.stream()
-                    .map(imp -> makeRequest(impExts, Collections.singletonList(imp), bidRequest, headers))
-                    .collect(Collectors.toList());
-        } else {
-            return Collections.singletonList(
-                    makeRequest(impExts, modifiedImps, bidRequest, headers));
+    private List<HttpRequest<BidRequest>> createHttpRequests(BidRequest bidRequest, List<ImpWithExt<T>> impsWithExts) {
+        switch (requestCreationStrategy) {
+            case REQUEST_PER_IMP:
+                return impsWithExts.stream()
+                        .map(impWithExt -> makeRequest(bidRequest, Collections.singletonList(impWithExt)))
+                        .collect(Collectors.toList());
+            case SINGLE_REQUEST:
+                return Collections.singletonList(
+                        makeRequest(bidRequest, impsWithExts));
+            default:
+                throw new IllegalArgumentException(String.format("Invalid request creation strategy: %s",
+                        requestCreationStrategy));
         }
     }
 
-    private HttpRequest<BidRequest> makeRequest(List<T> impExts, List<Imp> modifiedImps, BidRequest bidRequest,
-                                                MultiMap headers) {
+    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, List<ImpWithExt<T>> impsWithExts) {
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
+        final List<Imp> modifiedImps = impsWithExts.stream()
+                .map(ImpWithExt::getImp)
+                .collect(Collectors.toList());
+
         requestBuilder.imp(modifiedImps);
 
-        modifyRequest(bidRequest, requestBuilder, impExts, modifiedImps);
+        final List<T> impExts = impsWithExts.stream()
+                .map(ImpWithExt::getImpExt)
+                .collect(Collectors.toList());
+
+        modifyRequest(bidRequest, requestBuilder, modifiedImps, impExts);
 
         final BidRequest outgoingRequest = requestBuilder.build();
         final String body = Json.encode(outgoingRequest);
@@ -209,7 +194,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .body(body)
-                .headers(headers)
+                .headers(BidderUtil.headers())
                 .payload(outgoingRequest)
                 .build();
     }
@@ -239,12 +224,11 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
      * @param bidRequest     - original incoming bid request
      * @param requestBuilder - a builder to be used for modifying outgoing request,
      *                       received by calling bidRequest.toBuilder, i.e. contains incoming request information
-     * @param impExts        - bidder-specific impressions' extensions that could be used to modify request
      * @param modifiedImps   - a list of impressions that were already modified.
-     *                       Just in case any additional logic applies
+     * @param impExts        - bidder-specific impressions' extensions that could be used to modify request
      */
     protected void modifyRequest(BidRequest bidRequest, BidRequest.BidRequestBuilder requestBuilder,
-                                 List<T> impExts, List<Imp> modifiedImps) {
+                                 List<Imp> modifiedImps, List<T> impExts) {
     }
 
     @Override
@@ -319,8 +303,17 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
         return Collections.emptyMap();
     }
 
-    public enum BidderType {
+    public enum RequestCreationStrategy {
         SINGLE_REQUEST,
         REQUEST_PER_IMP
+    }
+
+    @AllArgsConstructor
+    @Value
+    private static class ImpWithExt<T> {
+
+        Imp imp;
+
+        T impExt;
     }
 }
