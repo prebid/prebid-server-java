@@ -1,5 +1,6 @@
 package org.prebid.server.analytics.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
@@ -22,8 +23,10 @@ public class AmpEvent {
 
     List<String> errors;
 
+    @JsonIgnore
     RoutingContext context;
 
+    @JsonIgnore
     UidsCookie uidsCookie;
 
     BidRequest bidRequest;

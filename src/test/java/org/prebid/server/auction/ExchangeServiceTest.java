@@ -359,7 +359,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
         final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
         assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
-                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null)))
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null)))
                 .geo(Geo.builder().lon(-85.12F).lat(189.95F).build())
                 .build());
         assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.0")
@@ -393,7 +393,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
         final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
         assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid("uidval")
-                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null))).build());
     }
 
     @Test
@@ -453,7 +453,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
         final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
         assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid("uidval")
-                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null))).build());
         assertThat(capturedBidRequest.getDevice()).isEqualTo(Device.builder().ip("192.168.0.1")
                 .ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
@@ -489,7 +489,7 @@ public class ExchangeServiceTest extends VertxTest {
         verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
         final BidRequest capturedBidRequest = bidRequestCaptor.getValue();
         assertThat(capturedBidRequest.getUser()).isEqualTo(User.builder().buyeruid(null)
-                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null))).build());
     }
 
     @Test
@@ -538,6 +538,64 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidRequestCaptor.getAllValues())
                 .extracting(BidRequest::getUser)
                 .extracting(User::getBuyeruid).containsExactlyInAnyOrder(null, "uid1", "uid2");
+    }
+
+    @Test
+    public void shouldPassGdprConsentIfMaskingApplied() {
+        // given
+        final MetaInfo metaInfo1 = mock(MetaInfo.class);
+        given(metaInfo1.info()).willReturn(givenBidderInfo(1, true));
+        given(bidderCatalog.metaInfoByName("bidder1")).willReturn(metaInfo1);
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(1, false), null)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder1", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(null, "consent", null))).build())
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
+
+        assertThat(bidRequestCaptor.getAllValues())
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .containsOnly(mapper.valueToTree(ExtUser.of(null, "consent", null)));
+    }
+
+    @Test
+    public void shouldPassGdprConsentIfMaskingIsNotApplied() {
+        // given
+        final MetaInfo metaInfo1 = mock(MetaInfo.class);
+        given(metaInfo1.info()).willReturn(givenBidderInfo(1, false));
+        given(bidderCatalog.metaInfoByName("bidder1")).willReturn(metaInfo1);
+
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(1, true), null)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder1", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(mapper.valueToTree(
+                                ExtUser.of(null, "consent", null))).build())
+                        .regs(Regs.of(null, mapper.valueToTree(ExtRegs.of(1)))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(bidderRequester).requestBids(bidRequestCaptor.capture(), any());
+
+        assertThat(bidRequestCaptor.getAllValues())
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .containsOnly(mapper.valueToTree(ExtUser.of(null, "consent", null)));
     }
 
     @Test
@@ -1349,7 +1407,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder().buyeruid("buyeridFromRequest")
-                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null))).build());
     }
 
     @Test
@@ -1371,7 +1429,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final User capturedBidRequestUser = captureBidRequest().getUser();
         assertThat(capturedBidRequestUser).isEqualTo(User.builder().buyeruid("uidval")
-                .ext(mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), null, null))).build());
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null))).build());
     }
 
     @Test
