@@ -40,18 +40,19 @@ Bidder implementations may assume that any params have already been validated ag
 ### Generic OpenRTB Bidder
 
 There's an option to implement a bidder by using a pre-existing template.
-OpenrtbBidder is an abstract class that implements Bidder<BidRequest> interface and provides
-a default implementation of its methods.
+OpenrtbBidder(../../src/main/java/org/prebid/server/bidder/OpenrtbBidder.java) is an abstract class that
+implements Bidder<BidRequest> interface and provides a default implementation of its methods.
 
 This class provides a fixed algorithm with number of certain access points(so called hook-methods) that
 could be overridden to change the defaults to implement bidder-specific transformations.
+You can check what "hooks" are available and their description at the OpenrtbBidder class.
 
 NOTE: this model is not universal "all-in-one" solution as it encapsulates only the simple bidders' behaviour
 in order to ease the creation of lightweight bidders and get rid of boilerplate code.
 Bidders with a complicated request transformation logic would have to implement a Bidder interface and
 define their structure from scratch.
 
-See "Bidder conditions" for list of OpenrtbBidder model requirements.
+See "Can our Bidder use OpenrtbBidder model?" for list of requirements.
 
 #### What OpenRTB Bidder implements?
 
