@@ -110,7 +110,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
             try {
                 final BidRequest singleRequest = createSingleRequest(imp, bidRequest);
                 final String body = Json.encode(singleRequest);
-                httpRequests.add(HttpRequest.of(HttpMethod.POST, endpointUrl, body, headers, singleRequest));
+                httpRequests.add(HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .body(body)
+                        .headers(headers)
+                        .payload(singleRequest)
+                        .build());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }

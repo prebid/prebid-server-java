@@ -61,8 +61,13 @@ public class LifestreetBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final BidRequest outgoingRequest = createRequest(imp, bidRequest);
                 final String body = Json.encode(outgoingRequest);
-                httpRequests.add(
-                        HttpRequest.of(HttpMethod.POST, endpointUrl, body, BidderUtil.headers(), outgoingRequest));
+                httpRequests.add(HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .body(body)
+                        .headers(BidderUtil.headers())
+                        .payload(outgoingRequest)
+                        .build());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }

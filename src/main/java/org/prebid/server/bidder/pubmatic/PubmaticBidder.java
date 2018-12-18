@@ -105,9 +105,15 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = requestBuilder.build();
         final String body = Json.encode(outgoingRequest);
 
-        return Result.of(
-                Collections.singletonList(HttpRequest.of(HttpMethod.POST, endpointUrl, body, BidderUtil.headers(),
-                        outgoingRequest)), errors);
+        return Result.of(Collections.singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .body(body)
+                        .headers(BidderUtil.headers())
+                        .payload(outgoingRequest)
+                        .build()),
+                errors);
     }
 
     private static ExtImpPubmatic parsePubmaticExt(Imp imp) {

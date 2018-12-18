@@ -37,6 +37,49 @@ Bidder implementations are scattered throughout several files:
 
 Bidder implementations may assume that any params have already been validated against the defined json-schema.
 
+### Generic OpenRTB Bidder
+
+There's an option to implement a bidder by using a pre-existing template.
+OpenrtbBidder(../../src/main/java/org/prebid/server/bidder/OpenrtbBidder.java) is an abstract class that
+implements Bidder<BidRequest> interface and provides a default implementation of its methods.
+
+This class provides a fixed algorithm with number of certain access points(so called hook-methods) that
+could be overridden to change the defaults to implement bidder-specific transformations.
+You can check what "hooks" are available and their description at the OpenrtbBidder class.
+
+NOTE: this model is not universal "all-in-one" solution as it encapsulates only the simple bidders' behaviour
+in order to ease the creation of lightweight bidders and get rid of boilerplate code.
+Bidders with a complicated request transformation logic would have to implement a Bidder interface and
+define their structure from scratch.
+
+See "Can our Bidder use OpenrtbBidder model?" for list of requirements.
+
+#### What OpenRTB Bidder implements?
+
+Constructing outgoing http request/s from incoming bid request:
+
+1. Validate incoming bid request, request impressions and impression extensions;
+2. Apply necessary changes or transformations to request and its impressions;
+3. Encode and return the modified outgoing request/s.
+
+Bidder response processing:
+
+1. Extract bids from response;
+2. Set each bid type and currency;
+
+#### Can our Bidder use OpenrtbBidder model?
+
+If your bidder is the one that:
+
+1. Send out a single request i.e. ones that just modify an incoming request and pass it on("one-to-one") OR
+send out one request per incoming request impression. Other "one-to-many" scenarios are nto supported;
+2. Have a constant endpoint url (no additional or optional path parameters or request parameters);
+3. Require a basic set of headers, which is "Content-type" : "application/json;charset=utf-8" and "Accept" : "application/json"
+4. Apply static changes to the outgoing request, e.g., setting a specific constant value or removing a certain request field;
+5. Modify impression or request values in a way that could be expressed by transformation mapping;
+6. Returns all bids present in Bid Response;
+7. Bid type and currency could by derived from bid itself and its corresponding impression;
+
 ## Integration
 
 After implementation you should integrate the Bidder with file:

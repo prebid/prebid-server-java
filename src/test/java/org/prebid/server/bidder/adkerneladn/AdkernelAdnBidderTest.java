@@ -456,7 +456,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return HttpCall.success(
-                HttpRequest.of(null, null, null, null, bidRequest),
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

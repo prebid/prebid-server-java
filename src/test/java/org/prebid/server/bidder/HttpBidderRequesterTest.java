@@ -37,7 +37,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class HttpBidderRequesterTest {
 
@@ -45,7 +50,7 @@ public class HttpBidderRequesterTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private Bidder<?> bidder;
+    private Bidder<BidRequest> bidder;
     @Mock
     private HttpClient httpClient;
 
@@ -105,7 +110,13 @@ public class HttpBidderRequesterTest {
 
         final MultiMap headers = new CaseInsensitiveHeaders();
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.POST, "uri", "requestBody", headers, null)), emptyList()));
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri")
+                        .body("requestBody")
+                        .headers(headers)
+                        .build()),
+                emptyList()));
         headers.add("header1", "value1");
         headers.add("header2", "value2");
 
@@ -122,7 +133,11 @@ public class HttpBidderRequesterTest {
         givenHttpClientReturnsResponse(200, null);
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.GET, "uri", null, null, null)), emptyList()));
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.GET)
+                        .uri("uri")
+                        .build()),
+                emptyList()));
 
         // when
         bidderHttpConnector.requestBids(BidRequest.builder().build(), timeout);
@@ -137,8 +152,18 @@ public class HttpBidderRequesterTest {
         givenHttpClientReturnsResponse(200, null);
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build(),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
                 emptyList()));
 
         // when
@@ -152,7 +177,13 @@ public class HttpBidderRequesterTest {
     public void shouldReturnBidsCreatedByBidder() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)), emptyList()));
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
+                emptyList()));
 
         givenHttpClientReturnsResponse(200, "responseBody");
 
@@ -171,8 +202,18 @@ public class HttpBidderRequesterTest {
     public void shouldReturnFullDebugInfoIfTestFlagIsOn() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
-                HttpRequest.of(HttpMethod.POST, "uri1", "requestBody1", new CaseInsensitiveHeaders(), null),
-                HttpRequest.of(HttpMethod.POST, "uri2", "requestBody2", new CaseInsensitiveHeaders(), null)),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri1")
+                        .body("requestBody1")
+                        .headers(new CaseInsensitiveHeaders())
+                        .build(),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri2")
+                        .body("requestBody2")
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
                 emptyList()));
 
         givenHttpClientReturnsResponses(
@@ -197,7 +238,12 @@ public class HttpBidderRequesterTest {
     public void shouldReturnPartialDebugInfoIfTestFlagIsOnAndGlobalTimeoutAlreadyExpired() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.POST, "uri1", "requestBody1", new CaseInsensitiveHeaders(), null)),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri1")
+                        .body("requestBody1")
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
                 emptyList()));
 
         // when
@@ -213,7 +259,12 @@ public class HttpBidderRequesterTest {
     public void shouldReturnPartialDebugInfoIfTestFlagIsOnAndHttpErrorOccurs() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.POST, "uri1", "requestBody1", new CaseInsensitiveHeaders(), null)),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri1")
+                        .body("requestBody1")
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
                 emptyList()));
 
         givenHttpClientProducesException(new RuntimeException("Request exception"));
@@ -231,7 +282,12 @@ public class HttpBidderRequesterTest {
     public void shouldReturnFullDebugInfoIfTestFlagIsOnAndErrorStatus() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.POST, "uri1", "requestBody1", new CaseInsensitiveHeaders(), null)),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri("uri1")
+                        .body("requestBody1")
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
                 emptyList()));
 
         givenHttpClientReturnsResponses(HttpClientResponse.of(500, null, "responseBody1"));
@@ -253,7 +309,13 @@ public class HttpBidderRequesterTest {
     public void shouldTolerateAlreadyExpiredGlobalTimeout() {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)), emptyList()));
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
+                emptyList()));
 
         // when
         final BidderSeatBid bidderSeatBid =
@@ -271,17 +333,47 @@ public class HttpBidderRequesterTest {
         // given
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
                 // this request will fail with response exception
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build(),
                 // this request will fail with timeout
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build(),
                 // this request will fail with 500 status
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build(),
                 // this request will fail with 400 status
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build(),
                 // this request will get 204 status
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build(),
                 // finally this request will succeed
-                HttpRequest.of(HttpMethod.POST, EMPTY, EMPTY, new CaseInsensitiveHeaders(), null)),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body(EMPTY)
+                        .headers(new CaseInsensitiveHeaders())
+                        .build()),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
 
 

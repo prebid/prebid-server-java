@@ -74,9 +74,15 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(modifiedImps).build();
         final String body = Json.encode(outgoingRequest);
 
-        return Result.of(
-                Collections.singletonList(HttpRequest.of(HttpMethod.POST, composedUrl, body, BidderUtil.headers(),
-                        outgoingRequest)), errors);
+        return Result.of(Collections.singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(composedUrl)
+                        .body(body)
+                        .headers(BidderUtil.headers())
+                        .payload(outgoingRequest)
+                        .build()),
+                errors);
     }
 
     private static ExtImpRhythmone parseAndValidateImpExt(Imp imp) {

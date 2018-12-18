@@ -122,7 +122,13 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         }
         final String url = String.format("%s?s=%s", endpointUrl, placementHash);
 
-        return HttpRequest.of(HttpMethod.POST, url, body, headers, outgoingRequest);
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(url)
+                .body(body)
+                .headers(headers)
+                .payload(outgoingRequest)
+                .build();
     }
 
     private static ExtImpSomoaudience parseAndValidateImpExt(Imp imp) {

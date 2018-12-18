@@ -94,8 +94,14 @@ public class AdformBidder implements Bidder<Void> {
                 getUserId(request.getUser()),
                 AdformRequestUtil.getAdformDigitrust(extUser));
 
-        return Result.of(
-                Collections.singletonList(HttpRequest.of(HttpMethod.GET, url, null, headers, null)),
+        return Result.of(Collections.singletonList(
+                HttpRequest.<Void>builder()
+                        .method(HttpMethod.GET)
+                        .uri(url)
+                        .body(null)
+                        .headers(headers)
+                        .payload(null)
+                        .build()),
                 errors);
     }
 

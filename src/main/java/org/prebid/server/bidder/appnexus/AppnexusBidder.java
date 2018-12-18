@@ -104,9 +104,15 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(processedImps).build();
         final String body = Json.encode(outgoingRequest);
 
-        return Result.of(
-                Collections.singletonList(HttpRequest.of(HttpMethod.POST, url, body, BidderUtil.headers(),
-                        outgoingRequest)), errors);
+        return Result.of(Collections.singletonList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(url)
+                        .body(body)
+                        .headers(BidderUtil.headers())
+                        .payload(outgoingRequest)
+                        .build()),
+                errors);
     }
 
     private static String makeDefaultDisplayManagerVer(BidRequest bidRequest, List<BidderError> errors) {

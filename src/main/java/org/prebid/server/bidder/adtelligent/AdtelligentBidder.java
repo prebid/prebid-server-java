@@ -127,7 +127,13 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                         e.getMessage())));
                 return Result.of(Collections.emptyList(), errors);
             }
-            httpRequests.add(HttpRequest.of(HttpMethod.POST, url, bidRequestBody, headers, bidRequest));
+            httpRequests.add(HttpRequest.<BidRequest>builder()
+                    .method(HttpMethod.POST)
+                    .uri(url)
+                    .body(bidRequestBody)
+                    .headers(headers)
+                    .payload(bidRequest)
+                    .build());
         }
         return Result.of(httpRequests, errors);
     }

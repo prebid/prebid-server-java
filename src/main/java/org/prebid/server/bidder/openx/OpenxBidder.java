@@ -131,8 +131,9 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private List<HttpRequest<BidRequest>> createHttpRequests(List<BidRequest> bidRequests) {
         return bidRequests.stream()
                 .filter(Objects::nonNull)
-                .map(singleBidRequest -> HttpRequest.of(HttpMethod.POST, endpointUrl,
-                        Json.encode(singleBidRequest), BidderUtil.headers(), singleBidRequest))
+                .map(singleBidRequest -> HttpRequest.<BidRequest>builder().method(HttpMethod.POST).uri(endpointUrl)
+                        .body(Json.encode(singleBidRequest)).headers(BidderUtil.headers()).payload(singleBidRequest)
+                        .build())
                 .collect(Collectors.toList());
     }
 

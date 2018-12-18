@@ -86,8 +86,13 @@ public class IxBidder implements Bidder<BidRequest> {
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
-                .map(request -> HttpRequest.of(HttpMethod.POST, endpointUrl, Json.encode(request),
-                        BidderUtil.headers(), request))
+                .map(request -> HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .body(Json.encode(request))
+                        .headers(BidderUtil.headers())
+                        .payload(request)
+                        .build())
                 .collect(Collectors.toList());
 
         return Result.of(httpRequests, errors);

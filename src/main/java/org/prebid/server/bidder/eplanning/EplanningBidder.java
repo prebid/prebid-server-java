@@ -82,9 +82,13 @@ public class EplanningBidder implements Bidder<BidRequest> {
                         e.getMessage())));
                 return Result.of(Collections.emptyList(), errors);
             }
-            httpRequests.add(HttpRequest.of(HttpMethod.POST,
-                    String.format(endpointUrlTemplate, exchangeIdToImps.getKey()), bidRequestBody, headers,
-                    exchangeBidRequest));
+            httpRequests.add(HttpRequest.<BidRequest>builder()
+                    .method(HttpMethod.POST)
+                    .uri(String.format(endpointUrlTemplate, exchangeIdToImps.getKey()))
+                    .body(bidRequestBody)
+                    .headers(headers)
+                    .payload(exchangeBidRequest)
+                    .build());
         }
         return Result.of(httpRequests, errors);
     }
