@@ -52,7 +52,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -268,15 +267,8 @@ public class ExchangeService {
         final ExtUser extUser = extUser(user);
         final Map<String, String> uidsBody = uidsFromBody(extUser);
 
-        // set empty ext.prebid.buyerids attr to avoid leaking of buyerids across bidders
-        final ObjectNode userExtNode = !uidsBody.isEmpty() && extUser != null
-                ? removeBuyersidsFromUserExtPrebid(extUser) : null;
+        final ObjectNode userExtNode = removeBuyeruidsFromUserExtPrebid(extUser);
         final ExtRegs extRegs = extRegs(bidRequest.getRegs());
-
-        // splits the input request into requests which are sanitized for each bidder. Intended behavior is:
-        // - bidrequest.imp[].ext will only contain the "prebid" field and a "bidder" field which has the params for
-        // the intended Bidder.
-        // - bidrequest.user.buyeruid will be set to that Bidder's ID.
 
         return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
                 .map(gdprResponse -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
@@ -312,6 +304,14 @@ public class ExchangeService {
                 gdprConsent, ipAddress, timeout);
     }
 
+    /**
+     * Splits the input request into requests which are sanitized for each bidder. Intended behavior is:
+     * <p>
+     * - bidrequest.imp[].ext will only contain the "prebid" field and a "bidder" field which has the params for
+     * the intended Bidder.
+     * <p>
+     * - bidrequest.user.buyeruid will be set to that Bidder's ID.
+     */
     private List<BidderRequest> makeBidderRequests(List<String> bidders, BidRequest bidRequest,
                                                    Map<String, String> uidsBody, UidsCookie uidsCookie,
                                                    ObjectNode userExtNode, ExtRegs extRegs, Map<String, String> aliases,
@@ -420,11 +420,13 @@ public class ExchangeService {
     }
 
     /**
-     * Returns 'user.ext' with empty 'prebid.buyeryds'.
+     * Returns json encoded {@link ExtUser} without 'request.user.ext.prebid.buyeruids'
+     * to avoid leaking of buyeruids across bidders.
      */
-    private static ObjectNode removeBuyersidsFromUserExtPrebid(ExtUser extUser) {
-        return Json.mapper.valueToTree(ExtUser.of(ExtUserPrebid.of(null), extUser.getConsent(),
-                extUser.getDigitrust()));
+    private static ObjectNode removeBuyeruidsFromUserExtPrebid(ExtUser extUser) {
+        return extUser != null
+                ? Json.mapper.valueToTree(ExtUser.of(null, extUser.getConsent(), extUser.getDigitrust()))
+                : null;
     }
 
     /**
@@ -468,7 +470,6 @@ public class ExchangeService {
         if (updatedUserExt != null) {
             builder.ext(updatedUserExt);
         }
-
         return builder.build();
     }
 
@@ -1222,5 +1223,4 @@ public class ExchangeService {
 
         Integer executionTime;
     }
-
 }
