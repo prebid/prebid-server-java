@@ -98,7 +98,7 @@ public class ConversantBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(2)
-                .contains(BidderError.badInput("No valid impressions"));
+                .contains(BidderError.badInput("No valid impression in the bid request"));
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
     }
@@ -119,7 +119,7 @@ public class ConversantBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(3)
                 .containsExactlyInAnyOrder(BidderError.badInput("Missing site id"),
                         BidderError.badInput("Missing site id"),
-                        BidderError.badInput("No valid impressions"));
+                        BidderError.badInput("No valid impression in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 

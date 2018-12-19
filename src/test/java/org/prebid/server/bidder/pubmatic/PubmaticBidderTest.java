@@ -72,7 +72,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(2);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
     }
@@ -87,8 +87,9 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid MediaType. PubMatic only supports Banner and Video. Ignoring ImpID=123"));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(BidderError.badInput("Invalid MediaType. PubMatic only supports Banner and Video. Ignoring ImpID=123"),
+                        BidderError.badInput("No valid impression in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -103,8 +104,9 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid adSlot provided"));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(BidderError.badInput("Invalid adSlot provided"),
+                        BidderError.badInput("No valid impression in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -119,8 +121,9 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid size provided in adSlot"));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(BidderError.badInput("Invalid size provided in adSlot"),
+                        BidderError.badInput("No valid impression in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -135,8 +138,9 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid width or height provided in adSlot"));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(BidderError.badInput("Invalid width or height provided in adSlot"),
+                        BidderError.badInput("No valid impression in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -151,8 +155,9 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid width or height provided in adSlot"));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(BidderError.badInput("Invalid width or height provided in adSlot"),
+                        BidderError.badInput("No valid impression in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -168,7 +173,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(2);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to create keywords with error: Unexpected character");
         assertThat(result.getValue()).isEmpty();
     }
@@ -185,7 +190,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(2);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Error in Wrapper Parameters");
         assertThat(result.getValue()).isEmpty();
     }

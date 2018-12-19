@@ -15,6 +15,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 
 import java.util.List;
 import java.util.function.Function;
@@ -44,7 +45,12 @@ public class GridBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().id("request_id").build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                        .build()))
+                .id("request_id")
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = gridBidder.makeHttpRequests(bidRequest);

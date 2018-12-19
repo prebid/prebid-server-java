@@ -83,7 +83,7 @@ public class GumgumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impressions"));
+                .containsOnly(BidderError.badInput("No valid impression in the bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -171,7 +171,7 @@ public class GumgumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSiteIdFromLastImpExtZone() {
+    public void makeHttpRequestsShouldSetSiteIdFromLastValidImpExtZone() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder().build())
@@ -179,7 +179,11 @@ public class GumgumBidderTest extends VertxTest {
                         givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("ignored zone"))))),
-                        givenImp(identity())))
+                        givenImp(identity()),
+                        givenImp(impBuilder -> impBuilder
+                                .banner(null)
+                                .video(Video.builder().build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("invalid imp")))))))
                 .build();
 
         // when
