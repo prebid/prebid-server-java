@@ -13,13 +13,9 @@ import org.prebid.server.bidder.facebook.FacebookAdapter;
 import org.prebid.server.bidder.facebook.FacebookBidder;
 import org.prebid.server.bidder.facebook.FacebookMetaInfo;
 import org.prebid.server.bidder.facebook.FacebookUsersyncer;
-import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -32,25 +28,33 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "audienceNetwork";
 
-    @Autowired
-    @Qualifier("facebookConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
+    @Value("${adapters.facebook.enabled}")
+    private boolean enabled;
+
+    @Value("${adapters.facebook.endpoint}")
+    private String endpoint;
 
     @Value("${adapters.facebook.nonSecureEndpoint}")
     private String nonSecureEndpoint;
 
+    @Value("${adapters.facebook.usersync-url:#{null}}")
+    private String usersyncUrl;
+
+    @Value("${adapters.facebook.pbs-enforces-gdpr}")
+    private boolean pbsEnforcesGdpr;
+
     @Value("${adapters.facebook.platformId:#{null}}")
     private String platformId;
 
-    @Bean("facebookConfigurationProperties")
-    @ConfigurationProperties("adapters.facebook")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
-    }
+    @Value("${adapters.facebook.deprecated-names}")
+    private List<String> deprecatedNames;
+
+    @Value("${adapters.facebook.aliases}")
+    private List<String> aliases;
 
     @Bean
     BidderDeps facebookBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
-        if (configProperties.getEnabled() && (configProperties.getUsersyncUrl() == null || platformId == null)) {
+        if (enabled && (usersyncUrl == null || platformId == null)) {
             throw new IllegalStateException(
                     String.format("%s is enabled but has missing required configuration properties. "
                             + "Please review configuration.", BIDDER_NAME));
@@ -65,33 +69,32 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return configProperties.getDeprecatedNames();
+        return deprecatedNames;
     }
 
     @Override
     protected List<String> aliases() {
-        return configProperties.getAliases();
+        return aliases;
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new FacebookMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
+        return new FacebookMetaInfo(enabled, pbsEnforcesGdpr);
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new FacebookUsersyncer(configProperties.getEnabled() && configProperties.getUsersyncUrl() != null
-                ? configProperties.getUsersyncUrl() : StringUtils.EMPTY);
+        return new FacebookUsersyncer(enabled && usersyncUrl != null ? usersyncUrl : StringUtils.EMPTY);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new FacebookBidder(configProperties.getEndpoint(), nonSecureEndpoint, platformId);
+        return new FacebookBidder(endpoint, nonSecureEndpoint, platformId);
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new FacebookAdapter(usersyncer, configProperties.getEndpoint(), nonSecureEndpoint, platformId);
+        return new FacebookAdapter(usersyncer, endpoint, nonSecureEndpoint, platformId);
     }
 
     @Override
