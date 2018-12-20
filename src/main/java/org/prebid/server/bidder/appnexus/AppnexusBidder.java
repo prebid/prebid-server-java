@@ -66,10 +66,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        if (CollectionUtils.isEmpty(bidRequest.getImp())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        }
-
         final List<BidderError> errors = new ArrayList<>();
         final String defaultDisplayManagerVer = makeDefaultDisplayManagerVer(bidRequest, errors);
 

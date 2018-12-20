@@ -55,15 +55,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<Imp> imps = bidRequest.getImp();
-        if (CollectionUtils.isEmpty(imps)) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        }
-
-        final Map<OpenxImpType, List<Imp>> differentiatedImps = imps.stream()
+        final Map<OpenxImpType, List<Imp>> differentiatedImps = bidRequest.getImp().stream()
                 .collect(Collectors.groupingBy(OpenxBidder::resolveImpType));
-        final List<BidderError> processingErrors = new ArrayList<>();
 
+        final List<BidderError> processingErrors = new ArrayList<>();
         final List<BidRequest> outgoingRequests = makeRequests(bidRequest,
                 differentiatedImps.get(OpenxImpType.banner),
                 differentiatedImps.get(OpenxImpType.video), processingErrors);
