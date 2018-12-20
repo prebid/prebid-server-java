@@ -12,8 +12,12 @@ import org.prebid.server.bidder.lifestreet.LifestreetAdapter;
 import org.prebid.server.bidder.lifestreet.LifestreetBidder;
 import org.prebid.server.bidder.lifestreet.LifestreetMetaInfo;
 import org.prebid.server.bidder.lifestreet.LifestreetUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,26 +28,18 @@ public class LifestreetConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "lifestreet";
 
-    @Value("${adapters.lifestreet.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.lifestreet.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.lifestreet.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.lifestreet.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.lifestreet.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.lifestreet.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("lifestreetConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("lifestreetConfigurationProperties")
+    @ConfigurationProperties("adapters.lifestreet")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps lifestreetBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -57,32 +53,32 @@ public class LifestreetConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new LifestreetMetaInfo(enabled, pbsEnforcesGdpr);
+        return new LifestreetMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new LifestreetUsersyncer(usersyncUrl, externalUrl);
+        return new LifestreetUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new LifestreetBidder(endpoint);
+        return new LifestreetBidder(configProperties.getEndpoint());
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new LifestreetAdapter(usersyncer, endpoint);
+        return new LifestreetAdapter(usersyncer, configProperties.getEndpoint());
     }
 
     @Override

@@ -13,8 +13,12 @@ import org.prebid.server.bidder.facebook.FacebookAdapter;
 import org.prebid.server.bidder.facebook.FacebookBidder;
 import org.prebid.server.bidder.facebook.FacebookMetaInfo;
 import org.prebid.server.bidder.facebook.FacebookUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,33 +29,25 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "audienceNetwork";
 
-    @Value("${adapters.facebook.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.facebook.endpoint}")
-    private String endpoint;
+    @Autowired
+    @Qualifier("facebookConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${adapters.facebook.nonSecureEndpoint}")
     private String nonSecureEndpoint;
 
-    @Value("${adapters.facebook.usersync-url:#{null}}")
-    private String usersyncUrl;
-
-    @Value("${adapters.facebook.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
     @Value("${adapters.facebook.platformId:#{null}}")
     private String platformId;
 
-    @Value("${adapters.facebook.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.facebook.aliases}")
-    private List<String> aliases;
+    @Bean("facebookConfigurationProperties")
+    @ConfigurationProperties("adapters.facebook")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps facebookBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
-        if (enabled && (usersyncUrl == null || platformId == null)) {
+        if (configProperties.getEnabled() && (configProperties.getUsersyncUrl() == null || platformId == null)) {
             throw new IllegalStateException(
                     String.format("%s is enabled but has missing required configuration properties. "
                             + "Please review configuration.", BIDDER_NAME));
@@ -66,32 +62,33 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new FacebookMetaInfo(enabled, pbsEnforcesGdpr);
+        return new FacebookMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new FacebookUsersyncer(enabled && usersyncUrl != null ? usersyncUrl : StringUtils.EMPTY);
+        return new FacebookUsersyncer(configProperties.getEnabled() && configProperties.getUsersyncUrl() != null
+                ? configProperties.getUsersyncUrl() : StringUtils.EMPTY);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new FacebookBidder(endpoint, nonSecureEndpoint, platformId);
+        return new FacebookBidder(configProperties.getEndpoint(), nonSecureEndpoint, platformId);
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new FacebookAdapter(usersyncer, endpoint, nonSecureEndpoint, platformId);
+        return new FacebookAdapter(usersyncer, configProperties.getEndpoint(), nonSecureEndpoint, platformId);
     }
 
     @Override

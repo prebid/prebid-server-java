@@ -12,8 +12,12 @@ import org.prebid.server.bidder.adform.AdformAdapter;
 import org.prebid.server.bidder.adform.AdformBidder;
 import org.prebid.server.bidder.adform.AdformMetaInfo;
 import org.prebid.server.bidder.adform.AdformUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,26 +28,18 @@ public class AdformConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "adform";
 
-    @Value("${adapters.adform.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.adform.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.adform.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.adform.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.adform.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.adform.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("adformConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("adformConfigurationProperties")
+    @ConfigurationProperties("adapters.adform")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps adformBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -57,32 +53,32 @@ public class AdformConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new AdformMetaInfo(enabled, pbsEnforcesGdpr);
+        return new AdformMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new AdformUsersyncer(usersyncUrl, externalUrl);
+        return new AdformUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new AdformBidder(endpoint);
+        return new AdformBidder(configProperties.getEndpoint());
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new AdformAdapter(usersyncer, endpoint);
+        return new AdformAdapter(usersyncer, configProperties.getEndpoint());
     }
 
     @Override

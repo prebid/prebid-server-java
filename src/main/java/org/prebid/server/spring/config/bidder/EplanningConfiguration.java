@@ -11,8 +11,12 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.eplanning.EplanningBidder;
 import org.prebid.server.bidder.eplanning.EplanningMetaInfo;
 import org.prebid.server.bidder.eplanning.EplanningUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,26 +27,18 @@ public class EplanningConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "eplanning";
 
-    @Value("${adapters.eplanning.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.eplanning.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.eplanning.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.eplanning.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.eplanning.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.eplanning.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("eplanningConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("eplanningConfigurationProperties")
+    @ConfigurationProperties("adapters.eplanning")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps eplanningBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -56,27 +52,27 @@ public class EplanningConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new EplanningMetaInfo(enabled, pbsEnforcesGdpr);
+        return new EplanningMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new EplanningUsersyncer(usersyncUrl, externalUrl);
+        return new EplanningUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new EplanningBidder(endpoint);
+        return new EplanningBidder(configProperties.getEndpoint());
     }
 
     @Override

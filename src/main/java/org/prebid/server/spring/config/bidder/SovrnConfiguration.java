@@ -12,8 +12,12 @@ import org.prebid.server.bidder.sovrn.SovrnAdapter;
 import org.prebid.server.bidder.sovrn.SovrnBidder;
 import org.prebid.server.bidder.sovrn.SovrnMetaInfo;
 import org.prebid.server.bidder.sovrn.SovrnUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,26 +28,18 @@ public class SovrnConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "sovrn";
 
-    @Value("${adapters.sovrn.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.sovrn.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.sovrn.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.sovrn.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.sovrn.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.sovrn.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("sovrnConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("sovrnConfigurationProperties")
+    @ConfigurationProperties("adapters.sovrn")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps sovrnBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -57,32 +53,32 @@ public class SovrnConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new SovrnMetaInfo(enabled, pbsEnforcesGdpr);
+        return new SovrnMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new SovrnUsersyncer(usersyncUrl, externalUrl);
+        return new SovrnUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new SovrnBidder(endpoint);
+        return new SovrnBidder(configProperties.getEndpoint());
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new SovrnAdapter(usersyncer, endpoint);
+        return new SovrnAdapter(usersyncer, configProperties.getEndpoint());
     }
 
     @Override

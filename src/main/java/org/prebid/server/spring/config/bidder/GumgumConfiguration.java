@@ -11,8 +11,12 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.gumgum.GumgumBidder;
 import org.prebid.server.bidder.gumgum.GumgumMetaInfo;
 import org.prebid.server.bidder.gumgum.GumgumUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,26 +27,18 @@ public class GumgumConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "gumgum";
 
-    @Value("${adapters.gumgum.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.gumgum.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.gumgum.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.gumgum.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.gumgum.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.gumgum.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("gumgumConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("gumgumConfigurationProperties")
+    @ConfigurationProperties("adapters.gumgum")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps gumGumOneBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -56,27 +52,27 @@ public class GumgumConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new GumgumMetaInfo(enabled, pbsEnforcesGdpr);
+        return new GumgumMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new GumgumUsersyncer(usersyncUrl, externalUrl);
+        return new GumgumUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new GumgumBidder(endpoint);
+        return new GumgumBidder(configProperties.getEndpoint());
     }
 
     @Override

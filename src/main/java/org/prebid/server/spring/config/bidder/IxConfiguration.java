@@ -36,14 +36,14 @@ public class IxConfiguration extends BidderConfiguration {
     @Value("${adapters.ix.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
 
-    @Value("${external-url}")
-    private String externalUrl;
-
     @Value("${adapters.ix.deprecated-names}")
     private List<String> deprecatedNames;
 
     @Value("${adapters.ix.aliases}")
     private List<String> aliases;
+
+    @Value("${external-url}")
+    private String externalUrl;
 
     @Bean
     BidderDeps ixBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {

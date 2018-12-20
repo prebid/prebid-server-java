@@ -11,8 +11,12 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.ttx.TtxBidder;
 import org.prebid.server.bidder.ttx.TtxMetaInfo;
 import org.prebid.server.bidder.ttx.TtxUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,29 +27,21 @@ public class TtxConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "ttx";
 
-    @Value("${adapters.ttx.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.ttx.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.ttx.usersync-url}")
-    private String usersyncUrl;
+    @Autowired
+    @Qualifier("ttxConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${adapters.ttx.partner-id}")
     private String partnerId;
 
-    @Value("${adapters.ttx.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.ttx.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.ttx.aliases}")
-    private List<String> aliases;
-
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("ttxConfigurationProperties")
+    @ConfigurationProperties("adapters.ttx")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps ttxBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -59,27 +55,27 @@ public class TtxConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new TtxMetaInfo(enabled, pbsEnforcesGdpr);
+        return new TtxMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new TtxUsersyncer(usersyncUrl, externalUrl, partnerId);
+        return new TtxUsersyncer(configProperties.getUsersyncUrl(), externalUrl, partnerId);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new TtxBidder(endpoint);
+        return new TtxBidder(configProperties.getEndpoint());
     }
 
     @Override
