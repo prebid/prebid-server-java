@@ -12,38 +12,37 @@ import org.prebid.server.bidder.conversant.ConversantAdapter;
 import org.prebid.server.bidder.conversant.ConversantBidder;
 import org.prebid.server.bidder.conversant.ConversantMetaInfo;
 import org.prebid.server.bidder.conversant.ConversantUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/conversant.yaml", factory = YamlPropertySourceFactory.class)
 public class ConversantConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "conversant";
 
-    @Value("${adapters.conversant.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.conversant.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.conversant.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.conversant.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.conversant.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.conversant.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("conversantConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("conversantConfigurationProperties")
+    @ConfigurationProperties("adapters.conversant")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps conversantBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -57,32 +56,32 @@ public class ConversantConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new ConversantMetaInfo(enabled, pbsEnforcesGdpr);
+        return new ConversantMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new ConversantUsersyncer(usersyncUrl, externalUrl);
+        return new ConversantUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new ConversantBidder(endpoint);
+        return new ConversantBidder(configProperties.getEndpoint());
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new ConversantAdapter(usersyncer, endpoint);
+        return new ConversantAdapter(usersyncer, configProperties.getEndpoint());
     }
 
     @Override

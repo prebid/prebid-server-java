@@ -11,38 +11,37 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.adkerneladn.AdkernelAdnBidder;
 import org.prebid.server.bidder.adkerneladn.AdkernelAdnMetaInfo;
 import org.prebid.server.bidder.adkerneladn.AdkernelAdnUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/adkerneladn.yaml", factory = YamlPropertySourceFactory.class)
 public class AdkernelAdnConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "adkernelAdn";
 
-    @Value("${adapters.adkerneladn.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.adkerneladn.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.adkerneladn.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.adkerneladn.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.adkerneladn.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.adkerneladn.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("adkerneladnConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("adkerneladnConfigurationProperties")
+    @ConfigurationProperties("adapters.adkerneladn")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps adkernelAdnBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -56,27 +55,27 @@ public class AdkernelAdnConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new AdkernelAdnMetaInfo(enabled, pbsEnforcesGdpr);
+        return new AdkernelAdnMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new AdkernelAdnUsersyncer(usersyncUrl, externalUrl);
+        return new AdkernelAdnUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new AdkernelAdnBidder(endpoint);
+        return new AdkernelAdnBidder(configProperties.getEndpoint());
     }
 
     @Override

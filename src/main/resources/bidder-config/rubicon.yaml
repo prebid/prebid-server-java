@@ -1,0 +1,8 @@
+adapters:
+  rubicon:
+    enabled: false
+    endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
+    usersync-url: https://pixel.rubiconproject.com/exchange/sync.php?p=prebid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

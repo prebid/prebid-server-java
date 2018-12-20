@@ -1,0 +1,8 @@
+adapters:
+  rhythmone:
+    enabled: false
+    endpoint: http://tag.1rx.io/rmp
+    usersync-url: //sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

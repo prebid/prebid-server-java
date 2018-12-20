@@ -1,0 +1,8 @@
+adapters:
+  lifestreet:
+    enabled: false
+    endpoint: https://prebid.s2s.lfstmedia.com/adrequest
+    usersync-url: //ads.lfstmedia.com/idsync/137062?synced=1&ttl=1s&rurl=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

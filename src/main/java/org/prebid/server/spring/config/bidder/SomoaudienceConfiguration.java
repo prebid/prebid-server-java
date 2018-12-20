@@ -11,38 +11,37 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.somoaudience.SomoaudienceBidder;
 import org.prebid.server.bidder.somoaudience.SomoaudienceMetaInfo;
 import org.prebid.server.bidder.somoaudience.SomoaudienceUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/somoaudience.yaml", factory = YamlPropertySourceFactory.class)
 public class SomoaudienceConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "somoaudience";
 
-    @Value("${adapters.somoaudience.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.somoaudience.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.somoaudience.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.somoaudience.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.somoaudience.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.somoaudience.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("somoaudienceConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("somoaudienceConfigurationProperties")
+    @ConfigurationProperties("adapters.somoaudience")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps somoaudienceBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -56,27 +55,27 @@ public class SomoaudienceConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new SomoaudienceMetaInfo(enabled, pbsEnforcesGdpr);
+        return new SomoaudienceMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new SomoaudienceUsersyncer(usersyncUrl, externalUrl);
+        return new SomoaudienceUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new SomoaudienceBidder(endpoint);
+        return new SomoaudienceBidder(configProperties.getEndpoint());
     }
 
     @Override

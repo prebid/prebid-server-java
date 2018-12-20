@@ -12,38 +12,37 @@ import org.prebid.server.bidder.pubmatic.PubmaticAdapter;
 import org.prebid.server.bidder.pubmatic.PubmaticBidder;
 import org.prebid.server.bidder.pubmatic.PubmaticMetaInfo;
 import org.prebid.server.bidder.pubmatic.PubmaticUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/pubmatic.yaml", factory = YamlPropertySourceFactory.class)
 public class PubmaticConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "pubmatic";
 
-    @Value("${adapters.pubmatic.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.pubmatic.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.pubmatic.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.pubmatic.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.pubmatic.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.pubmatic.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("pubmaticConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("pubmaticConfigurationProperties")
+    @ConfigurationProperties("adapters.pubmatic")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps pubmaticBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -57,32 +56,32 @@ public class PubmaticConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new PubmaticMetaInfo(enabled, pbsEnforcesGdpr);
+        return new PubmaticMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new PubmaticUsersyncer(usersyncUrl, externalUrl);
+        return new PubmaticUsersyncer(configProperties.getEndpoint(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new PubmaticBidder(endpoint);
+        return new PubmaticBidder(configProperties.getEndpoint());
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new PubmaticAdapter(usersyncer, endpoint);
+        return new PubmaticAdapter(usersyncer, configProperties.getEndpoint());
     }
 
     @Override

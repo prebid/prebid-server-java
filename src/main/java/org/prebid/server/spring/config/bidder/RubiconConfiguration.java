@@ -12,29 +12,28 @@ import org.prebid.server.bidder.rubicon.RubiconAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
 import org.prebid.server.bidder.rubicon.RubiconMetaInfo;
 import org.prebid.server.bidder.rubicon.RubiconUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/rubicon.yaml", factory = YamlPropertySourceFactory.class)
 public class RubiconConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "rubicon";
 
-    @Value("${adapters.rubicon.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.rubicon.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.rubicon.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.rubicon.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
+    @Autowired
+    @Qualifier("rubiconConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${adapters.rubicon.XAPI.Username}")
     private String username;
@@ -42,11 +41,14 @@ public class RubiconConfiguration extends BidderConfiguration {
     @Value("${adapters.rubicon.XAPI.Password}")
     private String password;
 
-    @Value("${adapters.rubicon.deprecated-names}")
-    private List<String> deprecatedNames;
+    @Value("${external-url}")
+    private String externalUrl;
 
-    @Value("${adapters.rubicon.aliases}")
-    private List<String> aliases;
+    @Bean("rubiconConfigurationProperties")
+    @ConfigurationProperties("adapters.rubicon")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps rubiconBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -60,32 +62,32 @@ public class RubiconConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     public MetaInfo createMetaInfo() {
-        return new RubiconMetaInfo(enabled, pbsEnforcesGdpr);
+        return new RubiconMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     public Usersyncer createUsersyncer() {
-        return new RubiconUsersyncer(usersyncUrl);
+        return new RubiconUsersyncer(configProperties.getUsersyncUrl());
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new RubiconBidder(endpoint, username, password, metaInfo);
+        return new RubiconBidder(configProperties.getEndpoint(), username, password, metaInfo);
     }
 
     @Override
     public Adapter createAdapter(Usersyncer usersyncer) {
-        return new RubiconAdapter(usersyncer, endpoint, username, password);
+        return new RubiconAdapter(usersyncer, configProperties.getEndpoint(), username, password);
     }
 
     @Override

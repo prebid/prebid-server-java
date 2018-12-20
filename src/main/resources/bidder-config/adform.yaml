@@ -1,0 +1,8 @@
+adapters:
+  adform:
+    enabled: false
+    endpoint: http://adx.adform.net/adx
+    usersync-url: //cm.adform.net/cookie?redirect_url=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

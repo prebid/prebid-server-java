@@ -11,38 +11,37 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.brightroll.BrightrollBidder;
 import org.prebid.server.bidder.brightroll.BrightrollMetaInfo;
 import org.prebid.server.bidder.brightroll.BrightrollUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/brightroll.yaml", factory = YamlPropertySourceFactory.class)
 public class BrightrollConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "brightroll";
 
-    @Value("${adapters.brightroll.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.brightroll.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.brightroll.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.brightroll.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.brightroll.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.brightroll.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("brightrollConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("brightrollConfigurationProperties")
+    @ConfigurationProperties("adapters.brightroll")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps brightrollBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -56,27 +55,27 @@ public class BrightrollConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new BrightrollMetaInfo(enabled, pbsEnforcesGdpr);
+        return new BrightrollMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new BrightrollUsersyncer(usersyncUrl, externalUrl);
+        return new BrightrollUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new BrightrollBidder(endpoint);
+        return new BrightrollBidder(configProperties.getEndpoint());
     }
 
     @Override

@@ -22,7 +22,7 @@ your bidder will access them at `request.imp[i].ext.bidder`--regardless of what 
 
 ## Configuration
 
-Add default configuration properties for your Bidder to `src/main/resources/application.yaml` file.
+Add default configuration properties for your Bidder to `src/main/resources/bidder-config/{bidder}.yaml` file.
 For more information about application configuration see [here](../config.md)
 
 ## Implementation

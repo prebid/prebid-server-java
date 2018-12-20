@@ -1,0 +1,8 @@
+adapters:
+  gumgum:
+    enabled: false
+    endpoint: https://g2.gumgum.com/providers/prbds2s/bid
+    usersync-url: https://rtb.gumgum.com/usync/prbds2s?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

@@ -12,38 +12,37 @@ import org.prebid.server.bidder.appnexus.AppnexusAdapter;
 import org.prebid.server.bidder.appnexus.AppnexusBidder;
 import org.prebid.server.bidder.appnexus.AppnexusMetaInfo;
 import org.prebid.server.bidder.appnexus.AppnexusUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/appnexus.yaml", factory = YamlPropertySourceFactory.class)
 public class AppnexusConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "appnexus";
 
-    @Value("${adapters.appnexus.enabled}")
-    private boolean enabled;
-
-    @Value("${adapters.appnexus.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.appnexus.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.appnexus.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.appnexus.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.appnexus.aliases}")
-    private List<String> aliases;
+    @Autowired
+    @Qualifier("appnexusConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
+
+    @Bean("appnexusConfigurationProperties")
+    @ConfigurationProperties("adapters.appnexus")
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
 
     @Bean
     BidderDeps appnexusBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
@@ -57,32 +56,32 @@ public class AppnexusConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new AppnexusMetaInfo(enabled, pbsEnforcesGdpr);
+        return new AppnexusMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new AppnexusUsersyncer(usersyncUrl, externalUrl);
+        return new AppnexusUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new AppnexusBidder(endpoint);
+        return new AppnexusBidder(configProperties.getEndpoint());
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new AppnexusAdapter(usersyncer, endpoint);
+        return new AppnexusAdapter(usersyncer, configProperties.getEndpoint());
     }
 
     @Override

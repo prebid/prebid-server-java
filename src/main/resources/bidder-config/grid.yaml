@@ -1,0 +1,8 @@
+adapters:
+  grid:
+    enabled: false
+    endpoint: http://grid.bidswitch.net/sp_bid?sp=prebid
+    usersync-url: http://grid.bidswitch.net/sp_sync?sp_id=prebid&redir=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

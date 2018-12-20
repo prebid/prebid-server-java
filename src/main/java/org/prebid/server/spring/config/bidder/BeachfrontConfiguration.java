@@ -11,14 +11,17 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.beachfront.BeachfrontBidder;
 import org.prebid.server.bidder.beachfront.BeachfrontMetaInfo;
 import org.prebid.server.bidder.beachfront.BeachfrontUsersyncer;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/beachfront.yaml", factory = YamlPropertySourceFactory.class)
 public class BeachfrontConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "beachfront";

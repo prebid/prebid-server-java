@@ -1,0 +1,8 @@
+adapters:
+  somoaudience:
+    enabled: false
+    endpoint: http://publisher-east.mobileadtrading.com/rtb/bid
+    usersync-url: //publisher-east.mobileadtrading.com/usersync?ru=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
