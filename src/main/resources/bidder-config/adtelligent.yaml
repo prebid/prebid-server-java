@@ -1,0 +1,8 @@
+adapters:
+  adtelligent:
+    enabled: false
+    endpoint: http://hb.adtelligent.com/auction
+    usersync-url: //sync.adtelligent.com/csync?t=p&ep=0&redir=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

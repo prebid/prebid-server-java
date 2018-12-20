@@ -1,0 +1,8 @@
+adapters:
+  appnexus:
+    enabled: false
+    endpoint: http://ib.adnxs.com/openrtb2
+    usersync-url: //ib.adnxs.com/getuid?
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases: districtm

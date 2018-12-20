@@ -13,6 +13,7 @@ import org.prebid.server.bidder.appnexus.AppnexusBidder;
 import org.prebid.server.bidder.appnexus.AppnexusMetaInfo;
 import org.prebid.server.bidder.appnexus.AppnexusUsersyncer;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,10 +21,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/appnexus.yaml", factory = YamlPropertySourceFactory.class)
 public class AppnexusConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "appnexus";

@@ -1,0 +1,8 @@
+adapters:
+  facebook:
+    enabled: false
+    endpoint: https://an.facebook.com/placementbid.ortb
+    nonSecureEndpoint: http://an.facebook.com/placementbid.ortb
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

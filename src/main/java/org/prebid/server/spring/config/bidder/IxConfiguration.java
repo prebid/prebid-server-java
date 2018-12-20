@@ -12,14 +12,17 @@ import org.prebid.server.bidder.ix.IxAdapter;
 import org.prebid.server.bidder.ix.IxBidder;
 import org.prebid.server.bidder.ix.IxMetaInfo;
 import org.prebid.server.bidder.ix.IxUsersyncer;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.List;
 
 @Configuration
+@PropertySource(value = "classpath:/bidder-config/ix.yaml", factory = YamlPropertySourceFactory.class)
 public class IxConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "ix";

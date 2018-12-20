@@ -1,0 +1,9 @@
+adapters:
+  ttx:
+    enabled: false
+    endpoint: http://ssc.33across.com/api/v1/hb
+    usersync-url: https://ssc-cms.33across.com/ps
+    partner-id:
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

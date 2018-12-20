@@ -1,0 +1,8 @@
+adapters:
+  conversant:
+    enabled: false
+    endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
+    usersync-url: //prebid-match.dotomi.com/prebid/match?rurl=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

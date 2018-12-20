@@ -1,0 +1,8 @@
+adapters:
+  pubmatic:
+    enabled: false
+    endpoint: http://hbopenbid.pubmatic.com/translator?source=prebid-server
+    usersync-url: //ads.pubmatic.com/AdServer/js/user_sync.html?predirect=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

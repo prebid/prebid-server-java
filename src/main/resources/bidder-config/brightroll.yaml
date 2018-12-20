@@ -1,0 +1,8 @@
+adapters:
+  brightroll:
+    enabled: false
+    endpoint: http://east-bid.ybp.yahoo.com/bid/appnexuspbs
+    usersync-url: http://east-bid.ybp.yahoo.com/sync/appnexuspbs?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&url=
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

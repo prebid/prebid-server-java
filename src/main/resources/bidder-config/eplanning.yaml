@@ -1,0 +1,8 @@
+adapters:
+  eplanning:
+    enabled: false
+    endpoint: http://ads.us.e-planning.net/dsp/obr/1
+    usersync-url: http://sync.e-planning.net/um?uid
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:

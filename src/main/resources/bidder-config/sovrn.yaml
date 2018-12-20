@@ -1,0 +1,8 @@
+adapters:
+  sovrn:
+    enabled: false
+    endpoint: http://ap.lijit.com/rtb/bid?src=prebid_server
+    usersync-url: //ap.lijit.com/pixel?
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
