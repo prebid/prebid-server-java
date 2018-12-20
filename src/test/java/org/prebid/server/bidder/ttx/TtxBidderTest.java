@@ -60,7 +60,7 @@ public class TtxBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2);
+        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
     }

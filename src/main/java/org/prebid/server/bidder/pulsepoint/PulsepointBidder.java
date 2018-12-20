@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.model.ImpWithExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.pulsepoint.ExtImpPulsepoint;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -66,8 +67,9 @@ public class PulsepointBidder extends OpenrtbBidder<ExtImpPulsepoint> {
 
     @Override
     protected void modifyRequest(BidRequest bidRequest, BidRequest.BidRequestBuilder requestBuilder,
-                                 List<Imp> modifiedImps, List<ExtImpPulsepoint> impExts) {
-        final Integer pubId = impExts.stream()
+                                 List<ImpWithExt<ExtImpPulsepoint>> impsWithExts) {
+        final Integer pubId = impsWithExts.stream()
+                .map(ImpWithExt::getImpExt)
                 .map(ExtImpPulsepoint::getPublisherId)
                 .filter(Objects::nonNull)
                 .reduce((first, second) -> second)

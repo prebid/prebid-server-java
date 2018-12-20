@@ -171,19 +171,6 @@ public class BrightrollBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldReturnErrorMessageWhenNoImpsInRequest() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder().build();
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = brightrollBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("No impression in the bid request"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestShouldUpdateBannerWhenWAndHMissedAndFormatIsPresent() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()

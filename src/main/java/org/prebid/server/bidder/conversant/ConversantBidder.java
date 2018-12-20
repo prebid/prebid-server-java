@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Video;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.model.ImpWithExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -119,11 +120,13 @@ public class ConversantBidder extends OpenrtbBidder<ExtImpConversant> {
 
     @Override
     protected void modifyRequest(BidRequest bidRequest, BidRequest.BidRequestBuilder requestBuilder,
-                                 List<Imp> modifiedImps, List<ExtImpConversant> impExts) {
-        final String extSiteId = impExts.stream()
+                                 List<ImpWithExt<ExtImpConversant>> impsWithExts) {
+        final String extSiteId = impsWithExts.stream()
+                .map(ImpWithExt::getImpExt)
                 .map(ExtImpConversant::getSiteId)
                 .reduce((first, second) -> second).orElse(null);
-        final Integer extMobile = impExts.stream()
+        final Integer extMobile = impsWithExts.stream()
+                .map(ImpWithExt::getImpExt)
                 .map(ExtImpConversant::getMobile)
                 .filter(Objects::nonNull)
                 .reduce((first, second) -> second).orElse(null);

@@ -48,7 +48,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -67,12 +66,6 @@ public class AppnexusBidderTest extends VertxTest {
     @Before
     public void setUp() {
         appnexusBidder = new AppnexusBidder(ENDPOINT_URL);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnEmptyResultWhenMissingBidRequestImps() {
-        assertThat(appnexusBidder.makeHttpRequests(BidRequest.builder().build()))
-                .isEqualTo(Result.of(emptyList(), emptyList()));
     }
 
     @Test

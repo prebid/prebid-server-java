@@ -78,7 +78,7 @@ public class PulsepointBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pulsepointBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2);
+        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
     }
@@ -98,9 +98,8 @@ public class PulsepointBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pulsepointBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(3)
-                .containsOnly(BidderError.badInput("Missing PublisherId param cp"),
-                        BidderError.badInput("No valid impression in the bid request"));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(BidderError.badInput("Missing PublisherId param cp"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -119,9 +118,8 @@ public class PulsepointBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pulsepointBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(3)
-                .containsOnly(BidderError.badInput("Missing TagId param ct"),
-                        BidderError.badInput("No valid impression in the bid request"));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(BidderError.badInput("Missing TagId param ct"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -140,9 +138,8 @@ public class PulsepointBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pulsepointBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(3)
-                .containsOnly(BidderError.badInput("Missing AdSize param cf"),
-                        BidderError.badInput("No valid impression in the bid request"));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsOnly(BidderError.badInput("Missing AdSize param cf"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -159,9 +156,8 @@ public class PulsepointBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pulsepointBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsOnly(BidderError.badInput("Invalid AdSize param 10x20x30"),
-                        BidderError.badInput("No valid impression in the bid request"));
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Invalid AdSize param 10x20x30"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -180,10 +176,9 @@ public class PulsepointBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pulsepointBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(3)
+        assertThat(result.getErrors()).hasSize(2)
                 .containsOnly(BidderError.badInput("Invalid Width or Height param invalid x 250"),
-                        BidderError.badInput("Invalid Width or Height param 300 x invalid"),
-                        BidderError.badInput("No valid impression in the bid request"));
+                        BidderError.badInput("Invalid Width or Height param 300 x invalid"));
         assertThat(result.getValue()).isEmpty();
     }
 

@@ -14,6 +14,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
+import org.prebid.server.bidder.model.ImpWithExt;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticRequestExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
@@ -29,6 +30,10 @@ import java.util.Objects;
 public class PubmaticBidder extends OpenrtbBidder<ExtImpPubmatic> {
 
     private static final Logger logger = LoggerFactory.getLogger(PubmaticBidder.class);
+
+    private static final TypeReference<Map<String, Integer>> WRAPPER_VALIDATION =
+            new TypeReference<Map<String, Integer>>() {
+            };
 
     public PubmaticBidder(String endpointUrl) {
         super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpPubmatic.class);
@@ -46,8 +51,7 @@ public class PubmaticBidder extends OpenrtbBidder<ExtImpPubmatic> {
         final ObjectNode wrapExt = extImpPubmatic.getWrapper();
         if (wrapExt != null) {
             try {
-                Json.mapper.convertValue(wrapExt, new TypeReference<Map<String, Integer>>() {
-                });
+                Json.mapper.convertValue(wrapExt, WRAPPER_VALIDATION);
             } catch (IllegalArgumentException e) {
                 throw new PreBidException(
                         String.format("Error in Wrapper Parameters = %s  for ImpID = %s WrapperExt = %s",
@@ -114,14 +118,16 @@ public class PubmaticBidder extends OpenrtbBidder<ExtImpPubmatic> {
 
     @Override
     protected void modifyRequest(BidRequest bidRequest, BidRequest.BidRequestBuilder requestBuilder,
-                                 List<Imp> modifiedImps, List<ExtImpPubmatic> impExts) {
-        impExts.stream()
+                                 List<ImpWithExt<ExtImpPubmatic>> impsWithExts) {
+        impsWithExts.stream()
+                .map(ImpWithExt::getImpExt)
                 .map(ExtImpPubmatic::getWrapper)
                 .filter(Objects::nonNull)
                 .findFirst()
                 .ifPresent(wrapExt -> requestBuilder.ext(Json.mapper.valueToTree(PubmaticRequestExt.of(wrapExt))));
 
-        final String pubId = impExts.stream()
+        final String pubId = impsWithExts.stream()
+                .map(ImpWithExt::getImpExt)
                 .map(ExtImpPubmatic::getPublisherId)
                 .filter(Objects::nonNull)
                 .findFirst().orElse(null);

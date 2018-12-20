@@ -59,12 +59,6 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> imps = request.getImp();
-        if (CollectionUtils.isEmpty(imps)) {
-            return Result.of(Collections.emptyList(),
-                    Collections.singletonList(BidderError.badInput("No impression in the bid request")));
-        }
-
         final List<BidderError> errors = new ArrayList<>();
         final BidRequest updateBidRequest = updateBidRequest(request, errors);
 
@@ -83,7 +77,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
         final String publisher;
         try {
-            publisher = getPublisher(imps.get(0));
+            publisher = getPublisher(request.getImp().get(0));
         } catch (PreBidException ex) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(ex.getMessage())));
         }

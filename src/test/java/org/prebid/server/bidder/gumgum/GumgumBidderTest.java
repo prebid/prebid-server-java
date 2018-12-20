@@ -83,7 +83,7 @@ public class GumgumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("No valid impression in the bid request"));
+                .containsOnly(BidderError.badInput("No valid impressions"));
         assertThat(result.getValue()).isEmpty();
     }
 
