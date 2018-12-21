@@ -37,9 +37,6 @@ public class RubiconConfiguration extends BidderConfiguration {
     @Value("${adapters.rubicon.XAPI.Password}")
     private String password;
 
-    @Value("${external-url}")
-    private String externalUrl;
-
     @Bean("rubiconConfigurationProperties")
     @ConfigurationProperties("adapters.rubicon")
     BidderConfigurationProperties configurationProperties() {
