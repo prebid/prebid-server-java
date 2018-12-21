@@ -38,23 +38,20 @@ import java.util.stream.Stream;
  * Any logic which can be done within a single Seat goes inside this class.
  * Any logic which requires responses from all Seats goes inside the {@link ExchangeService}.
  */
-public class HttpBidderRequester<T> implements BidderRequester {
+public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
 
-    private final Bidder<T> bidder;
     private final HttpClient httpClient;
 
-    public HttpBidderRequester(Bidder<T> bidder, HttpClient httpClient) {
-        this.bidder = Objects.requireNonNull(bidder);
+    public HttpBidderRequester(HttpClient httpClient) {
         this.httpClient = Objects.requireNonNull(httpClient);
     }
 
     /**
      * Executes given request to a given bidder.
      */
-    @Override
-    public Future<BidderSeatBid> requestBids(BidRequest bidRequest, Timeout timeout) {
+    public <T> Future<BidderSeatBid> requestBids(Bidder<T> bidder, BidRequest bidRequest, Timeout timeout) {
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(bidRequest);
 
         final List<BidderError> bidderErrors = httpRequestsWithErrors.getErrors();
@@ -65,7 +62,8 @@ public class HttpBidderRequester<T> implements BidderRequester {
                 : CompositeFuture.join(httpRequests.stream()
                 .map(httpRequest -> doRequest(httpRequest, timeout))
                 .collect(Collectors.toList()))
-                .map(httpRequestsResult -> toBidderSeatBid(bidRequest, bidderErrors, httpRequestsResult.list()));
+                .map(httpRequestsResult ->
+                        toBidderSeatBid(bidder, bidRequest, bidderErrors, httpRequestsResult.list()));
     }
 
     /**
@@ -84,7 +82,7 @@ public class HttpBidderRequester<T> implements BidderRequester {
     /**
      * Makes an HTTP request and returns {@link Future} that will be eventually completed with success or error result.
      */
-    private Future<HttpCall<T>> doRequest(HttpRequest<T> httpRequest, Timeout timeout) {
+    private <T> Future<HttpCall<T>> doRequest(HttpRequest<T> httpRequest, Timeout timeout) {
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
             return failResponse(new TimeoutException("Timeout has been exceeded"), httpRequest);
@@ -135,8 +133,8 @@ public class HttpBidderRequester<T> implements BidderRequester {
      * Transforms HTTP call results into single {@link BidderSeatBid} filled with debug information, bids and errors
      * happened along the way.
      */
-    private BidderSeatBid toBidderSeatBid(BidRequest bidRequest, List<BidderError> previousErrors,
-                                          List<HttpCall<T>> calls) {
+    private <T> BidderSeatBid toBidderSeatBid(Bidder<T> bidder, BidRequest bidRequest, List<BidderError> previousErrors,
+                                              List<HttpCall<T>> calls) {
         // If this is a test bid, capture debugging info from the requests
         final List<ExtHttpCall> httpCalls = Objects.equals(bidRequest.getTest(), 1)
                 ? calls.stream().map(HttpBidderRequester::toExt).collect(Collectors.toList())

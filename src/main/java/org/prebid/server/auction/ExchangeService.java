@@ -28,7 +28,9 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -96,6 +98,7 @@ public class ExchangeService {
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
 
     private final BidderCatalog bidderCatalog;
+    private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
     private final CacheService cacheService;
     private final BidResponsePostProcessor bidResponsePostProcessor;
@@ -106,7 +109,7 @@ public class ExchangeService {
     private final boolean useGeoLocation;
     private final long expectedCacheTime;
 
-    public ExchangeService(BidderCatalog bidderCatalog,
+    public ExchangeService(BidderCatalog bidderCatalog, HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
                            BidResponsePostProcessor bidResponsePostProcessor,
                            CurrencyConversionService currencyService, GdprService gdprService,
@@ -115,6 +118,7 @@ public class ExchangeService {
             throw new IllegalArgumentException("Expected cache time should be positive");
         }
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
         this.currencyService = Objects.requireNonNull(currencyService);
@@ -660,15 +664,15 @@ public class ExchangeService {
     private Future<BidderResponse> requestBids(BidderRequest bidderRequest, long startTime, Timeout timeout,
                                                Map<String, String> aliases, Map<String, BigDecimal> bidAdjustments,
                                                Map<String, Map<String, BigDecimal>> currencyConversionRates) {
-        final String bidder = bidderRequest.getBidder();
-        final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidder);
+        final String bidderName = bidderRequest.getBidder();
+        final BigDecimal bidPriceAdjustmentFactor = bidAdjustments.get(bidderName);
         final String adServerCurrency = bidderRequest.getBidRequest().getCur().get(0);
-        return bidderCatalog.bidderRequesterByName(resolveBidder(bidder, aliases))
-                .requestBids(bidderRequest.getBidRequest(), timeout)
+        final Bidder<?> bidder = bidderCatalog.bidderByName(resolveBidder(bidderName, aliases));
+        return httpBidderRequester.requestBids(bidder, bidderRequest.getBidRequest(), timeout)
                 .map(bidderSeatBid -> validateAndUpdateResponse(bidderSeatBid, bidderRequest.getBidRequest().getCur()))
                 .map(seat -> applyBidPriceChanges(seat, currencyConversionRates, adServerCurrency,
                         bidPriceAdjustmentFactor))
-                .map(result -> BidderResponse.of(bidder, result, responseTime(startTime)));
+                .map(result -> BidderResponse.of(bidderName, result, responseTime(startTime)));
     }
 
     /**

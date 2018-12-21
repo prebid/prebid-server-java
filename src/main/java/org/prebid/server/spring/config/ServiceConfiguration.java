@@ -16,7 +16,9 @@ import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.HttpAdapterConnector;
+import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.account.AccountCacheService;
 import org.prebid.server.cache.account.SimpleAccountCacheService;
@@ -265,8 +267,19 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    BidderCatalog bidderCatalog(List<BidderDeps> bidderDeps) {
+        return new BidderCatalog(bidderDeps);
+    }
+
+    @Bean
+    HttpBidderRequester httpBidderRequester(HttpClient httpClient) {
+        return new HttpBidderRequester(httpClient);
+    }
+
+    @Bean
     ExchangeService exchangeService(
             BidderCatalog bidderCatalog,
+            HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CacheService cacheService,
             CurrencyConversionService currencyConversionService,
@@ -277,8 +290,9 @@ public class ServiceConfiguration {
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
-        return new ExchangeService(bidderCatalog, responseBidValidator, cacheService, bidResponsePostProcessor,
-                currencyConversionService, gdprService, metrics, clock, useGeoLocation, expectedCacheTimeMs);
+        return new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
+                bidResponsePostProcessor, currencyConversionService, gdprService, metrics, clock, useGeoLocation,
+                expectedCacheTimeMs);
     }
 
     @Bean

@@ -10,7 +10,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Provides simple access to all {@link Adapter}s, {@link BidderRequester}s and {@link Usersyncer}s registered so far.
+ * Provides simple access to all {@link Adapter}s, {@link Bidder}s and {@link Usersyncer}s registered so far.
  */
 public class BidderCatalog {
 
@@ -138,16 +138,5 @@ public class BidderCatalog {
     public Adapter<?, ?> adapterByName(String name) {
         final BidderDeps bidderDeps = bidderDepsMap.get(name);
         return bidderDeps != null ? bidderDeps.getAdapter() : null;
-    }
-
-    /**
-     * Returns a {@link BidderRequester} registered by the given name or null if there is none.
-     * <p>
-     * Therefore this method should be called only for names that previously passed validity check
-     * through calling {@link #isValidName(String)}.
-     */
-    public BidderRequester bidderRequesterByName(String name) {
-        final BidderDeps bidderDeps = bidderDepsMap.get(name);
-        return bidderDeps != null ? bidderDeps.getBidderRequester() : null;
     }
 }

@@ -1,6 +1,6 @@
 package org.prebid.server.bidder;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Gathers all dependencies for bidder.
  */
-@AllArgsConstructor(staticName = "of")
+@Builder
 @Value
 public class BidderDeps {
 
@@ -55,9 +55,4 @@ public class BidderDeps {
      * Bidder's adapter is used in legacy auction handling.
      */
     Adapter<?, ?> adapter;
-
-    /**
-     * Bidder's requester is used in OpenRTB 2.5 auction handling.
-     */
-    BidderRequester bidderRequester;
 }

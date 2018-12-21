@@ -4,9 +4,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.BidderRequester;
-import org.prebid.server.bidder.HttpAdapterConnector;
-import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.facebook.FacebookAdapter;
@@ -14,7 +11,6 @@ import org.prebid.server.bidder.facebook.FacebookBidder;
 import org.prebid.server.bidder.facebook.FacebookMetaInfo;
 import org.prebid.server.bidder.facebook.FacebookUsersyncer;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,13 +49,13 @@ public class FacebookConfiguration extends BidderConfiguration {
     private List<String> aliases;
 
     @Bean
-    BidderDeps facebookBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+    BidderDeps facebookBidderDeps() {
         if (enabled && (usersyncUrl == null || platformId == null)) {
             throw new IllegalStateException(
                     String.format("%s is enabled but has missing required configuration properties. "
                             + "Please review configuration.", BIDDER_NAME));
         }
-        return bidderDeps(httpClient, httpAdapterConnector);
+        return bidderDeps();
     }
 
     @Override
@@ -97,9 +93,4 @@ public class FacebookConfiguration extends BidderConfiguration {
         return new FacebookAdapter(usersyncer, endpoint, nonSecureEndpoint, platformId);
     }
 
-    @Override
-    protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
-                                                    Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
-        return new HttpBidderRequester<>(bidder, httpClient);
-    }
 }
