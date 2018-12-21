@@ -3,9 +3,6 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.BidderRequester;
-import org.prebid.server.bidder.HttpAdapterConnector;
-import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.ix.IxAdapter;
@@ -13,7 +10,6 @@ import org.prebid.server.bidder.ix.IxBidder;
 import org.prebid.server.bidder.ix.IxMetaInfo;
 import org.prebid.server.bidder.ix.IxUsersyncer;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,13 +45,13 @@ public class IxConfiguration extends BidderConfiguration {
     private String externalUrl;
 
     @Bean
-    BidderDeps ixBidderDeps(HttpClient httpClient, HttpAdapterConnector httpAdapterConnector) {
+    BidderDeps ixBidderDeps() {
         if (enabled && endpoint == null) {
             throw new IllegalStateException(
                     String.format("%s is enabled but has missing required configuration properties. "
                             + "Please review configuration.", BIDDER_NAME));
         }
-        return bidderDeps(httpClient, httpAdapterConnector);
+        return bidderDeps();
     }
 
     @Override
@@ -93,9 +89,4 @@ public class IxConfiguration extends BidderConfiguration {
         return new IxAdapter(usersyncer, endpoint);
     }
 
-    @Override
-    protected BidderRequester createBidderRequester(HttpClient httpClient, Bidder<?> bidder, Adapter<?, ?> adapter,
-                                                    Usersyncer usersyncer, HttpAdapterConnector httpAdapterConnector) {
-        return new HttpBidderRequester<>(bidder, httpClient);
-    }
 }

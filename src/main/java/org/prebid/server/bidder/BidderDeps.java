@@ -9,6 +9,7 @@ import java.util.List;
  * Gathers all dependencies for bidder.
  */
 @AllArgsConstructor(staticName = "of")
+// TODO: convert to builder
 @Value
 public class BidderDeps {
 
@@ -55,9 +56,4 @@ public class BidderDeps {
      * Bidder's adapter is used in legacy auction handling.
      */
     Adapter<?, ?> adapter;
-
-    /**
-     * Bidder's requester is used in OpenRTB 2.5 auction handling.
-     */
-    BidderRequester bidderRequester;
 }
