@@ -29,7 +29,15 @@ public abstract class BidderConfiguration {
         final Adapter<?, ?> adapter = enabled ? createAdapter(usersyncer)
                 : new DisabledAdapter(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
 
-        return BidderDeps.of(bidderName, deprecatedNames(), aliases(), metaInfo, usersyncer, bidder, adapter);
+        return BidderDeps.builder()
+                .name(bidderName)
+                .deprecatedNames(deprecatedNames())
+                .aliases(aliases())
+                .metaInfo(metaInfo)
+                .usersyncer(usersyncer)
+                .bidder(bidder)
+                .adapter(adapter)
+                .build();
     }
 
     protected abstract String bidderName();

@@ -1,6 +1,6 @@
 package org.prebid.server.bidder;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
@@ -8,8 +8,7 @@ import java.util.List;
 /**
  * Gathers all dependencies for bidder.
  */
-@AllArgsConstructor(staticName = "of")
-// TODO: convert to builder
+@Builder
 @Value
 public class BidderDeps {
 
