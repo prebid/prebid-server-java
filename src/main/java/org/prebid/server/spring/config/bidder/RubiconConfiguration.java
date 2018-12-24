@@ -3,8 +3,6 @@ package org.prebid.server.spring.config.bidder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.prebid.server.bidder.Adapter;
-import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
@@ -22,12 +20,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.annotation.Validated;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-import java.util.List;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/rubicon.yaml", factory = YamlPropertySourceFactory.class)
-public class RubiconConfiguration extends BidderConfiguration {
+public class RubiconConfiguration {
 
     private static final String BIDDER_NAME = "rubicon";
 
@@ -43,44 +41,18 @@ public class RubiconConfiguration extends BidderConfiguration {
 
     @Bean
     BidderDeps rubiconBidderDeps() {
-        return bidderDeps();
-    }
-
-    @Override
-    public String bidderName() {
-        return BIDDER_NAME;
-    }
-
-    @Override
-    protected List<String> deprecatedNames() {
-        return configProperties.getDeprecatedNames();
-    }
-
-    @Override
-    protected List<String> aliases() {
-        return configProperties.getAliases();
-    }
-
-    @Override
-    public MetaInfo createMetaInfo() {
-        return new RubiconMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
-    }
-
-    @Override
-    public Usersyncer createUsersyncer() {
-        return new RubiconUsersyncer(configProperties.getUsersyncUrl());
-    }
-
-    @Override
-    protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new RubiconBidder(configProperties.getEndpoint(), configProperties.getXapi().getUsername(),
-                configProperties.getXapi().getPassword(), metaInfo);
-    }
-
-    @Override
-    public Adapter createAdapter(Usersyncer usersyncer) {
-        return new RubiconAdapter(usersyncer, configProperties.getEndpoint(), configProperties.getXapi().getUsername(),
-                configProperties.getXapi().getPassword());
+        final Usersyncer usersyncer = new RubiconUsersyncer(configProperties.getUsersyncUrl());
+        final MetaInfo metaInfo = new RubiconMetaInfo(configProperties.getEnabled(),
+                configProperties.getPbsEnforcesGdpr());
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(configProperties)
+                .metaInfo(metaInfo)
+                .usersyncer(usersyncer)
+                .bidderCreator(() -> new RubiconBidder(configProperties.getEndpoint(),
+                        configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword(), metaInfo))
+                .adapterCreator(() -> new RubiconAdapter(usersyncer, configProperties.getEndpoint(),
+                        configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword()))
+                .assemble();
     }
 
     @Validated
@@ -89,11 +61,11 @@ public class RubiconConfiguration extends BidderConfiguration {
     @NoArgsConstructor
     private static class RubiconConfigurationProperties extends BidderConfigurationProperties {
 
+        @Valid
         @NotNull
         private XAPI xapi = new XAPI();
     }
 
-    @Validated
     @Data
     @NoArgsConstructor
     private static class XAPI {

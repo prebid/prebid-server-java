@@ -1,9 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
-import org.prebid.server.bidder.Adapter;
-import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.openx.OpenxBidder;
 import org.prebid.server.bidder.openx.OpenxMetaInfo;
@@ -18,17 +15,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import java.util.List;
-
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/openx.yaml", factory = YamlPropertySourceFactory.class)
-public class OpenxConfiguration extends BidderConfiguration {
+public class OpenxConfiguration {
 
     private static final String BIDDER_NAME = "openx";
 
     @Autowired
     @Qualifier("openxConfigurationProperties")
-    private BidderConfigurationProperties openxProperties;
+    private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
@@ -41,42 +36,12 @@ public class OpenxConfiguration extends BidderConfiguration {
 
     @Bean
     BidderDeps openxBidderDeps() {
-        return bidderDeps();
+        final Usersyncer usersyncer = new OpenxUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(configProperties)
+                .metaInfo(new OpenxMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .usersyncer(usersyncer)
+                .bidderCreator(() -> new OpenxBidder(configProperties.getEndpoint()))
+                .assemble();
     }
-
-    @Override
-    protected String bidderName() {
-        return BIDDER_NAME;
-    }
-
-    @Override
-    protected List<String> deprecatedNames() {
-        return openxProperties.getDeprecatedNames();
-    }
-
-    @Override
-    protected List<String> aliases() {
-        return openxProperties.getAliases();
-    }
-
-    @Override
-    protected MetaInfo createMetaInfo() {
-        return new OpenxMetaInfo(openxProperties.getEnabled(), openxProperties.getPbsEnforcesGdpr());
-    }
-
-    @Override
-    protected Usersyncer createUsersyncer() {
-        return new OpenxUsersyncer(openxProperties.getUsersyncUrl(), externalUrl);
-    }
-
-    @Override
-    protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new OpenxBidder(openxProperties.getEndpoint());
-    }
-
-    @Override
-    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return null;
-    }
-
 }

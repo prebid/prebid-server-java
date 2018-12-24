@@ -1,9 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
-import org.prebid.server.bidder.Adapter;
-import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.sovrn.SovrnAdapter;
 import org.prebid.server.bidder.sovrn.SovrnBidder;
@@ -19,11 +16,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import java.util.List;
-
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/sovrn.yaml", factory = YamlPropertySourceFactory.class)
-public class SovrnConfiguration extends BidderConfiguration {
+public class SovrnConfiguration {
 
     private static final String BIDDER_NAME = "sovrn";
 
@@ -42,42 +37,13 @@ public class SovrnConfiguration extends BidderConfiguration {
 
     @Bean
     BidderDeps sovrnBidderDeps() {
-        return bidderDeps();
+        final Usersyncer usersyncer = new SovrnUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(configProperties)
+                .metaInfo(new SovrnMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .usersyncer(usersyncer)
+                .bidderCreator(() -> new SovrnBidder(configProperties.getEndpoint()))
+                .adapterCreator(() -> new SovrnAdapter(usersyncer, configProperties.getEndpoint()))
+                .assemble();
     }
-
-    @Override
-    protected String bidderName() {
-        return BIDDER_NAME;
-    }
-
-    @Override
-    protected List<String> deprecatedNames() {
-        return configProperties.getDeprecatedNames();
-    }
-
-    @Override
-    protected List<String> aliases() {
-        return configProperties.getAliases();
-    }
-
-    @Override
-    protected MetaInfo createMetaInfo() {
-        return new SovrnMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
-    }
-
-    @Override
-    protected Usersyncer createUsersyncer() {
-        return new SovrnUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
-    }
-
-    @Override
-    protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new SovrnBidder(configProperties.getEndpoint());
-    }
-
-    @Override
-    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new SovrnAdapter(usersyncer, configProperties.getEndpoint());
-    }
-
 }

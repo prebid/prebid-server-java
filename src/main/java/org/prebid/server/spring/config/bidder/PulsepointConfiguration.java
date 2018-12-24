@@ -1,9 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
-import org.prebid.server.bidder.Adapter;
-import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.pulsepoint.PulsepointAdapter;
 import org.prebid.server.bidder.pulsepoint.PulsepointBidder;
@@ -19,11 +16,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import java.util.List;
-
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/pulsepoint.yaml", factory = YamlPropertySourceFactory.class)
-public class PulsepointConfiguration extends BidderConfiguration {
+public class PulsepointConfiguration {
 
     private static final String BIDDER_NAME = "pulsepoint";
 
@@ -42,42 +37,13 @@ public class PulsepointConfiguration extends BidderConfiguration {
 
     @Bean
     BidderDeps pulsepointBidderDeps() {
-        return bidderDeps();
+        final Usersyncer usersyncer = new PulsepointUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(configProperties)
+                .metaInfo(new PulsepointMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .usersyncer(usersyncer)
+                .bidderCreator(() -> new PulsepointBidder(configProperties.getEndpoint()))
+                .adapterCreator(() -> new PulsepointAdapter(usersyncer, configProperties.getEndpoint()))
+                .assemble();
     }
-
-    @Override
-    protected String bidderName() {
-        return BIDDER_NAME;
-    }
-
-    @Override
-    protected List<String> deprecatedNames() {
-        return configProperties.getDeprecatedNames();
-    }
-
-    @Override
-    protected List<String> aliases() {
-        return configProperties.getAliases();
-    }
-
-    @Override
-    protected MetaInfo createMetaInfo() {
-        return new PulsepointMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
-    }
-
-    @Override
-    protected Usersyncer createUsersyncer() {
-        return new PulsepointUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
-    }
-
-    @Override
-    protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new PulsepointBidder(configProperties.getEndpoint());
-    }
-
-    @Override
-    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new PulsepointAdapter(usersyncer, configProperties.getEndpoint());
-    }
-
 }

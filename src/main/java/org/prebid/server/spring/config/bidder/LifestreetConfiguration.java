@@ -1,9 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
-import org.prebid.server.bidder.Adapter;
-import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.lifestreet.LifestreetAdapter;
 import org.prebid.server.bidder.lifestreet.LifestreetBidder;
@@ -19,11 +16,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import java.util.List;
-
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/lifestreet.yaml", factory = YamlPropertySourceFactory.class)
-public class LifestreetConfiguration extends BidderConfiguration {
+public class LifestreetConfiguration {
 
     private static final String BIDDER_NAME = "lifestreet";
 
@@ -42,42 +37,13 @@ public class LifestreetConfiguration extends BidderConfiguration {
 
     @Bean
     BidderDeps lifestreetBidderDeps() {
-        return bidderDeps();
+        final Usersyncer usersyncer = new LifestreetUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(configProperties)
+                .metaInfo(new LifestreetMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .usersyncer(usersyncer)
+                .bidderCreator(() -> new LifestreetBidder(configProperties.getEndpoint()))
+                .adapterCreator(() -> new LifestreetAdapter(usersyncer, configProperties.getEndpoint()))
+                .assemble();
     }
-
-    @Override
-    protected String bidderName() {
-        return BIDDER_NAME;
-    }
-
-    @Override
-    protected List<String> deprecatedNames() {
-        return configProperties.getDeprecatedNames();
-    }
-
-    @Override
-    protected List<String> aliases() {
-        return configProperties.getAliases();
-    }
-
-    @Override
-    protected MetaInfo createMetaInfo() {
-        return new LifestreetMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
-    }
-
-    @Override
-    protected Usersyncer createUsersyncer() {
-        return new LifestreetUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
-    }
-
-    @Override
-    protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new LifestreetBidder(configProperties.getEndpoint());
-    }
-
-    @Override
-    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new LifestreetAdapter(usersyncer, configProperties.getEndpoint());
-    }
-
 }
