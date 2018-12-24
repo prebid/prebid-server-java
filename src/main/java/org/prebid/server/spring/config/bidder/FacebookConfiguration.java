@@ -1,6 +1,9 @@
 package org.prebid.server.spring.config.bidder;
 
-import org.apache.commons.lang3.StringUtils;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -10,11 +13,15 @@ import org.prebid.server.bidder.facebook.FacebookAdapter;
 import org.prebid.server.bidder.facebook.FacebookBidder;
 import org.prebid.server.bidder.facebook.FacebookMetaInfo;
 import org.prebid.server.bidder.facebook.FacebookUsersyncer;
+import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
@@ -24,29 +31,15 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     private static final String BIDDER_NAME = "audienceNetwork";
 
-    @Value("${adapters.facebook.enabled}")
-    private boolean enabled;
+    @Autowired
+    @Qualifier("facebookConfigurationProperties")
+    private FacebookConfigurationProperties configProperties;
 
-    @Value("${adapters.facebook.endpoint}")
-    private String endpoint;
-
-    @Value("${adapters.facebook.non-secure-endpoint}")
-    private String nonSecureEndpoint;
-
-    @Value("${adapters.facebook.usersync-url}")
-    private String usersyncUrl;
-
-    @Value("${adapters.facebook.platform-id}")
-    private String platformId;
-
-    @Value("${adapters.facebook.pbs-enforces-gdpr}")
-    private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.facebook.deprecated-names}")
-    private List<String> deprecatedNames;
-
-    @Value("${adapters.facebook.aliases}")
-    private List<String> aliases;
+    @Bean("facebookConfigurationProperties")
+    @ConfigurationProperties("adapters.facebook")
+    FacebookConfigurationProperties configurationProperties() {
+        return new FacebookConfigurationProperties();
+    }
 
     @Bean
     BidderDeps facebookBidderDeps() {
@@ -60,31 +53,46 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     @Override
     protected List<String> deprecatedNames() {
-        return deprecatedNames;
+        return configProperties.getDeprecatedNames();
     }
 
     @Override
     protected List<String> aliases() {
-        return aliases;
+        return configProperties.getAliases();
     }
 
     @Override
     protected MetaInfo createMetaInfo() {
-        return new FacebookMetaInfo(enabled, pbsEnforcesGdpr);
+        return new FacebookMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
     }
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new FacebookUsersyncer(enabled && usersyncUrl != null ? usersyncUrl : StringUtils.EMPTY);
+        return new FacebookUsersyncer(configProperties.getUsersyncUrl());
     }
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new FacebookBidder(endpoint, nonSecureEndpoint, platformId);
+        return new FacebookBidder(configProperties.getEndpoint(), configProperties.getNonSecureEndpoint(),
+                configProperties.getPlatformId());
     }
 
     @Override
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return new FacebookAdapter(usersyncer, endpoint, nonSecureEndpoint, platformId);
+        return new FacebookAdapter(usersyncer, configProperties.getEndpoint(),
+                configProperties.getNonSecureEndpoint(), configProperties.getPlatformId());
+    }
+
+    @Validated
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    private static class FacebookConfigurationProperties extends BidderConfigurationProperties {
+
+        @NonNull
+        private String nonSecureEndpoint;
+
+        @NonNull
+        private String platformId;
     }
 }
