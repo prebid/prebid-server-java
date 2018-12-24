@@ -3,7 +3,6 @@ package org.prebid.server.spring.config.bidder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -23,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Configuration
@@ -89,10 +89,10 @@ public class FacebookConfiguration extends BidderConfiguration {
     @NoArgsConstructor
     private static class FacebookConfigurationProperties extends BidderConfigurationProperties {
 
-        @NonNull
+        @NotNull
         private String nonSecureEndpoint;
 
-        @NonNull
+        @NotNull
         private String platformId;
     }
 }
