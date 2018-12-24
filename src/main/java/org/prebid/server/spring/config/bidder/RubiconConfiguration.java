@@ -1,5 +1,8 @@
 package org.prebid.server.spring.config.bidder;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -13,12 +16,13 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Configuration
@@ -29,18 +33,12 @@ public class RubiconConfiguration extends BidderConfiguration {
 
     @Autowired
     @Qualifier("rubiconConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
-    @Value("${adapters.rubicon.XAPI.Username}")
-    private String username;
-
-    @Value("${adapters.rubicon.XAPI.Password}")
-    private String password;
+    private RubiconConfigurationProperties configProperties;
 
     @Bean("rubiconConfigurationProperties")
     @ConfigurationProperties("adapters.rubicon")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
+    RubiconConfigurationProperties configurationProperties() {
+        return new RubiconConfigurationProperties();
     }
 
     @Bean
@@ -75,12 +73,35 @@ public class RubiconConfiguration extends BidderConfiguration {
 
     @Override
     protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new RubiconBidder(configProperties.getEndpoint(), username, password, metaInfo);
+        return new RubiconBidder(configProperties.getEndpoint(), configProperties.getXapi().getUsername(),
+                configProperties.getXapi().getPassword(), metaInfo);
     }
 
     @Override
     public Adapter createAdapter(Usersyncer usersyncer) {
-        return new RubiconAdapter(usersyncer, configProperties.getEndpoint(), username, password);
+        return new RubiconAdapter(usersyncer, configProperties.getEndpoint(), configProperties.getXapi().getUsername(),
+                configProperties.getXapi().getPassword());
     }
 
+    @Validated
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    private static class RubiconConfigurationProperties extends BidderConfigurationProperties {
+
+        @NotNull
+        private XAPI xapi = new XAPI();
+    }
+
+    @Validated
+    @Data
+    @NoArgsConstructor
+    private static class XAPI {
+
+        @NotNull
+        private String username;
+
+        @NotNull
+        private String password;
+    }
 }
