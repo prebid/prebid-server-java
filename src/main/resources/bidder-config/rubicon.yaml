@@ -6,3 +6,6 @@ adapters:
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
+    XAPI:
+      Username:
+      Password:

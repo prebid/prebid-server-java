@@ -1,9 +1,6 @@
 package org.prebid.server.spring.config.bidder;
 
-import org.prebid.server.bidder.Adapter;
-import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.adkerneladn.AdkernelAdnBidder;
 import org.prebid.server.bidder.adkerneladn.AdkernelAdnMetaInfo;
@@ -18,11 +15,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import java.util.List;
-
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/adkerneladn.yaml", factory = YamlPropertySourceFactory.class)
-public class AdkernelAdnConfiguration extends BidderConfiguration {
+public class AdkernelAdnConfiguration {
 
     private static final String BIDDER_NAME = "adkernelAdn";
 
@@ -41,42 +36,12 @@ public class AdkernelAdnConfiguration extends BidderConfiguration {
 
     @Bean
     BidderDeps adkernelAdnBidderDeps() {
-        return bidderDeps();
+        final Usersyncer usersyncer = new AdkernelAdnUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(configProperties)
+                .metaInfo(new AdkernelAdnMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .usersyncer(usersyncer)
+                .bidderCreator(() -> new AdkernelAdnBidder(configProperties.getEndpoint()))
+                .assemble();
     }
-
-    @Override
-    protected String bidderName() {
-        return BIDDER_NAME;
-    }
-
-    @Override
-    protected List<String> deprecatedNames() {
-        return configProperties.getDeprecatedNames();
-    }
-
-    @Override
-    protected List<String> aliases() {
-        return configProperties.getAliases();
-    }
-
-    @Override
-    protected MetaInfo createMetaInfo() {
-        return new AdkernelAdnMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr());
-    }
-
-    @Override
-    protected Usersyncer createUsersyncer() {
-        return new AdkernelAdnUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
-    }
-
-    @Override
-    protected Bidder<?> createBidder(MetaInfo metaInfo) {
-        return new AdkernelAdnBidder(configProperties.getEndpoint());
-    }
-
-    @Override
-    protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
-        return null;
-    }
-
 }

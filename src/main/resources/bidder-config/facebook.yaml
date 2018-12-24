@@ -2,7 +2,9 @@ adapters:
   facebook:
     enabled: false
     endpoint: https://an.facebook.com/placementbid.ortb
-    nonSecureEndpoint: http://an.facebook.com/placementbid.ortb
+    non-secure-endpoint: http://an.facebook.com/placementbid.ortb
+    usersync-url:
+    platform-id:
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
