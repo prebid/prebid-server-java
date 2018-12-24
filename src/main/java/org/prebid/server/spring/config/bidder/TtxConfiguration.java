@@ -1,5 +1,8 @@
 package org.prebid.server.spring.config.bidder;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
@@ -17,7 +20,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Configuration
@@ -28,18 +33,15 @@ public class TtxConfiguration extends BidderConfiguration {
 
     @Autowired
     @Qualifier("ttxConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
-    @Value("${adapters.ttx.partner-id}")
-    private String partnerId;
+    private TtxConfigurationProperties configProperties;
 
     @Value("${external-url}")
     private String externalUrl;
 
     @Bean("ttxConfigurationProperties")
     @ConfigurationProperties("adapters.ttx")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
+    TtxConfigurationProperties configurationProperties() {
+        return new TtxConfigurationProperties();
     }
 
     @Bean
@@ -69,7 +71,7 @@ public class TtxConfiguration extends BidderConfiguration {
 
     @Override
     protected Usersyncer createUsersyncer() {
-        return new TtxUsersyncer(configProperties.getUsersyncUrl(), externalUrl, partnerId);
+        return new TtxUsersyncer(configProperties.getUsersyncUrl(), externalUrl, configProperties.getPartnerId());
     }
 
     @Override
@@ -82,4 +84,13 @@ public class TtxConfiguration extends BidderConfiguration {
         return null;
     }
 
+    @Validated
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    private static class TtxConfigurationProperties extends BidderConfigurationProperties {
+
+        @NotNull
+        private String partnerId;
+    }
 }
