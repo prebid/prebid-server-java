@@ -30,17 +30,17 @@ public class FacebookConfiguration extends BidderConfiguration {
     @Value("${adapters.facebook.endpoint}")
     private String endpoint;
 
-    @Value("${adapters.facebook.nonSecureEndpoint}")
+    @Value("${adapters.facebook.non-secure-endpoint}")
     private String nonSecureEndpoint;
 
-    @Value("${adapters.facebook.usersync-url:#{null}}")
+    @Value("${adapters.facebook.usersync-url}")
     private String usersyncUrl;
+
+    @Value("${adapters.facebook.platform-id}")
+    private String platformId;
 
     @Value("${adapters.facebook.pbs-enforces-gdpr}")
     private boolean pbsEnforcesGdpr;
-
-    @Value("${adapters.facebook.platformId:#{null}}")
-    private String platformId;
 
     @Value("${adapters.facebook.deprecated-names}")
     private List<String> deprecatedNames;
@@ -50,11 +50,6 @@ public class FacebookConfiguration extends BidderConfiguration {
 
     @Bean
     BidderDeps facebookBidderDeps() {
-        if (enabled && (usersyncUrl == null || platformId == null)) {
-            throw new IllegalStateException(
-                    String.format("%s is enabled but has missing required configuration properties. "
-                            + "Please review configuration.", BIDDER_NAME));
-        }
         return bidderDeps();
     }
 
@@ -92,5 +87,4 @@ public class FacebookConfiguration extends BidderConfiguration {
     protected Adapter<?, ?> createAdapter(Usersyncer usersyncer) {
         return new FacebookAdapter(usersyncer, endpoint, nonSecureEndpoint, platformId);
     }
-
 }
