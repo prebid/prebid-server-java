@@ -1503,7 +1503,7 @@ public class ApplicationTest extends VertxTest {
 
         // when
         final CookieSyncResponse cookieSyncResponse = given(spec)
-                .body(CookieSyncRequest.of(singletonList(RUBICON), 1, gdprConsent))
+                .body(CookieSyncRequest.of(singletonList(RUBICON), 1, gdprConsent, null))
                 .when()
                 .post("/cookie_sync")
                 .then()

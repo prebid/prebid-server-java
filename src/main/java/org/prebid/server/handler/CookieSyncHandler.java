@@ -124,8 +124,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         gdprService.resultByVendor(GDPR_PURPOSES, vendorIds, gdprAsString, gdprConsent, ip,
                 timeoutFactory.create(defaultTimeout))
-                .setHandler(asyncResult ->
-                        handleResult(asyncResult, context, uidsCookie, biddersToSync, gdprAsString, gdprConsent));
+                .setHandler(asyncResult -> handleResult(asyncResult, context, uidsCookie, biddersToSync,
+                        gdprAsString, gdprConsent, cookieSyncRequest.getLimit()));
     }
 
     /**
@@ -159,15 +159,15 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * Handles GDPR verification result.
      */
     private void handleResult(AsyncResult<GdprResponse> asyncResult, RoutingContext context, UidsCookie uidsCookie,
-                              Collection<String> biddersToSync, String gdpr, String gdprConsent) {
+                              Collection<String> biddersToSync, String gdpr, String gdprConsent, Integer limit) {
         if (asyncResult.failed()) {
-            respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersToSync);
+            respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersToSync, limit);
         } else {
             final Map<Integer, Boolean> vendorsToGdpr = asyncResult.result().getVendorsToGdpr();
 
             final Boolean gdprResult = vendorsToGdpr.get(gdprHostVendorId);
             if (gdprResult == null || !gdprResult) { // host vendor should be allowed by GDPR verification
-                respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersToSync);
+                respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersToSync, limit);
             } else {
                 final Set<Integer> vendorIds = vendorsToGdpr.entrySet().stream()
                         .filter(Map.Entry::getValue) // get only vendors passed GDPR verification
@@ -178,7 +178,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                         .filter(bidder -> !vendorIds.contains(gdprVendorIdFor(bidder)))
                         .collect(Collectors.toSet());
 
-                respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersRejectedByGdpr);
+                respondWith(context, uidsCookie, gdpr, gdprConsent, biddersToSync, biddersRejectedByGdpr, limit);
             }
         }
     }
@@ -187,7 +187,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      * Make HTTP response for given bidders.
      */
     private void respondWith(RoutingContext context, UidsCookie uidsCookie, String gdpr, String gdprConsent,
-                             Collection<String> bidders, Collection<String> biddersRejectedByGdpr) {
+                             Collection<String> bidders, Collection<String> biddersRejectedByGdpr, Integer limit) {
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -199,8 +199,16 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .filter(Objects::nonNull) // skip bidder with live Uid
                 .collect(Collectors.toList());
 
+        final List<BidderUsersyncStatus> updatedBidderStatuses;
+        if (limit != null && limit > 0) {
+            Collections.shuffle(bidderStatuses);
+            updatedBidderStatuses = bidderStatuses.subList(0, limit);
+        } else {
+            updatedBidderStatuses = bidderStatuses;
+        }
+
         final CookieSyncResponse response = CookieSyncResponse.of(uidsCookie.hasLiveUids() ? "ok" : "no_cookie",
-                bidderStatuses);
+                updatedBidderStatuses);
 
         context.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
@@ -208,7 +216,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         analyticsReporter.processEvent(CookieSyncEvent.builder()
                 .status(HttpResponseStatus.OK.code())
-                .bidderStatus(bidderStatuses)
+                .bidderStatus(updatedBidderStatuses)
                 .build());
     }
 
