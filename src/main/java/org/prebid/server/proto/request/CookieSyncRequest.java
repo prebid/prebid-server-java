@@ -14,4 +14,6 @@ public class CookieSyncRequest {
     Integer gdpr;
 
     String gdprConsent;
+
+    Integer limit;
 }
