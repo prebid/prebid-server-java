@@ -1577,13 +1577,13 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void biddersParamsShouldReturnBidderSchemas() throws IOException {
-        given(spec)
+    public void biddersParamsShouldReturnBidderSchemas() throws IOException, JSONException {
+        final Response response = given(spec)
                 .when()
-                .get("/bidders/params")
-                .then()
-                .assertThat()
-                .body(Matchers.equalTo(jsonFrom("params/test-bidder-params-schemas.json")));
+                .get("/bidders/params");
+
+        JSONAssert.assertEquals(jsonFrom("params/test-bidder-params-schemas.json"), response.asString(),
+                JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test

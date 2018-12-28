@@ -82,6 +82,21 @@
       "placement_hash"
     ]
   },
+  "eplanning": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "EPlanning Adapter Params",
+    "description": "A schema which validates params accepted by the EPlanning adapter",
+    "type": "object",
+    "properties": {
+      "exchange_id": {
+        "type": [
+          "string"
+        ],
+        "description": "Exchange ID to use."
+      }
+    },
+    "required": []
+  },
   "adkernelAdn": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "AdkernelAdn Adapter Params",
@@ -102,21 +117,6 @@
       "pubId"
     ]
   },
-  "eplanning": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "EPlanning Adapter Params",
-    "description": "A schema which validates params accepted by the EPlanning adapter",
-    "type": "object",
-    "properties": {
-      "exchange_id": {
-        "type": [
-          "string"
-        ],
-        "description": "Exchange ID to use."
-      }
-    },
-    "required": []
-  },
   "ix": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "ix Adapter Params",
@@ -130,6 +130,21 @@
     },
     "required": [
       "siteId"
+    ]
+  },
+  "lifestreet": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Lifestreet Adapter Params",
+    "description": "A schema which validates params accepted by the Lifestreet adapter",
+    "type": "object",
+    "properties": {
+      "slot_tag": {
+        "type": "string",
+        "description": "A tag which identifies the ad slot"
+      }
+    },
+    "required": [
+      "slot_tag"
     ]
   },
   "adform": {
@@ -156,21 +171,6 @@
     },
     "required": [
       "mid"
-    ]
-  },
-  "lifestreet": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Lifestreet Adapter Params",
-    "description": "A schema which validates params accepted by the Lifestreet adapter",
-    "type": "object",
-    "properties": {
-      "slot_tag": {
-        "type": "string",
-        "description": "A tag which identifies the ad slot"
-      }
-    },
-    "required": [
-      "slot_tag"
     ]
   },
   "brightroll": {
@@ -214,6 +214,29 @@
       "placementId",
       "path",
       "zone"
+    ]
+  },
+  "grid": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "TheMediaGrid Adapter Params",
+    "description": "A schema which validates params accepted by TheMediaGrid adapter",
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "audienceNetwork": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Facebook Audience Network Adapter Params",
+    "description": "A schema which validates params accepted by the Facebook Audience Network adapter",
+    "type": "object",
+    "properties": {
+      "placementId": {
+        "type": "string",
+        "description": "An ID which identifies the placement selling the impression"
+      }
+    },
+    "required": [
+      "placementId"
     ]
   },
   "appnexus": {
@@ -348,29 +371,6 @@
         "member"
       ]
     }
-  },
-  "audienceNetwork": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Facebook Audience Network Adapter Params",
-    "description": "A schema which validates params accepted by the Facebook Audience Network adapter",
-    "type": "object",
-    "properties": {
-      "placementId": {
-        "type": "string",
-        "description": "An ID which identifies the placement selling the impression"
-      }
-    },
-    "required": [
-      "placementId"
-    ]
-  },
-  "grid": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "TheMediaGrid Adapter Params",
-    "description": "A schema which validates params accepted by TheMediaGrid adapter",
-    "type": "object",
-    "properties": {},
-    "required": []
   },
   "pubmatic": {
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -529,6 +529,32 @@
       "zoneId"
     ]
   },
+  "pulsepoint": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Pulsepoint Adapter Params",
+    "description": "A schema which validates params accepted by the Pulsepoint adapter",
+    "type": "object",
+    "properties": {
+      "cp": {
+        "type": "integer",
+        "description": "An ID which identifies the publisher selling the impression"
+      },
+      "ct": {
+        "type": "integer",
+        "description": "An ID which identifies the ad slot being sold"
+      },
+      "cf": {
+        "type": "string",
+        "pattern": "^[0-9]+[xX][0-9]+$",
+        "description": "The size of the ad slot being sold. This should be a string like 300X250"
+      }
+    },
+    "required": [
+      "cp",
+      "ct",
+      "cf"
+    ]
+  },
   "conversant": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Conversant Adapter Params",
@@ -589,30 +615,36 @@
       "site_id"
     ]
   },
-  "pulsepoint": {
+  "sovrn": {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Pulsepoint Adapter Params",
-    "description": "A schema which validates params accepted by the Pulsepoint adapter",
+    "title": "Sovrn Adapter Params",
+    "description": "A schema which validates params accepted by the Sovrn adapter",
     "type": "object",
     "properties": {
-      "cp": {
-        "type": "integer",
-        "description": "An ID which identifies the publisher selling the impression"
-      },
-      "ct": {
-        "type": "integer",
-        "description": "An ID which identifies the ad slot being sold"
-      },
-      "cf": {
+      "tagid": {
         "type": "string",
-        "pattern": "^[0-9]+[xX][0-9]+$",
-        "description": "The size of the ad slot being sold. This should be a string like 300X250"
+        "description": "An ID which identifies the sovrn ad tag"
+      },
+      "tagId": {
+        "type": "string",
+        "description": "An ID which identifies the sovrn ad tag (DEPRECATED, use \"tagid\" instead)"
+      },
+      "bidfloor": {
+        "type": "number",
+        "description": "The minimum acceptable bid, in CPM, using US Dollars"
       }
     },
-    "required": [
-      "cp",
-      "ct",
-      "cf"
+    "oneOf": [
+      {
+        "required": [
+          "tagid"
+        ]
+      },
+      {
+        "required": [
+          "tagId"
+        ]
+      }
     ]
   },
   "openx": {
@@ -645,38 +677,6 @@
     "required": [
       "unit",
       "delDomain"
-    ]
-  },
-  "sovrn": {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Sovrn Adapter Params",
-    "description": "A schema which validates params accepted by the Sovrn adapter",
-    "type": "object",
-    "properties": {
-      "tagid": {
-        "type": "string",
-        "description": "An ID which identifies the sovrn ad tag"
-      },
-      "tagId": {
-        "type": "string",
-        "description": "An ID which identifies the sovrn ad tag (DEPRECATED, use \"tagid\" instead)"
-      },
-      "bidfloor": {
-        "type": "number",
-        "description": "The minimum acceptable bid, in CPM, using US Dollars"
-      }
-    },
-    "oneOf": [
-      {
-        "required": [
-          "tagid"
-        ]
-      },
-      {
-        "required": [
-          "tagId"
-        ]
-      }
     ]
   }
 }
