@@ -200,8 +200,6 @@ public class WebConfiguration {
 
     @Bean
     org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
-            @Value("${auction.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${auction.max-timeout-ms}") int maxTimeoutMs,
             ExchangeService exchangeService,
             AuctionRequestFactory auctionRequestFactory,
             UidsCookieService uidsCookieService,
@@ -210,13 +208,12 @@ public class WebConfiguration {
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
-        return new org.prebid.server.handler.openrtb2.AuctionHandler(defaultTimeoutMs, maxTimeoutMs, exchangeService,
-                auctionRequestFactory, uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory);
+        return new org.prebid.server.handler.openrtb2.AuctionHandler(exchangeService, auctionRequestFactory,
+                uidsCookieService, analyticsReporter, metrics, clock, timeoutFactory);
     }
 
     @Bean
     AmpHandler openrtbAmpHandler(
-            @Value("${amp.default-timeout-ms}") int defaultTimeoutMs,
             AmpRequestFactory ampRequestFactory,
             ExchangeService exchangeService,
             UidsCookieService uidsCookieService,
@@ -228,7 +225,7 @@ public class WebConfiguration {
             Clock clock,
             TimeoutFactory timeoutFactory) {
 
-        return new AmpHandler(defaultTimeoutMs, ampRequestFactory, exchangeService, uidsCookieService,
+        return new AmpHandler(ampRequestFactory, exchangeService, uidsCookieService,
                 ampProperties.getCustomTargetingSet(), bidderCatalog, analyticsReporter, ampResponsePostProcessor,
                 metrics, clock, timeoutFactory);
     }
@@ -390,5 +387,4 @@ public class WebConfiguration {
             logger.info("Successfully started Admin Server");
         }
     }
-
 }

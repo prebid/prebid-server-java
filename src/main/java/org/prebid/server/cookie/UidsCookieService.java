@@ -25,7 +25,7 @@ import java.util.Objects;
  */
 public class UidsCookieService {
 
-    private static final Logger logger = LoggerFactory.getLogger(UidsCookie.class);
+    private static final Logger logger = LoggerFactory.getLogger(UidsCookieService.class);
 
     private static final String COOKIE_NAME = "uids";
 
@@ -127,7 +127,6 @@ public class UidsCookieService {
         }
         return false;
     }
-
 
     /**
      * Enriches {@link Uids} parsed from request cookies with uid from host cookie (if applicable) and removes

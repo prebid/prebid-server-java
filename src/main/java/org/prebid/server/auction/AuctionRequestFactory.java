@@ -47,6 +47,8 @@ public class AuctionRequestFactory {
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
     private final long defaultTimeout;
+    private final long maxTimeout;
+    private final long timeoutAdjustment;
     private final long maxRequestSize;
     private final String adServerCurrency;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -55,13 +57,20 @@ public class AuctionRequestFactory {
     private final BidderCatalog bidderCatalog;
     private final RequestValidator requestValidator;
 
-    public AuctionRequestFactory(long defaultTimeout, long maxRequestSize, String adServerCurrency,
-                                 StoredRequestProcessor storedRequestProcessor,
-                                 ImplicitParametersExtractor paramsExtractor,
-                                 UidsCookieService uidsCookieService,
-                                 BidderCatalog bidderCatalog,
-                                 RequestValidator requestValidator) {
+    public AuctionRequestFactory(
+            long defaultTimeout, long maxTimeout, long timeoutAdjustment, long maxRequestSize, String adServerCurrency,
+            StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
+            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator) {
+
+        if (maxTimeout < defaultTimeout) {
+            throw new IllegalArgumentException(
+                    String.format("Max timeout cannot be less than default timeout: max=%d, default=%d", maxTimeout,
+                            defaultTimeout));
+        }
+
         this.defaultTimeout = defaultTimeout;
+        this.maxTimeout = maxTimeout;
+        this.timeoutAdjustment = timeoutAdjustment;
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -100,6 +109,7 @@ public class AuctionRequestFactory {
         }
 
         return storedRequestProcessor.processStoredRequests(bidRequest)
+                .map(this::updateTimeout)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context))
                 .map(this::validateRequest);
     }
@@ -124,6 +134,26 @@ public class AuctionRequestFactory {
         }
     }
 
+    private BidRequest updateTimeout(BidRequest bidRequest) {
+        final Long tmax = bidRequest.getTmax();
+
+        final long timeout;
+        if (tmax == null) {
+            timeout = defaultTimeout;
+        } else if (tmax > maxTimeout) {
+            timeout = maxTimeout;
+        } else if (timeoutAdjustment > 0) {
+            timeout = tmax - timeoutAdjustment;
+        } else {
+            timeout = tmax;
+        }
+
+        // check, do we really need to update request?
+        return !Objects.equals(tmax, timeout)
+                ? bidRequest.toBuilder().tmax(timeout).build()
+                : bidRequest;
+    }
+
     /**
      * If needed creates a new {@link BidRequest} which is a copy of original but with some fields set with values
      * derived from request parameters (headers, cookie etc.).
@@ -145,10 +175,9 @@ public class AuctionRequestFactory {
                 ? populateBidRequestExtension(ext, ObjectUtils.defaultIfNull(populatedImps, imps))
                 : null;
         final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
-        final boolean updateTmax = bidRequest.getTmax() == null;
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedImps != null
-                || updateAt || populatedExt != null || updateCurrency || updateTmax) {
+                || updateAt || populatedExt != null || updateCurrency) {
 
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : bidRequest.getDevice())
@@ -160,7 +189,6 @@ public class AuctionRequestFactory {
                     .at(updateAt ? Integer.valueOf(1) : at)
                     .ext(populatedExt != null ? populatedExt : ext)
                     .cur(updateCurrency ? Collections.singletonList(adServerCurrency) : bidRequest.getCur())
-                    .tmax(updateTmax ? defaultTimeout : bidRequest.getTmax())
                     .build();
         } else {
             result = bidRequest;

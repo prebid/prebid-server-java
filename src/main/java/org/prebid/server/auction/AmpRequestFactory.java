@@ -46,15 +46,25 @@ public class AmpRequestFactory {
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
 
-    private final long timeoutAdjustmentMs;
+    private final long defaultTimeout;
+    private final long maxTimeout;
+    private final long timeoutAdjustment;
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
 
-    public AmpRequestFactory(
-            long timeoutAdjustmentMs,
-            StoredRequestProcessor storedRequestProcessor,
-            AuctionRequestFactory auctionRequestFactory) {
-        this.timeoutAdjustmentMs = timeoutAdjustmentMs;
+    public AmpRequestFactory(long defaultTimeout, long maxTimeout, long timeoutAdjustment,
+                             StoredRequestProcessor storedRequestProcessor,
+                             AuctionRequestFactory auctionRequestFactory) {
+
+        if (maxTimeout < defaultTimeout) {
+            throw new IllegalArgumentException(
+                    String.format("Max timeout cannot be less than default timeout: max=%d, default=%d", maxTimeout,
+                            defaultTimeout));
+        }
+
+        this.defaultTimeout = defaultTimeout;
+        this.maxTimeout = maxTimeout;
+        this.timeoutAdjustment = timeoutAdjustment;
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
     }
@@ -159,7 +169,7 @@ public class AmpRequestFactory {
     private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
-        final Long updatedTimeout = updateTimeout(request);
+        final long updatedTimeout = timeoutFrom(bidRequest, request);
 
         return updateBidRequest(bidRequest, updatedSite, updatedImp, updatedTimeout);
     }
@@ -269,22 +279,39 @@ public class AmpRequestFactory {
                 : banner;
     }
 
-    private Long updateTimeout(HttpServerRequest request) {
+    private long timeoutFrom(BidRequest bidRequest, HttpServerRequest request) {
+        final Long overridenTimeout = overridenTimeout(request);
+        final Long tmax = overridenTimeout != null ? overridenTimeout : bidRequest.getTmax();
+
+        final long timeout;
+        if (tmax == null) {
+            timeout = defaultTimeout;
+        } else if (tmax > maxTimeout) {
+            timeout = maxTimeout;
+        } else if (timeoutAdjustment > 0) {
+            timeout = tmax - timeoutAdjustment;
+        } else {
+            timeout = tmax;
+        }
+
+        return timeout;
+    }
+
+    private Long overridenTimeout(HttpServerRequest request) {
         try {
-            return Long.parseLong(request.getParam(TIMEOUT_REQUEST_PARAM)) - timeoutAdjustmentMs;
+            return Long.parseLong(request.getParam(TIMEOUT_REQUEST_PARAM));
         } catch (NumberFormatException e) {
             return null;
         }
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, Site outgoingSite, Imp outgoingImp,
-                                               Long timeout) {
-        final boolean isValidTimeout = timeout != null && timeout > 0;
-        if (outgoingSite != null || outgoingImp != null || isValidTimeout) {
+                                               long timeout) {
+        if (outgoingSite != null || outgoingImp != null || !Objects.equals(timeout, bidRequest.getTmax())) {
             return bidRequest.toBuilder()
                     .site(outgoingSite != null ? outgoingSite : bidRequest.getSite())
                     .imp(outgoingImp != null ? Collections.singletonList(outgoingImp) : bidRequest.getImp())
-                    .tmax(isValidTimeout ? timeout : bidRequest.getTmax())
+                    .tmax(timeout)
                     .build();
         }
         return bidRequest;

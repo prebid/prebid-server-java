@@ -45,14 +45,14 @@ import static org.apache.commons.lang3.math.NumberUtils.isDigits;
 import static org.apache.commons.lang3.math.NumberUtils.toLong;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 public class PreBidRequestContextFactoryTest extends VertxTest {
-
-    private static final long DEFAULT_HTTP_REQUEST_TIMEOUT = 250L;
-    private static final long MAX_HTTP_REQUEST_TIMEOUT = 1000L;
 
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
@@ -76,6 +76,8 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
     @Mock
     private HttpServerRequest httpRequest;
 
+    private TimeoutFactory timeoutFactory;
+
     @Before
     public void setUp() {
         // minimal request
@@ -88,15 +90,15 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any())).willReturn(uidsCookie);
         given(uidsCookie.hasLiveUids()).willReturn(false);
 
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
-        factory = new PreBidRequestContextFactory(DEFAULT_HTTP_REQUEST_TIMEOUT, MAX_HTTP_REQUEST_TIMEOUT,
+        timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
+        factory = new PreBidRequestContextFactory(2000L, 5000L, 0L,
                 paramsExtractor, applicationSettings, uidsCookieService, timeoutFactory);
     }
 
     @Test
     public void creationShouldFailIfMaxTimeoutLessThanDefault() {
         assertThatIllegalArgumentException().isThrownBy(() ->
-                new PreBidRequestContextFactory(2, 1, null, null, null, null))
+                new PreBidRequestContextFactory(2L, 1L, 0L, null, null, null, null))
                 .withMessage("Max timeout cannot be less than default timeout: max=1, default=2");
     }
 
@@ -433,7 +435,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(DEFAULT_HTTP_REQUEST_TIMEOUT);
+        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(2000L);
     }
 
     @Test
@@ -445,7 +447,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(MAX_HTTP_REQUEST_TIMEOUT);
+        assertThat(preBidRequestContext.getTimeout().remaining()).isEqualTo(5000L);
     }
 
     @Test
@@ -457,7 +459,7 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(DEFAULT_HTTP_REQUEST_TIMEOUT);
+        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(2000L);
     }
 
     @Test
@@ -469,7 +471,22 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
 
         // then
-        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(MAX_HTTP_REQUEST_TIMEOUT);
+        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(5000L);
+    }
+
+    @Test
+    public void shouldUseTimeoutAdjustment() {
+        // given
+        factory = new PreBidRequestContextFactory(2000L, 5000L, 100L,
+                paramsExtractor, applicationSettings, uidsCookieService, timeoutFactory);
+
+        given(routingContext.getBody()).willReturn(givenPreBidRequest(builder -> builder.timeoutMillis(1000L)));
+
+        // when
+        final PreBidRequestContext preBidRequestContext = factory.fromRequest(routingContext).result();
+
+        // then
+        assertThat(preBidRequestContext.getPreBidRequest().getTimeoutMillis()).isEqualTo(900L);
     }
 
     @Test

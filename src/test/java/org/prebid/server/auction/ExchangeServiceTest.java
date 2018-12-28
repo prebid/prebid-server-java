@@ -1709,12 +1709,12 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("somebidder", 1)),
                 builder -> builder.site(Site.builder().build()));
 
-        //when
+        // when
         final BidResponse bidResponse =
                 exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
 
 
-        //then
+        // then
         assertThat(bidResponse.getSeatbid()).hasSize(0);
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("somebidder",
