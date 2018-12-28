@@ -19,7 +19,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -62,7 +61,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -80,9 +78,6 @@ import java.util.stream.Collectors;
 public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
-
-    private static final String APPLICATION_JSON_UTF_8 = HttpHeaderValues.APPLICATION_JSON.toString() + ";"
-            + HttpHeaderValues.CHARSET.toString() + "=" + StandardCharsets.UTF_8.toString().toLowerCase();
 
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
@@ -156,10 +151,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static MultiMap headers(String xapiUsername, String xapiPassword) {
         return MultiMap.caseInsensitiveMultiMap()
-                .add(HttpHeaders.AUTHORIZATION, authHeader(xapiUsername, xapiPassword))
-                .add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON_UTF_8)
-                .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                .add(HttpHeaders.USER_AGENT, PREBID_SERVER_USER_AGENT);
+                .add(HttpUtil.AUTHORIZATION_HEADER, authHeader(xapiUsername, xapiPassword))
+                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
+                .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                .add(HttpUtil.USER_AGENT_HEADER, PREBID_SERVER_USER_AGENT);
     }
 
     private static String authHeader(String xapiUsername, String xapiPassword) {

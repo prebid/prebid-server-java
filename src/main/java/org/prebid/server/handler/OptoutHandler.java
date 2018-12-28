@@ -2,7 +2,6 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
@@ -11,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.util.HttpUtil;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -59,7 +59,7 @@ public class OptoutHandler implements Handler<RoutingContext> {
 
     private void sendRedirect(RoutingContext context) {
         context.response()
-                .putHeader(HttpHeaders.LOCATION, optoutRedirectUrl)
+                .putHeader(HttpUtil.LOCATION_HEADER, optoutRedirectUrl)
                 .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
                 .end();
     }
@@ -74,7 +74,7 @@ public class OptoutHandler implements Handler<RoutingContext> {
     private void sendResponse(RoutingContext context, Cookie cookie, String url) {
         context.addCookie(cookie)
                 .response()
-                .putHeader(HttpHeaders.LOCATION, url)
+                .putHeader(HttpUtil.LOCATION_HEADER, url)
                 .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
                 .end();
     }

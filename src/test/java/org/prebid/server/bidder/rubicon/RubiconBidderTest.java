@@ -20,7 +20,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -58,6 +57,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpRubiconBuilder;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -115,10 +115,10 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
-                        tuple(HttpHeaders.AUTHORIZATION.toString(), "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
-                        tuple(HttpHeaders.CONTENT_TYPE.toString(), "application/json;charset=utf-8"),
-                        tuple(HttpHeaders.ACCEPT.toString(), "application/json"),
-                        tuple(HttpHeaders.USER_AGENT.toString(), "prebid-server/1.0"));
+                        tuple(HttpUtil.AUTHORIZATION_HEADER.toString(), "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "prebid-server/1.0"));
     }
 
     @Test

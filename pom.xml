@@ -445,7 +445,24 @@
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <!-- TODO: same line should be added to a start up command line -->
-                    <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <!--
+                     These are needed to silence warnings caused by:
+                        * 1 - jackson-afterburner
+                        * the rest - groovy
+                     Keep an eye on those dependencies and update their version as soon as they properly support
+                     Java 11. After this following arguments could be safely removed.
+                     -->
+                    <argLine>
+                        --add-opens java.base/java.lang=ALL-UNNAMED
+                        --add-opens java.base/java.lang.invoke=ALL-UNNAMED
+                        --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                        --add-opens java.base/java.util=ALL-UNNAMED
+                        --add-opens java.base/java.util.regex=ALL-UNNAMED
+                        --add-opens java.base/java.net=ALL-UNNAMED
+                        --add-opens java.base/java.io=ALL-UNNAMED
+                        --add-opens java.base/java.math=ALL-UNNAMED
+                        --add-opens java.base/sun.net.spi=ALL-UNNAMED
+                    </argLine>
                 </configuration>
             </plugin>
             <plugin>

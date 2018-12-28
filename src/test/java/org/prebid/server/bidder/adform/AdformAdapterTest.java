@@ -4,7 +4,6 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.junit.Before;
@@ -30,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,16 +38,14 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
 
 public class AdformAdapterTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://adform.com/openrtb2d";
-    private static final CharSequence X_REQUEST_AGENT = HttpHeaders.createOptimized("X-Request-Agent");
-    private static final CharSequence X_FORWARDED_FOR = HttpHeaders.createOptimized("X-Forwarded-For");
-    private static final String APPLICATION_JSON =
-            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
     private static final String BIDDER = "adform";
 
     @Rule
@@ -104,14 +102,14 @@ public class AdformAdapterTest extends VertxTest {
         assertThat(adapterHttpRequests)
                 .flatExtracting(adapterHttpRequest -> adapterHttpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple(HttpHeaders.CONTENT_TYPE.toString(), APPLICATION_JSON),
-                        tuple(HttpHeaders.ACCEPT.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple(HttpHeaders.USER_AGENT.toString(), "userAgent"),
-                        tuple(X_FORWARDED_FOR.toString(), "192.168.0.1"),
-                        tuple(X_REQUEST_AGENT.toString(), "PrebidAdapter 0.1.2"),
-                        tuple(HttpHeaders.REFERER.toString(), "www.example.com"),
+                .containsOnly(tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "userAgent"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "192.168.0.1"),
+                        tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.2"),
+                        tuple(HttpUtil.REFERER_HEADER.toString(), "www.example.com"),
                         // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
-                        tuple(HttpHeaders.COOKIE.toString(),
+                        tuple(HttpUtil.COOKIE_HEADER.toString(),
                                 "uid=buyeruid;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJw"
                                         + "cml2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"));
     }

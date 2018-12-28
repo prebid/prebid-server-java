@@ -5,7 +5,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -101,7 +100,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext context) {
         final long startTime = clock.millis();
 
-        final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpHeaders.USER_AGENT));
+        final boolean isSafari = HttpUtil.isSafari(context.request().headers().get(HttpUtil.USER_AGENT_HEADER));
 
         metrics.updateSafariRequestsMetric(isSafari);
 
@@ -416,8 +415,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         context.response().exceptionHandler(this::handleResponseException);
 
         context.response()
-                .putHeader(HttpHeaders.DATE, date())
-                .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .putHeader(HttpUtil.DATE_HEADER, date())
+                .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                 .end(Json.encode(response));
 
         metrics.updateRequestTimeMetric(clock.millis() - startTime);

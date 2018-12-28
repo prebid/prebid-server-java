@@ -3,7 +3,6 @@ package org.prebid.server.bidder.adform;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -27,9 +26,6 @@ class AdformHttpUtil {
     private static final String PRICE_TYPE_GROSS_PARAM = String.format("pt=%s", PRICE_TYPE_GROSS);
     private static final String PRICE_TYPE_NET_PARAM = String.format("pt=%s", PRICE_TYPE_NET);
 
-    private static final String APPLICATION_JSON =
-            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
-
     private AdformHttpUtil() {
     }
 
@@ -39,14 +35,14 @@ class AdformHttpUtil {
     static MultiMap buildAdformHeaders(String version, String userAgent, String ip,
                                        String referer, String userId, AdformDigitrust adformDigitrust) {
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
-                .add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-                .add(HttpHeaders.ACCEPT, HttpHeaderValues.APPLICATION_JSON)
-                .add(HttpHeaders.USER_AGENT, userAgent)
+                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
+                .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                .add(HttpUtil.USER_AGENT_HEADER, userAgent)
                 .add(HttpUtil.X_FORWARDED_FOR_HEADER, ip)
                 .add(HttpUtil.X_REQUEST_AGENT_HEADER, String.format("PrebidAdapter %s", version));
 
         if (StringUtils.isNotEmpty(referer)) {
-            headers.add(HttpHeaders.REFERER, referer);
+            headers.add(HttpUtil.REFERER_HEADER, referer);
         }
         final List<String> cookieValues = new ArrayList<>();
         if (StringUtils.isNotEmpty(userId)) {
@@ -66,7 +62,7 @@ class AdformHttpUtil {
         }
 
         if (CollectionUtils.isNotEmpty(cookieValues)) {
-            headers.add(HttpHeaders.COOKIE, cookieValues.stream().collect(Collectors.joining(";")));
+            headers.add(HttpUtil.COOKIE_HEADER, String.join(";", cookieValues));
         }
 
         return headers;
