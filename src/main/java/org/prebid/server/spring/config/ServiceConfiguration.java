@@ -118,7 +118,7 @@ public class ServiceConfiguration {
     PreBidRequestContextFactory preBidRequestContextFactory(
             @Value("${default-timeout-ms}") long defaultTimeout,
             @Value("${max-timeout-ms}") long maxTimeout,
-            @Value("${timeout-adjustment-ms}") @Min(0) long timeoutAdjustment,
+            @Value("${timeout-adjustment-ms}") long timeoutAdjustment,
             ImplicitParametersExtractor implicitParametersExtractor,
             ApplicationSettings applicationSettings,
             UidsCookieService uidsCookieService,
@@ -132,7 +132,7 @@ public class ServiceConfiguration {
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.default-timeout-ms}") long defaultTimeout,
             @Value("${auction.max-timeout-ms}") long maxTimeout,
-            @Value("${auction.timeout-adjustment-ms}") @Min(0) long timeoutAdjustment,
+            @Value("${auction.timeout-adjustment-ms}") long timeoutAdjustment,
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor,
@@ -150,7 +150,7 @@ public class ServiceConfiguration {
     AmpRequestFactory ampRequestFactory(
             @Value("${amp.default-timeout-ms}") long defaultTimeout,
             @Value("${amp.max-timeout-ms}") long maxTimeout,
-            @Value("${amp.timeout-adjustment-ms}") @Min(0) long timeoutAdjustment,
+            @Value("${amp.timeout-adjustment-ms}") long timeoutAdjustment,
             StoredRequestProcessor storedRequestProcessor,
             AuctionRequestFactory auctionRequestFactory) {
 
