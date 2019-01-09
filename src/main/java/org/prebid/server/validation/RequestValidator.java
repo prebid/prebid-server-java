@@ -721,18 +721,26 @@ public class RequestValidator {
 
     private void validateBanner(Banner banner, int impIndex) throws ValidationException {
         if (banner != null) {
-            final boolean hasWidth = hasPositiveValue(banner.getW());
-            final boolean hasHeight = hasPositiveValue(banner.getH());
+            final Integer width = banner.getW();
+            final Integer height = banner.getH();
+            final boolean hasWidth = hasPositiveValue(width);
+            final boolean hasHeight = hasPositiveValue(height);
             final boolean hasSize = hasWidth && hasHeight;
 
-            if (CollectionUtils.isEmpty(banner.getFormat()) && !hasSize) {
+            final List<Format> format = banner.getFormat();
+            if (CollectionUtils.isEmpty(format) && !hasSize) {
                 throw new ValidationException("request.imp[%d].banner has no sizes. Define \"w\" and \"h\", "
                         + "or include \"format\" elements", impIndex);
             }
 
-            if (banner.getFormat() != null) {
-                for (int formatIndex = 0; formatIndex < banner.getFormat().size(); formatIndex++) {
-                    validateFormat(banner.getFormat().get(formatIndex), impIndex, formatIndex);
+            if (width != null && height != null && !hasSize) {
+                throw new ValidationException("Request imp[%d].banner must define a valid"
+                        + " \"h\" and \"w\" properties", impIndex);
+            }
+
+            if (format != null) {
+                for (int formatIndex = 0; formatIndex < format.size(); formatIndex++) {
+                    validateFormat(format.get(formatIndex), impIndex, formatIndex);
                 }
             }
         }
