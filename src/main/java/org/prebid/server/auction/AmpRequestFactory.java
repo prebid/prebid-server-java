@@ -281,25 +281,18 @@ public class AmpRequestFactory {
 
     private long timeoutFrom(BidRequest bidRequest, HttpServerRequest request) {
         final Long overridenTimeout = overridenTimeout(request);
-        final Long tmax = overridenTimeout != null ? overridenTimeout : bidRequest.getTmax();
-
-        final long timeout;
-        if (tmax == null) {
-            timeout = defaultTimeout;
-        } else if (tmax > maxTimeout) {
-            timeout = maxTimeout;
-        } else if (timeoutAdjustment > 0) {
-            timeout = tmax - timeoutAdjustment;
-        } else {
-            timeout = tmax;
-        }
-
-        return timeout;
+        final Long requestTimeout = overridenTimeout != null ? overridenTimeout : bidRequest.getTmax();
+        return AuctionRequestFactory.resolveTimeout(requestTimeout, defaultTimeout, maxTimeout, timeoutAdjustment);
     }
 
     private Long overridenTimeout(HttpServerRequest request) {
+        final String timeout = request.getParam(TIMEOUT_REQUEST_PARAM);
+        if (timeout == null) {
+            return null;
+        }
+
         try {
-            return Long.parseLong(request.getParam(TIMEOUT_REQUEST_PARAM));
+            return Long.parseLong(timeout);
         } catch (NumberFormatException e) {
             return null;
         }

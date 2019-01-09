@@ -209,22 +209,13 @@ public class PreBidRequestContextFactory {
     }
 
     private PreBidRequest adjustRequestTimeout(PreBidRequest preBidRequest) {
-        final Long timeoutFromRequest = preBidRequest.getTimeoutMillis();
-
-        final long timeout;
-        if (timeoutFromRequest == null || timeoutFromRequest <= 0) {
-            timeout = defaultTimeout;
-        } else if (timeoutFromRequest > maxTimeout) {
-            timeout = maxTimeout;
-        } else if (timeoutAdjustment > 0) {
-            final long adjustedTimeout = timeoutFromRequest - timeoutAdjustment;
-            timeout = adjustedTimeout > 0 ? adjustedTimeout : timeoutFromRequest; // check negative value
-        } else {
-            timeout = timeoutFromRequest;
-        }
+        final Long requestTimeout = preBidRequest.getTimeoutMillis();
+        final long resolvedTimeout = AuctionRequestFactory.resolveTimeout(requestTimeout, defaultTimeout, maxTimeout,
+                timeoutAdjustment);
+        final long timeout = resolvedTimeout > 0 ? resolvedTimeout : defaultTimeout; // check negative value
 
         // check, do we really need to update request?
-        return !Objects.equals(timeoutFromRequest, timeout)
+        return !Objects.equals(requestTimeout, timeout)
                 ? preBidRequest.toBuilder().timeoutMillis(timeout).build()
                 : preBidRequest;
     }

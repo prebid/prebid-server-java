@@ -135,21 +135,11 @@ public class AuctionRequestFactory {
     }
 
     private BidRequest updateTimeout(BidRequest bidRequest) {
-        final Long tmax = bidRequest.getTmax();
-
-        final long timeout;
-        if (tmax == null) {
-            timeout = defaultTimeout;
-        } else if (tmax > maxTimeout) {
-            timeout = maxTimeout;
-        } else if (timeoutAdjustment > 0) {
-            timeout = tmax - timeoutAdjustment;
-        } else {
-            timeout = tmax;
-        }
+        final Long requestTimeout = bidRequest.getTmax();
+        final long timeout = resolveTimeout(requestTimeout, defaultTimeout, maxTimeout, timeoutAdjustment);
 
         // check, do we really need to update request?
-        return !Objects.equals(tmax, timeout)
+        return !Objects.equals(requestTimeout, timeout)
                 ? bidRequest.toBuilder().tmax(timeout).build()
                 : bidRequest;
     }
@@ -406,5 +396,25 @@ public class AuctionRequestFactory {
             throw new InvalidRequestException(validationResult.getErrors());
         }
         return bidRequest;
+    }
+
+    /**
+     * Determines valid timeout value.
+     */
+    static long resolveTimeout(Long requestTimeout, long defaultTimeout, long maxTimeout,
+                               long timeoutAdjustment) {
+        final long result;
+
+        if (requestTimeout == null) {
+            result = defaultTimeout;
+        } else if (requestTimeout > maxTimeout) {
+            result = maxTimeout;
+        } else if (timeoutAdjustment > 0) {
+            result = requestTimeout - timeoutAdjustment; // negative value should be checked by caller
+        } else {
+            result = requestTimeout;
+        }
+
+        return result;
     }
 }
