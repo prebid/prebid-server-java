@@ -13,7 +13,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.junit.Before;
@@ -43,9 +42,6 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class BrightrollBidderTest extends VertxTest {
 
-
-    private static final String APPLICATION_JSON = HttpHeaderValues.APPLICATION_JSON.toString() + ";"
-            + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
     private static final String ENDPOINT_URL = "http://brightroll.com";
 
     private BrightrollBidder brightrollBidder;
@@ -78,10 +74,11 @@ public class BrightrollBidderTest extends VertxTest {
                 .containsExactly("http://brightroll.com?publisher=publisher");
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple(HttpHeaders.CONTENT_TYPE.toString(), APPLICATION_JSON),
-                        tuple(HttpHeaders.ACCEPT.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple(HttpHeaders.USER_AGENT.toString(), "ua"),
-                        tuple(HttpHeaders.ACCEPT_LANGUAGE.toString(), "en"),
+                .containsOnly(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"),
+                        tuple(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(), "en"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "192.168.0.1"),
                         tuple(HttpUtil.DNT_HEADER.toString(), "1"),
                         tuple("x-openrtb-version", "2.5"));
@@ -236,8 +233,9 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple(HttpHeaders.CONTENT_TYPE.toString(), APPLICATION_JSON),
-                        tuple(HttpHeaders.ACCEPT.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                .containsOnly(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple("x-openrtb-version", "2.5"));
     }
 
@@ -278,7 +276,7 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .doesNotContain(tuple(HttpHeaders.USER_AGENT.toString(), "ua"));
+                .doesNotContain(tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"));
     }
 
     @Test
@@ -318,7 +316,7 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .doesNotContain(tuple(HttpHeaders.ACCEPT_LANGUAGE.toString(), "en"));
+                .doesNotContain(tuple(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(), "en"));
     }
 
     @Test

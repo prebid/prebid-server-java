@@ -66,7 +66,9 @@ import java.util.stream.Collectors;
 import static io.vertx.core.http.HttpMethod.GET;
 import static io.vertx.core.http.HttpMethod.POST;
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -76,7 +78,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.isNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class HttpAdapterConnectorTest extends VertxTest {
 

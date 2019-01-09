@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +24,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adkerneladn.ExtImpAdkernelAdn;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -149,8 +149,8 @@ public class AdkernelAdnBidderTest extends VertxTest {
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
-                        tuple(HttpHeaders.CONTENT_TYPE.toString(), "application/json;charset=utf-8"),
-                        tuple(HttpHeaders.ACCEPT.toString(), "application/json"),
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"),
                         tuple("x-openrtb-version", "2.5"));
     }
 
@@ -422,9 +422,11 @@ public class AdkernelAdnBidderTest extends VertxTest {
         assertThat(adkernelAdnBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
+
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
@@ -434,15 +436,20 @@ public class AdkernelAdnBidderTest extends VertxTest {
         return givenBidRequest(identity(), impCustomizer, identity());
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
+
         return givenBidRequest(identity(), impCustomizer, extCustomizer);
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
+    private static Imp givenImp(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder, ExtImpAdkernelAdn.ExtImpAdkernelAdnBuilder> extCustomizer) {
+
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpAdkernelAdn.builder().pubId(50357)).build()))))
+                .ext(mapper.valueToTree(
+                        ExtPrebid.of(null, extCustomizer.apply(ExtImpAdkernelAdn.builder().pubId(50357)).build()))))
                 .build();
     }
 

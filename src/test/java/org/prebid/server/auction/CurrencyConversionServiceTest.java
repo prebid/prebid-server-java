@@ -17,16 +17,20 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class CurrencyConversionServiceTest extends VertxTest {
 

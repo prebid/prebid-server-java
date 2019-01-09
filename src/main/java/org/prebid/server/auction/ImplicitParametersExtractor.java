@@ -1,10 +1,10 @@
 package org.prebid.server.auction;
 
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.util.HttpUtil;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -28,7 +28,7 @@ public class ImplicitParametersExtractor {
     public String refererFrom(HttpServerRequest request) {
         final String urlOverride = request.getParam("url_override");
         final String url = StringUtils.isNotBlank(urlOverride) ? urlOverride
-                : StringUtils.trimToNull(request.headers().get(HttpHeaders.REFERER));
+                : StringUtils.trimToNull(request.headers().get(HttpUtil.REFERER_HEADER));
 
         return StringUtils.isNotBlank(url) && !StringUtils.startsWith(url, "http")
                 ? String.format("http://%s", url)
@@ -87,7 +87,7 @@ public class ImplicitParametersExtractor {
      * Determines User-Agent by checking 'User-Agent' http header.
      */
     public String uaFrom(HttpServerRequest request) {
-        return StringUtils.trimToNull(request.headers().get(HttpHeaders.USER_AGENT));
+        return StringUtils.trimToNull(request.headers().get(HttpUtil.USER_AGENT_HEADER));
     }
 
     /**

@@ -1,7 +1,6 @@
 package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -94,7 +93,7 @@ public class WebConfiguration {
 
         contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
                 vertx.createHttpServer(httpServerOptions)
-                        .requestHandler(router::accept)
+                        .requestHandler(router)
                         .listen(httpPort, future));
 
         logger.info("Successfully started {0} instances of Http Server", httpServerNum);
@@ -175,8 +174,11 @@ public class WebConfiguration {
     CorsHandler corsHandler() {
         return CorsHandler.create(".*")
                 .allowCredentials(true)
-                .allowedHeaders(new HashSet<>(Arrays.asList(HttpHeaders.ORIGIN.toString(),
-                        HttpHeaders.ACCEPT.toString(), HttpHeaders.CONTENT_TYPE.toString(), "X-Requested-With")))
+                .allowedHeaders(new HashSet<>(Arrays.asList(
+                        HttpUtil.ORIGIN_HEADER.toString(),
+                        HttpUtil.ACCEPT_HEADER.toString(),
+                        HttpUtil.CONTENT_TYPE_HEADER.toString(),
+                        HttpUtil.X_REQUESTED_WITH_HEADER.toString())))
                 .allowedMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.HEAD,
                         HttpMethod.OPTIONS)));
     }
@@ -385,7 +387,7 @@ public class WebConfiguration {
             }
 
             contextRunner.<HttpServer>runOnServiceContext(future ->
-                    vertx.createHttpServer().requestHandler(router::accept).listen(adminPort, future));
+                    vertx.createHttpServer().requestHandler(router).listen(adminPort, future));
 
             logger.info("Successfully started Admin Server");
         }

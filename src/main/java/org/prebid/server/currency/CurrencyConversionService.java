@@ -14,6 +14,7 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -151,7 +152,7 @@ public class CurrencyConversionService {
             throw new PreBidException("no currency conversion available");
         }
 
-        return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, BigDecimal.ROUND_HALF_EVEN);
+        return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
     }
 
     /**
@@ -193,7 +194,7 @@ public class CurrencyConversionService {
 
         return reverseConversionRate != null
                 ? BigDecimal.ONE.divide(reverseConversionRate, reverseConversionRate.precision(),
-                BigDecimal.ROUND_HALF_EVEN)
+                RoundingMode.HALF_EVEN)
                 : null;
     }
 
@@ -219,7 +220,7 @@ public class CurrencyConversionService {
                         bidCurrencyRateIntermediate.compareTo(adServerCurrencyRateIntermediate) > 0
                                 ? bidCurrencyRateIntermediate.precision()
                                 : adServerCurrencyRateIntermediate.precision(),
-                        BigDecimal.ROUND_HALF_EVEN);
+                        RoundingMode.HALF_EVEN);
             }
         }
         return conversionRate;
