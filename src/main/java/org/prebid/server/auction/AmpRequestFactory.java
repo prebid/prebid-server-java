@@ -74,7 +74,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request()))
-                .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context))
+                .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context, timeoutResolver))
                 .map(auctionRequestFactory::validateRequest);
     }
 
@@ -160,7 +160,7 @@ public class AmpRequestFactory {
     private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
-        final long updatedTimeout = timeoutFrom(bidRequest, request);
+        final Long updatedTimeout = overridenTimeout(request);
 
         return updateBidRequest(bidRequest, updatedSite, updatedImp, updatedTimeout);
     }
@@ -270,13 +270,7 @@ public class AmpRequestFactory {
                 : banner;
     }
 
-    private long timeoutFrom(BidRequest bidRequest, HttpServerRequest request) {
-        final Long overridenTimeout = overridenTimeout(request);
-        final Long requestTimeout = overridenTimeout != null ? overridenTimeout : bidRequest.getTmax();
-        return timeoutResolver.resolve(requestTimeout);
-    }
-
-    private Long overridenTimeout(HttpServerRequest request) {
+    private static Long overridenTimeout(HttpServerRequest request) {
         final String timeout = request.getParam(TIMEOUT_REQUEST_PARAM);
         if (timeout == null) {
             return null;
@@ -290,12 +284,13 @@ public class AmpRequestFactory {
     }
 
     private static BidRequest updateBidRequest(BidRequest bidRequest, Site outgoingSite, Imp outgoingImp,
-                                               long timeout) {
-        if (outgoingSite != null || outgoingImp != null || !Objects.equals(timeout, bidRequest.getTmax())) {
+                                               Long timeout) {
+        final boolean isValidTimeout = timeout != null && timeout > 0;
+        if (outgoingSite != null || outgoingImp != null || isValidTimeout) {
             return bidRequest.toBuilder()
                     .site(outgoingSite != null ? outgoingSite : bidRequest.getSite())
                     .imp(outgoingImp != null ? Collections.singletonList(outgoingImp) : bidRequest.getImp())
-                    .tmax(timeout)
+                    .tmax(isValidTimeout ? timeout : bidRequest.getTmax())
                     .build();
         }
         return bidRequest;
