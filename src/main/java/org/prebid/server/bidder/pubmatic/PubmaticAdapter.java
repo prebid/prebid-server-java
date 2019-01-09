@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -70,7 +69,7 @@ public class PubmaticAdapter extends OpenrtbAdapter {
     public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
                                                                  PreBidRequestContext preBidRequestContext) {
         final MultiMap headers = headers()
-                .add(HttpHeaders.SET_COOKIE, makeUserCookie(preBidRequestContext));
+                .add(HttpUtil.SET_COOKIE_HEADER, makeUserCookie(preBidRequestContext));
 
         final BidRequest bidRequest = createBidRequest(adapterRequest, preBidRequestContext);
         final AdapterHttpRequest<BidRequest> httpRequest = AdapterHttpRequest.of(HttpMethod.POST, endpointUrl,

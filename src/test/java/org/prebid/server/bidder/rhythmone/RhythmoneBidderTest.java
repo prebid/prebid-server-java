@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +20,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.rhythmone.ExtImpRhythmone;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -80,7 +80,8 @@ public class RhythmoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("placementId | zone | path not provided in imp id=123. Abort all Request"));
+                .containsOnly(BidderError.badInput("placementId | zone | path not provided in imp id=123. Abort all " +
+                        "Request"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -94,7 +95,8 @@ public class RhythmoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .extracting(bidRequestHttpRequest -> mapper.readValue(bidRequestHttpRequest.getBody(), BidRequest.class))
+                .extracting(bidRequestHttpRequest ->
+                        mapper.readValue(bidRequestHttpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .extracting(node -> node.get("bidder"))
@@ -119,8 +121,8 @@ public class RhythmoneBidderTest extends VertxTest {
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
-                        tuple(HttpHeaders.CONTENT_TYPE.toString(), "application/json;charset=utf-8"),
-                        tuple(HttpHeaders.ACCEPT.toString(), "application/json"));
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"));
     }
 
     @Test
@@ -226,9 +228,11 @@ public class RhythmoneBidderTest extends VertxTest {
         assertThat(rhythmoneBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
+
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
@@ -238,8 +242,10 @@ public class RhythmoneBidderTest extends VertxTest {
         return givenBidRequest(identity(), impCustomizer, identity());
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
+    private static Imp givenImp(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<ExtImpRhythmone.ExtImpRhythmoneBuilder, ExtImpRhythmone.ExtImpRhythmoneBuilder> extCustomizer) {
+
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null,

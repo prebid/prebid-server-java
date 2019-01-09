@@ -221,7 +221,7 @@ public class MetricsConfiguration {
             CollectorRegistry.defaultRegistry.register(new DropwizardExports(metricRegistry));
 
             contextRunner.<HttpServer>runOnServiceContext(future ->
-                    vertx.createHttpServer().requestHandler(router::accept).listen(prometheusPort, future));
+                    vertx.createHttpServer().requestHandler(router).listen(prometheusPort, future));
 
             logger.info("Successfully started Prometheus Server");
         }

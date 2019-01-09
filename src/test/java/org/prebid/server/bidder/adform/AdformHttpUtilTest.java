@@ -2,11 +2,11 @@ package org.prebid.server.bidder.adform;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import org.junit.Test;
 import org.prebid.server.bidder.adform.model.AdformDigitrust;
 import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
 import org.prebid.server.bidder.adform.model.UrlParameters;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Map;
 
@@ -18,11 +18,6 @@ import static org.assertj.core.util.Lists.emptyList;
 
 public class AdformHttpUtilTest {
 
-    private static final String APPLICATION_JSON =
-            HttpHeaderValues.APPLICATION_JSON.toString() + ";" + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
-    private static final CharSequence X_REQUEST_AGENT = HttpHeaders.createOptimized("X-Request-Agent");
-    private static final CharSequence X_FORWARDED_FOR = HttpHeaders.createOptimized("X-Forwarded-For");
-
     @Test
     public void buildAdformHeadersShouldReturnAllHeaders() {
         // when
@@ -32,13 +27,13 @@ public class AdformHttpUtilTest {
         // then
         assertThat(headers).hasSize(7)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple(HttpHeaders.CONTENT_TYPE.toString(), APPLICATION_JSON),
-                        tuple(HttpHeaders.ACCEPT.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple(HttpHeaders.USER_AGENT.toString(), "userAgent"),
-                        tuple(X_FORWARDED_FOR.toString(), "ip"),
-                        tuple(X_REQUEST_AGENT.toString(), "PrebidAdapter 0.1.0"),
-                        tuple(HttpHeaders.REFERER.toString(), "www.example.com"),
-                        tuple(HttpHeaders.COOKIE.toString(),
+                .containsOnly(tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "userAgent"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
+                        tuple(HttpUtil.X_REQUEST_AGENT_HEADER.toString(), "PrebidAdapter 0.1.0"),
+                        tuple(HttpUtil.REFERER_HEADER.toString(), "www.example.com"),
+                        tuple(HttpUtil.COOKIE_HEADER.toString(),
                                 // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
                                 "uid=buyeruid;DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLC" +
                                         "Jwcml2YWN5Ijp7Im9wdG91dCI6dHJ1ZX19"));
@@ -51,7 +46,7 @@ public class AdformHttpUtilTest {
                 AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
 
         // then
-        assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpHeaders.REFERER.toString());
+        assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpUtil.REFERER_HEADER.toString());
     }
 
     @Test
@@ -60,7 +55,7 @@ public class AdformHttpUtilTest {
         final MultiMap headers = AdformHttpUtil.buildAdformHeaders("0.1.0", "userAgent", "ip", "referer", "", null);
 
         // then
-        assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpHeaders.COOKIE.toString());
+        assertThat(headers).extracting(Map.Entry::getKey).doesNotContain(HttpUtil.COOKIE_HEADER.toString());
     }
 
     @Test
@@ -71,7 +66,7 @@ public class AdformHttpUtilTest {
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(tuple(HttpHeaders.COOKIE.toString(), "uid=buyeruid"));
+                .contains(tuple(HttpUtil.COOKIE_HEADER.toString(), "uid=buyeruid"));
     }
 
     @Test
@@ -82,7 +77,7 @@ public class AdformHttpUtilTest {
 
         // then
         assertThat(headers).extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(tuple(HttpHeaders.COOKIE.toString(),
+                .contains(tuple(HttpUtil.COOKIE_HEADER.toString(),
                         // Base64 encoded {"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
                         "DigiTrust.v1.identity=eyJpZCI6ImlkIiwidmVyc2lvbiI6MSwia2V5diI6MTIzLCJwcml2YWN5Ijp7Im9wdG91dC"
                                 + "I6dHJ1ZX19"));
@@ -169,8 +164,8 @@ public class AdformHttpUtilTest {
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url)
-                .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
+        assertThat(url).isEqualTo(
+                "http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
     }
 
     @Test
@@ -188,8 +183,8 @@ public class AdformHttpUtilTest {
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url)
-                .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
+        assertThat(url).isEqualTo(
+                "http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
     }
 
     @Test
@@ -207,8 +202,8 @@ public class AdformHttpUtilTest {
 
         // then
         // bWlkPTE1 is Base64 encoded mid=15 and bWlkPTE2 encoded mid=16, so bWlkPTE1&bWlkPTE2 = mid=15&mid=16
-        assertThat(url)
-                .isEqualTo("http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=net&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
+        assertThat(url).isEqualTo(
+                "http://adx.adform.net/adx?CC=1&fd=1&gdpr=&gdpr_consent=&ip=ip&pt=net&rp=4&stid=tid&bWlkPTE1&bWlkPTE2");
     }
 
     @Test

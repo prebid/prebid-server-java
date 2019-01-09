@@ -5,12 +5,12 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
 import java.util.Map;
@@ -66,7 +66,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
             }
 
             context.response()
-                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                    .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                     .end(response);
         } else {
             context.response()

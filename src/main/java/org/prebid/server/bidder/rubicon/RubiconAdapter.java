@@ -16,7 +16,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -96,8 +95,8 @@ public class RubiconAdapter extends OpenrtbAdapter {
     public List<AdapterHttpRequest<BidRequest>> makeHttpRequests(AdapterRequest adapterRequest,
                                                                  PreBidRequestContext preBidRequestContext) {
         final MultiMap headers = headers()
-                .add(HttpHeaders.AUTHORIZATION, authHeader)
-                .add(HttpHeaders.USER_AGENT, PREBID_SERVER_USER_AGENT);
+                .add(HttpUtil.AUTHORIZATION_HEADER, authHeader)
+                .add(HttpUtil.USER_AGENT_HEADER, PREBID_SERVER_USER_AGENT);
 
         final List<AdUnitBid> adUnitBids = adapterRequest.getAdUnitBids();
 

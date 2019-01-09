@@ -14,7 +14,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -44,8 +44,6 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class SomoaudienceBidderTest extends VertxTest {
 
-    private static final String APPLICATION_JSON = HttpHeaderValues.APPLICATION_JSON.toString() + ";"
-            + HttpHeaderValues.CHARSET.toString() + "=" + "utf-8";
     private static final String ENDPOINT_URL = "http://somoaudience.com";
 
     private SomoaudienceBidder somoaudienceBidder;
@@ -80,8 +78,9 @@ public class SomoaudienceBidderTest extends VertxTest {
                 .containsExactly("http://somoaudience.com?s=placementId");
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple(HttpHeaders.CONTENT_TYPE.toString(), APPLICATION_JSON),
-                        tuple(HttpHeaders.ACCEPT.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                .containsOnly(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple("x-openrtb-version", "2.5"),
                         tuple("User-Agent", "User Agent"),
                         tuple("X-Forwarded-For", "ip"),
@@ -326,7 +325,8 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .bid(singletonList(Bid.builder().impid("impId").build()))
                         .build()))
                 .build());
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build())).build();
+        final BidRequest bidRequest =
+                BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build())).build();
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(response);
 
@@ -347,7 +347,8 @@ public class SomoaudienceBidderTest extends VertxTest {
                         .bid(singletonList(Bid.builder().impid("impId").build()))
                         .build()))
                 .build());
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId2").build())).build();
+        final BidRequest bidRequest =
+                BidRequest.builder().imp(singletonList(Imp.builder().id("impId2").build())).build();
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(response);
 
