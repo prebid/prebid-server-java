@@ -40,9 +40,8 @@ public class PreBidRequestContextFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(PreBidRequestContextFactory.class);
 
+    private final TimeoutResolver timeoutResolver;
     private final long defaultTimeout;
-    private final long maxTimeout;
-    private final long timeoutAdjustment;
     private final ImplicitParametersExtractor paramsExtractor;
     private final ApplicationSettings applicationSettings;
     private final UidsCookieService uidsCookieService;
@@ -55,15 +54,9 @@ public class PreBidRequestContextFactory {
                                        ApplicationSettings applicationSettings, UidsCookieService uidsCookieService,
                                        TimeoutFactory timeoutFactory) {
 
-        if (maxTimeout < defaultTimeout) {
-            throw new IllegalArgumentException(
-                    String.format("Max timeout cannot be less than default timeout: max=%d, default=%d",
-                            maxTimeout, defaultTimeout));
-        }
+        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
 
         this.defaultTimeout = defaultTimeout;
-        this.maxTimeout = maxTimeout;
-        this.timeoutAdjustment = timeoutAdjustment;
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -210,8 +203,7 @@ public class PreBidRequestContextFactory {
 
     private PreBidRequest adjustRequestTimeout(PreBidRequest preBidRequest) {
         final Long requestTimeout = preBidRequest.getTimeoutMillis();
-        final long resolvedTimeout = AuctionRequestFactory.resolveTimeout(requestTimeout, defaultTimeout, maxTimeout,
-                timeoutAdjustment);
+        final long resolvedTimeout = timeoutResolver.resolve(requestTimeout);
         final long timeout = resolvedTimeout > 0 ? resolvedTimeout : defaultTimeout; // check negative value
 
         // check, do we really need to update request?

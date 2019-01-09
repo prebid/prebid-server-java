@@ -44,7 +44,6 @@ import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.math.NumberUtils.isDigits;
 import static org.apache.commons.lang3.math.NumberUtils.toLong;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -93,13 +92,6 @@ public class PreBidRequestContextFactoryTest extends VertxTest {
         timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
         factory = new PreBidRequestContextFactory(2000L, 5000L, 0L,
                 paramsExtractor, applicationSettings, uidsCookieService, timeoutFactory);
-    }
-
-    @Test
-    public void creationShouldFailIfMaxTimeoutLessThanDefault() {
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                new PreBidRequestContextFactory(2L, 1L, 0L, null, null, null, null))
-                .withMessage("Max timeout cannot be less than default timeout: max=1, default=2");
     }
 
     @Test

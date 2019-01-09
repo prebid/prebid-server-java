@@ -46,9 +46,7 @@ public class AmpRequestFactory {
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
 
-    private final long defaultTimeout;
-    private final long maxTimeout;
-    private final long timeoutAdjustment;
+    private final TimeoutResolver timeoutResolver;
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
 
@@ -56,15 +54,8 @@ public class AmpRequestFactory {
                              StoredRequestProcessor storedRequestProcessor,
                              AuctionRequestFactory auctionRequestFactory) {
 
-        if (maxTimeout < defaultTimeout) {
-            throw new IllegalArgumentException(
-                    String.format("Max timeout cannot be less than default timeout: max=%d, default=%d", maxTimeout,
-                            defaultTimeout));
-        }
+        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
 
-        this.defaultTimeout = defaultTimeout;
-        this.maxTimeout = maxTimeout;
-        this.timeoutAdjustment = timeoutAdjustment;
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
     }
@@ -282,7 +273,7 @@ public class AmpRequestFactory {
     private long timeoutFrom(BidRequest bidRequest, HttpServerRequest request) {
         final Long overridenTimeout = overridenTimeout(request);
         final Long requestTimeout = overridenTimeout != null ? overridenTimeout : bidRequest.getTmax();
-        return AuctionRequestFactory.resolveTimeout(requestTimeout, defaultTimeout, maxTimeout, timeoutAdjustment);
+        return timeoutResolver.resolve(requestTimeout);
     }
 
     private Long overridenTimeout(HttpServerRequest request) {

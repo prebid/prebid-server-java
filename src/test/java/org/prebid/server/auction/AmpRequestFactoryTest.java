@@ -41,7 +41,6 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -72,13 +71,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.getParam(eq("tag_id"))).willReturn("tagId");
         given(routingContext.request()).willReturn(httpRequest);
         factory = new AmpRequestFactory(2000L, 5000L, 0L, storedRequestProcessor, auctionRequestFactory);
-    }
-
-    @Test
-    public void creationShouldFailIfMaxTimeoutLessThanDefault() {
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                new AmpRequestFactory(2L, 1L, 0L, null, null))
-                .withMessage("Max timeout cannot be less than default timeout: max=1, default=2");
     }
 
     @Test

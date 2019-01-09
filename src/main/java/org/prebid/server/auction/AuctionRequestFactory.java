@@ -46,9 +46,7 @@ public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
 
-    private final long defaultTimeout;
-    private final long maxTimeout;
-    private final long timeoutAdjustment;
+    private final TimeoutResolver timeoutResolver;
     private final long maxRequestSize;
     private final String adServerCurrency;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -62,15 +60,8 @@ public class AuctionRequestFactory {
             StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
             UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator) {
 
-        if (maxTimeout < defaultTimeout) {
-            throw new IllegalArgumentException(
-                    String.format("Max timeout cannot be less than default timeout: max=%d, default=%d", maxTimeout,
-                            defaultTimeout));
-        }
+        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
 
-        this.defaultTimeout = defaultTimeout;
-        this.maxTimeout = maxTimeout;
-        this.timeoutAdjustment = timeoutAdjustment;
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -136,7 +127,7 @@ public class AuctionRequestFactory {
 
     private BidRequest updateTimeout(BidRequest bidRequest) {
         final Long requestTimeout = bidRequest.getTmax();
-        final long timeout = resolveTimeout(requestTimeout, defaultTimeout, maxTimeout, timeoutAdjustment);
+        final long timeout = timeoutResolver.resolve(requestTimeout);
 
         // check, do we really need to update request?
         return !Objects.equals(requestTimeout, timeout)
@@ -396,25 +387,5 @@ public class AuctionRequestFactory {
             throw new InvalidRequestException(validationResult.getErrors());
         }
         return bidRequest;
-    }
-
-    /**
-     * Determines valid timeout value.
-     */
-    static long resolveTimeout(Long requestTimeout, long defaultTimeout, long maxTimeout,
-                               long timeoutAdjustment) {
-        final long result;
-
-        if (requestTimeout == null) {
-            result = defaultTimeout;
-        } else if (requestTimeout > maxTimeout) {
-            result = maxTimeout;
-        } else if (timeoutAdjustment > 0) {
-            result = requestTimeout - timeoutAdjustment; // negative value should be checked by caller
-        } else {
-            result = requestTimeout;
-        }
-
-        return result;
     }
 }

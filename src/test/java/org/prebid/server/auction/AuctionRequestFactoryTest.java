@@ -38,7 +38,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -69,13 +68,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void setUp() {
         factory = new AuctionRequestFactory(2000L, 5000L, 0L, Integer.MAX_VALUE, "USD", storedRequestProcessor,
                 paramsExtractor, uidsCookieService, bidderCatalog, requestValidator);
-    }
-
-    @Test
-    public void creationShouldFailIfMaxTimeoutLessThanDefault() {
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                new AuctionRequestFactory(2L, 1L, 0L, 0L, null, null, null, null, null, null))
-                .withMessage("Max timeout cannot be less than default timeout: max=1, default=2");
     }
 
     @Test
