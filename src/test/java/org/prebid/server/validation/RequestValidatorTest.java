@@ -357,6 +357,28 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNoWidth() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .h(600)
+                                .format(emptyList())
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndZeroHeight() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -380,14 +402,15 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNoWidth() {
+    public void validateShouldReturnValidationMessageWhenBannerHasZeroHeight() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .imp(singletonList(Imp.builder()
                         .id("11")
                         .banner(Banner.builder()
-                                .h(600)
-                                .format(emptyList())
+                                .w(300)
+                                .h(0)
+                                .format(singletonList(Format.builder().build()))
                                 .build())
                         .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
                         .build()))
@@ -398,7 +421,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+                .containsOnly("Request imp[0].banner must define a valid \"h\" and \"w\" properties");
     }
 
     @Test
@@ -425,6 +448,29 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasZeroWidth() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .h(600)
+                                .w(0)
+                                .format(singletonList(Format.builder().build()))
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner must define a valid \"h\" and \"w\" properties");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNegativeWidth() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -448,6 +494,29 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasNegativeWidth() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .h(600)
+                                .w(-300)
+                                .format(singletonList(Format.builder().build()))
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner must define a valid \"h\" and \"w\" properties");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndNegativeHeight() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -468,6 +537,29 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenBannerHasNegativeHeight() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .banner(Banner.builder()
+                                .h(-300)
+                                .w(600)
+                                .format(singletonList(Format.builder().build()))
+                                .build())
+                        .ext(mapper.valueToTree(singletonMap("rubicon", 0)))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("Request imp[0].banner must define a valid \"h\" and \"w\" properties");
     }
 
     @Test
