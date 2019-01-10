@@ -7,6 +7,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
@@ -134,24 +135,30 @@ public class UidsCookieService {
      */
     private Map<String, UidWithExpiry> enrichAndSanitizeUids(Uids uids, RoutingContext context) {
         final Map<String, UidWithExpiry> originalUidsMap = uids != null ? uids.getUids() : null;
-        final Map<String, UidWithExpiry> workingUidsMap = originalUidsMap != null ? originalUidsMap : new HashMap<>();
-        final Map<String, String> legacyUids = uids != null ? uids.getUidsLegacy() : null;
+        final Map<String, UidWithExpiry> workingUidsMap = new HashMap<>(
+                ObjectUtils.defaultIfNull(originalUidsMap, Collections.emptyMap()));
 
+        final Map<String, String> legacyUids = uids != null ? uids.getUidsLegacy() : null;
         if (workingUidsMap.isEmpty() && legacyUids != null) {
             legacyUids.forEach((key, value) -> workingUidsMap.put(key, UidWithExpiry.expired(value)));
         }
 
         final String hostCookie = parseHostCookie(context);
-        if (workingUidsMap.get(hostCookieFamily) == null && hostCookie != null) {
+        if (hostCookie != null && hostCookieDiffers(hostCookie, workingUidsMap.get(hostCookieFamily))) {
+            // make host cookie precedence over uids
             workingUidsMap.put(hostCookieFamily, UidWithExpiry.live(hostCookie));
         }
 
-        workingUidsMap.entrySet().removeIf(this::facebookSentinelOrEmpty);
+        workingUidsMap.entrySet().removeIf(UidsCookieService::facebookSentinelOrEmpty);
 
         return workingUidsMap;
     }
 
-    private boolean facebookSentinelOrEmpty(Map.Entry<String, UidWithExpiry> entry) {
+    private static boolean hostCookieDiffers(String hostCookie, UidWithExpiry uid) {
+        return uid == null || !Objects.equals(hostCookie, uid.getUid());
+    }
+
+    private static boolean facebookSentinelOrEmpty(Map.Entry<String, UidWithExpiry> entry) {
         return UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().getUid())
                 || StringUtils.isEmpty(entry.getValue().getUid());
     }

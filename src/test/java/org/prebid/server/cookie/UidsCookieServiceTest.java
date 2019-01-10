@@ -204,7 +204,7 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnRubiconCookieValueFromUidsCookieWhenUidValueIsPresent() {
+    public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsPresentButDiffers() {
         // given
         uidsCookieService = new UidsCookieService("trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90);
 
@@ -220,7 +220,7 @@ public class UidsCookieServiceTest extends VertxTest {
         // then
         verify(routingContext).getCookie(eq("uids"));
         verify(routingContext).getCookie(eq("khaos"));
-        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
+        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("abc123");
     }
 
     @Test
