@@ -29,9 +29,10 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
 - `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 
-## Auction
+## Auction (OpenRTB)
 - `auction.default-timeout-ms` - default operation timeout for OpenRTB Auction requests.
 - `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests.
+- `auction.timeout-adjustment-ms` - reduces timeout value passed in Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
@@ -39,8 +40,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.currency-rates-url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 
-## Amp
+## Amp (OpenRTB)
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
+- `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
 - `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
 - `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
 
@@ -179,9 +181,12 @@ If not defined in config, endpoint will respond with 'No Content' (204) status w
 - `gdpr.vendorlist.filesystem-cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 - `gdpr.geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.
 
+## Auction (Legacy)
+- `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
+- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
+- `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
+
 ## General settings
 - `external-url` - the setting stands for external URL prebid server is reachable by, 
 for example address of the load-balancer e.g. http://prebid.host.com.
-- `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
-- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
 - `admin.port` - the port to listen on administration requests.

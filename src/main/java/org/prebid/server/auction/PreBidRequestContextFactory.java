@@ -11,7 +11,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
@@ -41,9 +40,8 @@ public class PreBidRequestContextFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(PreBidRequestContextFactory.class);
 
-    private final long defaultHttpRequestTimeout;
-    private final long maxHttpRequestTimeout;
-
+    private final TimeoutResolver timeoutResolver;
+    private final long defaultTimeout;
     private final ImplicitParametersExtractor paramsExtractor;
     private final ApplicationSettings applicationSettings;
     private final UidsCookieService uidsCookieService;
@@ -51,19 +49,14 @@ public class PreBidRequestContextFactory {
 
     private final Random rand = new Random();
 
-    public PreBidRequestContextFactory(long defaultHttpRequestTimeout, long maxHttpRequestTimeout,
-                                       ImplicitParametersExtractor paramsExtractor,
+    public PreBidRequestContextFactory(long defaultTimeout, long maxTimeout,
+                                       long timeoutAdjustment, ImplicitParametersExtractor paramsExtractor,
                                        ApplicationSettings applicationSettings, UidsCookieService uidsCookieService,
                                        TimeoutFactory timeoutFactory) {
 
-        if (maxHttpRequestTimeout < defaultHttpRequestTimeout) {
-            throw new IllegalArgumentException(
-                    String.format("Max timeout cannot be less than default timeout: max=%d, default=%d",
-                            maxHttpRequestTimeout, defaultHttpRequestTimeout));
-        }
+        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
 
-        this.defaultHttpRequestTimeout = defaultHttpRequestTimeout;
-        this.maxHttpRequestTimeout = maxHttpRequestTimeout;
+        this.defaultTimeout = defaultTimeout;
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -209,13 +202,13 @@ public class PreBidRequestContextFactory {
     }
 
     private PreBidRequest adjustRequestTimeout(PreBidRequest preBidRequest) {
-        final long timeout = ObjectUtils.firstNonNull(preBidRequest.getTimeoutMillis(), 0L);
+        final Long requestTimeout = preBidRequest.getTimeoutMillis();
+        final long resolvedTimeout = timeoutResolver.resolve(requestTimeout);
+        final long timeout = resolvedTimeout > 0 ? resolvedTimeout : defaultTimeout; // check negative value
 
-        final long adjustedTimeout = timeout <= 0 ? defaultHttpRequestTimeout
-                : timeout > maxHttpRequestTimeout ? maxHttpRequestTimeout : timeout;
-
-        return adjustedTimeout != timeout
-                ? preBidRequest.toBuilder().timeoutMillis(adjustedTimeout).build()
+        // check, do we really need to update request?
+        return !Objects.equals(requestTimeout, timeout)
+                ? preBidRequest.toBuilder().timeoutMillis(timeout).build()
                 : preBidRequest;
     }
 

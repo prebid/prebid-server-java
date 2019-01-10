@@ -46,15 +46,16 @@ public class AmpRequestFactory {
     private static final String TIMEOUT_REQUEST_PARAM = "timeout";
     private static final int NO_LIMIT_SPLIT_MODE = -1;
 
-    private final long timeoutAdjustmentMs;
+    private final TimeoutResolver timeoutResolver;
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
 
-    public AmpRequestFactory(
-            long timeoutAdjustmentMs,
-            StoredRequestProcessor storedRequestProcessor,
-            AuctionRequestFactory auctionRequestFactory) {
-        this.timeoutAdjustmentMs = timeoutAdjustmentMs;
+    public AmpRequestFactory(long defaultTimeout, long maxTimeout, long timeoutAdjustment,
+                             StoredRequestProcessor storedRequestProcessor,
+                             AuctionRequestFactory auctionRequestFactory) {
+
+        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
+
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
     }
@@ -73,7 +74,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> validateStoredBidRequest(tagId, bidRequest))
                 .map(bidRequest -> fillExplicitParameters(bidRequest, context))
                 .map(bidRequest -> overrideParameters(bidRequest, context.request()))
-                .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context))
+                .map(bidRequest -> auctionRequestFactory.fillImplicitParameters(bidRequest, context, timeoutResolver))
                 .map(auctionRequestFactory::validateRequest);
     }
 
@@ -159,7 +160,7 @@ public class AmpRequestFactory {
     private BidRequest overrideParameters(BidRequest bidRequest, HttpServerRequest request) {
         final Site updatedSite = overrideSite(bidRequest.getSite(), request);
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), request);
-        final Long updatedTimeout = updateTimeout(request);
+        final Long updatedTimeout = overridenTimeout(request);
 
         return updateBidRequest(bidRequest, updatedSite, updatedImp, updatedTimeout);
     }
@@ -269,9 +270,14 @@ public class AmpRequestFactory {
                 : banner;
     }
 
-    private Long updateTimeout(HttpServerRequest request) {
+    private static Long overridenTimeout(HttpServerRequest request) {
+        final String timeout = request.getParam(TIMEOUT_REQUEST_PARAM);
+        if (timeout == null) {
+            return null;
+        }
+
         try {
-            return Long.parseLong(request.getParam(TIMEOUT_REQUEST_PARAM)) - timeoutAdjustmentMs;
+            return Long.parseLong(timeout);
         } catch (NumberFormatException e) {
             return null;
         }
