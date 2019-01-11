@@ -889,7 +889,6 @@ public class ApplicationTest extends VertxTest {
         // when
         final Response response = given(spec)
                 .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
                 // this uids cookie value stands for {"uids":{"rhythmone":"RO-UID"}}
