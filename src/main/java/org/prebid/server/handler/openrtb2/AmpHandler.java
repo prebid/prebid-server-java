@@ -67,7 +67,6 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private static final MetricsContext METRICS_CONTEXT = MetricsContext.of(MetricName.amp);
 
-    private final long defaultTimeout;
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
     private final UidsCookieService uidsCookieService;
@@ -79,12 +78,11 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final Clock clock;
     private final TimeoutFactory timeoutFactory;
 
-    public AmpHandler(long defaultTimeout, AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
+    public AmpHandler(AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
                       UidsCookieService uidsCookieService, Set<String> biddersSupportingCustomTargeting,
                       BidderCatalog bidderCatalog, AnalyticsReporter analyticsReporter,
                       AmpResponsePostProcessor ampResponsePostProcessor, Metrics metrics, Clock clock,
                       TimeoutFactory timeoutFactory) {
-        this.defaultTimeout = defaultTimeout;
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -145,8 +143,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
-        final Long tmax = bidRequest.getTmax();
-        return timeoutFactory.create(startTime, tmax != null && tmax > 0 ? tmax : defaultTimeout);
+        return timeoutFactory.create(startTime, bidRequest.getTmax());
     }
 
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {

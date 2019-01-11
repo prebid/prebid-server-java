@@ -117,20 +117,23 @@ public class ServiceConfiguration {
 
     @Bean
     PreBidRequestContextFactory preBidRequestContextFactory(
-            @Value("${default-timeout-ms}") long defaultTimeoutMs,
-            @Value("${max-timeout-ms}") long maxTimeoutMs,
+            @Value("${default-timeout-ms}") long defaultTimeout,
+            @Value("${max-timeout-ms}") long maxTimeout,
+            @Value("${timeout-adjustment-ms}") long timeoutAdjustment,
             ImplicitParametersExtractor implicitParametersExtractor,
             ApplicationSettings applicationSettings,
             UidsCookieService uidsCookieService,
             TimeoutFactory timeoutFactory) {
 
-        return new PreBidRequestContextFactory(defaultTimeoutMs, maxTimeoutMs, implicitParametersExtractor,
-                applicationSettings, uidsCookieService, timeoutFactory);
+        return new PreBidRequestContextFactory(defaultTimeout, maxTimeout, timeoutAdjustment,
+                implicitParametersExtractor, applicationSettings, uidsCookieService, timeoutFactory);
     }
 
     @Bean
     AuctionRequestFactory auctionRequestFactory(
             @Value("${auction.default-timeout-ms}") long defaultTimeout,
+            @Value("${auction.max-timeout-ms}") long maxTimeout,
+            @Value("${auction.timeout-adjustment-ms}") long timeoutAdjustment,
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor,
@@ -139,15 +142,21 @@ public class ServiceConfiguration {
             BidderCatalog bidderCatalog,
             RequestValidator requestValidator) {
 
-        return new AuctionRequestFactory(defaultTimeout, maxRequestSize, adServerCurrency, storedRequestProcessor,
-                implicitParametersExtractor, uidsCookieService, bidderCatalog, requestValidator);
+        return new AuctionRequestFactory(defaultTimeout, maxTimeout, timeoutAdjustment, maxRequestSize,
+                adServerCurrency, storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog,
+                requestValidator);
     }
 
     @Bean
-    AmpRequestFactory ampRequestFactory(@Value("${amp.timeout-adjustment-ms}") long timeoutAdjustmentMs,
-                                        StoredRequestProcessor storedRequestProcessor,
-                                        AuctionRequestFactory auctionRequestFactory) {
-        return new AmpRequestFactory(timeoutAdjustmentMs, storedRequestProcessor, auctionRequestFactory);
+    AmpRequestFactory ampRequestFactory(
+            @Value("${amp.default-timeout-ms}") long defaultTimeout,
+            @Value("${amp.max-timeout-ms}") long maxTimeout,
+            @Value("${amp.timeout-adjustment-ms}") long timeoutAdjustment,
+            StoredRequestProcessor storedRequestProcessor,
+            AuctionRequestFactory auctionRequestFactory) {
+
+        return new AmpRequestFactory(defaultTimeout, maxTimeout, timeoutAdjustment, storedRequestProcessor,
+                auctionRequestFactory);
     }
 
     @Bean

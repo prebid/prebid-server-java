@@ -39,7 +39,7 @@ public class BasicHttpClient implements HttpClient {
 
             // Vert.x HttpClientRequest timeout doesn't aware of case when a part of the response body is received,
             // but remaining part is delayed. So, overall request/response timeout is involved to fix it.
-            final long timerId = vertx.setTimer(timeoutMs, id -> handleTimeout(future, timeoutMs));
+            final long timerId = vertx.setTimer(timeoutMs, id -> handleTimeout(future, timeoutMs, httpClientRequest));
 
             httpClientRequest
                     .handler(response -> handleResponse(response, future, timerId))
@@ -59,10 +59,13 @@ public class BasicHttpClient implements HttpClient {
         return future;
     }
 
-    private void handleTimeout(Future<HttpClientResponse> future, long timeoutMs) {
+    private void handleTimeout(Future<HttpClientResponse> future, long timeoutMs, HttpClientRequest httpClientRequest) {
         if (!future.isComplete()) {
             failResponse(new TimeoutException(
                     String.format("Timeout period of %dms has been exceeded", timeoutMs)), future);
+
+            // Explicitly close connection, inspired by https://github.com/eclipse-vertx/vert.x/issues/2745
+            httpClientRequest.reset();
         }
     }
 
