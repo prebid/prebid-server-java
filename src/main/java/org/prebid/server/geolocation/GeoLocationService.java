@@ -9,7 +9,7 @@ import org.prebid.server.geolocation.model.GeoInfo;
  * <p>
  * Used for GDPR processing, etc.
  * <p>
- * Provided default implementation - GeoLite2 by MaxMind.
+ * Provided default implementation - {@link MaxMindGeoLocationService}
  * Each vendor (host company) might provide its own implementation and inject it via Spring configuration.
  */
 public interface GeoLocationService {

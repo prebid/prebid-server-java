@@ -43,7 +43,7 @@
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
-        <geo.ip.version>2.12.0</geo.ip.version>
+        <maxmind-client.version>2.12.0</maxmind-client.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -251,7 +251,7 @@
         <dependency>
             <groupId>com.maxmind.geoip2</groupId>
             <artifactId>geoip2</artifactId>
-            <version>${geo.ip.version}</version>
+            <version>${maxmind-client.version}</version>
         </dependency>
         <!-- Test -->
         <dependency>
@@ -384,7 +384,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>geo_lite</id>
+                        <id>maxmind_db</id>
                         <phase>generate-resources</phase>
                         <goals>
                             <goal>wget</goal>
@@ -392,7 +392,7 @@
                         <configuration>
                             <url>https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz</url>
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                            <outputFileName>GeoLite2-Country.tar.gz</outputFileName>
+                            <outputFileName>maxmind_db.tar.gz</outputFileName>
                         </configuration>
                     </execution>
                 </executions>

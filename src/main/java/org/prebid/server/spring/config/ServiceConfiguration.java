@@ -29,8 +29,8 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
-import org.prebid.server.geolocation.GeoLite;
 import org.prebid.server.geolocation.GeoLocationService;
+import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -260,7 +260,7 @@ public class ServiceConfiguration {
          * Default geolocation service implementation.
          */
         private GeoLocationService createGeoLocationService() {
-            return GeoLite.create("GeoLite2-Country.tar.gz");
+            return MaxMindGeoLocationService.create("maxmind_db.tar.gz", "GeoLite2-Country.mmdb");
         }
     }
 
