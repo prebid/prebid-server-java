@@ -4,6 +4,8 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
@@ -20,6 +22,8 @@ import java.util.function.Function;
  * Wrapper over {@link JDBCClient} that supports setting query timeout in milliseconds.
  */
 public class BasicJdbcClient implements JdbcClient {
+
+    private static final Logger logger = LoggerFactory.getLogger(BasicJdbcClient.class);
 
     private final Vertx vertx;
     private final JDBCClient jdbcClient;
@@ -40,9 +44,11 @@ public class BasicJdbcClient implements JdbcClient {
      * Must be called on Vertx event loop thread.
      */
     public Future<Void> initialize() {
-        final Future<SQLConnection> result = Future.future();
-        jdbcClient.getConnection(result.completer());
-        return result.mapEmpty();
+        final Future<SQLConnection> connectionFuture = Future.future();
+        jdbcClient.getConnection(connectionFuture.completer());
+        return connectionFuture
+                .recover(BasicJdbcClient::logConnectionError)
+                .mapEmpty();
     }
 
     @Override
@@ -62,6 +68,7 @@ public class BasicJdbcClient implements JdbcClient {
         final Future<SQLConnection> connectionFuture = Future.future();
         jdbcClient.getConnection(connectionFuture.completer());
         connectionFuture
+                .recover(BasicJdbcClient::logConnectionError)
                 .compose(connection -> makeQuery(connection, query, params))
                 .setHandler(result -> handleResult(result, queryResultFuture, timerId, startTime));
 
@@ -77,6 +84,11 @@ public class BasicJdbcClient implements JdbcClient {
             metrics.updateDatabaseQueryTimeMetric(clock.millis() - startTime);
             queryResultFuture.fail(timeoutException());
         }
+    }
+
+    private static Future<SQLConnection> logConnectionError(Throwable throwable) {
+        logger.warn("Cannot connect to database", throwable);
+        return Future.failedFuture(throwable);
     }
 
     /**
