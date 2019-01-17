@@ -56,6 +56,7 @@ final class RubiconSize {
         SIZES.put(size(480, 320), 101);
         SIZES.put(size(768, 1024), 102);
         SIZES.put(size(480, 280), 103);
+        SIZES.put(size(320, 240), 108);
         SIZES.put(size(1000, 300), 113);
         SIZES.put(size(320, 100), 117);
         SIZES.put(size(800, 250), 125);
