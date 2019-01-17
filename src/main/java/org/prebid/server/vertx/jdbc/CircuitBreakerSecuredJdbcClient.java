@@ -54,7 +54,7 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
     }
 
     @Override
-    public <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper,
+    public <T> Future<T> executeQuery(String query, List<Object> params, Function<ResultSet, T> mapper,
                                       Timeout timeout) {
         return breaker.execute(future -> jdbcClient.executeQuery(query, params, mapper, timeout).setHandler(future));
     }

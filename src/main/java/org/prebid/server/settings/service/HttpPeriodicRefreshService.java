@@ -80,10 +80,10 @@ public class HttpPeriodicRefreshService {
     }
 
     public void initialize() {
+        getAll();
         if (refreshPeriod > 0) {
             vertx.setPeriodic(refreshPeriod, aLong -> refresh());
         }
-        getAll();
     }
 
     private void getAll() {
@@ -108,7 +108,7 @@ public class HttpPeriodicRefreshService {
      * Handles errors occurred while HTTP request or response processing.
      */
     private static Future<Void> failResponse(Throwable exception) {
-        logger.warn("Error occurred while request to currency service", exception);
+        logger.warn("Error occurred while request to http periodic refresh service", exception);
         return Future.failedFuture(exception);
     }
 
@@ -157,14 +157,14 @@ public class HttpPeriodicRefreshService {
 
         httpClient.get(refreshEndpoint, timeout)
                 .map(HttpPeriodicRefreshService::processResponse)
-                .map(this::update)
+                .map(this::invalidate)
                 .map(this::save)
                 .recover(HttpPeriodicRefreshService::failResponse);
 
         lastUpdateTime = updateTime;
     }
 
-    private HttpRefreshResponse update(HttpRefreshResponse refreshResponse) {
+    private HttpRefreshResponse invalidate(HttpRefreshResponse refreshResponse) {
         final List<String> invalidatedRequests = getInvalidatedKeys(refreshResponse.getRequests());
         final List<String> invalidatedImps = getInvalidatedKeys(refreshResponse.getImps());
 

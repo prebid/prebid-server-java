@@ -135,7 +135,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
             future = Future.succeededFuture(
                     StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
         } else {
-            final List<String> idsQueryParameters = new ArrayList<>();
+            final List<Object> idsQueryParameters = new ArrayList<>();
             IntStream.rangeClosed(1, StringUtils.countMatches(query, REQUEST_ID_PLACEHOLDER))
                     .forEach(i -> idsQueryParameters.addAll(requestIds));
             IntStream.rangeClosed(1, StringUtils.countMatches(query, IMP_ID_PLACEHOLDER))

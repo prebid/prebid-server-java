@@ -113,6 +113,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
 
     }
 
+    // looks like this case is redundant as it tests the same changes as the one above - should it be removed then?
     @Test
     @SuppressWarnings("unchecked")
     public void shouldCallSaveAfterUpdate() throws JsonProcessingException {
