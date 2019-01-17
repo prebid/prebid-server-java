@@ -39,7 +39,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
     private static final String EUR = "EUR";
     private static final String UAH = "UAH";
     private static final String AUD = "AUD";
-    private static final String URL = "http://currency.prebid.org/latest.json";
+    private static final String URL = "https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
