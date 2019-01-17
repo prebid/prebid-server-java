@@ -100,6 +100,7 @@ public class UidsCookieService {
     public Cookie toCookie(UidsCookie uidsCookie) {
         final Cookie cookie = Cookie
                 .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
+                .setPath("/")
                 .setMaxAge(ttlSeconds);
 
         if (StringUtils.isNotBlank(hostCookieDomain)) {
