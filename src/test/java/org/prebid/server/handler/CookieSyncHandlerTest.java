@@ -553,6 +553,31 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotLimitBidderStatusesIfLimitIsBiggerThanBiddersList() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.of(asList(RUBICON, APPNEXUS), 0, null, 3)));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        givenUsersyncersReturningFamilyName();
+        given(appnexusUsersyncer.usersyncInfo())
+                .willReturn(UsersyncInfo.of("http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
+                        "redirect", false));
+        given(rubiconUsersyncer.usersyncInfo())
+                .willReturn(UsersyncInfo.of("http://rubiconexample.com", "redirect", false));
+
+        givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(2);
+    }
+
+    @Test
     public void shouldIncrementMetrics() {
         // given
         given(routingContext.getBody()).willReturn(
