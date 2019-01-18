@@ -288,7 +288,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+                .containsOnly(
+                        "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
     }
 
     @Test
@@ -331,7 +332,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+                .containsOnly(
+                        "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
     }
 
     @Test
@@ -353,7 +355,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+                .containsOnly(
+                        "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
     }
 
     @Test
@@ -375,7 +378,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+                .containsOnly(
+                        "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
     }
 
     @Test
@@ -398,7 +402,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+                .containsOnly(
+                        "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
     }
 
     @Test
@@ -444,7 +449,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+                .containsOnly(
+                        "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
     }
 
     @Test
@@ -490,7 +496,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+                .containsOnly(
+                        "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
     }
 
     @Test
@@ -536,7 +543,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
+                .containsOnly(
+                        "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements");
     }
 
     @Test
@@ -579,7 +587,7 @@ public class RequestValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatHeightWeightAndOneOfRatiosPresent() {
-        //give
+        // given
         final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
                 formatBuilder -> Format.builder().h(1).w(2).hratio(5));
 
@@ -1536,7 +1544,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.context is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
+                .containsOnly(
+                        "request.imp[0].native.request.context is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
     }
 
     @Test
@@ -1550,7 +1559,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.contextsubtype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
+                .containsOnly(
+                        "request.imp[0].native.request.contextsubtype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
 
     }
 
@@ -1565,7 +1575,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.context is 2, but contextsubtype is 11. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
+                .containsOnly(
+                        "request.imp[0].native.request.context is 2, but contextsubtype is 11. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
 
     }
 
@@ -1580,7 +1591,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.context is 3, but contextsubtype is 21. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
+                .containsOnly(
+                        "request.imp[0].native.request.context is 3, but contextsubtype is 21. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
 
     }
 
@@ -1595,7 +1607,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.context is 2, but contextsubtype is 31. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
+                .containsOnly(
+                        "request.imp[0].native.request.context is 2, but contextsubtype is 31. This is an invalid combination. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=39");
 
     }
 
@@ -1650,7 +1663,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.eventtrackers[0].event is invalid. See section 7.6: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43");
+                .containsOnly(
+                        "request.imp[0].native.request.eventtrackers[0].event is invalid. See section 7.6: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43");
 
     }
 
@@ -1666,7 +1680,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.eventtrackers[0].method is required. See section 7.7: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43");
+                .containsOnly(
+                        "request.imp[0].native.request.eventtrackers[0].method is required. See section 7.7: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43");
 
     }
 
@@ -1682,7 +1697,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.eventtrackers[0].methods[0] is invalid. See section 7.7: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43");
+                .containsOnly(
+                        "request.imp[0].native.request.eventtrackers[0].methods[0] is invalid. See section 7.7: https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=43");
 
     }
 
@@ -1713,7 +1729,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.plcmttype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=40");
+                .containsOnly(
+                        "request.imp[0].native.request.plcmttype is invalid. See https://iabtechlab.com/wp-content/uploads/2016/07/OpenRTB-Native-Ads-Specification-Final-1.2.pdf#page=40");
     }
 
     @Test
@@ -2211,7 +2228,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].native.request.assets[0].video.protocols[0] must be in the range [1, 10]. Got 0");
+                .containsOnly(
+                        "request.imp[0].native.request.assets[0].video.protocols[0] must be in the range [1, 10]. Got 0");
     }
 
     @Test
