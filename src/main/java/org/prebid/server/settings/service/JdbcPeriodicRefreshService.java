@@ -155,7 +155,6 @@ public class JdbcPeriodicRefreshService {
     private void refresh() {
         final Instant updateTime = Instant.now();
 
-        // ... WHERE last_updated > ?
         jdbcClient.executeQuery(updateQuery, Collections.singletonList(Date.from(lastUpdate)),
                 JdbcPeriodicRefreshService::mapToStoredRequestResult, createTimeout())
                 .map(this::invalidate)
