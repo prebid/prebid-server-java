@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
-import org.prebid.server.VertxTest;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.model.StoredDataResult;
@@ -36,7 +35,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class JdbcPeriodicRefreshServiceTest extends VertxTest {
+public class JdbcPeriodicRefreshServiceTest {
 
     private static TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
 

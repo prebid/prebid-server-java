@@ -26,13 +26,25 @@ public class JdbcStoredDataResultMapper {
     private JdbcStoredDataResultMapper() {
     }
 
-    public static StoredDataResult map(ResultSet resultSet) {
-        final Map<String, String> storedIdToRequest = new HashMap<>();
-        final Map<String, String> storedIdToImp = new HashMap<>();
+    /**
+     * Creates an error for each missing id and add it to result.
+     */
+    public static StoredDataResult map(ResultSet resultSet, Set<String> requestIds, Set<String> impIds) {
+        final Map<String, String> storedIdToRequest = new HashMap<>(requestIds.size());
+        final Map<String, String> storedIdToImp = new HashMap<>(impIds.size());
         final List<String> errors = new ArrayList<>();
 
         if (resultSet == null || CollectionUtils.isEmpty(resultSet.getResults())) {
-            errors.add("No stored requests or imps found");
+            if (requestIds.isEmpty() && impIds.isEmpty()) {
+                errors.add("No stored requests or imps found");
+            } else {
+                final String errorRequests = requestIds.isEmpty() ? ""
+                        : String.format("stored requests for ids %s", requestIds);
+                final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
+                final String errorImps = impIds.isEmpty() ? "" : String.format("stored imps for ids %s", impIds);
+
+                errors.add(String.format("No %s%s%s was found", errorRequests, separator, errorImps));
+            }
         } else {
             try {
                 for (JsonArray result : resultSet.getResults()) {
@@ -59,23 +71,16 @@ public class JdbcStoredDataResultMapper {
                 errors.add("Result set column number is less than expected");
                 return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), errors);
             }
+
+            errors.addAll(errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request));
+            errors.addAll(errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp));
         }
+
         return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
     }
 
-    /**
-     * Creates an error for each missing id and add it to result.
-     */
-    public static StoredDataResult mapWithIds(ResultSet resultSet, Set<String> requestIds, Set<String> impIds) {
-        final StoredDataResult storedDataResult = map(resultSet);
-        final List<String> errors = storedDataResult.getErrors();
-        if (errors.isEmpty()) {
-            errors.addAll(errorsForMissedIds(requestIds, storedDataResult.getStoredIdToRequest(),
-                    StoredDataType.request));
-            errors.addAll(errorsForMissedIds(impIds, storedDataResult.getStoredIdToImp(), StoredDataType.imp));
-        }
-
-        return storedDataResult;
+    public static StoredDataResult map(ResultSet resultSet) {
+        return map(resultSet, Collections.emptySet(), Collections.emptySet());
     }
 
     /**

@@ -366,7 +366,7 @@ public class JdbcApplicationSettingsTest {
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
-                    singletonList("No stored requests or imps found")));
+                    singletonList("No stored requests for ids [3, 4] and stored imps for ids [6, 7] was found")));
             async.complete();
         }));
     }
@@ -381,7 +381,7 @@ public class JdbcApplicationSettingsTest {
         final Async async = context.async();
         storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
-                    singletonList("No stored requests or imps found")));
+                    singletonList("No stored requests for ids [3, 4] was found")));
             async.complete();
         }));
     }

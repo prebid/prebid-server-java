@@ -141,7 +141,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
             final String parametrizedQuery = createParametrizedQuery(query, requestIds.size(), impIds.size());
             future = jdbcClient.executeQuery(parametrizedQuery, idsQueryParameters,
-                    result -> JdbcStoredDataResultMapper.mapWithIds(result, requestIds, impIds),
+                    result -> JdbcStoredDataResultMapper.map(result, requestIds, impIds),
                     timeout);
         }
 
