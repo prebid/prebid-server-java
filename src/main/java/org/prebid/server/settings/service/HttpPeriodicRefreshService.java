@@ -87,11 +87,10 @@ public class HttpPeriodicRefreshService {
     }
 
     private void getAll() {
-        lastUpdateTime = Instant.now();
-
         httpClient.get(refreshUrl, timeout)
                 .map(HttpPeriodicRefreshService::processResponse)
                 .map(this::save)
+                .map(ignored -> setLastUpdateTime(Instant.now()))
                 .recover(HttpPeriodicRefreshService::failResponse);
     }
 
@@ -101,6 +100,11 @@ public class HttpPeriodicRefreshService {
 
         cacheNotificationListener.save(requests, imps);
 
+        return null;
+    }
+
+    private Void setLastUpdateTime(Instant instant) {
+        lastUpdateTime = instant;
         return null;
     }
 
@@ -159,9 +163,8 @@ public class HttpPeriodicRefreshService {
                 .map(HttpPeriodicRefreshService::processResponse)
                 .map(this::invalidate)
                 .map(this::save)
+                .map(ignored -> setLastUpdateTime(updateTime))
                 .recover(HttpPeriodicRefreshService::failResponse);
-
-        lastUpdateTime = updateTime;
     }
 
     private HttpRefreshResponse invalidate(HttpRefreshResponse refreshResponse) {

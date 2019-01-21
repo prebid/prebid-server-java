@@ -91,7 +91,6 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldCallInvalidateAndSaveWithExpectedParameters() {
         // given
         given(vertx.setPeriodic(anyLong(), any()))
@@ -108,9 +107,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
 
     }
 
-    // looks like this case is redundant as it tests the same changes as the one above - should it be removed then?
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldCallSaveAfterUpdate() throws JsonProcessingException {
         // given
         updatedResponse = HttpClientResponse.of(200, null,
@@ -133,7 +130,6 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void initializeShouldMakeOneInitialRequestAndTwoScheduledRequestsWithParam() {
         // given
         given(vertx.setPeriodic(anyLong(), any()))

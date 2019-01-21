@@ -2,24 +2,19 @@ package org.prebid.server.settings.service;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.sql.ResultSet;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.CacheNotificationListener;
+import org.prebid.server.settings.mapper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.model.StoredDataResult;
-import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -97,11 +92,9 @@ public class JdbcPeriodicRefreshService {
     }
 
     private void getAll() {
-        lastUpdate = Instant.now();
-
-        jdbcClient.executeQuery(initQuery, Collections.emptyList(),
-                JdbcPeriodicRefreshService::mapToStoredRequestResult, createTimeout())
+        jdbcClient.executeQuery(initQuery, Collections.emptyList(), JdbcStoredDataResultMapper::map, createTimeout())
                 .map(this::save)
+                .map(ignored -> setLastUpdate(Instant.now()))
                 .recover(JdbcPeriodicRefreshService::failResponse);
     }
 
@@ -110,58 +103,25 @@ public class JdbcPeriodicRefreshService {
         return null;
     }
 
+    private Void setLastUpdate(Instant instant) {
+        lastUpdate = instant;
+        return null;
+    }
+
     private static Future<Void> failResponse(Throwable exception) {
         logger.warn("Error occurred while request to jdbc refresh service", exception);
         return Future.failedFuture(exception);
-    }
-
-    private static StoredDataResult mapToStoredRequestResult(ResultSet resultSet) {
-        final Map<String, String> storedIdToRequest = new HashMap<>();
-        final Map<String, String> storedIdToImp = new HashMap<>();
-        final List<String> errors = new ArrayList<>();
-
-        if (resultSet == null || CollectionUtils.isEmpty(resultSet.getResults())) {
-            errors.add("No stored requests found");
-        } else {
-            try {
-                for (JsonArray result : resultSet.getResults()) {
-                    final String id = result.getString(0);
-                    final String json = result.getString(1);
-                    final String typeAsString = result.getString(2);
-
-                    final StoredDataType type;
-                    try {
-                        type = StoredDataType.valueOf(typeAsString);
-                    } catch (IllegalArgumentException e) {
-                        logger.error("Result set with id={0} has invalid type: {1}. This will be ignored.", e, id,
-                                typeAsString);
-                        continue;
-                    }
-
-                    if (type == StoredDataType.request) {
-                        storedIdToRequest.put(id, json);
-                    } else {
-                        storedIdToImp.put(id, json);
-                    }
-                }
-            } catch (IndexOutOfBoundsException e) {
-                errors.add("Result set column number is less than expected");
-                return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), errors);
-            }
-        }
-        return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
     }
 
     private void refresh() {
         final Instant updateTime = Instant.now();
 
         jdbcClient.executeQuery(updateQuery, Collections.singletonList(Date.from(lastUpdate)),
-                JdbcPeriodicRefreshService::mapToStoredRequestResult, createTimeout())
+                JdbcStoredDataResultMapper::map, createTimeout())
                 .map(this::invalidate)
                 .map(this::save)
+                .map(ignored -> setLastUpdate(updateTime))
                 .recover(JdbcPeriodicRefreshService::failResponse);
-
-        lastUpdate = updateTime;
     }
 
     private StoredDataResult invalidate(StoredDataResult storedDataResult) {

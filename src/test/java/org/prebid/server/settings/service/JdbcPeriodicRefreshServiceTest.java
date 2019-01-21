@@ -115,7 +115,6 @@ public class JdbcPeriodicRefreshServiceTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void initializeShouldMakeOneInitialRequestAndTwoScheduledRequestsWithParam() {
         // given
         given(vertx.setPeriodic(anyLong(), any()))

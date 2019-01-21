@@ -9,16 +9,14 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.settings.mapper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
-import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -143,7 +141,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
             final String parametrizedQuery = createParametrizedQuery(query, requestIds.size(), impIds.size());
             future = jdbcClient.executeQuery(parametrizedQuery, idsQueryParameters,
-                    result -> mapToStoredRequestResult(result, requestIds, impIds),
+                    result -> JdbcStoredDataResultMapper.mapWithIds(result, requestIds, impIds),
                     timeout);
         }
 
@@ -167,70 +165,5 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return paramsSize == 0
                 ? "NULL"
                 : IntStream.range(0, paramsSize).mapToObj(i -> "?").collect(Collectors.joining(","));
-    }
-
-    /**
-     * Maps {@link ResultSet} to {@link StoredDataResult}. In case of {@link ResultSet} size is less than ids number
-     * creates an error for each missing id and add it to result.
-     */
-    private static StoredDataResult mapToStoredRequestResult(ResultSet rs, Set<String> requestIds,
-                                                             Set<String> impIds) {
-        final Map<String, String> storedIdToRequest = new HashMap<>(requestIds.size());
-        final Map<String, String> storedIdToImp = new HashMap<>(impIds.size());
-        final List<String> errors = new ArrayList<>();
-
-        if (rs == null || rs.getResults() == null || rs.getResults().isEmpty()) {
-            final String errorRequests = requestIds.isEmpty() ? ""
-                    : String.format("stored requests for ids %s", requestIds);
-            final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
-            final String errorImps = impIds.isEmpty() ? "" : String.format("stored imps for ids %s", impIds);
-
-            errors.add(String.format("No %s%s%s was found", errorRequests, separator, errorImps));
-        } else {
-            try {
-                for (JsonArray result : rs.getResults()) {
-                    final String id = result.getString(0);
-                    final String json = result.getString(1);
-                    final String typeAsString = result.getString(2);
-
-                    final StoredDataType type;
-                    try {
-                        type = StoredDataType.valueOf(typeAsString);
-                    } catch (IllegalArgumentException e) {
-                        logger.error("Result set with id={0} has invalid type: {1}. This will be ignored.", e, id,
-                                typeAsString);
-                        continue;
-                    }
-
-                    if (type == StoredDataType.request) {
-                        storedIdToRequest.put(id, json);
-                    } else {
-                        storedIdToImp.put(id, json);
-                    }
-                }
-            } catch (IndexOutOfBoundsException e) {
-                errors.add("Result set column number is less than expected");
-                return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), errors);
-            }
-
-            errors.addAll(errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request));
-            errors.addAll(errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp));
-        }
-
-        return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
-    }
-
-    /**
-     * Returns errors for missed IDs.
-     */
-    private static List<String> errorsForMissedIds(Set<String> ids, Map<String, String> storedIdToJson,
-                                                   StoredDataType type) {
-        final List<String> missedIds = ids.stream()
-                .filter(id -> !storedIdToJson.containsKey(id))
-                .collect(Collectors.toList());
-
-        return missedIds.isEmpty() ? Collections.emptyList() : missedIds.stream()
-                .map(id -> String.format("No stored %s found for id: %s", type, id))
-                .collect(Collectors.toList());
     }
 }
