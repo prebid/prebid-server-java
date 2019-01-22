@@ -1488,7 +1488,7 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void cookieSyncShouldReturnBidderStatusWithRubiconUsersyncInfo() {
+    public void cookieSyncShouldReturnBidderStatusWithExpectedUsersyncInfo() {
         // given
         final String gdprConsent = VendorConsentEncoder.toBase64String(new VendorConsentBuilder()
                 .withConsentRecordCreatedOn(Instant.now())
@@ -1497,13 +1497,14 @@ public class ApplicationTest extends VertxTest {
                 .withVendorListVersion(79)
                 .withRangeEntries(singletonList(new StartEndRangeEntry(1, 100)))
                 .withMaxVendorId(100)
-                .withBitField(new HashSet<>(asList(1, 52)))
+                .withBitField(new HashSet<>(asList(1, 32, 52)))
                 .withAllowedPurposeIds(new HashSet<>(asList(1, 3)))
                 .build());
 
         // when
         final CookieSyncResponse cookieSyncResponse = given(spec)
-                .body(CookieSyncRequest.of(singletonList(RUBICON), 1, gdprConsent, null))
+                .cookies("host-cookie-name", "host-cookie-uid")
+                .body(CookieSyncRequest.of(asList(RUBICON, APPNEXUS, ADFORM), 1, gdprConsent, null))
                 .when()
                 .post("/cookie_sync")
                 .then()
@@ -1512,15 +1513,28 @@ public class ApplicationTest extends VertxTest {
                 .as(CookieSyncResponse.class);
 
         // then
-        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("no_cookie",
-                singletonList(BidderUsersyncStatus.builder()
-                        .bidder(RUBICON)
-                        .noCookie(true)
-                        .usersync(UsersyncInfo.of(
-                                "http://localhost:" + WIREMOCK_PORT
-                                        + "/rubicon-usersync?gdpr=1&gdpr_consent=" + gdprConsent,
-                                "redirect", false))
-                        .build())));
+        assertThat(cookieSyncResponse).isEqualTo(CookieSyncResponse.of("ok",
+                asList(BidderUsersyncStatus.builder()
+                                .bidder(RUBICON)
+                                .noCookie(true)
+                                .usersync(UsersyncInfo.of(
+                                        "http://localhost:8000/setuid?bidder=rubicon"
+                                                + "&gdpr=1&gdpr_consent=" + gdprConsent + "&uid=host-cookie-uid",
+                                        "redirect", false))
+                                .build(),
+                        BidderUsersyncStatus.builder()
+                                .bidder(APPNEXUS)
+                                .noCookie(true)
+                                .usersync(UsersyncInfo.of(
+                                        "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8000%2Fsetuid%3Fbidder"
+                                                + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
+                                                + "%26uid%3D%24UID",
+                                        "redirect", false))
+                                .build(),
+                        BidderUsersyncStatus.builder()
+                                .bidder(ADFORM)
+                                .error("Rejected by GDPR")
+                                .build())));
     }
 
     @Test
