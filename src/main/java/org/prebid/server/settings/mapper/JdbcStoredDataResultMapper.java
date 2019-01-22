@@ -27,7 +27,12 @@ public class JdbcStoredDataResultMapper {
     }
 
     /**
-     * Creates an error for each missing id and add it to result.
+     * Maps {@link ResultSet} to {@link StoredDataResult} and creates an error for each missing id and add it to result.
+     *
+     * @param resultSet  - incoming Result Set representing a result of SQL query
+     * @param requestIds - a specified set of stored requests' ids. Adds error for each ID missing in result set
+     * @param impIds     - a specified set of stored imps' ids. Adds error for each ID missing in result set
+     * @return - a {@link StoredDataResult} object
      */
     public static StoredDataResult map(ResultSet resultSet, Set<String> requestIds, Set<String> impIds) {
         final Map<String, String> storedIdToRequest = new HashMap<>(requestIds.size());
@@ -79,12 +84,18 @@ public class JdbcStoredDataResultMapper {
         return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
     }
 
+    /**
+     * Overloaded method for cases when no specific IDs are required, e.g. fetching all records.
+     *
+     * @param resultSet - incoming Result Set representing a result of SQL query
+     * @return - a {@link StoredDataResult} object
+     */
     public static StoredDataResult map(ResultSet resultSet) {
         return map(resultSet, Collections.emptySet(), Collections.emptySet());
     }
 
     /**
-     * Returns errors for missed IDs.
+     * Return errors for missed IDs.
      */
     private static List<String> errorsForMissedIds(Set<String> ids, Map<String, String> storedIdToJson,
                                                    StoredDataType type) {
