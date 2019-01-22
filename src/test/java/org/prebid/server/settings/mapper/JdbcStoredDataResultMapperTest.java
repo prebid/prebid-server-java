@@ -48,7 +48,8 @@ public class JdbcStoredDataResultMapperTest {
         given(resultSet.getResults()).willReturn(emptyList());
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet, singleton("reqId"), singleton("impId"));
+        final StoredDataResult result = JdbcStoredDataResultMapper.map(resultSet,
+                singleton("reqId"), singleton("impId"));
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
