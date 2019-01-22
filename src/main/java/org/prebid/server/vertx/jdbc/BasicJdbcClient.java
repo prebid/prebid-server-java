@@ -46,7 +46,7 @@ public class BasicJdbcClient implements JdbcClient {
     }
 
     @Override
-    public <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper,
+    public <T> Future<T> executeQuery(String query, List<Object> params, Function<ResultSet, T> mapper,
                                       Timeout timeout) {
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
@@ -82,7 +82,7 @@ public class BasicJdbcClient implements JdbcClient {
     /**
      * Performs query to DB.
      */
-    private static Future<ResultSet> makeQuery(SQLConnection connection, String query, List<String> params) {
+    private static Future<ResultSet> makeQuery(SQLConnection connection, String query, List<Object> params) {
         final Future<ResultSet> resultSetFuture = Future.future();
         connection.queryWithParams(query, new JsonArray(params),
                 ar -> {
