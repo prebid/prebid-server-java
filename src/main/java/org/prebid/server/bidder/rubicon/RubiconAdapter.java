@@ -334,7 +334,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
         final JsonNode visitor = rubiconParams.getVisitor();
         final boolean visitorIsNotNull = !visitor.isNull();
         return visitorIsNotNull || consent != null
-                ? RubiconUserExt.of(visitorIsNotNull ? RubiconUserExtRp.of(visitor) : null, consent, null)
+                ? RubiconUserExt.of(visitorIsNotNull ? RubiconUserExtRp.of(visitor) : null, consent, null, null)
                 : null;
     }
 

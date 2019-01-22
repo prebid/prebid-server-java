@@ -46,6 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
@@ -1134,7 +1135,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldNotReturnValidationMessageIfUserExtIsEmptyJsonObject() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().user(User.builder()
-                .ext(mapper.valueToTree(ExtUser.of(null, null, null))).build())
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null, null))).build())
                 .build();
 
         // when
@@ -1162,7 +1163,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().user(User.builder()
                 .ext(mapper.valueToTree(
-                        ExtUser.of(ExtUserPrebid.of(emptyMap()), null, ExtUserDigiTrust.of(null, null, 0)))).build())
+                        ExtUser.of(ExtUserPrebid.of(emptyMap()), null, ExtUserDigiTrust.of(null, null, 0), null))).build())
                 .build();
 
         // when
@@ -1343,7 +1344,7 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtUser.of(
                         ExtUserPrebid.of(singletonMap("unknown-bidder", "42")),
                         null,
-                        ExtUserDigiTrust.of(null, null, 0)))).build())
+                        ExtUserDigiTrust.of(null, null, 0), null))).build())
                 .build();
 
         // when
@@ -1364,7 +1365,7 @@ public class RequestValidatorTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtUser.of(
                                 ExtUserPrebid.of(singletonMap("unknown-bidder", "42")),
                                 null,
-                                ExtUserDigiTrust.of(null, null, 0)))).build())
+                                ExtUserDigiTrust.of(null, null, 0), null))).build())
                 .build();
 
         // when
@@ -1382,7 +1383,7 @@ public class RequestValidatorTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtUser.of(
                                 ExtUserPrebid.of(singletonMap("rubicon", "42")),
                                 null,
-                                ExtUserDigiTrust.of(null, null, 0)))).build())
+                                ExtUserDigiTrust.of(null, null, 0), null))).build())
                 .build();
 
         // when
@@ -1399,7 +1400,7 @@ public class RequestValidatorTest extends VertxTest {
                 .user(User.builder().ext(mapper.valueToTree(ExtUser.of(
                         ExtUserPrebid.of(singletonMap("bidder", "uidval")),
                         null,
-                        ExtUserDigiTrust.of(null, null, 1))))
+                        ExtUserDigiTrust.of(null, null, 1), null)))
                         .build())
                 .build();
 
@@ -1425,6 +1426,145 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1).element(0).asString()
                 .contains("request.user.ext object is not valid:");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenTpidIsEmpty() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(singletonMap("rubicon", "42")),
+                                null,
+                                ExtUserDigiTrust.of(null, null, 0), emptyList()))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.user.ext.tpid cannot be empty");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenTpidHasNullSource() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(singletonMap("rubicon", "42")),
+                                null,
+                                ExtUserDigiTrust.of(null, null, 0),
+                                singletonList(ExtUserTpId.of(null, null))))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.user.ext.tpid[0].source contains empty value");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenTpidHasNullUid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(singletonMap("rubicon", "42")),
+                                null,
+                                ExtUserDigiTrust.of(null, null, 0),
+                                singletonList(ExtUserTpId.of("source", null))))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.user.ext.tpid[0].uid contains empty value");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenTpidHasEmptySource() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(singletonMap("rubicon", "42")),
+                                null,
+                                ExtUserDigiTrust.of(null, null, 0),
+                                singletonList(ExtUserTpId.of("", null))))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.user.ext.tpid[0].source contains empty value");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenTpidHasEmptyUid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(singletonMap("rubicon", "42")),
+                                null,
+                                ExtUserDigiTrust.of(null, null, 0),
+                                singletonList(ExtUserTpId.of("source", ""))))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.user.ext.tpid[0].uid contains empty value");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenTpidHasBlankSource() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(singletonMap("rubicon", "42")),
+                                null,
+                                ExtUserDigiTrust.of(null, null, 0),
+                                singletonList(ExtUserTpId.of("   ", null))))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.user.ext.tpid[0].source contains empty value");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenTpidHasBlankUid() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .user(User.builder()
+                        .ext(mapper.valueToTree(ExtUser.of(
+                                ExtUserPrebid.of(singletonMap("rubicon", "42")),
+                                null,
+                                ExtUserDigiTrust.of(null, null, 0),
+                                singletonList(ExtUserTpId.of("source", "   "))))).build())
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.user.ext.tpid[0].uid contains empty value");
     }
 
     @Test

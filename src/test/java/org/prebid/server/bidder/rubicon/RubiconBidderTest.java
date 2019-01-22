@@ -294,7 +294,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
                         .ext(mapper.valueToTree(RubiconUserExt.of(RubiconUserExtRp.of(mapper.valueToTree(
-                                Visitor.of(singletonList("new"), singletonList("iphone")))), null, null)))
+                                Visitor.of(singletonList("new"), singletonList("iphone")))), null, null, null)))
                         .build());
     }
 
@@ -304,7 +304,7 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(
                         mapper.valueToTree(ExtUser.of(
-                                ExtUserPrebid.of(emptyMap()), null, ExtUserDigiTrust.of("id", 123, 0))))
+                                ExtUserPrebid.of(emptyMap()), null, ExtUserDigiTrust.of("id", 123, 0), null)))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
@@ -318,7 +318,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
                         .ext(mapper.valueToTree(
-                                RubiconUserExt.of(null, null, ExtUserDigiTrust.of("id", 123, 0))))
+                                RubiconUserExt.of(null, null, ExtUserDigiTrust.of("id", 123, 0), null)))
                         .build());
     }
 
@@ -327,7 +327,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder().ext(
-                        mapper.valueToTree(ExtUser.of(null, "consentValue", null)))
+                        mapper.valueToTree(ExtUser.of(null, "consentValue", null, null)))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
@@ -342,7 +342,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .containsOnly(User.builder()
                         .ext(mapper.valueToTree(
-                                RubiconUserExt.of(null, "consentValue", null)))
+                                RubiconUserExt.of(null, "consentValue", null, null)))
                         .build());
     }
 
@@ -385,7 +385,7 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(User.builder()
                         .ext(mapper.valueToTree(
                                 RubiconUserExt.of(RubiconUserExtRp.of(mapper.valueToTree(
-                                        Visitor.of(singletonList("new"), singletonList("iphone")))), null, null)))
+                                        Visitor.of(singletonList("new"), singletonList("iphone")))), null, null, null)))
                         .build());
     }
 

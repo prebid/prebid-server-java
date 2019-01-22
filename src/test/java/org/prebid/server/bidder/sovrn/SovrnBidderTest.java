@@ -146,7 +146,7 @@ public class SovrnBidderTest extends VertxTest {
                                         .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
                                 .build()))
-                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
                 .regs(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1))))
                 .build();
 
@@ -169,7 +169,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .tagid("tagid")
                                 .bidfloor(null)
                                 .build()))
-                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
                         .regs(Regs.of(null, Json.mapper.valueToTree(ExtRegs.of(1))))
                         .build());
     }
