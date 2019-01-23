@@ -51,17 +51,15 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     @Mock
     private Vertx vertx;
 
-    private HttpPeriodicRefreshService httpPeriodicRefreshService;
-
-    private HttpClientResponse httpRefreshResponse;
+    private HttpClientResponse initialResponse;
     private HttpClientResponse updatedResponse;
-    private Map<String, String> expectedRequests;
-    private Map<String, String> expectedImps;
+    private Map<String, String> expectedRequests = singletonMap("id1", "{\"field1\":\"field-value1\"}");
+    private Map<String, String> expectedImps = singletonMap("id2", "{\"field2\":\"field-value2\"}");
 
     @Before
     public void setUp() throws JsonProcessingException {
 
-        httpRefreshResponse = HttpClientResponse.of(200, null,
+        initialResponse = HttpClientResponse.of(200, null,
                 mapper.writeValueAsString(HttpRefreshResponse.of(
                         singletonMap("id1", mapper.createObjectNode().put("field1", "field-value1")),
                         singletonMap("id2", mapper.createObjectNode().put("field2", "field-value2")))));
@@ -70,11 +68,8 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
                         singletonMap("id1", mapper.createObjectNode().put("deleted", "true")),
                         singletonMap("id2", mapper.createObjectNode().put("field2", "field-value2")))));
 
-        expectedRequests = singletonMap("id1", "{\"field1\":\"field-value1\"}");
-        expectedImps = singletonMap("id2", "{\"field2\":\"field-value2\"}");
-
         given(httpClient.get(anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(httpRefreshResponse));
+                .willReturn(Future.succeededFuture(initialResponse));
         given(httpClient.get(contains("?last-modified="), anyLong()))
                 .willReturn(Future.succeededFuture(updatedResponse));
     }
@@ -88,7 +83,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     @Test
     public void shouldCallSaveWithExpectedParameters() {
         // when
-        httpPeriodicRefreshService = createAndInitService(cacheNotificationListener, ENDPOINT_URL,
+        createAndInitService(cacheNotificationListener, ENDPOINT_URL,
                 1000, 2000, vertx, httpClient);
 
         // then
@@ -96,14 +91,13 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldCallInvalidateAndSaveWithExpectedParameters() {
         // given
         given(vertx.setPeriodic(anyLong(), any()))
                 .willAnswer(withSelfAndPassObjectToHandler(1L));
 
         // when
-        httpPeriodicRefreshService = createAndInitService(cacheNotificationListener, ENDPOINT_URL,
+        createAndInitService(cacheNotificationListener, ENDPOINT_URL,
                 1000, 2000, vertx, httpClient);
 
         // then
@@ -114,7 +108,6 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void shouldCallSaveAfterUpdate() throws JsonProcessingException {
         // given
         updatedResponse = HttpClientResponse.of(200, null,
@@ -128,7 +121,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(updatedResponse));
 
         // when
-        httpPeriodicRefreshService = createAndInitService(cacheNotificationListener, ENDPOINT_URL,
+        createAndInitService(cacheNotificationListener, ENDPOINT_URL,
                 1000, 2000, vertx, httpClient);
 
         // then
@@ -137,14 +130,13 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void initializeShouldMakeOneInitialRequestAndTwoScheduledRequestsWithParam() {
         // given
         given(vertx.setPeriodic(anyLong(), any()))
                 .willAnswer(withSelfAndPassObjectToHandler(1L, 2L));
 
         // when
-        httpPeriodicRefreshService = createAndInitService(cacheNotificationListener, ENDPOINT_URL,
+        createAndInitService(cacheNotificationListener, ENDPOINT_URL,
                 1000, 2000, vertx, httpClient);
 
         // then
@@ -156,7 +148,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     @Test
     public void initializeShouldMakeOnlyOneInitialRequestIfRefreshPeriodIsNegative() {
         // when
-        httpPeriodicRefreshService = createAndInitService(cacheNotificationListener, ENDPOINT_URL,
+        createAndInitService(cacheNotificationListener, ENDPOINT_URL,
                 -1, 2000, vertx, httpClient);
 
         // then
@@ -171,20 +163,19 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(1L));
 
         // when
-        httpPeriodicRefreshService = createAndInitService(cacheNotificationListener, ENDPOINT_URL + "?amp=true",
+        createAndInitService(cacheNotificationListener, ENDPOINT_URL + "?amp=true",
                 1000, 2000, vertx, httpClient);
 
         // then
         verify(httpClient).get(startsWith("http://stored-requests.prebid.com?amp=true&last-modified="), anyLong());
     }
 
-    private static HttpPeriodicRefreshService createAndInitService(CacheNotificationListener notificationListener,
-                                                                   String url, long refreshPeriod, long timeout,
-                                                                   Vertx vertx, HttpClient httpClient) {
+    private static void createAndInitService(CacheNotificationListener notificationListener,
+                                             String url, long refreshPeriod, long timeout,
+                                             Vertx vertx, HttpClient httpClient) {
         final HttpPeriodicRefreshService httpPeriodicRefreshService =
                 new HttpPeriodicRefreshService(notificationListener, url, refreshPeriod, timeout, vertx, httpClient);
         httpPeriodicRefreshService.initialize();
-        return httpPeriodicRefreshService;
     }
 
     @SuppressWarnings("unchecked")

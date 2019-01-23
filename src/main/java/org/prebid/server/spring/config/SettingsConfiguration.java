@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.CachingApplicationSettings;
@@ -17,6 +18,7 @@ import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
+import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
@@ -206,6 +208,47 @@ public class SettingsConfiguration {
 
             return new HttpPeriodicRefreshService(ampSettingsCache, ampEndpoint, refreshPeriod, timeout, vertx,
                     httpClient);
+        }
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "settings.in-memory-cache.jdbc-update",
+            name = {"refresh-rate", "timeout", "init-query", "update-query", "amp-init-query", "amp-update-query"})
+    static class JdbcPeriodicRefreshServiceConfiguration {
+
+        @Value("${settings.in-memory-cache.jdbc-update.refresh-rate}")
+        long refreshPeriod;
+
+        @Value("${settings.in-memory-cache.jdbc-update.timeout}")
+        long timeout;
+
+        @Autowired
+        Vertx vertx;
+
+        @Autowired
+        JdbcClient jdbcClient;
+
+        @Autowired
+        TimeoutFactory timeoutFactory;
+
+        @Bean
+        public JdbcPeriodicRefreshService jdbcPeriodicRefreshService(
+                SettingsCache settingsCache,
+                @Value("${settings.in-memory-cache.jdbc-update.init-query}") String initQuery,
+                @Value("${settings.in-memory-cache.jdbc-update.update-query}") String updateQuery) {
+
+            return new JdbcPeriodicRefreshService(settingsCache, vertx, jdbcClient, refreshPeriod,
+                    initQuery, updateQuery, timeoutFactory, timeout);
+        }
+
+        @Bean
+        public JdbcPeriodicRefreshService ampJdbcPeriodicRefreshService(
+                SettingsCache settingsCache,
+                @Value("${settings.in-memory-cache.jdbc-update.amp-init-query}") String ampInitQuery,
+                @Value("${settings.in-memory-cache.jdbc-update.amp-update-query}") String ampUpdateQuery) {
+
+            return new JdbcPeriodicRefreshService(settingsCache, vertx, jdbcClient, refreshPeriod,
+                    ampInitQuery, ampUpdateQuery, timeoutFactory, timeout);
         }
     }
 

@@ -16,5 +16,5 @@ public interface JdbcClient {
      * Executes query with parameters and returns {@link Future<T>} eventually holding result mapped to a model
      * object by provided mapper
      */
-    <T> Future<T> executeQuery(String query, List<String> params, Function<ResultSet, T> mapper, Timeout timeout);
+    <T> Future<T> executeQuery(String query, List<Object> params, Function<ResultSet, T> mapper, Timeout timeout);
 }
