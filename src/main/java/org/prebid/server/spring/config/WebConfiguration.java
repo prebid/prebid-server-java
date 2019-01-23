@@ -239,6 +239,7 @@ public class WebConfiguration {
 
     @Bean
     CookieSyncHandler cookieSyncHandler(
+            @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
@@ -249,8 +250,8 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory) {
 
-        return new CookieSyncHandler(defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService, hostVendorId,
-                useGeoLocation, analyticsReporter, metrics, timeoutFactory);
+        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, bidderCatalog, gdprService,
+                hostVendorId, useGeoLocation, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Bean

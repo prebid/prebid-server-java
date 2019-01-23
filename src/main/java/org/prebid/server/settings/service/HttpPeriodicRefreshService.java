@@ -80,18 +80,17 @@ public class HttpPeriodicRefreshService {
     }
 
     public void initialize() {
+        getAll();
         if (refreshPeriod > 0) {
             vertx.setPeriodic(refreshPeriod, aLong -> refresh());
         }
-        getAll();
     }
 
     private void getAll() {
-        lastUpdateTime = Instant.now();
-
         httpClient.get(refreshUrl, timeout)
                 .map(HttpPeriodicRefreshService::processResponse)
                 .map(this::save)
+                .map(ignored -> setLastUpdateTime(Instant.now()))
                 .recover(HttpPeriodicRefreshService::failResponse);
     }
 
@@ -104,11 +103,16 @@ public class HttpPeriodicRefreshService {
         return null;
     }
 
+    private Void setLastUpdateTime(Instant instant) {
+        lastUpdateTime = instant;
+        return null;
+    }
+
     /**
      * Handles errors occurred while HTTP request or response processing.
      */
     private static Future<Void> failResponse(Throwable exception) {
-        logger.warn("Error occurred while request to currency service", exception);
+        logger.warn("Error occurred while request to http periodic refresh service", exception);
         return Future.failedFuture(exception);
     }
 
@@ -157,14 +161,13 @@ public class HttpPeriodicRefreshService {
 
         httpClient.get(refreshEndpoint, timeout)
                 .map(HttpPeriodicRefreshService::processResponse)
-                .map(this::update)
+                .map(this::invalidate)
                 .map(this::save)
+                .map(ignored -> setLastUpdateTime(updateTime))
                 .recover(HttpPeriodicRefreshService::failResponse);
-
-        lastUpdateTime = updateTime;
     }
 
-    private HttpRefreshResponse update(HttpRefreshResponse refreshResponse) {
+    private HttpRefreshResponse invalidate(HttpRefreshResponse refreshResponse) {
         final List<String> invalidatedRequests = getInvalidatedKeys(refreshResponse.getRequests());
         final List<String> invalidatedImps = getInvalidatedKeys(refreshResponse.getImps());
 
