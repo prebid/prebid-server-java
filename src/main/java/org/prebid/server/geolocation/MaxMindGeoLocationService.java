@@ -17,7 +17,8 @@ import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 
 /**
- * Implementation of <a href="https://dev.maxmind.com/geoip/geoip2/geolite2/">MaxMind free database</a>
+ * Implementation of of the {@link GeoLocationService}
+ * backed by <a href="https://dev.maxmind.com/geoip/geoip2/geolite2/">MaxMind free database</a>
  */
 public class MaxMindGeoLocationService implements GeoLocationService {
 
@@ -28,8 +29,7 @@ public class MaxMindGeoLocationService implements GeoLocationService {
     }
 
     public static MaxMindGeoLocationService create(String dbArchive, String databaseFileName) {
-        final InputStream resourceAsStream = MaxMindGeoLocationService.class.getClassLoader()
-                .getResourceAsStream(dbArchive);
+        final InputStream resourceAsStream = MaxMindGeoLocationService.class.getResourceAsStream(dbArchive);
 
         if (resourceAsStream == null) {
             throw new PreBidException(String.format("No database archive found with a file name: %s", dbArchive));

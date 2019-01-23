@@ -1,0 +1,1 @@
+this is not a gzip file - expect an error. For test purposes only.

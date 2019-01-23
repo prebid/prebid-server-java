@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 public class MaxMindGeoLocationServiceTest {
 
-    private static final String ARCHIVE_NAME = "maxmind_db.tar.gz";
+    private static final String ARCHIVE_NAME = "GeoLite2-test.tar.gz";
     private static final String DB_FILE_NAME = "GeoLite2-Country.mmdb";
 
     @Test
@@ -23,7 +23,7 @@ public class MaxMindGeoLocationServiceTest {
     @Test
     public void creationShouldThrowExceptionIfFileIsNotArchive() {
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> MaxMindGeoLocationService.create("application.yaml", DB_FILE_NAME))
+                .isThrownBy(() -> MaxMindGeoLocationService.create("not_gzip_file.txt", DB_FILE_NAME))
                 .withMessage("IO Exception occurred while trying to read an archive/db file: Not in GZIP format");
     }
 
@@ -31,7 +31,7 @@ public class MaxMindGeoLocationServiceTest {
     public void creationShouldThrowExceptionIfDatabaseFileNotFoundInArchive() {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> MaxMindGeoLocationService.create(ARCHIVE_NAME, "no_file"))
-                .withMessage("Database file no_file not found in maxmind_db.tar.gz archive");
+                .withMessage("Database file no_file not found in GeoLite2-test.tar.gz archive");
     }
 
     @Test
