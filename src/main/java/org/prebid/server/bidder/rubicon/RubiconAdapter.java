@@ -281,7 +281,7 @@ public class RubiconAdapter extends OpenrtbAdapter {
     }
 
     private static RubiconSiteExt makeSiteExt(RubiconParams rubiconParams) {
-        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId()));
+        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconParams.getSiteId()), null);
     }
 
     private static Publisher makePublisher(RubiconParams rubiconParams) {
