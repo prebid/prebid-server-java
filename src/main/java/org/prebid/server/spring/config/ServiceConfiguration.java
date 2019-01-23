@@ -30,6 +30,7 @@ import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
+import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -256,11 +257,10 @@ public class ServiceConfiguration {
         }
 
         /**
-         * Geo location service is not implemented by default.
-         * It can be provided by vendor (host company) itself.
+         * Default geolocation service implementation.
          */
         private GeoLocationService createGeoLocationService() {
-            throw new RuntimeException("Geo location service is not implemented");
+            return MaxMindGeoLocationService.create("maxmind_db.tar.gz", "GeoLite2-Country.mmdb");
         }
     }
 

@@ -9,8 +9,8 @@ import org.prebid.server.geolocation.model.GeoInfo;
  * <p>
  * Used for GDPR processing, etc.
  * <p>
- * There is no default implementation for this interface, so turned off initially.
- * Each vendor (host company) should provide its own and inject it via Spring configuration.
+ * Provided default implementation - {@link MaxMindGeoLocationService}
+ * Each vendor (host company) might provide its own implementation and inject it via Spring configuration.
  */
 public interface GeoLocationService {
 

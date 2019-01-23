@@ -53,20 +53,18 @@
   "device": {
     "ua": "userAgent",
     "dnt": 2,
-    "ip": "192.168.244.1",
+    "ip": "80.215.195.000",
     "pxratio": 4.2,
-    "language": "en",
-    "ifa": "ifaId"
+    "language": "en"
   },
   "user": {
-    "buyeruid": "12345",
     "ext": {
+      "consent": "consentValue",
       "digitrust": {
         "id": "id",
         "keyv": 123,
         "pref": 0
-      },
-      "consent": "consentValue"
+      }
     }
   },
   "test": 1,
@@ -81,7 +79,7 @@
   },
   "regs": {
     "ext": {
-      "gdpr": 0
+      "gdpr": 1
     }
   },
   "ext": {
@@ -105,7 +103,7 @@
               "USD": 1.2406
             },
             "USD": {
-              "EUR": 0.8110
+              "EUR": 0.811
             }
           }
         },
