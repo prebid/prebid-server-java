@@ -62,4 +62,4 @@ gdpr:
     http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
     http-default-timeout-ms: 2000
   geolocation:
-    enabled: false
+    enabled: true

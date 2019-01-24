@@ -137,6 +137,7 @@
   "device": {
     "pxratio": 4.2,
     "dnt": 2,
+    "ip": "80.215.195.122",
     "language": "en",
     "ifa": "ifaId"
   },
@@ -211,7 +212,6 @@
   },
   "regs": {
     "ext": {
-      "gdpr": 0
     }
   }
 }

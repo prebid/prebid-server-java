@@ -31,6 +31,7 @@
         <lombok.version>1.18.4</lombok.version>
         <commons.version>3.6</commons.version>
         <commons.collections.version>4.1</commons.collections.version>
+        <commons.compress.version>1.18</commons.compress.version>
         <jackson.version>2.9.8</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.9</jsonpatch.version>
@@ -42,6 +43,7 @@
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
+        <maxmind-client.version>2.12.0</maxmind-client.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -139,6 +141,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
             <version>${commons.collections.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>${commons.compress.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -240,6 +247,11 @@
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_dropwizard</artifactId>
             <version>${metrics-prometheus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.maxmind.geoip2</groupId>
+            <artifactId>geoip2</artifactId>
+            <version>${maxmind-client.version}</version>
         </dependency>
         <!-- Test -->
         <dependency>
@@ -360,6 +372,7 @@
                 <version>${download-plugin.version}</version>
                 <executions>
                     <execution>
+                        <id>tld_names</id>
                         <phase>generate-resources</phase>
                         <goals>
                             <goal>wget</goal>
@@ -368,6 +381,18 @@
                             <url>https://publicsuffix.org/list/effective_tld_names.dat</url>
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                             <outputFileName>effective_tld_names.dat</outputFileName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>maxmind_db</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz</url>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <outputFileName>maxmind_db.tar.gz</outputFileName>
                         </configuration>
                     </execution>
                 </executions>
