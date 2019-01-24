@@ -319,7 +319,6 @@ public class RequestValidator {
         }
     }
 
-    // Add validation for tpid?
     private void validateUser(User user, Map<String, String> aliases) throws ValidationException {
         if (user != null && user.getExt() != null) {
             try {
@@ -350,18 +349,18 @@ public class RequestValidator {
 
                 if (tpid != null) {
                     if (tpid.isEmpty()) {
-                        throw new ValidationException("request.user.ext.tpid cannot be empty");
-                    } else {
-                        for (int index = 0; index < tpid.size(); index++) {
-                            final ExtUserTpId extUserTpId = tpid.get(index);
-                            if (StringUtils.isBlank(extUserTpId.getSource())) {
-                                throw new ValidationException(
-                                        "request.user.ext.tpid[%s].source contains empty value", index);
-                            }
-                            if (StringUtils.isBlank(extUserTpId.getUid())) {
-                                throw new ValidationException(
-                                        "request.user.ext.tpid[%s].uid contains empty value", index);
-                            }
+                        throw new ValidationException(
+                                "request.user.ext.tpid must contain at least one element or be undefined");
+                    }
+                    for (int index = 0; index < tpid.size(); index++) {
+                        final ExtUserTpId extUserTpId = tpid.get(index);
+                        if (StringUtils.isBlank(extUserTpId.getSource())) {
+                            throw new ValidationException(
+                                    "request.user.ext.tpid[%s].source contains empty value", index);
+                        }
+                        if (StringUtils.isBlank(extUserTpId.getUid())) {
+                            throw new ValidationException(
+                                    "request.user.ext.tpid[%s].uid contains empty value", index);
                         }
                     }
                 }

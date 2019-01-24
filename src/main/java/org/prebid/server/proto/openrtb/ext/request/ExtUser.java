@@ -30,7 +30,7 @@ public class ExtUser {
     ExtUserDigiTrust digitrust;
 
     /**
-     * A list of Universal ID modules that contain PubCommon ID and Unified ID
+     * A list of Universal IDs that contain PubCommon ID and Unified ID.
      */
     List<ExtUserTpId> tpid;
 }
