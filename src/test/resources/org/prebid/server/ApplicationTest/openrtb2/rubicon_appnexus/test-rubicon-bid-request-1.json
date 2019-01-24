@@ -67,10 +67,9 @@
   "device": {
     "ua": "userAgent",
     "dnt": 2,
-    "ip": "192.168.244.1",
+    "ip": "80.215.195.000",
     "pxratio": 4.2,
     "language": "en",
-    "ifa": "ifaId",
     "ext": {
       "rp": {
         "pixelratio": 4.2
@@ -78,7 +77,6 @@
     }
   },
   "user": {
-    "buyeruid": "J5VLCWQP-26-CWFT",
     "ext": {
       "rp": {
         "target": {
@@ -107,7 +105,7 @@
   },
   "regs": {
     "ext": {
-      "gdpr": 0
+      "gdpr": 1
     }
   },
   "ext": {

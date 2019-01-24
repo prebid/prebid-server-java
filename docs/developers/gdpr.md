@@ -29,3 +29,14 @@ For all endpoints, `gdpr` should be `1` if GDPR is in effect, `0` if not, and om
 `gdpr_consent` is required if `gdpr` is `1` and ignored if `gdpr` is `0`. If `gdpr` is omitted, the Prebid Server
 host company can decide whether it behaves like a `1` or `0` through the [app configuration](./configuration.md).
 Callers are encouraged to send the `gdpr_consent` param if `gdpr` is omitted.
+
+## Geo Location
+
+As an additional option for determining whether a client falls under GDPR requirements or not,
+a geo location service can be used(enabled by default) to determine the country of incoming client request.
+
+Prebid server provides a geo location service interface `src/main/java/org/prebid/server/geolocation/GeoLocationService.java`, 
+which could be used by the host company to provide its own implementation, as well as a default implementation using 
+MaxMind GeoLite2 Country database(available from [https://www.maxmind.com](https://www.maxmind.com) and included in this product)
+and GeoIP2 Java API. The database file gets downloaded automatically from MaxMind web page during project packing
+by Maven Download Plugin.
