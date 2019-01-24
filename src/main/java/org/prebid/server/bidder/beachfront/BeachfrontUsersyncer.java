@@ -2,6 +2,7 @@ package org.prebid.server.bidder.beachfront;
 
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.proto.response.UsersyncInfo;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
 
@@ -12,15 +13,21 @@ public class BeachfrontUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
 
-    public BeachfrontUsersyncer(String usersyncUrl, String platformId) {
-        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(platformId));
+    public BeachfrontUsersyncer(String usersyncUrl, String externalUrl, String platformId) {
+        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl),
+                Objects.requireNonNull(platformId));
     }
 
     /**
      * Creates {@link UsersyncInfo} from usersyncUrl and platformId
      */
-    private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String platformId) {
-        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, platformId), "iframe", false);
+    private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl, String platformId) {
+        final String redirectUri = HttpUtil.encodeUrl(externalUrl)
+                + "%2Fsetuid%3Fbidder%3Dbeachfront%26gdpr%3D{{.GDPR}}%26gdpr_consent%3D{{.GDPRConsent}}"
+                + "%26uid%3D%5Bio_cid%5D";
+
+        return UsersyncInfo.of(String.format("%s%s&gdpr={{.GDPR}}&gc={{.GDPRConsent}}&gce=1&url=%s",
+                usersyncUrl, platformId, redirectUri), "iframe", false);
     }
 
     /**

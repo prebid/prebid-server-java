@@ -10,6 +10,7 @@ import org.prebid.server.bidder.beachfront.BeachfrontUsersyncer;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +31,9 @@ public class BeachfrontConfiguration {
     @Qualifier("beachfrontConfigurationProperties")
     private BeachfrontConfigurationProperties configProperties;
 
+    @Value("${external-url}")
+    private String externalUrl;
+
     @Bean("beachfrontConfigurationProperties")
     @ConfigurationProperties("adapters.beachfront")
     BeachfrontConfigurationProperties configurationProperties() {
@@ -39,7 +43,8 @@ public class BeachfrontConfiguration {
     @Bean
     BidderDeps beachfrontBidderDeps() {
         final Usersyncer usersyncer =
-                new BeachfrontUsersyncer(configProperties.getUsersyncUrl(), configProperties.getPlatformId());
+                new BeachfrontUsersyncer(configProperties.getUsersyncUrl(),
+                        externalUrl, configProperties.getPlatformId());
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .enabled(configProperties.getEnabled())
                 .deprecatedNames(configProperties.getDeprecatedNames())
