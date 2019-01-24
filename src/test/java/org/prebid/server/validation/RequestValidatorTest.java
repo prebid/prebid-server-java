@@ -1452,7 +1452,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.tpid cannot be empty");
+                .containsOnly("request.user.ext.tpid must contain at least one element or be undefined");
     }
 
     @Test
@@ -1472,7 +1472,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.tpid[0].source contains empty value");
+                .containsOnly("request.user.ext.tpid[0].source missing required field: \"source\"");
     }
 
     @Test
@@ -1492,7 +1492,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.tpid[0].uid contains empty value");
+                .containsOnly("request.user.ext.tpid[0].uid missing required field: \"uid\"");
     }
 
     @Test
@@ -1512,7 +1512,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.tpid[0].source contains empty value");
+                .containsOnly("request.user.ext.tpid[0].source missing required field: \"source\"");
     }
 
     @Test
@@ -1532,7 +1532,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.tpid[0].uid contains empty value");
+                .containsOnly("request.user.ext.tpid[0].uid missing required field: \"uid\"");
     }
 
     @Test
@@ -1552,7 +1552,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.tpid[0].source contains empty value");
+                .containsOnly("request.user.ext.tpid[0].source missing required field: \"source\"");
     }
 
     @Test
@@ -1572,7 +1572,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.user.ext.tpid[0].uid contains empty value");
+                .containsOnly("request.user.ext.tpid[0].uid missing required field: \"uid\"");
     }
 
     @Test
