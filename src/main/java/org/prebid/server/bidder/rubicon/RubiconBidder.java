@@ -338,7 +338,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static RubiconSiteExt makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
-        final ExtSite extSite = site != null ? Json.mapper.convertValue(site.getExt(), ExtSite.class) : null;
+        ExtSite extSite = null;
+        if (site != null) {
+            try {
+                extSite = Json.mapper.convertValue(site.getExt(), ExtSite.class);
+            } catch (IllegalArgumentException e) {
+                throw new PreBidException(e.getMessage(), e.getCause());
+            }
+        }
         final Integer siteExtAmp = extSite != null ? extSite.getAmp() : null;
         return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()), siteExtAmp);
     }
