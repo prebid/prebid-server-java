@@ -356,11 +356,11 @@ public class RequestValidator {
                         final ExtUserTpId extUserTpId = tpid.get(index);
                         if (StringUtils.isBlank(extUserTpId.getSource())) {
                             throw new ValidationException(
-                                    "request.user.ext.tpid[%s].source contains empty value", index);
+                                    "request.user.ext.tpid[%s].source missing required field: \"source\"", index);
                         }
                         if (StringUtils.isBlank(extUserTpId.getUid())) {
                             throw new ValidationException(
-                                    "request.user.ext.tpid[%s].uid contains empty value", index);
+                                    "request.user.ext.tpid[%s].uid missing required field: \"uid\"", index);
                         }
                     }
                 }
