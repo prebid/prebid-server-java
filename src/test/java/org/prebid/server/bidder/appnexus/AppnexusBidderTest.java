@@ -449,7 +449,7 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build()),
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build()),
                 builder -> builder.banner(Banner.builder().build()),
                 identity());
 
@@ -460,7 +460,7 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser)
-                .containsOnly(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build());
+                .containsOnly(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build());
     }
 
     @Test

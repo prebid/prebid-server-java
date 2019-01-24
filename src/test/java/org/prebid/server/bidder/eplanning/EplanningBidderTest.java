@@ -57,7 +57,7 @@ public class EplanningBidderTest extends VertxTest {
                         Imp.builder().banner(Banner.builder().build()).ext(Json.mapper.valueToTree(
                                 ExtPrebid.of(null, ExtImpEplanning.of("exchangeId")))).build()))
                 .device(Device.builder().ip("192.168.0.1").ua("ua").dnt(1).language("en").build())
-                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
                 .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
                 .build();
 
@@ -85,7 +85,7 @@ public class EplanningBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build())
                                 .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpEplanning.of("exchangeId"))))
                                 .build()))
-                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
                         .device(Device.builder().ip("192.168.0.1").ua("ua").dnt(1).language("en").build())
                         .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
                         .build()

@@ -49,10 +49,10 @@ public class AdformRequestUtilTest {
     public void getExtUserShouldReturnExtUser() {
         // given and when
         final ExtUser extUser = AdformRequestUtil.getExtUser(User.builder()
-                .ext(mapper.valueToTree(ExtUser.of(null, null, null))).build());
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null, null))).build());
 
         // then
-        assertThat(extUser).isEqualTo(ExtUser.of(null, null, null));
+        assertThat(extUser).isEqualTo(ExtUser.of(null, null, null, null));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getConsentShouldReturnEmptyValueWhenConsentIsNull() {
         // given and when
-        final String consent = AdformRequestUtil.getConsent(ExtUser.of(null, null, null));
+        final String consent = AdformRequestUtil.getConsent(ExtUser.of(null, null, null, null));
 
         // then
         assertThat(consent).isEmpty();
@@ -134,7 +134,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getConsentShouldReturnConsent() {
         // given and when
-        final String consent = AdformRequestUtil.getConsent(ExtUser.of(null, "consent", null));
+        final String consent = AdformRequestUtil.getConsent(ExtUser.of(null, "consent", null, null));
 
         // then
         assertThat(consent).isEqualTo("consent");
@@ -152,7 +152,7 @@ public class AdformRequestUtilTest {
     @Test
     public void getAdformDigiTrustShouldReturnNullIfUserExtDigitrustIsNull() {
         // given and when
-        final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(ExtUser.of(null, null, null));
+        final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(ExtUser.of(null, null, null, null));
 
         // then
         assertThat(adformDigitrust).isNull();
@@ -162,7 +162,7 @@ public class AdformRequestUtilTest {
     public void getAdformDigiTrustShouldReturnAdformDigitrustWithOptOutFalseIfPrefIsZero() {
         // given and when
         final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(ExtUser.of(null, null,
-                ExtUserDigiTrust.of("id", 123, 0)));
+                ExtUserDigiTrust.of("id", 123, 0), null));
 
         // then
         assertThat(adformDigitrust).isEqualTo(AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(false)));
@@ -172,7 +172,7 @@ public class AdformRequestUtilTest {
     public void getAdformDigiTrustShouldReturnAdformDigitrustWithOptOutTrueIfPrefIsNotZero() {
         // given and when
         final AdformDigitrust adformDigitrust = AdformRequestUtil.getAdformDigitrust(ExtUser.of(null, null,
-                ExtUserDigiTrust.of("id", 123, 1)));
+                ExtUserDigiTrust.of("id", 123, 1), null));
 
         // then
         assertThat(adformDigitrust).isEqualTo(AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));

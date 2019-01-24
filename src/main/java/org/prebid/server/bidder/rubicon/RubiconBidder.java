@@ -57,6 +57,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -301,15 +302,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final RubiconUserExtRp userExtRp = !visitor.isNull() ? RubiconUserExtRp.of(visitor) : null;
 
         final ExtUser extUser = user != null ? getExtUser(user.getExt()) : null;
-
         final ExtUserDigiTrust userExtDt = extUser != null ? extUser.getDigitrust() : null;
-
         final String consent = extUser != null ? extUser.getConsent() : null;
+        final List<ExtUserTpId> tpid = extUser != null ? extUser.getTpid() : null;
 
-        if (userExtRp != null || userExtDt != null || consent != null) {
+        if (userExtRp != null || userExtDt != null || consent != null || tpid != null) {
             final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
             result = userBuilder
-                    .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, consent, userExtDt)))
+                    .ext(Json.mapper.valueToTree(RubiconUserExt.of(userExtRp, consent, userExtDt, tpid)))
                     .build();
         }
 

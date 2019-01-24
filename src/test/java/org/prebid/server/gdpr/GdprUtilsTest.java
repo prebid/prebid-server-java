@@ -81,7 +81,7 @@ public class GdprUtilsTest extends VertxTest {
     public void gdprConsentFromShouldReturnEmptyValueWhenConsentIsNull() {
         // given and when
         final String consent = GdprUtils.gdprConsentFrom(User.builder()
-                .ext(mapper.valueToTree(ExtUser.of(null, null, null)))
+                .ext(mapper.valueToTree(ExtUser.of(null, null, null, null)))
                 .build());
 
         // then
@@ -92,7 +92,7 @@ public class GdprUtilsTest extends VertxTest {
     public void gdprConsentFromShouldReturnConsent() {
         // given and when
         final String consent = GdprUtils.gdprConsentFrom(User.builder()
-                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null)))
+                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
                 .build());
 
         // then
