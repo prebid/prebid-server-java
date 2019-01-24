@@ -104,8 +104,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
 
-        cookieSyncHandler = new CookieSyncHandler(2000, uidsCookieService, bidderCatalog, gdprService, 1, false,
-                analyticsReporter, metrics, timeoutFactory);
+        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
+                gdprService, 1, false, analyticsReporter, metrics, timeoutFactory);
     }
 
     @Test
@@ -390,8 +390,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByGdpr() throws IOException {
         // given
-        cookieSyncHandler = new CookieSyncHandler(2000, uidsCookieService, bidderCatalog, gdprService, null, false,
-                analyticsReporter, metrics, timeoutFactory);
+        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
+                gdprService, null, false, analyticsReporter, metrics, timeoutFactory);
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
@@ -476,6 +476,121 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithUpdatedUsersyncInfoIfHostCookieAndUidsDiffers() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.of(singletonList(RUBICON), null, null, null)));
+
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        givenUsersyncersReturningFamilyName();
+
+        final UsersyncInfo rubiconUsersyncInfo = UsersyncInfo.of("http://rubiconexample.com", "redirect", false);
+        given(rubiconUsersyncer.usersyncInfo()).willReturn(rubiconUsersyncInfo);
+
+        givenGdprServiceReturningResult(singletonMap(RUBICON, 1));
+
+        given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
+        given(uidsCookieService.parseHostCookie(any())).willReturn("host-cookie-value");
+        given(uidsCookieService.parseUids(routingContext))
+                .willReturn(Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("uid-cookie-value"))).build());
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .extracting(BidderUsersyncStatus::getUsersync)
+                .containsOnly(UsersyncInfo.of(
+                        "http://external-url/setuid?bidder=rubicon&gdpr=null&gdpr_consent=null&uid=host-cookie-value",
+                        "redirect", false));
+    }
+
+    @Test
+    public void shouldRespondWithOriginalUsersyncInfoIfNoHostCookieFamilyInBiddersCookieFamily() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.of(singletonList(APPNEXUS), 1, "gdpr_consent1", null)));
+
+        given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
+        givenUsersyncersReturningFamilyName();
+
+        final UsersyncInfo appnexusUsersyncInfo = UsersyncInfo.of(
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}", "redirect", false);
+        given(appnexusUsersyncer.usersyncInfo()).willReturn(appnexusUsersyncInfo);
+
+        givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
+
+        given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .extracting(BidderUsersyncStatus::getUsersync)
+                .containsOnly(UsersyncInfo.of(
+                        "http://adnxsexample.com/sync?gdpr=1&gdpr_consent=gdpr_consent1", "redirect", false));
+    }
+
+    @Test
+    public void shouldRespondWithOriginalUsersyncInfoIfNoHostCookieInRequest() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.of(singletonList(RUBICON), null, null, null)));
+
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        givenUsersyncersReturningFamilyName();
+
+        final UsersyncInfo rubiconUsersyncInfo = UsersyncInfo.of("http://rubiconexample.com", "redirect", false);
+        given(rubiconUsersyncer.usersyncInfo()).willReturn(rubiconUsersyncInfo);
+
+        givenGdprServiceReturningResult(singletonMap(RUBICON, 1));
+
+        given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
+        given(uidsCookieService.parseHostCookie(any())).willReturn(null);
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .extracting(BidderUsersyncStatus::getUsersync)
+                .containsOnly(rubiconUsersyncInfo);
+    }
+
+    @Test
+    public void shouldRespondWithOriginalUsersyncInfoIfHostCookieAndUidsAreEqual() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.of(singletonList(RUBICON), null, null, null)));
+
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        givenUsersyncersReturningFamilyName();
+
+        final UsersyncInfo rubiconUsersyncInfo = UsersyncInfo.of("http://rubiconexample.com", "redirect", false);
+        given(rubiconUsersyncer.usersyncInfo()).willReturn(rubiconUsersyncInfo);
+
+        givenGdprServiceReturningResult(singletonMap(RUBICON, 1));
+
+        given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
+        given(uidsCookieService.parseHostCookie(any())).willReturn("cookie-value");
+        given(uidsCookieService.parseUids(routingContext))
+                .willReturn(Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("cookie-value"))).build());
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .extracting(BidderUsersyncStatus::getUsersync)
+                .containsOnly(rubiconUsersyncInfo);
+    }
+
+    @Test
     public void shouldRespondWithExpectedUsersyncInfoForBidderAlias() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
@@ -550,6 +665,31 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse.getBidderStatus()).hasSize(1);
+    }
+
+    @Test
+    public void shouldNotLimitBidderStatusesIfLimitIsBiggerThanBiddersList() throws IOException {
+        // given
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.of(asList(RUBICON, APPNEXUS), 0, null, 3)));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        givenUsersyncersReturningFamilyName();
+        given(appnexusUsersyncer.usersyncInfo())
+                .willReturn(UsersyncInfo.of("http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
+                        "redirect", false));
+        given(rubiconUsersyncer.usersyncInfo())
+                .willReturn(UsersyncInfo.of("http://rubiconexample.com", "redirect", false));
+
+        givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(2);
     }
 
     @Test

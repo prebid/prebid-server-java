@@ -229,11 +229,11 @@ public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
         final String userId = user.getId();
         final String buyerId = user.getBuyeruid();
         return User.builder()
-                //   Exchange-specific ID for the user. At least one of id or
-                //   buyeruid is recommended.
+                // Exchange-specific ID for the user. At least one of id or
+                // buyeruid is recommended.
                 .id(StringUtils.isNotEmpty(userId) ? userId : null)
-                //   Buyer-specific ID for the user as mapped by the exchange for
-                //   the buyer. At least one of buyeruid or id is recommended.
+                // Buyer-specific ID for the user as mapped by the exchange for
+                // the buyer. At least one of buyeruid or id is recommended.
                 .buyeruid(StringUtils.isNotEmpty(buyerId) ? buyerId : null)
                 .build();
     }

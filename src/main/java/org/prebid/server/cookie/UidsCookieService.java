@@ -64,16 +64,7 @@ public class UidsCookieService {
      * Note: UIDs will be excluded from resulting {@link UidsCookie} if their value are 'null'
      */
     public UidsCookie parseFromRequest(RoutingContext context) {
-        Uids parsedUids = null;
-        final Cookie uidsCookie = context.getCookie(COOKIE_NAME);
-        if (uidsCookie != null) {
-            try {
-                parsedUids = Json.decodeValue(
-                        Buffer.buffer(Base64.getUrlDecoder().decode(uidsCookie.getValue())), Uids.class);
-            } catch (IllegalArgumentException | DecodeException e) {
-                logger.debug("Could not decode or parse {0} cookie value {1}", e, COOKIE_NAME, uidsCookie.getValue());
-            }
-        }
+        final Uids parsedUids = parseUids(context);
 
         final Uids.UidsBuilder uidsBuilder = Uids.builder()
                 .uidsLegacy(Collections.emptyMap())
@@ -94,6 +85,22 @@ public class UidsCookieService {
     }
 
     /**
+     * Parses {@link RoutingContext} and composes {@link Uids} model from {@link Cookie}.
+     */
+    public Uids parseUids(RoutingContext context) {
+        final Cookie uidsCookie = context.getCookie(COOKIE_NAME);
+        if (uidsCookie != null) {
+            final String cookieValue = uidsCookie.getValue();
+            try {
+                return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(cookieValue)), Uids.class);
+            } catch (IllegalArgumentException | DecodeException e) {
+                logger.debug("Could not decode or parse {0} cookie value {1}", e, COOKIE_NAME, cookieValue);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Creates a {@link Cookie} with 'uids' as a name and encoded JSON string representing supplied {@link UidsCookie}
      * as a value.
      */
@@ -111,7 +118,7 @@ public class UidsCookieService {
     }
 
     /**
-     * Lookup host cookie value from request by configured host cookie name
+     * Lookup host cookie value from request by configured host cookie name.
      */
     public String parseHostCookie(RoutingContext context) {
         final Cookie cookie = hostCookieName != null ? context.getCookie(hostCookieName) : null;
@@ -119,8 +126,15 @@ public class UidsCookieService {
     }
 
     /**
+     * Returns configured host cookie family.
+     */
+    public String getHostCookieFamily() {
+        return hostCookieFamily;
+    }
+
+    /**
      * Checks incoming request if it matches pre-configured opted-out cookie name, value and de-activates
-     * UIDs cookie sync
+     * UIDs cookie sync.
      */
     private boolean isOptedOut(RoutingContext context) {
         if (StringUtils.isNotBlank(optOutCookieName) && StringUtils.isNotBlank(optOutCookieValue)) {
@@ -155,6 +169,9 @@ public class UidsCookieService {
         return workingUidsMap;
     }
 
+    /**
+     * Returns true if host cookie value differs from the given UID value.
+     */
     private static boolean hostCookieDiffers(String hostCookie, UidWithExpiry uid) {
         return uid == null || !Objects.equals(hostCookie, uid.getUid());
     }

@@ -153,6 +153,14 @@ available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and 
 - `settings.in-memory-cache.http-update.amp-endpoint` - the url to fetch AMP stored request updates.
 - `settings.in-memory-cache.http-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.http-update.timeout` - timeout for obtaining stored request updates.
+- `settings.in-memory-cache.jdbc-update.init-query` - initial query for fetching all stored requests at the startup.
+- `settings.in-memory-cache.jdbc-update.update-query` - a query for periodical update of stored requests, that should
+contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
+- `settings.in-memory-cache.jdbc-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
+- `settings.in-memory-cache.jdbc-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
+contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
+- `settings.in-memory-cache.jdbc-update.refresh-rate` - refresh period in ms for stored request updates.
+- `settings.in-memory-cache.jdbc-update.timeout` - timeout for obtaining stored request updates.
 
 ## Host Cookie
 - `host-cookie.optout-cookie.name` - set the cookie name for optout checking.
