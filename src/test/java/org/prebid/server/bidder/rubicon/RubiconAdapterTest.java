@@ -335,7 +335,7 @@ public class RubiconAdapterTest extends VertxTest {
                                 .publisher(Publisher.builder()
                                         .ext(mapper.valueToTree(RubiconPubExt.of(RubiconPubExtRp.of(2001))))
                                         .build())
-                                .ext(mapper.valueToTree(RubiconSiteExt.of(RubiconSiteExtRp.of(3001))))
+                                .ext(mapper.valueToTree(RubiconSiteExt.of(RubiconSiteExtRp.of(3001), null)))
                                 .build())
                         .device(Device.builder()
                                 .ua("userAgent")

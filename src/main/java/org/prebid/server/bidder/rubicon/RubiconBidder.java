@@ -33,6 +33,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.rubicon.proto.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.RubiconDeviceExt;
@@ -53,6 +54,7 @@ import org.prebid.server.bidder.rubicon.proto.RubiconVideoExt;
 import org.prebid.server.bidder.rubicon.proto.RubiconVideoExtRp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
@@ -331,12 +333,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static Site makeSite(Site site, ExtImpRubicon rubiconImpExt) {
         return site == null ? null : site.toBuilder()
                 .publisher(makePublisher(rubiconImpExt))
-                .ext(Json.mapper.valueToTree(makeSiteExt(rubiconImpExt)))
+                .ext(Json.mapper.valueToTree(makeSiteExt(site, rubiconImpExt)))
                 .build();
     }
 
-    private static RubiconSiteExt makeSiteExt(ExtImpRubicon rubiconImpExt) {
-        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()));
+    private static RubiconSiteExt makeSiteExt(Site site, ExtImpRubicon rubiconImpExt) {
+        ExtSite extSite = null;
+        if (site != null) {
+            try {
+                extSite = Json.mapper.convertValue(site.getExt(), ExtSite.class);
+            } catch (IllegalArgumentException e) {
+                throw new PreBidException(e.getMessage(), e.getCause());
+            }
+        }
+        final Integer siteExtAmp = extSite != null ? extSite.getAmp() : null;
+        return RubiconSiteExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()), siteExtAmp);
     }
 
     private static Publisher makePublisher(ExtImpRubicon rubiconImpExt) {
@@ -352,8 +363,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static App makeApp(App app, ExtImpRubicon rubiconImpExt) {
         return app == null ? null : app.toBuilder()
                 .publisher(makePublisher(rubiconImpExt))
-                .ext(Json.mapper.valueToTree(makeSiteExt(rubiconImpExt)))
+                .ext(Json.mapper.valueToTree(makeAppExt(rubiconImpExt)))
                 .build();
+    }
+
+    private static RubiconAppExt makeAppExt(ExtImpRubicon rubiconImpExt) {
+        return RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId()));
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
