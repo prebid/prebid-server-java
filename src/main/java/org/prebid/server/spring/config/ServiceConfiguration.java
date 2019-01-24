@@ -260,7 +260,7 @@ public class ServiceConfiguration {
          * Default geolocation service implementation.
          */
         private GeoLocationService createGeoLocationService() {
-            return MaxMindGeoLocationService.create("maxmind_db.tar.gz", "GeoLite2-Country.mmdb");
+            return MaxMindGeoLocationService.create("/maxmind_db.tar.gz", "GeoLite2-Country.mmdb");
         }
     }
 
