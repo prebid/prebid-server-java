@@ -5,12 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class RubiconSiteExt {
+public class RubiconAppExt {
 
     RubiconSiteExtRp rp;
-
-    /**
-     * AMP should be 1 if the request comes from an AMP page, 0 if not or be undefined.
-     */
-    Integer amp;
 }
