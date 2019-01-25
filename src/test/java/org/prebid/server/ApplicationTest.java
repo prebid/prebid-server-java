@@ -496,7 +496,7 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromYieldmo() throws IOException, JSONException {
         // given
-        // TheMediaGrid bid response for imp 001
+        // Yieldmo bid response for imp 001
         wireMockRule.stubFor(post(urlPathEqualTo("/yieldmo-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/yieldmo/test-yieldmo-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/yieldmo/test-yieldmo-bid-response-1.json"))));
@@ -512,8 +512,8 @@ public class ApplicationTest extends VertxTest {
                 .header("X-Forwarded-For", "192.168.244.1")
                 .header("User-Agent", "userAgent")
                 .header("Origin", "http://www.example.com")
-                // this uids cookie value stands for {"uids":{"ym":"YM-UID"}}
-                .cookie("uids", "eyJ1aWRzIjp7InltIjoiWU0tVUlEIn19")
+                // this uids cookie value stands for {"uids":{"yieldmo":"YM-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InlpZWxkbW8iOiJZTS1VSUQifX0=")
                 .body(jsonFrom("openrtb2/yieldmo/test-auction-yieldmo-request.json"))
                 .post("/openrtb2/auction");
 

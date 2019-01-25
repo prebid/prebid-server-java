@@ -35,6 +35,7 @@
     "ifa": "ifaId"
   },
   "user": {
+    "buyeruid": "YM-UID",
     "ext": {
       "consent": "consentValue",
       "digitrust": {
@@ -61,10 +62,6 @@
   },
   "ext": {
     "prebid": {
-      "aliases": {
-        "appnexusAlias": "appnexus",
-        "conversantAlias": "conversant"
-      },
       "targeting": {
         "pricegranularity": {
           "precision": 2,
