@@ -15,7 +15,7 @@ public class YieldmoMetaInfo implements MetaInfo {
     public YieldmoMetaInfo(boolean enabled, boolean pbsEnforcesGdpr) {
         bidderInfo = BidderInfo.create(enabled, "progsupport@yieldmo.com",
                 Collections.emptyList(), Collections.singletonList("banner"),
-                null, 0, pbsEnforcesGdpr);
+                null, 173, pbsEnforcesGdpr);
     }
 
     /**
