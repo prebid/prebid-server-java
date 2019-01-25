@@ -23,10 +23,10 @@ public class BeachfrontUsersyncer implements Usersyncer {
      */
     private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl, String platformId) {
         final String redirectUri = HttpUtil.encodeUrl(externalUrl)
-                + "%2Fsetuid%3Fbidder%3Dbeachfront%26gdpr%3D{{.GDPR}}%26gdpr_consent%3D{{.GDPRConsent}}"
+                + "%2Fsetuid%3Fbidder%3Dbeachfront%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
                 + "%26uid%3D%5Bio_cid%5D";
 
-        return UsersyncInfo.of(String.format("%s%s&gdpr={{.GDPR}}&gc={{.GDPRConsent}}&gce=1&url=%s",
+        return UsersyncInfo.of(String.format("%s%s&gdpr={{gdpr}}&gc={{gdpr_consent}}&gce=1&url=%s",
                 usersyncUrl, platformId, redirectUri), "iframe", false);
     }
 
