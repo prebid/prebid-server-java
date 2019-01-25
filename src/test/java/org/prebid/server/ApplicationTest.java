@@ -94,6 +94,7 @@ public class ApplicationTest extends VertxTest {
     private static final String SOMOAUDIENCE = "somoaudience";
     private static final String SOVRN = "sovrn";
     private static final String TTX = "ttx";
+    private static final String YIELDMO = "yieldmo";
 
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
@@ -488,6 +489,38 @@ public class ApplicationTest extends VertxTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/ttx/test-auction-ttx-response.json",
                 response, singletonList(TTX));
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithBidsFromYieldmo() throws IOException, JSONException {
+        // given
+        // Yieldmo bid response for imp 001
+        wireMockRule.stubFor(post(urlPathEqualTo("/yieldmo-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/yieldmo/test-yieldmo-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/yieldmo/test-yieldmo-bid-response-1.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/yieldmo/test-cache-yieldmo-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/yieldmo/test-cache-yieldmo-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"yieldmo":"YM-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InlpZWxkbW8iOiJZTS1VSUQifX0=")
+                .body(jsonFrom("openrtb2/yieldmo/test-auction-yieldmo-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/yieldmo/test-auction-yieldmo-response.json",
+                response, singletonList(YIELDMO));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
