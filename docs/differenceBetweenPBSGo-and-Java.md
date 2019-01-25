@@ -7,20 +7,17 @@ and not the other for an interim period. This page tracks known differences that
 
 ## Feature Differences
 
-1) PBS-Java supports Currency conversion. PBS-Go currently has it disabled as it's still under dev [issue 280](https://github.com/prebid/prebid-server/issues/280), [issue 760](https://github.com/prebid/prebid-server/pull/760). PBS-Java [PR 22](https://github.com/rubicon-project/prebid-server-java/pull/22)
+1) PBS-Java supports Currency conversion. PBS-Go has it implemented, but disabled by default(still under dev) [issue 280](https://github.com/prebid/prebid-server/issues/280), [issue 760](https://github.com/prebid/prebid-server/pull/760). PBS-Java [PR 22](https://github.com/rubicon-project/prebid-server-java/pull/22)
 1) PBS-Java supports IP-address lookup in certain scenarios around GDPR. See https://github.com/rubicon-project/prebid-server-java/blob/master/docs/developers/PrebidServerJava_GDPR_Requirements.pdf
 1) PBS-Java supports InfluxDB, Graphite and Prometheus, PBS-Go supports InfluxDB and Prometheus as metrics backend.
 1) PBS-Java has Circuit Breaker mechanism for database, http and geolocation requests. This can protect the server in scenarios where an external service becomes unavailable.
-1) PBS-Java supports `ext.prebid.cache.{bids,vastxml}.ttlseconds` field to pass the TTL to Cache Service 
-(per-impression option is in progress [PR 154](https://github.com/rubicon-project/prebid-server-java/pull/154)),
- PBS-Go supports per-impression, per-responseBid and per-mediaType cache TTL options. Also PBS-Go use 60-seconds buffer to adjust cache TTL value.
 1) PBS-Java supports `ext.prebid.cache.{bids,vastxml}.returnCreative` field to control creative presence in response (`true` by default).
 1) PBS-Java supports checking the latest currency rates details, for example update time. This information is exposed via /currency-rates endpoint on admin port.
 
 ## Minor differences
 
 - PBS-Java removes null objects or empty strings (e.g. in Go `/auction` response bid object will have field `hb_cache: ""` whereas in Java it will be absent; also `digitrust: null` in PBS Go is not there in PBS Java). PBS-Go [Issue 476](https://github.com/prebid/prebid-server/issues/476)
-- All adapters have been ported to use OpenRTB directly in PBS-Java. PBS-Go [Issue 211](https://github.com/prebid/prebid-server/issues/211)
+- All adapters have been ported to use OpenRTB directly in PBS-Java. PBS-Go Facebook AudienceNetwork adapter [Issue 211](https://github.com/prebid/prebid-server/issues/211)
 - Java and Go adapter internal interface returns currency in different ways:
   - in PBS-Go, the adapter sets BidResponse.currency, which is outside of each TypedBid.
   - in PBS-Java, the adapter set BidderBid[N].currency.
