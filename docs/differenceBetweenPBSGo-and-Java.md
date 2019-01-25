@@ -13,6 +13,8 @@ and not the other for an interim period. This page tracks known differences that
 1) PBS-Java has Circuit Breaker mechanism for database, http and geolocation requests. This can protect the server in scenarios where an external service becomes unavailable.
 1) PBS-Java supports `ext.prebid.cache.{bids,vastxml}.returnCreative` field to control creative presence in response (`true` by default).
 1) PBS-Java supports checking the latest currency rates details, for example update time. This information is exposed via /currency-rates endpoint on admin port.
+1) PBS-Java has a specific `/cookie-sync` behaviour, that updates `uids.HOST-BIDDER` from `host-cookie` if first is absent or not equal to second.
+1) PBS-Java sets `/setuid` in `usersync-url`.
 
 ## Minor differences
 
