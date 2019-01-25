@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
 public class BeachfrontBidder implements Bidder<BeachfrontRequests> {
 
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
-    private static final String BEACHFRONT_VERSION = "0.2.1";
+    private static final String BEACHFRONT_VERSION = "0.2.2";
     private static final String VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
