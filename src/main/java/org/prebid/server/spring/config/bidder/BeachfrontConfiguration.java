@@ -51,7 +51,9 @@ public class BeachfrontConfiguration {
                 .enabled(configProperties.getEnabled())
                 .deprecatedNames(configProperties.getDeprecatedNames())
                 .aliases(configProperties.getAliases())
-                .metaInfo(new BeachfrontMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .metaInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
+                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)
                 .bidderCreator(() ->
                         new BeachfrontBidder(configProperties.getBannerEndpoint(), configProperties.getVideoEndpoint()))
