@@ -429,7 +429,8 @@ public class ExchangeService {
      */
     private static ObjectNode removeBuyeruidsFromUserExtPrebid(ExtUser extUser) {
         return extUser != null
-                ? Json.mapper.valueToTree(ExtUser.of(null, extUser.getConsent(), extUser.getDigitrust()))
+                ? Json.mapper.valueToTree(ExtUser.of(
+                null, extUser.getConsent(), extUser.getDigitrust(), extUser.getTpid()))
                 : null;
     }
 

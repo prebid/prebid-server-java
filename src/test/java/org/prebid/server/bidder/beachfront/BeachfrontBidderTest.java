@@ -420,7 +420,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                 asList(BeachfrontSize.of(100, 200), BeachfrontSize.of(300, 400)))))
                         .domain("rubicon.com").page("appId").deviceOs("os").deviceModel("model")
                         .ua("ua").dnt(5).user(User.builder().id("userId").buyeruid("buyeruid").build())
-                        .adapterName("BF_PREBID_S2S").adapterVersion("0.2.1")
+                        .adapterName("BF_PREBID_S2S").adapterVersion("0.2.2")
                         .ip("127.0.0.1").secure(1).requestId("request id")
                         .build()));
     }
@@ -544,7 +544,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                 BeachfrontSlot.of("impId2", "appIdExt", BigDecimal.valueOf(2),
                                         singletonList(BeachfrontSize.of(200, 300)))))
                         .adapterName("BF_PREBID_S2S")
-                        .adapterVersion("0.2.1")
+                        .adapterVersion("0.2.2")
                         .build()));
     }
 
@@ -566,7 +566,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .slots(singletonList(BeachfrontSlot.of(null, "appIdExt", null,
                                 singletonList(BeachfrontSize.of(null, null)))))
                         .adapterName("BF_PREBID_S2S")
-                        .adapterVersion("0.2.1")
+                        .adapterVersion("0.2.2")
                         .build()));
     }
 
@@ -589,7 +589,7 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(Json.mapper.writeValueAsString(
                 BeachfrontBannerRequest.builder().slots(singletonList(BeachfrontSlot.of(null, "appIdExt", null,
                         singletonList(BeachfrontSize.of(null, null))))).domain("rubiconapp.com").page("appId").adapterName("BF_PREBID_S2S")
-                        .adapterVersion("0.2.1").build()));
+                        .adapterVersion("0.2.2").build()));
     }
 
     @Test
@@ -609,7 +609,7 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsOnly(Json.mapper.writeValueAsString(
                 BeachfrontBannerRequest.builder().slots(singletonList(BeachfrontSlot.of(null, "appIdExt", null,
                         singletonList(BeachfrontSize.of(null, null))))).domain("rubiconpage.com")
-                        .page("http://rubiconpage.com/adunits").adapterName("BF_PREBID_S2S").adapterVersion("0.2.1")
+                        .page("http://rubiconpage.com/adunits").adapterName("BF_PREBID_S2S").adapterVersion("0.2.2")
                         .build()));
     }
 

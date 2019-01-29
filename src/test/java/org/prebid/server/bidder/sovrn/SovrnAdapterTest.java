@@ -241,7 +241,7 @@ public class SovrnAdapterTest extends VertxTest {
                 builder -> builder
                         .tid("tid1")
                         .timeoutMillis(1500L)
-                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null))).build())
+                        .user(User.builder().ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .device(Device.builder()
                                 .pxratio(new BigDecimal("4.2"))
@@ -286,7 +286,7 @@ public class SovrnAdapterTest extends VertxTest {
                                 .build())
                         .user(User.builder()
                                 .buyeruid("110099")
-                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null)))
+                                .ext(mapper.valueToTree(ExtUser.of(null, "consent", null, null)))
                                 .build())
                         .regs(Regs.of(0, mapper.valueToTree(ExtRegs.of(1))))
                         .source(Source.builder()

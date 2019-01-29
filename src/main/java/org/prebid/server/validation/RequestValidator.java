@@ -47,6 +47,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserTpId;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.io.IOException;
@@ -324,6 +325,7 @@ public class RequestValidator {
                 final ExtUser extUser = Json.mapper.treeToValue(user.getExt(), ExtUser.class);
                 final ExtUserDigiTrust digitrust = extUser.getDigitrust();
                 final ExtUserPrebid prebid = extUser.getPrebid();
+                final List<ExtUserTpId> tpid = extUser.getTpid();
 
                 if (digitrust != null && digitrust.getPref() != 0) {
                     throw new ValidationException("request.user contains a digitrust object that is not valid");
@@ -341,6 +343,24 @@ public class RequestValidator {
                         if (isUnknownBidderOrAlias(bidder, aliases)) {
                             throw new ValidationException("request.user.ext.%s is neither a known bidder "
                                     + "name nor an alias in request.ext.prebid.aliases", bidder);
+                        }
+                    }
+                }
+
+                if (tpid != null) {
+                    if (tpid.isEmpty()) {
+                        throw new ValidationException(
+                                "request.user.ext.tpid must contain at least one element or be undefined");
+                    }
+                    for (int index = 0; index < tpid.size(); index++) {
+                        final ExtUserTpId extUserTpId = tpid.get(index);
+                        if (StringUtils.isBlank(extUserTpId.getSource())) {
+                            throw new ValidationException(
+                                    "request.user.ext.tpid[%s].source missing required field: \"source\"", index);
+                        }
+                        if (StringUtils.isBlank(extUserTpId.getUid())) {
+                            throw new ValidationException(
+                                    "request.user.ext.tpid[%s].uid missing required field: \"uid\"", index);
                         }
                     }
                 }

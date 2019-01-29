@@ -64,7 +64,17 @@
         "id": "id",
         "keyv": 123,
         "pref": 0
-      }
+      },
+      "tpid": [
+        {
+          "source": "tdid",
+          "uid": "19cfaea8-a429-48fc-9537-8a19a8eb4f0c"
+        },
+        {
+          "source": "pubcid",
+          "uid": "29cfaea8-a429-48fc-9537-8a19a8eb4f0d"
+        }
+      ]
     }
   },
   "test": 1,
