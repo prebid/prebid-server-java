@@ -417,6 +417,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
+        given(bidderCatalog.metaInfoByName(anyString())).willReturn(givenBidderInfo(15, false));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(15, false), null)));
 
