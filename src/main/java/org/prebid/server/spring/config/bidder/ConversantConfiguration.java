@@ -4,9 +4,10 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.conversant.ConversantAdapter;
 import org.prebid.server.bidder.conversant.ConversantBidder;
-import org.prebid.server.bidder.conversant.ConversantMetaInfo;
 import org.prebid.server.bidder.conversant.ConversantUsersyncer;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,9 +39,12 @@ public class ConversantConfiguration {
     @Bean
     BidderDeps conversantBidderDeps() {
         final Usersyncer usersyncer = new ConversantUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .metaInfo(new ConversantMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .metaInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
+                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)
                 .bidderCreator(() -> new ConversantBidder(configProperties.getEndpoint()))
                 .adapterCreator(() -> new ConversantAdapter(usersyncer, configProperties.getEndpoint()))

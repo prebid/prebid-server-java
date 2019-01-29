@@ -17,7 +17,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.appnexus.AppnexusUsersyncer;
 import org.prebid.server.bidder.rubicon.RubiconUsersyncer;
 import org.prebid.server.cookie.UidsCookie;
@@ -56,7 +55,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -370,9 +368,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(RUBICON)).willReturn(true);
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
-        final MetaInfo metaInfo = mock(MetaInfo.class);
-        given(metaInfo.info()).willReturn(BidderInfo.create(true, null, null, null, null, 2, true));
-        given(bidderCatalog.metaInfoByName(APPNEXUS)).willReturn(metaInfo);
+        given(bidderCatalog.metaInfoByName(APPNEXUS))
+                .willReturn(BidderInfo.create(true, null, null, null, null, 2, true));
 
         givenGdprServiceReturningResult(singletonMap(RUBICON, 1));
 
@@ -791,9 +788,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         final Map<Integer, Boolean> vendorToGdprResult = new HashMap<>();
 
         for (Map.Entry<String, Integer> entry : bidderToGdprVendorId.entrySet()) {
-            final MetaInfo metaInfo = mock(MetaInfo.class);
-            given(metaInfo.info()).willReturn(BidderInfo.create(true, null, null, null, null, entry.getValue(), true));
-            given(bidderCatalog.metaInfoByName(entry.getKey())).willReturn(metaInfo);
+            given(bidderCatalog.metaInfoByName(entry.getKey()))
+                    .willReturn(BidderInfo.create(true, null, null, null, null, entry.getValue(), true));
 
             vendorToGdprResult.put(entry.getValue(), true);
         }

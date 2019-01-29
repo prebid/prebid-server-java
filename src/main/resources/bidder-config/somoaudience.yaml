@@ -6,3 +6,14 @@ adapters:
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
+    meta-info:
+      maintainer-email: publishers@somoaudience.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+        - video
+      supported-vendors:
+      vendor-id: 341

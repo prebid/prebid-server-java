@@ -27,7 +27,6 @@ import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContext
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
@@ -123,10 +122,6 @@ public class AuctionHandlerTest extends VertxTest {
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
-    @Mock
-    private MetaInfo rubiconMetaInfo;
-    @Mock
-    private MetaInfo appnexusMetaInfo;
 
     @Before
     public void setUp() {
@@ -137,15 +132,13 @@ public class AuctionHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
         willReturn(rubiconAdapter).given(bidderCatalog).adapterByName(eq(RUBICON));
-        given(bidderCatalog.metaInfoByName(eq(RUBICON))).willReturn(rubiconMetaInfo);
-        given(rubiconMetaInfo.info()).willReturn(givenBidderInfo(15, false));
+        given(bidderCatalog.metaInfoByName(eq(RUBICON))).willReturn(givenBidderInfo(15, false));
 
         given(bidderCatalog.isValidAdapterName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isActive(eq(APPNEXUS))).willReturn(true);
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
-        given(bidderCatalog.metaInfoByName(eq(APPNEXUS))).willReturn(appnexusMetaInfo);
-        given(appnexusMetaInfo.info()).willReturn(givenBidderInfo(20, true));
+        given(bidderCatalog.metaInfoByName(eq(APPNEXUS))).willReturn(givenBidderInfo(20, true));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);

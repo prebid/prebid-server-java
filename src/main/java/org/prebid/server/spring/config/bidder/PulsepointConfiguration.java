@@ -4,9 +4,10 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.pulsepoint.PulsepointAdapter;
 import org.prebid.server.bidder.pulsepoint.PulsepointBidder;
-import org.prebid.server.bidder.pulsepoint.PulsepointMetaInfo;
 import org.prebid.server.bidder.pulsepoint.PulsepointUsersyncer;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,9 +39,12 @@ public class PulsepointConfiguration {
     @Bean
     BidderDeps pulsepointBidderDeps() {
         final Usersyncer usersyncer = new PulsepointUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .metaInfo(new PulsepointMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .metaInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
+                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)
                 .bidderCreator(() -> new PulsepointBidder(configProperties.getEndpoint()))
                 .adapterCreator(() -> new PulsepointAdapter(usersyncer, configProperties.getEndpoint()))

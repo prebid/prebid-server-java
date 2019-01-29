@@ -354,7 +354,7 @@ public class ExchangeService {
         } else {
             final String resolvedBidderName = resolveBidder(bidder, aliases);
             final Boolean gdprAllowsUserData = vendorToGdprPermission.get(
-                    bidderCatalog.metaInfoByName(resolvedBidderName).info().getGdpr().getVendorId());
+                    bidderCatalog.metaInfoByName(resolvedBidderName).getGdpr().getVendorId());
 
             // if bidder was not found in vendorToGdprPermission, it means that it was not pbs enforced for gdpr, so
             // request for this bidder should be sent without changes
@@ -387,7 +387,7 @@ public class ExchangeService {
      */
     private Set<Integer> extractGdprEnforcedVendors(List<String> bidders, Map<String, String> aliases) {
         return bidders.stream()
-                .map(bidder -> bidderCatalog.metaInfoByName(resolveBidder(bidder, aliases)).info().getGdpr())
+                .map(bidder -> bidderCatalog.metaInfoByName(resolveBidder(bidder, aliases)).getGdpr())
                 .filter(BidderInfo.GdprInfo::isEnforced)
                 .map(BidderInfo.GdprInfo::getVendorId)
                 .collect(Collectors.toSet());

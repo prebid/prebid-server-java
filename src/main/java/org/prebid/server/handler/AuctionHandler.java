@@ -20,7 +20,6 @@ import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpAdapterConnector;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.proto.BidCacheResult;
@@ -33,6 +32,7 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.request.PreBidRequest;
 import org.prebid.server.proto.response.Bid;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.MediaType;
 import org.prebid.server.proto.response.PreBidResponse;
@@ -201,7 +201,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return bidderCatalog.usersyncerByName(adapterNameFor(name));
     }
 
-    private MetaInfo metaInfoByName(String name) {
+    private BidderInfo metaInfoByName(String name) {
         return bidderCatalog.metaInfoByName(adapterNameFor(name));
     }
 
@@ -210,7 +210,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final Set<Integer> vendorIds = adapterResponses.stream()
                 .map(adapterResponse -> adapterResponse.getBidderStatus().getBidder())
                 .filter(this::isValidAdapterName)
-                .map(bidder -> metaInfoByName(bidder).info().getGdpr().getVendorId())
+                .map(bidder -> metaInfoByName(bidder).getGdpr().getVendorId())
                 .collect(Collectors.toSet());
 
         final boolean hostVendorIdIsMissing = gdprHostVendorId != null && !vendorIds.contains(gdprHostVendorId);
@@ -272,7 +272,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private BidderStatus updateBidderStatus(BidderStatus bidderStatus, Map<Integer, Boolean> vendorsToGdpr) {
-        final int vendorId = metaInfoByName(bidderStatus.getBidder()).info().getGdpr().getVendorId();
+        final int vendorId = metaInfoByName(bidderStatus.getBidder()).getGdpr().getVendorId();
         return Objects.equals(vendorsToGdpr.get(vendorId), true)
                 ? bidderStatus
                 : bidderStatus.toBuilder().usersync(null).build();

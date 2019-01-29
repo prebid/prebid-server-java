@@ -119,7 +119,7 @@ public class VendorListService {
     private static Set<Integer> knownVendorIds(Integer gdprHostVendorId, BidderCatalog bidderCatalog) {
         final Set<Integer> vendorIds = bidderCatalog.names().stream()
                 .map(bidderCatalog::metaInfoByName)
-                .map(metaInfo -> metaInfo.info().getGdpr().getVendorId())
+                .map(metaInfo -> metaInfo.getGdpr().getVendorId())
                 .collect(Collectors.toSet());
 
         // add host vendor ID (used in /setuid and /cookie_sync endpoint handlers)

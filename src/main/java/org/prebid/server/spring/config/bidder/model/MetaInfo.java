@@ -11,26 +11,17 @@ import java.util.List;
 @Validated
 @Data
 @NoArgsConstructor
-public class BidderConfigurationProperties {
-
-    @NotNull
-    private Boolean enabled;
+public class MetaInfo {
 
     @NotBlank
-    private String endpoint;
+    private String maintainerEmail;
 
-    @NotBlank
-    private String usersyncUrl;
+    private List<String> appMediaTypes;
 
-    @NotNull
-    private Boolean pbsEnforcesGdpr;
+    private List<String> siteMediaTypes;
 
-    @NotNull
-    private List<String> deprecatedNames;
+    private List<String> supportedVendors;
 
     @NotNull
-    private List<String> aliases;
-
-    @NotNull
-    private MetaInfo metaInfo;
+    private Integer vendorId;
 }
