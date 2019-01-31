@@ -189,6 +189,75 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfExtAppPrebidIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .app(App.builder()
+                                .ext(mapper.valueToTree(ExtApp.of(null)))
+                                .build()),
+                builder -> builder.banner(Banner.builder().build()),
+                builder -> builder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .hasSize(1).containsNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfExtAppPrebidSourceIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .app(App.builder()
+                                .ext(mapper.valueToTree(ExtApp.of(ExtAppPrebid.of(null, "version"))))
+                                .build()),
+                builder -> builder.banner(Banner.builder().build()),
+                builder -> builder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .hasSize(1).containsNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfExtAppPrebidVersionIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder
+                        .app(App.builder()
+                                .ext(mapper.valueToTree(ExtApp.of(ExtAppPrebid.of("source", null))))
+                                .build()),
+                builder -> builder.banner(Banner.builder().build()),
+                builder -> builder.placementId(20));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .hasSize(1).containsNull();
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfItExists() {
         // given
         final BidRequest bidRequest = givenBidRequest(
