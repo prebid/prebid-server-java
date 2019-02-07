@@ -201,7 +201,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         return bidderCatalog.usersyncerByName(adapterNameFor(name));
     }
 
-    private BidderInfo metaInfoByName(String name) {
+    private BidderInfo bidderInfoByName(String name) {
         return bidderCatalog.bidderInfoByName(adapterNameFor(name));
     }
 
@@ -210,7 +210,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final Set<Integer> vendorIds = adapterResponses.stream()
                 .map(adapterResponse -> adapterResponse.getBidderStatus().getBidder())
                 .filter(this::isValidAdapterName)
-                .map(bidder -> metaInfoByName(bidder).getGdpr().getVendorId())
+                .map(bidder -> bidderInfoByName(bidder).getGdpr().getVendorId())
                 .collect(Collectors.toSet());
 
         final boolean hostVendorIdIsMissing = gdprHostVendorId != null && !vendorIds.contains(gdprHostVendorId);
@@ -272,7 +272,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private BidderStatus updateBidderStatus(BidderStatus bidderStatus, Map<Integer, Boolean> vendorsToGdpr) {
-        final int vendorId = metaInfoByName(bidderStatus.getBidder()).getGdpr().getVendorId();
+        final int vendorId = bidderInfoByName(bidderStatus.getBidder()).getGdpr().getVendorId();
         return Objects.equals(vendorsToGdpr.get(vendorId), true)
                 ? bidderStatus
                 : bidderStatus.toBuilder().usersync(null).build();
