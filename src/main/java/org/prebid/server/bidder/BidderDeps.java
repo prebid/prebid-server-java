@@ -2,6 +2,7 @@ package org.prebid.server.bidder;
 
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.response.BidderInfo;
 
 import java.util.List;
 
@@ -38,7 +39,7 @@ public class BidderDeps {
     /**
      * Bidder's meta information is used in {@link org.prebid.server.handler.info.BidderDetailsHandler} handler
      */
-    MetaInfo metaInfo;
+    BidderInfo bidderInfo;
 
     /**
      * Bidder's user syncer is used in {@link org.prebid.server.handler.CookieSyncHandler} handler and holds cookie

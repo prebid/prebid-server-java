@@ -4,13 +4,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.rubicon.RubiconAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
-import org.prebid.server.bidder.rubicon.RubiconMetaInfo;
 import org.prebid.server.bidder.rubicon.RubiconUsersyncer;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -42,14 +42,16 @@ public class RubiconConfiguration {
     @Bean
     BidderDeps rubiconBidderDeps() {
         final Usersyncer usersyncer = new RubiconUsersyncer(configProperties.getUsersyncUrl());
-        final MetaInfo metaInfo = new RubiconMetaInfo(configProperties.getEnabled(),
-                configProperties.getPbsEnforcesGdpr());
+        final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .metaInfo(metaInfo)
+                .bidderInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
+                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)
                 .bidderCreator(() -> new RubiconBidder(configProperties.getEndpoint(),
-                        configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword(), metaInfo))
+                        configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword(),
+                        metaInfo.getSupportedVendors()))
                 .adapterCreator(() -> new RubiconAdapter(usersyncer, configProperties.getEndpoint(),
                         configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword()))
                 .assemble();

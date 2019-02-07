@@ -6,3 +6,10 @@ adapters:
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
+    meta-info:
+      maintainer-email: progsupport@yieldmo.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 173

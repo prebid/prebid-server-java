@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.proto.response.BidderInfo;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -17,8 +18,6 @@ public class BidderCatalogTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
-    private MetaInfo metaInfo;
     @Mock
     private Usersyncer usersyncer;
     @Mock
@@ -126,16 +125,19 @@ public class BidderCatalogTest {
     @Test
     public void metaInfoByNameShouldReturnMetaInfoForKnownBidder() {
         // given
+        final BidderInfo bidderInfo = BidderInfo.create(true, "test@email.com",
+                singletonList("banner"), singletonList("video"), null, 99, true);
+
         bidderDeps = BidderDeps.builder()
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
                 .aliases(emptyList())
-                .metaInfo(metaInfo)
+                .bidderInfo(bidderInfo)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.metaInfoByName(BIDDER)).isEqualTo(metaInfo);
+        assertThat(bidderCatalog.bidderInfoByName(BIDDER)).isEqualTo(bidderInfo);
     }
 
     @Test
@@ -144,7 +146,7 @@ public class BidderCatalogTest {
         bidderCatalog = new BidderCatalog(emptyList());
 
         // when and then
-        assertThat(bidderCatalog.metaInfoByName("unknown_bidder")).isNull();
+        assertThat(bidderCatalog.bidderInfoByName("unknown_bidder")).isNull();
     }
 
     @Test

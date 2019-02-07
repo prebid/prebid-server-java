@@ -4,9 +4,10 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.adform.AdformAdapter;
 import org.prebid.server.bidder.adform.AdformBidder;
-import org.prebid.server.bidder.adform.AdformMetaInfo;
 import org.prebid.server.bidder.adform.AdformUsersyncer;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,9 +39,12 @@ public class AdformConfiguration {
     @Bean
     BidderDeps adformBidderDeps() {
         final Usersyncer usersyncer = new AdformUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .metaInfo(new AdformMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .bidderInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
+                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)
                 .bidderCreator(() -> new AdformBidder(configProperties.getEndpoint()))
                 .adapterCreator(() -> new AdformAdapter(usersyncer, configProperties.getEndpoint()))

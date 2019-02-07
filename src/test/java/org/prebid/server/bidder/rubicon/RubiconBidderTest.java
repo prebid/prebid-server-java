@@ -27,7 +27,6 @@ import lombok.Value;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -63,6 +62,7 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -86,20 +86,20 @@ public class RubiconBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?trk=prebid";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
-
-    private final MetaInfo rubiconMetaInfo = new RubiconMetaInfo(true, true);
+    private static final List<String> SUPPORTED_VENDORS = Arrays.asList("activeview", "adform",
+            "comscore", "doubleverify", "integralads", "moat", "sizmek", "whiteops");
 
     private RubiconBidder rubiconBidder;
 
     @Before
     public void setUp() {
-        rubiconBidder = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, rubiconMetaInfo);
+        rubiconBidder = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new RubiconBidder("invalid_url", USERNAME, PASSWORD,
-                rubiconMetaInfo));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> new RubiconBidder("invalid_url", USERNAME, PASSWORD, SUPPORTED_VENDORS));
     }
 
     @Test

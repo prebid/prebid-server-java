@@ -6,3 +6,13 @@ adapters:
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases: districtm
+    meta-info:
+      maintainer-email: info@prebid.org
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 32

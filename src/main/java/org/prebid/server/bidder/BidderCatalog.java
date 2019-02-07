@@ -1,5 +1,7 @@
 package org.prebid.server.bidder;
 
+import org.prebid.server.proto.response.BidderInfo;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -86,7 +88,7 @@ public class BidderCatalog {
      * Tells if given bidder is enabled and ready for auction.
      */
     public boolean isActive(String name) {
-        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getMetaInfo().info().isEnabled();
+        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isEnabled();
     }
 
     /**
@@ -97,14 +99,14 @@ public class BidderCatalog {
     }
 
     /**
-     * Returns an {@link MetaInfo} registered by the given name or null if there is none.
+     * Returns an {@link BidderInfo} registered by the given name or null if there is none.
      * <p>
      * Therefore this method should be called only for names that previously passed validity check
      * through calling {@link #isValidName(String)}.
      */
-    public MetaInfo metaInfoByName(String name) {
+    public BidderInfo bidderInfoByName(String name) {
         final BidderDeps bidderDeps = bidderDepsMap.get(name);
-        return bidderDeps != null ? bidderDeps.getMetaInfo() : null;
+        return bidderDeps != null ? bidderDeps.getBidderInfo() : null;
     }
 
     /**

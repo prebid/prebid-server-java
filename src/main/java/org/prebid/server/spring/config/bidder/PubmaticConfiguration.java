@@ -4,9 +4,10 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.pubmatic.PubmaticAdapter;
 import org.prebid.server.bidder.pubmatic.PubmaticBidder;
-import org.prebid.server.bidder.pubmatic.PubmaticMetaInfo;
 import org.prebid.server.bidder.pubmatic.PubmaticUsersyncer;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,9 +39,12 @@ public class PubmaticConfiguration {
     @Bean
     BidderDeps pubmaticBidderDeps() {
         final Usersyncer usersyncer = new PubmaticUsersyncer(configProperties.getEndpoint(), externalUrl);
+        final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .metaInfo(new PubmaticMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .bidderInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
+                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)
                 .bidderCreator(() -> new PubmaticBidder(configProperties.getEndpoint()))
                 .adapterCreator(() -> new PubmaticAdapter(usersyncer, configProperties.getEndpoint()))

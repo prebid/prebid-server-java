@@ -14,7 +14,6 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.gdpr.vendorlist.proto.VendorList;
@@ -56,8 +55,6 @@ public class VendorListServiceTest extends VertxTest {
     private HttpClient httpClient;
     @Mock
     private BidderCatalog bidderCatalog;
-    @Mock
-    private MetaInfo metaInfo;
 
     private VendorListService vendorListService;
 
@@ -66,8 +63,8 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.existsBlocking(anyString())).willReturn(false); // always create cache dir
 
         given(bidderCatalog.names()).willReturn(singleton(null));
-        given(bidderCatalog.metaInfoByName(any())).willReturn(metaInfo);
-        given(metaInfo.info()).willReturn(new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(52, true)));
+        given(bidderCatalog.bidderInfoByName(any()))
+                .willReturn(new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(52, true)));
 
         vendorListService = VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/{VERSION}",
                 0, null, bidderCatalog);
@@ -295,7 +292,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).hasSize(1)
-                .containsEntry(52, new HashSet<>(Arrays.asList(1,2)));
+                .containsEntry(52, new HashSet<>(Arrays.asList(1, 2)));
     }
 
     @Test
@@ -315,7 +312,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).hasSize(1)
-                .containsEntry(52, new HashSet<>(asList(1,2)));
+                .containsEntry(52, new HashSet<>(asList(1, 2)));
     }
 
     private static VendorList givenVendorList() {

@@ -9,3 +9,20 @@ adapters:
     XAPI:
       Username:
       Password:
+    meta-info:
+      maintainer-email: header-bidding@rubiconproject.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+        - activeview
+        - adform
+        - comscore
+        - doubleverify
+        - integralads
+        - moat
+        - sizemek
+        - whiteops
+      vendor-id: 52

@@ -12,7 +12,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.proto.response.BidderInfo;
 
 import static java.util.Collections.emptySet;
@@ -33,8 +32,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
     @Mock
     private BidderCatalog bidderCatalog;
-    @Mock
-    private MetaInfo metaInfo;
+
     @Mock
     private RoutingContext routingContext;
     @Mock
@@ -54,9 +52,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         given(httpRequest.getParam(anyString())).willReturn("bidderName1");
         given(bidderCatalog.names()).willReturn(singleton("bidderName1"));
-        given(bidderCatalog.metaInfoByName(anyString())).willReturn(metaInfo);
-
-        given(metaInfo.info()).willReturn(givenBidderInfo());
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo());
 
         handler = new BidderDetailsHandler(bidderCatalog);
     }

@@ -3,9 +3,10 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.openx.OpenxBidder;
-import org.prebid.server.bidder.openx.OpenxMetaInfo;
 import org.prebid.server.bidder.openx.OpenxUsersyncer;
+import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -37,9 +38,12 @@ public class OpenxConfiguration {
     @Bean
     BidderDeps openxBidderDeps() {
         final Usersyncer usersyncer = new OpenxUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .metaInfo(new OpenxMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .bidderInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
+                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)
                 .bidderCreator(() -> new OpenxBidder(configProperties.getEndpoint()))
                 .assemble();

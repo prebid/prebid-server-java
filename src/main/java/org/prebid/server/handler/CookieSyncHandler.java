@@ -150,7 +150,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private Integer gdprVendorIdFor(String bidder) {
         final String resolvedBidder = bidderNameFor(bidder);
         return bidderCatalog.isActive(resolvedBidder)
-                ? bidderCatalog.metaInfoByName(resolvedBidder).info().getGdpr().getVendorId()
+                ? bidderCatalog.bidderInfoByName(resolvedBidder).getGdpr().getVendorId()
                 : null;
     }
 

@@ -26,7 +26,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.MetaInfo;
 import org.prebid.server.bidder.ViewabilityVendors;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -93,10 +92,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private final MultiMap headers;
     private final Set<String> supportedVendors;
 
-    public RubiconBidder(String endpoint, String xapiUsername, String xapiPassword, MetaInfo rubiconMetaInfo) {
+    public RubiconBidder(String endpoint, String xapiUsername, String xapiPassword, List<String> supportedVendors) {
         endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
-        supportedVendors = new HashSet<>(Objects.requireNonNull(rubiconMetaInfo).info().getVendors());
+        this.supportedVendors = new HashSet<>(supportedVendors);
     }
 
     @Override

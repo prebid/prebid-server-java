@@ -7,3 +7,11 @@ adapters:
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
+    meta-info:
+      maintainer-email: dev@33across.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 58

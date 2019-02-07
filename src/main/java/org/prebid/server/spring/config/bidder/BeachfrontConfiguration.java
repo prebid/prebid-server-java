@@ -5,8 +5,9 @@ import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.beachfront.BeachfrontBidder;
-import org.prebid.server.bidder.beachfront.BeachfrontMetaInfo;
 import org.prebid.server.bidder.beachfront.BeachfrontUsersyncer;
+import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -45,11 +46,14 @@ public class BeachfrontConfiguration {
         final Usersyncer usersyncer =
                 new BeachfrontUsersyncer(configProperties.getUsersyncUrl(),
                         externalUrl, configProperties.getPlatformId());
+        final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .enabled(configProperties.getEnabled())
                 .deprecatedNames(configProperties.getDeprecatedNames())
                 .aliases(configProperties.getAliases())
-                .metaInfo(new BeachfrontMetaInfo(configProperties.getEnabled(), configProperties.getPbsEnforcesGdpr()))
+                .bidderInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
+                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)
                 .bidderCreator(() ->
                         new BeachfrontBidder(configProperties.getBannerEndpoint(), configProperties.getVideoEndpoint()))
@@ -84,5 +88,8 @@ public class BeachfrontConfiguration {
 
         @NotNull
         private List<String> aliases;
+
+        @NotNull
+        private MetaInfo metaInfo;
     }
 }

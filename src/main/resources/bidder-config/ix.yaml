@@ -6,3 +6,10 @@ adapters:
     pbs-enforces-gdpr: true
     deprecated-names: indexExchange
     aliases:
+    meta-info:
+      maintainer-email: info@prebid.org
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 10
