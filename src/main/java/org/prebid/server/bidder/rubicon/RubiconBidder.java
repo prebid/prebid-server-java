@@ -26,7 +26,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ViewabilityVendors;
 import org.prebid.server.bidder.model.BidderBid;
@@ -393,9 +392,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static Bid updateBid(Bid bid, BidResponse bidResponse) {
         // Since Rubicon XAPI returns only one bid per response
         // copy bidResponse.bidid to openrtb_response.seatbid.bid.bidid
-        final String bidId = bidResponse.getBidid();
-        if (StringUtils.isNotBlank(bidId)) {
-            bid.setId(bidId);
+        if (Objects.equals(bid.getId(), "0")) {
+            bid.setId(bidResponse.getBidid());
         }
         return bid;
     }

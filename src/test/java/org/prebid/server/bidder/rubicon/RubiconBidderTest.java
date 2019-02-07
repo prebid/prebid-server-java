@@ -727,13 +727,13 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithBidIdFieldFromBidResponse() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidWithBidIdFieldFromBidResponseIfZero() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString((BidResponse.builder()
                         .bidid("bidid1") // returned bidid from XAPI
                         .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder().price(ONE).build()))
+                                .bid(singletonList(Bid.builder().id("0").price(ONE).build()))
                                 .build()))
                         .build())));
 
@@ -744,6 +744,26 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithOriginalBidIdFieldFromBidResponseIfNotZero() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString((BidResponse.builder()
+                        .bidid("bidid1") // returned bidid from XAPI
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().id("non-zero").price(ONE).build()))
+                                .build()))
+                        .build())));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), banner, "USD"));
     }
 
     @Test
