@@ -22,13 +22,12 @@ your bidder will access them at `request.imp[i].ext.bidder`--regardless of what 
 
 ## Configuration
 
-Add default configuration properties for your Bidder to `src/main/resources/bidder-config/{bidder}.yaml` file.
+Add default configuration properties and metadata(e.g. contact email, platform & media type support) for your Bidder to `src/main/resources/bidder-config/{bidder}.yaml` file.
 For more information about application configuration see [here](../config.md)
 
 ## Implementation
 
 Bidder implementations are scattered throughout several files:
-- `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}MetaInfo.java`: contains metadata (e.g. contact email, platform & media type support) about the Bidder.
 - `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Bidder.java`: contains an implementation of [the Bidder interface](../../src/main/java/org/prebid/server/bidder/Bidder.java).
 - `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Adapter.java`: contains an implementation of [the Adapter interface](../../src/main/java/org/prebid/server/bidder/Adapter.java).
 - `src/main/java/org/prebid/server/bidder/{bidder}/{bidder}Usersyncer.java`: contains an implementation of [the Usersyncer interface](../../src/main/java/org/prebid/server/bidder/Usersyncer.java).

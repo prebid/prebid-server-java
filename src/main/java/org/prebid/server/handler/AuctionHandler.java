@@ -202,7 +202,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     }
 
     private BidderInfo metaInfoByName(String name) {
-        return bidderCatalog.metaInfoByName(adapterNameFor(name));
+        return bidderCatalog.bidderInfoByName(adapterNameFor(name));
     }
 
     private Future<Map<Integer, Boolean>> resolveVendorsToGdpr(PreBidRequestContext preBidRequestContext,

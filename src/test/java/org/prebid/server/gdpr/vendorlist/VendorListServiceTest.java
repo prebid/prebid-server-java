@@ -63,7 +63,7 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.existsBlocking(anyString())).willReturn(false); // always create cache dir
 
         given(bidderCatalog.names()).willReturn(singleton(null));
-        given(bidderCatalog.metaInfoByName(any()))
+        given(bidderCatalog.bidderInfoByName(any()))
                 .willReturn(new BidderInfo(true, null, null, null, new BidderInfo.GdprInfo(52, true)));
 
         vendorListService = VendorListService.create(fileSystem, CACHE_DIR, httpClient, "http://vendorlist/{VERSION}",

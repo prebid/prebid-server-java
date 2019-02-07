@@ -22,7 +22,7 @@ public class BidderDepsAssembler {
     private boolean enabled;
     private List<String> deprecatedNames;
     private List<String> aliases;
-    private BidderInfo metaInfo;
+    private BidderInfo bidderInfo;
     private Usersyncer usersyncer;
     private Supplier<Bidder<?>> bidderCreator;
     private Supplier<Adapter<?, ?>> adapterCreator;
@@ -52,8 +52,8 @@ public class BidderDepsAssembler {
         return this;
     }
 
-    public BidderDepsAssembler metaInfo(BidderInfo metaInfo) {
-        this.metaInfo = metaInfo;
+    public BidderDepsAssembler bidderInfo(BidderInfo bidderInfo) {
+        this.bidderInfo = bidderInfo;
         return this;
     }
 
@@ -90,7 +90,7 @@ public class BidderDepsAssembler {
                 .name(bidderName)
                 .deprecatedNames(deprecatedNames)
                 .aliases(aliases)
-                .metaInfo(metaInfo)
+                .bidderInfo(bidderInfo)
                 .usersyncer(usersyncer)
                 .bidder(bidder)
                 .adapter(adapter)

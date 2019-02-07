@@ -39,7 +39,7 @@ public class BidderDeps {
     /**
      * Bidder's meta information is used in {@link org.prebid.server.handler.info.BidderDetailsHandler} handler
      */
-    BidderInfo metaInfo;
+    BidderInfo bidderInfo;
 
     /**
      * Bidder's user syncer is used in {@link org.prebid.server.handler.CookieSyncHandler} handler and holds cookie

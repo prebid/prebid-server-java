@@ -132,12 +132,12 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
                 .aliases(emptyList())
-                .metaInfo(bidderInfo)
+                .bidderInfo(bidderInfo)
                 .build();
         bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.metaInfoByName(BIDDER)).isEqualTo(bidderInfo);
+        assertThat(bidderCatalog.bidderInfoByName(BIDDER)).isEqualTo(bidderInfo);
     }
 
     @Test
@@ -146,7 +146,7 @@ public class BidderCatalogTest {
         bidderCatalog = new BidderCatalog(emptyList());
 
         // when and then
-        assertThat(bidderCatalog.metaInfoByName("unknown_bidder")).isNull();
+        assertThat(bidderCatalog.bidderInfoByName("unknown_bidder")).isNull();
     }
 
     @Test

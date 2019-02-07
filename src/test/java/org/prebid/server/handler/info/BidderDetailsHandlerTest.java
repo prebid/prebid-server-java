@@ -52,7 +52,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         given(httpRequest.getParam(anyString())).willReturn("bidderName1");
         given(bidderCatalog.names()).willReturn(singleton("bidderName1"));
-        given(bidderCatalog.metaInfoByName(anyString())).willReturn(givenBidderInfo());
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo());
 
         handler = new BidderDetailsHandler(bidderCatalog);
     }

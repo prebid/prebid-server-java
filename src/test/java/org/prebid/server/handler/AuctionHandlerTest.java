@@ -132,13 +132,13 @@ public class AuctionHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
         willReturn(rubiconAdapter).given(bidderCatalog).adapterByName(eq(RUBICON));
-        given(bidderCatalog.metaInfoByName(eq(RUBICON))).willReturn(givenBidderInfo(15, false));
+        given(bidderCatalog.bidderInfoByName(eq(RUBICON))).willReturn(givenBidderInfo(15, false));
 
         given(bidderCatalog.isValidAdapterName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isValidName(eq(APPNEXUS))).willReturn(true);
         given(bidderCatalog.isActive(eq(APPNEXUS))).willReturn(true);
         willReturn(appnexusAdapter).given(bidderCatalog).adapterByName(eq(APPNEXUS));
-        given(bidderCatalog.metaInfoByName(eq(APPNEXUS))).willReturn(givenBidderInfo(20, true));
+        given(bidderCatalog.bidderInfoByName(eq(APPNEXUS))).willReturn(givenBidderInfo(20, true));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);

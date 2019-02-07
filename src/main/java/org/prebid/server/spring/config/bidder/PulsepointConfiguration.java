@@ -42,7 +42,7 @@ public class PulsepointConfiguration {
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .metaInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                .bidderInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
                         metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
                         metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)

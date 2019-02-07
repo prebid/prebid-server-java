@@ -37,7 +37,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     private static Map<String, String> createBidderInfos(BidderCatalog bidderCatalog) {
         return bidderCatalog.names().stream()
                 .collect(Collectors.toMap(Function.identity(),
-                        bidderName -> Json.encode(bidderCatalog.metaInfoByName(bidderName))));
+                        bidderName -> Json.encode(bidderCatalog.bidderInfoByName(bidderName))));
     }
 
     @Override

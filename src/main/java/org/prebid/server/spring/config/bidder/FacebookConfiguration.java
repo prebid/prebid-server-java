@@ -46,7 +46,7 @@ public class FacebookConfiguration {
                 .enabled(configProperties.getEnabled())
                 .deprecatedNames(configProperties.getDeprecatedNames())
                 .aliases(configProperties.getAliases())
-                .metaInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                .bidderInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
                         metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
                         metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
                 .usersyncer(usersyncer)
