@@ -114,8 +114,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static String makeDefaultDisplayManagerVer(BidRequest bidRequest, List<BidderError> errors) {
         if (bidRequest.getApp() != null) {
             try {
-                final ExtAppPrebid prebid = Json.mapper.convertValue(bidRequest.getApp().getExt(),
-                        ExtApp.class).getPrebid();
+                final ExtApp extApp = Json.mapper.convertValue(bidRequest.getApp().getExt(), ExtApp.class);
+                final ExtAppPrebid prebid = extApp != null ? extApp.getPrebid() : null;
                 if (prebid != null) {
                     final String source = prebid.getSource();
                     final String version = prebid.getVersion();
