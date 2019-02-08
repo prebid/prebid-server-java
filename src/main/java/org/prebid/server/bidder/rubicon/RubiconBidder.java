@@ -15,6 +15,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -383,8 +384,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
+                .map(bid -> updateBid(bid, bidResponse))
                 .map(bid -> BidderBid.of(bid, bidType(bidRequest), DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
+    }
+
+    private static Bid updateBid(Bid bid, BidResponse bidResponse) {
+        // Since Rubicon XAPI returns only one bid per response
+        // copy bidResponse.bidid to openrtb_response.seatbid.bid.bidid
+        if (Objects.equals(bid.getId(), "0")) {
+            bid.setId(bidResponse.getBidid());
+        }
+        return bid;
     }
 
     private static BidType bidType(BidRequest bidRequest) {

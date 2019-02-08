@@ -632,6 +632,41 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldProcessMetricsAndFillViewabilityVendor() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.video(Video.builder().build())
+                        .metric(asList(Metric.builder().vendor("somebody").type("viewability").value(0.9f).build(),
+                                Metric.builder().vendor("moat").type("viewability").value(0.3f).build(),
+                                Metric.builder().vendor("comscore").type("unsupported").value(0.5f).build(),
+                                Metric.builder().vendor("activeview").type("viewability").value(0.6f).build(),
+                                Metric.builder().vendor("somebody").type("unsupported").value(0.7f).build())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .flatExtracting(Imp::getMetric).doesNotContainNull()
+                .containsOnly(Metric.builder().type("viewability").value(0.9f).vendor("somebody").build(),
+                        Metric.builder().type("viewability").value(0.3f).vendor("seller-declared").build(),
+                        Metric.builder().type("unsupported").value(0.5f).vendor("comscore").build(),
+                        Metric.builder().type("viewability").value(0.6f).vendor("seller-declared").build(),
+                        Metric.builder().type("unsupported").value(0.7f).vendor("somebody").build());
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null,
+                        NullNode.getInstance(),
+                        RubiconImpExtRpTrack.of("", "")), asList("moat.com", "doubleclickbygoogle.com")));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -692,38 +727,43 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldProcessMetricsAndFillViewabilityVendor() {
+    public void makeBidsShouldReturnBidWithBidIdFieldFromBidResponseIfZero() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.video(Video.builder().build())
-                        .metric(asList(Metric.builder().vendor("somebody").type("viewability").value(0.9f).build(),
-                                Metric.builder().vendor("moat").type("viewability").value(0.3f).build(),
-                                Metric.builder().vendor("comscore").type("unsupported").value(0.5f).build(),
-                                Metric.builder().vendor("activeview").type("viewability").value(0.6f).build(),
-                                Metric.builder().vendor("somebody").type("unsupported").value(0.7f).build())));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString((BidResponse.builder()
+                        .bidid("bidid1") // returned bidid from XAPI
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().id("0").price(ONE).build()))
+                                .build()))
+                        .build())));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).doesNotContainNull()
-                .flatExtracting(Imp::getMetric).doesNotContainNull()
-                .containsOnly(Metric.builder().type("viewability").value(0.9f).vendor("somebody").build(),
-                        Metric.builder().type("viewability").value(0.3f).vendor("seller-declared").build(),
-                        Metric.builder().type("unsupported").value(0.5f).vendor("comscore").build(),
-                        Metric.builder().type("viewability").value(0.6f).vendor("seller-declared").build(),
-                        Metric.builder().type("unsupported").value(0.7f).vendor("somebody").build());
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).doesNotContainNull()
-                .extracting(Imp::getExt).doesNotContainNull()
-                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
-                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(null,
-                        NullNode.getInstance(),
-                        RubiconImpExtRpTrack.of("", "")), asList("moat.com", "doubleclickbygoogle.com")));
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithOriginalBidIdFieldFromBidResponseIfNotZero() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString((BidResponse.builder()
+                        .bidid("bidid1") // returned bidid from XAPI
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().id("non-zero").price(ONE).build()))
+                                .build()))
+                        .build())));
+
+        // when
+        final Result<List<BidderBid>> result = rubiconBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), banner, "USD"));
     }
 
     @Test
