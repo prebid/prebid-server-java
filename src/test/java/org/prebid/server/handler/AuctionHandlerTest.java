@@ -151,7 +151,7 @@ public class AuctionHandlerTest extends VertxTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(emptyMap(), null)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, emptyMap(), null)));
 
         auctionHandler = new AuctionHandler(applicationSettings, bidderCatalog, preBidRequestContextFactory,
                 cacheService, metrics, httpAdapterConnector, clock, gdprService, null, false);
@@ -741,7 +741,7 @@ public class AuctionHandlerTest extends VertxTest {
         givenPreBidRequestContextWith2AdUnitsAnd2BidsEach(identity());
 
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(1, false), null)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(1, false), null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
@@ -771,7 +771,7 @@ public class AuctionHandlerTest extends VertxTest {
         vendorsToGdpr.put(15, true); // Rubicon bidder
         vendorsToGdpr.put(20, false); // Appnexus bidder
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(vendorsToGdpr, null)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, vendorsToGdpr, null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
@@ -800,7 +800,7 @@ public class AuctionHandlerTest extends VertxTest {
         vendorsToGdpr.put(1, true); // host vendor id from app config
         vendorsToGdpr.put(15, true); // Rubicon bidder
         given(gdprService.resultByVendor(any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(vendorsToGdpr, null)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, vendorsToGdpr, null)));
 
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(
@@ -855,6 +855,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(preBidRequestContextFactory.fromRequest(any())).willReturn(Future.succeededFuture(preBidRequestContext));
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void givenBidderRespondingWithBids(String bidder, Function<BidderStatusBuilder, BidderStatusBuilder>
             bidderStatusBuilderCustomizer, String... bidIds) {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
@@ -873,6 +874,7 @@ public class AuctionHandlerTest extends VertxTest {
                         null)));
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void givenBidderRespondingWithError(String bidder, BidderError error) {
         given(httpAdapterConnector.call(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(AdapterResponse.of(

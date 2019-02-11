@@ -77,7 +77,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Before
     public void setUp() {
         given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(null, true), null)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(null, true), null)));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
@@ -127,7 +127,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithoutCookieIfGdprProcessingPreventsCookieSetting() {
         // given
         given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(singletonMap(null, false), null)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(null, false), null)));
 
         given(uidsCookieService.parseFromRequest(any()))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
@@ -267,6 +267,32 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithCookieFromRequestParam() {
+        // given
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end();
+        final Cookie uidsCookie = captureCookie();
+        final Uids decodedUids = decodeUids(uidsCookie.getValue());
+        assertThat(decodedUids.getUids()).hasSize(1);
+        assertThat(decodedUids.getUids().get(RUBICON).getUid()).isEqualTo("J5VLCWQP-26-CWFT");
+    }
+
+    @Test
     public void shouldUpdateUidInCookieWithRequestValue() {
         // given
         final Map<String, UidWithExpiry> uids = new HashMap<>();
@@ -293,6 +319,35 @@ public class SetuidHandlerTest extends VertxTest {
         assertThat(decodedUids.getUids()).hasSize(2);
         assertThat(decodedUids.getUids().get(RUBICON).getUid()).isEqualTo("updatedUid");
         assertThat(decodedUids.getUids().get(ADNXS).getUid()).isEqualTo("12345");
+    }
+
+    @Test
+    public void shouldRespondWithCookieIfUserIsNotInGdprScope() {
+        // given
+        given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(false, emptyMap(), null)));
+
+        given(uidsCookieService.parseFromRequest(any()))
+                .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build()));
+
+        // {"tempUIDs":{"rubicon":{"uid":"J5VLCWQP-26-CWFT"}}}
+        given(uidsCookieService.toCookie(any())).willReturn(Cookie
+                .cookie("uids", "eyJ0ZW1wVUlEcyI6eyJydWJpY29uIjp7InVpZCI6Iko1VkxDV1FQLTI2LUNXRlQifX19"));
+
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end();
+        final Cookie uidsCookie = captureCookie();
+        final Uids decodedUids = decodeUids(uidsCookie.getValue());
+        assertThat(decodedUids.getUids()).hasSize(1);
+        assertThat(decodedUids.getUids().get(RUBICON).getUid()).isEqualTo("J5VLCWQP-26-CWFT");
     }
 
     @Test
