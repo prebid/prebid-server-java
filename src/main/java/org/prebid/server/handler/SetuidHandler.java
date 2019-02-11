@@ -91,8 +91,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final boolean gdprProcessingFailed = asyncResult.failed();
-        final boolean allowedCookie = !gdprProcessingFailed && asyncResult.result().getVendorsToGdpr().values()
-                .iterator().next();
+        final GdprResponse gdprResponse = !gdprProcessingFailed ? asyncResult.result() : null;
+
+        // allow cookie only if user is not in GDPR scope or vendor passes GDPR check
+        final boolean allowedCookie = gdprResponse != null
+                && (!gdprResponse.isUserInGdprScope() || gdprResponse.getVendorsToGdpr().values().iterator().next());
 
         if (allowedCookie) {
             respondWithCookie(context, bidder, uidsCookie);

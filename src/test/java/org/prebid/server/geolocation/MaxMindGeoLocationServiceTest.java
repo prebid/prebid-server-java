@@ -36,14 +36,14 @@ public class MaxMindGeoLocationServiceTest {
 
     @Test
     public void shouldReturnCountryISO() {
-        //given
+        // given
         final MaxMindGeoLocationService maxMindGeoLocationService =
                 MaxMindGeoLocationService.create(ARCHIVE_NAME, DB_FILE_NAME);
 
-        //when
+        // when
         final Future<GeoInfo> future = maxMindGeoLocationService.lookup("80.215.195.122", null);
 
-        //then
+        // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result())
                 .extracting(GeoInfo::getCountry)

@@ -795,7 +795,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         }
 
         given(gdprService.resultByVendor(anySet(), anySet(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(GdprResponse.of(vendorToGdprResult, null)));
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, vendorToGdprResult, null)));
     }
 
     private static Buffer givenRequestBody(CookieSyncRequest request) {

@@ -55,13 +55,12 @@ public class GdprServiceTest {
         gdprService = new GdprService(geoLocationService, vendorListService, singletonList("country1"), "1");
 
         // when
-        final Future<?> future =
-                gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess), singleton(1), "15",
-                        null, "ip", null);
+        final Future<?> future = gdprService.resultByVendor(singleton(GdprPurpose.informationStorageAndAccess),
+                singleton(1), "15", null, "ip", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), "country1"));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), "country1"));
     }
 
     @Test
@@ -71,7 +70,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
     }
 
     @Test
@@ -81,7 +80,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), null));
     }
 
     @Test
@@ -91,7 +90,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
     }
 
     @Test
@@ -102,7 +101,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), null));
     }
 
     @Test
@@ -113,7 +112,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
     }
 
     @Test
@@ -125,7 +124,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), null));
     }
 
     @Test
@@ -137,7 +136,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(null, false), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(null, false), null));
     }
 
     @Test
@@ -149,7 +148,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(9, false), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(9, false), null));
     }
 
     @Test
@@ -161,7 +160,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, true), null));
     }
 
     @Test
@@ -176,7 +175,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
     }
 
     @Test
@@ -191,7 +190,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), "country1"));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), "country1"));
     }
 
     @Test
@@ -207,7 +206,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, true), null));
     }
 
     @Test
@@ -223,7 +222,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), "country1"));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, true), "country1"));
     }
 
     @Test
@@ -237,7 +236,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(false, singletonMap(1, true), null));
     }
 
     @Test
@@ -290,7 +289,7 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, false), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, false), null));
     }
 
     @Test
@@ -305,6 +304,6 @@ public class GdprServiceTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(GdprResponse.of(singletonMap(1, true), null));
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(1, true), null));
     }
 }

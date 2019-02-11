@@ -217,7 +217,7 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts currency rates from {@link ExtRequestTargeting}
+     * Extracts currency rates from {@link ExtRequestTargeting}.
      */
     private static Map<String, Map<String, BigDecimal>> currencyRates(ExtRequestTargeting targeting) {
         return targeting != null && targeting.getCurrency() != null ? targeting.getCurrency().getRates() : null;
@@ -275,8 +275,8 @@ public class ExchangeService {
         final ExtRegs extRegs = extRegs(bidRequest.getRegs());
 
         return getVendorsToGdprPermission(bidRequest, bidders, extUser, aliases, extRegs, timeout)
-                .map(gdprResponse -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
-                        userExtNode, extRegs, aliases, imps, gdprResponse.getVendorsToGdpr()));
+                .map(vendorsToGdpr -> makeBidderRequests(bidders, bidRequest, uidsBody, uidsCookie,
+                        userExtNode, extRegs, aliases, imps, vendorsToGdpr));
     }
 
     /**
@@ -291,21 +291,22 @@ public class ExchangeService {
      * to enabling or disabling gdpr in scope of pbs server. If bidder vendor id is not present in map, it means that
      * pbs not enforced particular bidder to follow pbs gdpr procedure.
      */
-    private Future<GdprResponse> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
-                                                            ExtUser extUser, Map<String, String> aliases,
-                                                            ExtRegs extRegs, Timeout timeout) {
+    private Future<Map<Integer, Boolean>> getVendorsToGdprPermission(BidRequest bidRequest, List<String> bidders,
+                                                                     ExtUser extUser, Map<String, String> aliases,
+                                                                     ExtRegs extRegs, Timeout timeout) {
         final Set<Integer> gdprEnforcedVendorIds = extractGdprEnforcedVendors(bidders, aliases);
         if (gdprEnforcedVendorIds.isEmpty()) {
-            return Future.succeededFuture(GdprResponse.of(Collections.emptyMap(), null));
+            return Future.succeededFuture(Collections.emptyMap());
         }
 
         final Integer gdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final String gdprAsString = gdpr != null ? gdpr.toString() : null;
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
         final Device device = bidRequest.getDevice();
         final String ipAddress = useGeoLocation && device != null ? device.getIp() : null;
 
-        return gdprService.resultByVendor(gdprEnforcedVendorIds, gdpr != null ? gdpr.toString() : null,
-                gdprConsent, ipAddress, timeout);
+        return gdprService.resultByVendor(gdprEnforcedVendorIds, gdprAsString, gdprConsent, ipAddress, timeout)
+                .map(GdprResponse::getVendorsToGdpr);
     }
 
     /**
@@ -492,7 +493,7 @@ public class ExchangeService {
     }
 
     /**
-     * Sets gdpr value 1, if bidder required gdpr masking, but gdpr value in regs extension is not defined
+     * Sets gdpr value 1, if bidder required gdpr masking, but gdpr value in regs extension is not defined.
      */
     private static Regs prepareRegs(Regs regs, ExtRegs extRegs, Boolean maskingRequired) {
         if (maskingRequired) {
@@ -803,7 +804,7 @@ public class ExchangeService {
 
     /**
      * Updates 'request_time', 'responseTime', 'timeout_request', 'error_requests', 'no_bid_requests',
-     * 'prices' metrics for each {@link BidderResponse}
+     * 'prices' metrics for each {@link BidderResponse}.
      * <p>
      * This method should always be invoked after {@link ExchangeService#validateAndUpdateResponse(BidderSeatBid, List)}
      * to make sure {@link Bid#price} is not empty.
@@ -1124,7 +1125,7 @@ public class ExchangeService {
 
     /**
      * Creates {@link ExtBidResponse} populated with response time, errors and debug info (if requested) from all
-     * bidders
+     * bidders.
      */
     private ExtBidResponse toExtBidResponse(List<BidderResponse> results, BidRequest bidRequest,
                                             List<String> cacheErrors, Integer cacheExecutionTime) {
@@ -1185,7 +1186,7 @@ public class ExchangeService {
     }
 
     /**
-     * Holds caching information for auction request
+     * Holds caching information for auction request.
      */
     @Builder
     @Value

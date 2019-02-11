@@ -59,7 +59,7 @@ public class GdprService {
                 .compose(gdprInfo -> toResultByVendor(gdprInfo, vendorIds,
                         purposesForVendorCheck(gdprInfo, purposes), GdprService::verdictForVendorHasAllGivenPurposes)
                         .map(vendorIdToResult ->
-                                GdprResponse.of(vendorIdToResult, gdprInfo.getCountry())));
+                                GdprResponse.of(inScope(gdprInfo), vendorIdToResult, gdprInfo.getCountry())));
     }
 
     /**
@@ -75,14 +75,15 @@ public class GdprService {
         return toGdprInfo(gdpr, gdprConsent, ipAddress, timeout)
                 .compose(gdprInfo -> toResultByVendor(gdprInfo, vendorIds,
                         purposesForConsentCheck(gdprInfo), GdprService::verdictForConsentHasAllVendorPurposes)
-                        .map(vendorIdToResult -> GdprResponse.of(vendorIdToResult, gdprInfo.getCountry())));
+                        .map(vendorIdToResult ->
+                                GdprResponse.of(inScope(gdprInfo), vendorIdToResult, gdprInfo.getCountry())));
     }
 
     /**
      * Returns purpose IDs from the given {@link GdprPurpose} collection or null if it is not needed by flow.
      */
     private Set<Integer> purposesForVendorCheck(GdprInfoWithCountry gdprInfo, Set<GdprPurpose> purposes) {
-        return !Objects.equals(gdprInfo.getGdpr(), "0") && gdprInfo.getVendorConsent() != null
+        return inScope(gdprInfo) && gdprInfo.getVendorConsent() != null
                 ? purposes.stream().map(GdprPurpose::getId).collect(Collectors.toSet())
                 : null;
     }
@@ -99,7 +100,7 @@ public class GdprService {
      * Returns purpose IDs from consent string or null if it is not needed by flow.
      */
     private Set<Integer> purposesForConsentCheck(GdprInfoWithCountry gdprInfo) {
-        return !Objects.equals(gdprInfo.getGdpr(), "0") && gdprInfo.getVendorConsent() != null
+        return inScope(gdprInfo) && gdprInfo.getVendorConsent() != null
                 ? getAllowedPurposeIdsFromConsent(gdprInfo.getVendorConsent())
                 : null;
     }
@@ -116,7 +117,7 @@ public class GdprService {
             GdprInfoWithCountry gdprInfo, Set<Integer> vendorIds, Set<Integer> purposeIds,
             BiFunction<Set<Integer>, Set<Integer>, Boolean> verdictForPurposes) {
 
-        if (Objects.equals(gdprInfo.getGdpr(), "0")) {
+        if (!inScope(gdprInfo)) {
             return sameResultFor(vendorIds, true); // allow all vendors
         }
 
@@ -254,6 +255,13 @@ public class GdprService {
     private GdprInfoWithCountry createGdprInfoWithCountry(String gdprConsent, String country) {
         final String gdpr = country == null ? gdprDefaultValue : eeaCountries.contains(country) ? "1" : "0";
         return GdprInfoWithCountry.of(gdpr, vendorConsentFrom(gdpr, gdprConsent), country);
+    }
+
+    /**
+     * Determines if user is in GDPR scope.
+     */
+    private static boolean inScope(GdprInfoWithCountry gdprInfo) {
+        return Objects.equals(gdprInfo.getGdpr(), "1");
     }
 
     /**
