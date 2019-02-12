@@ -259,8 +259,11 @@ public class ServiceConfiguration {
         /**
          * Default geolocation service implementation.
          */
+        @Value("${gdpr.geolocation.maxmind.db-archive-path}")
+        String maxMindDatabaseArchive;
+
         private GeoLocationService createGeoLocationService() {
-            return MaxMindGeoLocationService.create("/maxmind_db.tar.gz", "GeoLite2-Country.mmdb");
+            return MaxMindGeoLocationService.create(maxMindDatabaseArchive, "GeoLite2-Country.mmdb");
         }
     }
 
