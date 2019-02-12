@@ -152,6 +152,18 @@ public class GdprServiceTest {
     }
 
     @Test
+    public void shouldReturnRestrictedResultIfVendorIdIsAbsentInVendorConsent() {
+        // when
+        final Future<?> future =
+                gdprService.resultByVendor(emptySet(), singleton(20), "1", "BOb3F3yOb3F3yABABBENABoAAAABQAAAgA", null,
+                        null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GdprResponse.of(true, singletonMap(20, false), null));
+    }
+
+    @Test
     public void shouldReturnAllowedResultIfGdprParamIsOneAndConsentParamIsValid() {
         // when
         final Future<?> future =

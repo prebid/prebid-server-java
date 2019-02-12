@@ -80,7 +80,7 @@ public class BasicHttpClient implements HttpClient {
                                  Future<HttpClientResponse> future, long timerId) {
         vertx.cancelTimer(timerId);
 
-        future.complete(HttpClientResponse.of(response.statusCode(), response.headers(), body));
+        future.tryComplete(HttpClientResponse.of(response.statusCode(), response.headers(), body));
     }
 
     private void failResponse(Throwable exception, Future<HttpClientResponse> future, long timerId) {
