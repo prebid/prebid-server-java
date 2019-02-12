@@ -63,3 +63,5 @@ gdpr:
     http-default-timeout-ms: 2000
   geolocation:
     enabled: true
+    maxmind:
+      db-archive-path: /maxmind_db.tar.gz
