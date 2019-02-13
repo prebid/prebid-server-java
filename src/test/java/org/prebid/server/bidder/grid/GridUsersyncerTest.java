@@ -10,8 +10,10 @@ public class GridUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new GridUsersyncer(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new GridUsersyncer("some_url", null));
+        assertThatNullPointerException().isThrownBy(() -> new GridUsersyncer(null, "type", false, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new GridUsersyncer("some_url", null, false, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new GridUsersyncer("some_url", "type", null, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new GridUsersyncer("some_url", "type", false, null));
     }
 
     @Test
@@ -23,7 +25,7 @@ public class GridUsersyncerTest {
                 "redirect", false);
 
         // when
-        final UsersyncInfo result = new GridUsersyncer("//usersync.org/",
+        final UsersyncInfo result = new GridUsersyncer("//usersync.org/", "redirect", false,
                 "http://external.org/").usersyncInfo();
 
         // then

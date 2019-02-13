@@ -47,17 +47,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static java.util.function.Function.identity;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
@@ -66,6 +58,8 @@ public class PubmaticAdapterTest extends VertxTest {
     private static final String BIDDER = "pubmatic";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "iframe";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
@@ -84,7 +78,7 @@ public class PubmaticAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        usersyncer = new PubmaticUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new PubmaticUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS, EXTERNAL_URL);
         adapter = new PubmaticAdapter(usersyncer, ENDPOINT_URL);
     }
 

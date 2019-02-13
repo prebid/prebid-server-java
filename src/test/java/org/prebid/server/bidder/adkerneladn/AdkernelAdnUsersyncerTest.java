@@ -10,8 +10,14 @@ public class AdkernelAdnUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer(null, "some_url"));
-        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer("some_url", null));
+        assertThatNullPointerException().isThrownBy(
+                () -> new AdkernelAdnUsersyncer(null, "redirect", false, "some_url"));
+        assertThatNullPointerException().isThrownBy(
+                () -> new AdkernelAdnUsersyncer("some_url", null, false, "some_url"));
+        assertThatNullPointerException().isThrownBy(
+                () -> new AdkernelAdnUsersyncer("some_url", "redirect", null, "some_url"));
+        assertThatNullPointerException().isThrownBy(
+                () -> new AdkernelAdnUsersyncer("some_url", "redirect", false, null));
     }
 
     @Test
@@ -23,7 +29,7 @@ public class AdkernelAdnUsersyncerTest {
                 "redirect", false);
 
         // when
-        final UsersyncInfo result = new AdkernelAdnUsersyncer("//usersync.org/",
+        final UsersyncInfo result = new AdkernelAdnUsersyncer("//usersync.org/", "redirect", false,
                 "http://external.org/").usersyncInfo();
 
         // then

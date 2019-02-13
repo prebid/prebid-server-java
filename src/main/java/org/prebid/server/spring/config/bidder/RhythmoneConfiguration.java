@@ -7,6 +7,7 @@ import org.prebid.server.bidder.rhythmone.RhythmoneUsersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
+import org.prebid.server.spring.config.bidder.model.UserSyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -37,7 +38,9 @@ public class RhythmoneConfiguration {
 
     @Bean
     BidderDeps rhythmOneBidderDeps() {
-        final Usersyncer usersyncer = new RhythmoneUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
+        final Usersyncer usersyncer = new RhythmoneUsersyncer(userSyncProperties.getUrl(),
+                userSyncProperties.getType(), userSyncProperties.getSupportCors(), externalUrl);
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)

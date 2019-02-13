@@ -2,7 +2,6 @@ adapters:
   yieldmo:
     enabled: false
     endpoint: http://ads.yieldmo.com/exchange/prebid-server
-    usersync-url: https://ads.yieldmo.com/pbsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirectUri=
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
@@ -13,3 +12,7 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 173
+    usersync:
+      url: https://ads.yieldmo.com/pbsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirectUri=
+      type: redirect
+      support-cors: false

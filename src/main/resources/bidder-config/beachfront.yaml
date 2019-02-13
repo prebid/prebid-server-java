@@ -18,3 +18,7 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 335
+    usersync:
+      url: https://sync.bfmio.com/syncb?pid=
+      type: iframe
+      support-cors: false

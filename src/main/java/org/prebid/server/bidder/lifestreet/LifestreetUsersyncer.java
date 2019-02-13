@@ -13,19 +13,21 @@ public class LifestreetUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
 
-    public LifestreetUsersyncer(String usersyncUrl, String externalUrl) {
-        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(externalUrl));
+    public LifestreetUsersyncer(String usersyncUrl, String type, Boolean supportCORS, String externalUrl) {
+        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(type),
+                Objects.requireNonNull(supportCORS), Objects.requireNonNull(externalUrl));
     }
 
     /**
      * Creates {@link UsersyncInfo} from usersyncUrl and externalUrl
      */
-    private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl) {
+    private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String type, Boolean supportCORS,
+                                                   String externalUrl) {
         final String redirectUri = HttpUtil.encodeUrl(externalUrl)
                 + "%2Fsetuid%3Fbidder%3Dlifestreet%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}"
                 + "%26uid%3D%24%24visitor_cookie%24%24";
 
-        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), "redirect", false);
+        return UsersyncInfo.of(String.format("%s%s", usersyncUrl, redirectUri), type, supportCORS);
     }
 
     /**

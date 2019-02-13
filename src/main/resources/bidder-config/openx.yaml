@@ -2,7 +2,6 @@ adapters:
   openx:
     enabled: false
     endpoint: http://rtb.openx.net/prebid
-    usersync-url: https://rtb.openx.net/sync/prebid?r=
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
@@ -15,3 +14,7 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 69
+    usersync:
+      url: https://rtb.openx.net/sync/prebid?r=
+      type: redirect
+      support-cors: false

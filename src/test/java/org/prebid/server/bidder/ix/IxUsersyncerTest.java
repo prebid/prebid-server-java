@@ -10,8 +10,10 @@ public class IxUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer("some_url", null));
+        assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer(null, "type", false, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer("some_url", null, false, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer("some_url", "type", null, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new IxUsersyncer("some_url", "type", false, null));
     }
 
     @Test
@@ -23,7 +25,7 @@ public class IxUsersyncerTest {
                 "redirect", false);
 
         // when
-        final UsersyncInfo result = new IxUsersyncer("//usersync.org/",
+        final UsersyncInfo result = new IxUsersyncer("//usersync.org/", "redirect", false,
                 "http://external.org/").usersyncInfo();
 
         // then

@@ -68,6 +68,8 @@ public class LifestreetAdapterTest extends VertxTest {
     private static final String BIDDER = "lifestreet";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
@@ -86,7 +88,7 @@ public class LifestreetAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new LifestreetUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new LifestreetUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS, EXTERNAL_URL);
         adapter = new LifestreetAdapter(usersyncer, ENDPOINT_URL);
     }
 

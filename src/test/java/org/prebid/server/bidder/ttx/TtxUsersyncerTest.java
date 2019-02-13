@@ -11,8 +11,15 @@ public class TtxUsersyncerTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new TtxUsersyncer(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new TtxUsersyncer("some_url", null, null));
+        assertThatNullPointerException().isThrownBy(() -> new TtxUsersyncer(null, "type", false, "some_url",
+                "partnerId"));
+        assertThatNullPointerException().isThrownBy(() -> new TtxUsersyncer("some_url", null, false, "some_url",
+                "partnerId"));
+        assertThatNullPointerException().isThrownBy(() -> new TtxUsersyncer("some_url", "type", null, "some_url",
+                "partnerId"));
+        assertThatNullPointerException().isThrownBy(() -> new TtxUsersyncer("some_url", "type", false, null,
+                "partnerId"));
+
     }
 
     @Test
@@ -24,7 +31,7 @@ public class TtxUsersyncerTest extends VertxTest {
                 "redirect", false);
 
         // when
-        final UsersyncInfo result = new TtxUsersyncer("//usersync.org/",
+        final UsersyncInfo result = new TtxUsersyncer("//usersync.org/", "redirect", false,
                 "http://external.org/", "partnerId").usersyncInfo();
 
         // then

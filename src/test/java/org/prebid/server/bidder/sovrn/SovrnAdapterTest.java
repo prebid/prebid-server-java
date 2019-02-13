@@ -62,6 +62,8 @@ public class SovrnAdapterTest extends VertxTest {
     private static final String BIDDER_COOKIE = "sovrn";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_CORS_URL = false;
     private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
@@ -80,7 +82,7 @@ public class SovrnAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new SovrnUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new SovrnUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_CORS_URL, EXTERNAL_URL);
         adapter = new SovrnAdapter(usersyncer, ENDPOINT_URL);
     }
 

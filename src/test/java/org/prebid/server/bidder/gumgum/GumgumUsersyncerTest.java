@@ -10,8 +10,10 @@ public class GumgumUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new GumgumUsersyncer(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new GumgumUsersyncer("some_url", null));
+        assertThatNullPointerException().isThrownBy(() -> new GumgumUsersyncer(null, "type", false, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new GumgumUsersyncer("some_url", null, false, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new GumgumUsersyncer("some_url", "type", null, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new GumgumUsersyncer("some_url", "type", false, null));
     }
 
     @Test
@@ -23,7 +25,7 @@ public class GumgumUsersyncerTest {
                 "redirect", false);
 
         // when
-        final UsersyncInfo result = new GumgumUsersyncer("//usersync.org/",
+        final UsersyncInfo result = new GumgumUsersyncer("//usersync.org/", "redirect", false,
                 "http://external.org/").usersyncInfo();
 
         // then

@@ -14,22 +14,23 @@ public class TtxUsersyncer implements Usersyncer {
 
     private final UsersyncInfo usersyncInfo;
 
-    public TtxUsersyncer(String usersyncUrl, String externalUrl, String partnerId) {
-        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl),
-                Objects.requireNonNull(externalUrl), partnerId);
+    public TtxUsersyncer(String usersyncUrl, String type, Boolean supportCORS, String externalUrl, String partnerId) {
+        usersyncInfo = createUsersyncInfo(Objects.requireNonNull(usersyncUrl), Objects.requireNonNull(type),
+                Objects.requireNonNull(supportCORS), Objects.requireNonNull(externalUrl), partnerId);
     }
 
     /**
      * Creates {@link UsersyncInfo} from usersyncUrl, externalUrl and partnerId
      */
-    private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String externalUrl, String partnerId) {
+    private static UsersyncInfo createUsersyncInfo(String usersyncUrl, String type, Boolean supportCORS,
+                                                   String externalUrl, String partnerId) {
         final String redirectUri = HttpUtil.encodeUrl(externalUrl)
                 + "%2Fsetuid%3Fbidder%3Dttx%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}%26uid%3D33XUSERID33X";
         final String syncerUrl = StringUtils.isBlank(partnerId)
                 ? "/"
                 : String.format("%s/?ri=%s&ru=%s", usersyncUrl, partnerId, redirectUri);
 
-        return UsersyncInfo.of(syncerUrl, "redirect", false);
+        return UsersyncInfo.of(syncerUrl, type, supportCORS);
     }
 
     /**

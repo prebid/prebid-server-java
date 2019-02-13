@@ -11,8 +11,10 @@ public class RhythmoneUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer("some_url", null));
+        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer(null, "type", false, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer("some_url", null, false, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer("some_url", "type", null, "some_url"));
+        assertThatNullPointerException().isThrownBy(() -> new AdkernelAdnUsersyncer("some_url", "type", false, null));
     }
 
     @Test
@@ -24,7 +26,7 @@ public class RhythmoneUsersyncerTest {
                 "redirect", false);
 
         // when
-        final UsersyncInfo result = new RhythmoneUsersyncer("//usersync.org/",
+        final UsersyncInfo result = new RhythmoneUsersyncer("//usersync.org/", "redirect", false,
                 "http://external.org/").usersyncInfo();
 
         // then

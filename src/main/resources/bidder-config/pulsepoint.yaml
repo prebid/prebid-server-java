@@ -2,7 +2,6 @@ adapters:
   pulsepoint:
     enabled: false
     endpoint: http://bid.contextweb.com/header/s/ortb/prebid-s2s
-    usersync-url: //bh.contextweb.com/rtset?pid=561205&ev=1&rurl=
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
@@ -14,3 +13,7 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 81
+    usersync:
+      url: //bh.contextweb.com/rtset?pid=561205&ev=1&rurl=
+      type: redirect
+      support-cors: false

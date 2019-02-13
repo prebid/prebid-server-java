@@ -8,6 +8,7 @@ import org.prebid.server.bidder.lifestreet.LifestreetUsersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
+import org.prebid.server.spring.config.bidder.model.UserSyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,7 +39,9 @@ public class LifestreetConfiguration {
 
     @Bean
     BidderDeps lifestreetBidderDeps() {
-        final Usersyncer usersyncer = new LifestreetUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
+        final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
+        final Usersyncer usersyncer = new LifestreetUsersyncer(userSyncProperties.getUrl(),
+                userSyncProperties.getType(), userSyncProperties.getSupportCors(), externalUrl);
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)

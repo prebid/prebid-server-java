@@ -2,7 +2,6 @@ adapters:
   lifestreet:
     enabled: false
     endpoint: https://prebid.s2s.lfstmedia.com/adrequest
-    usersync-url: //ads.lfstmedia.com/idsync/137062?synced=1&ttl=1s&rurl=
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
@@ -15,3 +14,7 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 67
+    usersync:
+      url: //ads.lfstmedia.com/idsync/137062?synced=1&ttl=1s&rurl=
+      type: redirect
+      support-cors: false

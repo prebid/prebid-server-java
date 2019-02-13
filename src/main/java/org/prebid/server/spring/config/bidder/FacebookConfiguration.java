@@ -9,6 +9,7 @@ import org.prebid.server.bidder.facebook.FacebookBidder;
 import org.prebid.server.bidder.facebook.FacebookUsersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
+import org.prebid.server.spring.config.bidder.model.UserSyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,7 +41,9 @@ public class FacebookConfiguration {
 
     @Bean
     BidderDeps facebookBidderDeps() {
-        final Usersyncer usersyncer = new FacebookUsersyncer(configProperties.getUsersyncUrl());
+        final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
+        final Usersyncer usersyncer = new FacebookUsersyncer(userSyncProperties.getUrl(),
+                userSyncProperties.getType(), userSyncProperties.getSupportCors());
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .enabled(configProperties.getEnabled())
@@ -88,5 +91,9 @@ public class FacebookConfiguration {
 
         @NotNull
         private MetaInfo metaInfo;
+
+        @NotNull
+        private UserSyncConfigurationProperties usersync;
+
     }
 }

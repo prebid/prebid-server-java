@@ -73,6 +73,8 @@ public class FacebookAdapterTest extends VertxTest {
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String NONSECURE_ENDPOINT_URL = ENDPOINT_URL;
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String PLATFORM_ID = "100";
 
     @Rule
@@ -91,7 +93,7 @@ public class FacebookAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new FacebookUsersyncer(USERSYNC_URL);
+        usersyncer = new FacebookUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS);
         adapter = new FacebookAdapter(usersyncer, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, PLATFORM_ID);
     }
 

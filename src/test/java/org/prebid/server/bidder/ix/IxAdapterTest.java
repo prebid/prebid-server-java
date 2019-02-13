@@ -69,6 +69,8 @@ public class IxAdapterTest extends VertxTest {
     private static final String BIDDER = "ix";
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
@@ -88,7 +90,7 @@ public class IxAdapterTest extends VertxTest {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         exchangeCall = givenExchangeCall(identity(), identity());
-        usersyncer = new IxUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new IxUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS, EXTERNAL_URL);
         adapter = new IxAdapter(usersyncer, ENDPOINT_URL);
     }
 

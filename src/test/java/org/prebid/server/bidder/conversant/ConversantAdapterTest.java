@@ -69,6 +69,8 @@ public class ConversantAdapterTest extends VertxTest {
     private static final String BIDDER = "conversant";
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
@@ -89,7 +91,7 @@ public class ConversantAdapterTest extends VertxTest {
 
         adapterRequest = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new ConversantUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new ConversantUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS, EXTERNAL_URL);
         adapter = new ConversantAdapter(usersyncer, ENDPOINT_URL);
     }
 

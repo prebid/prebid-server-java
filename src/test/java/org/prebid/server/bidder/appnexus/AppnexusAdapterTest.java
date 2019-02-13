@@ -71,6 +71,8 @@ public class AppnexusAdapterTest extends VertxTest {
     private static final String BIDDER_COOKIE = "adnxs";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String EXTERNAL_URL = "http://external.org/";
     private static final Integer BANNER_TYPE = 0;
     private static final Integer VIDEO_TYPE = 1;
@@ -91,7 +93,7 @@ public class AppnexusAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new AppnexusUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new AppnexusUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS, EXTERNAL_URL);
         adapter = new AppnexusAdapter(usersyncer, ENDPOINT_URL);
     }
 

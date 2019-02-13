@@ -11,6 +11,7 @@ import org.prebid.server.bidder.rubicon.RubiconUsersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
+import org.prebid.server.spring.config.bidder.model.UserSyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -41,7 +42,9 @@ public class RubiconConfiguration {
 
     @Bean
     BidderDeps rubiconBidderDeps() {
-        final Usersyncer usersyncer = new RubiconUsersyncer(configProperties.getUsersyncUrl());
+        final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
+        final Usersyncer usersyncer = new RubiconUsersyncer(userSyncProperties.getUrl(),
+                userSyncProperties.getType(), userSyncProperties.getSupportCors());
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)

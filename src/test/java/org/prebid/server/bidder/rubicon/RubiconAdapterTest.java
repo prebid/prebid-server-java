@@ -87,6 +87,8 @@ public class RubiconAdapterTest extends VertxTest {
     private static final String BIDDER = "rubicon";
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String USER = "user";
     private static final String PASSWORD = "password";
 
@@ -106,7 +108,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity(), identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        usersyncer = new RubiconUsersyncer(USERSYNC_URL);
+        usersyncer = new RubiconUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS);
         adapter = new RubiconAdapter(usersyncer, ENDPOINT_URL, USER, PASSWORD);
     }
 

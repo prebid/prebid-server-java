@@ -2,7 +2,6 @@ adapters:
   ix:
     enabled: false
     endpoint: http://appnexus-us-east.lb.indexww.com/transbidder?p=184932
-    usersync-url: http://ssum.casalemedia.com/usermatchredir?s=184932&cb=
     pbs-enforces-gdpr: true
     deprecated-names: indexExchange
     aliases:
@@ -13,3 +12,7 @@ adapters:
         - banner
       supported-vendors:
       vendor-id: 10
+    usersync:
+      url: http://ssum.casalemedia.com/usermatchredir?s=184932&cb=
+      type: redirect
+      support-cors: false

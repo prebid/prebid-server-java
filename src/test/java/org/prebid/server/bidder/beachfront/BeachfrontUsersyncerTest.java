@@ -10,9 +10,16 @@ public class BeachfrontUsersyncerTest {
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new BeachfrontUsersyncer(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new BeachfrontUsersyncer("some_url", null, null));
-        assertThatNullPointerException().isThrownBy(() -> new BeachfrontUsersyncer("some_url", "other_url", null));
+        assertThatNullPointerException().isThrownBy(() -> new BeachfrontUsersyncer(null, "type", false,
+                "other_url", "partner"));
+        assertThatNullPointerException().isThrownBy(() -> new BeachfrontUsersyncer("some_url", null, false,
+                "other_url", "partner"));
+        assertThatNullPointerException().isThrownBy(() -> new BeachfrontUsersyncer("some_url", "type", null,
+                "other_url", "partner"));
+        assertThatNullPointerException().isThrownBy(() -> new BeachfrontUsersyncer("some_url", "type", false,
+                null, "partner"));
+        assertThatNullPointerException().isThrownBy(() -> new BeachfrontUsersyncer("some_url", "type", false,
+                "other_url", null));
     }
 
     @Test
@@ -24,7 +31,7 @@ public class BeachfrontUsersyncerTest {
                         + "%26gdpr_consent%3D{{gdpr_consent}}%26uid%3D%5Bio_cid%5D", "iframe", false);
 
         // when
-        final UsersyncInfo result = new BeachfrontUsersyncer("//usersync.org/syncb?pid=",
+        final UsersyncInfo result = new BeachfrontUsersyncer("//usersync.org/syncb?pid=", "iframe", false,
                 "http://external.org/", "142").usersyncInfo();
 
         // then
