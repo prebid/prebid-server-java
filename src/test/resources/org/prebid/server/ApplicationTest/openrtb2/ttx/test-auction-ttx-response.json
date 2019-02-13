@@ -16,7 +16,6 @@
               "type": "banner",
               "targeting": {
                 "hb_cache_path_ttx": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_cache_host_ttx": "{{ cache.host }}",
                 "hb_bidder_ttx": "ttx",
                 "hb_cache_id": "ab634778-1ad8-4851-8f8d-b8588885ec78",
@@ -27,8 +26,7 @@
                 "hb_cache_path": "{{ cache.path }}",
                 "hb_size": "300x250",
                 "hb_bidder": "ttx",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_hostpath_ttx": "{{ cache.hostpath }}"
+                "hb_cache_host": "{{ cache.host }}"
               },
               "cache": {
                 "bids": {

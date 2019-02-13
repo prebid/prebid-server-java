@@ -80,19 +80,6 @@ public class CacheService {
         return endpointUrl.getPath();
     }
 
-    public String getEndpointHostPath() {
-        String protocol = endpointUrl.getProtocol();
-        String host = endpointUrl.getHost();
-        int port = endpointUrl.getPort();
-        String path = getEndpointPath();
-
-        if (port == -1) {
-            return String.format("%s://%s%s", protocol, host, path);
-        } else {
-            return String.format("%s://%s:%d%s", protocol, host, port, path);
-        }
-    }
-
     /**
      * Makes cache for {@link Bid}s (legacy).
      * <p>

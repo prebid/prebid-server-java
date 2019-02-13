@@ -28,9 +28,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_beachfront": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_beachfront": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_beachfront": "{{ cache.hostpath }}"
+                "hb_cache_path_beachfront": "{{ cache.path }}"
               },
               "cache": {
                 "vastXml": {

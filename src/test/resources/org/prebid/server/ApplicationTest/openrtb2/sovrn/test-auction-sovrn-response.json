@@ -29,9 +29,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_sovrn": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_sovrn": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_sovrn": "{{ cache.hostpath }}"
+                "hb_cache_path_sovrn": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {
