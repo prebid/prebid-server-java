@@ -32,9 +32,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_adkernelAdn": "{{ cache.host }}",
                 "hb_cache_path": "/cache",
-                "hb_cache_path_adkernelAdn": "/cache",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_adkernelAdn": "{{ cache.hostpath }}"
+                "hb_cache_path_adkernelAdn": "/cache"
               },
               "cache": {
                 "bids": {
@@ -80,9 +78,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_adkernelAdn": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_adkernelAdn": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_adkernelAdn": "{{ cache.hostpath }}"
+                "hb_cache_path_adkernelAdn": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {

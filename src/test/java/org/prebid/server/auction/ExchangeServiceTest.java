@@ -1146,7 +1146,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldPopulateHostpathTargetingKeywords() {
+    public void shouldPopulateCacheHostAndCachePathTargetingKeywords() {
         // given
         final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid1))));
@@ -1159,7 +1159,6 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(cacheService.getEndpointHost()).willReturn("someHost");
         given(cacheService.getEndpointPath()).willReturn("somePath");
-        given(cacheService.getEndpointHostPath()).willReturn("someHostPath");
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                 // imp ids are not really used for matching, included them here for clarity
@@ -1179,10 +1178,9 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidResponse.getSeatbid()).flatExtracting(SeatBid::getBid)
                 .extracting(bid -> toExtPrebid(bid.getExt()).getPrebid().getTargeting())
                 .extracting(targeting -> targeting.get("hb_cache_host"),
-                        targeting -> targeting.get("hb_cache_path"),
-                        targeting -> targeting.get("hb_cache_hostpath"))
-                .containsOnly(tuple("someHost", "somePath", "someHostPath"),
-                        tuple(null, null, null));
+                        targeting -> targeting.get("hb_cache_path"))
+                .containsOnly(tuple("someHost", "somePath"),
+                        tuple(null, null));
     }
 
     @Test

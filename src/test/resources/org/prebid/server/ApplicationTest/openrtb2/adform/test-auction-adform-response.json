@@ -26,9 +26,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_adform": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_adform": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_adform": "{{ cache.hostpath }}"
+                "hb_cache_path_adform": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {

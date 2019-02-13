@@ -18,7 +18,6 @@
               "type": "banner",
               "targeting": {
                 "hb_cache_host_grid": "{{ cache.host }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_cache_path_grid": "{{ cache.path }}",
                 "hb_cache_id": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
                 "hb_pb": "3.30",
@@ -29,8 +28,7 @@
                 "hb_cache_id_grid": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
                 "hb_bidder_grid": "grid",
                 "hb_bidder": "grid",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_hostpath_grid": "{{ cache.hostpath }}"
+                "hb_cache_host": "{{ cache.host }}"
               },
               "cache": {
                 "bids": {

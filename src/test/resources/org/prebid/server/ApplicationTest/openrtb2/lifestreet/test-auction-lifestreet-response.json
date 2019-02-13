@@ -16,9 +16,7 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_cache_host_lifestreet": "{{ cache.host }}",
-                "hb_cache_hostpath_lifestreet": "{{ cache.hostpath }}",
                 "hb_cache_id": "04f8b42b-7927-4930-a0b1-0ab16a441e91",
                 "hb_deal_lifestreet": "dealId7",
                 "hb_bidder_lifestreet": "lifestreet",
@@ -55,9 +53,7 @@
             "prebid": {
               "type": "video",
               "targeting": {
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_cache_host_lifestreet": "{{ cache.host }}",
-                "hb_cache_hostpath_lifestreet": "{{ cache.hostpath }}",
                 "hb_cache_id": "f0bfa534-ca56-42bc-9b91-a801f8f202c2",
                 "hb_deal_lifestreet": "dealId71",
                 "hb_bidder_lifestreet": "lifestreet",

@@ -29,9 +29,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_openx": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_openx": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_openx": "{{ cache.hostpath }}"
+                "hb_cache_path_openx": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {
@@ -68,9 +66,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_openx": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_openx": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_openx": "{{ cache.hostpath }}"
+                "hb_cache_path_openx": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {
@@ -109,9 +105,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_openx": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_openx": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_openx": "{{ cache.hostpath }}"
+                "hb_cache_path_openx": "{{ cache.path }}"
               },
               "cache": {
                 "vastXml": {
@@ -154,9 +148,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_openx": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_openx": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_openx": "{{ cache.hostpath }}"
+                "hb_cache_path_openx": "{{ cache.path }}"
               },
               "cache": {
                 "vastXml": {

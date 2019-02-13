@@ -17,9 +17,7 @@
               "type": "banner",
               "targeting": {
                 "hb_cache_id_conversant": "c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_deal_conversant": "dealId4",
-                "hb_cache_hostpath_conversant": "{{ cache.hostpath }}",
                 "hb_cache_id": "c9eb3deb-2054-40f5-9cf3-f9047dc240a2",
                 "hb_size_conversant": "300x600",
                 "hb_pb": "6.00",
@@ -56,9 +54,7 @@
               "type": "video",
               "targeting": {
                 "hb_cache_id_conversant": "8f17dd0b-e615-48d1-a7b1-08a704aae48d",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_deal_conversant": "dealId41",
-                "hb_cache_hostpath_conversant": "{{ cache.hostpath }}",
                 "hb_cache_id": "8f17dd0b-e615-48d1-a7b1-08a704aae48d",
                 "hb_size_conversant": "300x600",
                 "hb_uuid_conversant": "8300a9d5-4654-4406-b6b9-7bc5060e8a36",

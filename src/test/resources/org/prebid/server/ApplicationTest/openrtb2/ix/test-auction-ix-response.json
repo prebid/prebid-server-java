@@ -16,8 +16,6 @@
             "prebid": {
               "type": "banner",
               "targeting": {
-                "hb_cache_hostpath_ix": "{{ cache.hostpath }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
                 "hb_pb_ix": "4.70",
                 "hb_cache_id": "8e270009-c31f-48fb-b14b-13a196291b61",
                 "hb_bidder_ix": "ix",

@@ -27,9 +27,7 @@
                 "hb_cache_host": "{{ cache.host }}",
                 "hb_cache_host_audienceNetwork": "{{ cache.host }}",
                 "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_audienceNetwork": "{{ cache.path }}",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_audienceNetwork": "{{ cache.hostpath }}"
+                "hb_cache_path_audienceNetwork": "{{ cache.path }}"
               },
               "cache": {
                 "bids": {

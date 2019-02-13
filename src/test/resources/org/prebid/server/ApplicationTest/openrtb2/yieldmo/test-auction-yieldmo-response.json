@@ -19,8 +19,6 @@
               "targeting": {
                 "hb_bidder_yieldmo": "yieldmo",
                 "hb_size_yieldmo": "300x250",
-                "hb_cache_hostpath": "{{ cache.hostpath }}",
-                "hb_cache_hostpath_yieldmo": "{{ cache.hostpath }}",
                 "hb_cache_id_yieldmo": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
                 "hb_cache_id": "a5d3a873-d06e-4f2f-8556-120e05d62b28",
                 "hb_pb": "3.30",

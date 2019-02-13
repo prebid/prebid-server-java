@@ -1807,8 +1807,7 @@ public class ApplicationTest extends VertxTest {
         String result = jsonFrom(templatePath)
                 .replaceAll("\\{\\{ cache.resource_url }}", cacheEndpoint + "?uuid=")
                 .replaceAll("\\{\\{ cache.host }}", hostAndPort)
-                .replaceAll("\\{\\{ cache.path }}", cachePath)
-                .replaceAll("\\{\\{ cache.hostpath }}", cacheEndpoint);
+                .replaceAll("\\{\\{ cache.path }}", cachePath);
 
         for (final String bidder : bidders) {
             result = result.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",
