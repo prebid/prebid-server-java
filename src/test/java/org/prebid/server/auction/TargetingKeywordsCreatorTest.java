@@ -249,21 +249,6 @@ public class TargetingKeywordsCreatorTest {
     }
 
     @Test
-    public void isNonZeroCpmShouldReturnFalse() {
-        assertThat(TargetingKeywordsCreator.create(
-                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(20),
-                        BigDecimal.valueOf(0.1)))), true, true, false)
-                .isNonZeroCpm(BigDecimal.ZERO)).isFalse();
-    }
-
-    @Test
-    public void isNonZeroCpmShouldReturnTrue() {
-        assertThat(TargetingKeywordsCreator.create(ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(
-                BigDecimal.valueOf(20), BigDecimal.valueOf(0.1)))), true, true, false)
-                .isNonZeroCpm(BigDecimal.ONE)).isTrue();
-    }
-
-    @Test
     public void shouldNotIncludeWinningBidTargetingIfIncludeWinnersFlagIsFalse() {
         // given
         final com.iab.openrtb.response.Bid bid = com.iab.openrtb.response.Bid.builder().price(BigDecimal.ONE).build();
