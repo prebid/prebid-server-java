@@ -1526,6 +1526,35 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldCallCacheServiceEvenRoundedCpmIsZero() {
+        // given
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(0.05)).build();
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(givenBid(bid1))));
+
+        // imp ids are not really used for matching, included them here for clarity
+        final Imp imp1 = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
+        final BidRequest bidRequest = givenBidRequest(singletonList(imp1),
+                builder -> builder.ext(
+                        mapper.valueToTree(
+                                ExtBidRequest.of(ExtRequestPrebid.of(
+                                        null,
+                                        null,
+                                        ExtRequestTargeting.of(
+                                                Json.mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
+                                                        ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                                                BigDecimal.valueOf(0.5))))), null, true, true),
+                                        null,
+                                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        verify(cacheService).cacheBidsOpenrtb(argThat(bids -> bids.contains(bid1)), eq(singletonList(imp1)),
+                eq(CacheContext.of(true, null, false, null)), eq(""), eq(timeout));
+    }
+
+    @Test
     public void shouldReturnBidsWithUpdatedPriceCurrencyConversion() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);

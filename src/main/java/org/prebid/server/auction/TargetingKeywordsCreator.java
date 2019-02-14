@@ -118,14 +118,6 @@ public class TargetingKeywordsCreator {
     }
 
     /**
-     * Compares given price to computed CPM value according to the price granularity.
-     */
-    boolean isNonZeroCpm(BigDecimal price) {
-        final BigDecimal cpm = CpmRange.fromCpmAsNumber(price, priceGranularity);
-        return cpm != null && cpm.compareTo(BigDecimal.ZERO) != 0;
-    }
-
-    /**
      * Creates map of keywords for the given {@link Bid}.
      */
     public Map<String, String> makeFor(Bid bid, boolean winningBid) {

@@ -880,7 +880,7 @@ public class ExchangeService {
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, bids, winningBids, winningBidsByBidder);
 
-        return toBidsWithCacheIds(shouldCacheOnlyWinningBids ? winningBids : bids, bidRequest.getImp(), keywordsCreator,
+        return toBidsWithCacheIds(shouldCacheOnlyWinningBids ? winningBids : bids, bidRequest.getImp(),
                 cacheInfo, publisherId, timeout)
                 .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
                         cacheResult, winningBids, winningBidsByBidder, cacheInfo));
@@ -971,9 +971,8 @@ public class ExchangeService {
     /**
      * Corresponds cacheId (or null if not present) to each {@link Bid}.
      */
-    private Future<CacheResult> toBidsWithCacheIds(
-            Set<Bid> bids, List<Imp> imps, TargetingKeywordsCreator keywordsCreator,
-            BidRequestCacheInfo cacheInfo, String publisherId, Timeout timeout) {
+    private Future<CacheResult> toBidsWithCacheIds(Set<Bid> bids, List<Imp> imps, BidRequestCacheInfo cacheInfo,
+                                                   String publisherId, Timeout timeout) {
         final Future<CacheResult> result;
         final List<String> errors = new ArrayList<>();
 
@@ -982,12 +981,12 @@ public class ExchangeService {
                     null));
         } else {
             long startTime = clock.millis();
-            // do not submit bids with zero CPM to prebid cache
-            final List<Bid> bidsWithNonZeroCpm = bids.stream()
-                    .filter(bid -> keywordsCreator.isNonZeroCpm(bid.getPrice()))
+            // do not submit bids with zero price to prebid cache
+            final List<Bid> bidsWithNonZeroPrice = bids.stream()
+                    .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
                     .collect(Collectors.toList());
 
-            result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroCpm, imps, CacheContext.of(
+            result = cacheService.cacheBidsOpenrtb(bidsWithNonZeroPrice, imps, CacheContext.of(
                     cacheInfo.shouldCacheBids, cacheInfo.cacheBidsTtl, cacheInfo.shouldCacheVideoBids,
                     cacheInfo.cacheVideoBidsTtl), publisherId, timeout)
                     .recover(throwable -> processCacheServiceError(throwable, errors))
