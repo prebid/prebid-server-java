@@ -16,6 +16,31 @@
         <url>http://prebid.org/</url>
     </organization>
 
+    <repositories>
+        <repository>
+            <id>marfeel-private</id>
+            <name>Marfeel Maven Release Repository</name>
+            <url>http://repositories.marfeel.com:60081/nexus/content/repositories/marfeel_private/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>marfeel-snapshot-private</id>
+            <url>http://repositories.marfeel.com:60081/nexus/content/repositories/marfeel_snapshot_private/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <updatePolicy>never</updatePolicy>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -44,6 +69,8 @@
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
+
+        <mbid.version>1.0-SNAPSHOT</mbid.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -76,6 +103,76 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>com.marfeel</groupId>
+            <artifactId>MarfeelBidderHub</artifactId>
+            <version>${mbid.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelAdNetworkGoogleSheets</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelInsightReportingQueries</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelInsightReportingCollector</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelCalculator</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelQueue</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelCommonsTesting</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelDocumentGenerator</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelJira</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelAmpExtractor</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelPublisherDomain</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelInsightPushNotifications</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelAdsTxt</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelActon</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.marfeel</groupId>
+                    <artifactId>MarfeelAdnetwork</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-properties-migrator</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
@@ -323,6 +420,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
+                    <configuration>
+                        <excludes>
+                            <exclude>org/prebid/server/ApplicationTest.java</exclude>
+                        </excludes>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -466,21 +568,6 @@
                     <format>json</format>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring.boot.version}</version>
-                <configuration>
-                    <executable>true</executable>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
     <reporting>
@@ -548,5 +635,39 @@
                 </plugins>
             </build>
         </profile>
+
+        <profile>
+            <id>springboot</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <version>${spring.boot.version}</version>
+                        <configuration>
+                            <executable>true</executable>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>repackage</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
+
+    <distributionManagement>
+        <repository>
+            <id>marfeel-private</id>
+            <url>http://repositories.marfeel.com:60081/nexus/content/repositories/marfeel_private</url>
+        </repository>
+        <snapshotRepository>
+            <id>marfeel-snapshot-private</id>
+            <url>http://repositories.marfeel.com:60081/nexus/content/repositories/marfeel_snapshot_private</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>
