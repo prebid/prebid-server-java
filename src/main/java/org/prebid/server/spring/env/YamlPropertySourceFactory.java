@@ -19,22 +19,27 @@ public class YamlPropertySourceFactory implements PropertySourceFactory {
     public PropertySource<?> createPropertySource(@Nullable String name, @Nonnull EncodedResource resource)
             throws IOException {
 
-        Properties propertiesFromYaml = loadYamlIntoProperties(resource);
-        String sourceName = name != null ? name : resource.getResource().getFilename();
+        final String sourceName = name != null ? name : resource.getResource().getFilename();
+        if (sourceName == null) {
+            throw new IllegalArgumentException("Resource does not have a filename");
+        }
+
+        final Properties propertiesFromYaml = loadYamlIntoProperties(resource);
         return new PropertiesPropertySource(sourceName, propertiesFromYaml);
     }
 
     private Properties loadYamlIntoProperties(EncodedResource resource) throws FileNotFoundException {
         try {
-            YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+            final YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
             factory.setResources(resource.getResource());
             factory.afterPropertiesSet();
             return factory.getObject();
         } catch (IllegalStateException e) {
             // for ignoreResourceNotFound
-            Throwable cause = e.getCause();
-            if (cause instanceof FileNotFoundException)
-                throw (FileNotFoundException) e.getCause();
+            final Throwable cause = e.getCause();
+            if (cause instanceof FileNotFoundException) {
+                throw (FileNotFoundException) cause;
+            }
             throw e;
         }
     }
