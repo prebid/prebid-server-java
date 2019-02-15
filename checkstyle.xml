@@ -36,6 +36,7 @@
             <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see|//"/>
         </module>
         <module name="NoLineWrap"/>
+        <module name="NeedBraces"/>
         <module name="ConstantName">
             <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|logger)$" />
         </module>
