@@ -1202,6 +1202,8 @@ public class ExchangeService {
 
         boolean shouldCacheBids;
 
+        boolean shouldCacheOnlyWinningBids;
+
         Integer cacheBidsTtl;
 
         boolean shouldCacheVideoBids;
@@ -1216,6 +1218,7 @@ public class ExchangeService {
             return BidRequestCacheInfo.builder()
                     .doCaching(false)
                     .shouldCacheBids(false)
+                    .shouldCacheOnlyWinningBids(false)
                     .cacheBidsTtl(null)
                     .shouldCacheVideoBids(false)
                     .cacheVideoBidsTtl(null)
