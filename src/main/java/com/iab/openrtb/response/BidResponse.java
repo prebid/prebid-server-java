@@ -32,13 +32,19 @@ public class BidResponse {
      */
     String id;
 
-    /** Array of seatbid objects; 1+ required if a bid is to be made. */
+    /**
+     * Array of seatbid objects; 1+ required if a bid is to be made.
+     */
     List<SeatBid> seatbid;
 
-    /** Bidder generated response ID to assist with logging/tracking. */
+    /**
+     * Bidder generated response ID to assist with logging/tracking.
+     */
     String bidid;
 
-    /** Bid currency using ISO-4217 alpha codes. */
+    /**
+     * Bid currency using ISO-4217 alpha codes.
+     */
     String cur;
 
     /**
@@ -48,26 +54,36 @@ public class BidResponse {
      */
     String customdata;
 
-    /** Reason for not bidding. Refer to List 5.24. */
+    /**
+     * Reason for not bidding. Refer to List 5.24.
+     */
     Integer nbr;
 
-    /** Placeholder for bidder-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for bidder-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 
     public static final Comparator<BidResponse> COMPARATOR = (left, right) -> {
-        if (isNull(left))
+        if (isNull(left)) {
             return -1;
-        if (left.getSeatbid().isEmpty())
+        }
+        if (left.getSeatbid().isEmpty()) {
             return -1;
-        if (left.getSeatbid().get(0).getBid().isEmpty())
+        }
+        if (left.getSeatbid().get(0).getBid().isEmpty()) {
             return -1;
-        if (isNull(right))
+        }
+        if (isNull(right)) {
             return -1;
-        if (right.getSeatbid().isEmpty())
+        }
+        if (right.getSeatbid().isEmpty()) {
             return 1;
-        if (right.getSeatbid().get(0).getBid().isEmpty())
+        }
+        if (right.getSeatbid().get(0).getBid().isEmpty()) {
             return 1;
+        }
         return left.getSeatbid().get(0).getBid().get(0).getPrice()
-                   .compareTo(right.getSeatbid().get(0).getBid().get(0).getPrice());
+                .compareTo(right.getSeatbid().get(0).getBid().get(0).getPrice());
     };
 }
