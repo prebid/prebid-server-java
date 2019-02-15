@@ -490,6 +490,24 @@ public class MetricsTest {
     }
 
     @Test
+    public void shouldIncrementConnectionAcceptErrorsMetric() {
+        // when
+        metrics.updateConnectionAcceptErrors();
+
+        // then
+        assertThat(metricRegistry.counter("connection_accept_errors").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementConnectionCloseErrorsMetric() {
+        // when
+        metrics.updateConnectionCloseErrors();
+
+        // then
+        assertThat(metricRegistry.counter("connection_close_errors").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void shouldUpdateDatabaseQueryTimeMetric() {
         // when
         metrics.updateDatabaseQueryTimeMetric(456L);

@@ -29,8 +29,10 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.handler.AuctionHandler;
 import org.prebid.server.handler.BidderParamHandler;
+import org.prebid.server.handler.ConnectionHandler;
 import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
+import org.prebid.server.handler.ExceptionHandler;
 import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
@@ -81,6 +83,12 @@ public class WebConfiguration {
     private HttpServerOptions httpServerOptions;
 
     @Autowired
+    private ExceptionHandler exceptionHandler;
+
+    @Autowired
+    private ConnectionHandler connectionHandler;
+
+    @Autowired
     private Router router;
 
     @Value("${http.port}")
@@ -93,6 +101,8 @@ public class WebConfiguration {
 
         contextRunner.<HttpServer>runOnNewContext(httpServerNum, future ->
                 vertx.createHttpServer(httpServerOptions)
+                        .exceptionHandler(exceptionHandler)
+                        .connectionHandler(connectionHandler)
                         .requestHandler(router)
                         .listen(httpPort, future));
 
@@ -119,6 +129,16 @@ public class WebConfiguration {
         }
 
         return httpServerOptions;
+    }
+
+    @Bean
+    ExceptionHandler exceptionHandler(Metrics metrics) {
+        return ExceptionHandler.create(metrics);
+    }
+
+    @Bean
+    ConnectionHandler connectionHandler(Metrics metrics) {
+        return ConnectionHandler.create(metrics);
     }
 
     @Bean
