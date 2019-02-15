@@ -30,6 +30,7 @@ auction:
   currency-rates-url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
   cache:
     expected-request-time-ms: 10
+    only-winning-bids: false
 amp:
   default-timeout-ms: 900
   max-timeout-ms: 5000

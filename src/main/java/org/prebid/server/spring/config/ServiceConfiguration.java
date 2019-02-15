@@ -300,11 +300,12 @@ public class ServiceConfiguration {
             Metrics metrics,
             Clock clock,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
+            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids) {
 
         return new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyConversionService, gdprService, metrics, clock, useGeoLocation,
-                expectedCacheTimeMs);
+                expectedCacheTimeMs, shouldCacheOnlyWinningBids);
     }
 
     @Bean

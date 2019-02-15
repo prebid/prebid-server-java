@@ -173,14 +173,14 @@ public class ExchangeServiceTest extends VertxTest {
         metricsContext = MetricsContext.of(MetricName.openrtb2web);
 
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0, false);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, -1));
+                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, -1, false));
     }
 
     @Test
@@ -1464,7 +1464,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 100);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 100, false);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));
@@ -1966,6 +1966,88 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ExtBidResponse ext = mapper.treeToValue(bidResponse.getExt(), ExtBidResponse.class);
         assertThat(ext.getResponsetimemillis()).containsKeys("cache");
+    }
+
+    @Test
+    public void shouldCacheOnlyWinningBidsIfNamedFlagIsTrue() throws JsonProcessingException {
+        // given
+        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0, true);
+
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(6.35)).build();
+        final Bid bid3 = Bid.builder().id("bidId3").impid("impId1").price(BigDecimal.valueOf(7.19)).build();
+        final Bid bid4 = Bid.builder().id("bidId4").impid("impId2").price(BigDecimal.valueOf(4.99)).build();
+
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(asList(givenBid(bid1), givenBid(bid2))));
+        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(asList(givenBid(bid3), givenBid(bid4))));
+
+        // imp ids are not really used for matching, included them here for clarity
+        final Imp imp1 = givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"));
+        final Imp imp2 = givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"));
+
+        final BidRequest bidRequest = givenBidRequest(asList(imp1, imp2),
+                builder -> builder.ext(
+                        mapper.valueToTree(
+                                ExtBidRequest.of(ExtRequestPrebid.of(
+                                        null,
+                                        null,
+                                        ExtRequestTargeting.of(
+                                                Json.mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
+                                                        ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                                                BigDecimal.valueOf(0.5))))), null, true, true),
+                                        null,
+                                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        verify(cacheService).cacheBidsOpenrtb(
+                argThat(t -> t.containsAll(asList(bid2, bid3))), eq(asList(imp1, imp2)),
+                eq(CacheContext.of(true, null, false, null)),
+                eq(""), eq(timeout));
+    }
+
+    @Test
+    public void shouldCacheOnlyWinningBidsIfNamedFlagIsFalse() throws JsonProcessingException {
+        // given
+        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0, false);
+
+        final Bid bid1 = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
+        final Bid bid2 = Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.valueOf(6.35)).build();
+        final Bid bid3 = Bid.builder().id("bidId3").impid("impId1").price(BigDecimal.valueOf(7.19)).build();
+        final Bid bid4 = Bid.builder().id("bidId4").impid("impId2").price(BigDecimal.valueOf(4.99)).build();
+
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(asList(givenBid(bid1), givenBid(bid2))));
+        givenBidder("bidder2", mock(Bidder.class), givenSeatBid(asList(givenBid(bid3), givenBid(bid4))));
+
+        // imp ids are not really used for matching, included them here for clarity
+        final Imp imp1 = givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"));
+        final Imp imp2 = givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId2"));
+
+        final BidRequest bidRequest = givenBidRequest(asList(imp1, imp2),
+                builder -> builder.ext(
+                        mapper.valueToTree(
+                                ExtBidRequest.of(ExtRequestPrebid.of(
+                                        null,
+                                        null,
+                                        ExtRequestTargeting.of(
+                                                Json.mapper.valueToTree(ExtPriceGranularity.of(2, singletonList(
+                                                        ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                                                BigDecimal.valueOf(0.5))))), null, true, true),
+                                        null,
+                                        ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null))))));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        verify(cacheService).cacheBidsOpenrtb(
+                argThat(t -> t.containsAll(asList(bid1, bid2, bid3, bid4))), eq(asList(imp1, imp2)),
+                eq(CacheContext.of(true, null, false, null)),
+                eq(""), eq(timeout));
     }
 
     private BidRequest captureBidRequest() {

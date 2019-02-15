@@ -108,12 +108,14 @@ public class ExchangeService {
     private final Clock clock;
     private final boolean useGeoLocation;
     private final long expectedCacheTime;
+    private boolean shouldCacheOnlyWinningBids;
 
     public ExchangeService(BidderCatalog bidderCatalog, HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
                            BidResponsePostProcessor bidResponsePostProcessor,
                            CurrencyConversionService currencyService, GdprService gdprService,
-                           Metrics metrics, Clock clock, boolean useGeoLocation, long expectedCacheTime) {
+                           Metrics metrics, Clock clock, boolean useGeoLocation, long expectedCacheTime,
+                           boolean shouldCacheOnlyWinningBids) {
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time should be positive");
         }
@@ -128,6 +130,7 @@ public class ExchangeService {
         this.clock = Objects.requireNonNull(clock);
         this.useGeoLocation = useGeoLocation;
         this.expectedCacheTime = expectedCacheTime;
+        this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
     }
 
     /**
@@ -877,8 +880,8 @@ public class ExchangeService {
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
         populateWinningBids(keywordsCreator, bidderResponses, bids, winningBids, winningBidsByBidder);
 
-        return toBidsWithCacheIds(bids, bidRequest.getImp(), keywordsCreator, cacheInfo, publisherId,
-                timeout)
+        return toBidsWithCacheIds(shouldCacheOnlyWinningBids ? winningBids : bids, bidRequest.getImp(), keywordsCreator,
+                cacheInfo, publisherId, timeout)
                 .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
                         cacheResult, winningBids, winningBidsByBidder, cacheInfo));
     }
@@ -1090,8 +1093,12 @@ public class ExchangeService {
 
         if (keywordsCreator != null && winningBidsByBidder.contains(bid)) {
             final boolean isWinningBid = winningBid.contains(bid);
-            final String cacheId = bidsWithCacheIds.get(bid).getCacheId();
-            final String videoCacheId = bidsWithCacheIds.get(bid).getVideoCacheId();
+            final String cacheId = !shouldCacheOnlyWinningBids || isWinningBid
+                    ? bidsWithCacheIds.get(bid).getCacheId()
+                    : null;
+            final String videoCacheId = !shouldCacheOnlyWinningBids || isWinningBid
+                    ? bidsWithCacheIds.get(bid).getVideoCacheId()
+                    : null;
 
             if ((videoCacheId != null && !cacheInfo.returnCreativeVideoBids)
                     || (cacheId != null && !cacheInfo.returnCreativeBids)) {
@@ -1196,6 +1203,8 @@ public class ExchangeService {
 
         boolean shouldCacheBids;
 
+        boolean shouldCacheOnlyWinningBids;
+
         Integer cacheBidsTtl;
 
         boolean shouldCacheVideoBids;
@@ -1210,6 +1219,7 @@ public class ExchangeService {
             return BidRequestCacheInfo.builder()
                     .doCaching(false)
                     .shouldCacheBids(false)
+                    .shouldCacheOnlyWinningBids(false)
                     .cacheBidsTtl(null)
                     .shouldCacheVideoBids(false)
                     .cacheVideoBidsTtl(null)
