@@ -4,6 +4,8 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.Cookie;
+import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.UnsupportedEncodingException;
@@ -12,6 +14,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * This class consists of {@code static} utility methods for operating HTTP requests.
@@ -141,5 +145,15 @@ public final class HttpUtil {
         } catch (MalformedURLException e) {
             return null;
         }
+    }
+
+    public static Map<String, String> headersAsMap(RoutingContext context) {
+        return context.request().headers().entries().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    public static Map<String, String> cookiesAsMap(RoutingContext context) {
+        return context.cookies().stream()
+                .collect(Collectors.toMap(Cookie::getName, Cookie::getValue));
     }
 }

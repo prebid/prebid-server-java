@@ -37,6 +37,7 @@ import java.time.Instant;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -412,8 +413,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .context(routingContext)
-                .uidsCookie(uidsCookie)
+                .headers(emptyMap())
+                .cookies(emptyMap())
                 .status(400)
                 .errors(singletonList("Request is invalid"))
                 .build());
@@ -435,8 +436,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .context(routingContext)
-                .uidsCookie(uidsCookie)
+                .headers(emptyMap())
+                .cookies(emptyMap())
                 .bidRequest(bidRequest)
                 .status(500)
                 .errors(singletonList("Unexpected exception"))
@@ -459,8 +460,8 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .context(routingContext)
-                .uidsCookie(uidsCookie)
+                .headers(emptyMap())
+                .cookies(emptyMap())
                 .bidRequest(bidRequest)
                 .bidResponse(BidResponse.builder().build())
                 .status(200)

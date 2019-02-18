@@ -70,8 +70,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
-                .context(context)
-                .uidsCookie(uidsCookie);
+                .headers(HttpUtil.headersAsMap(context))
+                .cookies(HttpUtil.cookiesAsMap(context));
 
         auctionRequestFactory.fromRequest(context)
                 .map(bidRequest -> addToEvent(bidRequest, auctionEventBuilder::bidRequest, bidRequest))

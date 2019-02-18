@@ -1,15 +1,34 @@
 package org.prebid.server.util;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.Cookie;
+import io.vertx.ext.web.RoutingContext;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 import java.util.Map;
 
+import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.BDDMockito.given;
 
 public class HttpUtilTest {
+
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private RoutingContext routingContext;
+    @Mock
+    private HttpServerRequest httpRequest;
 
     @Test
     public void isSafariShouldReturnTrue() {
@@ -104,5 +123,32 @@ public class HttpUtilTest {
 
         // then
         assertThat(domain).isNull();
+    }
+
+    @Test
+    public void headersAsMapShouldReturnExpectedResult() {
+        // given
+        given(routingContext.request()).willReturn(httpRequest);
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders().add("name", "value"));
+
+        // when
+        final Map<String, String> headers = HttpUtil.headersAsMap(routingContext);
+
+        // then
+        assertThat(headers).hasSize(1)
+                .containsOnly(entry("name", "value"));
+    }
+
+    @Test
+    public void cookiesAsMapShouldReturnExpectedResult() {
+        // given
+        given(routingContext.cookies()).willReturn(singleton(Cookie.cookie("name", "value")));
+
+        // when
+        final Map<String, String> cookies = HttpUtil.cookiesAsMap(routingContext);
+
+        // then
+        assertThat(cookies).hasSize(1)
+                .containsOnly(entry("name", "value"));
     }
 }

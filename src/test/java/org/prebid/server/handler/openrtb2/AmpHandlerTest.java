@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -487,8 +488,8 @@ public class AmpHandlerTest extends VertxTest {
         // then
         final AmpEvent ampEvent = captureAmpEvent();
         assertThat(ampEvent).isEqualTo(AmpEvent.builder()
-                .context(routingContext)
-                .uidsCookie(uidsCookie)
+                .headers(singletonMap("Origin", "http://example.com"))
+                .cookies(emptyMap())
                 .origin("http://example.com")
                 .status(400)
                 .errors(singletonList("Request is invalid"))
@@ -511,8 +512,8 @@ public class AmpHandlerTest extends VertxTest {
         // then
         final AmpEvent ampEvent = captureAmpEvent();
         assertThat(ampEvent).isEqualTo(AmpEvent.builder()
-                .context(routingContext)
-                .uidsCookie(uidsCookie)
+                .headers(singletonMap("Origin", "http://example.com"))
+                .cookies(emptyMap())
                 .bidRequest(bidRequest)
                 .origin("http://example.com")
                 .status(500)
@@ -538,8 +539,8 @@ public class AmpHandlerTest extends VertxTest {
         // then
         final AmpEvent ampEvent = captureAmpEvent();
         assertThat(ampEvent).isEqualTo(AmpEvent.builder()
-                .context(routingContext)
-                .uidsCookie(uidsCookie)
+                .headers(singletonMap("Origin", "http://example.com"))
+                .cookies(emptyMap())
                 .bidRequest(bidRequest)
                 .bidResponse(BidResponse.builder().seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()

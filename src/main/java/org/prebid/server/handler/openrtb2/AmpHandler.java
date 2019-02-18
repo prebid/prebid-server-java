@@ -109,8 +109,8 @@ public class AmpHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         final AmpEvent.AmpEventBuilder ampEventBuilder = AmpEvent.builder()
-                .context(context)
-                .uidsCookie(uidsCookie);
+                .headers(HttpUtil.headersAsMap(context))
+                .cookies(HttpUtil.cookiesAsMap(context));
 
         ampRequestFactory.fromRequest(context)
                 .map(bidRequest -> addToEvent(bidRequest, ampEventBuilder::bidRequest, bidRequest))

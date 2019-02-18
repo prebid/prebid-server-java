@@ -11,6 +11,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -61,10 +62,25 @@ public class UidsCookieService {
      * This method also sets 'hostCookieFamily' if 'hostCookie' is present in the request and feature is not opted-out.
      * If feature is opted-out uids attribute will be blank.
      * <p>
-     * Note: UIDs will be excluded from resulting {@link UidsCookie} if their value are 'null'
+     * Note: UIDs will be excluded from resulting {@link UidsCookie} if their value are 'null'.
      */
     public UidsCookie parseFromRequest(RoutingContext context) {
-        final Uids parsedUids = parseUids(context);
+        return parseFromCookies(HttpUtil.cookiesAsMap(context));
+    }
+
+    /**
+     * Retrieves UIDs cookie (base64 encoded) value from cookies map and transforms it into {@link UidsCookie}.
+     */
+    public UidsCookie parseFromCookies(Map<String, String> cookies) {
+        Uids parsedUids = null;
+        final String uidsCookie = cookies.get(COOKIE_NAME);
+        if (uidsCookie != null) {
+            try {
+                parsedUids = Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(uidsCookie)), Uids.class);
+            } catch (IllegalArgumentException | DecodeException e) {
+                logger.debug("Could not decode or parse {0} cookie value {1}", e, COOKIE_NAME, uidsCookie);
+            }
+        }
 
         final Uids.UidsBuilder uidsBuilder = Uids.builder()
                 .uidsLegacy(Collections.emptyMap())
@@ -73,12 +89,12 @@ public class UidsCookieService {
         final Boolean optout;
         final Map<String, UidWithExpiry> uidsMap;
 
-        if (isOptedOut(context)) {
+        if (isOptedOut(cookies)) {
             optout = true;
             uidsMap = Collections.emptyMap();
         } else {
             optout = parsedUids != null ? parsedUids.getOptout() : null;
-            uidsMap = enrichAndSanitizeUids(parsedUids, context);
+            uidsMap = enrichAndSanitizeUids(parsedUids, cookies);
         }
 
         return new UidsCookie(uidsBuilder.uids(uidsMap).optout(optout).build());
@@ -118,11 +134,10 @@ public class UidsCookieService {
     }
 
     /**
-     * Lookup host cookie value from request by configured host cookie name.
+     * Lookups host cookie value from cookies map by configured host cookie name.
      */
-    public String parseHostCookie(RoutingContext context) {
-        final Cookie cookie = hostCookieName != null ? context.getCookie(hostCookieName) : null;
-        return cookie != null ? cookie.getValue() : null;
+    public String parseHostCookie(Map<String, String> cookies) {
+        return hostCookieName != null ? cookies.get(hostCookieName) : null;
     }
 
     /**
@@ -136,10 +151,10 @@ public class UidsCookieService {
      * Checks incoming request if it matches pre-configured opted-out cookie name, value and de-activates
      * UIDs cookie sync.
      */
-    private boolean isOptedOut(RoutingContext context) {
+    private boolean isOptedOut(Map<String, String> cookies) {
         if (StringUtils.isNotBlank(optOutCookieName) && StringUtils.isNotBlank(optOutCookieValue)) {
-            final Cookie cookie = context.getCookie(optOutCookieName);
-            return cookie != null && Objects.equals(cookie.getValue(), optOutCookieValue);
+            final String cookieValue = cookies.get(optOutCookieName);
+            return cookieValue != null && Objects.equals(cookieValue, optOutCookieValue);
         }
         return false;
     }
@@ -148,7 +163,7 @@ public class UidsCookieService {
      * Enriches {@link Uids} parsed from request cookies with uid from host cookie (if applicable) and removes
      * invalid uids. Also converts legacy uids to uids with expiration.
      */
-    private Map<String, UidWithExpiry> enrichAndSanitizeUids(Uids uids, RoutingContext context) {
+    private Map<String, UidWithExpiry> enrichAndSanitizeUids(Uids uids, Map<String, String> cookies) {
         final Map<String, UidWithExpiry> originalUidsMap = uids != null ? uids.getUids() : null;
         final Map<String, UidWithExpiry> workingUidsMap = new HashMap<>(
                 ObjectUtils.defaultIfNull(originalUidsMap, Collections.emptyMap()));
@@ -158,7 +173,7 @@ public class UidsCookieService {
             legacyUids.forEach((key, value) -> workingUidsMap.put(key, UidWithExpiry.expired(value)));
         }
 
-        final String hostCookie = parseHostCookie(context);
+        final String hostCookie = parseHostCookie(cookies);
         if (hostCookie != null && hostCookieDiffers(hostCookie, workingUidsMap.get(hostCookieFamily))) {
             // make host cookie precedence over uids
             workingUidsMap.put(hostCookieFamily, UidWithExpiry.live(hostCookie));

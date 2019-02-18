@@ -2,12 +2,11 @@ package org.prebid.server.analytics.model;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
-import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.cookie.UidsCookie;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a transaction at /openrtb2/auction endpoint.
@@ -20,9 +19,9 @@ public class AuctionEvent {
 
     List<String> errors;
 
-    RoutingContext context;
+    Map<String, String> headers;
 
-    UidsCookie uidsCookie;
+    Map<String, String> cookies;
 
     BidRequest bidRequest;
 
