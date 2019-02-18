@@ -1969,7 +1969,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldCacheOnlyWinningBidsIfNamedFlagIsTrue() throws JsonProcessingException {
+    public void shouldCacheOnlyWinningBidsIfShouldCacheOnlyWinningBidsFlagIsTrue() throws JsonProcessingException {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0, true);
@@ -2010,7 +2010,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldCacheOnlyWinningBidsIfNamedFlagIsFalse() throws JsonProcessingException {
+    public void shouldCacheAllBidsIfShouldCacheOnlyWinningBidsFlagIsFalse() throws JsonProcessingException {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0, false);

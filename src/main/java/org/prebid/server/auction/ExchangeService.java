@@ -108,7 +108,7 @@ public class ExchangeService {
     private final Clock clock;
     private final boolean useGeoLocation;
     private final long expectedCacheTime;
-    private boolean shouldCacheOnlyWinningBids;
+    private final boolean shouldCacheOnlyWinningBids;
 
     public ExchangeService(BidderCatalog bidderCatalog, HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
@@ -1203,8 +1203,6 @@ public class ExchangeService {
 
         boolean shouldCacheBids;
 
-        boolean shouldCacheOnlyWinningBids;
-
         Integer cacheBidsTtl;
 
         boolean shouldCacheVideoBids;
@@ -1219,7 +1217,6 @@ public class ExchangeService {
             return BidRequestCacheInfo.builder()
                     .doCaching(false)
                     .shouldCacheBids(false)
-                    .shouldCacheOnlyWinningBids(false)
                     .cacheBidsTtl(null)
                     .shouldCacheVideoBids(false)
                     .cacheVideoBidsTtl(null)
