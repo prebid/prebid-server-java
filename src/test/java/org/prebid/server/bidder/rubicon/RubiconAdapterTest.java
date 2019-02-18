@@ -30,6 +30,7 @@ import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.rubicon.proto.RubiconBannerExt;
@@ -102,13 +103,13 @@ public class RubiconAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private RubiconAdapter adapter;
-    private RubiconUsersyncer usersyncer;
+    private Usersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity(), identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        usersyncer = new RubiconUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS);
+        usersyncer = Usersyncer.create(BIDDER, USERSYNC_URL, null, null, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS);
         adapter = new RubiconAdapter(usersyncer, ENDPOINT_URL, USER, PASSWORD);
     }
 

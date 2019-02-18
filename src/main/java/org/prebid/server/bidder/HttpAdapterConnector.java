@@ -201,14 +201,14 @@ public class HttpAdapterConnector {
 
         final PreBidRequest preBidRequest = preBidRequestContext.getPreBidRequest();
         if (preBidRequest.getApp() == null
-                && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()) == null) {
+                && preBidRequestContext.getUidsCookie().uidFrom(usersyncer.getCookieFamilyName()) == null) {
 
             final String gdpr = GdprUtils.gdprFrom(preBidRequest.getRegs());
             final String gdprConsent = GdprUtils.gdprConsentFrom(preBidRequest.getUser());
 
             bidderStatusBuilder
                     .noCookie(true)
-                    .usersync(usersyncer.usersyncInfo().withGdpr(gdpr, gdprConsent));
+                    .usersync(usersyncer.usersyncInfoAssembler().withGdpr(gdpr, gdprConsent).assemble());
         }
 
         final List<Result<List<Bid>>> bidsWithErrors = exchangeCalls.stream()

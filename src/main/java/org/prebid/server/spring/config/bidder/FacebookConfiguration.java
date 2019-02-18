@@ -6,7 +6,6 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.facebook.FacebookAdapter;
 import org.prebid.server.bidder.facebook.FacebookBidder;
-import org.prebid.server.bidder.facebook.FacebookUsersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.config.bidder.model.UserSyncConfigurationProperties;
@@ -42,8 +41,9 @@ public class FacebookConfiguration {
     @Bean
     BidderDeps facebookBidderDeps() {
         final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = new FacebookUsersyncer(userSyncProperties.getUrl(),
-                userSyncProperties.getType(), userSyncProperties.getSupportCors());
+        final Usersyncer usersyncer = Usersyncer.create(userSyncProperties.getCookieFamilyName(),
+                userSyncProperties.getUrl(), userSyncProperties.getRedirectUrl(), null, userSyncProperties.getType(),
+                userSyncProperties.getSupportCors());
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .enabled(configProperties.getEnabled())

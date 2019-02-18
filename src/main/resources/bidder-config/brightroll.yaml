@@ -17,5 +17,7 @@ adapters:
       vendor-id: 25
     usersync:
       url: http://pr-bh.ybp.yahoo.com/sync/appnexuspbs?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&url=
+      redirect-url: /setuid?bidder=brightroll&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=${UID}
+      cookie-family-name: brightroll
       type: redirect
       support-cors: false

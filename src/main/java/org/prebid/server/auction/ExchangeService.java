@@ -552,7 +552,7 @@ public class ExchangeService {
         final String uid = uidsBody.get(bidder);
         return StringUtils.isNotBlank(uid)
                 ? uid
-                : uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName());
+                : uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).getCookieFamilyName());
     }
 
     /**
@@ -569,7 +569,7 @@ public class ExchangeService {
             final String bidder = resolveBidder(bidderRequest.getBidder(), aliases);
             final boolean isApp = bidderRequest.getBidRequest().getApp() != null;
             final boolean noBuyerId = !bidderCatalog.isValidName(bidder) || StringUtils.isBlank(
-                    uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).cookieFamilyName()));
+                    uidsCookie.uidFrom(bidderCatalog.usersyncerByName(bidder).getCookieFamilyName()));
 
             metrics.updateAdapterRequestTypeAndNoCookieMetrics(bidder, requestType, !isApp && noBuyerId);
         }

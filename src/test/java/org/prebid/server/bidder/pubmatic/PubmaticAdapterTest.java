@@ -25,6 +25,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.pubmatic.proto.PubmaticParams;
@@ -58,6 +59,7 @@ public class PubmaticAdapterTest extends VertxTest {
     private static final String BIDDER = "pubmatic";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_REDIRECT_URL = "redirect/url";
     private static final String USERSYNC_TYPE = "iframe";
     private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String EXTERNAL_URL = "http://external.org/";
@@ -72,13 +74,14 @@ public class PubmaticAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private PubmaticAdapter adapter;
-    private PubmaticUsersyncer usersyncer;
+    private Usersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        usersyncer = new PubmaticUsersyncer(USERSYNC_URL, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS, EXTERNAL_URL);
+        usersyncer = Usersyncer.create(BIDDER, USERSYNC_URL, USERSYNC_REDIRECT_URL, EXTERNAL_URL, USERSYNC_TYPE,
+                USERSYNC_SUPPORT_CORS);
         adapter = new PubmaticAdapter(usersyncer, ENDPOINT_URL);
     }
 

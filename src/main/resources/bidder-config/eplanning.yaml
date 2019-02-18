@@ -15,6 +15,8 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: //cm.adform.net/cookie?redirect_url=
+      url: http://sync.e-planning.net/um?uid
+      redirect-url: /setuid?bidder=eplanning&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID
+      cookie-family-name: eplanning
       type: redirect
       support-cors: false

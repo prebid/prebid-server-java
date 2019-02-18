@@ -4,7 +4,6 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.lifestreet.LifestreetAdapter;
 import org.prebid.server.bidder.lifestreet.LifestreetBidder;
-import org.prebid.server.bidder.lifestreet.LifestreetUsersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
@@ -18,6 +17,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
+import javax.validation.constraints.NotBlank;
+
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/lifestreet.yaml", factory = YamlPropertySourceFactory.class)
 public class LifestreetConfiguration {
@@ -29,6 +30,7 @@ public class LifestreetConfiguration {
     private BidderConfigurationProperties configProperties;
 
     @Value("${external-url}")
+    @NotBlank
     private String externalUrl;
 
     @Bean("lifestreetConfigurationProperties")
@@ -40,8 +42,9 @@ public class LifestreetConfiguration {
     @Bean
     BidderDeps lifestreetBidderDeps() {
         final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = new LifestreetUsersyncer(userSyncProperties.getUrl(),
-                userSyncProperties.getType(), userSyncProperties.getSupportCors(), externalUrl);
+        final Usersyncer usersyncer = Usersyncer.create(userSyncProperties.getCookieFamilyName(),
+                userSyncProperties.getUrl(), userSyncProperties.getRedirectUrl(), externalUrl,
+                userSyncProperties.getType(), userSyncProperties.getSupportCors());
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)

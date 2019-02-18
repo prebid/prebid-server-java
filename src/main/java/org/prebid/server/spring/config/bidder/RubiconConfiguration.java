@@ -7,7 +7,6 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.rubicon.RubiconAdapter;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
-import org.prebid.server.bidder.rubicon.RubiconUsersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
@@ -43,8 +42,9 @@ public class RubiconConfiguration {
     @Bean
     BidderDeps rubiconBidderDeps() {
         final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = new RubiconUsersyncer(userSyncProperties.getUrl(),
-                userSyncProperties.getType(), userSyncProperties.getSupportCors());
+        final Usersyncer usersyncer = Usersyncer.create(userSyncProperties.getCookieFamilyName(),
+                userSyncProperties.getUrl(), userSyncProperties.getRedirectUrl(), null, userSyncProperties.getType(),
+                userSyncProperties.getSupportCors());
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)

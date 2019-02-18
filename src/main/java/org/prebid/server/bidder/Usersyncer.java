@@ -1,24 +1,34 @@
 package org.prebid.server.bidder;
 
-import org.prebid.server.cookie.UidsCookie;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.proto.response.UsersyncInfo;
 
-/**
- * Describes the behavior for {@link Usersyncer} implementations.
- */
-public interface Usersyncer {
+@Data
+@AllArgsConstructor
+public class Usersyncer {
 
-    /**
-     * Provides a family name by which user ids within {@link Adapter}/{@link Bidder}'s
-     * realm are stored in {@link UidsCookie}.
-     */
-    String cookieFamilyName();
+    String cookieFamilyName;
 
-    /**
-     * Returns basic info the browser needs in order to run a user sync.
-     * The returned object must not be mutated by callers.
-     * <p>
-     * For more information about user syncs, see http://clearcode.cc/2015/12/cookie-syncing/
-     */
-    UsersyncInfo usersyncInfo();
+    String usersyncUrl;
+
+    private String redirectUrl;
+
+    private String type;
+
+    private boolean supportCORS;
+
+    public static Usersyncer create(String cookieFamilyName, String usersyncUrl, String redirectUrl, String externalUri,
+                                    String type, boolean supportCors) {
+        final String resolvedRedirectUrl = StringUtils.isBlank(redirectUrl)
+                ? StringUtils.EMPTY
+                : externalUri + redirectUrl;
+
+        return new Usersyncer(cookieFamilyName, usersyncUrl, resolvedRedirectUrl, type, supportCors);
+    }
+
+    public UsersyncInfo.UsersyncInfoAssembler usersyncInfoAssembler() {
+        return UsersyncInfo.UsersyncInfoAssembler.assembler(usersyncUrl, redirectUrl, type, supportCORS);
+    }
 }
