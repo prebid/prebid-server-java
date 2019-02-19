@@ -177,10 +177,6 @@ public class Metrics extends UpdatableMetrics {
         incCounter(MetricName.connection_accept_errors);
     }
 
-    public void updateConnectionCloseErrors() {
-        incCounter(MetricName.connection_close_errors);
-    }
-
     public void updateDatabaseQueryTimeMetric(long millis) {
         updateTimer(MetricName.db_query_time, millis);
     }
