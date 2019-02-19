@@ -38,7 +38,7 @@ public class PubmaticConfiguration {
 
     @Bean
     BidderDeps pubmaticBidderDeps() {
-        final Usersyncer usersyncer = new PubmaticUsersyncer(configProperties.getEndpoint(), externalUrl);
+        final Usersyncer usersyncer = new PubmaticUsersyncer(configProperties.getUsersyncUrl(), externalUrl);
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
