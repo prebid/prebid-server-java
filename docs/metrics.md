@@ -19,7 +19,7 @@ Other available metrics can found at [Vert.x Dropwizard Metrics](https://vertx.i
 - `request_time` - timer tracking how long did it take for Prebid Server to serve a request
 - `imps_requested` - number if impressions requested
 - `requests.(ok|badinput|err|networkerr).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
-- `connection_accept_errors` - number of requests broken down by errors occurred while establishing HTTP connection
+- `connection_accept_errors` - number of errors occurred while establishing HTTP connection
 - `db_circuitbreaker_opened` - number of how many times database circuit breaker was opened (database is unavailable)
 - `db_circuitbreaker_closed` - number of how many times database circuit breaker was closed (database is available again)
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
