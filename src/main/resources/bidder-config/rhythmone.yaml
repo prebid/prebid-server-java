@@ -2,7 +2,6 @@ adapters:
   rhythmone:
     enabled: false
     endpoint: http://tag.1rx.io/rmp
-    usersync-url: //sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir=
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
@@ -16,3 +15,9 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 36
+    usersync:
+      url: //sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir=
+      redirect-url: /setuid?bidder=rhythmone&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=[RX_UUID]
+      cookie-family-name: rhythmone
+      type: redirect
+      support-cors: false

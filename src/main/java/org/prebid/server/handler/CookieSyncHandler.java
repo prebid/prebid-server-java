@@ -253,11 +253,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final Usersyncer usersyncer = bidderCatalog.usersyncerByName(bidderNameFor(bidder));
             final UsersyncInfo updatedUsersyncInfo = updatedUsersyncInfo(context, gdpr, gdprConsent, usersyncer);
 
-            if (updatedUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.cookieFamilyName())) {
+            if (updatedUsersyncInfo != null || !uidsCookie.hasLiveUidFrom(usersyncer.getCookieFamilyName())) {
                 result = bidderStatusBuilder(bidder)
                         .noCookie(true)
                         .usersync(ObjectUtils.defaultIfNull(updatedUsersyncInfo,
-                                usersyncer.usersyncInfo().withGdpr(gdpr, gdprConsent)))
+                                UsersyncInfo.from(usersyncer).withGdpr(gdpr, gdprConsent).assemble()))
                         .build();
             } else {
                 result = null;
@@ -285,7 +285,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      */
     private UsersyncInfo updatedUsersyncInfo(RoutingContext context, String gdpr, String gdprConsent,
                                              Usersyncer usersyncer) {
-        final String cookieFamilyName = usersyncer.cookieFamilyName();
+        final String cookieFamilyName = usersyncer.getCookieFamilyName();
         if (Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
 
             final String hostCookieUid = uidsCookieService.parseHostCookie(context);
@@ -299,10 +299,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 if (!Objects.equals(hostCookieUid, uid)) {
                     final String url = String.format("%s/setuid?bidder=%s&gdpr=%s&gdpr_consent=%s&uid=%s",
                             externalUrl, cookieFamilyName, gdpr, gdprConsent, hostCookieUid);
-                    final UsersyncInfo usersyncInfo = usersyncer.usersyncInfo();
-
-                    return UsersyncInfo.of(url, usersyncInfo.getType(),
-                            usersyncInfo.getSupportCORS());
+                    return UsersyncInfo.from(usersyncer).withUsersyncUrl(url).assemble();
                 }
             }
         }

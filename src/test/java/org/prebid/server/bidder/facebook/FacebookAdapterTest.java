@@ -30,6 +30,7 @@ import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
 import org.prebid.server.bidder.facebook.proto.FacebookParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -73,6 +74,8 @@ public class FacebookAdapterTest extends VertxTest {
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String NONSECURE_ENDPOINT_URL = ENDPOINT_URL;
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String PLATFORM_ID = "100";
 
     @Rule
@@ -85,13 +88,13 @@ public class FacebookAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private FacebookAdapter adapter;
-    private FacebookUsersyncer usersyncer;
+    private Usersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new FacebookUsersyncer(USERSYNC_URL);
+        usersyncer = new Usersyncer(BIDDER, USERSYNC_URL, null, null, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS);
         adapter = new FacebookAdapter(usersyncer, ENDPOINT_URL, NONSECURE_ENDPOINT_URL, PLATFORM_ID);
     }
 

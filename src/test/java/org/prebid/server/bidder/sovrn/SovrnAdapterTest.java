@@ -25,6 +25,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
 import org.prebid.server.bidder.sovrn.proto.SovrnParams;
@@ -61,7 +62,10 @@ public class SovrnAdapterTest extends VertxTest {
     private static final String BIDDER = "sovrn";
     private static final String BIDDER_COOKIE = "sovrn";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
+    private static final String USERSYNC_REDIRECT_URL = "redirect/url";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
@@ -74,13 +78,14 @@ public class SovrnAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private SovrnAdapter adapter;
-    private SovrnUsersyncer usersyncer;
+    private Usersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new SovrnUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new Usersyncer(BIDDER, USERSYNC_URL, USERSYNC_REDIRECT_URL, EXTERNAL_URL, USERSYNC_TYPE,
+                USERSYNC_SUPPORT_CORS);
         adapter = new SovrnAdapter(usersyncer, ENDPOINT_URL);
     }
 

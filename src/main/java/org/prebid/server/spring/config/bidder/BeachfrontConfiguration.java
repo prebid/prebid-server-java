@@ -5,9 +5,9 @@ import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.beachfront.BeachfrontBidder;
-import org.prebid.server.bidder.beachfront.BeachfrontUsersyncer;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
+import org.prebid.server.spring.config.bidder.model.UserSyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,6 +33,7 @@ public class BeachfrontConfiguration {
     private BeachfrontConfigurationProperties configProperties;
 
     @Value("${external-url}")
+    @NotBlank
     private String externalUrl;
 
     @Bean("beachfrontConfigurationProperties")
@@ -43,9 +44,10 @@ public class BeachfrontConfiguration {
 
     @Bean
     BidderDeps beachfrontBidderDeps() {
-        final Usersyncer usersyncer =
-                new BeachfrontUsersyncer(configProperties.getUsersyncUrl(),
-                        externalUrl, configProperties.getPlatformId());
+        final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
+        final Usersyncer usersyncer = new Usersyncer(userSyncProperties.getCookieFamilyName(),
+                userSyncProperties.getUrl(), userSyncProperties.getRedirectUrl(), externalUrl,
+                userSyncProperties.getType(), userSyncProperties.getSupportCors());
         final MetaInfo metaInfo = configProperties.getMetaInfo();
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .enabled(configProperties.getEnabled())
@@ -75,9 +77,6 @@ public class BeachfrontConfiguration {
         private String videoEndpoint;
 
         @NotBlank
-        private String platformId;
-
-        @NotBlank
         private String usersyncUrl;
 
         @NotNull
@@ -91,5 +90,8 @@ public class BeachfrontConfiguration {
 
         @NotNull
         private MetaInfo metaInfo;
+
+        @NotNull
+        private UserSyncConfigurationProperties usersync;
     }
 }

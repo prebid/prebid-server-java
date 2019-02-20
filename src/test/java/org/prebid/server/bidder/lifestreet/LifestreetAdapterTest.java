@@ -29,6 +29,7 @@ import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.lifestreet.proto.LifestreetParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
@@ -68,6 +69,9 @@ public class LifestreetAdapterTest extends VertxTest {
     private static final String BIDDER = "lifestreet";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
     private static final String USERSYNC_URL = "//usersync.org/";
+    private static final String USERSYNC_REDIRECT_URL = "redirect/url";
+    private static final String USERSYNC_TYPE = "redirect";
+    private static final Boolean USERSYNC_SUPPORT_CORS = false;
     private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
@@ -80,13 +84,14 @@ public class LifestreetAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private LifestreetAdapter adapter;
-    private LifestreetUsersyncer usersyncer;
+    private Usersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new LifestreetUsersyncer(USERSYNC_URL, EXTERNAL_URL);
+        usersyncer = new Usersyncer(BIDDER, USERSYNC_URL, USERSYNC_REDIRECT_URL, EXTERNAL_URL, USERSYNC_TYPE,
+                USERSYNC_SUPPORT_CORS);
         adapter = new LifestreetAdapter(usersyncer, ENDPOINT_URL);
     }
 

@@ -62,7 +62,7 @@ public class AdformAdapterTest extends VertxTest {
     @Before
     public void setUp() {
         adformAdapter = new AdformAdapter(usersyncer, ENDPOINT_URL);
-        given(usersyncer.cookieFamilyName()).willReturn(BIDDER);
+        given(usersyncer.getCookieFamilyName()).willReturn(BIDDER);
         given(uidsCookie.uidFrom(BIDDER)).willReturn("buyeruid");
     }
 

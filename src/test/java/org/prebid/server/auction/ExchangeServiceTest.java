@@ -159,7 +159,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo(15, true));
 
         given(responseBidValidator.validate(any())).willReturn(ValidationResult.success());
-        given(usersyncer.cookieFamilyName()).willReturn("cookieFamily");
+        given(usersyncer.getCookieFamilyName()).willReturn("cookieFamily");
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
