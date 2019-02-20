@@ -173,6 +173,10 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(bidder).incCounter(MetricName.gdpr_masked);
     }
 
+    public void updateConnectionAcceptErrors() {
+        incCounter(MetricName.connection_accept_errors);
+    }
+
     public void updateDatabaseQueryTimeMetric(long millis) {
         updateTimer(MetricName.db_query_time, millis);
     }
