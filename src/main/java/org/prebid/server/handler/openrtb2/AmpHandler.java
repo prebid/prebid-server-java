@@ -125,7 +125,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         toAmpResponse(result.getLeft(), result.getRight())))
                 .compose((Tuple3<BidRequest, BidResponse, AmpResponse> result) ->
                         ampResponsePostProcessor.postProcess(result.getLeft(), result.getMiddle(), result.getRight(),
-                                context.queryParams()))
+                                context))
                 .map(ampResponse -> addToEvent(ampResponse.getTargeting(), ampEventBuilder::targeting, ampResponse))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, context, startTime));
     }

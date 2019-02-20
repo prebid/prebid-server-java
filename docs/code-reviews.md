@@ -1,7 +1,7 @@
 # Code Reviews
 
 ## Standards
-Anyone is free to review and comment on any [open pull requests](https://github.com/prebid/prebid-server-java/pulls).
+Anyone is free to review and comment on any [open pull requests](https://github.com/rubicon-project/prebid-server-java/pulls).
 
 All pull requests must be reviewed and approved by at least one [core member](https://github.com/orgs/prebid/teams/core/members) before merge.
 
@@ -38,7 +38,7 @@ Some examples include:
 - Can we improve the user's experience in any way?
 - Have the relevant [docs]() been added or updated? If not, add the `needs docs` label.
 - Do you believe that the code works by looking at the unit tests? If not, suggest more tests until you do!
-- Is the motivation behind these changes clear? If not, there must be [an issue](https://github.com/prebid/prebid-server-java/issues) 
+- Is the motivation behind these changes clear? If not, there must be [an issue](https://github.com/rubicon-project/prebid-server-java/issues) 
 explaining it. Are there better ways to achieve those goals?
 - Does the code use any global, mutable state? [Inject dependencies](https://en.wikipedia.org/wiki/Dependency_injection) instead!
 - Can the code be organized into smaller, more modular pieces?
