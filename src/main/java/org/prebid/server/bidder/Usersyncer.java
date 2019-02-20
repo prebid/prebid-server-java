@@ -9,9 +9,9 @@ import org.prebid.server.util.HttpUtil;
 @AllArgsConstructor
 public class Usersyncer {
 
-    String cookieFamilyName;
+    private String cookieFamilyName;
 
-    String usersyncUrl;
+    private String usersyncUrl;
 
     private String redirectUrl;
 
