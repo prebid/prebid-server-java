@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.util.HttpUtil;
 
 /**
@@ -25,20 +27,33 @@ public class UsersyncInfo {
     @JsonProperty("supportCORS")
     Boolean supportCORS;
 
+    public static UsersyncInfoAssembler from(Usersyncer usersyncer) {
+        return UsersyncInfoAssembler.assembler(usersyncer);
+    }
+
     public static class UsersyncInfoAssembler {
         private String usersyncUrl;
         private String redirectUrl;
         private String type;
         private Boolean supportCORS;
 
-        public static UsersyncInfoAssembler assembler(String usersyncUrl, String redirectUrl, String type,
-                                                      Boolean supportCORS) {
+        public static UsersyncInfoAssembler assembler(Usersyncer usersyncer) {
             final UsersyncInfoAssembler usersyncInfoAssembler = new UsersyncInfoAssembler();
-            usersyncInfoAssembler.usersyncUrl = usersyncUrl;
-            usersyncInfoAssembler.redirectUrl = ObjectUtils.firstNonNull(redirectUrl, "");
-            usersyncInfoAssembler.type = type;
-            usersyncInfoAssembler.supportCORS = supportCORS;
+            usersyncInfoAssembler.usersyncUrl = usersyncer.getUsersyncUrl();
+            usersyncInfoAssembler.redirectUrl = ObjectUtils.firstNonNull(usersyncer.getRedirectUrl(), "");
+            usersyncInfoAssembler.type = usersyncer.getType();
+            usersyncInfoAssembler.supportCORS = usersyncer.isSupportCORS();
             return usersyncInfoAssembler;
+        }
+
+        /**
+         * Updates with already fully build usersync url with possible redirection.
+         * Erased redirect url, as usersync url is already completed
+         */
+        public UsersyncInfoAssembler withUsersyncUrl(String usersyncUrl) {
+            this.usersyncUrl = usersyncUrl;
+            this.redirectUrl = StringUtils.EMPTY;
+            return this;
         }
 
         /**

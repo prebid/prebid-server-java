@@ -115,7 +115,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         httpAdapterConnector = new HttpAdapterConnector(httpClient, clock);
 
-        usersyncer = Usersyncer.create(null, "", "", null, null, false);
+        usersyncer = new Usersyncer(null, "", "", null, null, false);
     }
 
     @Test
@@ -568,7 +568,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
-        usersyncer = Usersyncer.create(null, "url1", null, null, null, false);
+        usersyncer = new Usersyncer(null, "url1", null, null, null, false);
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
@@ -594,7 +594,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         givenHttpClientReturnsResponse(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
-        usersyncer = Usersyncer.create(null, "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
+        usersyncer = new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
                 null, null, null, false);
 
         // when

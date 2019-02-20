@@ -41,7 +41,7 @@ public class AdtelligentConfiguration {
     @Bean
     BidderDeps adtelligentBidderDeps() {
         final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = Usersyncer.create(userSyncProperties.getCookieFamilyName(),
+        final Usersyncer usersyncer = new Usersyncer(userSyncProperties.getCookieFamilyName(),
                 userSyncProperties.getUrl(), userSyncProperties.getRedirectUrl(), externalUrl,
                 userSyncProperties.getType(), userSyncProperties.getSupportCors());
         final MetaInfo metaInfo = configProperties.getMetaInfo();

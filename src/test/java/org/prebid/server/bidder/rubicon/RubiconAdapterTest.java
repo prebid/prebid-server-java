@@ -109,7 +109,7 @@ public class RubiconAdapterTest extends VertxTest {
     public void setUp() {
         adapterRequest = givenBidderCustomizable(identity(), identity());
         preBidRequestContext = givenPreBidRequestContextCustomizable(identity(), identity());
-        usersyncer = Usersyncer.create(BIDDER, USERSYNC_URL, null, null, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS);
+        usersyncer = new Usersyncer(BIDDER, USERSYNC_URL, null, null, USERSYNC_TYPE, USERSYNC_SUPPORT_CORS);
         adapter = new RubiconAdapter(usersyncer, ENDPOINT_URL, USER, PASSWORD);
     }
 

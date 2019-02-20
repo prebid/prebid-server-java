@@ -93,7 +93,7 @@ public class ConversantAdapterTest extends VertxTest {
 
         adapterRequest = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = Usersyncer.create(BIDDER, USERSYNC_URL, USERSYNC_REDIRECT_URL, EXTERNAL_URL, USERSYNC_TYPE,
+        usersyncer = new Usersyncer(BIDDER, USERSYNC_URL, USERSYNC_REDIRECT_URL, EXTERNAL_URL, USERSYNC_TYPE,
                 USERSYNC_SUPPORT_CORS);
         adapter = new ConversantAdapter(usersyncer, ENDPOINT_URL);
     }

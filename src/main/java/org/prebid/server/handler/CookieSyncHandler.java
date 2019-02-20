@@ -257,7 +257,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 result = bidderStatusBuilder(bidder)
                         .noCookie(true)
                         .usersync(ObjectUtils.defaultIfNull(updatedUsersyncInfo,
-                                usersyncer.usersyncInfoAssembler().withGdpr(gdpr, gdprConsent).assemble()))
+                                UsersyncInfo.from(usersyncer).withGdpr(gdpr, gdprConsent).assemble()))
                         .build();
             } else {
                 result = null;
@@ -299,10 +299,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 if (!Objects.equals(hostCookieUid, uid)) {
                     final String url = String.format("%s/setuid?bidder=%s&gdpr=%s&gdpr_consent=%s&uid=%s",
                             externalUrl, cookieFamilyName, gdpr, gdprConsent, hostCookieUid);
-                    final UsersyncInfo usersyncInfo = usersyncer.usersyncInfoAssembler().assemble();
-
-                    return UsersyncInfo.UsersyncInfoAssembler.assembler(url, null, usersyncInfo.getType(),
-                            usersyncInfo.getSupportCORS()).assemble();
+                    return UsersyncInfo.from(usersyncer).withUsersyncUrl(url).assemble();
                 }
             }
         }

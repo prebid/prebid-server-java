@@ -41,7 +41,7 @@ public class EplanningConfiguration {
     @Bean
     BidderDeps eplanningBidderDeps() {
         final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = Usersyncer.create(userSyncProperties.getCookieFamilyName(),
+        final Usersyncer usersyncer = new Usersyncer(userSyncProperties.getCookieFamilyName(),
                 userSyncProperties.getUrl(), userSyncProperties.getRedirectUrl(), externalUrl,
                 userSyncProperties.getType(), userSyncProperties.getSupportCors());
         final MetaInfo metaInfo = configProperties.getMetaInfo();

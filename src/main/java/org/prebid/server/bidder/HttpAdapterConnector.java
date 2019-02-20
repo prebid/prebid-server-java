@@ -28,6 +28,7 @@ import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.BidderDebug;
 import org.prebid.server.proto.response.BidderStatus;
 import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -208,7 +209,7 @@ public class HttpAdapterConnector {
 
             bidderStatusBuilder
                     .noCookie(true)
-                    .usersync(usersyncer.usersyncInfoAssembler().withGdpr(gdpr, gdprConsent).assemble());
+                    .usersync(UsersyncInfo.from(usersyncer).withGdpr(gdpr, gdprConsent).assemble());
         }
 
         final List<Result<List<Bid>>> bidsWithErrors = exchangeCalls.stream()
