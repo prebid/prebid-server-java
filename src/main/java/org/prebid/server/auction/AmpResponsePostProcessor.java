@@ -3,7 +3,7 @@ package org.prebid.server.auction;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
+import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.proto.response.AmpResponse;
 
 /**
@@ -18,11 +18,11 @@ public interface AmpResponsePostProcessor {
      * @param bidRequest  original auction request
      * @param bidResponse auction result
      * @param ampResponse AMP RTC response
-     * @param queryParams request's query params
+     * @param context request's context
      * @return a {@link Future} with (possibly modified) amp response result
      */
     Future<AmpResponse> postProcess(BidRequest bidRequest, BidResponse bidResponse, AmpResponse ampResponse,
-                                    MultiMap queryParams);
+                                    RoutingContext context);
 
     /**
      * Returns {@link NoOpAmpResponsePostProcessor} instance that just does nothing.
@@ -38,7 +38,7 @@ public interface AmpResponsePostProcessor {
 
         @Override
         public Future<AmpResponse> postProcess(BidRequest bidRequest, BidResponse bidResponse, AmpResponse ampResponse,
-                                               MultiMap queryParams) {
+                                               RoutingContext context) {
             return Future.succeededFuture(ampResponse);
         }
     }

@@ -1,6 +1,9 @@
 package org.prebid.server.metric;
 
 public enum MetricName {
+    // connection
+    connection_accept_errors,
+
     // database
     db_circuitbreaker_opened,
     db_circuitbreaker_closed,
