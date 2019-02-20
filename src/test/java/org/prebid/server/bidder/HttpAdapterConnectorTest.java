@@ -94,8 +94,9 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
     @Mock
     private Adapter<?, ?> adapter;
-    @Mock
+
     private Usersyncer usersyncer;
+
     @Mock
     private UidsCookie uidsCookie;
 
@@ -114,7 +115,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
 
         httpAdapterConnector = new HttpAdapterConnector(httpClient, clock);
 
-        given(usersyncer.usersyncInfo()).willReturn(UsersyncInfo.of("", null, null));
+        usersyncer = new Usersyncer(null, "", "", null, null, false);
     }
 
     @Test
@@ -567,8 +568,7 @@ public class HttpAdapterConnectorTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
-
-        given(usersyncer.usersyncInfo()).willReturn(UsersyncInfo.of("url1", null, false));
+        usersyncer = new Usersyncer(null, "url1", null, null, null, false);
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =
@@ -594,9 +594,8 @@ public class HttpAdapterConnectorTest extends VertxTest {
         givenHttpClientReturnsResponse(200,
                 givenBidResponse(identity(), identity(), singletonList(identity())));
 
-        given(usersyncer.usersyncInfo()).willReturn(
-                UsersyncInfo.of("http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
-                        null, false));
+        usersyncer = new Usersyncer(null, "http://url?redir=%26gdpr%3D{{gdpr}}%26gdpr_consent%3D{{gdpr_consent}}",
+                null, null, null, false);
 
         // when
         final Future<AdapterResponse> adapterResponseFuture =

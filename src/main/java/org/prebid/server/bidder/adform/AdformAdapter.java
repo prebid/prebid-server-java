@@ -150,7 +150,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                 ObjectUtils.firstNonNull(preBidRequestContext.getUa(), ""),
                 ObjectUtils.firstNonNull(preBidRequestContext.getIp(), ""),
                 preBidRequestContext.getReferer(),
-                preBidRequestContext.getUidsCookie().uidFrom(usersyncer.cookieFamilyName()),
+                preBidRequestContext.getUidsCookie().uidFrom(usersyncer.getCookieFamilyName()),
                 adformDigitrust);
     }
 

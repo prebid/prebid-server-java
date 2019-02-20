@@ -16,3 +16,9 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: audienceNetwork
+      type: redirect
+      support-cors: false

@@ -2,7 +2,6 @@ adapters:
   conversant:
     enabled: false
     endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
-    usersync-url: //prebid-match.dotomi.com/prebid/match?rurl=
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:
@@ -14,3 +13,9 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 24
+    usersync:
+      url: //prebid-match.dotomi.com/prebid/match?rurl=
+      redirect-url: /setuid?bidder=conversant&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=
+      cookie-family-name: conversant
+      type: redirect
+      support-cors: false
