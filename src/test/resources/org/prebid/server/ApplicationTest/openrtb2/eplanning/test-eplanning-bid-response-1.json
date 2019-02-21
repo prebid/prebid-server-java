@@ -1,21 +1,18 @@
 {
-  "id": "tid",
-  "seatbid": [
+  "sp": [
     {
-      "bid": [
+      "k": "testadunitcode",
+      "a": [
         {
-          "id": "620160388",
-          "impid": "impId15",
-          "price": 8.43,
-          "adm": "adm15",
-          "crid": "crid15",
-          "dealid": "dealId15",
-          "w": 300,
-          "h": 250
+          "i": "123456789abcdef",
+          "pr": "0.5",
+          "adm": "<div>test</div>",
+          "crid": "abcdef123456789",
+          "id": "adid12345",
+          "w": 600,
+          "h": 300
         }
-      ],
-      "seat": "seatId15",
-      "group": 0
+      ]
     }
   ]
 }

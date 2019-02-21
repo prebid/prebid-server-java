@@ -5,17 +5,19 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
-import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.eplanning.model.HbResponse;
+import org.prebid.server.bidder.eplanning.model.HbResponseAd;
+import org.prebid.server.bidder.eplanning.model.HbResponseSpace;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -23,18 +25,19 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 
 public class EplanningBidderTest extends VertxTest {
@@ -49,287 +52,271 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnHttpRequestWithCorrectBodyHeadersAndMethod()
-            throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder().banner(Banner.builder().build()).ext(Json.mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpEplanning.of("exchangeId")))).build()))
-                .device(Device.builder().ip("192.168.0.1").ua("ua").dnt(1).language("en").build())
-                .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
-                .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.POST);
-        assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly("http://eplanning.com/exchangeId");
-
-        assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
-                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"),
-                        tuple(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(), "en"),
-                        tuple("X-Forwarded-For", "192.168.0.1"),
-                        tuple("DNT", "1"));
-
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(Json.mapper.writeValueAsString(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpEplanning.of("exchangeId"))))
-                                .build()))
-                        .user(User.builder().ext(Json.mapper.valueToTree(ExtUser.of(null, "consent", null, null))).build())
-                        .device(Device.builder().ip("192.168.0.1").ua("ua").dnt(1).language("en").build())
-                        .regs(Regs.of(0, Json.mapper.valueToTree(ExtRegs.of(1))))
-                        .build()
-        ));
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new EplanningBidder("invalid_url"));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnRequestWithoutDeviceHeadersIfDeviceIsNull() {
+    public void makeHttpRequestsShouldReturnErrorIfImpBannerIsNull() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder().banner(Banner.builder().build()).ext(Json.mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpEplanning.of("exchangeId")))).build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
-                .extracting(Map.Entry::getKey)
-                .containsOnly(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.ACCEPT_HEADER.toString());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestWithoutDeviceHeadersIfDeviceFieldsAreNull() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder().banner(Banner.builder().build()).ext(Json.mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpEplanning.of("exchangeId")))).build()))
-                .device(Device.builder().build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
-                .extracting(Map.Entry::getKey)
-                .containsOnly(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.ACCEPT_HEADER.toString());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorMessageWhenMediaTypeWasNotDefined() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("impId").build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
-                "EPlanning only supports banner Imps. Ignoring Imp ID=impId"));
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("EPlanning only supports banner Imps. Ignoring Imp ID=123"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorMessageWhenImpExtBidderIsNull() {
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId")
-                        .banner(Banner.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, null))).build()))
-                .build();
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
-                "Ignoring imp id=impId, error while decoding extImpBidder, err: bidder property is not present"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorMessageWhenExtImpIsNotValidJson() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId")
-                        .banner(Banner.builder().build())
-                        .ext(Json.mapper.createObjectNode().put("bidder", 4)).build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith(
-                "Ignoring imp id=impId, error while decoding extImpBidder, err: Cannot construct instance of ");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors().get(0).getMessage())
+                .startsWith("Ignoring imp id=123, error while decoding extImpBidder, err: Cannot deserialize instance");
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnHttpRequestWithErrorMessage() {
+    public void makeHttpRequestsShouldReturnErrorIfImpExtClientIdIsBlank() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
-                                .id("impId")
-                                .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, null))).build(),
-                        Imp.builder()
-                                .id("impId2")
-                                .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpEplanning.of("exchangeId"))))
-                                .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                mapper.createObjectNode().put("ci", "")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsOnly(BidderError.badInput(
-                "Ignoring imp id=impId, error while decoding extImpBidder, err: bidder property is not present"));
-        assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly("http://eplanning.com/exchangeId");
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("Ignoring imp id=123, no ClientID present"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSendSingleGetRequestWithNullBody() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> Json.mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(1)
-                .extracting(Imp::getId).containsExactly("impId2");
+                .extracting(HttpRequest::getBody)
+                .hasSize(1)
+                .containsNull();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getMethod)
+                .containsOnly(HttpMethod.GET);
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnHttpRequestWithDefaultExchangeIdInUrlIfMissedInExtBidder() {
+    public void makeHttpRequestsShouldSetCorrectHeaders() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId")
-                        .banner(Banner.builder().build())
-                        .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpEplanning.of(null))))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getUri)
-                .containsExactly("http://eplanning.com/5a1ad71d2d53a0f5");
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnTwoHttpRequestsWhenTwoImpsHasDifferentExchangeIds() {
+    public void makeHttpRequestsShouldSetAdditionalHeadersIfDeviceFieldsAreNotEmpty() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
-                                .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpEplanning.of("exchangeId1"))))
-                                .build(),
-                        Imp.builder()
-                                .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpEplanning.of("exchangeId2"))))
-                                .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder
+                        .device(Device.builder()
+                                .ua("user_agent")
+                                .language("language")
+                                .ip("test_ip")
+                                .dnt(1)
+                                .build()),
+                identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "user_agent"),
+                        tuple(HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(), "language"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "test_ip"),
+                        tuple(HttpUtil.DNT_HEADER.toString(), "1"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetCorrectUriWithDefaults() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("http://eplanning.com/exchangeId2", "http://eplanning.com/exchangeId1");
+                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1");
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnOneHttpRequestForTowImpsWhenImpsHasSameSourceId() {
+    public void makeHttpRequestsShouldSetCorrectUriWithSitePageAndDomain() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
-                                .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpEplanning.of("exchangeId1"))))
-                                .build(),
-                        Imp.builder()
-                                .banner(Banner.builder().build())
-                                .ext(Json.mapper.valueToTree(ExtPrebid.of(null, ExtImpEplanning.of("exchangeId1"))))
-                                .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder
+                        .site(Site.builder().page("http://www.example.com").domain("DOMAIN").build()),
+                identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getUri)
-                .containsExactly("http://eplanning.com/exchangeId1");
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("http://eplanning.com/clientId/1/DOMAIN/ROS?r=pbs&ncb=1&ur=http%3A%2F%2Fwww.example.com"
+                        + "&e=testadun_itco_de:1x1");
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithoutErrors() throws JsonProcessingException {
+    public void makeHttpRequestsShouldSetCorrectUriWithSizeString() {
         // given
-        final String response = mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder().impid("impId").build()))
-                        .build()))
-                .build());
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().id("impId").build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .w(300)
+                                .h(200)
+                                .build()));
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly(
+                        "http://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:300x200");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetCorrectUriWithUserId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder
+                        .user(User.builder().buyeruid("Buyer-ID").build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
+                        + "&uid=Buyer-ID");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetCorrectUriWithDeviceIp() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> requestBuilder
+                        .device(Device.builder().ip("123.321.321.123").build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
+                        + "&ip=123.321.321.123");
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final HttpCall<Void> httpCall = givenHttpCall("invalid");
+
+        // when
+        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWithExpectedFields() throws JsonProcessingException {
+        // given
+        final HttpCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsString(HbResponse.of(
+                        singletonList(HbResponseSpace.of("testadun_itco_de",
+                                singletonList(HbResponseAd.builder()
+                                        .adId("ad-id")
+                                        .impressionId("imp-id")
+                                        .price("3.3")
+                                        .adM("some-adm")
+                                        .crId("CR-ID")
+                                        .width(500)
+                                        .height(300)
+                                        .build()))))));
+
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
 
         // then
+        final Bid expectedBid = Bid.builder()
+                .id("imp-id")
+                .adid("ad-id")
+                .impid("123")
+                .price(BigDecimal.valueOf(3.3))
+                .adm("some-adm")
+                .crid("CR-ID")
+                .w(500)
+                .h(300)
+                .build();
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyBidderBidAndErrorListsIfSeatBidIsNotPresentInResponse()
-            throws JsonProcessingException {
-        // given
-        final String response = mapper.writeValueAsString(BidResponse.builder().build());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(response);
-
-        // when
-        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyBidderWithErrorWhenResponseCantBeParsed() {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("{");
-
-        // when
-        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, BidRequest.builder().build());
-
-        // then
-        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
-                "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at " +
-                        "[Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, column: " +
-                        "3]"));
+                .containsOnly(BidderBid.of(expectedBid, BidType.banner, null));
     }
 
     @Test
@@ -338,7 +325,29 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(eplanningBidder.extractTargeting(Json.mapper.createObjectNode())).hasSize(0);
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .id("123")
+                .banner(Banner.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpEplanning.of("clientId", "test_ad.-un(itco:de:", null)))))
+                .build();
+    }
+
+    private static HttpCall<Void> givenHttpCall(String body) {
+        return HttpCall.success(
+                null, HttpResponse.of(200, null, body), null);
     }
 }

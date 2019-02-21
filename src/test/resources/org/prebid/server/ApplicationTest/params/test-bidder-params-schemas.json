@@ -88,14 +88,22 @@
     "description": "A schema which validates params accepted by the EPlanning adapter",
     "type": "object",
     "properties": {
-      "exchange_id": {
+      "ci": {
         "type": [
           "string"
         ],
-        "description": "Exchange ID to use."
+        "description": "Client ID to use."
+      },
+      "adunit_code": {
+        "type": [
+          "string"
+        ],
+        "description": "Adunit Code."
       }
     },
-    "required": []
+    "required": [
+      "ci"
+    ]
   },
   "adkernelAdn": {
     "$schema": "http://json-schema.org/draft-04/schema#",
