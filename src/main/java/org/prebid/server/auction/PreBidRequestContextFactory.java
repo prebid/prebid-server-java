@@ -36,6 +36,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Used in legacy request processing.
+ */
 public class PreBidRequestContextFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(PreBidRequestContextFactory.class);

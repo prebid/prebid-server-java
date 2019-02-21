@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -42,6 +43,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Used in OpenRTB request processing.
+ */
 public class AuctionRequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionRequestFactory.class);
@@ -240,7 +244,7 @@ public class AuctionRequestFactory {
 
         final String id = user != null ? user.getId() : null;
         if (StringUtils.isBlank(id)) {
-            final String parsedId = uidsCookieService.parseHostCookie(context);
+            final String parsedId = uidsCookieService.parseHostCookie(HttpUtil.cookiesAsMap(context));
             if (StringUtils.isNotBlank(parsedId)) {
                 final User.UserBuilder builder = user == null ? User.builder() : user.toBuilder();
                 builder.id(parsedId);
