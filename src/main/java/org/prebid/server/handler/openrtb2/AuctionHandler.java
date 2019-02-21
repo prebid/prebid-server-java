@@ -12,6 +12,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.Tuple2;
@@ -70,8 +71,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         final AuctionEvent.AuctionEventBuilder auctionEventBuilder = AuctionEvent.builder()
-                .context(context)
-                .uidsCookie(uidsCookie);
+                .httpContext(HttpContext.from(context));
 
         auctionRequestFactory.fromRequest(context)
                 .map(bidRequest -> addToEvent(bidRequest, auctionEventBuilder::bidRequest, bidRequest))

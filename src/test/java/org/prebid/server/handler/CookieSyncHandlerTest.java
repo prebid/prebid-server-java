@@ -41,13 +41,22 @@ import java.util.HashSet;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anySet;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class CookieSyncHandlerTest extends VertxTest {
 
@@ -481,7 +490,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
         given(uidsCookieService.parseHostCookie(any())).willReturn("host-cookie-value");
-        given(uidsCookieService.parseUids(routingContext))
+        given(uidsCookieService.parseUids(any()))
                 .willReturn(Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("uid-cookie-value"))).build());
 
         // when
@@ -504,7 +513,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE,
-                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}", null, null, "redirect", false);
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}", null, null, "redirect",
+                false);
         givenUsersyncersReturningFamilyName();
 
         givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
@@ -564,7 +574,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(uidsCookieService.getHostCookieFamily()).willReturn(RUBICON);
         given(uidsCookieService.parseHostCookie(any())).willReturn("cookie-value");
-        given(uidsCookieService.parseUids(routingContext))
+        given(uidsCookieService.parseUids(any()))
                 .willReturn(Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("cookie-value"))).build());
 
         // when
@@ -611,7 +621,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.names()).willReturn(singleton(APPNEXUS));
 
         appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE,
-                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}", null, null, "redirect", false);
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}", null, null, "redirect",
+                false);
         givenUsersyncersReturningFamilyName();
 
         givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
@@ -634,9 +645,11 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        rubiconUsersyncer = new Usersyncer(RUBICON, "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
+        rubiconUsersyncer = new Usersyncer(RUBICON,
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
                 null, null, "redirect", false);
-        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://rubiconexample.com", null, null, "redirect", false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://rubiconexample.com", null, null, "redirect",
+                false);
         givenUsersyncersReturningFamilyName();
 
         givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
@@ -657,9 +670,11 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        rubiconUsersyncer = new Usersyncer(RUBICON, "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
+        rubiconUsersyncer = new Usersyncer(RUBICON,
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
                 null, null, "redirect", false);
-        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://rubiconexample.com", null, null, "redirect", false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://rubiconexample.com", null, null, "redirect",
+                false);
         givenUsersyncersReturningFamilyName();
 
         givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));

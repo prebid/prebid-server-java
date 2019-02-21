@@ -7,6 +7,7 @@ import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -21,6 +22,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.cookie.UidsCookie;
@@ -37,6 +39,7 @@ import java.time.Instant;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -82,9 +85,13 @@ public class AuctionHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
@@ -412,8 +419,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .context(routingContext)
-                .uidsCookie(uidsCookie)
+                .httpContext(givenHttpContext())
                 .status(400)
                 .errors(singletonList("Request is invalid"))
                 .build());
@@ -435,8 +441,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .context(routingContext)
-                .uidsCookie(uidsCookie)
+                .httpContext(givenHttpContext())
                 .bidRequest(bidRequest)
                 .status(500)
                 .errors(singletonList("Unexpected exception"))
@@ -459,8 +464,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .context(routingContext)
-                .uidsCookie(uidsCookie)
+                .httpContext(givenHttpContext())
                 .bidRequest(bidRequest)
                 .bidResponse(BidResponse.builder().build())
                 .status(200)
@@ -483,5 +487,13 @@ public class AuctionHandlerTest extends VertxTest {
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
         return bidRequestBuilderCustomizer.apply(BidRequest.builder().imp(emptyList()).tmax(1000L)).build();
+    }
+
+    private static HttpContext givenHttpContext() {
+        return HttpContext.builder()
+                .queryParams(emptyMap())
+                .headers(emptyMap())
+                .cookies(emptyMap())
+                .build();
     }
 }

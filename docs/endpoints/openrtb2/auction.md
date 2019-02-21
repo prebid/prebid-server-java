@@ -7,6 +7,7 @@ This document describes the behavior of the Prebid Server auction endpoint, incl
 - Debugging and performance tips
 - How user syncing works
 - Departures from OpenRTB
+- Server-to-server
 
 ## `POST /openrtb2/auction`
 
@@ -413,6 +414,19 @@ In the OpenRTB spec, `request.imp[i].secure` says:
 In Prebid Server, an `https` request which does not define `secure` will be forwarded to Bidders with a `1`.
 Publishers who run `https` sites and want insecure ads can still set this to `0` explicitly.
 
+### Server to Server
+
+To support scenarios where the upstream client is a proxy server that funnels demand from actual end users (e.g. an ad server's direct connection), Prebid Server prioritizes OpenRTB fields over values in HTTP headers where available. The upstream server must make the end user's values available:
+
+- `request.device.ip` override the X-Forwarded-For HTTP header when available
+- `request.site.ref` overrides the Referer HTTP header when available
+- `request.device.ua` overrides the User-Agent HTTP header when available
+- `request.device.dnt` overrides the DNT HTTP header when available
+
+It is recommended that upstream servers set the following values for analytics purposes:
+
+- `source.ext.integration` - carries a code indicating the source. e.g. "custom ad server"
+- `source.ext.geocode` - carries a code indicating the geographic region of the source. e.g. "us-east". This can be used to analyze whether the server-to-server connections are optimal.
 
 ### See also
 

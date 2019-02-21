@@ -21,6 +21,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
+import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
@@ -109,8 +110,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
 
         final AmpEvent.AmpEventBuilder ampEventBuilder = AmpEvent.builder()
-                .context(context)
-                .uidsCookie(uidsCookie);
+                .httpContext(HttpContext.from(context));
 
         ampRequestFactory.fromRequest(context)
                 .map(bidRequest -> addToEvent(bidRequest, ampEventBuilder::bidRequest, bidRequest))
