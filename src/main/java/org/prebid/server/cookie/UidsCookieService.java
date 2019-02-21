@@ -71,16 +71,8 @@ public class UidsCookieService {
     /**
      * Retrieves UIDs cookie (base64 encoded) value from cookies map and transforms it into {@link UidsCookie}.
      */
-    public UidsCookie parseFromCookies(Map<String, String> cookies) {
-        Uids parsedUids = null;
-        final String uidsCookie = cookies.get(COOKIE_NAME);
-        if (uidsCookie != null) {
-            try {
-                parsedUids = Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(uidsCookie)), Uids.class);
-            } catch (IllegalArgumentException | DecodeException e) {
-                logger.debug("Could not decode or parse {0} cookie value {1}", e, COOKIE_NAME, uidsCookie);
-            }
-        }
+    UidsCookie parseFromCookies(Map<String, String> cookies) {
+        final Uids parsedUids = parseUids(cookies);
 
         final Uids.UidsBuilder uidsBuilder = Uids.builder()
                 .uidsLegacy(Collections.emptyMap())
@@ -101,12 +93,11 @@ public class UidsCookieService {
     }
 
     /**
-     * Parses {@link RoutingContext} and composes {@link Uids} model from {@link Cookie}.
+     * Parses cookies {@link Map} and composes {@link Uids} model.
      */
-    public Uids parseUids(RoutingContext context) {
-        final Cookie uidsCookie = context.getCookie(COOKIE_NAME);
-        if (uidsCookie != null) {
-            final String cookieValue = uidsCookie.getValue();
+    public Uids parseUids(Map<String, String> cookies) {
+        if (cookies.containsKey(COOKIE_NAME)) {
+            final String cookieValue = cookies.get(COOKIE_NAME);
             try {
                 return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(cookieValue)), Uids.class);
             } catch (IllegalArgumentException | DecodeException e) {

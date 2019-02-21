@@ -20,9 +20,7 @@ public class AmpEvent {
 
     List<String> errors;
 
-    Map<String, String> headers;
-
-    Map<String, String> cookies;
+    HttpContext httpContext;
 
     BidRequest bidRequest;
 

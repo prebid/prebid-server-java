@@ -288,10 +288,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final String cookieFamilyName = usersyncer.getCookieFamilyName();
         if (Objects.equals(cookieFamilyName, uidsCookieService.getHostCookieFamily())) {
 
-            final String hostCookieUid = uidsCookieService.parseHostCookie(HttpUtil.cookiesAsMap(context));
+            final Map<String, String> cookies = HttpUtil.cookiesAsMap(context);
+            final String hostCookieUid = uidsCookieService.parseHostCookie(cookies);
             if (hostCookieUid != null) {
 
-                final Uids parsedUids = uidsCookieService.parseUids(context);
+                final Uids parsedUids = uidsCookieService.parseUids(cookies);
                 final Map<String, UidWithExpiry> uidsMap = parsedUids != null ? parsedUids.getUids() : null;
                 final UidWithExpiry uidWithExpiry = uidsMap != null ? uidsMap.get(cookieFamilyName) : null;
                 final String uid = uidWithExpiry != null ? uidWithExpiry.getUid() : null;

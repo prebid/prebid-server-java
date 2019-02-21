@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Represents a transaction at /openrtb2/auction endpoint.
@@ -19,9 +18,7 @@ public class AuctionEvent {
 
     List<String> errors;
 
-    Map<String, String> headers;
-
-    Map<String, String> cookies;
+    HttpContext httpContext;
 
     BidRequest bidRequest;
 

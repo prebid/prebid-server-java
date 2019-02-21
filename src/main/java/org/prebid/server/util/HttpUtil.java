@@ -147,11 +147,6 @@ public final class HttpUtil {
         }
     }
 
-    public static Map<String, String> headersAsMap(RoutingContext context) {
-        return context.request().headers().entries().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
     public static Map<String, String> cookiesAsMap(RoutingContext context) {
         return context.cookies().stream()
                 .collect(Collectors.toMap(Cookie::getName, Cookie::getValue));

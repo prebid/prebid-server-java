@@ -21,6 +21,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.cookie.UidsCookie;
@@ -413,8 +414,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .headers(emptyMap())
-                .cookies(emptyMap())
+                .httpContext(givenHttpContext())
                 .status(400)
                 .errors(singletonList("Request is invalid"))
                 .build());
@@ -436,8 +436,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .headers(emptyMap())
-                .cookies(emptyMap())
+                .httpContext(givenHttpContext())
                 .bidRequest(bidRequest)
                 .status(500)
                 .errors(singletonList("Unexpected exception"))
@@ -460,8 +459,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
-                .headers(emptyMap())
-                .cookies(emptyMap())
+                .httpContext(givenHttpContext())
                 .bidRequest(bidRequest)
                 .bidResponse(BidResponse.builder().build())
                 .status(200)
@@ -484,5 +482,12 @@ public class AuctionHandlerTest extends VertxTest {
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestBuilderCustomizer) {
         return bidRequestBuilderCustomizer.apply(BidRequest.builder().imp(emptyList()).tmax(1000L)).build();
+    }
+
+    private static HttpContext givenHttpContext() {
+        return HttpContext.builder()
+                .headers(emptyMap())
+                .cookies(emptyMap())
+                .build();
     }
 }

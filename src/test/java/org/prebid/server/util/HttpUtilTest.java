@@ -1,7 +1,6 @@
 package org.prebid.server.util;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
@@ -123,20 +122,6 @@ public class HttpUtilTest {
 
         // then
         assertThat(domain).isNull();
-    }
-
-    @Test
-    public void headersAsMapShouldReturnExpectedResult() {
-        // given
-        given(routingContext.request()).willReturn(httpRequest);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders().add("name", "value"));
-
-        // when
-        final Map<String, String> headers = HttpUtil.headersAsMap(routingContext);
-
-        // then
-        assertThat(headers).hasSize(1)
-                .containsOnly(entry("name", "value"));
     }
 
     @Test

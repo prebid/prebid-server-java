@@ -25,6 +25,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
+import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
@@ -488,8 +489,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         final AmpEvent ampEvent = captureAmpEvent();
         assertThat(ampEvent).isEqualTo(AmpEvent.builder()
-                .headers(singletonMap("Origin", "http://example.com"))
-                .cookies(emptyMap())
+                .httpContext(givenHttpContext(singletonMap("Origin", "http://example.com")))
                 .origin("http://example.com")
                 .status(400)
                 .errors(singletonList("Request is invalid"))
@@ -512,8 +512,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         final AmpEvent ampEvent = captureAmpEvent();
         assertThat(ampEvent).isEqualTo(AmpEvent.builder()
-                .headers(singletonMap("Origin", "http://example.com"))
-                .cookies(emptyMap())
+                .httpContext(givenHttpContext(singletonMap("Origin", "http://example.com")))
                 .bidRequest(bidRequest)
                 .origin("http://example.com")
                 .status(500)
@@ -539,8 +538,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         final AmpEvent ampEvent = captureAmpEvent();
         assertThat(ampEvent).isEqualTo(AmpEvent.builder()
-                .headers(singletonMap("Origin", "http://example.com"))
-                .cookies(emptyMap())
+                .httpContext(givenHttpContext(singletonMap("Origin", "http://example.com")))
                 .bidRequest(bidRequest)
                 .bidResponse(BidResponse.builder().seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(Bid.builder()
@@ -582,5 +580,12 @@ public class AmpHandlerTest extends VertxTest {
         final ArgumentCaptor<AmpEvent> ampEventCaptor = ArgumentCaptor.forClass(AmpEvent.class);
         verify(analyticsReporter).processEvent(ampEventCaptor.capture());
         return ampEventCaptor.getValue();
+    }
+
+    private static HttpContext givenHttpContext(Map<String, String> headers) {
+        return HttpContext.builder()
+                .headers(headers)
+                .cookies(emptyMap())
+                .build();
     }
 }
