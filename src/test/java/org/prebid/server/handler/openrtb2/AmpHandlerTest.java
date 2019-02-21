@@ -11,6 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -105,16 +106,15 @@ public class AmpHandlerTest extends VertxTest {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
 
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.getParam(anyString())).willReturn("tagId1");
+        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        httpRequest.headers().add("Origin", "http://example.com");
 
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.putHeader(anyString(), eq((String) null))).willReturn(httpResponse);
         given(httpResponse.putHeader(anyString(), anyString())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-
-        httpRequest.headers().add("Origin", "http://example.com");
 
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
@@ -584,6 +584,7 @@ public class AmpHandlerTest extends VertxTest {
 
     private static HttpContext givenHttpContext(Map<String, String> headers) {
         return HttpContext.builder()
+                .queryParams(emptyMap())
                 .headers(headers)
                 .cookies(emptyMap())
                 .build();

@@ -15,15 +15,26 @@ import java.util.stream.Collectors;
 @Value
 public class HttpContext {
 
+    String uri;
+
+    Map<String, String> queryParams;
+
     Map<String, String> headers;
 
     Map<String, String> cookies;
 
     public static HttpContext from(RoutingContext context) {
         return HttpContext.builder()
+                .uri(context.request().uri())
+                .queryParams(queryParams(context))
                 .headers(headers(context))
                 .cookies(cookies(context))
                 .build();
+    }
+
+    private static Map<String, String> queryParams(RoutingContext context) {
+        return context.request().params().entries().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private static Map<String, String> headers(RoutingContext context) {

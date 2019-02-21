@@ -7,6 +7,7 @@ import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -84,9 +85,13 @@ public class AuctionHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+
         given(uidsCookieService.parseFromRequest(routingContext)).willReturn(uidsCookie);
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
@@ -486,6 +491,7 @@ public class AuctionHandlerTest extends VertxTest {
 
     private static HttpContext givenHttpContext() {
         return HttpContext.builder()
+                .queryParams(emptyMap())
                 .headers(emptyMap())
                 .cookies(emptyMap())
                 .build();
