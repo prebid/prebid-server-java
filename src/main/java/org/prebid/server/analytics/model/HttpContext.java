@@ -1,9 +1,9 @@
 package org.prebid.server.analytics.model;
 
-import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -43,7 +43,6 @@ public class HttpContext {
     }
 
     private static Map<String, String> cookies(RoutingContext context) {
-        return context.cookies().stream()
-                .collect(Collectors.toMap(Cookie::getName, Cookie::getValue));
+        return HttpUtil.cookiesAsMap(context);
     }
 }
