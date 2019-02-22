@@ -247,7 +247,7 @@ public class EplanningBidder implements Bidder<Void> {
                         .id(hbResponseAd.getImpressionId())
                         .adid(hbResponseAd.getAdId())
                         .impid(nameSpaceToImpId.get(hbResponseSpace.getName()))
-                        .price(BigDecimal.valueOf(Double.valueOf(hbResponseAd.getPrice())))
+                        .price(new BigDecimal(hbResponseAd.getPrice()))
                         .adm(hbResponseAd.getAdM())
                         .crid(hbResponseAd.getCrId())
                         .w(hbResponseAd.getWidth())
