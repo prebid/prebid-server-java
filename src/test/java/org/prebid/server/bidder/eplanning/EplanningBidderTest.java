@@ -342,7 +342,7 @@ public class EplanningBidderTest extends VertxTest {
                 .id("123")
                 .banner(Banner.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpEplanning.of("clientId", "test_ad.-un(itco:de:", null)))))
+                        ExtImpEplanning.of("clientId", "test_ad.-un(itco:de:")))))
                 .build();
     }
 

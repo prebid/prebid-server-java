@@ -313,7 +313,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenEplanningImpExtIsOk() {
         // given
-        final ExtImpEplanning ext = ExtImpEplanning.of("clientId", "", null);
+        final ExtImpEplanning ext = ExtImpEplanning.of("clientId", "");
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when

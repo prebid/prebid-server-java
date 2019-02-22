@@ -15,7 +15,5 @@ public class ExtImpEplanning {
     String clientId;
 
     @JsonProperty("adunit_code")
-    String adUnitCode;
-
-    String sizeString;
+    String adunitCode;
 }

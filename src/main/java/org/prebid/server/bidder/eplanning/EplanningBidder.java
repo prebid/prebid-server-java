@@ -81,8 +81,10 @@ public class EplanningBidder implements Bidder<Void> {
                 if (clientId == null) {
                     clientId = extImpEplanning.getClientId();
                 }
-                final String name = cleanName(extImpEplanning.getAdUnitCode());
-                requestsStrings.add(name + ":" + extImpEplanning.getSizeString());
+                final String sizeString = resolveSizeString(imp);
+                final String adunitCode = extImpEplanning.getAdunitCode();
+                final String name = cleanName(StringUtils.isBlank(adunitCode) ? sizeString : adunitCode);
+                requestsStrings.add(name + ":" + sizeString);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -92,37 +94,8 @@ public class EplanningBidder implements Bidder<Void> {
             return Result.of(Collections.emptyList(), errors);
         }
 
-        String ip = "";
-        final MultiMap headers = BidderUtil.headers();
-        final Device device = request.getDevice();
-        if (device != null) {
-            ip = device.getIp();
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
-                    device.getLanguage());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), ip);
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
-                    Objects.toString(device.getDnt(), null));
-        }
-
-        final Site site = request.getSite();
-        final String pageDomain = site != null && StringUtils.isNotBlank(site.getDomain())
-                ? site.getDomain() : DEFAULT_PAGE_URL;
-        final String pageUrl = site != null && StringUtils.isNotBlank(site.getPage())
-                ? site.getPage() : DEFAULT_PAGE_URL;
-
-        String uri = endpointUrl + String.format("/%s/%s/%s/%s?r=pbs&ncb=1&ur=%s&e=%s",
-                clientId, DFP_CLIENT_ID, pageDomain, SEC, HttpUtil.encodeUrl(pageUrl),
-                String.join("+", requestsStrings));
-
-        final User user = request.getUser();
-        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            uri = uri + String.format("&uid=%s", user.getBuyeruid());
-        }
-
-        if (StringUtils.isNotBlank(ip)) {
-            uri = uri + String.format("&ip=%s", ip);
-        }
+        final MultiMap headers = createHeaders(request.getDevice());
+        final String uri = resolveRequestUri(request, requestsStrings, clientId);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()
@@ -162,13 +135,7 @@ public class EplanningBidder implements Bidder<Void> {
             throw new PreBidException(String.format("Ignoring imp id=%s, no ClientID present", imp.getId()));
         }
 
-        final String sizeString = resolveSizeString(imp);
-
-        if (StringUtils.isBlank(extImpEplanning.getAdUnitCode())) {
-            return ExtImpEplanning.of(extImpEplanning.getClientId(), sizeString, sizeString);
-        } else {
-            return ExtImpEplanning.of(extImpEplanning.getClientId(), extImpEplanning.getAdUnitCode(), sizeString);
-        }
+        return extImpEplanning;
     }
 
     private static String resolveSizeString(Imp imp) {
@@ -200,6 +167,47 @@ public class EplanningBidder implements Bidder<Void> {
     }
 
     /**
+     * Crates http headers from {@link Device} properties.
+     */
+    private static MultiMap createHeaders(Device device) {
+        final MultiMap headers = BidderUtil.headers();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
+                    device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
+                    Objects.toString(device.getDnt(), null));
+        }
+        return headers;
+    }
+
+    private String resolveRequestUri(BidRequest request, List<String> requestsStrings, String clientId) {
+        final Device device = request.getDevice();
+        final String ip = device != null ? device.getIp() : null;
+
+        final Site site = request.getSite();
+        final String pageDomain = site != null && StringUtils.isNotBlank(site.getDomain())
+                ? site.getDomain() : DEFAULT_PAGE_URL;
+        final String pageUrl = site != null && StringUtils.isNotBlank(site.getPage())
+                ? site.getPage() : DEFAULT_PAGE_URL;
+
+        String uri = endpointUrl + String.format("/%s/%s/%s/%s?r=pbs&ncb=1&ur=%s&e=%s",
+                clientId, DFP_CLIENT_ID, pageDomain, SEC, HttpUtil.encodeUrl(pageUrl),
+                String.join("+", requestsStrings));
+
+        final User user = request.getUser();
+        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
+            uri = uri + String.format("&uid=%s", user.getBuyeruid());
+        }
+
+        if (StringUtils.isNotBlank(ip)) {
+            uri = uri + String.format("&ip=%s", ip);
+        }
+        return uri;
+    }
+
+    /**
      * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
      * Handles cases when response status is different to OK 200.
      */
@@ -222,7 +230,7 @@ public class EplanningBidder implements Bidder<Void> {
             } catch (PreBidException e) {
                 continue;
             }
-            final String name = cleanName(impExt.getAdUnitCode());
+            final String name = cleanName(impExt.getAdunitCode());
             nameSpaceToImpId.put(name, imp.getId());
         }
 
