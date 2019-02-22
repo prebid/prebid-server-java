@@ -92,6 +92,7 @@ public class ApplicationTest extends VertxTest {
     private static final String RHYTHMONE = "rhythmone";
     private static final String RUBICON = "rubicon";
     private static final String SOMOAUDIENCE = "somoaudience";
+    private static final String SONOBI = "sonobi";
     private static final String SOVRN = "sovrn";
     private static final String TTX = "ttx";
     private static final String YIELDMO = "yieldmo";
@@ -585,6 +586,43 @@ public class ApplicationTest extends VertxTest {
         final String expectedAuctionResponse = openrtbAuctionResponseFrom(
                 "openrtb2/gumgum/test-auction-gumgum-response.json",
                 response, singletonList(GUMGUM));
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithBidsFromSonobi() throws IOException, JSONException {
+        // given
+        // Sonobi bid response for imp 001
+        wireMockRule.stubFor(post(urlPathEqualTo("/sonobi-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/sonobi/test-sonobi-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/sonobi/test-sonobi-bid-response-1.json"))));
+
+        // Sonobi bid response for imp 002
+        wireMockRule.stubFor(post(urlPathEqualTo("/sonobi-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/sonobi/test-sonobi-bid-request-2.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/sonobi/test-sonobi-bid-response-2.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/sonobi/test-cache-sonobi-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/sonobi/test-cache-sonobi-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"sonobi":"SB-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7InNvbm9iaSI6IlNCLVVJRCJ9fQ==")
+                .body(jsonFrom("openrtb2/sonobi/test-auction-sonobi-request.json"))
+                .post("/openrtb2/auction");
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/sonobi/test-auction-sonobi-response.json",
+                response, singletonList(SONOBI));
 
         JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
