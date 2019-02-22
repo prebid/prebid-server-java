@@ -712,14 +712,18 @@ public class ApplicationTest extends VertxTest {
     public void openrtb2AuctionShouldRespondWithBidsFromEplanning() throws IOException, JSONException {
         // given
         // eplanning bid response for imp15
-        wireMockRule.stubFor(post(urlPathEqualTo("/eplanning-exchange/exchangeId1"))
+        wireMockRule.stubFor(get(urlPathEqualTo("/eplanning-exchange/12345/1/example.com/ROS"))
+                .withQueryParam("r", equalTo("pbs"))
+                .withQueryParam("ncb", equalTo("1"))
+                .withQueryParam("ur", equalTo("http://www.example.com"))
+                .withQueryParam("e", equalTo("testadunitcode:600x300"))
+                .withQueryParam("ip", equalTo("192.168.244.1"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
                 .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
                 .withHeader("DNT", equalTo("2"))
                 .withHeader("Accept-Language", equalTo("en"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/eplanning/test-eplanning-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/eplanning/test-eplanning-bid-response-1.json"))));
 
         // pre-bid cache

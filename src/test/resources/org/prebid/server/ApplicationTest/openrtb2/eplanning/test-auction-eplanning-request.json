@@ -6,14 +6,15 @@
       "banner": {
         "format": [
           {
-            "w": 300,
-            "h": 250
+            "w": 600,
+            "h": 300
           }
         ]
       },
       "ext": {
         "eplanning": {
-          "exchange_id": "exchangeId1"
+          "ci": "12345",
+          "adunit_code": "test_adunitcode"
         }
       }
     }

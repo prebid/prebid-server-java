@@ -2,30 +2,40 @@ package org.prebid.server.bidder.eplanning;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderUtil;
+import org.prebid.server.bidder.eplanning.model.CleanStepName;
+import org.prebid.server.bidder.eplanning.model.HbResponse;
+import org.prebid.server.bidder.eplanning.model.HbResponseAd;
+import org.prebid.server.bidder.eplanning.model.HbResponseSpace;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -36,104 +46,124 @@ import java.util.stream.Collectors;
 /**
  * Eplanning {@link Bidder} implementation.
  */
-public class EplanningBidder implements Bidder<BidRequest> {
+public class EplanningBidder implements Bidder<Void> {
 
-    private static final String DEFAULT_EXCHANGE_ID = "5a1ad71d2d53a0f5";
+    private static final String NULL_SIZE = "1x1";
+    private static final String DEFAULT_PAGE_URL = "FILE";
+    private static final String SEC = "ROS";
+    private static final String DFP_CLIENT_ID = "1";
+    private static final List<CleanStepName> CLEAN_STEP_NAMES = Arrays.asList(
+            CleanStepName.of("_|\\.|-|\\/", ""),
+            CleanStepName.of("\\)\\(|\\(|\\)|:", "_"),
+            CleanStepName.of("^_+|_+$", ""));
 
     private static final TypeReference<ExtPrebid<?, ExtImpEplanning>> EPLANNING_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpEplanning>>() {
             };
 
-    private final String endpointUrlTemplate;
+    private final String endpointUrl;
 
     public EplanningBidder(String endpointUrl) {
-        this.endpointUrlTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl)).concat("/%s");
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 
-    /**
-     * Creates POST HTTP requests which should be made to fetch bids.
-     * <p>
-     * One post request will be created for each exchange id value with it's corresponding list of impressions
-     */
     @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+    public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final Map<String, List<Imp>> exchangeIdsToImps = mapExchangeIdsToImps(request.getImp(), errors);
+        final List<String> requestsStrings = new ArrayList<>();
+
+        String clientId = null;
+        for (final Imp imp : request.getImp()) {
+            try {
+                validateImp(imp);
+                final ExtImpEplanning extImpEplanning = validateAndModifyImpExt(imp);
+
+                if (clientId == null) {
+                    clientId = extImpEplanning.getClientId();
+                }
+                final String sizeString = resolveSizeString(imp);
+                final String adunitCode = extImpEplanning.getAdunitCode();
+                final String name = cleanName(StringUtils.isBlank(adunitCode) ? sizeString : adunitCode);
+                requestsStrings.add(name + ":" + sizeString);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+
+        if (CollectionUtils.isEmpty(requestsStrings)) {
+            return Result.of(Collections.emptyList(), errors);
+        }
+
         final MultiMap headers = createHeaders(request.getDevice());
-        return createHttpRequests(request, exchangeIdsToImps, headers, errors);
+        final String uri = resolveRequestUri(request, requestsStrings, clientId);
+
+        return Result.of(Collections.singletonList(
+                HttpRequest.<Void>builder()
+                        .method(HttpMethod.GET)
+                        .uri(uri)
+                        .body(null)
+                        .headers(headers)
+                        .payload(null)
+                        .build()),
+                errors);
     }
 
-    /**
-     * Creates {@link HttpRequest}s one for each exchange id with headers from {@link Device} properties and
-     * exchangeId as a part of url.
-     */
-    private Result<List<HttpRequest<BidRequest>>> createHttpRequests(BidRequest bidRequest,
-                                                                     Map<String, List<Imp>> exchangeIdsToImps,
-                                                                     MultiMap headers, List<BidderError> errors) {
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>(exchangeIdsToImps.size());
-        for (final Map.Entry<String, List<Imp>> exchangeIdToImps : exchangeIdsToImps.entrySet()) {
-            final BidRequest exchangeBidRequest = bidRequest.toBuilder().imp(exchangeIdToImps.getValue()).build();
-            final String bidRequestBody;
-            try {
-                bidRequestBody = Json.encode(exchangeBidRequest);
-            } catch (EncodeException e) {
-                errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s",
-                        e.getMessage())));
-                return Result.of(Collections.emptyList(), errors);
-            }
-            httpRequests.add(HttpRequest.<BidRequest>builder()
-                    .method(HttpMethod.POST)
-                    .uri(String.format(endpointUrlTemplate, exchangeIdToImps.getKey()))
-                    .body(bidRequestBody)
-                    .headers(headers)
-                    .payload(exchangeBidRequest)
-                    .build());
+    private static void validateImp(Imp imp) {
+        if (imp.getBanner() == null) {
+            throw new PreBidException(String.format(
+                    "EPlanning only supports banner Imps. Ignoring Imp ID=%s", imp.getId()));
         }
-        return Result.of(httpRequests, errors);
     }
 
-    /**
-     * Validates and creates {@link Map} where exchangeId is used as key and {@link List} of {@link Imp} as value.
-     */
-    private static Map<String, List<Imp>> mapExchangeIdsToImps(List<Imp> imps, List<BidderError> errors) {
-        final Map<String, List<Imp>> exchangeIdsToImp = new HashMap<>();
+    private static ExtImpEplanning validateAndModifyImpExt(Imp imp) throws PreBidException {
+        final ExtImpEplanning extImpEplanning;
+        try {
+            extImpEplanning = Json.mapper.<ExtPrebid<?, ExtImpEplanning>>convertValue(imp.getExt(),
+                    EPLANNING_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException ex) {
+            throw new PreBidException(String.format(
+                    "Ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(), ex.getMessage()));
+        }
 
-        for (final Imp imp : imps) {
-            if (imp.getBanner() == null) {
-                errors.add(BidderError.badInput(String.format(
-                        "EPlanning only supports banner Imps. Ignoring Imp ID=%s", imp.getId())));
-                continue;
-            }
+        if (extImpEplanning == null) {
+            throw new PreBidException(String.format(
+                    "Ignoring imp id=%s, error while decoding extImpBidder, err: bidder property is not present",
+                    imp.getId()));
+        }
 
-            final ExtImpEplanning extImpEplanning;
-            try {
-                extImpEplanning = Json.mapper.<ExtPrebid<?, ExtImpEplanning>>convertValue(imp.getExt(),
-                        EPLANNING_EXT_TYPE_REFERENCE).getBidder();
-            } catch (IllegalArgumentException ex) {
-                errors.add(BidderError.badInput(String.format(
-                        "Ignoring imp id=%s, error while decoding extImpBidder, err: %s", imp.getId(),
-                        ex.getMessage())));
-                continue;
-            }
+        if (StringUtils.isBlank(extImpEplanning.getClientId())) {
+            throw new PreBidException(String.format("Ignoring imp id=%s, no ClientID present", imp.getId()));
+        }
 
-            if (extImpEplanning == null) {
-                errors.add(BidderError.badInput(String.format(
-                        "Ignoring imp id=%s, error while decoding extImpBidder, err: bidder property is not present",
-                        imp.getId())));
-                continue;
-            }
+        return extImpEplanning;
+    }
 
-            final String impExtExchangeId = extImpEplanning.getExchangeId();
-            final String exchangeId = StringUtils.isEmpty(impExtExchangeId) ? DEFAULT_EXCHANGE_ID : impExtExchangeId;
-            final List<Imp> exchangeIdImps = exchangeIdsToImp.get(exchangeId);
-
-            if (exchangeIdImps == null) {
-                exchangeIdsToImp.put(exchangeId, new ArrayList<>(Collections.singleton(imp)));
-            } else {
-                exchangeIdImps.add(imp);
+    private static String resolveSizeString(Imp imp) {
+        final Banner banner = imp.getBanner();
+        final Integer bannerWidth = banner.getW();
+        final Integer bannerHeight = banner.getH();
+        if (bannerWidth != null && bannerHeight != null) {
+            return String.format("%sx%s", bannerWidth, bannerHeight);
+        }
+        final List<Format> bannerFormats = banner.getFormat();
+        if (CollectionUtils.isNotEmpty(bannerFormats)) {
+            for (Format format : bannerFormats) {
+                final Integer formatHeight = format.getH();
+                final Integer formatWidth = format.getW();
+                if (formatHeight != null && formatWidth != null) {
+                    return String.format("%sx%s", formatWidth, formatHeight);
+                }
             }
         }
-        return exchangeIdsToImp;
+        return NULL_SIZE;
+    }
+
+    private static String cleanName(String name) {
+        String result = name;
+        for (CleanStepName cleanStepName : CLEAN_STEP_NAMES) {
+            result = result.replaceAll(cleanStepName.getExpression(), cleanStepName.getReplacementString());
+        }
+        return result;
     }
 
     /**
@@ -152,32 +182,78 @@ public class EplanningBidder implements Bidder<BidRequest> {
         return headers;
     }
 
+    private String resolveRequestUri(BidRequest request, List<String> requestsStrings, String clientId) {
+        final Device device = request.getDevice();
+        final String ip = device != null ? device.getIp() : null;
+
+        final Site site = request.getSite();
+        final String pageDomain = site != null && StringUtils.isNotBlank(site.getDomain())
+                ? site.getDomain() : DEFAULT_PAGE_URL;
+        final String pageUrl = site != null && StringUtils.isNotBlank(site.getPage())
+                ? site.getPage() : DEFAULT_PAGE_URL;
+
+        String uri = endpointUrl + String.format("/%s/%s/%s/%s?r=pbs&ncb=1&ur=%s&e=%s",
+                clientId, DFP_CLIENT_ID, pageDomain, SEC, HttpUtil.encodeUrl(pageUrl),
+                String.join("+", requestsStrings));
+
+        final User user = request.getUser();
+        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
+            uri = uri + String.format("&uid=%s", user.getBuyeruid());
+        }
+
+        if (StringUtils.isNotBlank(ip)) {
+            uri = uri + String.format("&ip=%s", ip);
+        }
+        return uri;
+    }
+
     /**
      * Converts response to {@link List} of {@link BidderBid}s with {@link List} of errors.
      * Handles cases when response status is different to OK 200.
      */
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = Json.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return extractBids(bidResponse);
+            final HbResponse hbResponse = Json.decodeValue(httpCall.getResponse().getBody(), HbResponse.class);
+            return extractBids(hbResponse, bidRequest);
         } catch (DecodeException e) {
             return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    /**
-     * Extracts bids from {@link BidResponse} and creates list of {@link BidderBid}s from them.
-     */
-    private static Result<List<BidderBid>> extractBids(BidResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+    private Result<List<BidderBid>> extractBids(HbResponse hbResponse, BidRequest bidRequest) {
+        final Map<String, String> nameSpaceToImpId = new HashMap<>();
+        for (Imp imp : bidRequest.getImp()) {
+            final ExtImpEplanning impExt;
+            try {
+                impExt = validateAndModifyImpExt(imp);
+            } catch (PreBidException e) {
+                continue;
+            }
+            final String name = cleanName(impExt.getAdunitCode());
+            nameSpaceToImpId.put(name, imp.getId());
         }
-        return Result.of(bidResponse.getSeatbid().stream()
-                        .flatMap(seatBid -> seatBid.getBid().stream())
-                        .map(bid -> BidderBid.of(bid, BidType.banner, null))
+
+        return Result.of(hbResponse.getSpaces().stream()
+                        .flatMap(hbResponseSpace -> hbResponseSpace.getAds().stream()
+                                .map(hbResponseAd -> mapToBidderBid(hbResponseSpace, hbResponseAd, nameSpaceToImpId)))
                         .collect(Collectors.toList()),
                 Collections.emptyList());
+    }
+
+    private static BidderBid mapToBidderBid(HbResponseSpace hbResponseSpace, HbResponseAd hbResponseAd,
+                                            Map<String, String> nameSpaceToImpId) {
+        return BidderBid.of(Bid.builder()
+                        .id(hbResponseAd.getImpressionId())
+                        .adid(hbResponseAd.getAdId())
+                        .impid(nameSpaceToImpId.get(hbResponseSpace.getName()))
+                        .price(new BigDecimal(hbResponseAd.getPrice()))
+                        .adm(hbResponseAd.getAdM())
+                        .crid(hbResponseAd.getCrId())
+                        .w(hbResponseAd.getWidth())
+                        .h(hbResponseAd.getHeight())
+                        .build(),
+                BidType.banner, null);
     }
 
     @Override
