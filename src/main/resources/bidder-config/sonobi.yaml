@@ -1,0 +1,23 @@
+adapters:
+  sonobi:
+    enabled: false
+    endpoint: https://apex.go.sonobi.com/bid?partnerid=71d9d3d8af
+    pbs-enforces-gdpr: true
+    deprecated-names:
+    aliases:
+    meta-info:
+      maintainer-email: apex@sonobi.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 104
+    usersync:
+      url: https://sync.go.sonobi.com/us.gif?loc=
+      redirect-url: /setuid?bidder=sonobi&consent_string={{gdpr}}&gdpr={{gdpr_consent}}&uid=$UID
+      cookie-family-name: sonobi
+      type: redirect
+      support-cors: false

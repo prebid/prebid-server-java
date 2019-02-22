@@ -615,6 +615,21 @@
       "site_id"
     ]
   },
+  "sonobi": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Sonobi Adapter Params",
+    "description": "A schema which validates params accepted by the Sonobi adapter",
+    "type": "object",
+    "properties": {
+      "TagID": {
+        "type": "string",
+        "description": "An ID which identifies /ad/unit/code or the sonobi placement_id"
+      }
+    },
+    "required": [
+      "TagID"
+    ]
+  },
   "sovrn": {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Sovrn Adapter Params",
