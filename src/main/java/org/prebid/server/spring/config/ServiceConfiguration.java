@@ -176,7 +176,7 @@ public class ServiceConfiguration {
             Vertx vertx,
             @Value("${http-client.max-pool-size}") int maxPoolSize,
             @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs,
-            @Value("${http-client.use-compression:false}") boolean useCompression) {
+            @Value("${http-client.use-compression}") boolean useCompression) {
 
         return createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs, useCompression);
     }
@@ -192,7 +192,7 @@ public class ServiceConfiguration {
             @Value("${http-client.circuit-breaker.opening-threshold}") int openingThreshold,
             @Value("${http-client.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
             @Value("${http-client.circuit-breaker.closing-interval-ms}") long closingIntervalMs,
-            @Value("${http-client.use-compression:false}") boolean useCompression) {
+            @Value("${http-client.use-compression}") boolean useCompression) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs, useCompression);
         return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics, openingThreshold, openingIntervalMs,
