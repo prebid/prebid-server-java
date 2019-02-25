@@ -62,14 +62,14 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final ExtImpBrightroll firstImpExt;
+        final String firstImpExtPublisher;
         try {
-            firstImpExt = getAndValidateImpExt(request.getImp().get(0));
+            firstImpExtPublisher = getAndValidateImpExt(request.getImp().get(0));
         } catch (PreBidException ex) {
             return Result.of(Collections.emptyList(), Collections.singletonList(BidderError.badInput(ex.getMessage())));
         }
 
-        final BidRequest updateBidRequest = updateBidRequest(request, firstImpExt, errors);
+        final BidRequest updateBidRequest = updateBidRequest(request, firstImpExtPublisher, errors);
 
         if (CollectionUtils.isEmpty(updateBidRequest.getImp())) {
             errors.add(BidderError.badInput("No valid impression in the bid request"));
@@ -87,7 +87,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
-                        .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExt.getPublisher()))
+                        .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
                         .body(bidRequestBody)
                         .headers(createHeaders(updateBidRequest.getDevice()))
                         .payload(updateBidRequest)
@@ -99,13 +99,13 @@ public class BrightrollBidder implements Bidder<BidRequest> {
      * Updates {@link BidRequest} with default auction type
      * and {@link Imp}s if something changed or dropped from the list.
      */
-    private static BidRequest updateBidRequest(BidRequest bidRequest, ExtImpBrightroll firstImpExt,
+    private static BidRequest updateBidRequest(BidRequest bidRequest, String firstImpExtPublisher,
                                                List<BidderError> errors) {
         final BidRequest.BidRequestBuilder builder = bidRequest.toBuilder();
         //Defaulting to first price auction for all prebid requests
         builder.at(1);
 
-        final boolean isAdthrivePublisher = firstImpExt.getPublisher().equals("adthrive");
+        final boolean isAdthrivePublisher = firstImpExtPublisher.equals("adthrive");
         if (isAdthrivePublisher) {
             builder.bcat(getBlockedCategoriesForAdthrive());
         }
@@ -198,25 +198,25 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     /**
      * Extracts and validates {@link ExtImpBrightroll} from given impression.
      */
-    private ExtImpBrightroll getAndValidateImpExt(Imp imp) {
+    private String getAndValidateImpExt(Imp imp) {
         final ObjectNode impExt = imp.getExt();
         if (impExt == null || impExt.size() == 0) {
             throw new PreBidException("ext.bidder not provided");
         }
 
-        final ExtImpBrightroll extImpBrightroll;
+        final String publisher;
         try {
-            extImpBrightroll = Json.mapper.<ExtPrebid<?, ExtImpBrightroll>>convertValue(impExt,
-                    BRIGHTROLL_EXT_TYPE_REFERENCE).getBidder();
+            publisher = Json.mapper.<ExtPrebid<?, ExtImpBrightroll>>convertValue(impExt,
+                    BRIGHTROLL_EXT_TYPE_REFERENCE).getBidder().getPublisher();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("ext.bidder.publisher not provided");
         }
 
-        if (StringUtils.isEmpty(extImpBrightroll.getPublisher())) {
+        if (StringUtils.isEmpty(publisher)) {
             throw new PreBidException("publisher is empty");
         }
 
-        return extImpBrightroll;
+        return publisher;
     }
 
     /**
