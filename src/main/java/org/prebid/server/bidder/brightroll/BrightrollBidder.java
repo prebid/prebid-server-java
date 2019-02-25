@@ -46,6 +46,15 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
     private static final String VERSION = "2.5";
     private static final CharSequence OPEN_RTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
+
+    private static final List<Integer> BLOCKED_CREATIVETYPES_FOR_AD_THRIVE = Arrays.asList(1, 2, 3, 6, 9, 10);
+    private static final List<String> BLOCKED_CATEGORIES_FOR_ADTHRIVE =
+            Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30", "IAB14-1", "IAB22-1", "IAB3-7", "IAB7-3",
+                    "IAB14-3", "IAB11", "IAB11-1", "IAB11-2", "IAB11-3", "IAB11-4", "IAB11-5", "IAB23", "IAB23-1",
+                    "IAB23-2", "IAB23-3", "IAB23-4", "IAB23-5", "IAB23-6", "IAB23-7", "IAB23-8", "IAB23-9", "IAB23-10",
+                    "IAB7-39", "IAB9-30", "IAB7-44", "IAB25", "IAB25-1", "IAB25-2", "IAB25-3", "IAB25-4", "IAB25-5",
+                    "IAB25-6", "IAB25-7", "IAB26", "IAB26-1", "IAB26-2", "IAB26-3", "IAB26-4");
+
     private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
             };
@@ -96,6 +105,30 @@ public class BrightrollBidder implements Bidder<BidRequest> {
     }
 
     /**
+     * Extracts and validates {@link ExtImpBrightroll} from given impression.
+     */
+    private String getAndValidateImpExt(Imp imp) {
+        final ObjectNode impExt = imp.getExt();
+        if (impExt == null || impExt.size() == 0) {
+            throw new PreBidException("ext.bidder not provided");
+        }
+
+        final String publisher;
+        try {
+            publisher = Json.mapper.<ExtPrebid<?, ExtImpBrightroll>>convertValue(impExt,
+                    BRIGHTROLL_EXT_TYPE_REFERENCE).getBidder().getPublisher();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("ext.bidder.publisher not provided");
+        }
+
+        if (StringUtils.isEmpty(publisher)) {
+            throw new PreBidException("publisher is empty");
+        }
+
+        return publisher;
+    }
+
+    /**
      * Updates {@link BidRequest} with default auction type
      * and {@link Imp}s if something changed or dropped from the list.
      */
@@ -107,7 +140,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
         final boolean isAdthrivePublisher = firstImpExtPublisher.equals("adthrive");
         if (isAdthrivePublisher) {
-            builder.bcat(getBlockedCategoriesForAdthrive());
+            builder.bcat(BLOCKED_CATEGORIES_FOR_ADTHRIVE);
         }
 
         builder.imp(bidRequest.getImp().stream()
@@ -116,14 +149,6 @@ public class BrightrollBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList()));
 
         return builder.build();
-    }
-
-    private static List<String> getBlockedCategoriesForAdthrive() {
-        return Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30", "IAB14-1", "IAB22-1", "IAB3-7", "IAB7-3",
-                "IAB14-3", "IAB11", "IAB11-1", "IAB11-2", "IAB11-3", "IAB11-4", "IAB11-5", "IAB23", "IAB23-1",
-                "IAB23-2", "IAB23-3", "IAB23-4", "IAB23-5", "IAB23-6", "IAB23-7", "IAB23-8", "IAB23-9", "IAB23-10",
-                "IAB7-39", "IAB9-30", "IAB7-44", "IAB25", "IAB25-1", "IAB25-2", "IAB25-3", "IAB25-4", "IAB25-5",
-                "IAB25-6", "IAB25-7", "IAB26", "IAB26-1", "IAB26-2", "IAB26-3", "IAB26-4");
     }
 
     /**
@@ -154,7 +179,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
                         .h(firstFormat.getH());
             }
             if (isAdthrivePublisher) {
-                bannerBuilder.battr(getBlockedCreativetypesForAdThrive());
+                bannerBuilder.battr(BLOCKED_CREATIVETYPES_FOR_AD_THRIVE);
             }
             return imp.toBuilder()
                     .banner(bannerBuilder.build())
@@ -164,15 +189,11 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         if (video != null && isAdthrivePublisher) {
             return imp.toBuilder()
                     .video(video.toBuilder()
-                            .battr(getBlockedCreativetypesForAdThrive())
+                            .battr(BLOCKED_CREATIVETYPES_FOR_AD_THRIVE)
                             .build())
                     .build();
         }
         return imp;
-    }
-
-    private static List<Integer> getBlockedCreativetypesForAdThrive() {
-        return Arrays.asList(1, 2, 3, 6, 9, 10);
     }
 
     /**
@@ -193,30 +214,6 @@ public class BrightrollBidder implements Bidder<BidRequest> {
         }
 
         return headers;
-    }
-
-    /**
-     * Extracts and validates {@link ExtImpBrightroll} from given impression.
-     */
-    private String getAndValidateImpExt(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
-        if (impExt == null || impExt.size() == 0) {
-            throw new PreBidException("ext.bidder not provided");
-        }
-
-        final String publisher;
-        try {
-            publisher = Json.mapper.<ExtPrebid<?, ExtImpBrightroll>>convertValue(impExt,
-                    BRIGHTROLL_EXT_TYPE_REFERENCE).getBidder().getPublisher();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("ext.bidder.publisher not provided");
-        }
-
-        if (StringUtils.isEmpty(publisher)) {
-            throw new PreBidException("publisher is empty");
-        }
-
-        return publisher;
     }
 
     /**
