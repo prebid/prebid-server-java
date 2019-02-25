@@ -43,7 +43,15 @@
     "dnt": 2,
     "ip": "80.215.195.000",
     "pxratio": 4.2,
-    "language": "en"
+    "language": "en",
+    "ext": {
+      "prebid": {
+        "interstitial": {
+          "minwidtheperc": 50,
+          "minheightperc": 60
+        }
+      }
+    }
   },
   "user": {
     "ext": {

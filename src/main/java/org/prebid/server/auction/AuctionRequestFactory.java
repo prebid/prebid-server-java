@@ -58,11 +58,13 @@ public class AuctionRequestFactory {
     private final UidsCookieService uidsCookieService;
     private final BidderCatalog bidderCatalog;
     private final RequestValidator requestValidator;
+    private final InterstitialProcessor interstitialProcessor;
 
     public AuctionRequestFactory(
             long defaultTimeout, long maxTimeout, long timeoutAdjustment, long maxRequestSize, String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
-            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator) {
+            UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
+            InterstitialProcessor interstitialProcessor) {
 
         timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
 
@@ -73,6 +75,7 @@ public class AuctionRequestFactory {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.requestValidator = Objects.requireNonNull(requestValidator);
+        this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
     }
 
     /**
@@ -105,8 +108,10 @@ public class AuctionRequestFactory {
 
         return storedRequestProcessor.processStoredRequests(bidRequest)
                 .map(resolvedBidRequest -> fillImplicitParameters(resolvedBidRequest, context, timeoutResolver))
-                .map(this::validateRequest);
+                .map(this::validateRequest)
+                .map(interstitialProcessor::process);
     }
+
 
     /**
      * Parses request body to bid request. Throws {@link InvalidRequestException} if body is empty, exceeds max

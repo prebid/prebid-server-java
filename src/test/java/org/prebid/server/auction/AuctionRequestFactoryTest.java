@@ -58,6 +58,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private BidderCatalog bidderCatalog;
     @Mock
     private RequestValidator requestValidator;
+    @Mock
+    private InterstitialProcessor interstitialProcessor;
 
     private AuctionRequestFactory factory;
 
@@ -66,8 +68,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(interstitialProcessor.process(any())).will(invocationOnMock -> invocationOnMock.getArgument(0));
         factory = new AuctionRequestFactory(2000L, 5000L, 0L, Integer.MAX_VALUE, "USD", storedRequestProcessor,
-                paramsExtractor, uidsCookieService, bidderCatalog, requestValidator);
+                paramsExtractor, uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor);
     }
 
     @Test
@@ -89,7 +92,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
         factory = new AuctionRequestFactory(2000L, 5000L, 0L, 1, "USD", storedRequestProcessor, paramsExtractor,
-                uidsCookieService, bidderCatalog, requestValidator);
+                uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
 
@@ -393,7 +396,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public void shouldUseTimeoutAdjustment() {
         // given
         factory = new AuctionRequestFactory(2000L, 5000L, 100L, Integer.MAX_VALUE, "USD", storedRequestProcessor,
-                paramsExtractor, uidsCookieService, bidderCatalog, requestValidator);
+                paramsExtractor, uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor);
 
         givenBidRequest(BidRequest.builder().tmax(1000L).build());
 

@@ -13,6 +13,7 @@ import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
+import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.PreBidRequestContextFactory;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.bidder.BidderCatalog;
@@ -116,6 +117,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    InterstitialProcessor interstitialProcessor() {
+        return new InterstitialProcessor();
+    }
+
+    @Bean
     PreBidRequestContextFactory preBidRequestContextFactory(
             @Value("${default-timeout-ms}") long defaultTimeout,
             @Value("${max-timeout-ms}") long maxTimeout,
@@ -140,11 +146,12 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
-            RequestValidator requestValidator) {
+            RequestValidator requestValidator,
+            InterstitialProcessor interstitialProcessor) {
 
         return new AuctionRequestFactory(defaultTimeout, maxTimeout, timeoutAdjustment, maxRequestSize,
                 adServerCurrency, storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog,
-                requestValidator);
+                requestValidator, interstitialProcessor);
     }
 
     @Bean
