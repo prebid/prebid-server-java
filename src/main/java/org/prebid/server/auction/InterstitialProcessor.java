@@ -16,6 +16,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class InterstitialProcessor {
@@ -23,10 +24,14 @@ public class InterstitialProcessor {
     private static final int MAX_SIZES_COUNT = 10;
 
     public BidRequest process(BidRequest bidRequest) {
-        if (bidRequest.getImp().stream().anyMatch(imp -> isInterstitial(imp.getInstl()))) {
+        if (bidRequest.getImp().stream().anyMatch(this::isInterstitial)) {
             bidRequest = processBidRequest(bidRequest);
         }
         return bidRequest;
+    }
+
+    private boolean isInterstitial(Imp imp) {
+        return Objects.equals(imp.getInstl(), 1);
     }
 
     private BidRequest processBidRequest(BidRequest bidRequest) {
@@ -44,7 +49,7 @@ public class InterstitialProcessor {
     }
 
     private Imp processInterstitialImp(Imp imp, Device device, int minWidthPerc, int minHeightPerc) {
-        if (!isInterstitial(imp.getInstl())) {
+        if (!isInterstitial(imp)) {
             return imp;
         }
 
@@ -54,13 +59,9 @@ public class InterstitialProcessor {
         }
 
         final List<Format> formats = banner.getFormat();
-        Integer maxHeight = null;
-        Integer maxWidth = null;
-        if (!CollectionUtils.isEmpty(formats)) {
-            final Format format = formats.get(0);
-            maxHeight = format.getH();
-            maxWidth = format.getW();
-        }
+        final Format firstFormat = CollectionUtils.isEmpty(formats) ? null : formats.get(0);
+        Integer maxHeight = firstFormat != null ? firstFormat.getH() : null;
+        Integer maxWidth = firstFormat != null ? firstFormat.getW() : null;
 
         if (maxHeight == null || maxWidth == null || (maxHeight == 1 && maxWidth == 1)) {
             maxHeight = device.getH();
@@ -87,10 +88,6 @@ public class InterstitialProcessor {
         }
 
         return imp.toBuilder().banner(banner.toBuilder().format(interstitialFormats).build()).build();
-    }
-
-    private boolean isInterstitial(Integer interstitial) {
-        return interstitial != null && interstitial == 1;
     }
 
     private ExtDeviceInt getExtDeviceInt(Device device) {

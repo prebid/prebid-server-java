@@ -117,11 +117,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    InterstitialProcessor interstitialProcessor() {
-        return new InterstitialProcessor();
-    }
-
-    @Bean
     PreBidRequestContextFactory preBidRequestContextFactory(
             @Value("${default-timeout-ms}") long defaultTimeout,
             @Value("${max-timeout-ms}") long maxTimeout,
@@ -146,12 +141,11 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             UidsCookieService uidsCookieService,
             BidderCatalog bidderCatalog,
-            RequestValidator requestValidator,
-            InterstitialProcessor interstitialProcessor) {
+            RequestValidator requestValidator) {
 
         return new AuctionRequestFactory(defaultTimeout, maxTimeout, timeoutAdjustment, maxRequestSize,
                 adServerCurrency, storedRequestProcessor, implicitParametersExtractor, uidsCookieService, bidderCatalog,
-                requestValidator, interstitialProcessor);
+                requestValidator, new InterstitialProcessor());
     }
 
     @Bean
