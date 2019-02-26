@@ -124,6 +124,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .gdprApplies(AdformRequestUtil.getGdprApplies(preBidRequestContext.getPreBidRequest()
                                 .getRegs()))
                         .consent(AdformRequestUtil.getConsent(extUser))
+                        .cur("USD")
                         .build());
     }
 
