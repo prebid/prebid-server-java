@@ -73,15 +73,7 @@ public class AdformBidder implements Bidder<Void> {
             return Result.of(Collections.emptyList(), errors);
         }
 
-        String currency = DEFAULT_CURRENCY;
-        final List<String> currencies = request.getCur();
-        if (CollectionUtils.isNotEmpty(currencies)) {
-            final boolean hasUsd = currencies.stream().anyMatch(cur -> cur.equals(DEFAULT_CURRENCY));
-            if (!hasUsd) {
-                currency = currencies.get(0);
-            }
-        }
-
+        final String currency = resolveRequestCurrency(request.getCur());
         final Device device = request.getDevice();
         final ExtUser extUser = AdformRequestUtil.getExtUser(request.getUser());
         final String url = AdformHttpUtil.buildAdformUrl(
@@ -172,6 +164,20 @@ public class AdformBidder implements Bidder<Void> {
         }
 
         return Result.of(extImpAdforms, errors);
+    }
+
+    /**
+     * Resolves a currency that should be forwarded to bidder. Default - USD, if request
+     * doesn't contain USD - select the top level currency (first one);
+     */
+    private static String resolveRequestCurrency(List<String> currencies) {
+        String currency = DEFAULT_CURRENCY;
+        if (CollectionUtils.isNotEmpty(currencies)) {
+            if (!currencies.contains(DEFAULT_CURRENCY)) {
+                currency = currencies.get(0);
+            }
+        }
+        return currency;
     }
 
     /**
