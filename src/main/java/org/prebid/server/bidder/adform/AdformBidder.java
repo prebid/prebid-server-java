@@ -171,13 +171,9 @@ public class AdformBidder implements Bidder<Void> {
      * doesn't contain USD - select the top level currency (first one);
      */
     private static String resolveRequestCurrency(List<String> currencies) {
-        String currency = DEFAULT_CURRENCY;
-        if (CollectionUtils.isNotEmpty(currencies)) {
-            if (!currencies.contains(DEFAULT_CURRENCY)) {
-                currency = currencies.get(0);
-            }
-        }
-        return currency;
+        return CollectionUtils.isNotEmpty(currencies) && !currencies.contains(DEFAULT_CURRENCY)
+                ? currencies.get(0)
+                : DEFAULT_CURRENCY;
     }
 
     /**
