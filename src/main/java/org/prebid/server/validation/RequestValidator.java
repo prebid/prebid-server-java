@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.DataObject;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.ImageObject;
@@ -38,6 +39,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -151,6 +155,7 @@ public class RequestValidator {
             }
             validateSite(bidRequest.getSite());
             validateApp(bidRequest.getApp());
+            validateDevice(bidRequest.getDevice());
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
         } catch (ValidationException ex) {
@@ -316,6 +321,39 @@ public class RequestValidator {
             } catch (JsonProcessingException e) {
                 throw new ValidationException("request.app.ext object is not valid: %s", e.getMessage());
             }
+        }
+    }
+
+    private void validateDevice(Device device) throws ValidationException {
+        final ObjectNode extDeviceNode = device != null ? device.getExt() : null;
+        if (extDeviceNode != null && extDeviceNode.size() > 0) {
+            final ExtDevice extDevice = parseExtDevice(extDeviceNode);
+            final ExtDevicePrebid extDevicePrebid = extDevice.getPrebid();
+            final ExtDeviceInt interstitial = extDevicePrebid != null ? extDevicePrebid.getInterstitial() : null;
+            if (interstitial != null) {
+                validateInterstitial(interstitial);
+            }
+        }
+    }
+
+    private void validateInterstitial(ExtDeviceInt interstitial) throws ValidationException {
+        final Integer minWidthPerc = interstitial.getMinWidthPerc();
+        if (minWidthPerc == null || minWidthPerc < 0 || minWidthPerc > 100) {
+            throw new ValidationException(
+                    "request.device.ext.prebid.interstitial.minwidthperc must be a number between 0 and 100");
+        }
+        final Integer minHeightPerc = interstitial.getMinHeightPerc();
+        if (minHeightPerc == null || minHeightPerc < 0 || minHeightPerc > 100) {
+            throw new ValidationException(
+                    "request.device.ext.prebid.interstitial.minheightperc must be a number between 0 and 100");
+        }
+    }
+
+    private ExtDevice parseExtDevice(ObjectNode extDevice) throws ValidationException {
+        try {
+            return Json.mapper.treeToValue(extDevice, ExtDevice.class);
+        } catch (JsonProcessingException e) {
+            throw new ValidationException("request.device.ext is not valid", e.getMessage());
         }
     }
 

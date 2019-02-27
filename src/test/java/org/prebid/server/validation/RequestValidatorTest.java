@@ -12,6 +12,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Deal.DealBuilder;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Format.FormatBuilder;
@@ -37,6 +38,9 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -1069,6 +1073,90 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.site or request.app must be defined, but not both");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMinWidthPercIsNull() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().device(Device.builder()
+                .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(null, null))))).build()).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.device.ext.prebid.interstitial.minwidthperc must be a number between 0 and 100");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMinWidthPercIsLessThanZero() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().device(Device.builder()
+                .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(-1, null))))).build()).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.device.ext.prebid.interstitial.minwidthperc must be a number between 0 and 100");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMinWidthPercGreaterThanHundred() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().device(Device.builder()
+                .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(101, null))))).build()).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.device.ext.prebid.interstitial.minwidthperc must be a number between 0 and 100");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMinHeightPercIsNull() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().device(Device.builder()
+                .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, null))))).build()).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.device.ext.prebid.interstitial.minheightperc must be a number between 0 and 100");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMinHeightPercIsLessThanZero() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().device(Device.builder()
+                .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, -1))))).build()).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.device.ext.prebid.interstitial.minheightperc must be a number between 0 and 100");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenMinHeightPercGreaterThanHundred() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder().device(Device.builder()
+                .ext(mapper.valueToTree(ExtDevice.of(ExtDevicePrebid.of(ExtDeviceInt.of(50, 101))))).build()).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.device.ext.prebid.interstitial.minheightperc must be a number between 0 and 100");
     }
 
     @Test

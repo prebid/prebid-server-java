@@ -139,7 +139,15 @@
     "dnt": 2,
     "ip": "80.215.195.122",
     "language": "en",
-    "ifa": "ifaId"
+    "ifa": "ifaId",
+    "ext": {
+      "prebid": {
+        "interstitial": {
+          "minwidtheperc": 50,
+          "minheightperc": 60
+        }
+      }
+    }
   },
   "site": {
     "publisher": {
