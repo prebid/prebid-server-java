@@ -411,7 +411,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         verify(metrics).updateCookieSyncGdprPreventMetric(APPNEXUS);
-        verify(metrics).updateCookieSyncSetsMetric(RUBICON);
+        verify(metrics).updateCookieSyncGenMetric(RUBICON);
     }
 
     @Test
@@ -725,7 +725,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateCookieSyncRequestMetric();
+        verify(metrics).updateUserSyncRequestMetric();
     }
 
     @Test

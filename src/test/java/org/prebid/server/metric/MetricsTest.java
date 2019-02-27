@@ -203,6 +203,48 @@ public class MetricsTest {
     }
 
     @Test
+    public void userSyncShouldReturnSameUserSyncMetricsOnSuccessiveCalls() {
+        assertThat(metrics.userSync()).isSameAs(metrics.userSync());
+    }
+
+    @Test
+    public void userSyncShouldReturnUserSyncMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(
+                metrics -> metrics.userSync().incCounter(MetricName.opt_outs));
+    }
+
+    @Test
+    public void userSyncShouldReturnUserSyncMetricsConfiguredWithPrefix() {
+        // when
+        metrics.userSync().incCounter(MetricName.opt_outs);
+
+        // then
+        assertThat(metricRegistry.counter("usersync.opt_outs").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldReturnSameBidderUserSyncMetricsOnSuccessiveCalls() {
+        assertThat(metrics.userSync().forBidder(RUBICON)).isSameAs(metrics.userSync().forBidder(RUBICON));
+    }
+
+    @Test
+    public void shouldReturnBidderUserSyncMetricsConfiguredWithCounterType() {
+        verifyCreatesConfiguredCounterType(metrics -> metrics
+                .userSync()
+                .forBidder(RUBICON)
+                .incCounter(MetricName.sets));
+    }
+
+    @Test
+    public void shouldReturnBidderUserSyncMetricsConfiguredWithBidder() {
+        // when
+        metrics.userSync().forBidder(RUBICON).incCounter(MetricName.sets);
+
+        // then
+        assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void cookieSyncShouldReturnSameCookieSyncMetricsOnSuccessiveCalls() {
         assertThat(metrics.cookieSync()).isSameAs(metrics.cookieSync());
     }
@@ -210,16 +252,16 @@ public class MetricsTest {
     @Test
     public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(
-                metrics -> metrics.cookieSync().incCounter(MetricName.opt_outs));
+                metrics -> metrics.cookieSync().incCounter(MetricName.gen));
     }
 
     @Test
     public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithPrefix() {
         // when
-        metrics.cookieSync().incCounter(MetricName.opt_outs);
+        metrics.cookieSync().incCounter(MetricName.gen);
 
         // then
-        assertThat(metricRegistry.counter("usersync.opt_outs").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("cookie_sync.gen").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -232,16 +274,16 @@ public class MetricsTest {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .cookieSync()
                 .forBidder(RUBICON)
-                .incCounter(MetricName.sets));
+                .incCounter(MetricName.gen));
     }
 
     @Test
     public void shouldReturnBidderCookieSyncMetricsConfiguredWithBidder() {
         // when
-        metrics.cookieSync().forBidder(RUBICON).incCounter(MetricName.sets);
+        metrics.cookieSync().forBidder(RUBICON).incCounter(MetricName.gen);
 
         // then
-        assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("cookie_sync.rubicon.gen").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -392,39 +434,48 @@ public class MetricsTest {
     }
 
     @Test
-    public void updateCookieSyncRequestMetricShouldIncrementMetric() {
+    public void updateUserSyncRequestMetricShouldIncrementMetric() {
         // when
-        metrics.updateCookieSyncRequestMetric();
+        metrics.updateUserSyncRequestMetric();
 
         // then
         assertThat(metricRegistry.counter("cookie_sync_requests").getCount()).isEqualTo(1);
     }
 
     @Test
-    public void updateCookieSyncOptoutMetricShouldIncrementMetric() {
+    public void updateUserSyncOptoutMetricShouldIncrementMetric() {
         // when
-        metrics.updateCookieSyncOptoutMetric();
+        metrics.updateUserSyncOptoutMetric();
 
         // then
         assertThat(metricRegistry.counter("usersync.opt_outs").getCount()).isEqualTo(1);
     }
 
     @Test
-    public void updateCookieSyncBadRequestMetricShouldIncrementMetric() {
+    public void updateUserSyncBadRequestMetricShouldIncrementMetric() {
         // when
-        metrics.updateCookieSyncBadRequestMetric();
+        metrics.updateUserSyncBadRequestMetric();
 
         // then
         assertThat(metricRegistry.counter("usersync.bad_requests").getCount()).isEqualTo(1);
     }
 
     @Test
-    public void updateCookieSyncSetsMetricShouldIncrementMetric() {
+    public void updateUserSyncSetsMetricShouldIncrementMetric() {
         // when
-        metrics.updateCookieSyncSetsMetric(RUBICON);
+        metrics.updateUserSyncSetsMetric(RUBICON);
 
         // then
         assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updateUserSyncGdprPreventMetricShouldIncrementMetric() {
+        // when
+        metrics.updateUserSyncGdprPreventMetric(RUBICON);
+
+        // then
+        assertThat(metricRegistry.counter("usersync.rubicon.gdpr_prevent").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -433,7 +484,16 @@ public class MetricsTest {
         metrics.updateCookieSyncGdprPreventMetric(RUBICON);
 
         // then
-        assertThat(metricRegistry.counter("usersync.rubicon.gdpr_prevent").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("cookie_sync.rubicon.gdpr_prevent").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updateCookieSyncGenMetricShouldIncrementMetric() {
+        // when
+        metrics.updateCookieSyncGenMetric(RUBICON);
+
+        // then
+        assertThat(metricRegistry.counter("cookie_sync.rubicon.gen").getCount()).isEqualTo(1);
     }
 
     @Test

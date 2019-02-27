@@ -76,7 +76,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        metrics.updateCookieSyncRequestMetric();
+        metrics.updateUserSyncRequestMetric();
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {
@@ -233,7 +233,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             if (rejectedBidders.contains(bidder)) {
                 metrics.updateCookieSyncGdprPreventMetric(bidder);
             } else {
-                metrics.updateCookieSyncSetsMetric(bidder);
+                metrics.updateCookieSyncGenMetric(bidder);
             }
         }
     }
