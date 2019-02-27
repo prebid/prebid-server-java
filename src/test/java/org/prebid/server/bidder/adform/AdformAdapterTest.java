@@ -90,7 +90,7 @@ public class AdformAdapterTest extends VertxTest {
                 .extracting(AdapterHttpRequest::getUri)
                 .containsExactly(
                         "http://adform.com/openrtb2d?CC=1&adid=ifaId&fd=1&gdpr=1&gdpr_consent=consent&ip=192.168.0.1"
-                                + "&pt=gross&rp=4&stid=tid&bWlkPTE1");
+                                + "&pt=gross&rp=4&stid=tid&bWlkPTE1JnJjdXI9VVNE");
 
         assertThat(adapterHttpRequests)
                 .extracting(AdapterHttpRequest::getMethod)
@@ -176,7 +176,8 @@ public class AdformAdapterTest extends VertxTest {
         // bWlkPTE1 is Base64 encoded "mid=15" value
         assertThat(adapterHttpRequests).hasSize(1)
                 .extracting(AdapterHttpRequest::getUri)
-                .containsExactly("https://adform.com/openrtb2d?CC=1&fd=1&gdpr=&gdpr_consent=&ip=&rp=4&stid=&bWlkPTE1");
+                .containsExactly("https://adform.com/openrtb2d?CC=1&fd=1&gdpr=&gdpr_consent=&ip=&rp=4&"
+                        + "stid=&bWlkPTE1JnJjdXI9VVNE");
     }
 
     @Test
