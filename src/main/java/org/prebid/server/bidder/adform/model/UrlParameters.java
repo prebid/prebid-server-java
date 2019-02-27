@@ -26,4 +26,6 @@ public class UrlParameters {
     String gdprApplies;
 
     String consent;
+
+    String cur;
 }

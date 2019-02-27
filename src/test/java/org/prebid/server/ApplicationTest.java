@@ -385,8 +385,8 @@ public class ApplicationTest extends VertxTest {
                 .withQueryParam("adid", equalTo("ifaId"))
                 .withQueryParam("gdpr", equalTo("0"))
                 .withQueryParam("gdpr_consent", equalTo("consentValue"))
-                // bWlkPTE1 is Base64 encoded "mid=15"
-                .withQueryParam("bWlkPTE1", equalTo(""))
+                // bWlkPTE1JnJjdXI9VVNE is Base64 encoded "mid=15&rcur=USD"
+                .withQueryParam("bWlkPTE1JnJjdXI9VVNE", equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
@@ -1408,8 +1408,8 @@ public class ApplicationTest extends VertxTest {
                 .withQueryParam("gdpr", equalTo("1"))
                 .withQueryParam("gdpr_consent", equalTo("consent1"))
                 .withQueryParam("pt", equalTo("gross"))
-                // bWlkPTE1 is Base64 encoded "mid=15"
-                .withQueryParam("bWlkPTE1", equalTo(""))
+                // bWlkPTE1JnJjdXI9VVNE is Base64 encoded "mid=15&rcur=USD"
+                .withQueryParam("bWlkPTE1JnJjdXI9VVNE", equalTo(""))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
