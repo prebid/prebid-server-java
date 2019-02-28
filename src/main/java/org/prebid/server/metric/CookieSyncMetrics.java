@@ -7,6 +7,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
+/**
+ * Contains cookie sync metrics for a bidders metrics support.
+ */
 public class CookieSyncMetrics extends UpdatableMetrics {
 
     private final Function<String, CookieSyncMetrics.BidderCookieSyncMetrics> bidderCookieSyncMetricsCreator;

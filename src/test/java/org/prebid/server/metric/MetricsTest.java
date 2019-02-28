@@ -434,9 +434,9 @@ public class MetricsTest {
     }
 
     @Test
-    public void updateUserSyncRequestMetricShouldIncrementMetric() {
+    public void updateCookieSyncRequestMetricShouldIncrementMetric() {
         // when
-        metrics.updateUserSyncRequestMetric();
+        metrics.updateCookieSyncRequestMetric();
 
         // then
         assertThat(metricRegistry.counter("cookie_sync_requests").getCount()).isEqualTo(1);

@@ -76,7 +76,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-        metrics.updateUserSyncRequestMetric();
+        metrics.updateCookieSyncRequestMetric();
 
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(context);
         if (!uidsCookie.allowsSync()) {

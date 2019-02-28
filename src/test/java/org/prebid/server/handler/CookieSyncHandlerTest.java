@@ -725,7 +725,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateUserSyncRequestMetric();
+        verify(metrics).updateCookieSyncRequestMetric();
     }
 
     @Test

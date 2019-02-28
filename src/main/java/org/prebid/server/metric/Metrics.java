@@ -155,10 +155,6 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(bidder).request().incCounter(errorMetric);
     }
 
-    public void updateUserSyncRequestMetric() {
-        incCounter(MetricName.cookie_sync_requests);
-    }
-
     public void updateUserSyncOptoutMetric() {
         userSync().incCounter(MetricName.opt_outs);
     }
@@ -173,6 +169,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateUserSyncGdprPreventMetric(String bidder) {
         userSync().forBidder(bidder).incCounter(MetricName.gdpr_prevent);
+    }
+
+    public void updateCookieSyncRequestMetric() {
+        incCounter(MetricName.cookie_sync_requests);
     }
 
     public void updateCookieSyncGenMetric(String bidder) {

@@ -8,30 +8,30 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * Contains cookie sync metrics for a bidders metrics support.
+ * Contains user sync metrics for a bidders metrics support.
  */
 class UserSyncMetrics extends UpdatableMetrics {
 
-    private final Function<String, BidderCookieSyncMetrics> bidderCookieSyncMetricsCreator;
+    private final Function<String, BidderUserSyncMetrics> bidderUserSyncMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
-    private final Map<String, BidderCookieSyncMetrics> bidderCookieSyncMetrics;
+    private final Map<String, BidderUserSyncMetrics> bidderUserSyncMetrics;
 
     UserSyncMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                 metricName -> String.format("usersync.%s", metricName.toString()));
-        bidderCookieSyncMetricsCreator = bidder -> new BidderCookieSyncMetrics(metricRegistry, counterType, bidder);
-        bidderCookieSyncMetrics = new HashMap<>();
+        bidderUserSyncMetricsCreator = bidder -> new BidderUserSyncMetrics(metricRegistry, counterType, bidder);
+        bidderUserSyncMetrics = new HashMap<>();
     }
 
-    BidderCookieSyncMetrics forBidder(String bidder) {
-        return bidderCookieSyncMetrics.computeIfAbsent(bidder, bidderCookieSyncMetricsCreator);
+    BidderUserSyncMetrics forBidder(String bidder) {
+        return bidderUserSyncMetrics.computeIfAbsent(bidder, bidderUserSyncMetricsCreator);
     }
 
-    static class BidderCookieSyncMetrics extends UpdatableMetrics {
+    static class BidderUserSyncMetrics extends UpdatableMetrics {
 
-        BidderCookieSyncMetrics(MetricRegistry metricRegistry, CounterType counterType, String bidder) {
+        BidderUserSyncMetrics(MetricRegistry metricRegistry, CounterType counterType, String bidder) {
             super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                     nameCreator(Objects.requireNonNull(bidder)));
         }
