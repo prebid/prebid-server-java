@@ -60,7 +60,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (!uidsCookie.allowsSync()) {
             final int status = HttpResponseStatus.UNAUTHORIZED.code();
             context.response().setStatusCode(status).end();
-            metrics.updateCookieSyncOptoutMetric();
+            metrics.updateUserSyncOptoutMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
         }
@@ -69,7 +69,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         if (StringUtils.isBlank(bidder)) {
             final int status = HttpResponseStatus.BAD_REQUEST.code();
             context.response().setStatusCode(status).end("\"bidder\" query param is required");
-            metrics.updateCookieSyncBadRequestMetric();
+            metrics.updateUserSyncBadRequestMetric();
             analyticsReporter.processEvent(SetuidEvent.error(status));
             return;
         }
@@ -136,7 +136,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         } else {
             updatedUidsCookie = uidsCookie.updateUid(bidder, uid);
             successfullyUpdated = true;
-            metrics.updateCookieSyncSetsMetric(bidder);
+            metrics.updateUserSyncSetsMetric(bidder);
         }
 
         final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
@@ -152,7 +152,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void respondWithoutCookie(RoutingContext context, int status, String body, String bidder) {
         context.response().setStatusCode(status).end(body);
-        metrics.updateCookieSyncGdprPreventMetric(bidder);
+        metrics.updateUserSyncGdprPreventMetric(bidder);
         analyticsReporter.processEvent(SetuidEvent.error(status));
     }
 }

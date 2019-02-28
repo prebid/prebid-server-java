@@ -5,13 +5,14 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CookieSyncMetricsTest {
+public class UserSyncMetricsTest {
+
     @Test
     public void forBidderShouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
         // given
-        final CookieSyncMetrics cookieSyncMetrics = new CookieSyncMetrics(new MetricRegistry(), CounterType.counter);
+        final UserSyncMetrics userSyncMetrics = new UserSyncMetrics(new MetricRegistry(), CounterType.counter);
 
         // when and then
-        assertThat(cookieSyncMetrics.forBidder("rubicon")).isSameAs(cookieSyncMetrics.forBidder("rubicon"));
+        assertThat(userSyncMetrics.forBidder("rubicon")).isSameAs(userSyncMetrics.forBidder("rubicon"));
     }
 }

@@ -48,6 +48,8 @@ Following metrics are collected and submitted if account is configured with `det
 
 ## /cookie_sync endpoint metrics
 - `cookie_sync_requests` - number of requests received
+- `cookie_sync.<bidder-name>.gen` - number of times cookies was synced per bidder 
+- `cookie_sync.<bidder-name>.gpdr_prevent` - number of times cookie sync was prevented by gdpr per bidder
 
 ## /setuid endpoint metrics
 - `usersync.opt_outs` - number of requests received with `uids` cookie containing `optout=true`

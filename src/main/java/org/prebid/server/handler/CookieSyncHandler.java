@@ -194,6 +194,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
      */
     private void respondWith(RoutingContext context, UidsCookie uidsCookie, String gdpr, String gdprConsent,
                              Collection<String> bidders, Collection<String> biddersRejectedByGdpr, Integer limit) {
+        updateCookieSyncGdprMetrics(bidders, biddersRejectedByGdpr);
+
         // don't send the response if client has gone
         if (context.response().closed()) {
             logger.warn("The client already closed connection, response will be skipped");
@@ -224,6 +226,16 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .status(HttpResponseStatus.OK.code())
                 .bidderStatus(updatedBidderStatuses)
                 .build());
+    }
+
+    private void updateCookieSyncGdprMetrics(Collection<String> syncBidders, Collection<String> rejectedBidders) {
+        for (String bidder : syncBidders) {
+            if (rejectedBidders.contains(bidder)) {
+                metrics.updateCookieSyncGdprPreventMetric(bidder);
+            } else {
+                metrics.updateCookieSyncGenMetric(bidder);
+            }
+        }
     }
 
     /**

@@ -363,7 +363,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateCookieSyncOptoutMetric();
+        verify(metrics).updateUserSyncOptoutMetric();
     }
 
     @Test
@@ -378,7 +378,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateCookieSyncBadRequestMetric();
+        verify(metrics).updateUserSyncBadRequestMetric();
     }
 
     @Test
@@ -412,7 +412,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateCookieSyncSetsMetric(eq(RUBICON));
+        verify(metrics).updateUserSyncSetsMetric(eq(RUBICON));
     }
 
     @Test
