@@ -33,9 +33,11 @@ import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
+import org.prebid.server.proto.request.EventNotificationRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
+import org.prebid.server.util.ResourceUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -1692,6 +1694,21 @@ public class ApplicationTest extends VertxTest {
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(jsonFrom("info-bidders/test-info-bidder-details-response.json")));
+    }
+
+    @Test
+    public void eventHandlerShouldRespondWithJPGTrackingPixel() throws IOException {
+        given(spec)
+                .queryParam("format", "jpg")
+                .body(mapper.writeValueAsString(EventNotificationRequest.builder()
+                        .type("win").bidder("rubicon").bidId("bidId").build()))
+                .post("/event")
+                .then()
+                .assertThat()
+                .statusCode(200)
+                .header("content-type", "image/jpeg")
+                .body(Matchers.equalTo(
+                        Buffer.buffer(ResourceUtil.readByteArrayFromClassPath("static/tracking-pixel.jpg")).toString()));
     }
 
     @Test
