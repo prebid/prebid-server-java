@@ -55,6 +55,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
@@ -78,6 +79,7 @@ public class ApplicationTest extends VertxTest {
     private static final String APPNEXUS_CONFIGURED_ALIAS = "districtm";
     private static final String BEACHFRONT = "beachfront";
     private static final String BRIGHTROLL = "brightroll";
+    private static final String CONSUMABLE = "consumable";
     private static final String CONVERSANT = "conversant";
     private static final String CONVERSANT_ALIAS = "conversantAlias";
     private static final String EPLANNING = "eplanning";
@@ -129,6 +131,53 @@ public class ApplicationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         wireMockRule.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
+    }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithBidsFromConsumable() throws IOException, JSONException {
+        // given
+        // consumable bid response for imp 001
+        wireMockRule.stubFor(post(urlPathEqualTo("/consumable-exchange"))
+                .withHeader("Cookie", equalTo("azk=CS-UID"))
+                .withHeader("Origin", equalTo("http://www.example.com"))
+                .withHeader("Accept", equalTo("application/json"))
+                .withHeader("User-Agent", equalTo("userAgent"))
+                .withHeader("Forwarded", equalTo("for=192.168.244.1"))
+                .withHeader("Referer", equalTo("http://www.example.com"))
+                .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
+                .withHeader("Host", equalTo("localhost:8090"))
+                .withHeader("Content-Length", equalTo("302"))
+                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withCookie("azk", equalTo("CS-UID"))
+                .withRequestBody(matchingJsonPath("$.time"))
+//                .withRequestBody(equalToJson(jsonFrom("openrtb2/consumable/test-consumable-bid-request-1.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/consumable/test-consumable-bid-response-1.json"))));
+
+        // pre-bid cache
+        wireMockRule.stubFor(post(urlPathEqualTo("/cache"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/consumable/test-cache-consumable-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/consumable/test-cache-consumable-response.json"))));
+
+        // when
+        final Response response = given(spec)
+                .header("Referer", "http://www.example.com")
+                .header("X-Forwarded-For", "192.168.244.1")
+                .header("User-Agent", "userAgent")
+                .header("Origin", "http://www.example.com")
+                // this uids cookie value stands for {"uids":{"consumable":"CS-UID"}}
+                .cookie("uids", "eyJ1aWRzIjp7ImNvbnN1bWFibGUiOiJDUy1VSUQifX0=")
+                .body(jsonFrom("openrtb2/consumable/test-auction-consumable-request.json"))
+                .post("/openrtb2/auction");
+
+        final int indexOfTime = response.asString().indexOf("\\\"time\\\"");
+        final String timeMs = response.asString().substring(indexOfTime + 9, indexOfTime + 19);
+
+        // then
+        final String expectedAuctionResponse = openrtbAuctionResponseFrom(
+                "openrtb2/consumable/test-auction-consumable-response.json",
+                response, singletonList(CONSUMABLE)).replaceAll("\\{\\{time}}", timeMs);
+
+        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
