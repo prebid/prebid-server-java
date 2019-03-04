@@ -66,8 +66,9 @@ public class CurrencyConversionService {
      * Validates consumed refresh period value.
      */
     private long validateRefreshPeriod(long refreshPeriod) {
-        if (refreshPeriod < 1) {
-            throw new IllegalArgumentException("Refresh period for updating rates must be positive value");
+        if (refreshPeriod < 0) {
+            throw new IllegalArgumentException("Refresh period must be either positive value(for rates update) or "
+                    + "zero(disabled)");
         }
         return refreshPeriod;
     }

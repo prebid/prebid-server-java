@@ -382,6 +382,10 @@ public class ServiceConfiguration {
             Vertx vertx,
             HttpClient httpClient) {
 
+        if (refreshPeriod == 0) {
+            return null;
+        }
+
         return new CurrencyConversionService(currencyServerUrl, refreshPeriod, vertx, httpClient);
     }
 }

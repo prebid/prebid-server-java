@@ -72,8 +72,8 @@ public class CurrencyConversionServiceTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidPeriodValue() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> createAndInitService(URL, 0L, vertx, httpClient))
-                .withMessage("Refresh period for updating rates must be positive value");
+                .isThrownBy(() -> createAndInitService(URL, -1L, vertx, httpClient))
+                .withMessage("Refresh period must be either positive value(for rates update) or zero(disabled)");
     }
 
     @Test
