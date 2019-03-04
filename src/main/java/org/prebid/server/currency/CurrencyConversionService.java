@@ -54,6 +54,7 @@ public class CurrencyConversionService {
 
     /**
      * Sets timer for periodic currency rates updates and starts initial population.
+     * If refresh period is zero i.e. updates disabled - this method would not be called.
      * <p>
      * Must be called on Vertx event loop thread.
      */
@@ -71,6 +72,10 @@ public class CurrencyConversionService {
                     + "zero(disabled)");
         }
         return refreshPeriod;
+    }
+
+    public boolean isEnabled() {
+        return refreshPeriod > 0;
     }
 
     /**

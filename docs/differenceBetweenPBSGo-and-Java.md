@@ -8,6 +8,7 @@ and not the other for an interim period. This page tracks known differences that
 ## Feature Differences
 
 1) PBS-Java supports Currency conversion. PBS-Go has it implemented, but disabled by default(still under dev) [issue 280](https://github.com/prebid/prebid-server/issues/280), [issue 760](https://github.com/prebid/prebid-server/pull/760). PBS-Java [PR 22](https://github.com/rubicon-project/prebid-server-java/pull/22)
+1) PBS-Java Currency conversion supports finding intermediate conversion rate, e.g. if pairs USD : AUD = 1.2 and EUR : AUD = 1.5 are present and EUR to USD conversion is needed, will return (1/1.5) * 1.2 conversion rate.
 1) PBS-Java supports IP-address lookup in certain scenarios around GDPR. See https://github.com/rubicon-project/prebid-server-java/blob/master/docs/developers/PrebidServerJava_GDPR_Requirements.pdf
 1) PBS-Java supports InfluxDB, Graphite and Prometheus, PBS-Go supports InfluxDB and Prometheus as metrics backend.
 1) PBS-Java has Circuit Breaker mechanism for database, http and geolocation requests. This can protect the server in scenarios where an external service becomes unavailable.
