@@ -149,6 +149,7 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Content-Length", equalTo("302"))
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withCookie("azk", equalTo("CS-UID"))
+                // The "time" field in consumable bid request is not being checked as its value is Instance.now()
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/consumable/test-consumable-bid-request-1.json"),
                         true, true))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/consumable/test-consumable-bid-response-1.json"))));
