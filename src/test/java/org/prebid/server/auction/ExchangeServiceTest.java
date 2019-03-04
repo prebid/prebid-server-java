@@ -67,6 +67,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
+import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
@@ -173,14 +174,15 @@ public class ExchangeServiceTest extends VertxTest {
         metricsContext = MetricsContext.of(MetricName.openrtb2web);
 
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0, null, "http://external.org");
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, -1));
+                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, -1, null,
+                        "http://external.org"));
     }
 
     @Test
@@ -716,7 +718,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .id("bidId")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null), singletonMap("bidExt", 1))))
+                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null), singletonMap("bidExt", 1))))
                         .build()))
                 .build());
     }
@@ -740,7 +742,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .bid(singletonList(Bid.builder()
                         .id("bidId")
                         .price(BigDecimal.ONE)
-                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null, null), null)))
+                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null), null)))
                         .build()))
                 .build());
     }
@@ -1464,7 +1466,8 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 100);
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 100, null,
+                "http://external.org");
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));
@@ -1728,6 +1731,118 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(ext.getErrors()).hasSize(1).containsOnly(entry("somebidder",
                 singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
                         "Bid currencies mismatch found. Expected all bids to have the same currencies."))));
+    }
+
+    @Test
+    public void shouldAddExtPrebidEventsFromSitePublisher() {
+        // given
+        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
+                singletonList("1001"), "http://external.org");
+
+        givenBidder(BidderSeatBid.of(
+                singletonList(BidderBid.of(
+                        Bid.builder().id("bidId").price(BigDecimal.ONE)
+                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null)),
+                emptyList(),
+                emptyList()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder.site(Site.builder()
+                        .publisher(Publisher.builder().id("1001").build()).build()));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1).element(0).isEqualTo(SeatBid.builder()
+                .seat("someBidder")
+                .group(0)
+                .bid(singletonList(Bid.builder()
+                        .id("bidId")
+                        .price(BigDecimal.ONE)
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null, Events.of(
+                                        "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder")),
+                                        singletonMap("bidExt", 1))))
+                        .build()))
+                .build());
+    }
+
+    @Test
+    public void shouldAddExtPrebidEventsFromAppPublisher() {
+        // given
+        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
+                singletonList("1001"), "http://external.org");
+
+        givenBidder(BidderSeatBid.of(
+                singletonList(BidderBid.of(
+                        Bid.builder().id("bidId").price(BigDecimal.ONE)
+                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null)),
+                emptyList(),
+                emptyList()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder()
+                        .publisher(Publisher.builder().id("1001").build()).build()));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1).element(0).isEqualTo(SeatBid.builder()
+                .seat("someBidder")
+                .group(0)
+                .bid(singletonList(Bid.builder()
+                        .id("bidId")
+                        .price(BigDecimal.ONE)
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null, Events.of(
+                                        "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder")),
+                                        singletonMap("bidExt", 1))))
+                        .build()))
+                .build());
+    }
+
+    @Test
+    public void shouldNotAddExtPrebidEventsWhenAccountsEnabledDoesNotContainPublisherId() {
+// given
+        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
+                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
+                singletonList("1002"), "http://external.org");
+
+        givenBidder(BidderSeatBid.of(
+                singletonList(BidderBid.of(
+                        Bid.builder().id("bidId").price(BigDecimal.ONE)
+                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null)),
+                emptyList(),
+                emptyList()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder()
+                        .publisher(Publisher.builder().id("1001").build()).build()));
+
+        // when
+        final BidResponse bidResponse =
+                exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1).element(0).isEqualTo(SeatBid.builder()
+                .seat("someBidder")
+                .group(0)
+                .bid(singletonList(Bid.builder()
+                        .id("bidId")
+                        .price(BigDecimal.ONE)
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(ExtBidPrebid.of(banner, null, null, null),
+                                        singletonMap("bidExt", 1))))
+                        .build()))
+                .build());
     }
 
     @Test

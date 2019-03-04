@@ -305,11 +305,13 @@ public class ServiceConfiguration {
             Metrics metrics,
             Clock clock,
             @Value("${gdpr.geolocation.enabled}") boolean useGeoLocation,
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
+            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+            @Value("${events.accounts-enabled}") List<String> accountsEnabled,
+            @Value("${external-url}") String externalUrl) {
 
         return new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyConversionService, gdprService, metrics, clock, useGeoLocation,
-                expectedCacheTimeMs);
+                expectedCacheTimeMs, accountsEnabled, externalUrl);
     }
 
     @Bean

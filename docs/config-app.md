@@ -50,6 +50,9 @@ This parameter affects how many CPU cores will be utilized by the application. R
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
 
+## Events
+- `events.accounts-enabled` - a list of accounts supporting event notifications.   
+
 ## Cookie Sync
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
 
