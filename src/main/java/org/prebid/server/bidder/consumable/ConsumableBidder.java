@@ -17,6 +17,7 @@ import io.vertx.core.json.Json;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.consumable.model.ConsumableAdType;
 import org.prebid.server.bidder.consumable.model.ConsumableBidRequest;
 import org.prebid.server.bidder.consumable.model.ConsumableBidResponse;
 import org.prebid.server.bidder.consumable.model.ConsumableDecision;
@@ -148,7 +149,11 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         final Site site = request.getSite();
         if (site != null && StringUtils.isNotBlank(site.getPage())) {
             headers.set("Referer", site.getPage());
-            headers.set("Origin", HttpUtil.validateUrl(site.getPage()));
+            try {
+                headers.set("Origin", HttpUtil.validateUrl(site.getPage()));
+            } catch (IllegalArgumentException e) {
+                // do nothing, just skip adding this header
+            }
         }
 
         return headers;
@@ -175,29 +180,39 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         for (Map.Entry<String, ConsumableDecision> entry : impIdToDecisions.entrySet()) {
             final ConsumableDecision decision = entry.getValue();
 
-            final ConsumablePricing pricing = decision.getPricing();
-            if (pricing != null && pricing.getClearPrice() != null) {
-                final String impId = entry.getKey();
-                final Imp imp;
-                try {
-                    imp = getImpById(impId, bidRequest);
-                } catch (PreBidException e) {
-                    errors.add(BidderError.badServerResponse(e.getMessage()));
-                    continue;
+            if (decision != null) {
+                final ConsumablePricing pricing = decision.getPricing();
+                if (pricing != null && pricing.getClearPrice() != null) {
+                    final String impId = entry.getKey();
+                    final Imp imp;
+                    try {
+                        imp = getImpById(impId, bidRequest);
+                    } catch (PreBidException e) {
+                        errors.add(BidderError.badServerResponse(e.getMessage()));
+                        continue;
+                    }
+
+                    final List<Format> formats = imp.getBanner().getFormat();
+                    if (CollectionUtils.isEmpty(formats)) {
+                        errors.add(BidderError.badInput(
+                                String.format("Skipping imp ID: %s - null or empty formats", imp.getId())));
+                        continue;
+                    }
+
+                    final Format firstFormat = formats.get(0);
+                    final Bid bid = Bid.builder()
+                            .id(bidRequest.getId())
+                            .impid(impId)
+                            .price(BigDecimal.valueOf(pricing.getClearPrice()))
+                            .adm(CollectionUtils.isNotEmpty(decision.getContents())
+                                    ? decision.getContents().get(0).getBody() : "")
+                            .w(firstFormat.getW())
+                            .h(firstFormat.getH())
+                            .crid(String.valueOf(decision.getAdId()))
+                            .exp(30)
+                            .build();
+                    bidderBids.add(BidderBid.of(bid, BidType.banner, null));
                 }
-                final Format firstFormat = imp.getBanner().getFormat().get(0);
-                final Bid bid = Bid.builder()
-                        .id(bidRequest.getId())
-                        .impid(impId)
-                        .price(BigDecimal.valueOf(pricing.getClearPrice()))
-                        .adm(CollectionUtils.isNotEmpty(decision.getContents())
-                                ? decision.getContents().get(0).getBody() : "")
-                        .w(firstFormat.getW())
-                        .h(firstFormat.getH())
-                        .crid(String.valueOf(decision.getAdId()))
-                        .exp(30)
-                        .build();
-                bidderBids.add(BidderBid.of(bid, BidType.banner, null));
             }
         }
         return bidderBids;

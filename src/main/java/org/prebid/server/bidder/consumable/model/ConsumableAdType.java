@@ -1,7 +1,9 @@
-package org.prebid.server.bidder.consumable;
+package org.prebid.server.bidder.consumable.model;
 
 import com.iab.openrtb.request.Format;
+import org.apache.commons.collections4.CollectionUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +13,9 @@ import java.util.stream.Collectors;
 public class ConsumableAdType {
 
     public static List<Integer> getSizeCodes(List<Format> formats) {
+        if (CollectionUtils.isEmpty(formats)) {
+            return Collections.emptyList();
+        }
         return formats.stream()
                 .map(format -> format.getW() + "x" + format.getH())
                 .map(SIZE_MAP::get)

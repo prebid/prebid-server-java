@@ -150,7 +150,6 @@ public class ApplicationTest extends VertxTest {
                 .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
                 .withCookie("azk", equalTo("CS-UID"))
                 .withRequestBody(matchingJsonPath("$.time"))
-//                .withRequestBody(equalToJson(jsonFrom("openrtb2/consumable/test-consumable-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/consumable/test-consumable-bid-response-1.json"))));
 
         // pre-bid cache
