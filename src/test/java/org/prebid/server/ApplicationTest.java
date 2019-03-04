@@ -33,7 +33,6 @@ import org.prebid.server.cache.proto.response.BidCacheResponse;
 import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
-import org.prebid.server.proto.request.EventNotificationRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
@@ -49,8 +48,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -1699,10 +1700,11 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void eventHandlerShouldRespondWithJPGTrackingPixel() throws IOException {
         given(spec)
+                .queryParam("type", "win")
+                .queryParam("bidid", "bidId")
+                .queryParam("bidder", "rubicon")
                 .queryParam("format", "jpg")
-                .body(mapper.writeValueAsString(EventNotificationRequest.builder()
-                        .type("win").bidder("rubicon").bidId("bidId").build()))
-                .post("/event")
+                .get("/event")
                 .then()
                 .assertThat()
                 .statusCode(200)

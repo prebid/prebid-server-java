@@ -2,21 +2,22 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.proto.request.EventNotificationRequest;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -31,47 +32,40 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     private static final String VIEW_TYPE = "view";
     private static final String WIN_TYPE = "win";
     private static final String FORMAT_PARAMETER = "format";
-    private static final String JPG = "jpg";
-    private static final String PNG = "png";
-    private static final String JPG_HEADER = "image/jpeg";
-    private static final String PNG_HEADER = "image/png";
+    private static final String TYPE_PARAMETER = "type";
+    private static final String BID_ID_PARAMETER = "bidid";
+    private static final String BIDDER_PARAMETER = "bidder";
+    private static final String JPG_FORMAT = "jpg";
+    private static final String PNG_FORMAT = "png";
+    private static final String JPG_CONTENT_TYPE = "image/jpeg";
+    private static final String PNG_CONTENT_TYPE = "image/png";
 
     private final AnalyticsReporter analyticsReporter;
-    private final byte[] trackingPixelPng;
-    private final byte[] trackingPixelJpg;
+    private final Map<String, TrackingPixel> trackingPixels;
 
-    private NotificationEventHandler(AnalyticsReporter analyticsReporter, byte[] trackingPixelPng,
-                                     byte[] trackingPixelJpg) {
+    private NotificationEventHandler(AnalyticsReporter analyticsReporter, Map<String, TrackingPixel> trackingPixels) {
         this.analyticsReporter = analyticsReporter;
-        this.trackingPixelJpg = trackingPixelJpg;
-        this.trackingPixelPng = trackingPixelPng;
+        this.trackingPixels = trackingPixels;
     }
 
     public static NotificationEventHandler create(AnalyticsReporter analyticsReporter) {
-        return new NotificationEventHandler(Objects.requireNonNull(analyticsReporter),
-                readTrackingPixel(TRACKING_PIXEL_PNG), readTrackingPixel(TRACKING_PIXEL_JPG));
-    }
-
-    private static byte[] readTrackingPixel(String path) {
-        try {
-            return ResourceUtil.readByteArrayFromClassPath(path);
-        } catch (IOException e) {
-            throw new IllegalArgumentException(String.format("Failed to load pixel image at %s", path), e);
-        }
+        final Map<String, TrackingPixel> trackingPixels = new HashMap<>();
+        trackingPixels.put(JPG_FORMAT, TrackingPixel.of(JPG_CONTENT_TYPE, readTrackingPixel(TRACKING_PIXEL_JPG)));
+        trackingPixels.put(PNG_FORMAT, TrackingPixel.of(PNG_CONTENT_TYPE, readTrackingPixel(TRACKING_PIXEL_PNG)));
+        return new NotificationEventHandler(Objects.requireNonNull(analyticsReporter), trackingPixels);
     }
 
     @Override
     public void handle(RoutingContext context) {
-        final EventNotificationRequest eventNotificationRequest;
+        final MultiMap queryParameters = context.request().params();
+
+        final NotificationEvent notificationEvent;
         try {
-            eventNotificationRequest = makeEventRequest(context.getBody());
+            notificationEvent = makeNotificationEvent(queryParameters);
         } catch (InvalidRequestException ex) {
             respondWithBadStatus(context, ex.getMessage());
             return;
         }
-
-        final NotificationEvent notificationEvent = new NotificationEvent(eventNotificationRequest.getType(),
-                eventNotificationRequest.getBidId(), eventNotificationRequest.getBidder());
 
         analyticsReporter.processEvent(notificationEvent);
 
@@ -88,61 +82,62 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         respondWithOkStatus(context, format);
     }
 
-    private EventNotificationRequest makeEventRequest(Buffer body) {
-        if (body == null) {
-            throw new InvalidRequestException(
-                    "Request body was empty. Expected request with body has next fields: type, bidid and bidder.");
-        }
-
-        final EventNotificationRequest eventNotificationRequest;
+    private static byte[] readTrackingPixel(String path) {
         try {
-            eventNotificationRequest = Json.decodeValue(body, EventNotificationRequest.class);
-        } catch (DecodeException e) {
-            throw new InvalidRequestException(
-                    "Request body couldn't be parsed. Expected request body has next fields: type, bidid and bidder.");
+            return ResourceUtil.readByteArrayFromClassPath(path);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(String.format("Failed to load pixel image at %s", path), e);
         }
-
-        validateEventRequestBody(eventNotificationRequest);
-        return eventNotificationRequest;
     }
 
-    private void validateEventRequestBody(EventNotificationRequest eventNotificationRequest) {
-        final String type = eventNotificationRequest.getType();
+    private NotificationEvent makeNotificationEvent(MultiMap queryParameters) {
+        final String type = queryParameters.get(TYPE_PARAMETER);
         if (ObjectUtils.notEqual(type, VIEW_TYPE) && ObjectUtils.notEqual(type, WIN_TYPE)) {
             throw new InvalidRequestException(String.format(
-                    "Type is required parameter. Possible values are win and view, but was %s", type));
+                    "Type is required query parameter. Possible values are win and view, but was %s", type));
         }
 
-        final String bidId = eventNotificationRequest.getBidId();
+        final String bidId = queryParameters.get(BID_ID_PARAMETER);
         if (StringUtils.isBlank(bidId)) {
-            throw new InvalidRequestException("bidid is required and can't be empty.");
+            throw new InvalidRequestException("bidid is required query parameter and can't be empty.");
         }
 
-        final String bidder = eventNotificationRequest.getBidder();
+        final String bidder = queryParameters.get(BIDDER_PARAMETER);
         if (StringUtils.isBlank(bidder)) {
-            throw new InvalidRequestException("bidder is required and can't be empty.");
+            throw new InvalidRequestException("bidder is required query parameter and can't be empty.");
         }
-
+        return NotificationEvent.of(type, bidId, bidder);
     }
 
     private void validateEventRequestQueryParams(String format) {
-        if (format != null && ObjectUtils.notEqual(format, JPG) && ObjectUtils.notEqual(format, PNG)) {
+        if (format != null && ObjectUtils.notEqual(format, JPG_FORMAT) && ObjectUtils.notEqual(format, PNG_FORMAT)) {
             throw new InvalidRequestException("format when defined should has value of png or jpg.");
         }
     }
 
     private void respondWithBadStatus(RoutingContext context, String message) {
         context.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                .end(String.format("%s%s", "Request is invalid: ", message));
+                .end(String.format("Request is invalid: %s", message));
     }
 
     private void respondWithOkStatus(RoutingContext context, String format) {
         if (format != null) {
+            final TrackingPixel trackingPixel = trackingPixels.get(format);
             context.response()
-                    .putHeader(HttpHeaders.CONTENT_TYPE, format.equals(JPG) ? JPG_HEADER : PNG_HEADER)
-                    .end(format.equals(JPG) ? Buffer.buffer(trackingPixelJpg) : Buffer.buffer(trackingPixelPng));
+                    .putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
+                    .end(Buffer.buffer(trackingPixel.getContent()));
         } else {
             context.response().end();
         }
+    }
+
+    /**
+     * Internal class for holding pixels content type to its value
+     */
+    @AllArgsConstructor(staticName = "of")
+    @Value
+    private static class TrackingPixel {
+        String contentType;
+        byte[] content;
     }
 }

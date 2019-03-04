@@ -166,7 +166,7 @@ public class WebConfiguration {
         router.get("/bidders/params").handler(bidderParamHandler);
         router.get("/info/bidders").handler(biddersHandler);
         router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
-        router.post("/event").handler(notificationEventHandler);
+        router.get("/event").handler(notificationEventHandler);
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves index.html by default
 
