@@ -1,0 +1,18 @@
+{
+  "decisions": {
+    "impId001": {
+      "adId": 1234567890,
+      "pricing": {
+        "clearPrice": 0.5
+      },
+      "width": 300,
+      "height": 250,
+      "impressionUrl": "http://localhost:8080/shown",
+      "contents": [
+        {
+          "body": "<blink>Remember this: https://www.google.com/search?q=blink+tag ?</blink>"
+        }
+      ]
+    }
+  }
+}

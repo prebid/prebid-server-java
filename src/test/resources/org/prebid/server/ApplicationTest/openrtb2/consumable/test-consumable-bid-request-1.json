@@ -1,0 +1,22 @@
+{
+  "placements": [
+    {
+      "divName": "impId001",
+      "networkId": 123,
+      "siteId": 345,
+      "unitId": 4123,
+      "unitName": "unit_name",
+      "adTypes": [
+        5
+      ]
+    }
+  ],
+  "networkId": 123,
+  "siteId": 345,
+  "unitId": 4123,
+  "unitName": "unit_name",
+  "includePricingData": true,
+  "url": "http://www.example.com",
+  "enableBotFiltering": true,
+  "parallel": true
+}
