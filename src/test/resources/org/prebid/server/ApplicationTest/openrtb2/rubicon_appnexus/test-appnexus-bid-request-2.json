@@ -32,7 +32,7 @@
     "domain": "example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId"
+      "id": "5001"
     },
     "ext": {
       "amp": 0

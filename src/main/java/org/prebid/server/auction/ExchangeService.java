@@ -63,7 +63,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.response.BidderInfo;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -95,9 +94,6 @@ public class ExchangeService {
     private static final String PREBID_EXT = "prebid";
     private static final String CACHE = "cache";
     private static final String DEFAULT_CURRENCY = "USD";
-    private static final String EVENT_CALLBACK_URL_PATTERN = "%s/event?type=%s&bidid=%s&bidder=%s";
-    private static final String VIEW_EVENT_TYPE = "view";
-    private static final String WIN_EVENT_TYPE = "win";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
     private static final DecimalFormat ROUND_TWO_DECIMALS =
             new DecimalFormat("###.##", DecimalFormatSymbols.getInstance(Locale.US));
@@ -109,19 +105,18 @@ public class ExchangeService {
     private final BidResponsePostProcessor bidResponsePostProcessor;
     private final CurrencyConversionService currencyService;
     private final GdprService gdprService;
+    private final EventsService eventsService;
     private final Metrics metrics;
     private final Clock clock;
     private final boolean useGeoLocation;
     private final long expectedCacheTime;
-    private final List<String> accountsEnabled;
-    private final String externalUrl;
 
     public ExchangeService(BidderCatalog bidderCatalog, HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
                            BidResponsePostProcessor bidResponsePostProcessor,
                            CurrencyConversionService currencyService, GdprService gdprService,
-                           Metrics metrics, Clock clock, boolean useGeoLocation, long expectedCacheTime,
-                           List<String> accountsEnabled, String externalUrl) {
+                           EventsService eventsService, Metrics metrics, Clock clock, boolean useGeoLocation,
+                           long expectedCacheTime) {
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time should be positive");
         }
@@ -132,12 +127,11 @@ public class ExchangeService {
         this.currencyService = Objects.requireNonNull(currencyService);
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.gdprService = gdprService;
+        this.eventsService = eventsService;
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.useGeoLocation = useGeoLocation;
         this.expectedCacheTime = expectedCacheTime;
-        this.accountsEnabled = accountsEnabled;
-        this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
     }
 
     /**
@@ -889,7 +883,7 @@ public class ExchangeService {
 
         return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
                 .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        cacheResult, winningBids, winningBidsByBidder, cacheInfo));
+                        cacheResult, winningBids, winningBidsByBidder, cacheInfo, publisherId));
     }
 
     /**
@@ -1042,12 +1036,13 @@ public class ExchangeService {
     private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                    TargetingKeywordsCreator keywordsCreator,
                                                    CacheResult cacheResult, Set<Bid> winningBids,
-                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
+                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
+                                                   String publisherId) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
                         toSeatBid(bidderResponse, keywordsCreator, cacheResult, winningBids, winningBidsByBidder,
-                                cacheInfo, getPublisherId(bidRequest.getSite(), bidRequest.getApp())))
+                                cacheInfo, publisherId))
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult.getErrors(),
@@ -1061,17 +1056,6 @@ public class ExchangeService {
                 .seatbid(seatBids)
                 .ext(Json.mapper.valueToTree(bidResponseExt))
                 .build();
-    }
-
-    private String getPublisherId(Site site, App app) {
-        final String publisherId;
-        if (site == null && app == null) {
-            publisherId = null;
-        } else {
-            final Publisher publisher = site != null ? site.getPublisher() : app.getPublisher();
-            publisherId = publisher != null ? publisher.getId() : null;
-        }
-        return publisherId;
     }
 
     /**
@@ -1106,9 +1090,7 @@ public class ExchangeService {
         final Bid bid = bidderBid.getBid();
         final Map<String, String> targetingKeywords;
         final ExtResponseCache cache;
-        final Events events = accountsEnabled != null && accountsEnabled.contains(publisherId)
-                ? makeEvents(bid.getId(), bidder)
-                : null;
+        final Events events = eventsService.createEvents(publisherId, bid.getId(), bidder);
 
         if (keywordsCreator != null && winningBidsByBidder.contains(bid)) {
             final boolean isWinningBid = winningBid.contains(bid);
@@ -1137,14 +1119,6 @@ public class ExchangeService {
         bid.setExt(Json.mapper.valueToTree(bidExt));
 
         return bid;
-    }
-
-    /**
-     * Creates {@link Events} object with callbacks for events notification.
-     */
-    private Events makeEvents(String bidId, String bidder) {
-        return Events.of(String.format(EVENT_CALLBACK_URL_PATTERN, externalUrl, WIN_EVENT_TYPE, bidId, bidder),
-                String.format(EVENT_CALLBACK_URL_PATTERN, externalUrl, VIEW_EVENT_TYPE, bidId, bidder));
     }
 
     /**

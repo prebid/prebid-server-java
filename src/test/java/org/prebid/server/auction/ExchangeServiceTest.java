@@ -174,15 +174,16 @@ public class ExchangeServiceTest extends VertxTest {
         metricsContext = MetricsContext.of(MetricName.openrtb2web);
 
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0, null, "http://external.org");
+                bidResponsePostProcessor, currencyService, gdprService, new EventsService(null, "http://external.org"),
+                metrics, clock, false, 0);
     }
 
     @Test
     public void creationShouldFailOnNegativeExpectedCacheTime() {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                        bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, -1, null,
-                        "http://external.org"));
+                        bidResponsePostProcessor, currencyService, gdprService,
+                        new EventsService(null, "http://external.org"), metrics, clock, false, -1));
     }
 
     @Test
@@ -1466,8 +1467,8 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 100, null,
-                "http://external.org");
+                bidResponsePostProcessor, currencyService, gdprService, new EventsService(null, "http://external.org"),
+                metrics, clock, false, 100);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));
@@ -1737,8 +1738,8 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldAddExtPrebidEventsFromSitePublisher() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
-                singletonList("1001"), "http://external.org");
+                bidResponsePostProcessor, currencyService, gdprService,
+                new EventsService(singletonList("1001"), "http://external.org"), metrics, clock, false, 0);
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
@@ -1775,8 +1776,8 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldAddExtPrebidEventsFromAppPublisher() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
-                singletonList("1001"), "http://external.org");
+                bidResponsePostProcessor, currencyService, gdprService,
+                new EventsService(singletonList("1001"), "http://external.org"), metrics, clock, false, 0);
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
@@ -1811,10 +1812,10 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Test
     public void shouldNotAddExtPrebidEventsWhenAccountsEnabledDoesNotContainPublisherId() {
-// given
+        // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, metrics, clock, false, 0,
-                singletonList("1002"), "http://external.org");
+                bidResponsePostProcessor, currencyService, gdprService, new EventsService(singletonList("1002"),
+                "http://external.org"), metrics, clock, false, 0);
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
