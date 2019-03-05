@@ -142,7 +142,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         assertThat(captureResponseStatusCode()).isEqualTo(400);
         assertThat(captureResponseBody())
-                .isEqualTo("Request is invalid: format when defined should has value of png or jpg.");
+                .isEqualTo("Request is invalid: 'format' query parameter can have one of the next values: [jpg, png]");
     }
 
     @Test

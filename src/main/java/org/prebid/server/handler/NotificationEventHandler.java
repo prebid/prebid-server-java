@@ -11,7 +11,6 @@ import lombok.Value;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.util.ResourceUtil;
@@ -69,9 +68,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
         analyticsReporter.processEvent(notificationEvent);
 
-        final Map<String, String> queryParams = HttpContext.from(context).getQueryParams();
-        final String format = queryParams.get(FORMAT_PARAMETER);
-
+        final String format = queryParameters.get(FORMAT_PARAMETER);
         try {
             validateEventRequestQueryParams(format);
         } catch (InvalidRequestException ex) {
@@ -110,8 +107,9 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private void validateEventRequestQueryParams(String format) {
-        if (format != null && ObjectUtils.notEqual(format, JPG_FORMAT) && ObjectUtils.notEqual(format, PNG_FORMAT)) {
-            throw new InvalidRequestException("format when defined should has value of png or jpg.");
+        if (format != null && !trackingPixels.containsKey(format)) {
+            throw new InvalidRequestException(String.format(
+                    "'format' query parameter can have one of the next values: %s", trackingPixels.keySet()));
         }
     }
 
