@@ -27,10 +27,12 @@ auction:
   timeout-adjustment-ms: 30
   stored-requests-timeout-ms: 50
   max-request-size: 262144
-  currency-rates-refresh-period-ms: 900000
-  currency-rates-url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
   cache:
     expected-request-time-ms: 10
+currency-conversion:
+  enabled: true
+  refresh-period-ms: 900000
+  url: https://cdn.jsdelivr.net/gh/prebid/currency-file@1/latest.json
 amp:
   default-timeout-ms: 900
   max-timeout-ms: 5000

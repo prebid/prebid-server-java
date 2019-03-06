@@ -33,7 +33,7 @@ public class InitializationConfiguration {
     private ContextRunner contextRunner;
 
     @Autowired
-    private CurrencyConversionService currencyConversionService;
+    private ObjectProvider<CurrencyConversionService> currencyConversionServiceProvider;
 
     @Autowired
     @Qualifier("httpPeriodicRefreshService")
@@ -54,6 +54,8 @@ public class InitializationConfiguration {
     @EventListener(ContextRefreshedEvent.class)
     public void initializeServices() {
 
+        final CurrencyConversionService currencyConversionService =
+                currencyConversionServiceProvider.getIfAvailable();
         final HttpPeriodicRefreshService httpPeriodicRefreshService =
                 httpPeriodicRefreshServiceProvider.getIfAvailable();
         final HttpPeriodicRefreshService ampHttpPeriodicRefreshService =
@@ -64,7 +66,7 @@ public class InitializationConfiguration {
                 ampJdbcPeriodicRefreshServiceProvider.getIfAvailable();
 
         contextRunner.runOnServiceContext(future -> {
-            if (currencyConversionService.isEnabled()) {
+            if (currencyConversionService != null) {
                 currencyConversionService.initialize();
             }
 
