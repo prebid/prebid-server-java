@@ -376,9 +376,10 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
     CurrencyConversionService currencyConversionService(
-            @Value("${auction.currency-rates-refresh-period-ms}") long refreshPeriod,
-            @Value("${auction.currency-rates-url}") String currencyServerUrl,
+            @Value("${currency-converter.refresh-period-ms}") long refreshPeriod,
+            @Value("${currency-converter.url}") String currencyServerUrl,
             Vertx vertx,
             HttpClient httpClient) {
 

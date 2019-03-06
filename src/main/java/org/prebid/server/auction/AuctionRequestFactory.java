@@ -16,6 +16,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
@@ -153,7 +154,7 @@ public class AuctionRequestFactory {
         final ObjectNode populatedExt = ext != null
                 ? populateBidRequestExtension(ext, ObjectUtils.defaultIfNull(populatedImps, imps))
                 : null;
-        final boolean updateCurrency = bidRequest.getCur() == null && adServerCurrency != null;
+        final boolean updateCurrency = CollectionUtils.isEmpty(bidRequest.getCur()) && adServerCurrency != null;
         final Long resolvedTmax = resolveTmax(bidRequest.getTmax(), timeoutResolver);
 
         if (populatedDevice != null || populatedSite != null || populatedUser != null || populatedImps != null
