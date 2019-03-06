@@ -375,7 +375,7 @@ public class WebConfiguration {
         }
 
         @Bean
-        @ConditionalOnProperty(prefix = "currency-conversion", name = "enabled", havingValue = "true")
+        @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
         CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
             return new CurrencyRatesHandler(currencyConversionRates);
         }

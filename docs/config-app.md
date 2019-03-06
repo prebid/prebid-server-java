@@ -39,11 +39,6 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 
-## Currency Conversion
-- `currency-convertion.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies. Also enables `/currency-rates` endpoint on admin port.
-- `currency-convertion.refresh-period-ms` - default refresh period for currency rates updates.
-- `currency-convertion.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
-
 ## Amp (OpenRTB)
 - `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
 - `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
@@ -72,6 +67,11 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
 But feel free to add additional bidder's specific options.
+
+## Currency Conversion
+- `currency-convertion.enabled` - if equals to `true` the currency conversion service will be enabled to fetch updated rates and convert bid currencies. Also enables `/currency-rates` endpoint on admin port.
+- `currency-convertion.refresh-period-ms` - default refresh period for currency rates updates.
+- `currency-convertion.url` - the url for Prebid.org’s currency file. [More details](http://prebid.org/dev-docs/modules/currency.html)
 
 ## Metrics
 - `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.
