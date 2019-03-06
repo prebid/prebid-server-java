@@ -18,8 +18,3 @@ If “format” query parameter is present in the request URL, response body wil
 ### Sample request
 
 `GET http://prebid.site.com/event?type=win&bidid=12345&bidder=rubicon&format=jpg`
-
-
-
-
-
