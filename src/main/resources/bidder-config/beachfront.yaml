@@ -3,8 +3,6 @@ adapters:
     enabled: false
     banner-endpoint: http://display.bfmio.com/prebid_display
     video-endpoint: https://reachms.bfmio.com/bid.json?exchange_id=
-    usersync-url: https://sync.bfmio.com/syncb?pid=
-    platform-id: 155
     pbs-enforces-gdpr: true
     deprecated-names:
     aliases:

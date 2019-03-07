@@ -286,7 +286,7 @@ public class ServiceConfiguration {
 
     @Bean
     EventsService eventsService(
-            @Value("${events.accounts-enabled}") List<String> accountsEnabled,
+            @Value("${events.accounts-enabled:#{null}}") List<String> accountsEnabled,
             @Value("${external-url}") String externalUrl) {
         return new EventsService(accountsEnabled, externalUrl);
     }

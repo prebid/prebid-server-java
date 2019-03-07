@@ -3,7 +3,6 @@ adapters:
     enabled: false
     endpoint: https://an.facebook.com/placementbid.ortb
     non-secure-endpoint: http://an.facebook.com/placementbid.ortb
-    usersync-url:
     platform-id:
     pbs-enforces-gdpr: true
     deprecated-names:
@@ -17,7 +16,7 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url:
+      url: <real-url>
       redirect-url:
       cookie-family-name: audienceNetwork
       type: redirect
