@@ -1738,9 +1738,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromSitePublisher() {
         // given
-        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService,
-                new EventsService(singletonList("1001"), "http://external.org"), metrics, clock, false, 0);
         given(eventsService.createEvents(anyString(), anyString(), anyString())).willReturn(
                 Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
                         "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
@@ -1779,9 +1776,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromAppPublisher() {
         // given
-        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, eventsService, metrics, clock, false, 0);
-
         given(eventsService.createEvents(anyString(), anyString(), anyString())).willReturn(
                 Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
                         "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
@@ -1820,9 +1814,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldNotAddExtPrebidEventsWhenEventsServiceReturnsNull() {
         // given
-        exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, eventsService, metrics, clock, false, 0);
-
         given(eventsService.createEvents(anyString(), anyString(), anyString())).willReturn(null);
 
         givenBidder(BidderSeatBid.of(
