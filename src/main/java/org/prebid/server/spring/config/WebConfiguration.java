@@ -33,6 +33,7 @@ import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.ExceptionHandler;
 import org.prebid.server.handler.NoCacheHandler;
+import org.prebid.server.handler.NotificationEventHandler;
 import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.SetuidHandler;
@@ -146,6 +147,7 @@ public class WebConfiguration {
                   BidderParamHandler bidderParamHandler,
                   BiddersHandler biddersHandler,
                   BidderDetailsHandler bidderDetailsHandler,
+                  NotificationEventHandler notificationEventHandler,
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
@@ -164,6 +166,7 @@ public class WebConfiguration {
         router.get("/bidders/params").handler(bidderParamHandler);
         router.get("/info/bidders").handler(biddersHandler);
         router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
+        router.get("/event").handler(notificationEventHandler);
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves index.html by default
 
@@ -308,6 +311,11 @@ public class WebConfiguration {
     }
 
     @Bean
+    NotificationEventHandler eventNotificationHandler(CompositeAnalyticsReporter compositeAnalyticsReporter) {
+        return NotificationEventHandler.create(compositeAnalyticsReporter);
+    }
+
+    @Bean
     StaticHandler staticHandler() {
         return StaticHandler.create("static").setCachingEnabled(false);
     }
@@ -375,6 +383,7 @@ public class WebConfiguration {
         }
 
         @Bean
+        @ConditionalOnProperty(prefix = "currency-converter", name = "enabled", havingValue = "true")
         CurrencyRatesHandler currencyRatesHandler(CurrencyConversionService currencyConversionRates) {
             return new CurrencyRatesHandler(currencyConversionRates);
         }
@@ -386,7 +395,9 @@ public class WebConfiguration {
             final Router router = Router.router(vertx);
             router.route().handler(bodyHandler);
             router.route("/version").handler(versionHandler);
-            router.route("/currency-rates").handler(currencyRatesHandler);
+            if (currencyRatesHandler != null) {
+                router.route("/currency-rates").handler(currencyRatesHandler);
+            }
             if (cacheNotificationHandler != null) {
                 router.route("/storedrequests/openrtb2").handler(cacheNotificationHandler);
             }

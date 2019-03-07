@@ -124,7 +124,7 @@ public class ExchangeService {
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.cacheService = Objects.requireNonNull(cacheService);
-        this.currencyService = Objects.requireNonNull(currencyService);
+        this.currencyService = currencyService;
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.gdprService = gdprService;
         this.eventsService = eventsService;
@@ -769,13 +769,14 @@ public class ExchangeService {
             final String bidCurrency = bidderBid.getBidCurrency();
             final BigDecimal price = bid.getPrice();
             try {
-                final BigDecimal convertedPrice = currencyService.convertCurrency(price,
-                        requestCurrencyRates, adServerCurrency, bidCurrency);
+                final BigDecimal finalPrice = currencyService != null
+                        ? currencyService.convertCurrency(price, requestCurrencyRates, adServerCurrency, bidCurrency)
+                        : price;
 
                 final BigDecimal adjustedPrice = priceAdjustmentFactor != null
                         && priceAdjustmentFactor.compareTo(BigDecimal.ONE) != 0
-                        ? convertedPrice.multiply(priceAdjustmentFactor)
-                        : convertedPrice;
+                        ? finalPrice.multiply(priceAdjustmentFactor)
+                        : finalPrice;
 
                 if (adjustedPrice.compareTo(price) != 0) {
                     bid.setPrice(adjustedPrice);

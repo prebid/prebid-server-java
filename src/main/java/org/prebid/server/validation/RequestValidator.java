@@ -168,7 +168,7 @@ public class RequestValidator {
      * Validates request.cur field.
      */
     private void validateCur(List<String> currencies) throws ValidationException {
-        if (currencies == null) {
+        if (CollectionUtils.isEmpty(currencies)) {
             throw new ValidationException(
                     "currency was not defined either in request.cur or in configuration field adServerCurrency");
         }
