@@ -143,6 +143,8 @@ public class ExchangeServiceTest extends VertxTest {
     private HttpBidderRequester httpBidderRequester;
     @Mock
     private AccountCacheService accountCacheService;
+    @Mock
+    private EventsService eventsService;
 
     private Clock clock;
 
@@ -174,7 +176,7 @@ public class ExchangeServiceTest extends VertxTest {
         metricsContext = MetricsContext.of(MetricName.openrtb2web);
 
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, new EventsService(null, "http://external.org"),
+                bidResponsePostProcessor, currencyService, gdprService, eventsService,
                 metrics, clock, false, 0);
     }
 
@@ -183,7 +185,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThatIllegalArgumentException().isThrownBy(
                 () -> new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
                         bidResponsePostProcessor, currencyService, gdprService,
-                        new EventsService(null, "http://external.org"), metrics, clock, false, -1));
+                        eventsService, metrics, clock, false, -1));
     }
 
     @Test
@@ -1467,8 +1469,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldPassReducedGlobalTimeoutToConnectorAndOriginalToCacheServiceIfCachingIsRequested() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, new EventsService(null, "http://external.org"),
-                metrics, clock, false, 100);
+                bidResponsePostProcessor, currencyService, gdprService, eventsService, metrics, clock, false, 100);
 
         final Bid bid = Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(5.67)).build();
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));
@@ -1740,6 +1741,9 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
                 bidResponsePostProcessor, currencyService, gdprService,
                 new EventsService(singletonList("1001"), "http://external.org"), metrics, clock, false, 0);
+        given(eventsService.createEvents(anyString(), anyString(), anyString())).willReturn(
+                Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
@@ -1776,8 +1780,11 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldAddExtPrebidEventsFromAppPublisher() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService,
-                new EventsService(singletonList("1001"), "http://external.org"), metrics, clock, false, 0);
+                bidResponsePostProcessor, currencyService, gdprService, eventsService, metrics, clock, false, 0);
+
+        given(eventsService.createEvents(anyString(), anyString(), anyString())).willReturn(
+                Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
@@ -1811,11 +1818,12 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotAddExtPrebidEventsWhenAccountsEnabledDoesNotContainPublisherId() {
+    public void shouldNotAddExtPrebidEventsWhenEventsServiceReturnsNull() {
         // given
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, new EventsService(singletonList("1002"),
-                "http://external.org"), metrics, clock, false, 0);
+                bidResponsePostProcessor, currencyService, gdprService, eventsService, metrics, clock, false, 0);
+
+        given(eventsService.createEvents(anyString(), anyString(), anyString())).willReturn(null);
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
