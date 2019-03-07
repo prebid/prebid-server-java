@@ -55,6 +55,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
+import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
@@ -104,6 +105,7 @@ public class ExchangeService {
     private final BidResponsePostProcessor bidResponsePostProcessor;
     private final CurrencyConversionService currencyService;
     private final GdprService gdprService;
+    private final EventsService eventsService;
     private final Metrics metrics;
     private final Clock clock;
     private final boolean useGeoLocation;
@@ -113,7 +115,8 @@ public class ExchangeService {
                            ResponseBidValidator responseBidValidator, CacheService cacheService,
                            BidResponsePostProcessor bidResponsePostProcessor,
                            CurrencyConversionService currencyService, GdprService gdprService,
-                           Metrics metrics, Clock clock, boolean useGeoLocation, long expectedCacheTime) {
+                           EventsService eventsService, Metrics metrics, Clock clock, boolean useGeoLocation,
+                           long expectedCacheTime) {
         if (expectedCacheTime < 0) {
             throw new IllegalArgumentException("Expected cache time should be positive");
         }
@@ -124,6 +127,7 @@ public class ExchangeService {
         this.currencyService = currencyService;
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.gdprService = gdprService;
+        this.eventsService = eventsService;
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.useGeoLocation = useGeoLocation;
@@ -880,7 +884,7 @@ public class ExchangeService {
 
         return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
                 .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        cacheResult, winningBids, winningBidsByBidder, cacheInfo));
+                        cacheResult, winningBids, winningBidsByBidder, cacheInfo, publisherId));
     }
 
     /**
@@ -1033,12 +1037,13 @@ public class ExchangeService {
     private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                                    TargetingKeywordsCreator keywordsCreator,
                                                    CacheResult cacheResult, Set<Bid> winningBids,
-                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
+                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
+                                                   String publisherId) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
-                        toSeatBid(bidderResponse, keywordsCreator, cacheResult, winningBids,
-                                winningBidsByBidder, cacheInfo))
+                        toSeatBid(bidderResponse, keywordsCreator, cacheResult, winningBids, winningBidsByBidder,
+                                cacheInfo, publisherId))
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult.getErrors(),
@@ -1060,7 +1065,7 @@ public class ExchangeService {
      */
     private SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
                               CacheResult cacheResult, Set<Bid> winningBid,
-                              Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
+                              Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, String publisherId) {
         final String bidder = bidderResponse.getBidder();
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
 
@@ -1071,7 +1076,7 @@ public class ExchangeService {
                 .bid(bidderSeatBid.getBids().stream()
                         .map(bidderBid ->
                                 toBid(bidderBid, bidder, keywordsCreator, cacheResult.getCacheBids(), winningBid,
-                                        winningBidsByBidder, cacheInfo))
+                                        winningBidsByBidder, cacheInfo, publisherId))
                         .collect(Collectors.toList()));
 
         return seatBidBuilder.build();
@@ -1082,10 +1087,11 @@ public class ExchangeService {
      */
     private Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
                       Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBid,
-                      Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo) {
+                      Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, String publisherId) {
         final Bid bid = bidderBid.getBid();
         final Map<String, String> targetingKeywords;
         final ExtResponseCache cache;
+        final Events events = eventsService.createEvents(publisherId, bid.getId(), bidder);
 
         if (keywordsCreator != null && winningBidsByBidder.contains(bid)) {
             final boolean isWinningBid = winningBid.contains(bid);
@@ -1098,7 +1104,8 @@ public class ExchangeService {
             }
 
             targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId,
-                    cacheService.getEndpointHost(), cacheService.getEndpointPath());
+                    cacheService.getEndpointHost(), cacheService.getEndpointPath(),
+                    events != null ? events.getWin() : null);
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
             cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
@@ -1107,7 +1114,7 @@ public class ExchangeService {
             cache = null;
         }
 
-        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords, cache);
+        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords, cache, events);
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
 
         bid.setExt(Json.mapper.valueToTree(bidExt));

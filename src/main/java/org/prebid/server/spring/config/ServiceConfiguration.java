@@ -11,6 +11,7 @@ import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.EventsService;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
@@ -284,6 +285,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    EventsService eventsService(
+            @Value("${events.accounts-enabled}") List<String> accountsEnabled,
+            @Value("${external-url}") String externalUrl) {
+        return new EventsService(accountsEnabled, externalUrl);
+    }
+
+    @Bean
     BidderCatalog bidderCatalog(List<BidderDeps> bidderDeps) {
         return new BidderCatalog(bidderDeps);
     }
@@ -301,6 +309,7 @@ public class ServiceConfiguration {
             CacheService cacheService,
             CurrencyConversionService currencyConversionService,
             GdprService gdprService,
+            EventsService eventsService,
             BidResponsePostProcessor bidResponsePostProcessor,
             Metrics metrics,
             Clock clock,
@@ -308,8 +317,8 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs) {
 
         return new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyConversionService, gdprService, metrics, clock, useGeoLocation,
-                expectedCacheTimeMs);
+                bidResponsePostProcessor, currencyConversionService, gdprService, eventsService, metrics, clock,
+                useGeoLocation, expectedCacheTimeMs);
     }
 
     @Bean
