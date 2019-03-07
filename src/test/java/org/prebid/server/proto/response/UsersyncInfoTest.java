@@ -28,7 +28,6 @@ public class UsersyncInfoTest {
         assertThat(result.getUrl()).isEqualTo("http://url/redirect=");
     }
 
-
     @Test
     public void assembleWithGdprShouldCreateGdprAwareUsersyncInfo() {
         // given and when
@@ -63,7 +62,6 @@ public class UsersyncInfoTest {
         assertThat(result.getUrl()).isEqualTo("http://url?redir=a%3Db");
     }
 
-
     @Test
     public void assembleWithGdprUsersyncInfoShouldPopulateWithGdprRedirectAndUsersyncUrl() {
         // given and when
@@ -84,10 +82,9 @@ public class UsersyncInfoTest {
         // given and when
         final UsersyncInfo result = UsersyncInfo.UsersyncInfoAssembler
                 .assembler(new Usersyncer(null, "http://url", null, null, null, false))
-                .withUsersyncUrl("http://updated-url").assemble();
+                .withUrl("http://updated-url").assemble();
 
         // then
-        assertThat(result.getUrl()).isEqualTo(
-                "http://updated-url");
+        assertThat(result.getUrl()).isEqualTo("http://updated-url");
     }
 }

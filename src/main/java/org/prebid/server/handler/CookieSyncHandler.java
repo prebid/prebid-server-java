@@ -312,7 +312,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 if (!Objects.equals(hostCookieUid, uid)) {
                     final String url = String.format("%s/setuid?bidder=%s&gdpr=%s&gdpr_consent=%s&uid=%s",
                             externalUrl, cookieFamilyName, gdpr, gdprConsent, hostCookieUid);
-                    return UsersyncInfo.from(usersyncer).withUsersyncUrl(url).assemble();
+                    return UsersyncInfo.from(usersyncer).withUrl(url).assemble();
                 }
             }
         }

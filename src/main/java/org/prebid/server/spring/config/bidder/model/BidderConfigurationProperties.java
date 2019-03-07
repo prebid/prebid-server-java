@@ -32,5 +32,5 @@ public class BidderConfigurationProperties {
     private MetaInfo metaInfo;
 
     @NotNull
-    private UserSyncConfigurationProperties usersync;
+    private UsersyncConfigurationProperties usersync;
 }

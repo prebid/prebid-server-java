@@ -10,7 +10,8 @@ import javax.validation.constraints.NotNull;
 @Validated
 @Data
 @NoArgsConstructor
-public class UserSyncConfigurationProperties {
+public class UsersyncConfigurationProperties {
+
     @NotBlank
     String url;
 

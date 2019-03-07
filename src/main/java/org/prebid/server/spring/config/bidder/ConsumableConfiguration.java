@@ -6,7 +6,7 @@ import org.prebid.server.bidder.consumable.ConsumableBidder;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
-import org.prebid.server.spring.config.bidder.model.UserSyncConfigurationProperties;
+import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,16 +40,19 @@ public class ConsumableConfiguration {
 
     @Bean
     BidderDeps consumableBidderDeps() {
-        final UserSyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = new Usersyncer(userSyncProperties.getCookieFamilyName(),
-                        userSyncProperties.getUrl(), userSyncProperties.getRedirectUrl(), externalUrl,
-                        userSyncProperties.getType(), userSyncProperties.getSupportCors());
         final MetaInfo metaInfo = configProperties.getMetaInfo();
+        final BidderInfo bidderInfo = BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
+                metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
+                metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr());
+
+        final UsersyncConfigurationProperties usersyncProperties = configProperties.getUsersync();
+        final Usersyncer usersyncer = new Usersyncer(usersyncProperties.getCookieFamilyName(),
+                usersyncProperties.getUrl(), usersyncProperties.getRedirectUrl(), externalUrl,
+                usersyncProperties.getType(), usersyncProperties.getSupportCors());
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
-                        metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
-                        metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr()))
+                .bidderInfo(bidderInfo)
                 .usersyncer(usersyncer)
                 .bidderCreator(() -> new ConsumableBidder(configProperties.getEndpoint()))
                 .assemble();

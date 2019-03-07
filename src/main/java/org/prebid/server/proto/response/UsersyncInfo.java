@@ -32,12 +32,13 @@ public class UsersyncInfo {
     }
 
     public static class UsersyncInfoAssembler {
+
         private String usersyncUrl;
         private String redirectUrl;
         private String type;
         private Boolean supportCORS;
 
-        public static UsersyncInfoAssembler assembler(Usersyncer usersyncer) {
+        static UsersyncInfoAssembler assembler(Usersyncer usersyncer) {
             final UsersyncInfoAssembler usersyncInfoAssembler = new UsersyncInfoAssembler();
             usersyncInfoAssembler.usersyncUrl = usersyncer.getUsersyncUrl();
             usersyncInfoAssembler.redirectUrl = ObjectUtils.firstNonNull(usersyncer.getRedirectUrl(), "");
@@ -50,7 +51,7 @@ public class UsersyncInfo {
          * Updates with already fully build usersync url with possible redirection.
          * Erased redirect url, as usersync url is already completed
          */
-        public UsersyncInfoAssembler withUsersyncUrl(String usersyncUrl) {
+        public UsersyncInfoAssembler withUrl(String usersyncUrl) {
             this.usersyncUrl = usersyncUrl;
             this.redirectUrl = StringUtils.EMPTY;
             return this;
@@ -73,13 +74,16 @@ public class UsersyncInfo {
         public UsersyncInfoAssembler withGdpr(String gdpr, String gdprConsent) {
             final String nonNullGdpr = ObjectUtils.firstNonNull(gdpr, "");
             final String nonNullGdprConsent = ObjectUtils.firstNonNull(gdprConsent, "");
+
             usersyncUrl = updateUrlWithGdpr(usersyncUrl, HttpUtil.encodeUrl(nonNullGdpr),
                     HttpUtil.encodeUrl(nonNullGdprConsent));
+
             redirectUrl = updateUrlWithGdpr(redirectUrl, nonNullGdpr, nonNullGdprConsent);
+
             return this;
         }
 
-        private String updateUrlWithGdpr(String url, String gdpr, String gdprConsent) {
+        private static String updateUrlWithGdpr(String url, String gdpr, String gdprConsent) {
             return url
                     .replace(GDPR_PLACEHOLDER, gdpr)
                     .replace(GDPR_CONSENT_PLACEHOLDER, gdprConsent);

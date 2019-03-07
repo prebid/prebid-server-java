@@ -15,7 +15,7 @@ adapters:
       supported-vendors:
       vendor-id: 58
     usersync:
-      url:
+      url: <real-url>
       redirect-url:
       cookie-family-name: ttx
       type: redirect
