@@ -33,6 +33,7 @@ import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.ExceptionHandler;
 import org.prebid.server.handler.NoCacheHandler;
+import org.prebid.server.handler.NotificationEventHandler;
 import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.SetuidHandler;
@@ -146,6 +147,7 @@ public class WebConfiguration {
                   BidderParamHandler bidderParamHandler,
                   BiddersHandler biddersHandler,
                   BidderDetailsHandler bidderDetailsHandler,
+                  NotificationEventHandler notificationEventHandler,
                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
@@ -164,6 +166,7 @@ public class WebConfiguration {
         router.get("/bidders/params").handler(bidderParamHandler);
         router.get("/info/bidders").handler(biddersHandler);
         router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
+        router.get("/event").handler(notificationEventHandler);
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves index.html by default
 
@@ -305,6 +308,11 @@ public class WebConfiguration {
     @Bean
     BidderDetailsHandler bidderDetailsHandler(BidderCatalog bidderCatalog) {
         return new BidderDetailsHandler(bidderCatalog);
+    }
+
+    @Bean
+    NotificationEventHandler eventNotificationHandler(CompositeAnalyticsReporter compositeAnalyticsReporter) {
+        return NotificationEventHandler.create(compositeAnalyticsReporter);
     }
 
     @Bean

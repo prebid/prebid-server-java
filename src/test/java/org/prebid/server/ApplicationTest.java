@@ -36,6 +36,7 @@ import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.proto.response.UsersyncInfo;
+import org.prebid.server.util.ResourceUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -47,8 +48,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -1742,6 +1745,22 @@ public class ApplicationTest extends VertxTest {
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(jsonFrom("info-bidders/test-info-bidder-details-response.json")));
+    }
+
+    @Test
+    public void eventHandlerShouldRespondWithJPGTrackingPixel() throws IOException {
+        given(spec)
+                .queryParam("type", "win")
+                .queryParam("bidid", "bidId")
+                .queryParam("bidder", "rubicon")
+                .queryParam("format", "jpg")
+                .get("/event")
+                .then()
+                .assertThat()
+                .statusCode(200)
+                .header("content-type", "image/jpeg")
+                .body(Matchers.equalTo(
+                        Buffer.buffer(ResourceUtil.readByteArrayFromClassPath("static/tracking-pixel.jpg")).toString()));
     }
 
     @Test
