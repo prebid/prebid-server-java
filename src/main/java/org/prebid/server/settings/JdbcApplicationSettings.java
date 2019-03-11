@@ -85,11 +85,11 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     @Override
     public Future<Account> getOrtb2AccountById(String accountId, Timeout timeout) {
-        return jdbcClient.executeQuery("SELECT uuid, banner_cache_ttl, video_cache_ttl, events_required"
+        return jdbcClient.executeQuery("SELECT uuid, banner_cache_ttl, video_cache_ttl, events_enabled"
                         + " FROM accounts_account where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> Account.of(row.getString(0), null, row.getInteger(2),
-                        row.getInteger(3), row.getBoolean(4))),
+                result -> mapToModelOrError(result, row -> Account.of(row.getString(0), null, row.getInteger(1),
+                        row.getInteger(2), row.getBoolean(3))),
                 timeout);
     }
 

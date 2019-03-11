@@ -42,7 +42,7 @@ public class FileApplicationSettingsTest {
     }
 
     @Test
-    public void getAccountByIdShouldReturnEmptyWhenAccountsAreMissing() {
+    public void getPrebidAccountByIdShouldReturnEmptyWhenAccountsAreMissing() {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs:"));
 
@@ -57,7 +57,7 @@ public class FileApplicationSettingsTest {
     }
 
     @Test
-    public void getAccountByIdShouldReturnPresentAccount() {
+    public void getPrebidAccountByIdShouldReturnPresentAccount() {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
 
@@ -73,7 +73,7 @@ public class FileApplicationSettingsTest {
     }
 
     @Test
-    public void getAccountByIdShouldReturnEmptyForUnknownAccount() {
+    public void getPrebidAccountByIdShouldReturnEmptyForUnknownAccount() {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
 
@@ -82,6 +82,53 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<Account> account = applicationSettings.getPrebidAccountById("789", null);
+
+        // then
+        assertThat(account.failed()).isTrue();
+    }
+
+
+    @Test
+    public void getOrtb2AccountByIdShouldReturnEmptyWhenAccountsAreMissing() {
+        // given
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs:"));
+
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
+
+        // when
+        final Future<Account> account = applicationSettings.getOrtb2AccountById("123", null);
+
+        // then
+        assertThat(account.failed()).isTrue();
+    }
+
+    @Test
+    public void getOrtb2AccountByIdShouldReturnPresentAccount() {
+        // given
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
+
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
+
+        // when
+        final Future<Account> account = applicationSettings.getOrtb2AccountById("123", null);
+
+        // then
+        assertThat(account.succeeded()).isTrue();
+        assertThat(account.result()).isEqualTo(Account.of("123", null, null, null, null));
+    }
+
+    @Test
+    public void getOrtb2AccountByIdShouldReturnEmptyForUnknownAccount() {
+        // given
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
+
+        final FileApplicationSettings applicationSettings =
+                FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
+
+        // when
+        final Future<Account> account = applicationSettings.getOrtb2AccountById("789", null);
 
         // then
         assertThat(account.failed()).isTrue();

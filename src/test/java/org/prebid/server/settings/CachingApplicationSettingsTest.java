@@ -55,7 +55,7 @@ public class CachingApplicationSettingsTest {
     }
 
     @Test
-    public void getAccountByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
+    public void getPrebidAccountByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
         given(applicationSettings.getPrebidAccountById(eq("accountId"), same(timeout)))
                 .willReturn(Future.succeededFuture(Account.fromPriceGranularity("accountId", "med")));
@@ -72,7 +72,7 @@ public class CachingApplicationSettingsTest {
     }
 
     @Test
-    public void getAccountByIdShouldPropagateFailure() {
+    public void getPrebidAccountByIdShouldPropagateFailure() {
         // given
         given(applicationSettings.getPrebidAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error")));
@@ -80,6 +80,40 @@ public class CachingApplicationSettingsTest {
         // when
         final Future<Account> future =
                 cachingApplicationSettings.getPrebidAccountById("accountId", timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
+    }
+
+    @Test
+    public void getOrtb2AccountByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
+        // given
+        given(applicationSettings.getOrtb2AccountById(eq("accountId"), same(timeout)))
+                .willReturn(Future.succeededFuture(Account.of("accountId", "med", 100, 100, true)));
+
+        // when
+        final Future<Account> future = cachingApplicationSettings.getOrtb2AccountById("accountId", timeout);
+        cachingApplicationSettings.getOrtb2AccountById("accountId", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(Account.of("accountId", "med", 100, 100, true));
+        verify(applicationSettings).getOrtb2AccountById(eq("accountId"), same(timeout));
+        verifyNoMoreInteractions(applicationSettings);
+    }
+
+    @Test
+    public void getOrtb2AccountByIdShouldPropagateFailure() {
+        // given
+        given(applicationSettings.getOrtb2AccountById(anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error")));
+
+        // when
+        final Future<Account> future =
+                cachingApplicationSettings.getOrtb2AccountById("accountId", timeout);
 
         // then
         assertThat(future.failed()).isTrue();
