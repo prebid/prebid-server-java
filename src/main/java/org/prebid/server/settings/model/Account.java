@@ -10,4 +10,14 @@ public class Account {
     String id;
 
     String priceGranularity;
+
+    Integer bannerCacheTtl;
+
+    Integer videoCacheTtl;
+
+    Boolean eventsRequired;
+
+    public static Account fromPriceGranularity(String id, String priceGranularity) {
+        return Account.of(id, priceGranularity, null, null, null);
+    }
 }

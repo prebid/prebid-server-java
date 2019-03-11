@@ -111,7 +111,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 .map(preBidRequestContext ->
                         updateAppAndNoCookieAndImpsRequestedMetrics(preBidRequestContext, isSafari))
 
-                .compose(preBidRequestContext -> applicationSettings.getAccountById(
+                .compose(preBidRequestContext -> applicationSettings.getPrebidAccountById(
                         preBidRequestContext.getPreBidRequest().getAccountId(), preBidRequestContext.getTimeout())
                         .compose(account -> Future.succeededFuture(Tuple2.of(preBidRequestContext, account)))
                         .recover(AuctionHandler::failWithUnknownAccountOrPropagateOriginal))

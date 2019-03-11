@@ -45,6 +45,7 @@ import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -170,14 +171,14 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(1, true), null)));
         given(accountCacheService.getCacheTtlByAccountId(any(), any()))
                 .willReturn(Future.succeededFuture(CacheTtl.empty()));
+        given(eventsService.createEvents(any(), any(), any(), any())).willReturn(Future.succeededFuture(Events.empty()));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
         metricsContext = MetricsContext.of(MetricName.openrtb2web);
 
         exchangeService = new ExchangeService(bidderCatalog, httpBidderRequester, responseBidValidator, cacheService,
-                bidResponsePostProcessor, currencyService, gdprService, eventsService,
-                metrics, clock, false, 0);
+                bidResponsePostProcessor, currencyService, gdprService, eventsService, metrics, clock, false, 0);
     }
 
     @Test
@@ -1738,9 +1739,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromSitePublisher() {
         // given
-        given(eventsService.createEvents(anyString(), anyString(), anyString())).willReturn(
-                Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
-                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
+        given(eventsService.createEvents(anyString(), anyString(), anyString(), any())).willReturn(
+                Future.succeededFuture(Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder")));
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
@@ -1776,9 +1777,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromAppPublisher() {
         // given
-        given(eventsService.createEvents(anyString(), anyString(), anyString())).willReturn(
-                Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
-                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
+        given(eventsService.createEvents(anyString(), anyString(), anyString(), any())).willReturn(
+                Future.succeededFuture(Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder")));
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
@@ -1812,10 +1813,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotAddExtPrebidEventsWhenEventsServiceReturnsNull() {
-        // given
-        given(eventsService.createEvents(anyString(), anyString(), anyString())).willReturn(null);
-
+    public void shouldNotAddExtPrebidEventsWhenEventsServiceReturnsEmptyEventsService() {
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
                         Bid.builder().id("bidId").price(BigDecimal.ONE)

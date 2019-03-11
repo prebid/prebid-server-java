@@ -22,7 +22,12 @@ public interface ApplicationSettings {
     /**
      * Returns {@link Account} info for given a accountId
      */
-    Future<Account> getAccountById(String accountId, Timeout timeout);
+    Future<Account> getPrebidAccountById(String accountId, Timeout timeout);
+
+    /**
+     * Returns {@link Account} ortb2 info for given accountId
+     */
+    Future<Account> getOrtb2AccountById(String accountId, Timeout timeout);
 
     /**
      * Returns AddUnitConfig info for a given adUnitConfigId

@@ -42,8 +42,13 @@ public class CachingApplicationSettings implements ApplicationSettings {
      * Retrieves account from cache or delegates it to original fetcher.
      */
     @Override
-    public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return getFromCacheOrDelegate(accountCache, accountId, timeout, delegate::getAccountById);
+    public Future<Account> getPrebidAccountById(String accountId, Timeout timeout) {
+        return getFromCacheOrDelegate(accountCache, accountId, timeout, delegate::getPrebidAccountById);
+    }
+
+    @Override
+    public Future<Account> getOrtb2AccountById(String accountId, Timeout timeout) {
+        return getFromCacheOrDelegate(accountCache, accountId, timeout, delegate::getOrtb2AccountById);
     }
 
     /**

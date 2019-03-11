@@ -57,29 +57,29 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
-        given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
-                .willReturn(Future.succeededFuture(Account.of("accountId", "med")));
+        given(applicationSettings.getPrebidAccountById(eq("accountId"), same(timeout)))
+                .willReturn(Future.succeededFuture(Account.fromPriceGranularity("accountId", "med")));
 
         // when
-        final Future<Account> future = cachingApplicationSettings.getAccountById("accountId", timeout);
-        cachingApplicationSettings.getAccountById("accountId", timeout);
+        final Future<Account> future = cachingApplicationSettings.getPrebidAccountById("accountId", timeout);
+        cachingApplicationSettings.getPrebidAccountById("accountId", timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isEqualTo(Account.of("accountId", "med"));
-        verify(applicationSettings).getAccountById(eq("accountId"), same(timeout));
+        assertThat(future.result()).isEqualTo(Account.fromPriceGranularity("accountId", "med"));
+        verify(applicationSettings).getPrebidAccountById(eq("accountId"), same(timeout));
         verifyNoMoreInteractions(applicationSettings);
     }
 
     @Test
     public void getAccountByIdShouldPropagateFailure() {
         // given
-        given(applicationSettings.getAccountById(anyString(), any()))
+        given(applicationSettings.getPrebidAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error")));
 
         // when
         final Future<Account> future =
-                cachingApplicationSettings.getAccountById("accountId", timeout);
+                cachingApplicationSettings.getPrebidAccountById("accountId", timeout);
 
         // then
         assertThat(future.failed()).isTrue();

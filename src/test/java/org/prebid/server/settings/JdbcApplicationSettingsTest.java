@@ -134,12 +134,12 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnAccount(TestContext context) {
         // when
-        final Future<Account> future = jdbcApplicationSettings.getAccountById("accountId", timeout);
+        final Future<Account> future = jdbcApplicationSettings.getPrebidAccountById("accountId", timeout);
 
         // then
         final Async async = context.async();
         future.setHandler(context.asyncAssertSuccess(account -> {
-            assertThat(account).isEqualTo(Account.of("accountId", "med"));
+            assertThat(account).isEqualTo(Account.fromPriceGranularity("accountId", "med"));
             async.complete();
         }));
     }
@@ -147,7 +147,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldFailIfAccountNotFound(TestContext context) {
         // when
-        final Future<Account> future = jdbcApplicationSettings.getAccountById("non-existing", timeout);
+        final Future<Account> future = jdbcApplicationSettings.getPrebidAccountById("non-existing", timeout);
 
         // then
         final Async async = context.async();

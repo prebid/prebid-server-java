@@ -75,10 +75,21 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link Account}&gt;}
      */
     @Override
-    public Future<Account> getAccountById(String accountId, Timeout timeout) {
+    public Future<Account> getPrebidAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery("SELECT uuid, price_granularity FROM accounts_account where uuid = ? LIMIT 1",
                 Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> Account.of(row.getString(0), row.getString(1))),
+                result -> mapToModelOrError(result, row -> Account.fromPriceGranularity(
+                        row.getString(0), row.getString(1))),
+                timeout);
+    }
+
+    @Override
+    public Future<Account> getOrtb2AccountById(String accountId, Timeout timeout) {
+        return jdbcClient.executeQuery("SELECT uuid, banner_cache_ttl, video_cache_ttl, events_required"
+                        + " FROM accounts_account where uuid = ? LIMIT 1",
+                Collections.singletonList(accountId),
+                result -> mapToModelOrError(result, row -> Account.of(row.getString(0), null, row.getInteger(2),
+                        row.getInteger(3), row.getBoolean(4))),
                 timeout);
     }
 

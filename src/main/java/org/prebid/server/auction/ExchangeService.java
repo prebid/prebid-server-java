@@ -39,6 +39,7 @@ import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.GdprService;
@@ -883,8 +884,8 @@ public class ExchangeService {
         populateWinningBids(keywordsCreator, bidderResponses, bids, winningBids, winningBidsByBidder);
 
         return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
-                .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        cacheResult, winningBids, winningBidsByBidder, cacheInfo, publisherId));
+                .compose(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
+                        cacheResult, winningBids, winningBidsByBidder, cacheInfo, publisherId, timeout));
     }
 
     /**
@@ -1034,64 +1035,75 @@ public class ExchangeService {
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    private BidResponse toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
-                                                   TargetingKeywordsCreator keywordsCreator,
-                                                   CacheResult cacheResult, Set<Bid> winningBids,
-                                                   Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
-                                                   String publisherId) {
-        final List<SeatBid> seatBids = bidderResponses.stream()
+    private Future<BidResponse> toBidResponseWithCacheInfo(List<BidderResponse> bidderResponses, BidRequest bidRequest,
+                                                           TargetingKeywordsCreator keywordsCreator,
+                                                           CacheResult cacheResult, Set<Bid> winningBids,
+                                                           Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
+                                                           String publisherId, Timeout timeout) {
+        final List<Future> seatBidsFutures = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
                         toSeatBid(bidderResponse, keywordsCreator, cacheResult, winningBids, winningBidsByBidder,
-                                cacheInfo, publisherId))
+                                cacheInfo, publisherId, timeout))
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult.getErrors(),
                 cacheResult.getExecutionTime());
 
-        return BidResponse.builder()
-                .id(bidRequest.getId())
-                .cur(bidRequest.getCur().get(0))
-                // signal "Invalid Request" if no valid bidders.
-                .nbr(bidderResponses.isEmpty() ? 2 : null)
-                .seatbid(seatBids)
-                .ext(Json.mapper.valueToTree(bidResponseExt))
-                .build();
+        return CompositeFuture.join(seatBidsFutures)
+                .map(seatBidsResult -> BidResponse.builder()
+                        .id(bidRequest.getId())
+                        .cur(bidRequest.getCur().get(0))
+                        // signal "Invalid Request" if no valid bidders.
+                        .nbr(bidderResponses.isEmpty() ? 2 : null)
+                        .seatbid(seatBidsResult.list())
+                        .ext(Json.mapper.valueToTree(bidResponseExt))
+                        .build());
     }
 
     /**
-     * Creates an OpenRTB {@link SeatBid} for a bidder. It will contain all the bids supplied by a bidder and a "bidder"
-     * extension field populated.
+     * Creates an OpenRTB {@link SeatBid} for a bidder and returns in {@link Future<SeatBid>}. It will contain all
+     * the bids supplied by a bidder and a "bidder" extension field populated.
      */
-    private SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
-                              CacheResult cacheResult, Set<Bid> winningBid,
-                              Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, String publisherId) {
+    private Future<SeatBid> toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
+                                      CacheResult cacheResult, Set<Bid> winningBid,
+                                      Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, String publisherId,
+                                      Timeout timeout) {
         final String bidder = bidderResponse.getBidder();
-        final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
+        return CompositeFuture.join(bidderResponse.getSeatBid().getBids().stream()
+                .map(bidderBid -> toBid(bidderBid, bidder, keywordsCreator, cacheResult.getCacheBids(), winningBid,
+                        winningBidsByBidder, cacheInfo, publisherId, timeout))
+                .collect(Collectors.toList()))
+                .map(bids -> SeatBid.builder().seat(bidder)
+                        // prebid cannot support roadblocking
+                        .group(0)
+                        .bid(bids.list()).build());
+    }
 
-        final SeatBid.SeatBidBuilder seatBidBuilder = SeatBid.builder()
-                .seat(bidder)
-                // prebid cannot support roadblocking
-                .group(0)
-                .bid(bidderSeatBid.getBids().stream()
-                        .map(bidderBid ->
-                                toBid(bidderBid, bidder, keywordsCreator, cacheResult.getCacheBids(), winningBid,
-                                        winningBidsByBidder, cacheInfo, publisherId))
-                        .collect(Collectors.toList()));
+    /**
+     * Returns an OpenRTB {@link Bid} as {@link Future<Bid>} with {@link Events} in bid extension.
+     */
+    private Future<Bid> toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
+                              Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBid,
+                              Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, String publisherId,
+                              Timeout timeout) {
 
-        return seatBidBuilder.build();
+        return eventsService.createEvents(publisherId, bidderBid.getBid().getId(), bidder, timeout)
+                .map(events -> makeBid(bidderBid, bidder, keywordsCreator, bidsWithCacheIds, winningBid,
+                        winningBidsByBidder, cacheInfo, events));
     }
 
     /**
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
-    private Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
-                      Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBid,
-                      Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, String publisherId) {
+    private Bid makeBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
+                        Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBid,
+                        Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, Events events) {
         final Bid bid = bidderBid.getBid();
         final Map<String, String> targetingKeywords;
         final ExtResponseCache cache;
-        final Events events = eventsService.createEvents(publisherId, bid.getId(), bidder);
+        final String viewUrl = events.getView();
+        final String winUrl = events.getWin();
 
         if (keywordsCreator != null && winningBidsByBidder.contains(bid)) {
             final boolean isWinningBid = winningBid.contains(bid);
@@ -1104,8 +1116,7 @@ public class ExchangeService {
             }
 
             targetingKeywords = keywordsCreator.makeFor(bid, bidder, isWinningBid, cacheId, videoCacheId,
-                    cacheService.getEndpointHost(), cacheService.getEndpointPath(),
-                    events != null ? events.getWin() : null);
+                    cacheService.getEndpointHost(), cacheService.getEndpointPath(), winUrl);
             final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
             final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
             cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
@@ -1114,7 +1125,8 @@ public class ExchangeService {
             cache = null;
         }
 
-        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords, cache, events);
+        final ExtBidPrebid prebidExt = ExtBidPrebid.of(bidderBid.getType(), targetingKeywords, cache,
+                winUrl == null && viewUrl == null ? null : events);
         final ExtPrebid<ExtBidPrebid, ObjectNode> bidExt = ExtPrebid.of(prebidExt, bid.getExt());
 
         bid.setExt(Json.mapper.valueToTree(bidExt));

@@ -50,7 +50,7 @@ public class FileApplicationSettingsTest {
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
 
         // when
-        final Future<Account> account = applicationSettings.getAccountById("123", null);
+        final Future<Account> account = applicationSettings.getPrebidAccountById("123", null);
 
         // then
         assertThat(account.failed()).isTrue();
@@ -65,11 +65,11 @@ public class FileApplicationSettingsTest {
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
 
         // when
-        final Future<Account> account = applicationSettings.getAccountById("123", null);
+        final Future<Account> account = applicationSettings.getPrebidAccountById("123", null);
 
         // then
         assertThat(account.succeeded()).isTrue();
-        assertThat(account.result()).isEqualTo(Account.of("123", null));
+        assertThat(account.result()).isEqualTo(Account.fromPriceGranularity("123", null));
     }
 
     @Test
@@ -81,7 +81,7 @@ public class FileApplicationSettingsTest {
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
 
         // when
-        final Future<Account> account = applicationSettings.getAccountById("789", null);
+        final Future<Account> account = applicationSettings.getPrebidAccountById("789", null);
 
         // then
         assertThat(account.failed()).isTrue();

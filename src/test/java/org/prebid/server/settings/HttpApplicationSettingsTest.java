@@ -82,7 +82,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldReturnEmptyResult() {
         // when
-        final Future<Account> future = httpApplicationSettings.getAccountById(null, null);
+        final Future<Account> future = httpApplicationSettings.getPrebidAccountById(null, null);
 
         // then
         assertThat(future.failed()).isTrue();

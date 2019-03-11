@@ -48,7 +48,7 @@ public class FileApplicationSettings implements ApplicationSettings {
                                     Map<String, String> storedIdToImp) {
         accounts = toMap(settingsFile.getAccounts(),
                 Function.identity(),
-                account -> Account.of(account, null));
+                account -> Account.fromPriceGranularity(account, null));
         configs = toMap(settingsFile.getConfigs(),
                 AdUnitConfig::getId,
                 config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));
@@ -74,7 +74,12 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<Account> getAccountById(String accountId, Timeout timeout) {
+    public Future<Account> getPrebidAccountById(String accountId, Timeout timeout) {
+        return mapValueToFuture(accounts, accountId);
+    }
+
+    @Override
+    public Future<Account> getOrtb2AccountById(String accountId, Timeout timeout) {
         return mapValueToFuture(accounts, accountId);
     }
 
