@@ -134,27 +134,14 @@ public class JdbcApplicationSettingsTest {
     }
 
     @Test
-    public void getPrebidAccountByIdShouldReturnAccountWithIdAndPriceGranularity(TestContext context) {
+    public void getAccountByIdShouldReturnAccountWithIdAndPriceGranularity(TestContext context) {
         // when
-        final Future<Account> future = jdbcApplicationSettings.getPrebidAccountById("accountId", timeout);
+        final Future<Account> future = jdbcApplicationSettings.getAccountById("accountId", timeout);
 
         // then
         final Async async = context.async();
         future.setHandler(context.asyncAssertSuccess(account -> {
-            assertThat(account).isEqualTo(Account.fromPriceGranularity("accountId", "med"));
-            async.complete();
-        }));
-    }
-
-    @Test
-    public void getOrtb2AccountByIdShouldReturnAccountWithAllFieldsPopulated(TestContext context) {
-        // when
-        final Future<Account> future = jdbcApplicationSettings.getOrtb2AccountById("accountId", timeout);
-
-        // then
-        final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(account -> {
-            assertThat(account).isEqualTo(Account.of("accountId", null, 100, 100, true));
+            assertThat(account).isEqualTo(Account.of("accountId", "med", 100, 100, true));
             async.complete();
         }));
     }
@@ -162,7 +149,7 @@ public class JdbcApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldFailIfAccountNotFound(TestContext context) {
         // when
-        final Future<Account> future = jdbcApplicationSettings.getPrebidAccountById("non-existing", timeout);
+        final Future<Account> future = jdbcApplicationSettings.getAccountById("non-existing", timeout);
 
         // then
         final Async async = context.async();

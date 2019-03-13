@@ -125,8 +125,8 @@ public class AuctionHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(applicationSettings.getPrebidAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.fromPriceGranularity(null, null)));
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, null)));
 
         given(bidderCatalog.isValidAdapterName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
@@ -176,7 +176,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContext(identity(), identity());
 
-        given(applicationSettings.getPrebidAccountById(any(), any()))
+        given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
 
         // when
@@ -589,7 +589,7 @@ public class AuctionHandlerTest extends VertxTest {
         // given
         givenPreBidRequestContextWith1AdUnitAnd1Bid(identity());
 
-        given(applicationSettings.getPrebidAccountById(any(), any()))
+        given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
 
         // when

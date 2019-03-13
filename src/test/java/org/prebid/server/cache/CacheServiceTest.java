@@ -13,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.cache.account.AccountCacheService;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cache.model.CacheTtl;
@@ -28,6 +27,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -37,6 +38,7 @@ import java.net.URL;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -45,18 +47,15 @@ import java.util.function.Function;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.*;
 
 public class CacheServiceTest extends VertxTest {
 
@@ -64,7 +63,7 @@ public class CacheServiceTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private AccountCacheService accountCacheService;
+    private ApplicationSettings applicationSettings;
     @Mock
     private HttpClient httpClient;
 
@@ -81,22 +80,8 @@ public class CacheServiceTest extends VertxTest {
         timeout = timeoutFactory.create(500L);
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
-        cacheService = new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient,
-                new URL("http://cache-service/cache"),"http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
-    }
-
-    @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(
-                () -> new CacheService(null, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CacheService(accountCacheService, null, null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CacheService(accountCacheService, mediaTypeCacheTtl, null, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient, null, null));
-        assertThatNullPointerException().isThrownBy(
-                () -> new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient, new URL("http://validurl.com"), null));
+        cacheService = new CacheService(applicationSettings, new HashMap<>(), mediaTypeCacheTtl, httpClient,
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
     }
 
     @Test
@@ -128,7 +113,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void getCachedAssetUrlTemplateShouldReturnValidUrl() {
         // when
-        final String result = CacheService.getCachedAssetUrlTemplate("http", "example.com", "cache", "qs").toString();
+        final String result = CacheService.getCachedAssetUrlTemplate("http", "example.com", "cache", "qs");
 
         // then
         assertThat(result).isEqualTo("http://example.com/cache?qs");
@@ -235,7 +220,7 @@ public class CacheServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, null);
 
-        cacheService = new CacheService(accountCacheService, mediaTypeCacheTtl, httpClient,
+        cacheService = new CacheService(applicationSettings, new HashMap<>(), mediaTypeCacheTtl, httpClient,
                 new URL("https://cache-service-host:8888/cache"), "https://cache-service-host:8080/cache?uuid=%PBS_CACHE_UUID%");
 
         // when
@@ -431,21 +416,21 @@ public class CacheServiceTest extends VertxTest {
                 .extracting(PutObject::getExpiry)
                 .containsOnly(10);
 
-        verifyZeroInteractions(accountCacheService);
+        verifyZeroInteractions(applicationSettings);
     }
 
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromAccountMediaTypeTtl() throws IOException {
         // given
-        cacheService = new CacheService(accountCacheService, CacheTtl.of(20, null), httpClient,
-                new URL("http://cache-service/cache"),"http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+        cacheService = new CacheService(applicationSettings, new HashMap<>(), CacheTtl.of(20, null), httpClient,
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
 
         givenHttpClientReturnsResponse(200, null);
 
-        // when
-        given(accountCacheService.getCacheTtlByAccountId(any(), any()))
-                .willReturn(Future.succeededFuture(CacheTtl.of(10, null)));
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.of(null, null, 10, null, null)));
 
+        // when
         cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
                 CacheContext.of(true, null, false, null), "publisher", timeout);
@@ -460,8 +445,8 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromMediaTypeTtl() throws IOException {
         // given
-        cacheService = new CacheService(accountCacheService, CacheTtl.of(10, null), httpClient,
-                new URL("http://cache-service/cache"),"http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+        cacheService = new CacheService(applicationSettings, new HashMap<>(), CacheTtl.of(10, null), httpClient,
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
 
         givenHttpClientReturnsResponse(200, null);
 
@@ -476,6 +461,81 @@ public class CacheServiceTest extends VertxTest {
                 .extracting(PutObject::getExpiry)
                 .containsOnly(10);
     }
+
+    @Test
+    public void cacheBidsOpenrtbShouldSendCacheRequestFromYamlConfigWhenApplicationSettingsReturnsFailedFuture()
+            throws IOException {
+        // given
+        cacheService = new CacheService(applicationSettings, singletonMap("publisher", CacheTtl.of(100, null)),
+                CacheTtl.of(20, null), httpClient,
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+
+        givenHttpClientReturnsResponse(200, null);
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("Not Found")));
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
+                CacheContext.of(true, null, false, null), "publisher", timeout);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(1)
+                .extracting(PutObject::getExpiry)
+                .containsOnly(100);
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldSendCacheRequestFromYamlConfigWhenApplicationSettingsReturnsNullAccount()
+            throws IOException {
+        // given
+        cacheService = new CacheService(applicationSettings, singletonMap("publisher", CacheTtl.of(100, null)),
+                CacheTtl.of(20, null), httpClient,
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+
+        givenHttpClientReturnsResponse(200, null);
+
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(null));
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
+                CacheContext.of(true, null, false, null), "publisher", timeout);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(1)
+                .extracting(PutObject::getExpiry)
+                .containsOnly(100);
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldSendCacheRequestFromYamlConfigWhenSettingsReturnsAccountWithoutCache()
+            throws IOException {
+        // given
+        cacheService = new CacheService(applicationSettings, singletonMap("publisher", CacheTtl.of(100, null)),
+                CacheTtl.of(20, null), httpClient,
+                new URL("http://cache-service/cache"), "http://cache-service-host/cache?uuid=%PBS_CACHE_UUID%");
+
+        givenHttpClientReturnsResponse(200, null);
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, null)));
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(givenBidOpenrtb(identity())), singletonList(givenImp(identity())),
+                CacheContext.of(true, null, false, null), "publisher", timeout);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(1)
+                .extracting(PutObject::getExpiry)
+                .containsOnly(100);
+    }
+
 
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithNoTtl() throws IOException {

@@ -39,10 +39,8 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cache.CacheService;
-import org.prebid.server.cache.account.AccountCacheService;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheIdInfo;
-import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
@@ -91,17 +89,10 @@ import java.util.function.Function;
 
 import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static java.util.function.Function.identity;
 import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.entry;
-import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -110,11 +101,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.*;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class ExchangeServiceTest extends VertxTest {
@@ -143,8 +130,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private HttpBidderRequester httpBidderRequester;
     @Mock
-    private AccountCacheService accountCacheService;
-    @Mock
     private EventsService eventsService;
 
     private Clock clock;
@@ -169,9 +154,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(1, true), null)));
-        given(accountCacheService.getCacheTtlByAccountId(any(), any()))
-                .willReturn(Future.succeededFuture(CacheTtl.empty()));
-        given(eventsService.createEvents(any(), any(), any(), any())).willReturn(Future.succeededFuture(Events.empty()));
+
+        given(eventsService.isEventsEnabled(any(), any())).willReturn(Future.succeededFuture(false));
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
@@ -1739,9 +1723,11 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromSitePublisher() {
         // given
-        given(eventsService.createEvents(anyString(), anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
-                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder")));
+        given(eventsService.isEventsEnabled(anyString(), any())).willReturn(Future.succeededFuture(true));
+        given(eventsService.createEvent(anyString(), anyString()))
+                .willReturn(Events.of(
+                        "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
@@ -1777,9 +1763,11 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsFromAppPublisher() {
         // given
-        given(eventsService.createEvents(anyString(), anyString(), anyString(), any())).willReturn(
-                Future.succeededFuture(Events.of("http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
-                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder")));
+        given(eventsService.isEventsEnabled(anyString(), any())).willReturn(Future.succeededFuture(true));
+        given(eventsService.createEvent(anyString(), anyString()))
+                .willReturn(Events.of(
+                        "http://external.org/event?type=win&bidid=bidId&bidder=someBidder",
+                        "http://external.org/event?type=view&bidid=bidId&bidder=someBidder"));
 
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(

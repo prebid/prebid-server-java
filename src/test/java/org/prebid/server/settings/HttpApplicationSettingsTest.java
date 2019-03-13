@@ -80,19 +80,9 @@ public class HttpApplicationSettingsTest extends VertxTest {
     }
 
     @Test
-    public void getPrebidAccountByIdShouldReturnEmptyResult() {
+    public void getAccountByIdShouldReturnEmptyResult() {
         // when
-        final Future<Account> future = httpApplicationSettings.getPrebidAccountById(null, null);
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("Not supported");
-    }
-
-    @Test
-    public void getOrtb2AccountByIdShouldReturnEmptyResult() {
-        // when
-        final Future<Account> future = httpApplicationSettings.getOrtb2AccountById(null, null);
+        final Future<Account> future = httpApplicationSettings.getAccountById(null, null);
 
         // then
         assertThat(future.failed()).isTrue();

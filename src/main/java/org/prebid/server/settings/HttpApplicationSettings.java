@@ -74,12 +74,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
      * Not supported and returns failed result.
      */
     @Override
-    public Future<Account> getPrebidAccountById(String accountId, Timeout timeout) {
-        return Future.failedFuture(new PreBidException("Not supported"));
-    }
-
-    @Override
-    public Future<Account> getOrtb2AccountById(String accountId, Timeout timeout) {
+    public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return Future.failedFuture(new PreBidException("Not supported"));
     }
 

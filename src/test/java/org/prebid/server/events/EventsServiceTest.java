@@ -7,17 +7,19 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.events.EventsService;
-import org.prebid.server.events.account.AccountEventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.proto.openrtb.ext.response.Events;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -29,7 +31,7 @@ public class EventsServiceTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private AccountEventsService accountEventsService;
+    private ApplicationSettings applicationSettings;
 
     private Clock clock;
 
@@ -41,47 +43,89 @@ public class EventsServiceTest {
     public void setUp() {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
-        eventsService = new EventsService(accountEventsService, "http://external.org");
+        eventsService = new EventsService(applicationSettings, emptyList(), "http://external.org");
     }
 
     @Test
-    public void shouldReturnEmptyEventWhenEventsNotEnabledForPublisherId() {
+    public void isEventEnabledShouldReturnFalseWhenAccountsEventEnabledIsFalse() {
         // given
-        given(accountEventsService.eventsEnabled(anyString(), any())).willReturn(Future.succeededFuture(false));
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, false)));
 
         // when
-        final Future<Events> events = eventsService.createEvents("publisherId", "bidId", "bidder", timeout);
+        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
 
         // then
         assertThat(events.succeeded()).isTrue();
-        assertThat(events.result()).isEqualTo(Events.empty());
+        assertThat(events.result()).isFalse();
     }
 
     @Test
-    public void shouldReturnEmptyEventsWhenAccountEventsServiceRespondsWithFailedFuture() {
+    public void isEventEnabledShouldReturnFalseWhenAccountsEventEnabledIsTrue() {
         // given
-        given(accountEventsService.eventsEnabled(anyString(), any()))
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, true)));
+
+        // when
+        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
+
+        // then
+        assertThat(events.succeeded()).isTrue();
+        assertThat(events.result()).isTrue();
+    }
+
+    @Test
+    public void isEventEnabledShouldCheckListWhenApplicationSettingsReturnNull() {
+        // given
+        eventsService = new EventsService(applicationSettings, singletonList("publisherId"), "http://external.org");
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(null));
+
+        // when
+        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
+
+        // then
+        assertThat(events.succeeded()).isTrue();
+        assertThat(events.result()).isTrue();
+    }
+
+    @Test
+    public void isEventEnabledShouldCheckListWhenApplicationSettingsReturnAccountWithNullEnabled() {
+        // given
+        eventsService = new EventsService(applicationSettings, singletonList("publisherId"), "http://external.org");
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, null)));
+
+        // when
+        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
+
+        // then
+        assertThat(events.succeeded()).isTrue();
+        assertThat(events.result()).isTrue();
+    }
+
+    @Test
+    public void isEventEnabledShouldCheckListWhenApplicationSettingsReturnsFailedFuture() {
+        // given
+        eventsService = new EventsService(applicationSettings, singletonList("publisherId"), "http://external.org");
+        given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not Found")));
 
         // when
-        final Future<Events> events = eventsService.createEvents("publisherId", "bidId", "bidder", timeout);
+        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
 
         // then
         assertThat(events.succeeded()).isTrue();
-        assertThat(events.result()).isEqualTo(Events.empty());
+        assertThat(events.result()).isTrue();
     }
 
     @Test
-    public void shouldReturnNewEventsObject() {
-        //given
-        given(accountEventsService.eventsEnabled(anyString(), any())).willReturn(Future.succeededFuture(true));
-
+    public void createEventsShouldReturnNewEvent() {
         // when
-        final Future<Events> events = eventsService.createEvents("publisherId", "bidId", "bidder", timeout);
+        final Events events = eventsService.createEvent("bidId", "bidder");
 
         // then
-        assertThat(events.succeeded()).isTrue();
-        assertThat(events.result()).isEqualTo(Events.of("http://external.org/event?type=win&bidid=bidId&bidder=bidder",
+        assertThat(events).isEqualTo(Events.of("http://external.org/event?type=win&bidid=bidId&bidder=bidder",
                 "http://external.org/event?type=view&bidid=bidId&bidder=bidder"));
     }
 }

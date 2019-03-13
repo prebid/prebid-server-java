@@ -46,13 +46,8 @@ public class CompositeApplicationSettings implements ApplicationSettings {
      * and returns {@link Future&lt;{@link Account}&gt;}
      */
     @Override
-    public Future<Account> getPrebidAccountById(String accountId, Timeout timeout) {
-        return proxy.getPrebidAccountById(accountId, timeout);
-    }
-
-    @Override
-    public Future<Account> getOrtb2AccountById(String accountId, Timeout timeout) {
-        return proxy.getOrtb2AccountById(accountId, timeout);
+    public Future<Account> getAccountById(String accountId, Timeout timeout) {
+        return proxy.getAccountById(accountId, timeout);
     }
 
     /**
@@ -96,15 +91,9 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         }
 
         @Override
-        public Future<Account> getPrebidAccountById(String accountId, Timeout timeout) {
-            return getConfig(accountId, timeout, applicationSettings::getPrebidAccountById,
-                    next != null ? next::getPrebidAccountById : null);
-        }
-
-        @Override
-        public Future<Account> getOrtb2AccountById(String accountId, Timeout timeout) {
-            return getConfig(accountId, timeout, applicationSettings::getOrtb2AccountById,
-                    next != null ? next::getOrtb2AccountById : null);
+        public Future<Account> getAccountById(String accountId, Timeout timeout) {
+            return getConfig(accountId, timeout, applicationSettings::getAccountById,
+                    next != null ? next::getAccountById : null);
         }
 
         @Override

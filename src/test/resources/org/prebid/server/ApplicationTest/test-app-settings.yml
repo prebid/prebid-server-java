@@ -1,8 +1,11 @@
 ---
 accounts:
-  - 14062
-  - 1001
-  - 2763
+  - id: 14062
+    bannerCacheTtl: 100
+    videoCacheTtl: 100
+    eventsRequired: true
+  - id: 1001
+  - id: 2763
 configs:
   - id: 14062
     config: >

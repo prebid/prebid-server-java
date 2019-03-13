@@ -21,18 +21,10 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
-import org.prebid.server.cache.account.AccountCacheService;
-import org.prebid.server.cache.account.CompositeAccountCacheService;
-import org.prebid.server.cache.account.SettingsAccountCacheService;
-import org.prebid.server.cache.account.SimpleAccountCacheService;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.events.EventsService;
-import org.prebid.server.events.account.AccountEventsService;
-import org.prebid.server.events.account.CompositeAccountEventsService;
-import org.prebid.server.events.account.SettingsAccountEventsService;
-import org.prebid.server.events.account.SimpleAccountEventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
@@ -66,77 +58,29 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
 
     @Bean
     CacheService cacheService(
+            ApplicationSettings applicationSettings,
+            AccountCacheProperties accountCacheProperties,
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.path}") String path,
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            AccountCacheService accountCacheService,
             HttpClient httpClient) {
 
         return new CacheService(
-                accountCacheService,
+                applicationSettings, accountCacheProperties.getAccountToCacheTtl(),
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query));
-    }
-
-    @Bean
-    @ConditionalOnProperty(prefix = "events", name = "accounts-enabled")
-    SimpleAccountEventsService simpleAccountEventsService(
-            @Value("${events.accounts-enabled}") List<String> accountsEnabled) {
-        return new SimpleAccountEventsService(accountsEnabled);
-    }
-
-    @Bean
-    SettingsAccountEventsService settingsAccountEventsService(ApplicationSettings applicationSettings) {
-        return new SettingsAccountEventsService(applicationSettings);
-    }
-
-    @Bean
-    CompositeAccountEventsService accountEventsService(
-            @Autowired(required = false) SettingsAccountEventsService settingsAccountEventsService,
-            @Autowired(required = false) SimpleAccountEventsService simpleAccountEventsService) {
-        final List<AccountEventsService> accountEventsServiceList =
-                Stream.of(settingsAccountEventsService, simpleAccountEventsService)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
-        return new CompositeAccountEventsService(accountEventsServiceList);
-    }
-
-    @Bean
-    @ConditionalOnProperty(prefix = "cache", name = "account")
-    SimpleAccountCacheService simpleAccountCacheService(AccountCacheProperties accountCacheProperties) {
-        return new SimpleAccountCacheService(accountCacheProperties.getAccountToCacheTtl());
-    }
-
-    @Bean
-    SettingsAccountCacheService settingsAccountCacheService(ApplicationSettings applicationSettings) {
-        return new SettingsAccountCacheService(applicationSettings);
-    }
-
-    @Bean
-    CompositeAccountCacheService accountCacheService(
-            @Autowired(required = false) SettingsAccountCacheService settingsAccountCacheService,
-            @Autowired(required = false) SimpleAccountCacheService simpleAccountCacheService) {
-        final List<AccountCacheService> accountCacheServiceList =
-                Stream.of(settingsAccountCacheService, simpleAccountCacheService)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
-        return new CompositeAccountCacheService(accountCacheServiceList);
-
     }
 
     @Component
@@ -336,8 +280,10 @@ public class ServiceConfiguration {
 
     @Bean
     EventsService eventsService(
-            AccountEventsService accountEventsService, @Value("${external-url}") String externalUrl) {
-        return new EventsService(accountEventsService, externalUrl);
+            ApplicationSettings applicationSettings,
+            @Value("${events.accounts-enabled:#{T(java.util.Collections).emptyList()}}") List<String> accountsEnabled,
+            @Value("${external-url}") String externalUrl) {
+        return new EventsService(applicationSettings, accountsEnabled, externalUrl);
     }
 
     @Bean

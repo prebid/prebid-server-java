@@ -57,14 +57,13 @@ public class CompositeApplicationSettingsTest {
     }
 
     @Test
-    public void getPrebidAccountByIdShouldReturnAccountFromFirstDelegateIfPresent() {
+    public void getAccountByIdShouldReturnAccountFromFirstDelegateIfPresent() {
         // given
-        final Account account = Account.fromPriceGranularity("accountId1", "low");
-        given(delegate1.getPrebidAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(account));
+        final Account account = Account.of("accountId1", "low", null, null, null);
+        given(delegate1.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(account));
 
         // when
-        final Future<Account> future = compositeApplicationSettings.getPrebidAccountById("ignore", null);
+        final Future<Account> future = compositeApplicationSettings.getAccountById("ignore", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -73,17 +72,17 @@ public class CompositeApplicationSettingsTest {
     }
 
     @Test
-    public void getPrebidAccountByIdShouldReturnAccountFromSecondDelegateIfFirstDelegateFails() {
+    public void getAccountByIdShouldReturnAccountFromSecondDelegateIfFirstDelegateFails() {
         // given
-        given(delegate1.getPrebidAccountById(anyString(), any()))
+        given(delegate1.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error1")));
 
-        final Account account = Account.fromPriceGranularity("accountId1", "low");
-        given(delegate2.getPrebidAccountById(anyString(), any()))
+        final Account account = Account.of("accountId1", "low", null, null, null);
+        given(delegate2.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(account));
 
         // when
-        final Future<Account> future = compositeApplicationSettings.getPrebidAccountById("ignore", null);
+        final Future<Account> future = compositeApplicationSettings.getAccountById("ignore", null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -91,67 +90,16 @@ public class CompositeApplicationSettingsTest {
     }
 
     @Test
-    public void getPrebidAccountByIdShouldReturnEmptyResultIfAllDelegatesFail() {
+    public void getAccountByIdShouldReturnEmptyResultIfAllDelegatesFail() {
         // given
-        given(delegate1.getPrebidAccountById(anyString(), any()))
+        given(delegate1.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error1")));
 
-        given(delegate2.getPrebidAccountById(anyString(), any()))
+        given(delegate2.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error2")));
 
         // when
-        final Future<Account> future = compositeApplicationSettings.getPrebidAccountById("ignore", null);
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause().getMessage()).isEqualTo("error2");
-    }
-
-    @Test
-    public void getOrtb2AccountByIdShouldReturnAccountFromFirstDelegateIfPresent() {
-        // given
-        final Account account = Account.of("accountId1", "low", 100, 100, true);
-        given(delegate1.getOrtb2AccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(account));
-
-        // when
-        final Future<Account> future = compositeApplicationSettings.getOrtb2AccountById("ignore", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isSameAs(account);
-        verifyZeroInteractions(delegate2);
-    }
-
-    @Test
-    public void getOrtb2AccountByIdShouldReturnAccountFromSecondDelegateIfFirstDelegateFails() {
-        // given
-        given(delegate1.getOrtb2AccountById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("error1")));
-
-        final Account account = Account.of("accountId1", "low", 100, 100, true);
-        given(delegate2.getOrtb2AccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(account));
-
-        // when
-        final Future<Account> future = compositeApplicationSettings.getOrtb2AccountById("ignore", null);
-
-        // then
-        assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isSameAs(account);
-    }
-
-    @Test
-    public void getOrtb2AccountByIdShouldReturnEmptyResultIfAllDelegatesFail() {
-        // given
-        given(delegate1.getOrtb2AccountById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("error1")));
-
-        given(delegate2.getOrtb2AccountById(anyString(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("error2")));
-
-        // when
-        final Future<Account> future = compositeApplicationSettings.getOrtb2AccountById("ignore", null);
+        final Future<Account> future = compositeApplicationSettings.getAccountById("ignore", null);
 
         // then
         assertThat(future.failed()).isTrue();

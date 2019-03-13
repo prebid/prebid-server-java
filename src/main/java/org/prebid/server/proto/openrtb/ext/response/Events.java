@@ -10,8 +10,4 @@ public class Events {
     String win;
 
     String view;
-
-    public static Events empty() {
-        return Events.of(null, null);
-    }
 }
