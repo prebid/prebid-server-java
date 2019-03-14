@@ -4,10 +4,8 @@ import io.vertx.core.Future;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.settings.ApplicationSettings;
-import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.List;
 import java.util.Objects;
 
 public class EventsService {
@@ -17,12 +15,10 @@ public class EventsService {
     private static final String WIN_EVENT_TYPE = "win";
 
     private final ApplicationSettings applicationSettings;
-    private final List<String> accountsEnabled;
     private final String externalUrl;
 
-    public EventsService(ApplicationSettings applicationSettings, List<String> accountsEnabled, String externalUrl) {
+    public EventsService(ApplicationSettings applicationSettings, String externalUrl) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.accountsEnabled = accountsEnabled;
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
     }
 
@@ -34,13 +30,8 @@ public class EventsService {
 
     public Future<Boolean> isEventsEnabled(String publisherId, Timeout timeout) {
         return applicationSettings.getAccountById(publisherId, timeout)
-                .map(account -> isEventsEnabled(account, publisherId))
-                .recover(ex -> Future.succeededFuture(accountsEnabled.contains(publisherId)));
-    }
-
-    private boolean isEventsEnabled(Account account, String publisherId) {
-        return account == null || account.getEventsRequired() == null
-                ? accountsEnabled.contains(publisherId)
-                : account.getEventsRequired();
+                .map(account ->
+                        account == null || account.getEventsEnabled() == null ? false : account.getEventsEnabled())
+                .recover(ex -> Future.succeededFuture(false));
     }
 }

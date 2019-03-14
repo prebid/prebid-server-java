@@ -3,9 +3,11 @@ accounts:
   - id: 14062
     bannerCacheTtl: 100
     videoCacheTtl: 100
-    eventsRequired: true
+    eventsEnabled: true
   - id: 1001
   - id: 2763
+  - id: 5001
+    eventsEnabled: true
 configs:
   - id: 14062
     config: >

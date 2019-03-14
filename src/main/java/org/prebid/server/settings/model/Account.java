@@ -15,5 +15,5 @@ public class Account {
 
     Integer videoCacheTtl;
 
-    Boolean eventsRequired;
+    Boolean eventsEnabled;
 }

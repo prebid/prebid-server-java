@@ -52,17 +52,14 @@ public class CacheService {
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
     private final ApplicationSettings applicationSettings;
-    private final Map<String, CacheTtl> accountToCacheTtl;
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
 
-    public CacheService(ApplicationSettings applicationSettings, Map<String, CacheTtl> accountToCacheTtl,
-                        CacheTtl mediaTypeCacheTtl, HttpClient httpClient, URL endpointUrl,
-                        String cachedAssetUrlTemplate) {
+    public CacheService(ApplicationSettings applicationSettings, CacheTtl mediaTypeCacheTtl, HttpClient httpClient,
+                        URL endpointUrl, String cachedAssetUrlTemplate) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.accountToCacheTtl = accountToCacheTtl;
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
@@ -194,8 +191,8 @@ public class CacheService {
         return applicationSettings.getAccountById(publisherId, timeout)
                 .map(account -> isCacheTtlFoundInAccount(account)
                         ? CacheTtl.of(account.getBannerCacheTtl(), account.getVideoCacheTtl())
-                        : accountToCacheTtl.getOrDefault(publisherId, CacheTtl.empty()))
-                .recover(ex -> Future.succeededFuture(accountToCacheTtl.getOrDefault(publisherId, CacheTtl.empty())));
+                        : CacheTtl.empty())
+                .recover(ex -> Future.succeededFuture(CacheTtl.empty()));
     }
 
     /**

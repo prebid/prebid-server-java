@@ -61,7 +61,7 @@ public class FileApplicationSettingsTest {
         // given
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts: [ { id: '123', bannerCacheTtl: '100', videoCacheTtl : '100'," +
-                        " eventsRequired: 'true'} ]"));
+                        " eventsEnabled: 'true'} ]"));
 
         final FileApplicationSettings applicationSettings =
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");

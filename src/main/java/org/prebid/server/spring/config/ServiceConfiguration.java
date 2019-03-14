@@ -5,8 +5,6 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -43,21 +41,16 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
-import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 @Configuration
@@ -66,7 +59,6 @@ public class ServiceConfiguration {
     @Bean
     CacheService cacheService(
             ApplicationSettings applicationSettings,
-            AccountCacheProperties accountCacheProperties,
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.path}") String path,
@@ -76,34 +68,11 @@ public class ServiceConfiguration {
             HttpClient httpClient) {
 
         return new CacheService(
-                applicationSettings, accountCacheProperties.getAccountToCacheTtl(),
+                applicationSettings,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query));
-    }
-
-    @Component
-    @ConfigurationProperties(prefix = "cache")
-    @Data
-    @NoArgsConstructor
-    private static class AccountCacheProperties {
-
-        private Map<String, Map<String, Integer>> account;
-
-        private final Map<String, CacheTtl> accountToCacheTtl = new HashMap<>();
-
-        @PostConstruct
-        private void init() {
-            final Map<String, Map<String, Integer>> account = getAccount();
-            if (account != null) {
-                for (Map.Entry<String, Map<String, Integer>> entry : account.entrySet()) {
-                    accountToCacheTtl.put(entry.getKey(), CacheTtl.of(
-                            entry.getValue().get("banner-ttl-seconds"),
-                            entry.getValue().get("video-ttl-seconds")));
-                }
-            }
-        }
     }
 
     @Bean
@@ -279,11 +248,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    EventsService eventsService(
-            ApplicationSettings applicationSettings,
-            @Value("${events.accounts-enabled:#{T(java.util.Collections).emptyList()}}") List<String> accountsEnabled,
-            @Value("${external-url}") String externalUrl) {
-        return new EventsService(applicationSettings, accountsEnabled, externalUrl);
+    EventsService eventsService(ApplicationSettings applicationSettings, @Value("${external-url}") String externalUrl) {
+        return new EventsService(applicationSettings, externalUrl);
     }
 
     @Bean

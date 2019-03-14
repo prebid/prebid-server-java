@@ -49,7 +49,7 @@ public class FileApplicationSettings implements ApplicationSettings {
         accounts = toMap(settingsFile.getAccounts(),
                 Account::getId,
                 account -> Account.of(account.getId(), null, account.getBannerCacheTtl(), account.getVideoCacheTtl(),
-                        account.getEventsRequired()));
+                        account.getEventsEnabled()));
         configs = toMap(settingsFile.getConfigs(),
                 AdUnitConfig::getId,
                 config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));

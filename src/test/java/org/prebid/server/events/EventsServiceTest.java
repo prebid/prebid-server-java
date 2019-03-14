@@ -18,8 +18,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -43,7 +41,7 @@ public class EventsServiceTest {
     public void setUp() {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
-        eventsService = new EventsService(applicationSettings, emptyList(), "http://external.org");
+        eventsService = new EventsService(applicationSettings, "http://external.org");
     }
 
     @Test
@@ -75,39 +73,8 @@ public class EventsServiceTest {
     }
 
     @Test
-    public void isEventEnabledShouldCheckListWhenApplicationSettingsReturnNull() {
+    public void isEventEnabledShouldReturnFalseWhenApplicationSettingsReturnedFailedFuture() {
         // given
-        eventsService = new EventsService(applicationSettings, singletonList("publisherId"), "http://external.org");
-        given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(null));
-
-        // when
-        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
-
-        // then
-        assertThat(events.succeeded()).isTrue();
-        assertThat(events.result()).isTrue();
-    }
-
-    @Test
-    public void isEventEnabledShouldCheckListWhenApplicationSettingsReturnAccountWithNullEnabled() {
-        // given
-        eventsService = new EventsService(applicationSettings, singletonList("publisherId"), "http://external.org");
-        given(applicationSettings.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(Account.of(null, null, null, null, null)));
-
-        // when
-        final Future<Boolean> events = eventsService.isEventsEnabled("publisherId", timeout);
-
-        // then
-        assertThat(events.succeeded()).isTrue();
-        assertThat(events.result()).isTrue();
-    }
-
-    @Test
-    public void isEventEnabledShouldCheckListWhenApplicationSettingsReturnsFailedFuture() {
-        // given
-        eventsService = new EventsService(applicationSettings, singletonList("publisherId"), "http://external.org");
         given(applicationSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not Found")));
 
@@ -116,7 +83,7 @@ public class EventsServiceTest {
 
         // then
         assertThat(events.succeeded()).isTrue();
-        assertThat(events.result()).isTrue();
+        assertThat(events.result()).isFalse();
     }
 
     @Test
