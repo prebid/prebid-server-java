@@ -27,6 +27,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
@@ -39,6 +40,7 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.util.ResourceUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -48,17 +50,17 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
@@ -105,6 +107,9 @@ public class ApplicationTest extends VertxTest {
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
     private static final int ADMIN_PORT = 8060;
+
+    @Autowired
+    private List<BidderDeps> bidderDeps;
 
     @SuppressWarnings("unchecked")
     @ClassRule
@@ -1718,23 +1723,35 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void biddersParamsShouldReturnBidderSchemas() throws IOException, JSONException {
+    public void biddersParamsShouldReturnBidderSchemas() throws JSONException {
+        // given
+        final Map<String, JsonNode> bidderNameToSchema = bidderDeps.stream()
+                .map(BidderDeps::getName)
+                .collect(Collectors.toMap(Function.identity(), ApplicationTest::jsonSchemaToJsonNode));
+
+        // when
         final Response response = given(spec)
                 .when()
                 .get("/bidders/params");
 
-        JSONAssert.assertEquals(jsonFrom("params/test-bidder-params-schemas.json"), response.asString(),
-                JSONCompareMode.NON_EXTENSIBLE);
+        // then
+        JSONAssert.assertEquals(bidderNameToSchema.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
-    public void infoBiddersShouldReturnRegisteredBidderNames() throws IOException {
-        given(spec)
+    public void infoBiddersShouldReturnRegisteredBidderNames() throws JSONException {
+        // given
+        final List<String> bidderNames = bidderDeps.stream()
+                .map(BidderDeps::getName)
+                .collect(Collectors.toList());
+
+        // when
+        final Response response = given(spec)
                 .when()
-                .get("/info/bidders")
-                .then()
-                .assertThat()
-                .body(Matchers.equalTo(jsonFrom("info-bidders/test-info-bidders-response.json")));
+                .get("/info/bidders");
+
+        // then
+        JSONAssert.assertEquals(bidderNames.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -1950,6 +1967,17 @@ public class ApplicationTest extends VertxTest {
 
     private static Uids decodeUids(String value) {
         return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
+    }
+
+    private static JsonNode jsonSchemaToJsonNode(String bidderName) {
+        final String path = "static/bidder-params/" + bidderName + ".json";
+        try {
+            return mapper.readTree(ResourceUtil.readFromClasspath(path));
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    String.format("Exception occurred during %s bidder schema processing: %s",
+                            bidderName, e.getMessage()));
+        }
     }
 
     public static class CacheResponseTransformer extends ResponseTransformer {
