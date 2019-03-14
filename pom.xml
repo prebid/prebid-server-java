@@ -500,53 +500,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco-plugin.version}</version>
-                <configuration>
-                    <excludes>
-                        <exclude>com/iab/openrtb/**</exclude>
-                        <exclude>**/proto/**</exclude>
-                        <exclude>**/model/**</exclude>
-                        <exclude>org/prebid/server/spring/config/**</exclude>
-                    </excludes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>prepare-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>check</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <rule>
-                                    <element>BUNDLE</element>
-                                    <limits>
-                                        <limit>
-                                            <counter>INSTRUCTION</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>90%</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
                 <version>${git-commmit-plugin.version}</version>
@@ -579,17 +532,6 @@
                     <reportSet>
                         <reports>
                             <report>checkstyle</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>report</report>
                         </reports>
                     </reportSet>
                 </reportSets>
