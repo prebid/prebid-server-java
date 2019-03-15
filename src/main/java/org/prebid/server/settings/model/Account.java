@@ -10,4 +10,10 @@ public class Account {
     String id;
 
     String priceGranularity;
+
+    Integer bannerCacheTtl;
+
+    Integer videoCacheTtl;
+
+    Boolean eventsEnabled;
 }

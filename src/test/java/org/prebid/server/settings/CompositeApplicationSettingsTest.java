@@ -59,9 +59,8 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnAccountFromFirstDelegateIfPresent() {
         // given
-        final Account account = Account.of("accountId1", "low");
-        given(delegate1.getAccountById(anyString(), any()))
-                .willReturn(Future.succeededFuture(account));
+        final Account account = Account.of("accountId1", "low", null, null, null);
+        given(delegate1.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(account));
 
         // when
         final Future<Account> future = compositeApplicationSettings.getAccountById("ignore", null);
@@ -78,7 +77,7 @@ public class CompositeApplicationSettingsTest {
         given(delegate1.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error1")));
 
-        final Account account = Account.of("accountId1", "low");
+        final Account account = Account.of("accountId1", "low", null, null, null);
         given(delegate2.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(account));
 

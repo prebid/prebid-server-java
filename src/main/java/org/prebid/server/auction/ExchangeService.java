@@ -28,6 +28,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -39,6 +40,7 @@ import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheIdInfo;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.gdpr.GdprService;
@@ -168,8 +170,11 @@ public class ExchangeService {
                 .map(CompositeFuture::<BidderResponse>list)
                 // produce response from bidder results
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId))
-                .compose(result ->
-                        toBidResponse(result, bidRequest, keywordsCreator, cacheInfo, publisherId, timeout))
+                .compose(result -> eventsService.isEventsEnabled(publisherId, timeout)
+                        .map(eventsEnabled -> Tuple2.of(result, eventsEnabled)))
+                .compose((Tuple2<List<BidderResponse>, Boolean> result) ->
+                        toBidResponse(result.getLeft(), bidRequest, keywordsCreator, cacheInfo, publisherId,
+                                result.getRight(), timeout))
                 .compose(bidResponse ->
                         bidResponsePostProcessor.postProcess(context, uidsCookie, bidRequest, bidResponse));
     }
@@ -876,7 +881,7 @@ public class ExchangeService {
      */
     private Future<BidResponse> toBidResponse(List<BidderResponse> bidderResponses, BidRequest bidRequest,
                                               TargetingKeywordsCreator keywordsCreator, BidRequestCacheInfo cacheInfo,
-                                              String publisherId, Timeout timeout) {
+                                              String publisherId, boolean eventsEnabled, Timeout timeout) {
         final Set<Bid> bids = newOrEmptyOrderedSet(keywordsCreator);
         final Set<Bid> winningBids = newOrEmptySet(keywordsCreator);
         final Set<Bid> winningBidsByBidder = newOrEmptySet(keywordsCreator);
@@ -884,7 +889,7 @@ public class ExchangeService {
 
         return toBidsWithCacheIds(bids, bidRequest.getImp(), cacheInfo, publisherId, timeout)
                 .map(cacheResult -> toBidResponseWithCacheInfo(bidderResponses, bidRequest, keywordsCreator,
-                        cacheResult, winningBids, winningBidsByBidder, cacheInfo, publisherId));
+                        cacheResult, winningBids, winningBidsByBidder, cacheInfo, eventsEnabled));
     }
 
     /**
@@ -1038,12 +1043,12 @@ public class ExchangeService {
                                                    TargetingKeywordsCreator keywordsCreator,
                                                    CacheResult cacheResult, Set<Bid> winningBids,
                                                    Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo,
-                                                   String publisherId) {
+                                                   boolean eventsEnabled) {
         final List<SeatBid> seatBids = bidderResponses.stream()
                 .filter(bidderResponse -> !bidderResponse.getSeatBid().getBids().isEmpty())
                 .map(bidderResponse ->
                         toSeatBid(bidderResponse, keywordsCreator, cacheResult, winningBids, winningBidsByBidder,
-                                cacheInfo, publisherId))
+                                cacheInfo, eventsEnabled))
                 .collect(Collectors.toList());
 
         final ExtBidResponse bidResponseExt = toExtBidResponse(bidderResponses, bidRequest, cacheResult.getErrors(),
@@ -1065,7 +1070,7 @@ public class ExchangeService {
      */
     private SeatBid toSeatBid(BidderResponse bidderResponse, TargetingKeywordsCreator keywordsCreator,
                               CacheResult cacheResult, Set<Bid> winningBid,
-                              Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, String publisherId) {
+                              Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, boolean eventsEnabled) {
         final String bidder = bidderResponse.getBidder();
         final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
 
@@ -1076,7 +1081,7 @@ public class ExchangeService {
                 .bid(bidderSeatBid.getBids().stream()
                         .map(bidderBid ->
                                 toBid(bidderBid, bidder, keywordsCreator, cacheResult.getCacheBids(), winningBid,
-                                        winningBidsByBidder, cacheInfo, publisherId))
+                                        winningBidsByBidder, cacheInfo, eventsEnabled))
                         .collect(Collectors.toList()));
 
         return seatBidBuilder.build();
@@ -1087,11 +1092,11 @@ public class ExchangeService {
      */
     private Bid toBid(BidderBid bidderBid, String bidder, TargetingKeywordsCreator keywordsCreator,
                       Map<Bid, CacheIdInfo> bidsWithCacheIds, Set<Bid> winningBid,
-                      Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, String publisherId) {
+                      Set<Bid> winningBidsByBidder, BidRequestCacheInfo cacheInfo, boolean eventsEnabled) {
         final Bid bid = bidderBid.getBid();
         final Map<String, String> targetingKeywords;
         final ExtResponseCache cache;
-        final Events events = eventsService.createEvents(publisherId, bid.getId(), bidder);
+        final Events events = eventsEnabled ? eventsService.createEvent(bid.getId(), bidder) : null;
 
         if (keywordsCreator != null && winningBidsByBidder.contains(bid)) {
             final boolean isWinningBid = winningBid.contains(bid);

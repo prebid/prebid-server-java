@@ -59,7 +59,9 @@ public class FileApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnPresentAccount() {
         // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
+        given(fileSystem.readFileBlocking(anyString()))
+                .willReturn(Buffer.buffer("accounts: [ { id: '123', bannerCacheTtl: '100', videoCacheTtl : '100'," +
+                        " eventsEnabled: 'true'} ]"));
 
         final FileApplicationSettings applicationSettings =
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
@@ -69,13 +71,13 @@ public class FileApplicationSettingsTest {
 
         // then
         assertThat(account.succeeded()).isTrue();
-        assertThat(account.result()).isEqualTo(Account.of("123", null));
+        assertThat(account.result()).isEqualTo(Account.of("123", null, 100, 100, true));
     }
 
     @Test
     public void getAccountByIdShouldReturnEmptyForUnknownAccount() {
         // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ '123', '456' ]"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts: [ {id: '123'}, {id: '456'} ]"));
 
         final FileApplicationSettings applicationSettings =
                 FileApplicationSettings.create(fileSystem, "ignore", "ignore", "ignore");
@@ -86,6 +88,7 @@ public class FileApplicationSettingsTest {
         // then
         assertThat(account.failed()).isTrue();
     }
+
 
     @Test
     public void getAdUnitConfigByIdShouldReturnEmptyWhenConfigsAreMissing() {

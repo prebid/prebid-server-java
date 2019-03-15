@@ -11,7 +11,6 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.cache.account.AccountCacheService;
 import org.prebid.server.cache.model.CacheBid;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheIdInfo;
@@ -26,6 +25,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.proto.response.Bid;
 import org.prebid.server.proto.response.MediaType;
+import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -50,15 +51,15 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
-    private final AccountCacheService accountCacheService;
+    private final ApplicationSettings applicationSettings;
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
 
-    public CacheService(AccountCacheService accountCacheService, CacheTtl mediaTypeCacheTtl,
-                        HttpClient httpClient, URL endpointUrl, String cachedAssetUrlTemplate) {
-        this.accountCacheService = Objects.requireNonNull(accountCacheService);
+    public CacheService(ApplicationSettings applicationSettings, CacheTtl mediaTypeCacheTtl, HttpClient httpClient,
+                        URL endpointUrl, String cachedAssetUrlTemplate) {
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
@@ -179,8 +180,26 @@ public class CacheService {
      */
     private Future<CacheTtl> accountCacheTtlFrom(boolean impWithNoExpExists, String publisherId, Timeout timeout) {
         return impWithNoExpExists && StringUtils.isNotEmpty(publisherId)
-                ? accountCacheService.getCacheTtlByAccountId(publisherId, timeout)
+                ? makeCacheTtl(publisherId, timeout)
                 : Future.succeededFuture(CacheTtl.empty());
+    }
+
+    /**
+     * Makes {@link CacheTtl} from application settings or yaml configs.
+     */
+    private Future<CacheTtl> makeCacheTtl(String publisherId, Timeout timeout) {
+        return applicationSettings.getAccountById(publisherId, timeout)
+                .map(account -> isCacheTtlFoundInAccount(account)
+                        ? CacheTtl.of(account.getBannerCacheTtl(), account.getVideoCacheTtl())
+                        : CacheTtl.empty())
+                .recover(ex -> Future.succeededFuture(CacheTtl.empty()));
+    }
+
+    /**
+     * Verifies if configs for {@link CacheTtl} are present in {@link Account}.
+     */
+    private boolean isCacheTtlFoundInAccount(Account account) {
+        return account != null && (account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null);
     }
 
     /**
