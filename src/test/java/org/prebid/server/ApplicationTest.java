@@ -1739,7 +1739,6 @@ public class ApplicationTest extends VertxTest {
     public void infoBiddersShouldReturnRegisteredBidderNames() throws JSONException {
         // given
         final List<String> bidderNames = getBidderNamesFromParamFiles();
-        System.out.println(bidderNames);
 
         // when
         final Response response = given(spec)
