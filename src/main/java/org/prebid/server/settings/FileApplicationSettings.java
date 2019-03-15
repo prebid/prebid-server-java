@@ -47,8 +47,9 @@ public class FileApplicationSettings implements ApplicationSettings {
     private FileApplicationSettings(SettingsFile settingsFile, Map<String, String> storedIdToRequest,
                                     Map<String, String> storedIdToImp) {
         accounts = toMap(settingsFile.getAccounts(),
-                Function.identity(),
-                account -> Account.of(account, null));
+                Account::getId,
+                account -> Account.of(account.getId(), null, account.getBannerCacheTtl(), account.getVideoCacheTtl(),
+                        account.getEventsEnabled()));
         configs = toMap(settingsFile.getConfigs(),
                 AdUnitConfig::getId,
                 config -> ObjectUtils.firstNonNull(config.getConfig(), StringUtils.EMPTY));

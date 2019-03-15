@@ -5,13 +5,10 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.BidResponsePostProcessor;
-import org.prebid.server.auction.EventsService;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
@@ -22,11 +19,10 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.HttpAdapterConnector;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
-import org.prebid.server.cache.account.AccountCacheService;
-import org.prebid.server.cache.account.SimpleAccountCacheService;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.gdpr.GdprService;
 import org.prebid.server.gdpr.vendorlist.VendorListService;
@@ -45,21 +41,16 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
-import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 @Configuration
@@ -67,49 +58,21 @@ public class ServiceConfiguration {
 
     @Bean
     CacheService cacheService(
+            ApplicationSettings applicationSettings,
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.path}") String path,
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
-            AccountCacheService accountCacheService,
             HttpClient httpClient) {
 
         return new CacheService(
-                accountCacheService,
+                applicationSettings,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query));
-    }
-
-    @Bean
-    AccountCacheService simpleAccountCacheService(AccountCacheProperties accountCacheProperties) {
-        return new SimpleAccountCacheService(accountCacheProperties.getAccountToCacheTtl());
-    }
-
-    @Component
-    @ConfigurationProperties(prefix = "cache")
-    @Data
-    @NoArgsConstructor
-    private static class AccountCacheProperties {
-
-        private Map<String, Map<String, Integer>> account;
-
-        private final Map<String, CacheTtl> accountToCacheTtl = new HashMap<>();
-
-        @PostConstruct
-        private void init() {
-            final Map<String, Map<String, Integer>> account = getAccount();
-            if (account != null) {
-                for (Map.Entry<String, Map<String, Integer>> entry : account.entrySet()) {
-                    accountToCacheTtl.put(entry.getKey(), CacheTtl.of(
-                            entry.getValue().get("banner-ttl-seconds"),
-                            entry.getValue().get("video-ttl-seconds")));
-                }
-            }
-        }
     }
 
     @Bean
@@ -285,10 +248,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    EventsService eventsService(
-            @Value("${events.accounts-enabled:#{null}}") List<String> accountsEnabled,
-            @Value("${external-url}") String externalUrl) {
-        return new EventsService(accountsEnabled, externalUrl);
+    EventsService eventsService(ApplicationSettings applicationSettings, @Value("${external-url}") String externalUrl) {
+        return new EventsService(applicationSettings, externalUrl);
     }
 
     @Bean
