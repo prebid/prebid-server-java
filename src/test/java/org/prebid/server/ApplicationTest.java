@@ -27,7 +27,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.cache.proto.response.BidCacheResponse;
@@ -40,16 +39,18 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.util.ResourceUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -107,9 +108,6 @@ public class ApplicationTest extends VertxTest {
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
     private static final int ADMIN_PORT = 8060;
-
-    @Autowired
-    private List<BidderDeps> bidderDeps;
 
     @SuppressWarnings("unchecked")
     @ClassRule
@@ -1725,8 +1723,7 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void biddersParamsShouldReturnBidderSchemas() throws JSONException {
         // given
-        final Map<String, JsonNode> bidderNameToSchema = bidderDeps.stream()
-                .map(BidderDeps::getName)
+        final Map<String, JsonNode> bidderNameToSchema = getBidderNamesFromParamFiles().stream()
                 .collect(Collectors.toMap(Function.identity(), ApplicationTest::jsonSchemaToJsonNode));
 
         // when
@@ -1741,9 +1738,8 @@ public class ApplicationTest extends VertxTest {
     @Test
     public void infoBiddersShouldReturnRegisteredBidderNames() throws JSONException {
         // given
-        final List<String> bidderNames = bidderDeps.stream()
-                .map(BidderDeps::getName)
-                .collect(Collectors.toList());
+        final List<String> bidderNames = getBidderNamesFromParamFiles();
+        System.out.println(bidderNames);
 
         // when
         final Response response = given(spec)
@@ -1967,6 +1963,17 @@ public class ApplicationTest extends VertxTest {
 
     private static Uids decodeUids(String value) {
         return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
+    }
+
+    private static List<String> getBidderNamesFromParamFiles() {
+        final File biddersFolder = new File("src/main/resources/static/bidder-params");
+        final String[] listOfFiles = biddersFolder.list();
+        if (listOfFiles != null) {
+            return Arrays.stream(listOfFiles)
+                    .map(s -> s.substring(0, s.indexOf('.')))
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 
     private static JsonNode jsonSchemaToJsonNode(String bidderName) {
