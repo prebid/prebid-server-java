@@ -43,22 +43,25 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
@@ -1718,23 +1721,32 @@ public class ApplicationTest extends VertxTest {
     }
 
     @Test
-    public void biddersParamsShouldReturnBidderSchemas() throws IOException, JSONException {
+    public void biddersParamsShouldReturnBidderSchemas() throws JSONException {
+        // given
+        final Map<String, JsonNode> bidderNameToSchema = getBidderNamesFromParamFiles().stream()
+                .collect(Collectors.toMap(Function.identity(), ApplicationTest::jsonSchemaToJsonNode));
+
+        // when
         final Response response = given(spec)
                 .when()
                 .get("/bidders/params");
 
-        JSONAssert.assertEquals(jsonFrom("params/test-bidder-params-schemas.json"), response.asString(),
-                JSONCompareMode.NON_EXTENSIBLE);
+        // then
+        JSONAssert.assertEquals(bidderNameToSchema.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
-    public void infoBiddersShouldReturnRegisteredBidderNames() throws IOException {
-        given(spec)
+    public void infoBiddersShouldReturnRegisteredBidderNames() throws JSONException {
+        // given
+        final List<String> bidderNames = getBidderNamesFromParamFiles();
+
+        // when
+        final Response response = given(spec)
                 .when()
-                .get("/info/bidders")
-                .then()
-                .assertThat()
-                .body(Matchers.equalTo(jsonFrom("info-bidders/test-info-bidders-response.json")));
+                .get("/info/bidders");
+
+        // then
+        JSONAssert.assertEquals(bidderNames.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -1950,6 +1962,28 @@ public class ApplicationTest extends VertxTest {
 
     private static Uids decodeUids(String value) {
         return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
+    }
+
+    private static List<String> getBidderNamesFromParamFiles() {
+        final File biddersFolder = new File("src/main/resources/static/bidder-params");
+        final String[] listOfFiles = biddersFolder.list();
+        if (listOfFiles != null) {
+            return Arrays.stream(listOfFiles)
+                    .map(s -> s.substring(0, s.indexOf('.')))
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
+    }
+
+    private static JsonNode jsonSchemaToJsonNode(String bidderName) {
+        final String path = "static/bidder-params/" + bidderName + ".json";
+        try {
+            return mapper.readTree(ResourceUtil.readFromClasspath(path));
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    String.format("Exception occurred during %s bidder schema processing: %s",
+                            bidderName, e.getMessage()));
+        }
     }
 
     public static class CacheResponseTransformer extends ResponseTransformer {
