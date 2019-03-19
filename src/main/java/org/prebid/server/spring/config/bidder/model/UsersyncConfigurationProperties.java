@@ -12,7 +12,6 @@ import javax.validation.constraints.NotNull;
 @NoArgsConstructor
 public class UsersyncConfigurationProperties {
 
-    @NotBlank
     String url;
 
     String redirectUrl;

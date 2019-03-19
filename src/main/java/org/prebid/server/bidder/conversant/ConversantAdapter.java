@@ -16,7 +16,6 @@ import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.conversant.proto.ConversantParams;
 import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -56,8 +55,8 @@ public class ConversantAdapter extends OpenrtbAdapter {
 
     private final String endpointUrl;
 
-    public ConversantAdapter(Usersyncer usersyncer, String endpointUrl) {
-        super(usersyncer);
+    public ConversantAdapter(String cookieFamilyName, String endpointUrl) {
+        super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 

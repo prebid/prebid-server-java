@@ -28,7 +28,6 @@ import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.ix.proto.IxParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
 import org.prebid.server.bidder.model.ExchangeCall;
@@ -68,12 +67,8 @@ import static org.mockito.BDDMockito.given;
 public class IxAdapterTest extends VertxTest {
 
     private static final String BIDDER = "ix";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://exchange.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String USERSYNC_REDIRECT_URL = "redirect/url";
-    private static final String USERSYNC_TYPE = "redirect";
-    private static final Boolean USERSYNC_SUPPORT_CORS = false;
-    private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -85,16 +80,13 @@ public class IxAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private IxAdapter adapter;
-    private Usersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
         exchangeCall = givenExchangeCall(identity(), identity());
-        usersyncer = new Usersyncer(BIDDER, USERSYNC_URL, USERSYNC_REDIRECT_URL, EXTERNAL_URL, USERSYNC_TYPE,
-                USERSYNC_SUPPORT_CORS);
-        adapter = new IxAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new IxAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
@@ -102,13 +94,13 @@ public class IxAdapterTest extends VertxTest {
         assertThatNullPointerException().isThrownBy(
                 () -> new IxAdapter(null, null));
         assertThatNullPointerException().isThrownBy(
-                () -> new IxAdapter(usersyncer, null));
+                () -> new IxAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new IxAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new IxAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 

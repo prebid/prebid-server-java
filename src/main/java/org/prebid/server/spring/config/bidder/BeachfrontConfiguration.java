@@ -28,13 +28,13 @@ public class BeachfrontConfiguration {
 
     private static final String BIDDER_NAME = "beachfront";
 
-    @Autowired
-    @Qualifier("beachfrontConfigurationProperties")
-    private BeachfrontConfigurationProperties configProperties;
-
     @Value("${external-url}")
     @NotBlank
     private String externalUrl;
+
+    @Autowired
+    @Qualifier("beachfrontConfigurationProperties")
+    private BeachfrontConfigurationProperties configProperties;
 
     @Bean("beachfrontConfigurationProperties")
     @ConfigurationProperties("adapters.beachfront")
@@ -49,17 +49,15 @@ public class BeachfrontConfiguration {
                 metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr());
 
-        final UsersyncConfigurationProperties userSyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = new Usersyncer(userSyncProperties.getCookieFamilyName(),
-                userSyncProperties.getUrl(), userSyncProperties.getRedirectUrl(), externalUrl,
-                userSyncProperties.getType(), userSyncProperties.getSupportCors());
+        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .enabled(configProperties.getEnabled())
                 .deprecatedNames(configProperties.getDeprecatedNames())
                 .aliases(configProperties.getAliases())
                 .bidderInfo(bidderInfo)
-                .usersyncer(usersyncer)
+                .usersyncerCreator(() -> new Usersyncer(usersync.getCookieFamilyName(), usersync.getUrl(),
+                        usersync.getRedirectUrl(), externalUrl, usersync.getType(), usersync.getSupportCors()))
                 .bidderCreator(() ->
                         new BeachfrontBidder(configProperties.getBannerEndpoint(), configProperties.getVideoEndpoint()))
                 .assemble();

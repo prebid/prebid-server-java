@@ -14,7 +14,6 @@ import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.OpenrtbAdapter;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.lifestreet.proto.LifestreetParams;
 import org.prebid.server.bidder.model.AdUnitBidWithParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -42,8 +41,8 @@ public class LifestreetAdapter extends OpenrtbAdapter {
 
     private final String endpointUrl;
 
-    public LifestreetAdapter(Usersyncer usersyncer, String endpointUrl) {
-        super(usersyncer);
+    public LifestreetAdapter(String cookieFamilyName, String endpointUrl) {
+        super(cookieFamilyName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
     }
 

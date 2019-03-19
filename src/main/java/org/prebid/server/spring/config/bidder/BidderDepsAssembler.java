@@ -23,7 +23,7 @@ public class BidderDepsAssembler {
     private List<String> deprecatedNames;
     private List<String> aliases;
     private BidderInfo bidderInfo;
-    private Usersyncer usersyncer;
+    private Supplier<Usersyncer> usersyncerCreator;
     private Supplier<Bidder<?>> bidderCreator;
     private Supplier<Adapter<?, ?>> adapterCreator;
 
@@ -57,8 +57,8 @@ public class BidderDepsAssembler {
         return this;
     }
 
-    public BidderDepsAssembler usersyncer(Usersyncer usersyncer) {
-        this.usersyncer = usersyncer;
+    public BidderDepsAssembler usersyncerCreator(Supplier<Usersyncer> usersyncerCreator) {
+        this.usersyncerCreator = usersyncerCreator;
         return this;
     }
 
@@ -80,6 +80,8 @@ public class BidderDepsAssembler {
     }
 
     public BidderDeps assemble() {
+        final Usersyncer usersyncer = enabled ? usersyncerCreator.get() : null;
+
         final Bidder<?> bidder = enabled ? bidderCreator.get()
                 : new DisabledBidder(String.format(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED, bidderName));
 
