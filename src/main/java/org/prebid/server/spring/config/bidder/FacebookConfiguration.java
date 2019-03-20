@@ -45,21 +45,20 @@ public class FacebookConfiguration {
                 metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr());
 
-        final UsersyncConfigurationProperties usersyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = new Usersyncer(usersyncProperties.getCookieFamilyName(),
-                usersyncProperties.getUrl(), usersyncProperties.getRedirectUrl(), null, usersyncProperties.getType(),
-                usersyncProperties.getSupportCors());
+        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .enabled(configProperties.getEnabled())
                 .deprecatedNames(configProperties.getDeprecatedNames())
                 .aliases(configProperties.getAliases())
                 .bidderInfo(bidderInfo)
-                .usersyncer(usersyncer)
+                .usersyncerCreator(() -> new Usersyncer(usersync.getCookieFamilyName(), usersync.getUrl(),
+                        usersync.getRedirectUrl(), null, usersync.getType(), usersync.getSupportCors()))
                 .bidderCreator(() -> new FacebookBidder(configProperties.getEndpoint(),
                         configProperties.getNonSecureEndpoint(), configProperties.getPlatformId()))
-                .adapterCreator(() -> new FacebookAdapter(usersyncer, configProperties.getEndpoint(),
-                        configProperties.getNonSecureEndpoint(), configProperties.getPlatformId()))
+                .adapterCreator(
+                        () -> new FacebookAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint(),
+                                configProperties.getNonSecureEndpoint(), configProperties.getPlatformId()))
                 .assemble();
     }
 

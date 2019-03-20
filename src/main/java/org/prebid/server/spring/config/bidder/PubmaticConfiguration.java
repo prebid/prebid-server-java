@@ -25,13 +25,13 @@ public class PubmaticConfiguration {
 
     private static final String BIDDER_NAME = "pubmatic";
 
-    @Autowired
-    @Qualifier("pubmaticConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Value("${external-url}")
     @NotBlank
     private String externalUrl;
+
+    @Autowired
+    @Qualifier("pubmaticConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Bean("pubmaticConfigurationProperties")
     @ConfigurationProperties("adapters.pubmatic")
@@ -46,17 +46,16 @@ public class PubmaticConfiguration {
                 metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr());
 
-        final UsersyncConfigurationProperties usersyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = new Usersyncer(usersyncProperties.getCookieFamilyName(),
-                usersyncProperties.getUrl(), usersyncProperties.getRedirectUrl(), externalUrl,
-                usersyncProperties.getType(), usersyncProperties.getSupportCors());
+        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .bidderInfo(bidderInfo)
-                .usersyncer(usersyncer)
+                .usersyncerCreator(() -> new Usersyncer(usersync.getCookieFamilyName(), usersync.getUrl(),
+                        usersync.getRedirectUrl(), externalUrl, usersync.getType(), usersync.getSupportCors()))
                 .bidderCreator(() -> new PubmaticBidder(configProperties.getEndpoint()))
-                .adapterCreator(() -> new PubmaticAdapter(usersyncer, configProperties.getEndpoint()))
+                .adapterCreator(() -> new PubmaticAdapter(usersync.getCookieFamilyName(),
+                        configProperties.getEndpoint()))
                 .assemble();
     }
 }

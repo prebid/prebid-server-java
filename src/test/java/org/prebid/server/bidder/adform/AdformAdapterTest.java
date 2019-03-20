@@ -16,7 +16,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.adform.model.AdformBid;
 import org.prebid.server.bidder.adform.model.AdformParams;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -45,8 +44,9 @@ import static org.mockito.BDDMockito.given;
 
 public class AdformAdapterTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://adform.com/openrtb2d";
     private static final String BIDDER = "adform";
+    private static final String COOKIE_FAMILY = BIDDER;
+    private static final String ENDPOINT_URL = "http://adform.com/openrtb2d";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -54,15 +54,11 @@ public class AdformAdapterTest extends VertxTest {
     @Mock
     private UidsCookie uidsCookie;
 
-    @Mock
-    private Usersyncer usersyncer;
-
     private AdformAdapter adformAdapter;
 
     @Before
     public void setUp() {
-        adformAdapter = new AdformAdapter(usersyncer, ENDPOINT_URL);
-        given(usersyncer.getCookieFamilyName()).willReturn(BIDDER);
+        adformAdapter = new AdformAdapter(COOKIE_FAMILY, ENDPOINT_URL);
         given(uidsCookie.uidFrom(BIDDER)).willReturn("buyeruid");
     }
 

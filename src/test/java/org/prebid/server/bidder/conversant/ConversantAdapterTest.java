@@ -29,7 +29,6 @@ import org.prebid.server.auction.model.AdUnitBid.AdUnitBidBuilder;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
 import org.prebid.server.auction.model.PreBidRequestContext.PreBidRequestContextBuilder;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.conversant.proto.ConversantParams;
 import org.prebid.server.bidder.conversant.proto.ConversantParams.ConversantParamsBuilder;
 import org.prebid.server.bidder.model.AdapterHttpRequest;
@@ -68,12 +67,8 @@ import static org.mockito.BDDMockito.given;
 public class ConversantAdapterTest extends VertxTest {
 
     private static final String BIDDER = "conversant";
+    private static final String COOKIE_FAMILY = BIDDER;
     private static final String ENDPOINT_URL = "http://exchange.org/";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String USERSYNC_REDIRECT_URL = "redirect/url";
-    private static final String USERSYNC_TYPE = "redirect";
-    private static final Boolean USERSYNC_SUPPORT_CORS = false;
-    private static final String EXTERNAL_URL = "http://external.org/";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -85,7 +80,6 @@ public class ConversantAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private ConversantAdapter adapter;
-    private Usersyncer usersyncer;
 
     @Before
     public void setUp() {
@@ -93,21 +87,19 @@ public class ConversantAdapterTest extends VertxTest {
 
         adapterRequest = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new Usersyncer(BIDDER, USERSYNC_URL, USERSYNC_REDIRECT_URL, EXTERNAL_URL, USERSYNC_TYPE,
-                USERSYNC_SUPPORT_CORS);
-        adapter = new ConversantAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new ConversantAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new ConversantAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new ConversantAdapter(usersyncer, null));
+        assertThatNullPointerException().isThrownBy(() -> new ConversantAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ConversantAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new ConversantAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
