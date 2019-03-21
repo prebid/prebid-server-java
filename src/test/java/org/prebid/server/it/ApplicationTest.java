@@ -1,10 +1,6 @@
 package org.prebid.server.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.github.tomakehurst.wiremock.common.FileSource;
-import com.github.tomakehurst.wiremock.extension.Parameters;
-import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
-import com.github.tomakehurst.wiremock.http.Request;
 import com.iab.gdpr.consent.VendorConsentEncoder;
 import com.iab.gdpr.consent.implementation.v1.VendorConsentBuilder;
 import com.iab.gdpr.consent.range.StartEndRangeEntry;
@@ -13,6 +9,7 @@ import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.Cookie;
+import io.restassured.http.Header;
 import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.parsing.Parser;
 import io.restassured.response.Response;
@@ -21,13 +18,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.prebid.server.cache.proto.request.BidCacheRequest;
-import org.prebid.server.cache.proto.request.PutObject;
-import org.prebid.server.cache.proto.response.BidCacheResponse;
-import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
@@ -42,7 +34,6 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -82,14 +73,6 @@ public class ApplicationTest extends IntegrationTest {
             .setConfig(RestAssuredConfig.config()
                     .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
             .build();
-
-    @BeforeClass
-    public static void setUp() throws IOException {
-        wireMockRule.stubFor(get(urlPathEqualTo("/periodic-update"))
-                .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
-        wireMockRule.stubFor(get(urlPathEqualTo("/currency-rates"))
-                .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
-    }
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdform() throws IOException, JSONException {
@@ -595,18 +578,16 @@ public class ApplicationTest extends IntegrationTest {
 
     @Test
     public void eventHandlerShouldRespondWithJPGTrackingPixel() throws IOException {
-        given(spec)
+        final Response response = given(spec)
                 .queryParam("type", "win")
                 .queryParam("bidid", "bidId")
                 .queryParam("bidder", "rubicon")
                 .queryParam("format", "jpg")
-                .get("/event")
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .header("content-type", "image/jpeg")
-                .body(Matchers.equalTo(
-                        Buffer.buffer(ResourceUtil.readByteArrayFromClassPath("static/tracking-pixel.jpg")).toString()));
+                .get("/event");
+
+        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getHeaders()).contains(new Header("content-type", "image/jpeg"));
+        assertThat(response.getBody().asByteArray()).isEqualTo(ResourceUtil.readByteArrayFromClassPath("static/tracking-pixel.jpg"));
     }
 
     @Test
@@ -706,35 +687,6 @@ public class ApplicationTest extends IntegrationTest {
                 .statusCode(200);
     }
 
-    private static String cacheResponseFromRequestJson(String requestAsString, String requestCacheIdMapFile) throws
-            IOException {
-        List<CacheObject> responseCacheObjects = new ArrayList<>();
-
-        try {
-            final BidCacheRequest cacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
-            final JsonNode jsonNodeMatcher =
-                    mapper.readTree(ApplicationTest.class.getResourceAsStream(requestCacheIdMapFile));
-            final List<PutObject> puts = cacheRequest.getPuts();
-
-            for (PutObject putItem : puts) {
-                if (putItem.getType().equals("json")) {
-                    String id = putItem.getValue().get("id").textValue() + "@" + putItem.getValue().get("price");
-                    String uuid = jsonNodeMatcher.get(id).textValue();
-                    responseCacheObjects.add(CacheObject.of(uuid));
-                } else {
-                    String id = putItem.getValue().textValue();
-                    String uuid = jsonNodeMatcher.get(id).textValue();
-                    responseCacheObjects.add(CacheObject.of(uuid));
-                }
-            }
-
-            final BidCacheResponse bidCacheResponse = BidCacheResponse.of(responseCacheObjects);
-            return Json.encode(bidCacheResponse);
-        } catch (IOException e) {
-            throw new IOException("Error while matching cache ids");
-        }
-    }
-
     private static Uids decodeUids(String value) {
         return Json.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(value)), Uids.class);
     }
@@ -758,36 +710,6 @@ public class ApplicationTest extends IntegrationTest {
             throw new IllegalArgumentException(
                     String.format("Exception occurred during %s bidder schema processing: %s",
                             bidderName, e.getMessage()));
-        }
-    }
-
-    public static class CacheResponseTransformer extends ResponseTransformer {
-        @Override
-        public com.github.tomakehurst.wiremock.http.Response transform(
-                Request request, com.github.tomakehurst.wiremock.http.Response response, FileSource files,
-                Parameters parameters) {
-
-            final String newResponse;
-            try {
-                newResponse = cacheResponseFromRequestJson(request.getBodyAsString(),
-                        parameters.getString("matcherName"));
-            } catch (IOException e) {
-                return com.github.tomakehurst.wiremock.http.Response.response()
-                        .body(e.getMessage())
-                        .status(500)
-                        .build();
-            }
-            return com.github.tomakehurst.wiremock.http.Response.response().body(newResponse).status(200).build();
-        }
-
-        @Override
-        public String getName() {
-            return "cache-response-transformer";
-        }
-
-        @Override
-        public boolean applyGlobally() {
-            return false;
         }
     }
 }
