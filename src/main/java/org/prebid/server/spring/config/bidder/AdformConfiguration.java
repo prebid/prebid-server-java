@@ -25,13 +25,13 @@ public class AdformConfiguration {
 
     private static final String BIDDER_NAME = "adform";
 
-    @Autowired
-    @Qualifier("adformConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Value("${external-url}")
     @NotBlank
     private String externalUrl;
+
+    @Autowired
+    @Qualifier("adformConfigurationProperties")
+    private BidderConfigurationProperties configProperties;
 
     @Bean("adformConfigurationProperties")
     @ConfigurationProperties("adapters.adform")
@@ -46,17 +46,15 @@ public class AdformConfiguration {
                 metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr());
 
-        final UsersyncConfigurationProperties usersyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = new Usersyncer(usersyncProperties.getCookieFamilyName(),
-                usersyncProperties.getUrl(), usersyncProperties.getRedirectUrl(), externalUrl,
-                usersyncProperties.getType(), usersyncProperties.getSupportCors());
+        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .bidderInfo(bidderInfo)
-                .usersyncer(usersyncer)
+                .usersyncerCreator(() -> new Usersyncer(usersync.getCookieFamilyName(), usersync.getUrl(),
+                        usersync.getRedirectUrl(), externalUrl, usersync.getType(), usersync.getSupportCors()))
                 .bidderCreator(() -> new AdformBidder(configProperties.getEndpoint()))
-                .adapterCreator(() -> new AdformAdapter(usersyncer, configProperties.getEndpoint()))
+                .adapterCreator(() -> new AdformAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint()))
                 .assemble();
     }
 }

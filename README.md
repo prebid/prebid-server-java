@@ -63,7 +63,7 @@ status-response: "ok"
 Also, create the Data Cache settings file `sample-app-settings.yml` with content:
 ```yaml
 accounts:
-  - 1001
+  - id: 1001
 ```
 For more information how to configure the server follow [documentation](docs/config.md).
 

@@ -46,19 +46,17 @@ public class RubiconConfiguration {
                 metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr());
 
-        final UsersyncConfigurationProperties usersyncProperties = configProperties.getUsersync();
-        final Usersyncer usersyncer = new Usersyncer(usersyncProperties.getCookieFamilyName(),
-                usersyncProperties.getUrl(), usersyncProperties.getRedirectUrl(), null, usersyncProperties.getType(),
-                usersyncProperties.getSupportCors());
+        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .bidderInfo(bidderInfo)
-                .usersyncer(usersyncer)
+                .usersyncerCreator(() -> new Usersyncer(usersync.getCookieFamilyName(), usersync.getUrl(),
+                        usersync.getRedirectUrl(), null, usersync.getType(), usersync.getSupportCors()))
                 .bidderCreator(() -> new RubiconBidder(configProperties.getEndpoint(),
                         configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword(),
                         metaInfo.getSupportedVendors()))
-                .adapterCreator(() -> new RubiconAdapter(usersyncer, configProperties.getEndpoint(),
+                .adapterCreator(() -> new RubiconAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint(),
                         configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword()))
                 .assemble();
     }

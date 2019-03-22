@@ -25,7 +25,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AdUnitBid;
 import org.prebid.server.auction.model.AdapterRequest;
 import org.prebid.server.auction.model.PreBidRequestContext;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
@@ -69,13 +68,8 @@ import static org.mockito.BDDMockito.given;
 public class AppnexusAdapterTest extends VertxTest {
 
     private static final String BIDDER = "appnexus";
-    private static final String BIDDER_COOKIE = "adnxs";
+    private static final String COOKIE_FAMILY = "adnxs";
     private static final String ENDPOINT_URL = "http://endpoint.org/";
-    private static final String USERSYNC_REDIRECT_URL = "redirect/url";
-    private static final String USERSYNC_URL = "//usersync.org/";
-    private static final String USERSYNC_TYPE = "redirect";
-    private static final Boolean USERSYNC_SUPPORT_CORS = false;
-    private static final String EXTERNAL_URL = "http://external.org/";
     private static final Integer BANNER_TYPE = 0;
     private static final Integer VIDEO_TYPE = 1;
 
@@ -89,27 +83,24 @@ public class AppnexusAdapterTest extends VertxTest {
     private PreBidRequestContext preBidRequestContext;
     private ExchangeCall<BidRequest, BidResponse> exchangeCall;
     private AppnexusAdapter adapter;
-    private Usersyncer usersyncer;
 
     @Before
     public void setUp() {
         adapterRequest = givenBidder(identity(), identity());
         preBidRequestContext = givenPreBidRequestContext(identity(), identity());
-        usersyncer = new Usersyncer(BIDDER_COOKIE, USERSYNC_URL, USERSYNC_REDIRECT_URL, EXTERNAL_URL, USERSYNC_TYPE,
-                USERSYNC_SUPPORT_CORS);
-        adapter = new AppnexusAdapter(usersyncer, ENDPOINT_URL);
+        adapter = new AppnexusAdapter(COOKIE_FAMILY, ENDPOINT_URL);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
         assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(null, null));
-        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(usersyncer, null));
+        assertThatNullPointerException().isThrownBy(() -> new AppnexusAdapter(COOKIE_FAMILY, null));
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new AppnexusAdapter(usersyncer, "invalid_url"))
+                .isThrownBy(() -> new AppnexusAdapter(COOKIE_FAMILY, "invalid_url"))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -244,7 +235,7 @@ public class AppnexusAdapterTest extends VertxTest {
                                 .build())
         );
 
-        given(uidsCookie.uidFrom(eq(BIDDER_COOKIE))).willReturn("buyerUid");
+        given(uidsCookie.uidFrom(eq(COOKIE_FAMILY))).willReturn("buyerUid");
 
         // when
         final List<AdapterHttpRequest<BidRequest>> httpRequests = adapter.makeHttpRequests(adapterRequest,
