@@ -11,6 +11,6 @@ import lombok.Value;
 @Value
 public class ExtImpYieldmo {
 
-    @JsonProperty("placementid")
+    @JsonProperty("placementId")
     String placementId;
 }
