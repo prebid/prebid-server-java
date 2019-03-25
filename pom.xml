@@ -55,7 +55,7 @@
 
         <!-- plugin versions -->
         <checkstyle-plugin.version>2.17</checkstyle-plugin.version>
-        <checkstyle.version>7.6</checkstyle.version>
+        <checkstyle.version>8.18</checkstyle.version>
         <download-plugin.version>1.2.0</download-plugin.version>
         <jacoco-plugin.version>0.8.2</jacoco-plugin.version>
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
