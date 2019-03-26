@@ -242,16 +242,16 @@ public class EplanningBidder implements Bidder<Void> {
                 Collections.emptyList());
     }
 
-    private String getCleanAdUnitCode(ExtImpEplanning extImpEplanning, Supplier<String> fallbackNameSupplier) {
+    private static String getCleanAdUnitCode(ExtImpEplanning extImpEplanning, Supplier<String> fallbackNameSupplier) {
         final String adunitCode = extImpEplanning.getAdunitCode();
         return cleanName(StringUtils.isBlank(adunitCode) ? fallbackNameSupplier.get() : adunitCode);
     }
 
-    private Stream<HbResponseSpace> getSpacesStream(HbResponse hbResponse) {
+    private static Stream<HbResponseSpace> getSpacesStream(HbResponse hbResponse) {
         return hbResponse.getSpaces() != null ? hbResponse.getSpaces().stream() : Stream.empty();
     }
 
-    private Stream<HbResponseAd> getAdsStream(HbResponseSpace hbResponseSpace) {
+    private static Stream<HbResponseAd> getAdsStream(HbResponseSpace hbResponseSpace) {
         return hbResponseSpace.getAds() != null ? hbResponseSpace.getAds().stream() : Stream.empty();
     }
 

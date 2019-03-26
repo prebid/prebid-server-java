@@ -371,7 +371,7 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -388,7 +388,7 @@ public class EplanningBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
