@@ -4,12 +4,12 @@
   "description": "A schema which validates params accepted by the Yieldmo adapter",
   "type": "object",
   "properties": {
-    "placementid": {
+    "placementId": {
       "type": "string",
       "description": "Internal Yieldmo Placement ID"
     }
   },
   "required": [
-    "placementid"
+    "placementId"
   ]
 }
