@@ -185,7 +185,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1");
+                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1");
     }
 
     @Test
@@ -203,7 +203,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/DOMAIN/ROS?r=pbs&ncb=1&ur=http%3A%2F%2Fwww.example.com"
+                .containsOnly("http://eplanning.com/clientId/1/DOMAIN/ROS?ct=1&r=pbs&ncb=1&ur=http%3A%2F%2Fwww.example.com"
                         + "&e=testadun_itco_de:1x1");
     }
 
@@ -225,7 +225,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsOnly(
-                        "http://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:300x200");
+                        "http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:300x200");
     }
 
     @Test
@@ -243,7 +243,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
+                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
                         + "&uid=Buyer-ID");
     }
 
@@ -262,7 +262,7 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
+                .containsOnly("http://eplanning.com/clientId/1/FILE/ROS?ct=1&r=pbs&ncb=1&ur=FILE&e=testadun_itco_de:1x1"
                         + "&ip=123.321.321.123");
     }
 
@@ -317,6 +317,78 @@ public class EplanningBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .containsOnly(BidderBid.of(expectedBid, BidType.banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfMissingAdunitCode() throws JsonProcessingException {
+        // given
+        final HttpCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsString(HbResponse.of(
+                        singletonList(HbResponseSpace.of("1x1",
+                                singletonList(HbResponseAd.builder()
+                                        .adId("ad-id")
+                                        .impressionId("imp-id")
+                                        .price("3.3")
+                                        .adM("some-adm")
+                                        .crId("CR-ID")
+                                        .width(1)
+                                        .height(1)
+                                        .build()))))));
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                    ExtImpEplanning.of("clientId", null)))));
+
+        // when
+        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        final Bid expectedBid = Bid.builder()
+                .id("imp-id")
+                .adid("ad-id")
+                .impid("123")
+                .price(BigDecimal.valueOf(3.3))
+                .adm("some-adm")
+                .crid("CR-ID")
+                .w(1)
+                .h(1)
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .containsOnly(BidderBid.of(expectedBid, BidType.banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldNotCrashIfThereAreNoSpaces() throws JsonProcessingException {
+        // given
+        final HttpCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsString(HbResponse.of(null)));
+
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(0);
+    }
+
+    @Test
+    public void makeBidsShouldNotCrashIfThereAreNoAds() throws JsonProcessingException {
+        // given
+        final HttpCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsString(HbResponse.of(
+                        singletonList(HbResponseSpace.of("adless", null)))));
+
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(0);
     }
 
     @Test
