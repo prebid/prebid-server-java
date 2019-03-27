@@ -154,13 +154,13 @@ public class IxBidder implements Bidder<BidRequest> {
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         final Banner.BannerBuilder bannerBuilder = imp.getBanner().toBuilder();
-        if (formats.size() > REQUEST_LIMIT) {
-            formats = formats.subList(0, REQUEST_LIMIT);
-        }
+        final List<Format> limitedFormats = formats.size() > REQUEST_LIMIT
+                ? formats.subList(0, REQUEST_LIMIT)
+                : formats;
 
         final List<Integer> sizes = extImpIx.getSize();
         final List<BidRequest> requests = new ArrayList<>();
-        for (Format format : formats) {
+        for (Format format : limitedFormats) {
             if (CollectionUtils.isNotEmpty(sizes) && !isValidIxSize(format, sizes)) {
                 continue;
             }

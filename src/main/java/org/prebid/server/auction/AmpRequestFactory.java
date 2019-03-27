@@ -251,7 +251,7 @@ public class AmpRequestFactory {
      * Updates origin amp banner formats from parameters.
      */
     private static List<Format> updateFormatsFromParams(List<Format> formats, Integer width, Integer height) {
-        List<Format> updatedFormats = null;
+        final List<Format> updatedFormats;
         if (width != 0) {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(width).h(format.getH()).build())
@@ -260,6 +260,8 @@ public class AmpRequestFactory {
             updatedFormats = formats.stream()
                     .map(format -> Format.builder().w(format.getW()).h(height).build())
                     .collect(Collectors.toList());
+        } else {
+            updatedFormats = Collections.emptyList();
         }
         return updatedFormats;
     }

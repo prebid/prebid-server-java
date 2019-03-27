@@ -458,7 +458,7 @@ public class ExchangeService {
      * (which means request contains 'explicit' buyeruid in 'request.user.ext.buyerids' or uidsCookie).
      */
     private User prepareUser(String bidder, BidRequest bidRequest, Map<String, String> uidsBody, UidsCookie uidsCookie,
-                             ObjectNode updatedUserExt, Map<String, String> aliases, Boolean maskingRequired) {
+                             ObjectNode updatedUserExt, Map<String, String> aliases, boolean maskingRequired) {
 
         final User user = bidRequest.getUser();
         final User.UserBuilder builder = user != null ? user.toBuilder() : User.builder();
@@ -491,7 +491,7 @@ public class ExchangeService {
     /**
      * Prepared device for each bidder depends on gdpr enabling.
      */
-    private static Device prepareDevice(Device device, Boolean maskingRequired) {
+    private static Device prepareDevice(Device device, boolean maskingRequired) {
         return device != null && maskingRequired
                 ? device.toBuilder().ip(maskIp(device.getIp(), '.')).ipv6(maskIp(device.getIpv6(), ':'))
                 .geo(maskGeo(device.getGeo()))
@@ -504,7 +504,7 @@ public class ExchangeService {
     /**
      * Sets gdpr value 1, if bidder required gdpr masking, but gdpr value in regs extension is not defined.
      */
-    private static Regs prepareRegs(Regs regs, ExtRegs extRegs, Boolean maskingRequired) {
+    private static Regs prepareRegs(Regs regs, ExtRegs extRegs, boolean maskingRequired) {
         if (maskingRequired) {
             if (extRegs == null) {
                 return Regs.of(regs != null ? regs.getCoppa() : null, Json.mapper.valueToTree(ExtRegs.of(1)));
@@ -713,7 +713,7 @@ public class ExchangeService {
 
     private boolean isValidCurFromResponse(List<String> requestCurrencies, List<BidderBid> bids,
                                            List<BidderError> errors) {
-        if (bids.size() > 0) {
+        if (CollectionUtils.isNotEmpty(bids)) {
             //assume that currencies are the same among all bids
             final List<String> bidderCurrencies = bids.stream()
                     .map(bid -> ObjectUtils.firstNonNull(bid.getBidCurrency(), DEFAULT_CURRENCY))
@@ -1180,11 +1180,11 @@ public class ExchangeService {
     }
 
     private Map<String, List<ExtBidderError>> extractCacheErrors(List<String> cacheErrors) {
-        List<ExtBidderError> extBidderErrors = cacheErrors.stream()
+        final List<ExtBidderError> extBidderErrors = cacheErrors.stream()
                 .map(error -> ExtBidderError.of(BidderError.Type.generic.getCode(), error))
                 .collect(Collectors.toList());
 
-        if (extBidderErrors.size() > 0) {
+        if (CollectionUtils.isNotEmpty(extBidderErrors)) {
             return Collections.singletonMap(PREBID_EXT, extBidderErrors);
         }
 

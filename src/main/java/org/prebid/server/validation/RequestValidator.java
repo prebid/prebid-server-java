@@ -140,7 +140,7 @@ public class RequestValidator {
                 uniqueImps.put(impId, i);
             }
 
-            if (errors.size() > 0) {
+            if (CollectionUtils.isNotEmpty(errors)) {
                 throw new ValidationException(String.join(System.lineSeparator(), errors));
             }
 
@@ -544,9 +544,7 @@ public class RequestValidator {
         }
     }
 
-    private List<Asset> validateAndGetUpdatedNativeAssets(List<Asset> assets, int impIndex)
-            throws ValidationException {
-
+    private List<Asset> validateAndGetUpdatedNativeAssets(List<Asset> assets, int impIndex) throws ValidationException {
         if (CollectionUtils.isEmpty(assets)) {
             throw new ValidationException(
                     "request.imp[%d].native.request.assets must be an array containing at least one object", impIndex);
