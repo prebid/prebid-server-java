@@ -41,7 +41,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Eplanning {@link Bidder} implementation.
@@ -82,8 +84,7 @@ public class EplanningBidder implements Bidder<Void> {
                     clientId = extImpEplanning.getClientId();
                 }
                 final String sizeString = resolveSizeString(imp);
-                final String adunitCode = extImpEplanning.getAdunitCode();
-                final String name = cleanName(StringUtils.isBlank(adunitCode) ? sizeString : adunitCode);
+                final String name = getCleanAdUnitCode(extImpEplanning, () -> sizeString);
                 requestsStrings.add(name + ":" + sizeString);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -192,7 +193,7 @@ public class EplanningBidder implements Bidder<Void> {
         final String pageUrl = site != null && StringUtils.isNotBlank(site.getPage())
                 ? site.getPage() : DEFAULT_PAGE_URL;
 
-        String uri = endpointUrl + String.format("/%s/%s/%s/%s?r=pbs&ncb=1&ur=%s&e=%s",
+        String uri = endpointUrl + String.format("/%s/%s/%s/%s?ct=1&r=pbs&ncb=1&ur=%s&e=%s",
                 clientId, DFP_CLIENT_ID, pageDomain, SEC, HttpUtil.encodeUrl(pageUrl),
                 String.join("+", requestsStrings));
 
@@ -230,15 +231,28 @@ public class EplanningBidder implements Bidder<Void> {
             } catch (PreBidException e) {
                 continue;
             }
-            final String name = cleanName(impExt.getAdunitCode());
+            final String name = getCleanAdUnitCode(impExt, () -> resolveSizeString(imp));
             nameSpaceToImpId.put(name, imp.getId());
         }
 
-        return Result.of(hbResponse.getSpaces().stream()
-                        .flatMap(hbResponseSpace -> hbResponseSpace.getAds().stream()
+        return Result.of(getSpacesStream(hbResponse)
+                        .flatMap(hbResponseSpace -> getAdsStream(hbResponseSpace)
                                 .map(hbResponseAd -> mapToBidderBid(hbResponseSpace, hbResponseAd, nameSpaceToImpId)))
                         .collect(Collectors.toList()),
                 Collections.emptyList());
+    }
+
+    private static String getCleanAdUnitCode(ExtImpEplanning extImpEplanning, Supplier<String> fallbackNameSupplier) {
+        final String adunitCode = extImpEplanning.getAdunitCode();
+        return cleanName(StringUtils.isBlank(adunitCode) ? fallbackNameSupplier.get() : adunitCode);
+    }
+
+    private static Stream<HbResponseSpace> getSpacesStream(HbResponse hbResponse) {
+        return hbResponse.getSpaces() != null ? hbResponse.getSpaces().stream() : Stream.empty();
+    }
+
+    private static Stream<HbResponseAd> getAdsStream(HbResponseSpace hbResponseSpace) {
+        return hbResponseSpace.getAds() != null ? hbResponseSpace.getAds().stream() : Stream.empty();
     }
 
     private static BidderBid mapToBidderBid(HbResponseSpace hbResponseSpace, HbResponseAd hbResponseAd,
