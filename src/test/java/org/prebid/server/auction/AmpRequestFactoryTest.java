@@ -523,7 +523,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnRequestWithOverriddenBannerFormatByOverwriteWHParamsRespectingThemOverWHAndMSParams() {
+    public void shouldReturnRequestWithOverriddenBannerFormatByOverwriteWHParamsRespectingThemOverWH() {
         // given
         given(httpRequest.getParam("w")).willReturn("10");
         given(httpRequest.getParam("ow")).willReturn("1000");
@@ -555,11 +555,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
                 .extracting(Format::getW, Format::getH)
-                .containsOnly(tuple(1000, 2000));
+                .containsOnly(tuple(1000, 2000), tuple(44, 88), tuple(66, 99));
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverriddenBannerFromOWAndHParamIfOHIsMissed() {
+    public void shouldReturnBidRequestWithOverriddenBannerFromOWAndHParamAndMultiListIfOHIsMissed() {
         // given
         given(httpRequest.getParam("ow")).willReturn("10");
         given(httpRequest.getParam("w")).willReturn("30");
@@ -590,11 +590,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
                 .extracting(Format::getW, Format::getH)
-                .containsOnly(tuple(10, 40));
+                .containsOnly(tuple(10, 40), tuple(50, 60));
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverriddenBannerFromWAndOHParamIfOWIsMissed() {
+    public void shouldReturnBidRequestWithOverriddenBannerFromWAndOHParamAndMultiListIfOWIsMissed() {
         // given
         given(httpRequest.getParam("oh")).willReturn("20");
         given(httpRequest.getParam("w")).willReturn("30");
@@ -625,11 +625,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
                 .extracting(Format::getW, Format::getH)
-                .containsOnly(tuple(30, 20));
+                .containsOnly(tuple(30, 20), tuple(50, 60));
     }
 
     @Test
-    public void shouldReturnBidRequestWithOverriddenBannerFromMultiListIfOwAndOhAreMissed() {
+    public void shouldReturnBidRequestWithBannerFromHWParamsAndMultiList() {
         // given
         given(httpRequest.getParam("w")).willReturn("30");
         given(httpRequest.getParam("h")).willReturn("40");
@@ -659,7 +659,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
                 .extracting(Format::getW, Format::getH)
-                .containsOnly(tuple(50, 60));
+                .containsOnly(tuple(30, 40), tuple(50, 60));
     }
 
     @Test
