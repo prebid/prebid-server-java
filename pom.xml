@@ -422,7 +422,7 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <excludes>
-                            <exclude>org/prebid/server/ApplicationTest.java</exclude>
+                            <exclude>org/prebid/server/it/*</exclude>
                         </excludes>
                     </configuration>
                 </plugin>
