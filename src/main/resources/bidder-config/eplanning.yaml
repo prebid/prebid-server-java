@@ -12,7 +12,7 @@ adapters:
       site-media-types:
         - banner
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 90
     usersync:
       url: https://ads.us.e-planning.net/getuid/1/5a1ad71d2d53a0f5?
       redirect-url: /setuid?bidder=eplanning&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&uid=$UID

@@ -16,6 +16,8 @@ and not the other for an interim period. This page tracks known differences that
 1) PBS-Java supports checking the latest currency rates details, for example update time. This information is exposed via `/currency-rates` endpoint on admin port. Unavailable if currency conversion is disabled.
 1) PBS-Java has a specific `host-cookie` and `uids` cookie processing for all endpoints, that sets `uids.HOST-BIDDER` from `host-cookie` if first is absent or not equal to second.
 1) PBS-Java has a specific `/cookie-sync` behaviour, that sets `/setuid` as usersync-url for host-bidder if `host-cookie` specified but `uids.HOST-BIDDER` undefined or differs.
+1) PBS-Java has `/event` endpoint to allow Web browsers and mobile applications to notify about different ad events (win, view etc). Filling new bid extensions `response.seatbid.bid.ext.prebid.events.{win,view}` with events url after successful auction completing makes it possible. Also new targeting parameter `hb_winurl` with win event url is supported.
+1) PBS-Java supports per-account cache TTL and event URLs configuration in the database in columns `banner_cache_ttl`, `video_cache_ttl` and `events_enabled`.
 
 ## Minor differences
 
