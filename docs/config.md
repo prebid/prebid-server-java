@@ -27,12 +27,11 @@ settings:
     stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT impid, impData, 'imp' as dataType FROM stored_imps WHERE impid IN (%IMP_ID_LIST%)
     amp-stored-requests-query: SELECT reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)
 ```
-If some property is missed in `prebid-config.yaml` application will look for it 
-in `src/main/resources/application.yaml` file.
+If some property is missed in `prebid-config.yaml` application will look for it in `src/main/resources/application.yaml` file.
 
 To use external application configuration just add the following as start up arguments:
 ```
---spring.config.location=/path/to/prebid-config.yaml
+--spring.config.additional-location=/path/to/prebid-config.yaml
 ```
 
 ## Logging properties
