@@ -126,7 +126,11 @@ public class GamoshiBidder implements Bidder<BidRequest> {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, "User-Agent", device.getUa());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Forwarded-For", device.getIp());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Accept-Language", device.getLanguage());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, "DNT", device.getDnt().toString());
+
+            final Integer dnt = device.getDnt();
+            if (dnt != null) {
+                headers.add("DNT", dnt.toString());
+            }
         }
         return headers;
     }
@@ -149,22 +153,21 @@ public class GamoshiBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        final Map<String, BidType> requestImpIdToBidType = bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, GamoshiBidder::getBidType));
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid,
+                        requestImpIdToBidType.getOrDefault(bid.getImpid(), BidType.banner), DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId) && imp.getVideo() != null) {
-                return BidType.video;
-            }
-        }
-        return BidType.banner;
+    private static BidType getBidType(Imp imp) {
+        return imp.getVideo() != null ? BidType.video : BidType.banner;
     }
 
     @Override
