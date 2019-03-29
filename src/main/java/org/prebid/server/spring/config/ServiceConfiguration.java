@@ -141,9 +141,10 @@ public class ServiceConfiguration {
             Vertx vertx,
             @Value("${http-client.max-pool-size}") int maxPoolSize,
             @Value("${http-client.connect-timeout-ms}") int connectTimeoutMs,
-            @Value("${http-client.use-compression}") boolean useCompression) {
+            @Value("${http-client.use-compression}") boolean useCompression,
+            @Value("${http-client.max-redirects}") int maxRedirects) {
 
-        return createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs, useCompression);
+        return createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs, useCompression, maxRedirects);
     }
 
     @Bean
@@ -157,19 +158,24 @@ public class ServiceConfiguration {
             @Value("${http-client.circuit-breaker.opening-threshold}") int openingThreshold,
             @Value("${http-client.circuit-breaker.opening-interval-ms}") long openingIntervalMs,
             @Value("${http-client.circuit-breaker.closing-interval-ms}") long closingIntervalMs,
-            @Value("${http-client.use-compression}") boolean useCompression) {
+            @Value("${http-client.use-compression}") boolean useCompression,
+            @Value("${http-client.max-redirects}") int maxRedirects) {
 
-        final HttpClient httpClient = createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs, useCompression);
+        final HttpClient httpClient = createBasicHttpClient(vertx, maxPoolSize, connectTimeoutMs, useCompression,
+                maxRedirects);
         return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics, openingThreshold, openingIntervalMs,
                 closingIntervalMs);
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, int maxPoolSize, int connectTimeoutMs,
-                                                         boolean useCompression) {
+                                                         boolean useCompression, int maxRedirects) {
         final HttpClientOptions options = new HttpClientOptions()
                 .setMaxPoolSize(maxPoolSize)
                 .setTryUseCompression(useCompression)
-                .setConnectTimeout(connectTimeoutMs);
+                .setConnectTimeout(connectTimeoutMs)
+                // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
+                // 3 for twice, and so on
+                .setMaxRedirects(maxRedirects + 1);
         return new BasicHttpClient(vertx, vertx.createHttpClient(options));
     }
 

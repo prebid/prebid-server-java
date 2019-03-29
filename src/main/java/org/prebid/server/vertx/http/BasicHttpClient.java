@@ -42,6 +42,7 @@ public class BasicHttpClient implements HttpClient {
             final long timerId = vertx.setTimer(timeoutMs, id -> handleTimeout(future, timeoutMs, httpClientRequest));
 
             httpClientRequest
+                    .setFollowRedirects(true)
                     .handler(response -> handleResponse(response, future, timerId))
                     .exceptionHandler(exception -> failResponse(exception, future, timerId));
 

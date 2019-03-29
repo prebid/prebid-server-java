@@ -17,6 +17,7 @@ http-client:
   max-pool-size: 4000
   connect-timeout-ms: 2500
   use-compression: false
+  max-redirects: 0
 external-url: http://localhost:8000
 default-timeout-ms: 900
 max-timeout-ms: 5000

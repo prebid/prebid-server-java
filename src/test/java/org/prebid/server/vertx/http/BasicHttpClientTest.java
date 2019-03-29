@@ -32,6 +32,7 @@ import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -59,6 +60,7 @@ public class BasicHttpClientTest {
     public void setUp() {
         given(wrappedHttpClient.requestAbs(any(), any())).willReturn(httpClientRequest);
 
+        given(httpClientRequest.setFollowRedirects(anyBoolean())).willReturn(httpClientRequest);
         given(httpClientRequest.handler(any())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
         given(httpClientRequest.headers()).willReturn(new CaseInsensitiveHeaders());
@@ -98,6 +100,15 @@ public class BasicHttpClientTest {
 
         // then
         assertThat(future.succeeded()).isTrue();
+    }
+
+    @Test
+    public void requestShouldAllowFollowingRedirections() {
+        // when
+        httpClient.request(HttpMethod.GET, null, null, null, 1L);
+
+        // then
+        verify(httpClientRequest).setFollowRedirects(true);
     }
 
     @Test
