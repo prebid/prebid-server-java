@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.consumable;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -29,7 +28,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.consumable.ExtImpConsumable;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -43,10 +41,6 @@ import java.util.Map;
 import java.util.Objects;
 
 public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
-
-    private static final TypeReference<ExtPrebid<?, ExtImpConsumable>> CONSUMABLE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpConsumable>>() {
-            };
 
     private final String endpointUrl;
 
