@@ -35,13 +35,13 @@ We use [Maven](https://maven.apache.org) and attempt to introduce minimal depend
 
 To start the Prebid Server you need to do the following steps:
 - Build all-in-one JAR file from sources as described [here](docs/build.md).
-- Check minimal needed configuration file `sample-prebid-config.yaml`.
-- Also, check the Data Cache settings file `sample-app-settings.yaml`.
+- Check minimal needed configuration file `sample/prebid-config.yaml`.
+- Also, check the Data Cache settings file `sample/sample-app-settings.yaml`.
 For more information how to configure the server follow [documentation](docs/config.md).
 
 - Run your server with the next command:
 ```
-java -jar target/prebid-server.jar --spring.config.additional-location=sample-prebid-config.yaml
+java -jar target/prebid-server.jar --spring.config.additional-location=sample/prebid-config.yaml
 ```
 For more information how to start the server follow [documentation](docs/run.md).
 

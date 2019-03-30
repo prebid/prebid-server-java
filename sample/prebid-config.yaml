@@ -12,7 +12,7 @@ cache:
   query: uuid=%PBS_CACHE_UUID%
 settings:
   filesystem:
-    settings-filename: sample-app-settings.yaml
+    settings-filename: sample/sample-app-settings.yaml
     stored-requests-dir: /tmp
     stored-imps-dir: /tmp
 gdpr:
