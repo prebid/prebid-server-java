@@ -331,9 +331,11 @@ public class ExchangeService {
                                                    ObjectNode userExtNode, ExtRegs extRegs, Map<String, String> aliases,
                                                    List<Imp> imps, Map<Integer, Boolean> vendorsToGdpr) {
 
+        final Device device = bidRequest.getDevice();
+        final Integer deviceLmt = device != null ? device.getLmt() : null;
         final Map<String, Boolean> bidderToMaskingRequired = bidders.stream()
                 .collect(Collectors.toMap(Function.identity(),
-                        bidder -> isMaskingRequiredBidder(vendorsToGdpr, bidder, aliases)));
+                        bidder -> isMaskingRequiredBidder(vendorsToGdpr, bidder, aliases, deviceLmt)));
 
         final List<BidderRequest> bidderRequests = bidders.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid and imp
@@ -341,7 +343,7 @@ public class ExchangeService {
                 .map(bidder -> BidderRequest.of(bidder, bidRequest.toBuilder()
                         .user(prepareUser(bidder, bidRequest, uidsBody, uidsCookie, userExtNode, aliases,
                                 bidderToMaskingRequired.get(bidder)))
-                        .device(prepareDevice(bidRequest.getDevice(), bidderToMaskingRequired.get(bidder)))
+                        .device(prepareDevice(device, bidderToMaskingRequired.get(bidder)))
                         .regs(prepareRegs(bidRequest.getRegs(), extRegs, bidderToMaskingRequired.get(bidder)))
                         .imp(prepareImps(bidder, imps))
                         .build()))
@@ -357,9 +359,10 @@ public class ExchangeService {
      * Returns flag if masking is required for bidder.
      */
     private boolean isMaskingRequiredBidder(Map<Integer, Boolean> vendorToGdprPermission, String bidder,
-                                            Map<String, String> aliases) {
+                                            Map<String, String> aliases, Integer deviceLmt) {
         final boolean maskingRequired;
-        if (vendorToGdprPermission.isEmpty()) {
+        final boolean isLmtEnabled = deviceLmt != null && deviceLmt.equals(1);
+        if (vendorToGdprPermission.isEmpty() && !isLmtEnabled) {
             maskingRequired = false;
         } else {
             final String resolvedBidderName = resolveBidder(bidder, aliases);
@@ -368,7 +371,7 @@ public class ExchangeService {
 
             // if bidder was not found in vendorToGdprPermission, it means that it was not pbs enforced for gdpr, so
             // request for this bidder should be sent without changes
-            maskingRequired = gdprAllowsUserData != null && !gdprAllowsUserData;
+            maskingRequired = (gdprAllowsUserData != null && !gdprAllowsUserData) || isLmtEnabled;
 
             if (maskingRequired) {
                 metrics.updateGdprMaskedMetric(resolvedBidderName);
