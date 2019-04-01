@@ -43,8 +43,8 @@ public abstract class IntegrationTest extends VertxTest {
 
     @SuppressWarnings("unchecked")
     @ClassRule
-    public static final WireMockClassRule wireMockRule =
-            new WireMockClassRule(options().port(WIREMOCK_PORT).extensions(IntegrationTest.CacheResponseTransformer.class));
+    public static final WireMockClassRule wireMockRule = new WireMockClassRule(
+            options().port(WIREMOCK_PORT).extensions(IntegrationTest.CacheResponseTransformer.class));
 
     @Rule
     public WireMockClassRule instanceRule = wireMockRule;
