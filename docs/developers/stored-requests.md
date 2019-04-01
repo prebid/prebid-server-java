@@ -11,7 +11,7 @@ Configure your server to read stored requests from the filesystem:
 ```yaml
 settings:
   filesystem:
-    settings-filename: sample-app-settings.yml
+    settings-filename: sample-app-settings.yaml
     stored-requests-dir: stored_requests
     stored-imps-dir: stored_imps
 ```
