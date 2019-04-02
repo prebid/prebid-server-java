@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  */
 public class AdformBidder implements Bidder<Void> {
 
-    private static final String VERSION = "0.1.2";
+    private static final String VERSION = "0.1.3";
     private static final String BANNER = "banner";
     private static final String DEFAULT_CURRENCY = "USD";
 
@@ -87,7 +87,7 @@ public class AdformBidder implements Bidder<Void> {
                         .secure(getSecure(imps))
                         .gdprApplies(AdformRequestUtil.getGdprApplies(request.getRegs()))
                         .consent(AdformRequestUtil.getConsent(extUser))
-                        .cur(currency)
+                        .currency(currency)
                         .build());
 
         final MultiMap headers = AdformHttpUtil.buildAdformHeaders(

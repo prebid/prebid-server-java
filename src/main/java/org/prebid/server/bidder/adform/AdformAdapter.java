@@ -36,7 +36,8 @@ import java.util.stream.Collectors;
  */
 public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
 
-    private static final String VERSION = "0.1.2";
+    private static final String VERSION = "0.1.3";
+    private static final String DEFAULT_CURRENCY = "USD";
 
     private final String cookieFamilyName;
     private final String endpointUrl;
@@ -123,7 +124,7 @@ public class AdformAdapter implements Adapter<Void, List<AdformBid>> {
                         .gdprApplies(AdformRequestUtil.getGdprApplies(preBidRequestContext.getPreBidRequest()
                                 .getRegs()))
                         .consent(AdformRequestUtil.getConsent(extUser))
-                        .cur("USD")
+                        .currency(DEFAULT_CURRENCY)
                         .build());
     }
 

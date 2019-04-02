@@ -97,7 +97,7 @@ public class AdformHttpUtilTest {
                         .gdprApplies("1")
                         .consent("consent")
                         .secure(false)
-                        .cur("USD")
+                        .currency("USD")
                         .build());
 
         // then
@@ -120,7 +120,7 @@ public class AdformHttpUtilTest {
                 .gdprApplies("")
                 .consent("")
                 .secure(true)
-                .cur("USD")
+                .currency("USD")
                 .build());
 
         // then
@@ -142,7 +142,7 @@ public class AdformHttpUtilTest {
                 .advertisingId(null)
                 .gdprApplies("")
                 .consent("")
-                .cur("USD")
+                .currency("USD")
                 .build());
 
         // then
@@ -163,7 +163,7 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .consent("")
                 .gdprApplies("")
-                .cur("USD")
+                .currency("USD")
                 .build());
 
         // then
@@ -183,7 +183,7 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .gdprApplies("")
                 .consent("")
-                .cur("USD")
+                .currency("USD")
                 .build());
 
         // then
@@ -203,7 +203,7 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .gdprApplies("")
                 .consent("")
-                .cur("USD")
+                .currency("USD")
                 .build());
 
         // then
@@ -223,7 +223,7 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .gdprApplies("")
                 .consent("")
-                .cur("USD")
+                .currency("USD")
                 .build());
 
         // then
@@ -244,7 +244,7 @@ public class AdformHttpUtilTest {
                 .ip("ip")
                 .gdprApplies("")
                 .consent("")
-                .cur("USD")
+                .currency("USD")
                 .build());
 
         // then
