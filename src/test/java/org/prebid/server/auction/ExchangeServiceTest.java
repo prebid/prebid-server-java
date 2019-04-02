@@ -583,6 +583,56 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldApplyGdprMaskingIfDeviceLmtIsEnabled() {
+        // given
+        given(bidderCatalog.bidderInfoByName("bidder1")).willReturn(givenBidderInfo(1, true));
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(1, true), null)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder1", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .device(Device.builder().lmt(1).build())
+                        .user(User.builder().buyeruid("to_be_masked").build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any());
+
+        assertThat(bidRequestCaptor.getAllValues())
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid).hasSize(1)
+                .containsNull();
+    }
+
+    @Test
+    public void shouldNotApplyGdprMaskingIfDeviceLmtIsZero() {
+        // given
+        given(bidderCatalog.bidderInfoByName("bidder1")).willReturn(givenBidderInfo(1, true));
+        given(gdprService.resultByVendor(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(GdprResponse.of(true, singletonMap(1, true), null)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder1", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .device(Device.builder().lmt(0).build())
+                        .user(User.builder().buyeruid("should_not_be_masked").build()));
+
+        // when
+        exchangeService.holdAuction(bidRequest, uidsCookie, timeout, metricsContext, null);
+
+        // then
+        final ArgumentCaptor<BidRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(httpBidderRequester).requestBids(any(), bidRequestCaptor.capture(), any());
+
+        assertThat(bidRequestCaptor.getAllValues())
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid)
+                .containsOnly("should_not_be_masked");
+    }
+
+    @Test
     public void shouldReturnFailedFutureWithPrebidExceptionAsCauseIfGdprServiceFails() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
