@@ -93,7 +93,7 @@ public class ApplicationTest extends IntegrationTest {
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.2"))
+                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.3"))
                 .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
                 .withHeader("Cookie", equalTo(
                         "uid=AF-UID;DigiTrust.v1.identity="
@@ -286,7 +286,7 @@ public class ApplicationTest extends IntegrationTest {
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withHeader("User-Agent", equalTo("userAgent"))
-                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.2"))
+                .withHeader("X-Request-Agent", equalTo("PrebidAdapter 0.1.3"))
                 .withHeader("X-Forwarded-For", equalTo("192.168.244.1"))
                 .withHeader("Cookie", equalTo("uid=AF-UID;DigiTrust.v1.identity"
                         //{"id":"id","version":1,"keyv":123,"privacy":{"optout":true}}
