@@ -94,7 +94,7 @@ class AdformHttpUtil {
         params.add("gdpr_consent=" + parameters.getConsent());
 
         final String mids = parameters.getMasterTagIds().stream()
-                .map(masterTagId -> String.format("mid=%s&rcur=%s", masterTagId, parameters.getCur()))
+                .map(masterTagId -> String.format("mid=%s&rcur=%s", masterTagId, parameters.getCurrency()))
                 .map(mid -> Base64.getUrlEncoder().withoutPadding().encodeToString(mid.getBytes()))
                 .collect(Collectors.joining("&"));
 

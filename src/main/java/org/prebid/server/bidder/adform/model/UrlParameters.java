@@ -27,5 +27,5 @@ public class UrlParameters {
 
     String consent;
 
-    String cur;
+    String currency;
 }
