@@ -497,6 +497,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateCookieSyncMatchesMetricShouldIncrementMetric() {
+        // when
+        metrics.updateCookieSyncMatchesMetric(RUBICON);
+
+        // then
+        assertThat(metricRegistry.counter("cookie_sync.rubicon.matches").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void updateGdprMaskedMetricShouldIncrementMetric() {
         // when
         metrics.updateGdprMaskedMetric(RUBICON);

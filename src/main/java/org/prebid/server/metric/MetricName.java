@@ -54,6 +54,7 @@ public enum MetricName {
     bad_requests,
     sets,
     gen,
+    matches,
     gdpr_prevent,
     gdpr_masked;
 

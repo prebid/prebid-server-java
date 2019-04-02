@@ -179,6 +179,10 @@ public class Metrics extends UpdatableMetrics {
         cookieSync().forBidder(bidder).incCounter(MetricName.gen);
     }
 
+    public void updateCookieSyncMatchesMetric(String bidder) {
+        cookieSync().forBidder(bidder).incCounter(MetricName.matches);
+    }
+
     public void updateCookieSyncGdprPreventMetric(String bidder) {
         cookieSync().forBidder(bidder).incCounter(MetricName.gdpr_prevent);
     }

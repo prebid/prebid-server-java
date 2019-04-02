@@ -415,6 +415,35 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldUpdateCookieSyncMatchesMetricForEachAlreadySyncedBidder() throws IOException {
+        // given
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build()));
+
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.of(asList(RUBICON, APPNEXUS), null, null, null)));
+
+        rubiconUsersyncer = new Usersyncer(RUBICON, "", null, null, null, false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "", null, null, null, false);
+        givenUsersyncersReturningFamilyName();
+
+        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
+
+        Map<String, Integer> bidderToGdprVendorId = new HashMap<>();
+        bidderToGdprVendorId.put(RUBICON, 1);
+        bidderToGdprVendorId.put(APPNEXUS, 2);
+        givenGdprServiceReturningResult(bidderToGdprVendorId);
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        verify(metrics).updateCookieSyncMatchesMetric(RUBICON);
+        verify(metrics, never()).updateCookieSyncMatchesMetric(APPNEXUS);
+    }
+
+    @Test
     public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByGdpr() throws IOException {
         // given
         cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, bidderCatalog,
