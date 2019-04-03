@@ -521,6 +521,22 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
+    public void getuidsShouldReturnJsonWithUids() throws JSONException {
+        // given and when
+        final Response response = given(spec)
+                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"},
+                // "bday":"2017-08-15T19:47:59.523908376Z"}
+                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0"
+                        + "NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=")
+                .when()
+                .get("/getuids");
+
+        // then
+        JSONAssert.assertEquals("{\"buyeruids\":{\"rubicon\":\"J5VLCWQP-26-CWFT\",\"adnxs\":\"12345\"}}",
+                response.asString(), JSONCompareMode.NON_EXTENSIBLE);
+    }
+
+    @Test
     public void optionsRequestShouldRespondWithOriginalPolicyHeaders() {
         // when
         final Response response = given(spec)
