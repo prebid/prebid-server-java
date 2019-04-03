@@ -17,10 +17,10 @@ public class BiddersHandler implements Handler<RoutingContext> {
     private final String body;
 
     public BiddersHandler(BidderCatalog bidderCatalog) {
-        final Set<String> activeBidders = Objects.requireNonNull(bidderCatalog).names().stream()
-                .filter(bidderCatalog::isActive)
-                .collect(Collectors.toSet());
-        body = Json.encode(new TreeSet<>(activeBidders));
+        body = Json.encode(
+                Objects.requireNonNull(bidderCatalog).names().stream()
+                        .filter(bidderCatalog::isActive)
+                        .collect(Collectors.toCollection(TreeSet::new)));
     }
 
     @Override
