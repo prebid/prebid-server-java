@@ -8,7 +8,6 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
