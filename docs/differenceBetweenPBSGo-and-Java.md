@@ -18,6 +18,7 @@ and not the other for an interim period. This page tracks known differences that
 1) PBS-Java has a specific `/cookie-sync` behaviour, that sets `/setuid` as usersync-url for host-bidder if `host-cookie` specified but `uids.HOST-BIDDER` undefined or differs.
 1) PBS-Java has `/event` endpoint to allow Web browsers and mobile applications to notify about different ad events (win, view etc). Filling new bid extensions `response.seatbid.bid.ext.prebid.events.{win,view}` with events url after successful auction completing makes it possible. Also new targeting parameter `hb_winurl` with win event url is supported.
 1) PBS-Java supports per-account cache TTL and event URLs configuration in the database in columns `banner_cache_ttl`, `video_cache_ttl` and `events_enabled`.
+1) PBS-Java does not support passing bidder extensions in `imp[...].ext.prebid.bidder`. PBS-Go [PR 846](https://github.com/prebid/prebid-server/pull/846)
 
 ## Minor differences
 
