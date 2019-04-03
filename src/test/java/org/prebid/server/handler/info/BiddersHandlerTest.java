@@ -19,6 +19,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -65,15 +66,18 @@ public class BiddersHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithExpectedBody() {
+    public void shouldRespondWithExpectedBodyAndExcludeNotActiveBidders() {
         // given
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+        given(bidderCatalog.isActive(eq("bidder3"))).willReturn(false);
+
         handler = new BiddersHandler(bidderCatalog);
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(eq("[\"bidder1\",\"bidder2\",\"bidder3\"]"));
+        verify(httpResponse).end(eq("[\"bidder1\",\"bidder2\"]"));
     }
 }
