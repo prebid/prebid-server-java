@@ -8,14 +8,19 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 public class BiddersHandler implements Handler<RoutingContext> {
 
     private final String body;
 
     public BiddersHandler(BidderCatalog bidderCatalog) {
-        body = Json.encode(new TreeSet<>(Objects.requireNonNull(bidderCatalog).names()));
+        final Set<String> activeBidders = Objects.requireNonNull(bidderCatalog).names().stream()
+                .filter(bidderCatalog::isActive)
+                .collect(Collectors.toSet());
+        body = Json.encode(new TreeSet<>(activeBidders));
     }
 
     @Override
