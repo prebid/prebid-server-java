@@ -689,6 +689,36 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldLimitBidderStatusesWithLiveUids() throws IOException {
+        // given
+        Map<String, UidWithExpiry> liveUids = doubleMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"),
+                APPNEXUS_COOKIE, UidWithExpiry.live("1234567890"));
+        given(uidsCookieService.parseFromRequest(any())).willReturn(new UidsCookie(
+                Uids.builder().uids(liveUids).build()));
+
+        given(routingContext.getBody()).willReturn(givenRequestBody(
+                CookieSyncRequest.of(asList(RUBICON, APPNEXUS), 0, null, 1)));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        rubiconUsersyncer = new Usersyncer(RUBICON,
+                "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
+                null, null, "redirect", false);
+        appnexusUsersyncer = new Usersyncer(APPNEXUS_COOKIE, "http://rubiconexample.com", null, null, "redirect",
+                false);
+        givenUsersyncersReturningFamilyName();
+
+        givenGdprServiceReturningResult(doubleMap(RUBICON, 1, APPNEXUS, 2));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus()).isEmpty();
+    }
+
+    @Test
     public void shouldNotLimitBidderStatusesIfLimitIsBiggerThanBiddersList() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(
