@@ -1,4 +1,4 @@
-package org.prebid.server.spring.config.bidder;
+package org.prebid.server.spring.config.bidder.util;
 
 import org.prebid.server.bidder.Adapter;
 import org.prebid.server.bidder.Bidder;
@@ -35,21 +35,6 @@ public class BidderDepsAssembler {
         final BidderDepsAssembler assembler = new BidderDepsAssembler();
         assembler.bidderName = bidderName;
         return assembler;
-    }
-
-    public BidderDepsAssembler enabled(boolean enabled) {
-        this.enabled = enabled;
-        return this;
-    }
-
-    public BidderDepsAssembler deprecatedNames(List<String> deprecatedNames) {
-        this.deprecatedNames = deprecatedNames;
-        return this;
-    }
-
-    public BidderDepsAssembler aliases(List<String> aliases) {
-        this.aliases = aliases;
-        return this;
     }
 
     public BidderDepsAssembler bidderInfo(BidderInfo bidderInfo) {
