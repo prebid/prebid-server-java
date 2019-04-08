@@ -1,11 +1,13 @@
 package org.prebid.server.analytics.model;
 
+import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -33,13 +35,15 @@ public class HttpContext {
     }
 
     private static Map<String, String> queryParams(RoutingContext context) {
-        return context.request().params().entries().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        final MultiMap params = context.request().params();
+        return params.names().stream()
+                .collect(Collectors.toMap(Function.identity(), params::get));
     }
 
     private static Map<String, String> headers(RoutingContext context) {
-        return context.request().headers().entries().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        final MultiMap headers = context.request().headers();
+        return headers.names().stream()
+                .collect(Collectors.toMap(Function.identity(), headers::get));
     }
 
     private static Map<String, String> cookies(RoutingContext context) {

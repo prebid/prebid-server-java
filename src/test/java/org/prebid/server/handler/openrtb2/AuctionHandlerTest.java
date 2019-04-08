@@ -36,6 +36,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
@@ -43,6 +44,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -470,6 +472,48 @@ public class AuctionHandlerTest extends VertxTest {
                 .status(200)
                 .errors(emptyList())
                 .build());
+    }
+
+    @Test
+    public void shouldTolerateDuplicateQueryParamNames() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(bidRequest));
+
+        final MultiMap params = MultiMap.caseInsensitiveMultiMap();
+        params.add("param", "value1");
+        params.add("param", "value2");
+        given(httpRequest.params()).willReturn(params);
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        final Map<String, String> obtainedParams = auctionEvent.getHttpContext().getQueryParams();
+        assertThat(obtainedParams.entrySet()).containsOnly(entry("param", "value1"));
+    }
+
+    @Test
+    public void shouldTolerateDuplicateHeaderNames() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        given(auctionRequestFactory.fromRequest(any()))
+                .willReturn(Future.succeededFuture(bidRequest));
+
+        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
+        headers.add("header", "value1");
+        headers.add("header", "value2");
+        given(httpRequest.headers()).willReturn(headers);
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        final AuctionEvent auctionEvent = captureAuctionEvent();
+        final Map<String, String> obtainedHeaders = auctionEvent.getHttpContext().getHeaders();
+        assertThat(obtainedHeaders.entrySet()).containsOnly(entry("header", "value1"));
     }
 
     private Timeout captureTimeout() {
