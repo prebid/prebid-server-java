@@ -35,15 +35,16 @@ public class HttpContext {
     }
 
     private static Map<String, String> queryParams(RoutingContext context) {
-        final MultiMap params = context.request().params();
-        return params.names().stream()
-                .collect(Collectors.toMap(Function.identity(), params::get));
+        return toMap(context.request().params());
     }
 
     private static Map<String, String> headers(RoutingContext context) {
-        final MultiMap headers = context.request().headers();
-        return headers.names().stream()
-                .collect(Collectors.toMap(Function.identity(), headers::get));
+        return toMap(context.request().headers());
+    }
+
+    private static Map<String, String> toMap(MultiMap multiMap) {
+        return multiMap.names().stream()
+                .collect(Collectors.toMap(Function.identity(), multiMap::get));
     }
 
     private static Map<String, String> cookies(RoutingContext context) {
