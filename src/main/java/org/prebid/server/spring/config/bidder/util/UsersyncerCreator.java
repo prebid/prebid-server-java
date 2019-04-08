@@ -1,7 +1,6 @@
 package org.prebid.server.spring.config.bidder.util;
 
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 
 import java.util.function.Supplier;
