@@ -42,7 +42,7 @@ public class TtxConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(configProperties, externalUrl))
+                .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
                 .bidderCreator(() -> new TtxBidder(configProperties.getEndpoint()))
                 .assemble();
     }

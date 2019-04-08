@@ -42,7 +42,7 @@ public class BrightrollConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(configProperties, externalUrl))
+                .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
                 .bidderCreator(() -> new BrightrollBidder(configProperties.getEndpoint()))
                 .assemble();
     }

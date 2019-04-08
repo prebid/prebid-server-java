@@ -21,9 +21,4 @@ public class UsersyncerCreator {
                 usersync.getType(),
                 usersync.getSupportCors());
     }
-
-    public static Supplier<Usersyncer> create(BidderConfigurationProperties configurationProperties,
-                                              String externalUrl) {
-        return create(configurationProperties.getUsersync(), externalUrl);
-    }
 }
