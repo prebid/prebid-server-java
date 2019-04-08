@@ -1,7 +1,7 @@
 adapters:
   beachfront:
     enabled: false
-    banner-endpoint: https://display.bfmio.com/prebid_display
+    endpoint: https://display.bfmio.com/prebid_display
     video-endpoint: https://reachms.bfmio.com/bid.json?exchange_id=
     pbs-enforces-gdpr: true
     deprecated-names:

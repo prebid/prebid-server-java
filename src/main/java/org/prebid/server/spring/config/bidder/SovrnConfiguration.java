@@ -1,13 +1,13 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.sovrn.SovrnAdapter;
 import org.prebid.server.bidder.sovrn.SovrnBidder;
-import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
+import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
+import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
+import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -41,18 +41,12 @@ public class SovrnConfiguration {
 
     @Bean
     BidderDeps sovrnBidderDeps() {
-        final MetaInfo metaInfo = configProperties.getMetaInfo();
-        final BidderInfo bidderInfo = BidderInfo.create(configProperties.getEnabled(), metaInfo.getMaintainerEmail(),
-                metaInfo.getAppMediaTypes(), metaInfo.getSiteMediaTypes(), metaInfo.getSupportedVendors(),
-                metaInfo.getVendorId(), configProperties.getPbsEnforcesGdpr());
-
         final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(bidderInfo)
-                .usersyncerCreator(() -> new Usersyncer(usersync.getCookieFamilyName(), usersync.getUrl(),
-                        usersync.getRedirectUrl(), externalUrl, usersync.getType(), usersync.getSupportCors()))
+                .bidderInfo(BidderInfoCreator.create(configProperties))
+                .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
                 .bidderCreator(() -> new SovrnBidder(configProperties.getEndpoint()))
                 .adapterCreator(() -> new SovrnAdapter(usersync.getCookieFamilyName(), configProperties.getEndpoint()))
                 .assemble();
