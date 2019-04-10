@@ -25,6 +25,7 @@ import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.bidder.BidderCatalog;
@@ -78,12 +79,13 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final Metrics metrics;
     private final Clock clock;
     private final TimeoutFactory timeoutFactory;
+    private final TimeoutResolver timeoutResolver;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory, ExchangeService exchangeService,
                       UidsCookieService uidsCookieService, Set<String> biddersSupportingCustomTargeting,
                       BidderCatalog bidderCatalog, AnalyticsReporter analyticsReporter,
                       AmpResponsePostProcessor ampResponsePostProcessor, Metrics metrics, Clock clock,
-                      TimeoutFactory timeoutFactory) {
+                      TimeoutFactory timeoutFactory, TimeoutResolver timeoutResolver) {
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -94,6 +96,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
     }
 
     @Override
@@ -143,7 +146,8 @@ public class AmpHandler implements Handler<RoutingContext> {
     }
 
     private Timeout timeout(BidRequest bidRequest, long startTime) {
-        return timeoutFactory.create(startTime, bidRequest.getTmax());
+        final long timeout = timeoutResolver.adjustTimeout(bidRequest.getTmax());
+        return timeoutFactory.create(startTime, timeout);
     }
 
     private AmpResponse toAmpResponse(BidRequest bidRequest, BidResponse bidResponse) {

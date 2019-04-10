@@ -50,12 +50,10 @@ public class AmpRequestFactory {
     private final StoredRequestProcessor storedRequestProcessor;
     private final AuctionRequestFactory auctionRequestFactory;
 
-    public AmpRequestFactory(long defaultTimeout, long maxTimeout, long timeoutAdjustment,
-                             StoredRequestProcessor storedRequestProcessor,
+    public AmpRequestFactory(TimeoutResolver timeoutResolver, StoredRequestProcessor storedRequestProcessor,
                              AuctionRequestFactory auctionRequestFactory) {
 
-        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
-
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
     }
