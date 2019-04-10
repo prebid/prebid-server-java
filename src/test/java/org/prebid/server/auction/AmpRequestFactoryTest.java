@@ -55,6 +55,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private TimeoutResolver timeoutResolver;
+    @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
     private AuctionRequestFactory auctionRequestFactory;
@@ -68,9 +70,12 @@ public class AmpRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(timeoutResolver.resolve(any())).willReturn(2000L);
+
         given(httpRequest.getParam(eq("tag_id"))).willReturn("tagId");
         given(routingContext.request()).willReturn(httpRequest);
-        factory = new AmpRequestFactory(2000L, 5000L, 0L, storedRequestProcessor, auctionRequestFactory);
+
+        factory = new AmpRequestFactory(timeoutResolver, storedRequestProcessor, auctionRequestFactory);
     }
 
     @Test

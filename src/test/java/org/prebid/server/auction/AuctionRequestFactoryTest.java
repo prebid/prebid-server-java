@@ -49,6 +49,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
+    private TimeoutResolver timeoutResolver;
+    @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
     private ImplicitParametersExtractor paramsExtractor;
@@ -68,8 +70,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
+        given(timeoutResolver.resolve(any())).willReturn(2000L);
+
         given(interstitialProcessor.process(any())).will(invocationOnMock -> invocationOnMock.getArgument(0));
-        factory = new AuctionRequestFactory(2000L, 5000L, 0L, Integer.MAX_VALUE, "USD", storedRequestProcessor,
+
+        factory = new AuctionRequestFactory(timeoutResolver, Integer.MAX_VALUE, "USD", storedRequestProcessor,
                 paramsExtractor, uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor);
     }
 
@@ -91,7 +96,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
         // given
-        factory = new AuctionRequestFactory(2000L, 5000L, 0L, 1, "USD", storedRequestProcessor, paramsExtractor,
+        factory = new AuctionRequestFactory(timeoutResolver, 1, "USD", storedRequestProcessor, paramsExtractor,
                 uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor);
 
         given(routingContext.getBody()).willReturn(Buffer.buffer("body"));
@@ -205,7 +210,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .device(Device.builder().ua("UnitTestUA").ip("56.76.12.3").build())
                 .user(User.builder().id("userId").build())
                 .cur(singletonList("USD"))
-                .tmax(1000L)
+                .tmax(2000L)
                 .at(1)
                 .build();
 
@@ -369,42 +374,15 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetDefaultTimeoutIfTimeoutInRequestIsMissing() {
+    public void shouldSetTimeoutFromTimeoutResolver() {
         // given
-        givenBidRequest(BidRequest.builder().tmax(null).build());
+        givenBidRequest(BidRequest.builder().build());
 
         // when
         final BidRequest result = factory.fromRequest(routingContext).result();
 
         // then
         assertThat(result.getTmax()).isEqualTo(2000L);
-    }
-
-    @Test
-    public void shouldSetMaxTimeoutIfTimeoutInRequestExceedsLimit() {
-        // given
-        givenBidRequest(BidRequest.builder().tmax(6000L).build());
-
-        // when
-        final BidRequest result = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(result.getTmax()).isEqualTo(5000L);
-    }
-
-    @Test
-    public void shouldUseTimeoutAdjustment() {
-        // given
-        factory = new AuctionRequestFactory(2000L, 5000L, 100L, Integer.MAX_VALUE, "USD", storedRequestProcessor,
-                paramsExtractor, uidsCookieService, bidderCatalog, requestValidator, interstitialProcessor);
-
-        givenBidRequest(BidRequest.builder().tmax(1000L).build());
-
-        // when
-        final BidRequest result = factory.fromRequest(routingContext).result();
-
-        // then
-        assertThat(result.getTmax()).isEqualTo(900L);
     }
 
     @Test
