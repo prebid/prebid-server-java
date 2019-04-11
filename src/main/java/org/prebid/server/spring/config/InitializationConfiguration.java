@@ -1,6 +1,7 @@
 package org.prebid.server.spring.config;
 
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.health.DatabaseChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
@@ -51,6 +52,10 @@ public class InitializationConfiguration {
     @Qualifier("ampJdbcPeriodicRefreshService")
     private ObjectProvider<JdbcPeriodicRefreshService> ampJdbcPeriodicRefreshServiceProvider;
 
+    @Autowired
+    @Qualifier("databaseChecker")
+    private ObjectProvider<DatabaseChecker> databaseHealthCheckProvider;
+
     @EventListener(ContextRefreshedEvent.class)
     public void initializeServices() {
 
@@ -64,12 +69,12 @@ public class InitializationConfiguration {
                 jdbcPeriodicRefreshServiceProvider.getIfAvailable();
         final JdbcPeriodicRefreshService ampJdbcPeriodicRefreshService =
                 ampJdbcPeriodicRefreshServiceProvider.getIfAvailable();
+        final DatabaseChecker databaseHealthCheck = databaseHealthCheckProvider.getIfAvailable();
 
         contextRunner.runOnServiceContext(future -> {
             if (currencyConversionService != null) {
                 currencyConversionService.initialize();
             }
-
             if (httpPeriodicRefreshService != null) {
                 httpPeriodicRefreshService.initialize();
             }
@@ -81,6 +86,9 @@ public class InitializationConfiguration {
             }
             if (ampJdbcPeriodicRefreshService != null) {
                 ampJdbcPeriodicRefreshService.initialize();
+            }
+            if (databaseHealthCheck != null) {
+                databaseHealthCheck.initialize();
             }
 
             future.complete();

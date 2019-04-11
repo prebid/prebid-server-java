@@ -5,6 +5,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.ext.jdbc.JDBCClient;
 import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.AuctionRequestFactory;
@@ -29,6 +30,8 @@ import org.prebid.server.gdpr.vendorlist.VendorListService;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
+import org.prebid.server.health.DatabaseChecker;
+import org.prebid.server.health.HealthChecker;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.settings.ApplicationSettings;
@@ -360,5 +363,21 @@ public class ServiceConfiguration {
             HttpClient httpClient) {
 
         return new CurrencyConversionService(currencyServerUrl, refreshPeriod, vertx, httpClient);
+    }
+
+    @Configuration
+    static class HealthCheckerService {
+
+        @Autowired
+        Vertx vertx;
+
+        @Bean
+        @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
+        HealthChecker databaseChecker(
+                @Value("${health-check.database.refresh-period-ms}") long refreshPeriod,
+                JDBCClient jdbcClient) {
+
+            return new DatabaseChecker(vertx, jdbcClient, refreshPeriod);
+        }
     }
 }
