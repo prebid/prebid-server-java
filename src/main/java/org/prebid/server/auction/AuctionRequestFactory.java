@@ -62,13 +62,12 @@ public class AuctionRequestFactory {
     private final InterstitialProcessor interstitialProcessor;
 
     public AuctionRequestFactory(
-            long defaultTimeout, long maxTimeout, long timeoutAdjustment, long maxRequestSize, String adServerCurrency,
+            TimeoutResolver timeoutResolver, long maxRequestSize, String adServerCurrency,
             StoredRequestProcessor storedRequestProcessor, ImplicitParametersExtractor paramsExtractor,
             UidsCookieService uidsCookieService, BidderCatalog bidderCatalog, RequestValidator requestValidator,
             InterstitialProcessor interstitialProcessor) {
 
-        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
-
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.maxRequestSize = maxRequestSize;
         this.adServerCurrency = validateCurrency(adServerCurrency);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);

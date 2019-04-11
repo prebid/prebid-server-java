@@ -44,7 +44,6 @@ public class PreBidRequestContextFactory {
     private static final Logger logger = LoggerFactory.getLogger(PreBidRequestContextFactory.class);
 
     private final TimeoutResolver timeoutResolver;
-    private final long defaultTimeout;
     private final ImplicitParametersExtractor paramsExtractor;
     private final ApplicationSettings applicationSettings;
     private final UidsCookieService uidsCookieService;
@@ -52,14 +51,11 @@ public class PreBidRequestContextFactory {
 
     private final Random rand = new Random();
 
-    public PreBidRequestContextFactory(long defaultTimeout, long maxTimeout,
-                                       long timeoutAdjustment, ImplicitParametersExtractor paramsExtractor,
+    public PreBidRequestContextFactory(TimeoutResolver timeoutResolver, ImplicitParametersExtractor paramsExtractor,
                                        ApplicationSettings applicationSettings, UidsCookieService uidsCookieService,
                                        TimeoutFactory timeoutFactory) {
 
-        timeoutResolver = new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
-
-        this.defaultTimeout = defaultTimeout;
+        this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -207,7 +203,7 @@ public class PreBidRequestContextFactory {
     private PreBidRequest adjustRequestTimeout(PreBidRequest preBidRequest) {
         final Long requestTimeout = preBidRequest.getTimeoutMillis();
         final long resolvedTimeout = timeoutResolver.resolve(requestTimeout);
-        final long timeout = resolvedTimeout > 0 ? resolvedTimeout : defaultTimeout; // check negative value
+        final long timeout = timeoutResolver.adjustTimeout(resolvedTimeout);
 
         // check, do we really need to update request?
         return !Objects.equals(requestTimeout, timeout)
