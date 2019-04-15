@@ -16,6 +16,8 @@ import java.time.temporal.ChronoField;
 
 class ZonedDateTimeModule extends SimpleModule {
 
+    private static final long serialVersionUID = 1L;
+
     // see https://stackoverflow.com/q/30090710
     // this format is equal to "yyyy-MM-dd'T'HH:mm:ss.nnnnnnnnnXXX" but allows less than 9 nanosecond digits in
     // parsed strings, as a side effect trailing zeros will be removed when formatting ZonedDateTime into string

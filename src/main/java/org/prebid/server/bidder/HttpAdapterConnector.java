@@ -154,9 +154,9 @@ public class HttpAdapterConnector {
      * Transforms HTTP call results into {@link ExchangeCall} filled with debug information,
      * {@link BidResponse} and errors happened along the way.
      */
-    private static <T, R> ExchangeCall toExchangeCall(T request, int statusCode, String body,
-                                                      TypeReference<R> responseTypeReference,
-                                                      BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
+    private static <T, R> ExchangeCall<T, R> toExchangeCall(T request, int statusCode, String body,
+                                                            TypeReference<R> responseTypeReference,
+                                                            BidderDebug.BidderDebugBuilder bidderDebugBuilder) {
         final BidderDebug bidderDebug = completeBidderDebug(bidderDebugBuilder, statusCode, body);
 
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
