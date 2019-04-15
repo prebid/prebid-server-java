@@ -15,7 +15,7 @@ For example, current project version is `1.17.3`. So, next project version in th
 2. When Prebid Server involves new features with backward compatibility `MINOR` version must be incremented.
 For example, current project version is `1.17.3`. So, next project version in this case will be `1.18.0`.
 
-3. When Prebid Server involves bugfixes `PATCH` version must be incremented.
+3. When Prebid Server involves bug fixes `PATCH` version must be incremented.
 For example, current project version in POM file is `1.18.0-SNAPSHOT` and previous release version was `1.17.3`. So, next release version in this case will be `1.17.4` and development version must be back to `1.18.0-SNAPSHOT`.
 
 ## For developers
