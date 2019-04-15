@@ -6,8 +6,6 @@ import java.util.stream.Collectors;
 
 public class InvalidRequestException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
-
     private final List<String> messages;
 
     public InvalidRequestException(String message) {
