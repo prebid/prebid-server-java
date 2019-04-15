@@ -222,4 +222,20 @@ public class Metrics extends UpdatableMetrics {
             incCounter(MetricName.geolocation_circuitbreaker_closed);
         }
     }
+
+    public void updateStoredRequestMetric(boolean found) {
+        if (found) {
+            incCounter(MetricName.stored_requests_found);
+        } else {
+            incCounter(MetricName.stored_requests_missing);
+        }
+    }
+
+    public void updateStoredImpsMetric(boolean found) {
+        if (found) {
+            incCounter(MetricName.stored_imps_found);
+        } else {
+            incCounter(MetricName.stored_imps_missing);
+        }
+    }
 }
